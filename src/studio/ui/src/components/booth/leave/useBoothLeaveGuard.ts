@@ -3,7 +3,8 @@ import type { DawResult } from '../../../api/contracts/daw';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
 import type { OverlayService } from '../../../overlay/overlayService';
 import { pageNameFor } from '../../layout/railPages';
-import { stopRecordingSpec } from './stopRecordingSpec';
+import { noAnswerSentence } from '../../../studio/dawNames';
+import { CHAPTER_OPEN_ANYWAY, stopRecordingSpec } from './stopRecordingSpec';
 
 /** The seam the Booth gives the guard: not a `DawClient`, only what leaving needs to know and do. */
 export type BoothLeaveSession = {
@@ -51,7 +52,6 @@ const STOPPING_TOAST_MS = 3 * LEAVE_WAIT_MS + 1000;
  * its reply (which writes the take's undo entry) is waited for this long before the end is believed on its own.
  */
 const END_GRACE_MS = 1500;
-const NO_ANSWER = 'The DAW did not answer in time.';
 
 /** `work`'s answer, or null when it has not come after `ms`: an answer that never comes must not hold the narrator in the Booth. */
 async function within<T>(work: Promise<T>, ms: number): Promise<{ value: T } | null> {
@@ -215,7 +215,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.
             const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), LEAVE_WAIT_MS) : { value: true };
             if (gone.current) return false;
-            if (!landed) sentence = NO_ANSWER;
+            if (!landed) sentence = noAnswerSentence(now.daw.name);
             // `landed.value` false is "no take is running now": for a start that was pending that is nothing to stop. For a take that was running when the
             // narrator was asked it is not enough, because a DAW that went quiet reads the same: that case goes on to the stop, which checks the end (below).
             else if (!landed.value && now.startPending) {
@@ -249,7 +249,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
                 await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
                 return !gone.current;
               }
-              if (!stopped) sentence = NO_ANSWER;
+              if (!stopped) sentence = noAnswerSentence(now.daw.name);
               else if (stopped.value.ok) {
                 // A run that cannot be written in time does not hold the narrator either: the take is stopped, and they leave.
                 await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
@@ -276,8 +276,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             // The labels of the question as the DAW is now: a take that went quiet after "Keep recording" was offered offers "Stay", as the unconfirmed question does.
             ...stopRecordingSpec(now.daw.name, startedByApp, false, destination, unconfirmedEnd(sessionRef.current)),
             title: 'Could not stop the take',
-            body: `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} You can leave anyway, but it may keep recording.`.trim(),
-            confirmLabel: 'Leave anyway',
+            body: `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} You can ${destination === 'Booth' ? 'open it' : 'leave'} anyway, but it may keep recording.`.trim(),
+            confirmLabel: destination === 'Booth' ? CHAPTER_OPEN_ANYWAY : 'Leave anyway',
             // A double-click on "Stop and leave" must not land on the "Leave anyway" that replaces it before the sentence can be read.
             armAfterMs: LEAVE_ANYWAY_ARM_MS,
           };

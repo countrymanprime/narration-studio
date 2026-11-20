@@ -3,6 +3,7 @@ import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { Button } from '../../primitives/Button';
 import { toneColors } from '../../primitives/StatusBadge';
+import { SpokenFigure } from '../../primitives/SpokenFigure';
 import { hm } from '../../schedule/dates';
 import { rankNextUp, type NextItem, type NextUpInputs } from './nextUpRanking';
 import type { GoTarget } from './pipelineRows';
@@ -46,9 +47,13 @@ function Rendered({ item, onGo, timer }: Omit<Props, 'inputs'> & { item: NextIte
   switch (item.kind) {
     case 'rec': {
       const left =
-        item.hoursLeft === null
-          ? 'recording in progress'
-          : `${Math.round((item.share ?? 0) * 100)}% recorded · about ${hm(item.hoursLeft)} of finished audio left`;
+        item.hoursLeft === null ? (
+          'recording in progress'
+        ) : (
+          <>
+            {Math.round((item.share ?? 0) * 100)}% recorded · about <SpokenFigure text={hm(item.hoursLeft)} /> of finished audio left
+          </>
+        );
       return (
         <Item icon="●" status="rec" title={`Finish recording ${item.name}`} sub={left}>
           {/* Opening the Booth to read and prepare is navigation; only Record needs the capability (the Booth gates that itself), and why it is

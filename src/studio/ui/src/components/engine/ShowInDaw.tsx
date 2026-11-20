@@ -8,7 +8,6 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { overlay } from '../../overlay/overlayService';
 import { clock } from '../../clock';
-import { noteTime } from '../proof/findingFormat';
 import { IconButton } from '../primitives/IconButton';
 
 /**
@@ -77,9 +76,15 @@ export type ShowInDawPorts = {
 /**
  * The one place a Show in {DAW} press reaches the host (#2826): the call the target's kind has, and the sentence that says where the DAW went or why
  * it did not. Null when the host answered with nothing to say. A menu entry that cannot render the button calls this directly; nothing else
- * calls `workspaceGoTo`, `findingsGoTo` or `trackSelectInReaper` for a "show me" (`showInDawGuard.test.ts`).
+ * calls `workspaceGoTo`, `findingsGoTo` or `trackSelectInReaper` for a "show me" (`showInDawGuard.test.ts`). `when` writes the place the DAW moved to: the shared
+ * default is the page-neutral clock, and Editing and Proof pass their own full form, so Pickups keeps the text it always had.
  */
-export async function showInDaw(ports: ShowInDawPorts, target: ShowInDawTarget, dawName: string): Promise<ShowInDawResult | null> {
+export async function showInDaw(
+  ports: ShowInDawPorts,
+  target: ShowInDawTarget,
+  dawName: string,
+  when: (seconds: number) => string = clock,
+): Promise<ShowInDawResult | null> {
   try {
     if (target.kind === 'chapter') {
       const result = await ports.chapterTrackMap.trackSelectInReaper(target.trackGuid!);
@@ -92,7 +97,6 @@ export async function showInDaw(ports: ShowInDawPorts, target: ShowInDawTarget, 
         ? await ports.workspace.workspaceGoTo(target.chapterId, target.token!)
         : await ports.findings.findingsGoTo(target.kind === 'finding' ? target.id : target.findingId!);
     if (went.outcome === 'refused') return { message: went.message, failed: true };
-    const when = target.kind === 'finding' ? noteTime : clock;
     if (went.outcome !== 'navigated') return null;
     // A host that sends no usable time still moved the DAW: say so without printing NaN.
     return { message: Number.isFinite(went.projectTime) ? `Moved to ${when(went.projectTime)} in ${dawName}.` : `Moved in ${dawName}.`, failed: false };
@@ -103,11 +107,12 @@ export async function showInDaw(ports: ShowInDawPorts, target: ShowInDawTarget, 
 
 /**
  * The one source of "Show in {DAW}": the label, why it is off, and the call. `onResult` takes the sentence in place of a toast (Proof's inspector
- * shows it in its own status line).
+ * shows it in its own status line). `when` is the caller's way of writing a position (see `showInDaw`).
  */
 function useShowInDaw(
   target: ShowInDawTarget,
   onResult?: (result: ShowInDawResult) => void,
+  when?: (seconds: number) => string,
 ): { label: string; reason: string | null; pending: boolean; hidden: boolean; go: () => void } {
   const workspace = usePort('workspace');
   const findings = usePort('findings');
@@ -152,7 +157,7 @@ function useShowInDaw(
     const deadline = new Promise<ShowInDawResult>((resolve) => {
       timer = setTimeout(() => resolve({ message: `${name} did not answer. Press Show in again to try once more.`, failed: true }), ASK_DEADLINE_MS);
     });
-    void Promise.race([showInDaw(ports, target, name), deadline])
+    void Promise.race([showInDaw(ports, target, name, when), deadline])
       .then((result) => {
         if (result && live.current === mine) say(result);
       })
@@ -172,13 +177,16 @@ export function ShowInDawButton({
   size,
   disabled,
   onResult,
+  when,
 }: {
   target: ShowInDawTarget;
   size?: 'sm';
   disabled?: boolean;
   onResult?: (result: ShowInDawResult) => void;
+  /** How a position is written in the sentence; Editing and Proof pass their full form. */
+  when?: (seconds: number) => string;
 }) {
-  const place = useShowInDaw(target, onResult);
+  const place = useShowInDaw(target, onResult, when);
   if (place.hidden) return null;
   return (
     <IconButton

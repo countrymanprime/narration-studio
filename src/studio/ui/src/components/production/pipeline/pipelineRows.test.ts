@@ -167,9 +167,9 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     const rows = rowsOf(linked);
     expect(rows).toHaveLength(16);
     for (const row of rows) {
-      expect(row.recorded).toMatchObject({ kind: 'measured', text: '1:04' });
-      expect(row.recorded.label).toBe(`${row.name}: 1:04 recorded of about 1:00 estimated`);
-      expect(row.estimate).toBe('1:00');
+      expect(row.recorded).toMatchObject({ kind: 'measured', text: '1h 04m' });
+      expect(row.recorded.label).toBe(`${row.name}: 1 hour 4 minutes recorded of about 1 hour estimated`);
+      expect(row.estimate).toBe('1h 00m');
       // The audio is there, so Record is under way even though the chapter's stage still says not started.
       expect(row.cells.record).toMatchObject({ kind: 'progress', text: '99%' });
       expect(row.cells.record.tip).toContain('stage is still Not started');
@@ -193,7 +193,7 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
       ['none', 'Track missing'],
       ['none', 'Not read'],
     ]);
-    for (const row of rows) expect(row.recorded.text).not.toMatch(/^0:00$/);
+    for (const row of rows) expect(row.recorded.text).not.toMatch(/^0h 00m$/);
     expect(rows[0]!.cells.record).toMatchObject({ kind: 'none', state: 'not started' });
   });
 
@@ -206,7 +206,7 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     expect(byHand!.recorded.text).toBe('Not linked');
     expect(byHand!.cells.record).toMatchObject({ kind: 'done', text: '✓' });
     expect(byHand!.cells.record.tip).toBe('Recorded · the chapter’s stage; no track is linked, so no length is measured');
-    expect(measured!.cells.record.tip).toBe('Recorded · 0:10 recorded');
+    expect(measured!.cells.record.tip).toBe('Recorded · 0h 10m recorded');
   });
 
   it('says in its tip and name how far the chapter is recorded (#2251): through which paragraph, to the end, or about for the track’s length', () => {
@@ -218,12 +218,12 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
       chapter('c4', { recordedSeconds: 1500, recordedThrough: { ...through, paragraph: undefined } }),
       chapter('c5', { recordedUnavailable: 'unlinked', recordedThrough: through }),
     ]);
-    expect(part!.recorded.label).toBe('Chapter 1: 0:25 recorded of about 1:00 estimated, recorded through paragraph 12 (38%)');
+    expect(part!.recorded.label).toBe('Chapter 1: 25 minutes recorded of about 1 hour estimated, recorded through paragraph 12 (38%)');
     expect(part!.recorded.tip).toBe(
-      '0:25 recorded of about 1:00 estimated · on the linked track in the saved project, before editing · Recorded through ¶ 12 (38%)',
+      '0h 25m recorded of about 1h 00m estimated · on the linked track in the saved project, before editing · Recorded through ¶ 12 (38%)',
     );
     expect(whole!.recorded.tip).toContain(' · Recorded to the end');
-    expect(whole!.recorded.label).toBe('Chapter 2: 1:00 recorded of about 1:00 estimated, recorded to the end');
+    expect(whole!.recorded.label).toBe('Chapter 2: 1 hour recorded of about 1 hour estimated, recorded to the end');
     expect(about!.recorded.label).toContain('recorded through about paragraph 12 (~30%)');
     expect(about!.recorded.tip).toContain('Recorded through about ¶ 12 (~30%, from the track’s length)');
     // A host without the paragraph number says the share alone, never a made-up ¶.
@@ -247,11 +247,11 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     expect(none!.cells.record).toMatchObject({ kind: 'progress', text: '50%' });
   });
 
-  it('never shows under a minute of audio as 0:00, and shows a dash for a chapter with no words to estimate from', () => {
+  it('never shows under a minute of audio as 0h 00m, and shows a dash for a chapter with no words to estimate from', () => {
     const [short] = rowsOf([chapter('c1', { recordedSeconds: 20, wordCount: 0 })]);
-    expect(short!.recorded.text).toBe('<0:01');
+    expect(short!.recorded.text).toBe('<0h 01m');
     expect(short!.estimate).toBe('—');
-    expect(short!.recorded.label).toBe('Chapter 1: <0:01 recorded, no estimate');
+    expect(short!.recorded.label).toBe('Chapter 1: less than a minute recorded, no estimate');
   });
 
   it('lists the credits as chapters: the opening first, the closing last, drawn through the one format', () => {

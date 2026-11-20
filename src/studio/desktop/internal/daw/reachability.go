@@ -43,7 +43,12 @@ type Reachability struct {
 	// timing is the heartbeat's optional seventh field: the bridge timing diagnostic is switched on in REAPER.
 	// +checklocks:mu
 	timing bool
-	now    func() time.Time
+	// epoch counts the times the bridge may have started over: a heartbeat that came after a gap longer than heartbeatTimeout (REAPER closed and
+	// opened again, or stalled), one for another project, or one whose edit counter went down (the counter starts again when a project opens).
+	// A consumer that holds something read from REAPER keeps the epoch it read it in, and reads again when it has moved.
+	// +checklocks:mu
+	epoch uint64
+	now   func() time.Time
 }
 
 // Transport is REAPER's transport as of the last heartbeat: GetPlayState's play and record bits and GetPlayPosition.
@@ -103,7 +108,11 @@ func (r *Reachability) Record(event bridge.Event) {
 	timing := len(event.Fields) > 7 && event.Fields[7] == "1"
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.lastSeen = r.now()
+	now := r.now()
+	if !r.lastSeen.IsZero() && (now.Sub(r.lastSeen) > heartbeatTimeout || !strings.EqualFold(filepath.Clean(rpp), filepath.Clean(r.rpp)) || (hasChangeCount && r.hasChangeCount && changeCount < r.changeCount)) {
+		r.epoch++
+	}
+	r.lastSeen = now
 	r.rpp = rpp
 	r.unsaved = unsaved
 	r.changeCount, r.hasChangeCount = changeCount, hasChangeCount
@@ -141,6 +150,13 @@ func (r *Reachability) ChangeCount() (int, bool) {
 		return 0, false
 	}
 	return r.changeCount, true
+}
+
+// Epoch is how many times the bridge may have started over since the first heartbeat (see the epoch field). It only grows.
+func (r *Reachability) Epoch() uint64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.epoch
 }
 
 // Reachable reports whether a heartbeat arrived recently enough to trust: REAPER is running and the bridge tick

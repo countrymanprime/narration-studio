@@ -5,7 +5,6 @@ import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { DawClient } from '../../ports';
 import { usePort } from '../../ports/usePort';
-import { clock } from '../../clock';
 import { lineText, reasonSentence } from '../pickups/list/pickupRows';
 import { useDawFileLinked } from '../connection/dawFileLinked';
 import { IconButton } from '../primitives/IconButton';
@@ -15,9 +14,9 @@ import { pluralWord, plural, formatCount } from '../../plural';
 /**
  * What an Add marker press is about (#2830): one Proof note, or the pickups of a session. A finding goes through `daw.addMarker`, pickups through
  * `daw.addPickupMarkers`; the label, the gate, the busy state and every sentence are this file's, so Proof, Editing and Pickups say the same
- * things. `at` is the finding's time in seconds, for "A marker is already at 3:41."
+ * things. `at` is the finding's time already written by the caller (Proof writes it `hh:mm:ss.fff`), for "A marker is already at 00:03:41.000."; this file writes no position of its own.
  */
-export type AddMarkersTarget = { kind: 'finding'; id: string; at?: number } | { kind: 'pickups'; pickups: readonly PickupItem[] };
+export type AddMarkersTarget = { kind: 'finding'; id: string; at?: string } | { kind: 'pickups'; pickups: readonly PickupItem[] };
 
 /** What the press said: `failed` is an error, shown as the caller's inline message or an error toast. */
 export type AddMarkersResult = { message: string; failed: boolean; added: boolean };
@@ -62,7 +61,7 @@ export async function addMarkers(daw: Pick<DawClient, 'addMarker' | 'addPickupMa
     try {
       const added = await daw.addMarker(target.id);
       if (added.refused) return { message: added.refused, failed: true, added: false };
-      const already = target.at === undefined ? 'This note already has a marker here.' : `A marker is already at ${clock(target.at)}.`;
+      const already = target.at === undefined ? 'This note already has a marker here.' : `A marker is already at ${target.at}.`;
       return {
         message: added.message || (added.changed ? `Marker added in ${dawName}. One Undo there removes it.` : already),
         failed: false,

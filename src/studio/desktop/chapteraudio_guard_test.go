@@ -17,6 +17,7 @@ var oneTrackReads = map[string]string{
 	"bindings_readaloud_record.go":   "the record precondition reads the voice the take arms, never the folder (recordTarget)",
 	"readaloudreaper.go":             "the arm state of the voice the take records on",
 	"teleprompterinput.go":           "the input device of the track a take records on",
+	"resumelive.go":                  "the resume follow's itemless tick reads the transport and the edit cursor, which are the project's and not the track's; the items are read through ChapterAudioState",
 	"chapteraudio_guard_test.go":     "this file names the call",
 	"internal/bridge/track_state.go": "the bridge's own read",
 	"internal/dawport/roles.go":      "the role definitions",

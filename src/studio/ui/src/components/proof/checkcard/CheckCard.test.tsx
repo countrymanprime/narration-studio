@@ -224,7 +224,7 @@ describe('findings', () => {
   };
   it('Accept on a gap calls coverageGapAccept, shows Needs pickup and moves the row to Accepted', async () => {
     const { calls } = await open();
-    await userEvent.click(screen.getByRole('button', { name: 'Accept Skipped at 0:20' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Accept Skipped at 00:00:20.000' }));
     await waitFor(() => expect(calls.accept).toHaveBeenCalledWith('c1', 'g1'));
     await userEvent.click(screen.getByRole('button', { name: /^Accepted 1/ }));
     const row = card().querySelector('[data-finding="g1"]')!;
@@ -234,14 +234,14 @@ describe('findings', () => {
   it('Accept on an audio finding reviews it as accepted and starts as Fix in edit', async () => {
     const { calls } = await open({ audio: [audio('a1', 'noise', 5)] });
     expect(card().querySelector('[data-finding="a1"]')?.textContent).toContain('Fix in edit');
-    await userEvent.click(screen.getByRole('button', { name: 'Accept Background noise at 0:05' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Accept Background noise at 00:00:05.000' }));
     await waitFor(() => expect(calls.review).toHaveBeenCalledWith({ id: 'a1', evidenceVersion: 'v1', status: 'accepted', note: '' }));
     expect(calls.accept).not.toHaveBeenCalled();
   });
   it('Accept on an audio finding is one journal entry, and Undo puts the earlier decision back', async () => {
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
     const { calls } = await open({ audio: [audio('a1', 'noise', 5)], journal });
-    await userEvent.click(screen.getByRole('button', { name: 'Accept Background noise at 0:05' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Accept Background noise at 00:00:05.000' }));
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
     const [entry] = await journal.entries();
     expect(entry).toMatchObject({ label: 'Accepted a check finding', touches: ['proof/finding/a1'], undoable: true });
@@ -250,9 +250,9 @@ describe('findings', () => {
   });
   it('Ignore calls coverageGapIgnore, and an audio finding is dismissed', async () => {
     const { calls } = await open({ audio: [audio('a1', 'noise', 5)] });
-    await userEvent.click(screen.getByRole('button', { name: 'Ignore Skipped at 0:20' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ignore Skipped at 00:00:20.000' }));
     await waitFor(() => expect(calls.ignore).toHaveBeenCalledWith('c1', 'g1'));
-    await userEvent.click(screen.getByRole('button', { name: 'Ignore Background noise at 0:05' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ignore Background noise at 00:00:05.000' }));
     await waitFor(() => expect(calls.review).toHaveBeenCalledWith({ id: 'a1', evidenceVersion: 'v1', status: 'dismissed', note: '' }));
   });
   it('reads a remembered ignore as Ignored after a reload', async () => {

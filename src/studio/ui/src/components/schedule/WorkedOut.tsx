@@ -1,5 +1,6 @@
 import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
+import { SpokenFigure } from '../primitives/SpokenFigure';
 import { fmtD, hm, num } from './dates';
 import { PACE, RATIO, WPH } from './estimates';
 import type { Calc } from './progress';
@@ -25,12 +26,16 @@ export function WorkedOut({ k, wph = WPH }: { k: Calc; wph?: number }) {
         {rows.map(([name, value]) => (
           <div key={name} className="flex justify-between gap-3">
             <dt>{name}</dt>
-            <dd className="font-mono">{value}</dd>
+            <dd className="font-mono">
+              <SpokenFigure text={value} />
+            </dd>
           </div>
         ))}
         <div className="flex justify-between gap-3 border-t border-[var(--border)] pt-2 font-semibold">
           <dt>Work left</dt>
-          <dd className="font-mono">{hm(k.remain)}</dd>
+          <dd className="font-mono">
+            <SpokenFigure text={hm(k.remain)} />
+          </dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt>Your pace (estimate)</dt>

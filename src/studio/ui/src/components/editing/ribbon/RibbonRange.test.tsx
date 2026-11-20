@@ -293,14 +293,14 @@ describe('what a screen reader hears', () => {
     await ready();
     drag(surface(), xAt(5.54), xAt(6.296));
     await waitFor(() => expect(now(startHandle())).toBeCloseTo(5.54, 2));
-    expect(startHandle().getAttribute('aria-valuetext')).toMatch(/^Start 0:05\.54, range 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words$/);
-    expect(endHandle().getAttribute('aria-valuetext')).toMatch(/^End 0:06\.30, range 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words$/);
+    expect(startHandle().getAttribute('aria-valuetext')).toMatch(/^Start 00:00:05\.540, range 00:00:05\.540 to 00:00:06\.296, 0\.8 seconds, 2 words$/);
+    expect(endHandle().getAttribute('aria-valuetext')).toMatch(/^End 00:00:06\.296, range 00:00:05\.540 to 00:00:06\.296, 0\.8 seconds, 2 words$/);
     expect(startHandle().getAttribute('aria-orientation')).toBe('horizontal');
     // A range can reach anywhere in the recording: the waveform scrolls the whole chapter.
     expect(Number(startHandle().getAttribute('aria-valuemin'))).toBe(0);
     expect(Number(startHandle().getAttribute('aria-valuemax'))).toBeCloseTo(6.296 - 0.05, 2);
     expect(Number(endHandle().getAttribute('aria-valuemax'))).toBeCloseTo(8.1, 6);
-    expect(screen.getByRole('group', { name: /^Range 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words/ })).toBeTruthy();
+    expect(screen.getByRole('group', { name: /^Range 00:00:05\.540 to 00:00:06\.296, 0\.8 seconds, 2 words/ })).toBeTruthy();
   });
 
   it('announces a range once it is set, not at every move of the pointer', async () => {
@@ -311,7 +311,7 @@ describe('what a screen reader hears', () => {
     fireEvent.pointerMove(surface(), { clientX: xAt(6.296), pointerId: 1 });
     expect(status()).not.toMatch(/Range set/);
     fireEvent.pointerUp(surface(), { clientX: xAt(6.296), pointerId: 1 });
-    await waitFor(() => expect(status()).toMatch(/^Range set: 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words\./));
+    await waitFor(() => expect(status()).toMatch(/^Range set: 00:00:05\.540 to 00:00:06\.296, 0\.8 seconds, 2 words\./));
   });
 
   it('has no axe violations with a range and zoomed in', async () => {
@@ -331,7 +331,7 @@ describe('a drawn range writes nothing under the waveform', () => {
     drag(surface(), xAt(5.54), xAt(6.296));
     await waitFor(() => expect(startHandle()).toBeTruthy());
     const body = document.querySelector<HTMLElement>('[data-range-body]');
-    expect(body?.title).toMatch(/^0:05\.5/);
+    expect(body?.title).toMatch(/^00:00:05\.540/);
     expect(document.querySelector('[data-ribbon-notes]')).toBeNull();
     expect(document.querySelector('[data-range-notes]')).toBeNull();
     expect(screen.queryByTestId('range-partial')).toBeNull();
@@ -350,7 +350,7 @@ describe('the range label at a narrow width (#2642)', () => {
     const label = document.querySelector<HTMLElement>('[data-view-label]')!;
     expect(label.className).toMatch(/(^|\s)truncate(\s|$)/);
     expect(label.className).toMatch(/(^|\s)min-w-0(\s|$)/);
-    expect(label.parentElement?.getAttribute('title')).toBe('Showing 0:05.00 to 0:08.10');
+    expect(label.parentElement?.getAttribute('title')).toBe('Showing 00:00:05.000 to 00:00:08.100');
   });
 });
 
@@ -359,15 +359,15 @@ describe('zoom', () => {
     mount();
     await ready();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
-    expect(label()).toBe('0:05.00 to 0:08.10');
+    expect(label()).toBe('00:00:05.000 to 00:00:08.100');
     const zin = screen.getByRole('button', { name: 'Zoom in' });
     fireEvent.click(zin);
-    expect(label()).toBe('0:05.55 to 0:07.55');
+    expect(label()).toBe('00:00:05.550 to 00:00:07.550');
     fireEvent.click(zin);
-    expect(label()).toBe('0:06.05 to 0:07.05');
+    expect(label()).toBe('00:00:06.050 to 00:00:07.050');
     expect(zin.getAttribute('aria-disabled') ?? zin.hasAttribute('disabled')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
-    expect(label()).toBe('0:05.55 to 0:07.55');
+    expect(label()).toBe('00:00:05.550 to 00:00:07.550');
   });
 
   it('draws the range and reads the pointer against the zoomed view', async () => {
@@ -386,13 +386,13 @@ describe('zoom', () => {
     mount();
     await ready();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
-    expect(label()).toBe('0:05.00 to 0:08.10');
+    expect(label()).toBe('00:00:05.000 to 00:00:08.100');
     // 100 px of wheel on a 1000 px waveform moves it a tenth of what shows: 0.31 s back, toward the line before.
     expect(fireEvent.wheel(surface(), { deltaY: -100, clientX: 500 })).toBe(false);
-    expect(label()).toBe('0:04.69 to 0:07.79');
+    expect(label()).toBe('00:00:04.690 to 00:00:07.790');
     expect(fireEvent.wheel(surface(), { deltaY: -100, ctrlKey: true, clientX: 0 })).toBe(false);
     // the time at the left edge stays at the left edge
-    expect(label()).toBe('0:04.69 to 0:06.69');
+    expect(label()).toBe('00:00:04.690 to 00:00:06.690');
   });
 
   it('a sideways wheel or two-finger swipe scrolls, and the view stops at the end of the recording', async () => {
@@ -401,13 +401,13 @@ describe('zoom', () => {
     const label = () => document.querySelector('[data-view-label]')?.textContent;
     // The line's window already ends where the recording does.
     fireEvent.wheel(surface(), { deltaX: 100 });
-    expect(label()).toBe('0:05.00 to 0:08.10');
+    expect(label()).toBe('00:00:05.000 to 00:00:08.100');
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     fireEvent.wheel(surface(), { deltaY: 100, shiftKey: true });
-    expect(label()).toBe('0:06.15 to 0:07.15');
+    expect(label()).toBe('00:00:06.150 to 00:00:07.150');
     fireEvent.wheel(surface(), { deltaX: -100 });
-    expect(label()).toBe('0:06.05 to 0:07.05');
+    expect(label()).toBe('00:00:06.050 to 00:00:07.050');
   });
 
   it('has no scrollbar: the end arrows step the view, and turn off at either end of the recording', async () => {
@@ -421,10 +421,10 @@ describe('zoom', () => {
     expect(forward.getAttribute('aria-disabled')).toBe('true');
     // A step (15 to 30 s) is longer than this 8.1 s recording: one press reaches the start and stops there.
     fireEvent.click(back);
-    await waitFor(() => expect(label()).toBe('0:00.00 to 0:03.10'));
+    await waitFor(() => expect(label()).toBe('00:00:00.000 to 00:00:03.100'));
     await waitFor(() => expect(back.getAttribute('aria-disabled')).toBe('true'));
     fireEvent.click(forward);
-    await waitFor(() => expect(label()).toBe('0:05.00 to 0:08.10'));
+    await waitFor(() => expect(label()).toBe('00:00:05.000 to 00:00:08.100'));
   });
 
   it('a press and release with the mouse steps once, not once for the press and again for the click', async () => {
@@ -436,13 +436,13 @@ describe('zoom', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
       fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
       fireEvent.click(screen.getByRole('button', { name: 'Scroll the waveform back' }));
-      expect(label()).toBe('0:00.00 to 0:01.00');
+      expect(label()).toBe('00:00:00.000 to 00:00:01.000');
       const forward = screen.getByRole('button', { name: 'Scroll the waveform forward' });
       fireEvent.pointerDown(forward, { button: 0, pointerId: 1 });
       fireEvent.pointerUp(forward, { button: 0, pointerId: 1 });
       fireEvent.click(forward, { detail: 1 });
       // The end of the recording is 8.1 s and the step is 20 s by default: one step, clamped.
-      expect(label()).toBe('0:07.10 to 0:08.10');
+      expect(label()).toBe('00:00:07.100 to 00:00:08.100');
     } finally {
       delete document.documentElement.dataset.motion;
     }
@@ -473,17 +473,17 @@ describe('zoom', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     // The page's own arrows step the word cursor: these stay on the waveform.
     expect(fireEvent.keyDown(surface(), { key: 'ArrowRight' })).toBe(false);
-    expect(label()).toBe('0:06.15 to 0:07.15');
+    expect(label()).toBe('00:00:06.150 to 00:00:07.150');
     fireEvent.keyDown(surface(), { key: 'ArrowLeft', shiftKey: true });
-    expect(label()).toBe('0:05.15 to 0:06.15');
+    expect(label()).toBe('00:00:05.150 to 00:00:06.150');
     fireEvent.keyDown(surface(), { key: 'Home' });
-    expect(label()).toBe('0:00.00 to 0:01.00');
+    expect(label()).toBe('00:00:00.000 to 00:00:01.000');
     fireEvent.keyDown(surface(), { key: 'End' });
-    expect(label()).toBe('0:07.10 to 0:08.10');
+    expect(label()).toBe('00:00:07.100 to 00:00:08.100');
     fireEvent.keyDown(surface(), { key: '-' });
-    expect(label()).toBe('0:06.10 to 0:08.10');
+    expect(label()).toBe('00:00:06.100 to 00:00:08.100');
     fireEvent.keyDown(surface(), { key: '+' });
-    expect(label()).toBe('0:06.60 to 0:07.60');
+    expect(label()).toBe('00:00:06.600 to 00:00:07.600');
     expect(fireEvent.keyDown(surface(), { key: 'Delete' })).toBe(true);
   });
 
@@ -494,16 +494,16 @@ describe('zoom', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     const label = () => document.querySelector('[data-view-label]')?.textContent;
     act(() => state.dispatch({ type: 'play', t: 6.2 }));
-    expect(label()).toBe('0:06.05 to 0:07.05');
+    expect(label()).toBe('00:00:06.050 to 00:00:07.050');
     act(() => state.dispatch({ type: 'play', t: 7.2 }));
-    expect(label()).toBe('0:06.70 to 0:07.70');
+    expect(label()).toBe('00:00:06.700 to 00:00:07.700');
     fireEvent.keyDown(surface(), { key: 'ArrowLeft', shiftKey: true });
-    expect(label()).toBe('0:05.70 to 0:06.70');
+    expect(label()).toBe('00:00:05.700 to 00:00:06.700');
     act(() => state.dispatch({ type: 'play', t: 7.3 }));
-    expect(label()).toBe('0:05.70 to 0:06.70');
+    expect(label()).toBe('00:00:05.700 to 00:00:06.700');
     act(() => state.dispatch({ type: 'play', t: null }));
     act(() => state.dispatch({ type: 'play', t: 7.3 }));
-    expect(label()).toBe('0:06.80 to 0:07.80');
+    expect(label()).toBe('00:00:06.800 to 00:00:07.800');
   });
 
   it('keeps the range when the view moves, and the handles stay on their times', async () => {

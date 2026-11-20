@@ -9,6 +9,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { RepairInReaperButton } from '../../engine/RepairInReaperButton';
 import { AddMarkersButton } from '../../engine/AddMarkers';
 import { dawNameOf, ShowInDawButton } from '../../engine/ShowInDaw';
+import { noteTime } from '../findingFormat';
 import type { EquivalenceApi } from './equivalence';
 import { HearIt, type HearItApi } from './HearIt';
 import { TreatAsSame } from './TreatAsSame';
@@ -94,11 +95,12 @@ export function InspectorActions({
         <HearIt finding={finding} api={api} dawName={dawName} capabilities={capabilities} capabilitiesFailed={capsFailed} inert={inert} onResult={setResult} />
         <ShowInDawButton
           target={{ kind: 'finding', id: finding.id, reason: noteReason }}
+          when={noteTime}
           disabled={inert}
           onResult={({ message, failed }) => show(message, failed)}
         />
         <AddMarkersButton
-          target={{ kind: 'finding', id: finding.id, at: finding.time_range?.start }}
+          target={{ kind: 'finding', id: finding.id, at: finding.time_range ? noteTime(finding.time_range.start) : undefined }}
           disabled={inert}
           reason={markerReason}
           onResult={({ message, failed }) => show(message, failed)}

@@ -16,7 +16,7 @@ import { useRibbonView } from './useRibbonView';
 import { useScrollGestures } from './useScrollGestures';
 import { useWaveSwell } from './useWaveSwell';
 import { placeholderColumns } from './waveSwell';
-import { clockTenths } from '../../../clock';
+import { clock } from '../../../clock';
 
 /** The waveform's own height (CSS pixels): the lane, not the peaks in it. */
 const HEIGHT = 56;
@@ -228,7 +228,7 @@ export function RibbonView({
         const viewItems: ContextMenuItem[] = [
           {
             key: 'zoom-in',
-            label: here === null ? 'Zoom in' : `Zoom in at ${clockTenths(t0 + here, { decimals: 2 })}`,
+            label: here === null ? 'Zoom in' : `Zoom in at ${clock(t0 + here, { full: true })}`,
             group: 'View',
             ...(r.canZoomIn ? {} : { unavailable: 'One second is the closest view.' }),
             onSelect: () => (here === null ? r.zoom(-1) : r.zoomAt(-1, here)),
@@ -316,7 +316,7 @@ export function RibbonView({
           <div data-ribbon-head className="flex items-baseline gap-2 px-3 pt-1.5 text-xs text-[var(--text-muted)]">
             <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? '—'}</span>
             <span>
-              {head.take ? 'active take' : 'recording'} · {clockTenths(layout.t0)} to {clockTenths(layout.t1)}
+              {head.take ? 'active take' : 'recording'} · {clock(layout.t0, { full: true })} to {clock(layout.t1, { full: true })}
             </span>
           </div>
         ) : null}

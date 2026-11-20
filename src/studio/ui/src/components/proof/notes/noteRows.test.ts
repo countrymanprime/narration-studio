@@ -24,7 +24,7 @@ describe('rows-are-findings-in-time-order', () => {
   it('builds the row from the finding', () => {
     const row = byId('a');
     expect(row).toMatchObject({
-      time: '00:12.0',
+      time: '00:00:12.000',
       type: 'misread',
       script: 'I could not help it',
       heard: 'I could not help myself',

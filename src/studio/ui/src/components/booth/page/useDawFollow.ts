@@ -150,3 +150,129 @@ export function useMoveDawOnOpen({
   }, [enabled, follow, chapterId, canFollow, where, seconds, place, onlyIfElsewhere]);
   return moving;
 }
+
+/**
+ * Entering the Booth on a chapter arms the track its next take records on (the voice chosen, else the Narrator voice) and turns that track's input
+ * monitoring on when it is off, so the narrator hears themselves before pressing Record (#3428). The page mounts this once per chapter, as
+ * `useMoveDawOnOpen`, so each chapter gone to arms its own track; it is sent once per chapter, when the DAW can arm (`canArm`) and
+ * Booth.follow_chapter_in_daw is on (`follow`). There is no time limit: the arm is what the narrator asked for on entering the Booth, so a DAW that connects
+ * late, a setting that is read late and a cold read of any length (`enabled` false while it runs) each arm once when they allow it, and a DAW that can
+ * never arm is left alone without a word. A refusal (the DAW recording, the track gone) is said, once per refusal, and nothing is changed.
+ *
+ * What is owed, and when it is sent again (no timer; an event decides):
+ * - A Booth entered during a take still sends the call: the host answers it without arming and drops a release that waits for the take, so the
+ *   monitoring does not flicker off and on at the stop.
+ * - A voice chosen during a take is switched to without touching the DAW's monitoring (the DAW is never changed while it records), and the DAW puts its
+ *   arms back at the stop, so when a take stops after one of those, or after an arm sent during it, the chosen voice (`voice`) is armed again by the same
+ *   call. This happens whatever the switch says: a voice choice still arms (the host adds the monitoring only with the switch on). A take with no voice
+ *   change owes nothing.
+ * - A refused arm is owed again: it is sent when the DAW stops recording, or when `canArm` changes (the DAW reconnected).
+ *
+ * Choosing another voice while stopped arms and monitors it through `boothVoiceSet`; the monitoring is put back by `useReleaseBoothMonitorOnLeave`.
+ */
+export function useArmBoothOnOpen({
+  enabled,
+  follow,
+  chapterId,
+  canArm,
+  recording = false,
+  voice = '',
+  say,
+}: {
+  enabled: boolean;
+  follow: boolean | undefined;
+  chapterId: string;
+  canArm: boolean;
+  /** A take runs now. */
+  recording?: boolean;
+  /** The voice the next take records on, as the host chose it; a change of it during a take is owed an arm once the take stops. */
+  voice?: string;
+  say: (sentence: string) => void;
+}) {
+  const place = usePort('dawPlace');
+  const done = useRef(false);
+  const wasRecording = useRef(false);
+  const wasCanArm = useRef(canArm);
+  const owed = useRef(false);
+  const dueAfterStop = useRef(false);
+  const retry = useRef(false);
+  const lastVoice = useRef(voice);
+  const unmounted = useRef(false);
+  const sayRef = useRef(say);
+  sayRef.current = say;
+  if (recording && voice !== lastVoice.current) owed.current = true;
+  lastVoice.current = voice;
+  const stopped = wasRecording.current && !recording;
+  if (stopped && owed.current) {
+    done.current = false;
+    dueAfterStop.current = true;
+  }
+  if (retry.current && (stopped || wasCanArm.current !== canArm)) {
+    done.current = false;
+    retry.current = false;
+  }
+  if (stopped) owed.current = false;
+  wasRecording.current = recording;
+  wasCanArm.current = canArm;
+  useEffect(
+    () => () => {
+      unmounted.current = true;
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!enabled || follow === undefined || done.current || chapterId === '' || !canArm) return;
+    // The entry arm needs the switch on; what a take owes is sent with it off too (the host leaves the monitoring to the switch).
+    if (follow !== true && !dueAfterStop.current) return;
+    done.current = true;
+    dueAfterStop.current = false;
+    if (follow === true) monitorAsked = true;
+    if (recording) owed.current = true;
+    void place
+      .dawArmBoothVoice(chapterId)
+      .then((result) => {
+        if (unmounted.current) return;
+        if (!result.ok) {
+          retry.current = true;
+          sayRef.current(result.refused ?? result.message);
+        }
+      })
+      .catch(() => {
+        if (!unmounted.current) sayRef.current("The DAW could not arm this chapter's voice. Arm it in the DAW yourself.");
+      });
+  }, [enabled, follow, chapterId, canArm, recording, place]);
+}
+
+// Whether this page asked the DAW to turn an input monitoring on and no release has been answered since: the page's copy of the host's own note.
+let monitorAsked = false;
+
+/** Forgets that a monitoring was asked for: a test starts from nothing owed. */
+export function forgetBoothMonitorAsked() {
+  monitorAsked = false;
+}
+
+/**
+ * Leaving the Booth puts back the input monitoring it turned on (only that, and only where the narrator has not changed it since; the DAW holds a
+ * restore that waits for a recording to stop). Mounted once per Booth visit, not per chapter, so stepping through chapters keeps one voice monitored at a time
+ * without a release between. A DAW that would not answer is said (`say`): the monitoring may still be on there.
+ */
+export function useReleaseBoothMonitorOnLeave(say: (sentence: string) => void) {
+  const place = usePort('dawPlace');
+  const sayRef = useRef(say);
+  sayRef.current = say;
+  useEffect(
+    () => () => {
+      void place
+        .dawReleaseBoothMonitor()
+        .then((result) => {
+          if (result.ok) monitorAsked = false;
+          else sayRef.current(result.refused ?? result.message);
+        })
+        // A call that failed outright says nothing about what is owed, so it speaks only when this page asked for a monitoring (the host names its DAW; here it is "the DAW").
+        .catch(() => {
+          if (monitorAsked) sayRef.current('The DAW could not put your input monitoring back, so it may still be on. Turn it off in the DAW.');
+        });
+    },
+    [place],
+  );
+}

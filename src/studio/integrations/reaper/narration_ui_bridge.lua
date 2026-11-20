@@ -31,6 +31,7 @@ M.FEATURE_FILES = {
   'narration_navigation.lua',
   'narration_track_state.lua',
   'narration_transport.lua',
+  'narration_monitor.lua',
   'narration_workspace.lua',
   'narration_punch.lua',
   'narration_regions.lua',
@@ -290,6 +291,9 @@ function M.run(session_dir, registry)
     -- A host that holds a watch lease (watch_transport, narration_transport.lua) is sent the transport as it changes.
     if registry.transport_watch_tick then
       registry.transport_watch_tick(ctx)
+    end
+    if registry.monitor_tick then
+      registry.monitor_tick()
     end
     if timing then
       report_timing(started)

@@ -60,6 +60,8 @@ export function ChapterStepper({
         <Button
           variant="secondary"
           aria-label={`Chapter: ${label}. Change chapter`}
+          // What a question about leaving the chapter hands focus back to when the narrator stays (`stopRecordingSpec`).
+          data-chapter-picker=""
           // The label ends in an ellipsis in a narrow picker; the title is how to read the rest (#3274).
           title={label}
           // The mock's fixed 340 px once there is room for it, whatever the chapters are called and while they load, so the arrows
