@@ -30,7 +30,14 @@ import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useSt
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
 const ROLL_LANDED_TOPIC = 'booth-roll-landed';
-import { appTakeChapter, appTakeRunIsWritten, markAppTakeRunWritten, useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import {
+  appTakeChapter,
+  appTakeRunIsWritten,
+  clearAppTakeRunWritten,
+  markAppTakeRunWritten,
+  useRecordControl,
+  type RecordBlock,
+} from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -1121,8 +1128,8 @@ export function useBoothPage(options: BoothPageOptions) {
       clearTimeout(timer);
     };
   }, [overlay]);
-  const onGone = useRef({ stopRecording, flush: writer.flush });
-  onGone.current = { stopRecording, flush: writer.flush };
+  const onGone = useRef({ stopRecording, flush: writer.flush, unsent: writer.unsent });
+  onGone.current = { stopRecording, flush: writer.flush, unsent: writer.unsent };
   useEffect(
     () => () => {
       // `decide` already answered for the take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway"). A take
@@ -1132,7 +1139,11 @@ export function useBoothPage(options: BoothPageOptions) {
       // since the page that opens next is not this take's and writes none (#3712).
       if (handled()) {
         if (appTakeChapter() === recordIdNow.current) markAppTakeRunWritten();
-        void onGone.current.flush();
+        const held = appTakeChapter() === recordIdNow.current;
+        // A run the host refuses stays unsent and dies with this page: the take is then not written, and the chapter opened again begins a run of its own.
+        void onGone.current.flush().then(() => {
+          if (held && onGone.current.unsent() > 0) clearAppTakeRunWritten();
+        });
         return;
       }
       if (!askedByShell.current && !leaving()) return;

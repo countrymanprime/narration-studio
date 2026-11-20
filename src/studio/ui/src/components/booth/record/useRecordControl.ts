@@ -141,6 +141,10 @@ export const appTakeRunIsWritten = (): boolean => appTakeRunWritten;
 export const markAppTakeRunWritten = (): void => {
   appTakeRunWritten = true;
 };
+/** The run that was flushed was refused: the chapter opened again begins a run of its own, so the take is not left with none. */
+export const clearAppTakeRunWritten = (): void => {
+  appTakeRunWritten = false;
+};
 // When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
 let lastStartAt = 0;
 // The host's take is one: a start answered late by an abandoned press (a Booth left, a chapter changed, a press given up on) must stop only a take

@@ -82,3 +82,42 @@ test('a take left by Open anyway and returned to is one run of the chapter it be
     'no run of another chapter',
   ).toEqual([]);
 });
+
+// qa-breaker (#3729): the run refused when the page was left dies with that page, so the chapter opened again must still write one, or the take has none.
+test('a run the host refused when the take was left is written when the narrator returns', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __runCalls: { id: string; ok: boolean }[]; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__runCalls = [];
+    let first = true;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudRecordStop: () => new Promise(() => {}),
+      passageMapRecordRun: async (id: string) => {
+        const refuse = first;
+        first = false;
+        w.__runCalls.push({ id, ok: !refuse });
+        if (refuse) throw new Error('The disk is full.');
+        return [];
+      },
+    };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await record(page).click();
+  await expect(stop(page)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording)).toBe(true);
+  await pastStartGuard(page);
+  await link(page, 'chapter-2');
+  await openAnyway(page);
+  await link(page, 'chapter-1');
+  await openAnyway(page);
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.endTakeInDaw());
+  await expect(stop(page)).toHaveCount(0, { timeout: 10_000 });
+  await page.waitForTimeout(1500);
+  const calls = await page.evaluate(() => (window as unknown as { __runCalls: { id: string; ok: boolean }[] }).__runCalls);
+  expect(
+    calls.filter((call) => call.ok && call.id === 'chapter-1'),
+    'one accepted run of the chapter the take began in',
+  ).toHaveLength(1);
+});
