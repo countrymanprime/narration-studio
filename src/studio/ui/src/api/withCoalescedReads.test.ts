@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { createMockApi } from './mockApi';
-import { COALESCED_READS, KEPT_MAX_AGE_MS, KEPT_READS, KEPT_REVALIDATE_MS, KEPT_WRITERS, withCoalescedReads } from './withCoalescedReads';
+import { COALESCED_READS, KEPT_DROPPING_EVENTS, KEPT_MAX_AGE_MS, KEPT_READS, KEPT_REVALIDATE_MS, KEPT_WRITERS, withCoalescedReads } from './withCoalescedReads';
 import type { NarrationApi } from '../types';
 
 /** An api whose methods answer when the test says so, counting the calls that reach it. */
@@ -273,6 +273,14 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
         handlers.push(handler);
         return () => undefined;
       }),
+      subscribeProjectAttach: vi.fn((handler: (event: unknown) => void) => {
+        handlers.push(handler);
+        return () => undefined;
+      }),
+      subscribeProjectState: vi.fn((handler: (event: unknown) => void) => {
+        handlers.push(handler);
+        return () => undefined;
+      }),
     } as unknown as NarrationApi;
     return { api, handlers, reads: () => reads };
   }
@@ -332,6 +340,29 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
     expect(reads()).toBe(2);
   });
 
+  it.each(['subscribeProjectAttach', 'subscribeProjectState', 'subscribeJobEnded'] as const)(
+    "reads again after %s fires: a project switch never serves the last project's settings",
+    async (event) => {
+      const { api, handlers, reads } = counting();
+      const wrapped = withCoalescedReads(api);
+      const before = handlers.length;
+      (wrapped[event] as (handler: () => void) => unknown)(() => undefined);
+      await wrapped.settingsForScope('global');
+      handlers[before]!({});
+      await wrapped.settingsForScope('global');
+      expect(reads()).toBe(2);
+    },
+  );
+
+  it('reads again after the window becomes visible again', async () => {
+    const { api, reads } = counting();
+    const wrapped = withCoalescedReads(api);
+    await wrapped.settingsForScope('global');
+    document.dispatchEvent(new Event('visibilitychange'));
+    await wrapped.settingsForScope('global');
+    expect(reads()).toBe(2);
+  });
+
   it('reads again after the window is focused', async () => {
     const { api, reads } = counting();
     const wrapped = withCoalescedReads(api);
@@ -352,6 +383,26 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
       await vi.advanceTimersByTimeAsync(0);
       expect(reads()).toBe(2);
       expect(await value(wrapped.settingsForScope('global'))).toBe('2');
+      expect(reads()).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps what was kept when the background re-read fails', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api, reads } = counting();
+      const wrapped = withCoalescedReads(api);
+      await wrapped.settingsForScope('global');
+      const read = api.settingsForScope as unknown as { mockRejectedValueOnce: (error: Error) => void };
+      read.mockRejectedValueOnce(new Error('offline'));
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1);
+      expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+      await vi.advanceTimersByTimeAsync(0);
+      // The kept answer is still served; being past the revalidate age it asks the host again, which now answers.
+      expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+      await vi.advanceTimersByTimeAsync(0);
       expect(reads()).toBe(2);
     } finally {
       vi.useRealTimers();
@@ -388,9 +439,92 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
     expect(failing).toHaveBeenCalledTimes(2);
   });
 
+  it('does not let a settings read that never answers capture every later settings read', () => {
+    const { api, calls } = gated();
+    const wrapped = withCoalescedReads(api);
+    void wrapped.settingsForScope('global');
+    void wrapped.manuscriptSetChapterStatus('c1', 'finalized'); // any other call moves the epoch
+    void wrapped.settingsForScope('global');
+    expect(calls).toEqual(['settingsForScope', 'manuscriptSetChapterStatus', 'settingsForScope']);
+  });
+
+  it.each(['switchProject', 'createProject'] as const)('drops the kept answer when %s answers, with no event delivered', async (writer) => {
+    const { api, reads } = counting();
+    (api as unknown as Record<string, unknown>)[writer] = vi.fn(async () => ({}));
+    const wrapped = withCoalescedReads(api);
+    await wrapped.settingsForScope('project');
+    await (wrapped as unknown as Record<string, () => Promise<unknown>>)[writer]!();
+    expect(await value(wrapped.settingsForScope('project'))).toBe('2');
+    expect(reads()).toBe(2);
+  });
+
+  it('serves the kept answer while its background re-read has not answered, and to every reader', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api } = counting();
+      const wrapped = withCoalescedReads(api);
+      await wrapped.settingsForScope('global');
+      (api.settingsForScope as unknown as { mockImplementation: (impl: () => Promise<unknown>) => void }).mockImplementation(
+        () => new Promise(() => undefined),
+      );
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1);
+      expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+      expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+      expect(await value(wrapped.settingsForScope('global'))).toBe('1');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rejects no reader when the background re-read fails or throws, and serves the kept answer', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api } = counting();
+      const wrapped = withCoalescedReads(api);
+      await wrapped.settingsForScope('global');
+      const failing = api.settingsForScope as unknown as ReturnType<typeof vi.fn>;
+      failing.mockClear();
+      failing.mockRejectedValueOnce(new Error('offline')).mockImplementationOnce(() => {
+        throw new Error('sync');
+      });
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1);
+      const first = Promise.all([wrapped.settingsForScope('global'), wrapped.settingsForScope('global')]);
+      await expect(first).resolves.toHaveLength(2);
+      await vi.advanceTimersByTimeAsync(0);
+      await expect(wrapped.settingsForScope('global')).resolves.toBeTruthy();
+      expect(failing).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('treats a clock set back as an expired answer, not one that never ages', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api, reads } = counting();
+      const wrapped = withCoalescedReads(api);
+      await wrapped.settingsForScope('global');
+      vi.setSystemTime(Date.now() - 3_600_000);
+      await wrapped.settingsForScope('global');
+      expect(reads()).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not keep an answer that cannot be copied, so no reader shares the first caller's object", async () => {
+    const answer = { n: [{ value: '1' }], run: () => undefined };
+    const api = { settingsForScope: vi.fn(async () => answer), subscribeJobEnded: vi.fn(() => () => undefined) } as unknown as NarrationApi;
+    const wrapped = withCoalescedReads(api);
+    await wrapped.settingsForScope('global');
+    await wrapped.settingsForScope('global');
+    expect(api.settingsForScope).toHaveBeenCalledTimes(2);
+  });
+
   it('pins what is kept and what drops it: a new entry is a deliberate edit', () => {
     expect([...KEPT_READS]).toEqual(['settingsForScope']);
-    expect([...KEPT_WRITERS]).toEqual(['saveSettings']);
+    expect([...KEPT_WRITERS]).toEqual(['saveSettings', 'switchProject', 'createProject']);
+    expect([...KEPT_DROPPING_EVENTS]).toEqual(['subscribeProjectAttach', 'subscribeProjectState', 'subscribeJobEnded']);
     for (const name of KEPT_READS) expect(COALESCED_READS.has(name)).toBe(true);
   });
 });
