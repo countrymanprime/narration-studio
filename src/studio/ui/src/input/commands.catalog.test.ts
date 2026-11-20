@@ -86,6 +86,16 @@ describe('the history row', () => {
   });
 });
 
+describe('Ctrl+Alt chords and text fields', () => {
+  it('every default that is Ctrl+Alt (what AltGr sends on Windows) leaves a text field its own key', () => {
+    const chords = COMMAND_CATALOG.filter((row) =>
+      row.defaults.some((gesture) => gesture.modifiers.includes('Alt') && gesture.modifiers.includes('Ctrl') && gesture.code === 'Space'),
+    );
+    expect(chords.map((row) => row.id)).toEqual(['booth.mode.switch']);
+    for (const row of chords) expect(row.fieldsKeep, row.id).toBe(true);
+  });
+});
+
 describe('the undo row', () => {
   it('undo-last-row: Mod+Z, global, listed in the sheet and Settings (the jump menu lists it as the provider\'s "Undo: <label>"), and a text field keeps its own', () => {
     const row = findCommand('undo.last');

@@ -466,6 +466,8 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     defaults: [key('Space', ['Alt', 'Ctrl'])],
     group: 'Booth',
     surfaces: ['help', 'settings'],
+    // AltGr arrives as Ctrl+Alt: AltGr+Space typed in a text field belongs to the field (it may be a no-break space), so the switch steps aside there.
+    fieldsKeep: true,
   },
   {
     id: 'booth.phrase.next',
