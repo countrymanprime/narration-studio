@@ -442,6 +442,13 @@
   },
   {
     "page": "booth",
+    "state": "record-starting",
+    "viewport": "desktop",
+    "docName": "booth-record-starting",
+    "caption": "Booth - the app opening REAPER on the linked project: the quiet Starting REAPER mark above the footer, and no dialog"
+  },
+  {
+    "page": "booth",
     "state": "record-connect-closed",
     "viewport": "desktop",
     "docName": "booth-record-connect-closed",

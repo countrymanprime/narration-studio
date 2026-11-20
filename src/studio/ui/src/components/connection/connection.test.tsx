@@ -214,6 +214,33 @@ describe('the not-connected dialog', () => {
     expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-disabled')).toBe('true');
   });
 
+  it("says it is starting, and does not tell the narrator to open REAPER, while the host starts it; and gives the host's sentence when the start went nowhere (#3668)", async () => {
+    const choice = (patch: Record<string, unknown>) => async () =>
+      ({
+        hasProject: true,
+        daw: 'REAPER',
+        state: 'linked',
+        linkedFile: 'Alice.rpp',
+        foundFiles: [],
+        options: [],
+        starting: null,
+        bridge: null,
+        ...patch,
+      }) as never;
+    view(<ConnectionResolveDialog {...off} />, { dawChoice: choice({ state: 'starting', starting: { since: new Date().toISOString() } }) });
+    expect(await screen.findByRole('heading', { name: 'Starting REAPER' })).toBeTruthy();
+    expect(screen.getByText(/The app opened REAPER and connects on its own once REAPER has the project open/)).toBeTruthy();
+    expect(screen.queryByText(/is not connected/)).toBeNull();
+    // The host is already starting it: Start waits with it, so a press is not a second launch.
+    expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-busy')).toBe('true');
+    cleanup();
+    view(<ConnectionResolveDialog {...off} />, {
+      dawChoice: choice({ bridge: { installed: true, startsWithReaper: true, problem: 'The app opened REAPER, but REAPER’s bridge has not answered.' } }),
+    });
+    expect(await screen.findByText(/The app opened REAPER, but REAPER’s bridge has not answered/)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'REAPER is not connected' })).toBeTruthy();
+  });
+
   describe('Link project file…', () => {
     const notLinked = async () => ({ hasProject: true, daw: 'REAPER', state: 'not_linked', linkedFile: null, foundFiles: [], options: [] }) as never;
     const linkedChoice = async () => ({ hasProject: true, daw: 'REAPER', state: 'linked', linkedFile: 'Alice.rpp', foundFiles: [], options: [] }) as never;

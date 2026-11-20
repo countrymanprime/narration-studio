@@ -126,6 +126,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-starting',
+    description:
+      'Booth for a linked project while the app opens REAPER on it (?mockDawConnected=0&mockDawChoice=starting, #3668): the quiet mark above the footer reads "Starting REAPER…" and no dialog opens; Record stays disabled until REAPER answers',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-connect-closed',
     description:
       'The same Booth after the dialog was closed with its X: the quiet "REAPER not connected" mark stands under the text and reopens it; Record stays disabled, described by the capability\'s sentence, which the footer does not draw while the mark is up',

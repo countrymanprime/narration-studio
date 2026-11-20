@@ -703,11 +703,11 @@ describe('page-level-checks', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings', hidden: true }).getAttribute('aria-disabled')).toBe('true'));
   });
 
-  it('shows the shared REAPER-not-connected chip in the header while the DAW is away (#2823)', async () => {
+  it('shows the shared REAPER connection chip ("Connecting" while the app is still connecting) in the header while the DAW is away (#2823)', async () => {
     const api = createMockApi({ dawCapabilities: async () => DAW_SETUPS['reaper-off'], subscribeDawCapabilities: () => () => undefined });
     renderPage({ api });
     await noteRows();
-    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /Connecting to REAPER/, hidden: true })).toBeTruthy();
   });
 
   it('Alt with an arrow does not step the chapter', async () => {

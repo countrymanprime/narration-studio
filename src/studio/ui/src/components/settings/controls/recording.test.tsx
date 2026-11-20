@@ -274,6 +274,11 @@ describe('Recording & DAW: Record with', () => {
       /The app opened REAPER and connects on its own once REAPER has the project open\. Opened \d+ s ago\./,
     );
     expect(screen.queryByRole('button', { name: 'Start REAPER' })).toBeNull();
+    // The line under the chosen radio agrees with the card: it does not tell the narrator to open REAPER while the app is opening it.
+    expect(screen.getByRole('radio', { name: /^REAPER/ }).closest('label, div')?.parentElement?.textContent ?? document.body.textContent).toContain(
+      'REAPER is starting. The app connects to it by itself.',
+    );
+    expect(document.body.textContent).not.toMatch(/Open REAPER; the app connects/);
   });
 
   it('a bridge problem is the host sentence, under the card', async () => {

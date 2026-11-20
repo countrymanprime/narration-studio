@@ -119,6 +119,7 @@ dot for how it is doing, and says in words when something needs you. Hover it fo
 
 - **Green dot, "REAPER"**: the DAW is running with the linked project open.
 - **Amber dot, "REAPER: Not running"**: the DAW is not running. Open it to carry on. The panel says so too, with when the app last checked and **Check again**.
+- **Amber dot, "REAPER: Starting"**: the app is opening the DAW on the linked project and is waiting for it to answer. Hover it for "The app is starting it"; the panel says "REAPER is starting." Nothing needs you yet.
 - **Amber dot, "REAPER: Other project"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
 - **Quiet dot, "REAPER: Not linked"**: nothing is linked yet.
