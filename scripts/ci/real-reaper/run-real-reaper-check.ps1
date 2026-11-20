@@ -64,7 +64,9 @@ $job = Start-Job -ArgumentList $repo, $cfg, $out, $project, $PSScriptRoot -Scrip
 }
 $rc = 1
 try {
-  & python (Join-Path $PSScriptRoot 'drive.py') run --session $session --out $out --target real --timeout 90 --suite
+  # NARRATION_CI_ONLY (the workflow's `only` input) narrows the scenario suites, as on Linux (drive.py --only).
+  $only = @(); if ($env:NARRATION_CI_ONLY) { $only = @('--only', $env:NARRATION_CI_ONLY) }
+  & python (Join-Path $PSScriptRoot 'drive.py') run --session $session --out $out --target real --timeout 90 --suite @only
   $rc = $LASTEXITCODE
 } finally {
   # A failed or stalled run must leave evidence of what REAPER showed: windows, a screenshot, the scratch cfg and session folders.
