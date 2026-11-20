@@ -4,6 +4,7 @@ import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
 import type { OverlayService } from '../../../overlay/overlayService';
 import { pageNameFor } from '../../layout/railPages';
 import { noAnswerSentence } from '../../../studio/dawNames';
+import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { CHAPTER_OPEN_ANYWAY, stopRecordingSpec } from './stopRecordingSpec';
 
 /** The seam the Booth gives the guard: not a `DawClient`, only what leaving needs to know and do. */
@@ -43,10 +44,15 @@ const claimOf = (session: BoothLeaveSession): Claim => (!(session.startedByApp ?
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
 
-/** How long the stop, the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order). */
+/** How long the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order); the stop has `LEAVE_STOP_WAIT_MS`. */
 export const LEAVE_WAIT_MS = 8000;
+/**
+ * How long the stop itself is given: just above the page's own stop limit (`PRESS_LIMITS_MS.recordStop`), so the page's limit ends a stop that never answers first, with its
+ * sentence, and the guard's own wait is only the backstop. A shorter wait gave up on a stop that answered after it and left "Could not stop the take" over a take that was saved (#3697).
+ */
+export const LEAVE_STOP_WAIT_MS = PRESS_LIMITS_MS.recordStop + 1000;
 const STOPPING_TOPIC = 'booth-leave-stopping';
-const STOPPING_TOAST_MS = 3 * LEAVE_WAIT_MS + 1000;
+const STOPPING_TOAST_MS = 2 * LEAVE_WAIT_MS + LEAVE_STOP_WAIT_MS + 1000;
 /**
  * A DAW's own stop pushes its stopped transport before the stop's reply, so a take seen to end while this decision's stop is out is most likely that stop:
  * its reply (which writes the take's undo entry) is waited for this long before the end is believed on its own.
@@ -211,8 +217,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             answered.current = true;
             return true;
           }
-          // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS, in the refusal question when it does not.
-          // Up for the whole of the waits (three, each at most LEAVE_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
+          // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS (the stop's within LEAVE_STOP_WAIT_MS), in the refusal question when it does not.
+          // Up for the whole of the waits (three: two at most LEAVE_WAIT_MS and the stop at most LEAVE_STOP_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
           waiting.current = true;
           sayStopping();
           let sentence: string;
@@ -248,7 +254,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
               });
               const stopped = takeEnded
                 ? null
-                : await within(Promise.race<DawResult | 'ended'>([sessionRef.current.stopRecording({ deferTell: true }), endWait]), LEAVE_WAIT_MS);
+                : await within(Promise.race<DawResult | 'ended'>([sessionRef.current.stopRecording({ deferTell: true }), endWait]), LEAVE_STOP_WAIT_MS);
               wakeOnEnd.current = null;
               if (takeEnded || stopped?.value === 'ended' || (endSeen && stopped && !stopped.value.ok)) {
                 await within(sessionRef.current.flush?.() ?? Promise.resolve(), LEAVE_WAIT_MS);
