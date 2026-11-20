@@ -132,13 +132,14 @@ describe('useDawSoloesChapter', () => {
 
   it('says nothing when the DAW refuses or a call fails, and still puts it back', async () => {
     const log: string[] = [];
-    const { result, unmount, dawSoloRestore } = await render({
+    const { result, unmount, dawSoloRestore, dawSoloChapter } = await render({
       log,
       solo: async () => {
         throw new Error('bridge down');
       },
     });
-    await waitFor(() => expect(dawSoloRestore).not.toHaveBeenCalled());
+    await waitFor(() => expect(dawSoloChapter).toHaveBeenCalledTimes(1));
+    expect(dawSoloRestore).not.toHaveBeenCalled();
     expect(result.current).toBeUndefined();
     unmount();
     await waitFor(() => expect(dawSoloRestore).toHaveBeenCalledTimes(1));
