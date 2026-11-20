@@ -100,7 +100,7 @@ const CASES: Case[] = [
   },
 ];
 
-// #3605 item 2: the rule reaches up to 399 px, where a toast over 100 px tall at 320 wide covered Cancel and Done (320x300-380, 275x300-380, 360x261-380, 400x261-340).
+// #3605 item 2: the rule reaches up to 400 px, where a toast over 100 px tall at 320 wide covered Cancel and Done (320x300-380, 275x300-380, 360x261-380, 400x261-340).
 const SIZES: [number, number][] = [
   [275, 262],
   [275, 280],
