@@ -2,8 +2,6 @@
 
 Storybook title: `Proof/Inspector`. Source: `src/components/proof/inspector/Inspector.tsx`.
 
-![Inspector, Undecided, light theme](../images/inspector.webp)
-
 ## Stories
 
 - Undecided

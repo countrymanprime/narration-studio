@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Disclosure`. Source: `src/components/primitives/Disclosure.tsx`.
 
-![Disclosure, Collapsed, light theme](../images/disclosure.webp)
-
 ## Stories
 
 - Collapsed

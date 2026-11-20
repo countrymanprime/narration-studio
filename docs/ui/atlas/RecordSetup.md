@@ -2,8 +2,6 @@
 
 Storybook title: `Booth/RecordSetup`. Source: `src/components/booth/record/RecordSetup.stories.tsx`.
 
-![RecordSetup, Turn On Record, light theme](../images/recordsetup.webp)
-
 ## Stories
 
 - Connect Reaper

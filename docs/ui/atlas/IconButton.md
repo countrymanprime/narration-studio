@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/IconButton.tsx`.
 
-![IconButton, Default, light theme](../images/iconbutton.webp)
-
 ## Stories
 
 - Default
@@ -161,5 +159,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`
+- `src/components/storybible/useBulkDelete.tsx`
 - `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
 - `src/components/voicesamples/SamplePlayButton.tsx`

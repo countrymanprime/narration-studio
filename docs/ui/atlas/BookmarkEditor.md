@@ -2,8 +2,6 @@
 
 Storybook title: `Script/BookmarkEditor`. Source: `src/components/script/bookmarks/ui/BookmarkEditor.tsx`.
 
-![BookmarkEditor, Empty, light theme](../images/bookmarkeditor.webp)
-
 ## Stories
 
 - Empty

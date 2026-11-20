@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Tooltip.tsx`.
 
-![Tooltip, Info Icon, light theme](../images/tooltip.webp)
-
 ## Stories
 
 - Info Icon

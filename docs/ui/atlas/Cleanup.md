@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/Cleanup`. Source: `src/components/editing/cleanup/Cleanup.stories.tsx`.
 
-![Cleanup, Header, light theme](../images/cleanup.webp)
-
 ## Stories
 
 - Header

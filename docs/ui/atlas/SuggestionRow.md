@@ -2,8 +2,6 @@
 
 Storybook title: `Story Bible/SuggestionRow`. Source: `src/components/storybible/suggested/row/SuggestionRow.tsx`.
 
-![SuggestionRow, Accepted Auto, light theme](../images/suggestionrow.webp)
-
 ## Stories
 
 - Accepted Auto

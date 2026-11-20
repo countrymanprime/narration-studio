@@ -2,8 +2,6 @@
 
 Storybook title: `RecordingCheck/CheckRecordingsDialog`. Source: `src/components/recordingcheck/CheckRecordingsDialog.tsx`.
 
-![CheckRecordingsDialog, Idle With States, light theme](../images/checkrecordingsdialog.webp)
-
 ## Stories
 
 - Idle With States

@@ -2,8 +2,6 @@
 
 Storybook title: `Story Bible/VoiceSampleRow`. Source: `src/components/storybible/voicesamples/VoiceSampleRow.tsx`.
 
-![VoiceSampleRow, Primary, light theme](../images/voicesamplerow.webp)
-
 ## Stories
 
 - Primary

@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/KeyHints`. Source: `src/components/primitives/KeyHints.tsx`.
 
-![KeyHints, Default, light theme](../images/keyhints.webp)
-
 ## Stories
 
 - Default

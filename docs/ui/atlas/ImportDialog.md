@@ -2,8 +2,6 @@
 
 Storybook title: `Story Bible/Import dialog`. Source: `src/components/storybible/suggested/import/ImportDialog.tsx`.
 
-![ImportDialog, Empty, light theme](../images/importdialog.webp)
-
 ## Stories
 
 - Empty

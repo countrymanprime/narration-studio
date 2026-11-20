@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/TagInput`. Source: `src/components/primitives/TagInput.tsx`.
 
-![TagInput, Default, light theme](../images/taginput.webp)
-
 ## Stories
 
 - Default

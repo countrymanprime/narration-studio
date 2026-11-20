@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.tsx`.
 
-![Toast, Information, light theme](../images/toast.webp)
-
 ## Stories
 
 - Information
@@ -95,6 +93,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/storybible/source/NamePronunciation.tsx`
 - `src/components/storybible/suggested/import/useImportPrompts.ts`
 - `src/components/storybible/suggested/panel/useSuggestions.ts`
+- `src/components/storybible/useBulkDelete.tsx`
 - `src/components/storybible/useHearEntry.ts`
 - `src/components/storybible/usePreviewAudio.ts`
 - `src/components/storybible/voicesamples/EntryVoiceSamples.tsx`

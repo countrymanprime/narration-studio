@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/Ribbon`. Source: `src/components/editing/ribbon/Ribbon.tsx`.
 
-![Ribbon, Default, light theme](../images/ribbon.webp)
-
 ## Stories
 
 - Default

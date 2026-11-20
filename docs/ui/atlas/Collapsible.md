@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Collapsible`. Source: `src/components/primitives/Collapsible.tsx`.
 
-![Collapsible, Collapsed, light theme](../images/collapsible.webp)
-
 ## Stories
 
 - Collapsed

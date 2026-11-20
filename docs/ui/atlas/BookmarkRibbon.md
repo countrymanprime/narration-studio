@@ -2,8 +2,6 @@
 
 Storybook title: `Script/BookmarkRibbon`. Source: `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`.
 
-![BookmarkRibbon, Without Note, light theme](../images/bookmarkribbon.webp)
-
 ## Stories
 
 - Without Note

@@ -2,8 +2,6 @@
 
 Storybook title: `Settings/AnalysisTools`. Source: `src/components/settings/analysis/ToolRow.stories.tsx`.
 
-![AnalysisTools, Not Installed, light theme](../images/analysistools.webp)
-
 ## Stories
 
 - Not Installed

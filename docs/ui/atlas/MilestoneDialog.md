@@ -2,8 +2,6 @@
 
 Storybook title: `Schedule/MilestoneDialog`. Source: `src/components/schedule/MilestoneDialog.tsx`.
 
-![MilestoneDialog, Add, light theme](../images/milestonedialog.webp)
-
 ## Stories
 
 - Add

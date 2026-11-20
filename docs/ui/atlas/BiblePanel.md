@@ -2,8 +2,6 @@
 
 Storybook title: `Script/BiblePanel`. Source: `src/components/script/page/rail/bible/BiblePanel.tsx`.
 
-![BiblePanel, Character Entry, light theme](../images/biblepanel.webp)
-
 ## Stories
 
 - Character Entry

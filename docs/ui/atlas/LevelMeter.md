@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/LevelMeter`. Source: `src/components/primitives/LevelMeter.tsx`.
 
-![LevelMeter, Silence, light theme](../images/levelmeter.webp)
-
 ## Stories
 
 - Silence

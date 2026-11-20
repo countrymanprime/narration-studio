@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Checkbox.tsx`.
 
-![Checkbox, Unchecked, light theme](../images/checkbox.webp)
-
 ## Stories
 
 - Unchecked
@@ -42,4 +40,5 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/controls/AppearanceBodies.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
+- `src/components/storybible/EntryTable.tsx`
 - `src/components/storybible/suggested/scan/AnalysisPrompt.tsx`

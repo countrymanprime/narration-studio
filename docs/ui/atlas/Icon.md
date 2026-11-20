@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`.
 
-![Icon, Default, light theme](../images/icon.webp)
-
 ## Stories
 
 - Default

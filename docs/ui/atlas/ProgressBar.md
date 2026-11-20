@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/ProgressBar`. Source: `src/components/primitives/ProgressBar.tsx`.
 
-![ProgressBar, Determinate, light theme](../images/progressbar.webp)
-
 ## Stories
 
 - Determinate

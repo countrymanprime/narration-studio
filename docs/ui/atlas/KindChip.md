@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/KindChip`. Source: `src/components/primitives/KindChip.tsx`.
 
-![KindChip, Misread, light theme](../images/kindchip.webp)
-
 ## Stories
 
 - Misread

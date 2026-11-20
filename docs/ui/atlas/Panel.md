@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.tsx`.
 
-![Panel, Text Only, light theme](../images/panel.webp)
-
 ## Stories
 
 - Text Only

@@ -2,8 +2,6 @@
 
 Storybook title: `Settings/BackupsSection`. Source: `src/components/settings/BackupsSection.tsx`.
 
-![BackupsSection, Shown, light theme](../images/backupssection.webp)
-
 ## Stories
 
 - Shown

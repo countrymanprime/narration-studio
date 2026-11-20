@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/HeaderChip`. Source: `src/components/primitives/HeaderChip.tsx`.
 
-![HeaderChip, Neutral, light theme](../images/headerchip.webp)
-
 ## Stories
 
 - Neutral

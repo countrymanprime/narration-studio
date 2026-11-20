@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/CompactShell`. Source: `src/components/primitives/CompactShell.tsx`.
 
-![CompactShell, Title Only, light theme](../images/compactshell.webp)
-
 ## Stories
 
 - Title Only

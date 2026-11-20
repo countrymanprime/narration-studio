@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.tsx`.
 
-![Dialog, Actions Between, light theme](../images/dialog.webp)
-
 ## Stories
 
 - Actions Between

@@ -2,8 +2,6 @@
 
 Storybook title: `Proof/Frame`. Source: `src/components/proof/frame/Frame.stories.tsx`.
 
-![Frame, Header, light theme](../images/frame.webp)
-
 ## Stories
 
 - Header

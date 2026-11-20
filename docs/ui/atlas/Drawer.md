@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/Drawer`. Source: `src/components/editing/drawer/Drawer.tsx`.
 
-![Drawer, Clean Up, light theme](../images/drawer.webp)
-
 ## Stories
 
 - Clean Up

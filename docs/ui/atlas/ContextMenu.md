@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/ContextMenu`. Source: `src/components/primitives/ContextMenu.tsx`.
 
-![ContextMenu, Closed, light theme](../images/contextmenu.webp)
-
 ## Stories
 
 - Closed

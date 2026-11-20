@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.tsx`.
 
-![Table, Sortable Rows, light theme](../images/table.webp)
-
 ## Stories
 
 - Sortable Rows

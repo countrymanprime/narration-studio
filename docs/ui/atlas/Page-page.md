@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/Page`. Source: `src/components/editing/EditingPage.stories.tsx`.
 
-![Page-page, Default, light theme](../images/page-page.webp)
-
 ## Stories
 
 - Default
