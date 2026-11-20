@@ -100,7 +100,6 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, recorder 
 		svc.tracksCache.Invalidate()
 		if found, ok := h.adoptCreatedVoice(svc, link, name, nil); ok {
 			created, adopted = found, true
-			svc.boothVoices.clearPending(link, name)
 		} else {
 			return boothVoiceAddRefused(refusedFailed, fmt.Sprintf("%s took an earlier request for a track named “%s” and has not confirmed it. Look in %s: it may already be there. If it is not, try again in two minutes.", engine, name, engine)), nil
 		}
@@ -152,6 +151,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, recorder 
 		added = name
 	}
 	svc.boothVoices.add(link, BoothVoiceTrack{GUID: created.GUID, Name: added})
+	svc.boothVoices.clearPending(link, name) // only now: a refusal after the lane was found (a take, no creator) leaves the mark for the next press
 	if _, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder, Reporter: h.persist}).AddTrackCharacters(added, characterIDs); err != nil {
 		// The track is in the DAW: the narrator is told the assignment did not save, and the voice is still chosen.
 		h.chooseAndArmAddedVoice(svc, recorder, engine, chapterID, before, created.GUID)

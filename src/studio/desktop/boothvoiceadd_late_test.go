@@ -186,3 +186,42 @@ func TestAQueuedAddWithNoTimeLeftSendsNothing(t *testing.T) {
 		t.Fatalf("got %+v err %v, %d creates", got, err, len(creator.children))
 	}
 }
+
+func TestAPendingLaneRefusedForATakeIsStillAdoptedAfterIt(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, "folders")
+	if first := boothVoiceAdd(t, host, &fakeChildCreator{childErr: bridge.ErrAnswerLate}, ids[0], "King", nil); first.Outcome != "refused" {
+		t.Fatalf("first = %+v", first)
+	}
+	extra := fmt.Sprintf("  <TRACK %s\n    NAME %q\n    ISBUS 0 0\n    TRACKID %s\n  >\n", lateVoiceTrack, "King", lateVoiceTrack)
+	writeProject(t, host, strings.Replace(voiceFolderRpp, "  <TRACK "+voiceNarratorTrack, extra+"  <TRACK "+voiceNarratorTrack, 1))
+	host.mu.Lock()
+	host.readAloudRecordingChapter = ids[0]
+	host.mu.Unlock()
+	if during := boothVoiceAdd(t, host, &fakeChildCreator{}, ids[0], "King", nil); during.Outcome != "refused" {
+		t.Fatalf("during a take: %+v", during)
+	}
+	host.clearReadAloudRecording()
+	after := boothVoiceAdd(t, host, &fakeChildCreator{}, ids[0], "King", nil)
+	if after.Outcome != "added" || after.TrackGUID != lateVoiceTrack {
+		t.Fatalf("after the take: %+v, want the landed lane adopted", after)
+	}
+}
+
+func TestALateArmIsNeitherNotAnsweringNorUnchanged(t *testing.T) {
+	refusal := readAloudRecordRefusal("REAPER", bridge.ErrAnswerLate)
+	for _, bad := range []string{"not answering", "Nothing started", "did not change", "3 seconds"} {
+		if strings.Contains(refusal.Message, bad) {
+			t.Fatalf("%q says %q", refusal.Message, bad)
+		}
+	}
+	if refusal.Reason != "timeout" {
+		t.Fatalf("reason %q", refusal.Reason)
+	}
+}
+
+func TestADeadlineOnACreateIsNotShownAsGoText(t *testing.T) {
+	refusal := trackCreateError("REAPER", "King", context.DeadlineExceeded, "track")
+	if strings.Contains(refusal.Message, "context deadline exceeded") || !strings.Contains(refusal.Message, "may already be there") {
+		t.Fatalf("message %q", refusal.Message)
+	}
+}
