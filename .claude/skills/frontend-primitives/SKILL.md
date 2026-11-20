@@ -11,7 +11,8 @@ Recent UI mistakes were the same few: a second copy of something that already ex
 
 1. Look in `src/studio/ui/src/components/primitives/` (list below). If one fits, use it; if it nearly fits, extend it with a prop and a story.
 2. Two screens drawing the same thing is the signal to extract one primitive, with a `<Name>.stories.tsx` and a test, in the same PR. Do not copy markup between pages.
-3. Read the primitive's table row in [the design system](../../../docs/design/design-system.md#primitive-components) and the mock for the page ([ui-spec-and-screenshots](../../rules/ui-spec-and-screenshots.md)).
+3. Choose the primitive by what the control does or the value it holds: [Component selection](../../../docs/design/component-selection.md) has the decision table and the rules (`CS-…`) a reviewer cites.
+4. Read the primitive's table row in [the design system](../../../docs/design/design-system.md#primitive-components) and the mock for the page ([ui-spec-and-screenshots](../../rules/ui-spec-and-screenshots.md)).
 
 ## Before writing text or logic a page already has
 
