@@ -40,7 +40,7 @@ export const KEPT_WRITERS: ReadonlySet<string> = new Set(['saveSettings', 'switc
 export const KEPT_DROPPING_EVENTS: ReadonlySet<string> = new Set(['subscribeProjectAttach', 'subscribeProjectState', 'subscribeJobEnded']);
 export const KEPT_REVALIDATE_MS = 5_000;
 export const KEPT_MAX_AGE_MS = 60_000;
-type Kept = { answer: unknown; at: number; keptEpoch: number; revalidating: boolean };
+type Kept = { answer: unknown; at: number; seq: number; keptEpoch: number; revalidating: boolean };
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {
   return typeof value === 'object' && value !== null && 'then' in value && typeof value.then === 'function';
@@ -48,7 +48,7 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
 
 type Joiner = { resolve: (answer: unknown) => void; reject: (reason: unknown) => void };
 /** A read on its way: who joined it, and whether its answer has been handed out (a read asked after that is a fresh host call). */
-type InFlight = { epoch: number; joiners: Joiner[]; closed: boolean };
+type InFlight = { epoch: number; at: number; joiners: Joiner[]; closed: boolean };
 
 /** Whether value is plain JSON data whose text says exactly what it is: finite numbers, strings, booleans, null, and arrays and plain objects of those. */
 function isPlainJson(value: unknown): boolean {
@@ -106,6 +106,10 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
   let epoch = 0;
   // What a kept read last answered, and the epoch that drops it (see KEPT_READS); it moves on the window coming back, on `KEPT_WRITERS` and on `KEPT_DROPPING_EVENTS`, not on every call as `epoch` does.
   let keptEpoch = 0;
+  // Calls of `KEPT_WRITERS` started and not yet answered: a read that overlaps one may answer the value from before it commits, so it is not kept.
+  let pendingKeptWrites = 0;
+  // The order host reads were started in, so an older read that answers late cannot replace the kept answer of one that started after it.
+  let readSeq = 0;
   const kept = new Map<string, Kept>();
   // One wrapper per method, as `withTracing` keeps: a hook that lists a method in an effect's dependencies must see the same function on every read (#3272).
   const wrappers = new Map<string, unknown>();
@@ -149,15 +153,27 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
           // committed, so one asked after it answered must not join that read.
           epoch += 1;
           const writesKept = KEPT_WRITERS.has(property);
-          if (writesKept) keptEpoch += 1;
-          const outcome: unknown = Reflect.apply(value, target, args);
-          if (isThenable(outcome)) {
-            const settled = () => {
-              epoch += 1;
-              if (writesKept) keptEpoch += 1;
-            };
-            outcome.then(settled, settled); // the call's own thenable, so this runs before the caller's continuation, whatever promise class it is
+          if (writesKept) {
+            keptEpoch += 1;
+            pendingKeptWrites += 1;
           }
+          const finished = () => {
+            epoch += 1;
+            if (writesKept) {
+              keptEpoch += 1;
+              pendingKeptWrites -= 1;
+            }
+          };
+          let outcome: unknown;
+          try {
+            outcome = Reflect.apply(value, target, args);
+          } catch (failure) {
+            finished(); // a write that throws at once is over
+            throw failure;
+          }
+          // The call's own thenable, so this runs before the caller's continuation, whatever promise class it is.
+          if (isThenable(outcome)) outcome.then(finished, finished);
+          else finished();
           return outcome;
         }
         const key = keyOf(property, args);
@@ -166,24 +182,27 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
         // The host read: it joins a read of the same epoch still in flight, and its answer is kept if it is a kept read and nothing that drops it happened meanwhile.
         const fresh = (): unknown => {
           const joined = inFlight.get(key);
-          if (joined && joined.epoch === epoch && !joined.closed) {
+          // A kept read does not join one that has been out longer than the revalidate age: it may never answer.
+          if (joined && joined.epoch === epoch && !joined.closed && (!keeps || Date.now() - joined.at < KEPT_REVALIDATE_MS)) {
             return new Promise((resolve, reject) => joined.joiners.push({ resolve, reject }));
           }
           const result: unknown = Reflect.apply(value, target, args);
           if (!isThenable(result)) return result;
-          const entry: InFlight = { epoch, joiners: [], closed: false };
+          const entry: InFlight = { epoch, at: Date.now(), joiners: [], closed: false };
           inFlight.set(key, entry);
           // The joiners' copies are made here, as the answer arrives and before the first caller's continuation runs: that caller gets the original,
           // so an edit it makes in place (a sort, a splice) cannot reach a copy made after it.
           const startedAt = Date.now();
           const startedKeptEpoch = keptEpoch;
+          const startedDuringWrite = pendingKeptWrites > 0;
+          const seq = (readSeq += 1);
           const promise = Promise.resolve(result).then(
             (answer) => {
               entry.closed = true;
               // Kept only if nothing that drops it happened while the read was on its way, and only a copy that can be made (the first caller gets the original).
-              if (keeps && startedKeptEpoch === keptEpoch) {
+              if (keeps && startedKeptEpoch === keptEpoch && !startedDuringWrite && pendingKeptWrites === 0 && (kept.get(key)?.seq ?? 0) < seq) {
                 try {
-                  kept.set(key, { answer: structuredClone(answer), at: startedAt, keptEpoch, revalidating: false });
+                  kept.set(key, { answer: structuredClone(answer), at: startedAt, seq, keptEpoch, revalidating: false });
                 } catch {
                   kept.delete(key); // an answer that cannot be copied is never shared
                 }
