@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
-import { formatCount, plural } from '../../plural';
+import { formatCount, plural, pluralWord } from '../../plural';
 import type { GuideEntity } from '../../types';
 import { Button } from '../primitives/Button';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
@@ -66,7 +66,7 @@ export function useBulkDelete({
       setAsking(false);
     }
     if (failed === 0) notify(`Deleted ${plural(done, 'entry', 'entries')}.`);
-    else notify(`Deleted ${done} of ${plural(targets.length, 'entry', 'entries')}; ${failed} could not be deleted: ${why}`, 'error');
+    else notify(`Deleted ${formatCount(done)} of ${plural(targets.length, 'entry', 'entries')}; ${formatCount(failed)} could not be deleted: ${why}`, 'error');
   };
 
   if (ticked.length === 0) return { bar: null, dialog: null };
@@ -92,7 +92,7 @@ export function useBulkDelete({
     <ConfirmDialog
       title={`Delete ${plural(targets.length, 'entry', 'entries')}`}
       body={`Delete the ${plural(targets.length, 'entry', 'entries')} you ticked, with their aliases, evidence, and relationships? This cannot be undone.${
-        kept > 0 ? ` ${plural(kept, 'locked entry', 'locked entries')} ${kept === 1 ? 'is' : 'are'} kept.` : ''
+        kept > 0 ? ` ${plural(kept, 'locked entry', 'locked entries')} ${pluralWord(kept, 'is', 'are')} kept.` : ''
       }`}
       confirmLabel={`Delete ${plural(targets.length, 'entry', 'entries')}`}
       confirmVariant="danger"

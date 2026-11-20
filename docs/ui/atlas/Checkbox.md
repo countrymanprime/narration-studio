@@ -14,6 +14,7 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - Indeterminate
 - Label Less
 - Label Less Indeterminate
+- Out Of The Tab Order
 
 ## Used by
 

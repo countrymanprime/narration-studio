@@ -564,7 +564,8 @@
         "Space Toggles",
         "Indeterminate",
         "Label Less",
-        "Label Less Indeterminate"
+        "Label Less Indeterminate",
+        "Out Of The Tab Order"
       ],
       "consumers": [
         "src/components/booth/voices/WhoIsInDialog.tsx",
@@ -3890,7 +3891,8 @@
         "In A Card",
         "Matches The Mock",
         "Fixed Columns",
-        "Tree"
+        "Tree",
+        "Custom Header Span"
       ],
       "consumers": [
         "src/components/editing/backups/BackupsList.tsx",
