@@ -18,6 +18,7 @@ func TestAPagesReadsListTheLedgerOncePerPassAndDecodeNothingTwice(t *testing.T) 
 	project := coverageProject(t)
 	host := coverageHost(t, project, true, fakeCoverageSidecar(8))
 	checkRecording(t, host)
+	host.chapterSyncEmits.Wait() // the finished check's own chaptersync:state read lists the ledger too: let it end before counting
 	reads := []struct {
 		name     string
 		read     func() (string, error)
@@ -85,6 +86,7 @@ func TestTheHostMakesOneLedgerStorePerProject(t *testing.T) {
 func TestARecordWrittenThroughTheProjectsStoreIsDecodedOnceByTheNextRead(t *testing.T) {
 	host := coverageHost(t, coverageProject(t), true, fakeCoverageSidecar(8))
 	checkRecording(t, host)
+	host.chapterSyncEmits.Wait() // the finished check's own chaptersync:state read lists the ledger too: let it end before counting
 	if _, err := host.ManuscriptChapters(); err != nil {
 		t.Fatal(err)
 	}
@@ -114,6 +116,7 @@ func TestARecordWrittenThroughTheProjectsStoreIsDecodedOnceByTheNextRead(t *test
 func TestAStageEvaluationListsTheLedgerOnce(t *testing.T) {
 	host := stagesHost(t, 8)
 	checkRecording(t, host)
+	host.chapterSyncEmits.Wait() // the finished check's own chaptersync:state read lists the ledger too: let it end before counting
 	stageChapters(t, host)
 	listings, decodes := host.coverage.LedgerReads()
 	chapters := stageChapters(t, host)
