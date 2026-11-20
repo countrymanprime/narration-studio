@@ -1,4 +1,6 @@
 import { Select } from '../primitives/Select';
+import { destinationFor } from '../engine/destination';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import { TrackTreePicker } from './TrackTreePicker';
 import { heldLabel, type TrackChoice } from './trackChoices';
 
@@ -19,6 +21,7 @@ export function TrackSelect({
   onChange: (guid: string) => void;
   fullWidth?: boolean;
 }) {
+  const { noun } = destinationFor(useVoiceLayout());
   // A project with REAPER folders picks from its tree; a flat one keeps the native select.
   if (choices.some((c) => c.isFolder || (c.depth ?? 0) > 0))
     return <TrackTreePicker label={label} choices={choices} value={value} onChange={onChange} fullWidth={fullWidth} />;
@@ -29,11 +32,11 @@ export function TrackSelect({
       value={value}
       onChange={onChange}
       fullWidth={fullWidth}
-      placeholder="Choose a track"
+      placeholder={`Choose a ${noun}`}
       options={choices.map((c) => ({
         value: c.guid,
         label: heldLabel(c.name, c.heldBy),
-        ...(grouped ? { group: c.best ? 'Best match' : 'Other tracks' } : {}),
+        ...(grouped ? { group: c.best ? 'Best match' : `Other ${noun}s` } : {}),
       }))}
     />
   );

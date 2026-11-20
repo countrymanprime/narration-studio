@@ -4,6 +4,8 @@ import { Button } from '../primitives/Button';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { plainTrackChoices, type ChapterNameOf } from './trackChoices';
 import { TrackSelect } from './TrackSelect';
+import { destinationFor } from '../engine/destination';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import type { Track, TrackMapping } from '../../types';
 
 type Props = {
@@ -53,6 +55,7 @@ export function MappingConfirm({
   clearLabel = 'Clear',
   nameOf,
 }: Props) {
+  const destination = destinationFor(useVoiceLayout());
   const hasLink = Boolean(linkedTrackGuid);
   const [picking, setPicking] = useState(!hasLink);
   const choices = plainTrackChoices(tracks, links, chapterId, nameOf);
@@ -75,7 +78,7 @@ export function MappingConfirm({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm">
           {linkedTrackName === undefined
-            ? 'Linked track is missing from this project'
+            ? destination.linkedMissing
             : trackName(linkedTrackName, tracks.find((track) => track.guid === linkedTrackGuid)?.index)}
         </span>
         <Button variant="secondary" onClick={() => setPicking(true)} disabled={busy}>
@@ -98,7 +101,7 @@ export function MappingConfirm({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <TrackSelect label={`Track for ${chapterTitle}`} choices={choices} value={chosen} onChange={setChosen} />
+      <TrackSelect label={destination.pickerLabel(chapterTitle)} choices={choices} value={chosen} onChange={setChosen} />
       <Button ref={keepFocusOnRemoval} variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
         Confirm
       </Button>

@@ -6,7 +6,9 @@
 import type { ChapterSyncChapter, ChapterTrackLink } from '../../types';
 import { chapterTrackButtonState } from './chapterTrackButtonState';
 import { plural } from '../../plural';
-import { LINK_STATE_LABEL } from '../chapterTracks/chapterLink';
+import { linkStateLabel } from '../chapterTracks/chapterLink';
+import { destinationFor } from '../engine/destination';
+import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 
 export type ChapterCheckStatus =
   | { kind: 'checking'; percent?: number; background?: boolean }
@@ -89,7 +91,13 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
 
 /** The row's bold label and its small muted line under it (04-row-check-status-replaces-check.webp), and the
  * accessible name that reads both, since colour is never the only signal (WCAG 1.4.1). */
-export function chapterCheckStatusText(chapterTitle: string, status: ChapterCheckStatus, now?: number): { label: string; detail?: string; name: string } {
+export function chapterCheckStatusText(
+  chapterTitle: string,
+  status: ChapterCheckStatus,
+  now?: number,
+  layout: VoiceTracksLayout = 'flat',
+): { label: string; detail?: string; name: string } {
+  const { noun, folders } = destinationFor(layout);
   switch (status.kind) {
     case 'checking': {
       const base = status.percent !== undefined ? `Checking ${Math.floor(status.percent)}%` : 'Checking';
@@ -110,16 +118,20 @@ export function chapterCheckStatusText(chapterTitle: string, status: ChapterChec
       return { label: 'Never checked', detail, name: `Recording check for ${chapterTitle}: never checked${detail ? `, ${detail}` : ''}` };
     }
     case 'needs_track': {
-      const detail = `${plural(status.count, 'possible track')}`;
-      return { label: 'Needs a track', detail, name: `Recording check for ${chapterTitle}: needs a track, ${detail}` };
+      const detail = `${plural(status.count, `possible ${noun}`)}`;
+      return { label: `Needs a ${noun}`, detail, name: `Recording check for ${chapterTitle}: needs a ${noun}, ${detail}` };
     }
     case 'suggested': {
       const detail = `confirm “${status.trackName}”`;
-      return { label: 'Suggested track', detail, name: `Recording check for ${chapterTitle}: suggested track, ${detail}` };
+      return { label: `Suggested ${noun}`, detail, name: `Recording check for ${chapterTitle}: suggested ${noun}, ${detail}` };
     }
     case 'missing':
-      return { label: LINK_STATE_LABEL.missing, detail: 'not in the saved project', name: `Recording check for ${chapterTitle}: linked track is missing` };
+      return {
+        label: linkStateLabel('missing', folders),
+        detail: 'not in the saved project',
+        name: `Recording check for ${chapterTitle}: linked ${noun} is missing`,
+      };
     case 'unlinked':
-      return { label: LINK_STATE_LABEL.unlinked, name: `Recording check for ${chapterTitle}: no track linked yet` };
+      return { label: linkStateLabel('unlinked', folders), name: `Recording check for ${chapterTitle}: no ${noun} linked yet` };
   }
 }
