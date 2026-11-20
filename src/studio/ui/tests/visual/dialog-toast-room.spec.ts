@@ -63,7 +63,8 @@ async function problemsOf(page: Page): Promise<string[]> {
   });
 }
 
-const shown = (page: Page) => page.locator('[data-toast-region] [data-tone]');
+// An older Undo toast waits mounted but not drawn (its clock runs), so only the visible ones count.
+const shown = (page: Page) => page.locator('[data-toast-region] [data-tone]:visible');
 
 type Case = { name: string; toasts: number; focusField?: boolean; longText?: boolean; open: (page: Page) => Promise<void> };
 /** New project over `count` Undo toasts (each recent project removed raises one), its Name field focused. */
@@ -198,11 +199,11 @@ for (const c of CASES) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       withToast[`${width}x${height}`] = await boxes();
     }
-    // Each toast in turn: the older one takes the newest's place, then none is left.
-    for (let left = c.toasts; left > 0; left -= 1) {
+    // Each toast in turn until none is left: an older one takes the newest's place if its time has not run out while it waited.
+    while ((await shown(page).count()) > 0) {
       await page.getByRole('button', { name: 'Dismiss message' }).click();
-      await expect(shown(page)).toHaveCount(left > 1 ? 1 : 0);
-      if (left > 1) expect(await boxes(), 'the popup and its buttons as the older toast takes its place').toEqual(withToast[`${sizes.at(-1)!.join('x')}`]);
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      expect(await boxes(), 'the popup and its buttons as a toast goes').toEqual(withToast[`${sizes.at(-1)!.join('x')}`]);
     }
     for (const [width, height] of sizes) {
       await page.setViewportSize({ width, height });
@@ -225,6 +226,18 @@ test('over a dialog the older toast waits for the newest to go', async ({ page }
   await page.getByRole('button', { name: 'Dismiss message' }).click();
   await expect(shown(page)).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'))).toBe('');
+});
+
+// An Undo is good for a fixed time from the change (the picker sends a removal 6 s after Remove). An Undo toast that waited behind a newer one must not come back afresh after that:
+// its Undo answered "already removed" and restored nothing (qa on #3745). It waits with its clock running, so it is gone by the time the newest has gone.
+test('an Undo toast that waited behind a newer one over a dialog does not come back with a dead Undo', async ({ page }) => {
+  page.setDefaultTimeout(20_000);
+  await undoToasts(2).open(page);
+  await expect(shown(page)).toHaveCount(1);
+  // Past the 6 s the removals wait for an Undo: both toasts' 5 s ran from when they were raised, so none is left to offer one.
+  await page.waitForTimeout(6_500);
+  expect(await shown(page).count(), 'toasts still offering Undo after the removals were sent').toBe(0);
+  await expect(page.getByText(/was already removed from recent projects/)).toHaveCount(0);
 });
 
 // The rule is for a window with a dialog open, where the dialog needs its chrome, at any size: with no dialog open an older error and its Retry are not hidden by a newer message.

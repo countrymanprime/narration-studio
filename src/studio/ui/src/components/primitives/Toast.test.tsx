@@ -739,6 +739,22 @@ describe('ToastRegion with a dialog open', () => {
     }
   });
 
+  it('an older toast with an action keeps its clock while it waits, and goes when its time is up without being shown', () => {
+    vi.useFakeTimers();
+    try {
+      const dismiss = vi.fn();
+      const undo = { ...info(1, 'Removed A.'), action: { label: 'Undo', onAction: vi.fn() } };
+      render(<ToastRegion messages={[undo, info(2, 'Newest.')]} dismiss={dismiss} />);
+      // Mounted for its clock, not drawn, and no tab stop.
+      expect(screen.getByText('Removed A.').closest('[data-tone]')!.hasAttribute('hidden')).toBe(true);
+      expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+      act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1));
+      expect(dismiss).toHaveBeenCalledWith(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows the whole stack when no dialog is open, so a newer message never hides an older error and its Retry', () => {
     document.documentElement.removeAttribute('data-modal-open');
     render(
