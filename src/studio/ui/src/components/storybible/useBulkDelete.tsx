@@ -71,11 +71,15 @@ export function useBulkDelete({
 
   if (ticked.length === 0) return { bar: null, dialog: null };
   const bar = (
-    <div className="flex min-w-0 items-center justify-center gap-2 normal-case">
-      <span className="min-w-0 truncate text-[var(--text)]">{formatCount(ticked.length)} selected</span>
+    <div className="flex min-w-0 items-center justify-center gap-1 normal-case">
+      <span className="shrink-0 whitespace-nowrap text-[var(--text)]">
+        {formatCount(ticked.length)}
+        <span className="@max-sm:sr-only"> selected</span>
+      </span>
       <Button
         variant="danger"
         size="sm"
+        className="shrink-0 whitespace-nowrap"
         disabledReason={targets.length === 0 ? 'Every ticked entry is locked. Unlock an entry to delete it.' : undefined}
         onClick={ask}
       >

@@ -43,10 +43,10 @@ describe('ticking entries to delete them together', () => {
     await mount();
     expect(screen.queryByRole('button', { name: /^Delete \d+ entr/ })).toBeNull();
     tick('Alice');
-    expect(within(bar() as HTMLElement).getByText('1 selected')).toBeTruthy();
+    expect(bar().textContent).toContain('1 selected');
     expect(deleteButton().textContent).toBe('Delete 1 entry');
     tick('Hatter');
-    expect(within(bar() as HTMLElement).getByText('2 selected')).toBeTruthy();
+    expect(bar().textContent).toContain('2 selected');
     expect(deleteButton().textContent).toBe('Delete 2 entries');
     // Opening nothing: the box ticks, it does not select the row.
     expect(screen.getByRole('checkbox', { name: 'Select Alice' }).getAttribute('aria-checked')).toBe('true');
@@ -148,7 +148,7 @@ describe('ticking entries to delete them together', () => {
     tick('Hatter');
     fireEvent.change(screen.getByRole('textbox', { name: 'Search entries' }), { target: { value: 'Hatter' } });
     await waitFor(() => expect(names()).toEqual(['Hatter']));
-    expect(within(bar() as HTMLElement).getByText('1 selected')).toBeTruthy();
+    expect(bar().textContent).toContain('1 selected');
     fireEvent.click(deleteButton());
     fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete 1 entry' }));
     await waitFor(() => expect(del).toHaveBeenCalledTimes(1));
@@ -159,7 +159,7 @@ describe('ticking entries to delete them together', () => {
     await mount();
     const all = () => screen.getByRole('checkbox', { name: 'Select every entry' });
     fireEvent.click(all());
-    expect(within(bar() as HTMLElement).getByText(`${names().length} selected`)).toBeTruthy();
+    expect(bar().textContent).toContain(`${names().length} selected`);
     expect(all().getAttribute('aria-checked')).toBe('true');
     fireEvent.click(all());
     expect(screen.queryByRole('button', { name: /^Delete \d+ entr/ })).toBeNull();

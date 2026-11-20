@@ -225,6 +225,19 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Delete entity');
     await confirmDialog(page, 'Delete entry').waitFor();
   },
+  'entries-ticked': async (page) => {
+    await goToPage(page, 'Story Bible');
+    const boxes = page.getByRole('checkbox', { name: /^Select (?!every)/ });
+    for (let i = 0; i < 3; i++) await boxes.nth(i).click();
+    await page.getByRole('button', { name: /^Delete \d+ entr/ }).waitFor();
+  },
+  'bulk-delete-confirm': async (page) => {
+    await goToPage(page, 'Story Bible');
+    const boxes = page.getByRole('checkbox', { name: /^Select (?!every)/ });
+    for (let i = 0; i < 3; i++) await boxes.nth(i).click();
+    await page.getByRole('button', { name: /^Delete \d+ entr/ }).click();
+    await page.getByRole('alertdialog').waitFor();
+  },
   'entry-locked': async (page) => {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();
