@@ -74,4 +74,9 @@ describe('Checkbox', () => {
     expect(box.getAttribute('data-inc')).toBe('x');
     expect(box.getAttribute('data-count')).toBe('3');
   });
+
+  it('takes a tabIndex so a list with one tab stop can keep it off the other boxes', () => {
+    render(<Checkbox aria-label="Select Alice" tabIndex={-1} checked={false} onChange={() => undefined} />);
+    expect(screen.getByRole('checkbox', { name: 'Select Alice' }).getAttribute('tabindex')).toBe('-1');
+  });
 });

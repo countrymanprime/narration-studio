@@ -187,10 +187,20 @@ def name_key(raw: RawSuggestion) -> str:
     return guide.normalize_name(name) or name.lower()
 
 
+def _starts_lower(raw: RawSuggestion) -> bool:
+    return raw["payload"]["name"][:1].islower()
+
+
 def keep_better(best: dict[str, RawSuggestion], raw: RawSuggestion) -> None:
     """Holds ``raw`` under its name unless the name is held with a score at least as high (the first one holds on a tie, and a
     held score is never replaced by none)."""
     key, held, score = name_key(raw), best.get(name_key(raw)), raw["confidence"]
+    # A spelling with a capital is the name; its lower-case twin (a word, not a name) never replaces it, whatever the scores (#3661):
+    # the host drops a name that starts in lower case, and "Rose" must not be lost to a higher-scoring "rose".
+    if held is not None and _starts_lower(held) != _starts_lower(raw):
+        if _starts_lower(held):
+            best[key] = raw
+        return
     if held is not None and (score is None or (held["confidence"] is not None and held["confidence"] >= score)):
         return
     best[key] = raw

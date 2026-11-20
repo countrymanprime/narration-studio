@@ -14,6 +14,7 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - Indeterminate
 - Label Less
 - Label Less Indeterminate
+- Out Of The Tab Order
 
 ## Used by
 
@@ -42,4 +43,5 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/controls/AppearanceBodies.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
+- `src/components/storybible/EntryTable.tsx`
 - `src/components/storybible/suggested/scan/AnalysisPrompt.tsx`

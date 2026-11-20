@@ -76,6 +76,16 @@ export const storybibleStates: StateEntry[] = [
   { page: 'storybible', state: 'name-clash', description: 'Story Bible, a typed name another entry has: the clash line and Merge into this entry' },
   { page: 'storybible', state: 'relationship-picker', description: 'Story Bible, a relationship in edit with the entry picker open' },
   { page: 'storybible', state: 'delete-confirm', description: 'Story Bible, delete confirm dialog open' },
+  {
+    page: 'storybible',
+    state: 'entries-ticked',
+    description: 'Story Bible, three entries ticked: the header row becomes the bar with the count, Delete 3 entries and Clear the selection',
+  },
+  {
+    page: 'storybible',
+    state: 'bulk-delete-confirm',
+    description: 'Story Bible, the Delete 3 entries confirm: it names the count and what is lost, and the locked entries it keeps',
+  },
   { page: 'storybible', state: 'entry-locked', description: 'Story Bible, a locked entry' },
   {
     page: 'storybible',

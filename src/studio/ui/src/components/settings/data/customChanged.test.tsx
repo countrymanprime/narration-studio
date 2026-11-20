@@ -5,7 +5,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { announceBrowserSettingChange } from '../../../browserSettings';
 import { projectDataChanged } from './projectDataSignal';
-import { CUSTOM_CHANGED, useCustomChanged, type ProbeContext } from './customChanged';
+import { CUSTOM_CHANGED, PROBE_STUCK_MS, useCustomChanged, type ProbeContext } from './customChanged';
 import type { ReadSettings } from './values';
 
 afterEach(cleanup);
@@ -95,7 +95,7 @@ describe('a scope being read does not start the probes again (#3658)', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(zoom).toHaveBeenCalledTimes(2);
   });
-  it('asks the probes again when the settings are read after a probe that never answered', async () => {
+  it('asks the probes again when the settings are read after a probe has not answered for the stuck age', async () => {
     const api = createMockApi();
     const zoom = vi.spyOn(api, 'windowZoom');
     vi.spyOn(api, 'creditsChanged').mockImplementationOnce(() => new Promise(() => undefined));
@@ -104,10 +104,41 @@ describe('a scope being read does not start the probes again (#3658)', () => {
         <WithSettings value={value} />
       </ApiProvider>
     );
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const { rerender } = render(view({}));
+      await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
+      rerender(view({ global: {} })); // too soon: the pass is only running
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(zoom).toHaveBeenCalledTimes(1);
+      vi.setSystemTime(Date.now() + PROBE_STUCK_MS + 1);
+      rerender(view({ global: {}, project: {} }));
+      await waitFor(() => expect(zoom).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('runs once when both scopes arrive while a pass that is answering is still running', async () => {
+    const api = createMockApi();
+    const zoom = vi.spyOn(api, 'windowZoom');
+    const plan = api.productionPlan.bind(api);
+    // One probe slower than the two settings reads, as a host read of the project is.
+    vi.spyOn(api, 'productionPlan').mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return plan();
+    });
+    const view = (value: ReadSettings) => (
+      <ApiProvider api={api}>
+        <WithSettings value={value} />
+      </ApiProvider>
+    );
     const { rerender } = render(view({}));
     await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
     rerender(view({ global: {} }));
-    await waitFor(() => expect(zoom).toHaveBeenCalledTimes(2));
+    rerender(view({ global: {}, project: {} }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(zoom).toHaveBeenCalledTimes(1);
   });
 });
 

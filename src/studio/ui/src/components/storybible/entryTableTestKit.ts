@@ -8,7 +8,10 @@ export const entryRows = () =>
   within(entryTable())
     .queryAllByRole('row')
     .filter((row) => row.hasAttribute('data-entry-id'));
-export const cellsOf = (row: HTMLElement) => within(row).getAllByRole('cell');
+export const cellsOf = (row: HTMLElement) =>
+  within(row)
+    .getAllByRole('cell')
+    .filter((cell) => !cell.querySelector('[role=checkbox]'));
 export const rowName = (row: HTMLElement) => (row.querySelector('[data-entry-name]') ?? cellsOf(row)[0]!).textContent;
 export const rowNames = () => entryRows().map(rowName);
 
