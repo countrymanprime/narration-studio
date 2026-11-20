@@ -56,6 +56,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/engine/AddMarkers.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
+- `src/components/engine/CapabilityReferenceDialog.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/CleanupToolsDialog.tsx`
@@ -124,7 +125,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/script/page/tools/select/SelectionTool.tsx`
 - `src/components/script/page/tools/text/TextSettings.tsx`
 - `src/components/settings/BackupsSection.tsx`
-- `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/KeyboardPanel.tsx`

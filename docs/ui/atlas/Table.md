@@ -22,6 +22,7 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/editing/effects/EffectsList.tsx`
 - `src/components/editing/effects/ProjectFx.tsx`
+- `src/components/engine/CapabilityReferenceDialog.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
