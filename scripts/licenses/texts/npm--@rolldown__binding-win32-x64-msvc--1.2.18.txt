@@ -1,4 +1,4 @@
-Licence text of the upstream project, copied unchanged from https://github.com/rolldown/rolldown/blob/v1.2.15/LICENSE (tag v1.2.15, the version shipped).
+Licence text of the upstream project, copied unchanged from https://github.com/rolldown/rolldown/blob/v1.2.18/LICENSE (tag v1.2.18, the version shipped).
 
 MIT License
 
