@@ -104,7 +104,9 @@ def list_edits_raise_the_count(env: Env) -> str:
         failed.append("undo an add")
     # The bridge's own create, as BoothVoiceAdd sends it: the count the next heartbeat carries must differ from the one the cache holds.
     env.lua(ARRANGE)
-    folder = env.lua("local f = ci.track_by_name('Chapter 1') reaper.SetMediaTrackInfo_Value(f, 'I_FOLDERDEPTH', 1) reaper.SetMediaTrackInfo_Value(ci.track_by_name('Voice B'), 'I_FOLDERDEPTH', -1) return reaper.GetTrackGUID(f)")
+    folder = env.lua(
+        "local f = ci.track_by_name('Chapter 1') reaper.SetMediaTrackInfo_Value(f, 'I_FOLDERDEPTH', 1) reaper.SetMediaTrackInfo_Value(ci.track_by_name('Voice B'), 'I_FOLDERDEPTH', -1) return reaper.GetTrackGUID(f)"
+    )
     before = env.lua("return reaper.GetProjectStateChangeCount(0)")
     env.ok("track_create", "Veyra", folder, until="TRACK_CREATED")
     after = env.lua("return reaper.GetProjectStateChangeCount(0)")
