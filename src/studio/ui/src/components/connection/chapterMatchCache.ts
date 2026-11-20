@@ -14,9 +14,9 @@ export interface CachedMatch {
 }
 
 /** A match read ahead is read again when it is older than this: the DAW's tracks change while the app is open. */
-export const MATCH_FRESH_MS = 30_000;
+const MATCH_FRESH_MS = 30_000;
 /** How long the not-linked dialog's automatic opening waits for the read ahead before it opens and reads for itself. */
-export const MATCH_WAIT_MS = 2_500;
+const MATCH_WAIT_MS = 2_500;
 /** How long a read ahead may take before it is given up. */
 const MATCH_READ_MS = 8_000;
 
