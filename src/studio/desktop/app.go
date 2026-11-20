@@ -815,7 +815,7 @@ func (h *Host) configureLocked(next config) {
 	h.manuscript.SetCredits(h.creditsChapters)
 	h.manuscript.SetCreditsStatusWriter(func(kind, status string) error { _, err := h.setCreditsStatus(kind, status); return err })
 	// A chapter's recordedThrough is how far it is recorded, from its current Proof result, the Booth's takes and that length.
-	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore))
+	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore, h.manuscript))
 	h.editing = editing.New(editing.Config{
 		Project:     h.config.projectFolder,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },

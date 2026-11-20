@@ -181,16 +181,17 @@ func (s *Service) RecordedFractions(alignment AlignmentParams) map[string]float6
 // current check is left out of both; reading never starts a check.
 func (s *Service) Current(alignment AlignmentParams) (fractions map[string]float64, paragraphs map[string][]ParagraphLine) {
 	fractions, paragraphs = map[string]float64{}, map[string][]ParagraphLine{}
-	for chapterID, report := range s.currentReports(alignment) {
-		fractions[chapterID] = report.PresentFraction()
-		paragraphs[chapterID] = report.Paragraphs
+	for chapterID, summary := range s.currentSummaries(alignment) {
+		fractions[chapterID] = summary.PresentFraction()
+		paragraphs[chapterID] = summary.Paragraphs
 	}
 	return fractions, paragraphs
 }
 
-// currentReports is the stored report of every chapter whose newest complete check is current for the saved project.
-func (s *Service) currentReports(alignment AlignmentParams) map[string]Report {
-	reports := map[string]Report{}
+// currentSummaries is the summary of the stored result of every chapter whose newest complete check is current for the
+// saved project. No stored result is decoded for it, but one that has no summary yet (issue 3802).
+func (s *Service) currentSummaries(alignment AlignmentParams) map[string]ResultSummary {
+	reports := map[string]ResultSummary{}
 	if s.config.Project == "" || alignment.validate() != nil {
 		return reports
 	}
@@ -212,9 +213,9 @@ func (s *Service) currentReports(alignment AlignmentParams) map[string]Report {
 		if err != nil {
 			continue
 		}
-		result, err := s.evaluate(read, project, projectFile, basis, alignment)
-		if err == nil && result.Current() {
-			reports[chapterID] = result.Result.Report
+		result, summary, err := s.evaluateSummary(read, project, projectFile, basis, alignment)
+		if err == nil && result.State == evidence.StateCurrent && summary != nil {
+			reports[chapterID] = *summary
 		}
 	}
 	return reports
@@ -242,6 +243,55 @@ func checkedChapters(ledger evidence.LedgerReader) []string {
 // evaluate compares the chapter's newest complete run against the parsed
 // saved project, the confirmed track, the parameters and the manuscript.
 func (s *Service) evaluate(read reading, project tracks.Project, projectFile evidence.LedgerProjectFile, basis ChapterBasis, alignment AlignmentParams) (ChapterResult, error) {
+	answer, err := s.evaluateRecord(read, project, projectFile, basis, alignment)
+	if err != nil || answer.Record == nil {
+		return answer, err
+	}
+	stored, ok := s.results.read(answer.Record.ID)
+	if !ok {
+		return resultMissing(answer), nil
+	}
+	answer.Result = &stored
+	return manuscriptChecked(answer, basis, stored.DocumentID, stored.ManuscriptHash), nil
+}
+
+// evaluateSummary is evaluate for a read of every chapter: the same state and reasons, with the stored result's summary
+// where evaluate gives the result itself, so the result's per-word alignment is not decoded. Result is nil in its answer.
+func (s *Service) evaluateSummary(read reading, project tracks.Project, projectFile evidence.LedgerProjectFile, basis ChapterBasis, alignment AlignmentParams) (ChapterResult, *ResultSummary, error) {
+	answer, err := s.evaluateRecord(read, project, projectFile, basis, alignment)
+	if err != nil || answer.Record == nil {
+		return answer, nil, err
+	}
+	summary, ok := s.summary(answer.Record.ID)
+	if !ok {
+		return resultMissing(answer), nil, nil
+	}
+	return manuscriptChecked(answer, basis, summary.DocumentID, summary.ManuscriptHash), &summary, nil
+}
+
+// resultMissing is the answer for a complete record whose stored result cannot be read: never checked.
+func resultMissing(answer ChapterResult) ChapterResult {
+	answer.State = evidence.StateNever
+	answer.Reasons = append(answer.Reasons, string(ReasonResultMissing))
+	return answer
+}
+
+// manuscriptChecked makes the answer stale when the stored result measured another document or another text of the chapter.
+func manuscriptChecked(answer ChapterResult, basis ChapterBasis, documentID, manuscriptHash string) ChapterResult {
+	if documentID != basis.DocumentID || manuscriptHash != basis.Hash || answer.Record.Scope.DocumentID != basis.DocumentID {
+		answer.State = evidence.StateStale
+		reason := ReasonManuscriptChanged
+		if _, isCredits := creditsid.Kind(basis.ChapterID); isCredits {
+			reason = ReasonCreditsChanged
+		}
+		answer.Reasons = append(answer.Reasons, string(reason))
+	}
+	return answer
+}
+
+// evaluateRecord is the part of evaluate that reads no stored result: the chapter's newest complete record against the
+// saved project, the confirmed track and the parameters. Record is nil in its answer when there is none.
+func (s *Service) evaluateRecord(read reading, project tracks.Project, projectFile evidence.LedgerProjectFile, basis ChapterBasis, alignment AlignmentParams) (ChapterResult, error) {
 	if _, err := confirmedTrack(read.mapping, basis.DocumentID, basis.ChapterID); err != nil {
 		return ChapterResult{}, err
 	}
@@ -259,26 +309,7 @@ func (s *Service) evaluate(read reading, project tracks.Project, projectFile evi
 	if err != nil {
 		return ChapterResult{}, err
 	}
-	answer := ChapterResult{State: evaluation.State, Reasons: reasonStrings(evaluation.Reasons), Basis: &evaluationBasis, Record: evaluation.Record}
-	if evaluation.Record == nil {
-		return answer, nil
-	}
-	stored, ok := s.results.read(evaluation.Record.ID)
-	if !ok {
-		answer.State = evidence.StateNever
-		answer.Reasons = append(answer.Reasons, string(ReasonResultMissing))
-		return answer, nil
-	}
-	answer.Result = &stored
-	if stored.DocumentID != basis.DocumentID || stored.ManuscriptHash != basis.Hash || evaluation.Record.Scope.DocumentID != basis.DocumentID {
-		answer.State = evidence.StateStale
-		reason := ReasonManuscriptChanged
-		if _, isCredits := creditsid.Kind(basis.ChapterID); isCredits {
-			reason = ReasonCreditsChanged
-		}
-		answer.Reasons = append(answer.Reasons, string(reason))
-	}
-	return answer, nil
+	return ChapterResult{State: evaluation.State, Reasons: reasonStrings(evaluation.Reasons), Basis: &evaluationBasis, Record: evaluation.Record}, nil
 }
 
 func reasonStrings(reasons []evidence.EvaluatorReason) []string {

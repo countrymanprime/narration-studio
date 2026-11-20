@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sync"
 	"time"
 
@@ -17,11 +16,6 @@ import (
 // storedResultVersion is the version of a stored coverage result.
 const storedResultVersion = 1
 
-// recordIDPattern is what a ledger record id looks like (evidence.newLedgerID:
-// 32 hex digits, or "ledger-<nanoseconds>"): the stored result's file name, so
-// it is checked before it becomes part of a path.
-var recordIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,64}$`)
-
 // Dir is where coverage keeps its own data under a project: the stored results
 // and, while a run is going, its working folder. manuscript.resetDerived clears
 // it with the ledger and cache, since results name chapter and paragraph ids a
@@ -31,6 +25,8 @@ func Dir(project string) string {
 }
 
 func resultsDir(project string) string { return filepath.Join(Dir(project), "results") }
+
+func summariesDir(project string) string { return filepath.Join(Dir(project), "summaries") }
 
 func runsDir(project string) string { return filepath.Join(Dir(project), "runs") }
 
@@ -181,10 +177,11 @@ func (r StoredResult) cloned() StoredResult {
 }
 
 func (s resultStore) path(recordID string) (string, error) {
-	if !recordIDPattern.MatchString(recordID) {
+	name, ok := evidence.RecordFileName(recordID)
+	if !ok {
 		return "", fmt.Errorf("%q is not a ledger record id", recordID)
 	}
-	return filepath.Join(s.dir, recordID+".json"), nil
+	return filepath.Join(s.dir, name), nil
 }
 
 func (s resultStore) write(result StoredResult) error {
@@ -202,6 +199,16 @@ func (s resultStore) write(result StoredResult) error {
 		return fmt.Errorf("could not store the coverage result: %w", err)
 	}
 	return nil
+}
+
+// exists reports whether the record's result file is there, without reading it.
+func (s resultStore) exists(recordID string) bool {
+	path, err := s.path(recordID)
+	if err != nil {
+		return false
+	}
+	info, err := os.Stat(path)
+	return err == nil && info.Mode().IsRegular()
 }
 
 // read returns the stored result for a record, or false when it is missing,

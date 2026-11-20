@@ -1,0 +1,45 @@
+{
+  "chapterId": "c-0001",
+  "documentId": "doc-1",
+  "gaps": [],
+  "manuscriptHash": "9af9c320c3789b35076a68f2a735be40a611e32e3f50bcfa87c685b1052970ef",
+  "paragraphs": [
+    {
+      "id": "p-000001",
+      "longestMissingRun": 4,
+      "present": 6,
+      "tokens": 10
+    }
+  ],
+  "recordId": "id-1",
+  "schemaVersion": 1,
+  "summary": {
+    "alignment": {
+      "maxMisreadRun": 8,
+      "minAnchorRun": 3
+    },
+    "analysis": {
+      "equivalencesHash": null,
+      "language": null,
+      "model": "small"
+    },
+    "bodyTokens": 10,
+    "chapterId": "c-0001",
+    "extraTokens": 0,
+    "items": {
+      "analyzed": 0,
+      "muted": 0,
+      "playedSeconds": 0,
+      "reused": 0,
+      "transcribed": 0
+    },
+    "longestMissingRun": 4,
+    "missingTokens": 4,
+    "presentTokens": 6,
+    "schemaVersion": 1
+  },
+  "unfinished": {
+    "end": 0,
+    "start": 0
+  }
+}

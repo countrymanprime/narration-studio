@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -382,6 +383,19 @@ func (s *LedgerStore) Retain(referencedIDs []string) ([]string, error) {
 	}
 	sort.Strings(deleted)
 	return deleted, nil
+}
+
+// recordFileName is what a record id may look like to name a file: newLedgerID's 32 hex digits or "ledger-<nanoseconds>".
+var recordFileName = regexp.MustCompile(`^[A-Za-z0-9-]{1,64}$`)
+
+// RecordFileName is the file name of data kept for one ledger record beside the ledger (a stored result, its summary):
+// the record's id and ".json". It reports false for an id that is not one a record can have, so no id read from a file
+// becomes part of a path unchecked.
+func RecordFileName(recordID string) (string, bool) {
+	if !recordFileName.MatchString(recordID) {
+		return "", false
+	}
+	return recordID + ".json", true
 }
 
 func (s *LedgerStore) recordPath(id string) string {
