@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/StatusBadge.tsx`.
 
+![StatusBadge, Neutral, light theme](../images/statusbadge.webp)
+
 ## Stories
 
 - Neutral

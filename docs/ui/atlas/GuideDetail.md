@@ -2,6 +2,8 @@
 
 Storybook title: `Story Bible/GuideDetail`. Source: `src/components/storybible/GuideDetail.tsx`.
 
+![GuideDetail, Read Only Character, light theme](../images/guidedetail.webp)
+
 ## Stories
 
 - Read Only Character

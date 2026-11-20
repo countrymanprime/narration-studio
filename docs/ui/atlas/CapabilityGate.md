@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/CapabilityGate`. Source: `src/components/primitives/CapabilityGate.tsx`.
 
+![CapabilityGate, Supported Is Unchanged, light theme](../images/capabilitygate.webp)
+
 ## Stories
 
 - Supported Is Unchanged

@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Kbd`. Source: `src/components/primitives/Kbd.tsx`.
 
+![Kbd, Single Key, light theme](../images/kbd.webp)
+
 ## Stories
 
 - Single Key

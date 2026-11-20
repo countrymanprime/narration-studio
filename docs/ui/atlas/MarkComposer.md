@@ -2,6 +2,8 @@
 
 Storybook title: `Script/MarkComposer`. Source: `src/components/script/page/tools/select/MarkComposer.tsx`.
 
+![MarkComposer, Note, light theme](../images/markcomposer.webp)
+
 ## Stories
 
 - Note

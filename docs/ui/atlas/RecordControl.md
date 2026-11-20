@@ -2,6 +2,8 @@
 
 Storybook title: `Booth/RecordControl`. Source: `src/components/booth/record/RecordControl.stories.tsx`.
 
+![RecordControl, Ready, light theme](../images/recordcontrol.webp)
+
 ## Stories
 
 - Ready

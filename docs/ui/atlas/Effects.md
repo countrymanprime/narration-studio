@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/Effects`. Source: `src/components/editing/effects/Effects.stories.tsx`.
 
+![Effects, List None, light theme](../images/effects.webp)
+
 ## Stories
 
 - List None

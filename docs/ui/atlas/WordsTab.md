@@ -2,6 +2,8 @@
 
 Storybook title: `Script/WordsTab`. Source: `src/components/script/page/rail/words/WordsTab.stories.tsx`.
 
+![WordsTab, Several Words, light theme](../images/wordstab.webp)
+
 ## Stories
 
 - Several Words

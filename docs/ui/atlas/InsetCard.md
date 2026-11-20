@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/InsetCard`. Source: `src/components/primitives/InsetCard.tsx`.
 
+![InsetCard, Default, light theme](../images/insetcard.webp)
+
 ## Stories
 
 - Default

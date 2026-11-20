@@ -2,6 +2,8 @@
 
 Storybook title: `Story Bible/AppearsIn`. Source: `src/components/storybible/AppearsIn.tsx`.
 
+![AppearsIn, One Chapter, light theme](../images/appearsin.webp)
+
 ## Stories
 
 - One Chapter

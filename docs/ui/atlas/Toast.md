@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.tsx`.
 
+![Toast, Information, light theme](../images/toast.webp)
+
 ## Stories
 
 - Information

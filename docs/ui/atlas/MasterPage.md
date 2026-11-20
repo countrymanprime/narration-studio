@@ -2,6 +2,8 @@
 
 Storybook title: `Master & QC/Page`. Source: `src/components/masterqc/page/MasterPage.tsx`.
 
+![MasterPage, Measured, light theme](../images/masterpage.webp)
+
 ## Stories
 
 - Measured

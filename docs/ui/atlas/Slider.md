@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Slider`. Source: `src/components/primitives/Slider.tsx`.
 
+![Slider, With Label And Readout, light theme](../images/slider.webp)
+
 ## Stories
 
 - With Label And Readout

@@ -2,6 +2,8 @@
 
 Storybook title: `Schedule/VerdictPill`. Source: `src/components/schedule/VerdictPill.tsx`.
 
+![VerdictPill, On Track, light theme](../images/verdictpill.webp)
+
 ## Stories
 
 - On Track

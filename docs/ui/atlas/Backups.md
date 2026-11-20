@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/Backups`. Source: `src/components/editing/backups/Backups.stories.tsx`.
 
+![Backups, List None, light theme](../images/backups.webp)
+
 ## Stories
 
 - List None

@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/KeyCap`. Source: `src/components/primitives/KeyCap.tsx`.
 
+![KeyCap, Glyph, light theme](../images/keycap.webp)
+
 ## Stories
 
 - Glyph

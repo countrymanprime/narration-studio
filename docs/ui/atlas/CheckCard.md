@@ -2,6 +2,8 @@
 
 Storybook title: `Proof/CheckCard`. Source: `src/components/proof/checkcard/CheckCard.tsx`.
 
+![CheckCard, Not Checked, light theme](../images/checkcard.webp)
+
 ## Stories
 
 - Not Checked

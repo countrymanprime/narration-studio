@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Menu`. Source: `src/components/primitives/Menu.tsx`.
 
+![Menu, Closed, light theme](../images/menu.webp)
+
 ## Stories
 
 - Closed

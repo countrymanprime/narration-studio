@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Checkbox.tsx`.
 
+![Checkbox, Unchecked, light theme](../images/checkbox.webp)
+
 ## Stories
 
 - Unchecked

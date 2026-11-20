@@ -2,6 +2,8 @@
 
 Storybook title: `Script/Reader/Para`. Source: `src/components/script/page/reader/Para.tsx`.
 
+![Para, Plain Text, light theme](../images/para.webp)
+
 ## Stories
 
 - Plain Text

@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/ChapterStepper`. Source: `src/components/primitives/ChapterStepper.tsx`.
 
+![ChapterStepper, First Chapter, light theme](../images/chapterstepper.webp)
+
 ## Stories
 
 - First Chapter

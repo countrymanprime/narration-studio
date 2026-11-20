@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/IconButton.tsx`.
 
+![IconButton, Default, light theme](../images/iconbutton.webp)
+
 ## Stories
 
 - Default

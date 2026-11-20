@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/SlideOver`. Source: `src/components/primitives/SlideOver.tsx`.
 
+![SlideOver, Open, light theme](../images/slideover.webp)
+
 ## Stories
 
 - Open

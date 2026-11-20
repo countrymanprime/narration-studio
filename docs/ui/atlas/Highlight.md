@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Highlight`. Source: `src/components/primitives/Highlight.tsx`.
 
+![Highlight, Character, light theme](../images/highlight.webp)
+
 ## Stories
 
 - Character

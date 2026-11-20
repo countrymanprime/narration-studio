@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/SpeakerTag`. Source: `src/components/primitives/SpeakerTag.tsx`.
 
+![SpeakerTag, Default, light theme](../images/speakertag.webp)
+
 ## Stories
 
 - Default

@@ -2,6 +2,8 @@
 
 Storybook title: `Script/ChapterCard`. Source: `src/components/script/page/chapters/ChapterCard.tsx`.
 
+![ChapterCard, Not Started, light theme](../images/chaptercard.webp)
+
 ## Stories
 
 - Not Started

@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/KindMark`. Source: `src/components/primitives/KindMark.tsx`.
 
+![KindMark, Misread, light theme](../images/kindmark.webp)
+
 ## Stories
 
 - Misread

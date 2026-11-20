@@ -2,6 +2,8 @@
 
 Storybook title: `Proof/TypeSelect`. Source: `src/components/proof/inspector/TypeSelect.tsx`.
 
+![TypeSelect, Analyzers Word, light theme](../images/typeselect.webp)
+
 ## Stories
 
 - Analyzers Word

@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/FxDialog`. Source: `src/components/editing/range/fx/FxDialog.stories.tsx`.
 
+![FxDialog, Preview, light theme](../images/fxdialog.webp)
+
 ## Stories
 
 - Preview

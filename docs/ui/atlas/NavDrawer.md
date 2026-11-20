@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/NavDrawer`. Source: `src/components/primitives/NavDrawer.tsx`.
 
+![NavDrawer, Open, light theme](../images/navdrawer.webp)
+
 ## Stories
 
 - Open

@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/Flags`. Source: `src/components/editing/flags/Flags.stories.tsx`.
 
+![Flags, Misread, light theme](../images/flags.webp)
+
 ## Stories
 
 - Misread

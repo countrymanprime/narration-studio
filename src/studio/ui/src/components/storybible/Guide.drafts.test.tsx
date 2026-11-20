@@ -87,4 +87,21 @@ describe('a list command with an entry edit held', () => {
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
     expect(asked).toHaveLength(0);
   });
+
+  it('Delete N entries with the entry being edited among the ticked asks about the edit first; without it nothing is asked', async () => {
+    await mount();
+    await holdAnEditOn('Alice');
+    const tick = (name: string) => fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }));
+    tick('Hatter');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 1 entry' }));
+    expect(asked).toHaveLength(0);
+    expect(await screen.findByRole('alertdialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    tick('Alice');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete 2 entries' }));
+    expect(asked).toHaveLength(1);
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    act(() => asked[0]!());
+    expect(await screen.findByRole('alertdialog')).toBeTruthy();
+  });
 });

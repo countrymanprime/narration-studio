@@ -2,6 +2,8 @@
 
 Storybook title: `Booth/ResumeOffer`. Source: `src/components/booth/resume/ResumeOffer.tsx`.
 
+![ResumeOffer, Offered, light theme](../images/resumeoffer.webp)
+
 ## Stories
 
 - Offered

@@ -2,6 +2,8 @@
 
 Storybook title: `Production/ReportDialog`. Source: `src/components/production/report/ReportDialog.tsx`.
 
+![ReportDialog, Html Preview, light theme](../images/reportdialog.webp)
+
 ## Stories
 
 - Html Preview

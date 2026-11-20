@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/Split`. Source: `src/components/editing/takes/split/Split.stories.tsx`.
 
+![Split, Confirm Daw, light theme](../images/split.webp)
+
 ## Stories
 
 - Confirm Daw

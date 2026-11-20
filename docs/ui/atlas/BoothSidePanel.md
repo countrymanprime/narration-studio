@@ -2,6 +2,8 @@
 
 Storybook title: `Booth/BoothSidePanel`. Source: `src/components/booth/side/BoothSidePanel.tsx`.
 
+![BoothSidePanel, Sections, light theme](../images/boothsidepanel.webp)
+
 ## Stories
 
 - Sections

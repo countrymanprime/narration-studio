@@ -2,6 +2,8 @@
 
 Storybook title: `Settings/ConsentDialog`. Source: `src/components/settings/analysis/ConsentDialog.tsx`.
 
+![ConsentDialog, One Tool, light theme](../images/consentdialog.webp)
+
 ## Stories
 
 - One Tool

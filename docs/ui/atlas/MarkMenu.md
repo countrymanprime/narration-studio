@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/MarkMenu`. Source: `src/components/editing/menu/marks/MarkMenu.stories.tsx`.
 
+![MarkMenu, Mark As Kinds, light theme](../images/markmenu.webp)
+
 ## Stories
 
 - Mark As Kinds
