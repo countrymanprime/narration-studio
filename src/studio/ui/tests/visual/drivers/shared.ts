@@ -380,9 +380,11 @@ export async function openTrackPanel(page: Page, chapter: string, seed: string) 
   await page.goto(`/?${seed}`);
   await settlePage(page);
   await productionLoaded(page);
-  await rowMenu(page, chapter, 'Chapter track…');
+  // A Voice folders project words the item and the slide-over's title with folder (#3363).
+  const noun = seed.includes('mockVoiceFolders') ? 'Folder' : 'Track';
+  await rowMenu(page, chapter, `Chapter ${noun.toLowerCase()}…`);
   // The slide-over's name carries the chapter's subtitle after " — " or ": ".
-  const dialog = page.getByRole('dialog', { name: new RegExp(`^Track: ${chapter}(: | — |$)`) });
+  const dialog = page.getByRole('dialog', { name: new RegExp(`^${noun}: ${chapter}(: | — |$)`) });
   await dialog.getByText('Reading the saved project…').waitFor({ state: 'detached' });
   return dialog;
 }
