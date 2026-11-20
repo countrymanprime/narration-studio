@@ -31,8 +31,8 @@ import {
 
 /**
  * Chapter sync's own section of the engine panel the on/off state and last-sync summary, the Needs you list with an inline Link
- * (chapterTrackSet, the same binding as Chapter links below), and the tracks sync could not place. The Sync activity log is in
- * Settings (Recording & DAW › Advanced). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
+ * (chapterTrackSet, the same binding as Chapter links below), and the tracks sync could not place. The log of what each sync did is not drawn
+ * anywhere: the host keeps it in the project folder for diagnostics (#3671). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
  * decision, not a second copy of it here. `daw` is the DAW the project records with, which its text names.
  */
 export function ChapterSyncPanel({
