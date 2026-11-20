@@ -23,7 +23,7 @@ func TestACurrentCompleteResultGivesTheChaptersPresentWordFraction(t *testing.T)
 		t.Fatalf("fractions = %v, want %s: 0.8 (8 of 10 words present)", fractions, testChapter)
 	}
 	// The same current result gives the chapter's paragraph lines, for how far it is recorded.
-	paragraphs := service.CurrentParagraphs(DefaultAlignmentParams)
+	_, paragraphs := service.Current(DefaultAlignmentParams)
 	present := 0
 	for _, line := range paragraphs[testChapter] {
 		present += line.Present
@@ -44,7 +44,7 @@ func TestAChapterNeverCheckedHasNoFractionAndTheSavedProjectIsNotRead(t *testing
 
 	fractions := recordedFractions(service)
 
-	if len(fractions) != 0 || len(service.CurrentParagraphs(DefaultAlignmentParams)) != 0 {
+	if _, paragraphs := service.Current(DefaultAlignmentParams); len(fractions) != 0 || len(paragraphs) != 0 {
 		t.Fatalf("fractions = %v, want none", fractions)
 	}
 	if reads != 0 {

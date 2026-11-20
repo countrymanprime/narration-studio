@@ -40,6 +40,10 @@ func (s *Service) ResultIn(project tracks.Project, projectFile evidence.LedgerPr
 	return s.resultIn(s.ledger, project, projectFile, chapterID, alignment)
 }
 
+// LedgerReads is how often the service's ledger store has listed its folder and how many record files it has decoded, for
+// the tests that guard what a page's read costs (issue 3749).
+func (s *Service) LedgerReads() (listings, decodes int) { return s.ledger.Reads() }
+
 // Pass is one read of every chapter of a book: its ResultIn answers each chapter from a single listing of the ledger,
 // where Service.ResultIn lists it for every chapter (issue 3749). Take one per read and drop it after: a record written
 // later is not in it.
@@ -117,22 +121,20 @@ func (s *Service) Checking(chapterID string) bool {
 // never runs anything (Q14), and it reads the saved project once, and only
 // when the ledger holds a complete coverage record at all.
 func (s *Service) RecordedFractions(alignment AlignmentParams) map[string]float64 {
-	fractions := map[string]float64{}
-	for chapterID, report := range s.currentReports(alignment) {
-		fractions[chapterID] = report.PresentFraction()
-	}
+	fractions, _ := s.Current(alignment)
 	return fractions
 }
 
-// CurrentParagraphs is each chapter's paragraph lines from a current, complete check (the same results RecordedFractions
-// reads), for the recorded-through place (recordedthrough.Resolve). A chapter with none is left out; reading it never
-// starts a check.
-func (s *Service) CurrentParagraphs(alignment AlignmentParams) map[string][]ParagraphLine {
-	paragraphs := map[string][]ParagraphLine{}
+// Current is, from one pass over the checked chapters, what RecordedFractions answers and each chapter's paragraph lines
+// from the same current, complete checks, for the recorded-through place (recordedthrough.Resolve). A chapter with no
+// current check is left out of both; reading never starts a check.
+func (s *Service) Current(alignment AlignmentParams) (fractions map[string]float64, paragraphs map[string][]ParagraphLine) {
+	fractions, paragraphs = map[string]float64{}, map[string][]ParagraphLine{}
 	for chapterID, report := range s.currentReports(alignment) {
+		fractions[chapterID] = report.PresentFraction()
 		paragraphs[chapterID] = report.Paragraphs
 	}
-	return paragraphs
+	return fractions, paragraphs
 }
 
 // currentReports is the stored report of every chapter whose newest complete check is current for the saved project.

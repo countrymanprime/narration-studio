@@ -16,7 +16,7 @@ func TestCoverageReadsLeaveTheLedgersRecordsAsTheyAreOnDisk(t *testing.T) {
 	run(t, service, testRequest())
 
 	recordedFractions(service)
-	service.CurrentParagraphs(DefaultAlignmentParams)
+	service.Current(DefaultAlignmentParams)
 	if _, err := service.Result(testChapter, DefaultAlignmentParams); err != nil {
 		t.Fatal(err)
 	}
