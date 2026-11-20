@@ -116,7 +116,6 @@ def timing_lines(env: Env, before: int) -> list[str]:
     "perf_lanes",
     "tracks_read, chapter_track_state, arm_lane, arm_only, track_create, punch_to, record_start, record_stop",
     "perf: lane create, lane switch, arm and a record start and stop at 0, 100, 1000 and 5000 items, with the REAPER timing summary on",
-    needs_audio=True,
 )
 def perf_lanes(env: Env) -> str:
     log = env.session.dir / "bridge-timing.log"
@@ -162,7 +161,7 @@ HOST_REPS = 5
 def booth_binary(env: Env) -> Path:
     """The host's Booth sequence test, compiled once with the realreaper tag (needs Go; the runner's image has it)."""
     repo = Path(os.environ["NARRATION_CI_REAPER_DIR"]).parents[3]
-    binary = env.out / "booth.test"
+    binary = env.out / ("booth.test.exe" if os.name == "nt" else "booth.test")
     if not binary.exists():
         subprocess.run(
             ["go", "test", "-c", "-tags", "realreaper", "-o", str(binary), "./internal/bridge"],
@@ -177,7 +176,6 @@ def booth_binary(env: Env) -> Path:
     "perf_lanes_host",
     "tracks_read, chapter_track_state, arm_lane, track_create, punch_to, record_start, record_stop",
     "perf: the app host's Booth sequence (its 150 ms tick, request waits and the page's reads between steps) against the real REAPER at 0, 100, 1000 and 5000 items",
-    needs_audio=True,
 )
 def perf_lanes_host(env: Env) -> str:
     if shutil.which("go") is None:
@@ -196,6 +194,7 @@ def perf_lanes_host(env: Env) -> str:
                 "NARRATION_REAL_REAPER_GUIDS": json.dumps({"folder": fx["folder"], "narrator": fx["narrator"], "veyra": fx["veyra"]}),
                 "NARRATION_REAL_REAPER_OUT": str(out),
                 "NARRATION_REAL_REAPER_REPS": str(HOST_REPS),
+                "NARRATION_REAL_REAPER_RECORD": "1" if env.audio_mode == "jack-dummy" else "0",
             },
             capture_output=True,
             text=True,

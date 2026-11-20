@@ -32,6 +32,8 @@ func TestBoothSequenceAgainstRealReaper(t *testing.T) {
 	if err := json.Unmarshal([]byte(os.Getenv("NARRATION_REAL_REAPER_GUIDS")), &guids); err != nil || guids.Folder == "" {
 		t.Fatalf("NARRATION_REAL_REAPER_GUIDS: %v", err)
 	}
+	// Without an audio device (the Windows runner) REAPER cannot record: the press and the stop are left out.
+	record := os.Getenv("NARRATION_REAL_REAPER_RECORD") != "0"
 	reps := 5
 	if _, err := fmt.Sscan(os.Getenv("NARRATION_REAL_REAPER_REPS"), &reps); err != nil || reps < 1 {
 		reps = 5
@@ -136,23 +138,25 @@ func TestBoothSequenceAgainstRealReaper(t *testing.T) {
 			}
 			return readTracks()
 		})
-		// A record press: the state read, the arm, the cursor, the start; then a second later the stop, and REAPER settles.
-		timed("record_press", func() error {
-			if err := readState(); err != nil {
+		if record {
+			// A record press: the state read, the arm, the cursor, the start; then a second later the stop, and REAPER settles.
+			timed("record_press", func() error {
+				if err := readState(); err != nil {
+					return err
+				}
+				if _, err := actions.ArmLane(ctx, lane, false); err != nil {
+					return err
+				}
+				if _, err := actions.PunchTo(ctx, 120, 0); err != nil {
+					return err
+				}
+				_, err := actions.RecordStart(ctx, lane, RecordOptions{})
 				return err
-			}
-			if _, err := actions.ArmLane(ctx, lane, false); err != nil {
-				return err
-			}
-			if _, err := actions.PunchTo(ctx, 120, 0); err != nil {
-				return err
-			}
-			_, err := actions.RecordStart(ctx, lane, RecordOptions{})
-			return err
-		})
-		time.Sleep(time.Second)
-		timed("record_stop", func() error { _, err := actions.RecordStop(ctx); return err })
-		time.Sleep(500 * time.Millisecond)
+			})
+			time.Sleep(time.Second)
+			timed("record_stop", func() error { _, err := actions.RecordStop(ctx); return err })
+			time.Sleep(500 * time.Millisecond)
+		}
 		// The window gaining focus: the live track list, the record control, the voices, the listening mic and the pull-back read together.
 		timed("window_focus", func() error {
 			return concurrently(readTracks, readTracks, readTracks, readTracks, readState, readState, readState, readState, readFolder)
