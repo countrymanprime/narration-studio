@@ -112,6 +112,9 @@ export function useChapterLinkActions(): ChapterLinkActions {
     [trackMap, manuscript],
   );
   const unlink = useCallback((chapterId: string) => trackMap.chapterTrackUnlink(chapterId), [trackMap]);
-  const create = useCallback((chapterId: string, choice?: ChapterCreateChoice) => trackMap.chapterTrackCreate(chapterId, choice), [trackMap]);
+  const create = useCallback(
+    (chapterId: string, choice?: ChapterCreateChoice) => (choice ? trackMap.chapterTrackCreate(chapterId, choice) : trackMap.chapterTrackCreate(chapterId)),
+    [trackMap],
+  );
   return useMemo(() => ({ set, unlink, create }), [set, unlink, create]);
 }
