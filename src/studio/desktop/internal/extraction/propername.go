@@ -20,7 +20,7 @@ func ProperName(name string) bool {
 		words = words[1:]
 	}
 	first := []rune(words[0])[0]
-	if unicode.IsLower(first) && !(len(words) > 1 && surnameParticles[strings.ToLower(words[0])]) {
+	if unicode.IsLower(first) && (len(words) < 2 || !surnameParticles[strings.ToLower(words[0])]) {
 		return false
 	}
 	// Something in it must be the name itself: a word with a capital (or no case) that is not a pronoun, an article or another word
