@@ -100,10 +100,24 @@ const CASES: Case[] = [
   },
 ];
 
-const SIZES: [number, number][] = [[275, 262], [275, 280], [275, 299], ...Array.from({ length: 39 }, (_, step): [number, number] => [320, 261 + step])];
+// #3605 item 2: the rule reaches up to 399 px, where a toast over 100 px tall at 320 wide covered Cancel and Done (320x300-380, 275x300-380, 360x261-380, 400x261-340).
+const SIZES: [number, number][] = [
+  [275, 262],
+  [275, 280],
+  [275, 299],
+  [275, 300],
+  [275, 340],
+  [275, 380],
+  [360, 261],
+  [360, 330],
+  [360, 380],
+  [400, 261],
+  [400, 340],
+  ...Array.from({ length: 139 }, (_, step): [number, number] => [320, 261 + step]),
+];
 
 for (const c of CASES) {
-  test(`a toast never covers or hides the dialog's title, focused field or buttons under 300 px of height: ${c.name}`, async ({ page }) => {
+  test(`a toast never covers or hides the dialog's title, focused field or buttons under 400 px of height: ${c.name}`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
     await c.open(page);
     // The stack the case raised is whole in a tall window; under 300 px only the newest shows.

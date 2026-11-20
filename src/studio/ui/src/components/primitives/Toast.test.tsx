@@ -708,8 +708,8 @@ describe('the room the toasts take, published for a dialog in a short window', (
   });
 });
 
-// A window under 300 px tall has no room for a stack of toasts beside a dialog (#3605): the region shows the newest only, and the older ones wait, unmounted, for it to go.
-describe('ToastRegion in a window under 300 px tall with a dialog open', () => {
+// A window under 400 px tall has no room for a stack of toasts beside a dialog (#3605): the region shows the newest only, and the older ones wait, unmounted, for it to go.
+describe('ToastRegion in a window under 400 px tall with a dialog open', () => {
   const realMatchMedia = window.matchMedia;
   let short = true;
   let listeners: Array<() => void> = [];
@@ -719,7 +719,7 @@ describe('ToastRegion in a window under 300 px tall with a dialog open', () => {
     document.documentElement.setAttribute('data-modal-open', '');
     window.matchMedia = ((query: string) => ({
       get matches() {
-        return query === '(max-height: 299px)' && short;
+        return query === '(max-height: 399px)' && short;
       },
       media: query,
       addEventListener: (_: string, listener: () => void) => listeners.push(listener),
@@ -783,7 +783,7 @@ describe('ToastRegion in a window under 300 px tall with a dialog open', () => {
     expect(screen.getByText('Saved elsewhere.')).toBeTruthy();
   });
 
-  it('shows the whole stack in a window 300 px tall or more', () => {
+  it('shows the whole stack in a window 400 px tall or more', () => {
     short = false;
     render(<ToastRegion messages={three} dismiss={vi.fn()} />);
     expect(screen.getByText('First.')).toBeTruthy();
