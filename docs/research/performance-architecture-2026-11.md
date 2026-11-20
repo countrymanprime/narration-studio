@@ -2,9 +2,11 @@
 
 **Measured 2026-11-20** on `main` at `710bd32`. Issue: [#3751](https://github.com/countrymanprime/narration-studio/issues/3751), with the derived-data rule of [#3778](https://github.com/countrymanprime/narration-studio/issues/3778). **Question:** where does the time go when a page or the app opens on a 1 hour, 17 hour, 40 hour and 300-chapter book, and which changes to how the book and its state are stored, read and drawn remove the most waiting?
 
-**Answer in one paragraph.** The waiting is not in the file layout, the wire format or the size of the script bundle. It is in four host reads that every page makes (the chapter list, the Production overview, the pickups list and the chapter sync state). Each evaluates every checked chapter, and each evaluation decodes the whole analysis ledger twice; the chapter list then decodes every stored recording-check result, and does all of it twice per read. On a 17 hour book with a recording check on each of its 44 chapters, one chapter-list read costs 3.6 s and the real app's Production page keeps reading for 28 to 63 s after launch; at 103 chapters the first chapter list arrives 60 s after launch. A scratch build that decodes each ledger record once brings the chapter list to 0.78 s at 44 chapters; one pass per read and a small per-chapter summary of each result remove most of what is left at 44 and 103 chapters. Splitting the manuscript into per-chapter files, an embedded database, compression and code splitting each measure as small next to that. The order of work is in [Recommended order](#recommended-order).
+**Answer in one paragraph.** The waiting is not in the file layout, the wire format or the size of the script bundle. It is in four host reads that every page makes (the chapter list, the Production overview, the pickups list and the chapter sync state). Each evaluates every checked chapter, and each evaluation decodes the whole analysis ledger twice; the chapter list then decodes every stored recording-check result, and does all of it twice per read. On a 17 hour book with a recording check on each of its 44 chapters, one chapter-list read costs 3.6 s and the real app's Production page keeps reading for 28 to 63 s after launch; at 103 chapters the first chapter list arrives 60 s after launch. Decoding each ledger record once brings the chapter list to 0.78 s at 44 chapters: a scratch build showed it, and [#3759](https://github.com/countrymanprime/narration-studio/pull/3759), merged the same day, does it on `main`. One pass per read and a small per-chapter summary of each result remove most of what is left at 44 and 103 chapters. Splitting the manuscript into per-chapter files, an embedded database, compression and code splitting each measure as small next to that. The order of work is in [Recommended order](#recommended-order).
 
 ## Method
+
+**Since the measurement.** The baseline is `main` at `710bd32`. While it was being measured, [#3759](https://github.com/countrymanprime/narration-studio/pull/3759) merged a ledger index that keeps each decoded record while its file's size and modified time are unchanged, which is the change the scratch build below tests. The four slow reads were timed again on `main` at `270bbb7`; [the scratch-build table](#the-same-reads-with-each-ledger-record-decoded-once) has both. Every other number is from `710bd32`.
 
 All numbers are from one cloud container: 4 vCPU Intel Xeon at 2.10 GHz, 15 GiB RAM, Linux 6.18 (Firecracker), ext4, Go 1.27.3, headless Chromium, WebKitGTK 2.52.6 under Xvfb. Windows is the only supported platform and is not measured here; see [Not measured](#not-measured).
 
@@ -61,26 +63,26 @@ Seconds after the launch command, cold (a new process each time; a warm start, t
 
 Milliseconds, cold | warm, and the size of the answer.
 
-| Binding | 1 h | 17 h | 40 h | 300 chapters (cold) |
+| Binding | 1 h | 17 h | 40 h | 300 chapters |
 | --- | --- | --- | --- | --- |
-| `PickupsList` | 94 \| 58 | 5,475 \| 5,443 (1.72 MB) | 25,133 \| 25,193 (3.99 MB) | 164,927 |
-| `ManuscriptChapters` | 68 \| 34 | 3,556 \| 3,627 (64.8 KB) | 16,435 \| 16,341 (151 KB) | 110,640 |
-| `ProductionOverview` | 80 \| 33 | 3,627 \| 3,616 (15 KB) | 15,195 \| 15,850 (34 KB) | 110,310 |
-| `ChapterSyncState` | 57 \| 13 | 1,852 \| 1,809 (18 KB) | 7,985 \| 7,967 (42 KB) | 56,892 |
-| `FindingsList({})` | 14 | 199 \| 183 (5.86 MB) | 419 \| 401 (13.74 MB) | not run |
-| `FindingsSummary` | not kept | 115 \| 107 (2 KB) | 295 \| 211 (4 KB) | not run |
-| `WorkspaceAlignment(chapter)` | 33 \| 15 | 123 \| 69 (583 KB) | 224 \| 124 (582 KB) | not run |
-| `StageRecommendations` | not kept | 65 \| 17 | 142 \| 29 | not run |
-| `ChapterTrackLinks` | not kept | 64 | 147 | not run |
-| `GuideEntities` | not kept | 48 | 107 (3.36 MB) | not run |
-| `GuideDialogueCues` | not kept | 42 | 85 (693 KB) | not run |
-| `MarksList` | not kept | 37 | 168 | not run |
+| `PickupsList` | 94 \| 58 | 5,475 \| 5,443 (1.72 MB) | 25,133 \| 25,193 (3.99 MB) | 164,927 cold |
+| `ManuscriptChapters` | 68 \| 34 | 3,556 \| 3,627 (64.8 KB) | 16,435 \| 16,341 (151 KB) | 110,640 cold |
+| `ProductionOverview` | 80 \| 33 | 3,627 \| 3,616 (15 KB) | 15,195 \| 15,850 (34 KB) | 110,310 cold |
+| `ChapterSyncState` | 57 \| 13 | 1,852 \| 1,809 (18 KB) | 7,985 \| 7,967 (42 KB) | 56,892 cold |
+| `FindingsList({})` | 14 | 199 \| 183 (5.86 MB) | 419 \| 401 (13.74 MB) | 200 \| 189 |
+| `FindingsSummary` | not kept | 115 \| 107 (2 KB) | 295 \| 211 (4 KB) | 501 \| 91 |
+| `WorkspaceAlignment(chapter)` | 33 \| 15 | 123 \| 69 (582 KB) | 224 \| 124 (582 KB) | 530 \| 275 |
+| `StageRecommendations` | not kept | 65 \| 17 | 142 \| 29 | 283 \| 75 |
+| `ChapterTrackLinks` | not kept | 64 | 147 | 387 |
+| `GuideEntities` | not kept | 48 | 107 (3.36 MB) | 72 |
+| `GuideDialogueCues` | not kept | 42 | 85 (693 KB) | 32 |
+| `MarksList` | not kept | 37 | 168 | 60 |
 | `Bootstrap` | 1.1 \| 0.8 | 9.3 \| 7.3 | 28 \| 22 | 34 \| 12 |
 | `ManuscriptParagraphs(chapter)` | not kept | 12 \| 0.2 | 20 \| 0.1 | 9.3 \| 0.06 |
 | `SystemSettingsForScope` | 8 to 11 cold, 6 to 9 warm, at every size | | | |
 
 - Warm equals cold for the first four: nothing they compute is kept between calls.
-- With the operating system's file cache dropped (one run), the first four stay inside their warm range: file reading is at most 0.5 % of their time. `FindingsList({})` rises to 311 ms at 17 h and 703 ms at 40 h, `Bootstrap` to 21 and 39 ms, `GuideEntities` to 82 ms at 17 h.
+- With the operating system's file cache dropped (one run), the first four stay within 10 % of their file-cache-warm figures: file reading is at most 0.5 % of their time. `FindingsList({})` rises to 311 ms at 17 h and 703 ms at 40 h, `Bootstrap` to 21 and 39 ms, `GuideEntities` to 82 ms at 17 h.
 - `PickupsCount` needs a live bridge and `WorkspacePeaks` needs audio; neither is in the table. "Not kept" cells were measured but their values are only in the scratch output.
 
 ### Host reads by page
@@ -102,8 +104,8 @@ Milliseconds for a page's read bindings called one after another, cold | warm; t
 | Master & QC, Delivery (5) | 3 \| 1 | 3 \| 1 | 3 | 3 \| 1 | 3 | 3 \| 1 | 18 KB |
 
 - The shell row is what every page pays before its own reads, because the layout reads the chapter list, the findings summary and the pickups list.
-- Calling a page's reads at once takes 0.5 to 1.1 times the in-order time, and gains nothing on a page with one dominant read.
-- **By stage.** For the four slow reads, file reading is at most 0.5 %, encoding the answer under 0.1 % (1.4 ms for the chapter list at 40 h), and the rest is JSON decoding inside the host ([below](#where-the-four-slow-reads-spend-their-time)). For the others at 40 h: `FindingsList({})` is 34 % decode, 29 % answer encode and 29 % garbage collection; `GuideEntities` 47 % decode and 25 % encode; `ChapterTrackLinks` 35 % `.rpp` parse and 26 % `os.Stat`; `Bootstrap` 76 % decode. The page's share (parse, validate, render) is not in these numbers; the mock tables hold it. A per-page split of one real page load into host, wire and page time was not measured.
+- Calling a page's reads at once takes 0.5 to 1.25 times the in-order time, and gains nothing on a page with one dominant read.
+- **By stage.** For the four slow reads, file reading is at most 0.5 %, encoding the answer under 0.3 % (1.4 ms for the chapter list at 40 h), and the rest is JSON decoding inside the host ([below](#where-the-four-slow-reads-spend-their-time)). For the others at 40 h, as shares of all profile samples: `FindingsList({})` is 34 % decode, 29 % answer encode and 29 % garbage collection; `GuideEntities` 47 % decode and 25 % encode; `ChapterTrackLinks` 35 % `.rpp` parse and 19 % `os.Stat`; `Bootstrap` 76 % decode. The page's share (parse, validate, render) is not in these numbers; the mock tables hold it. A per-page split of one real page load into host, wire and page time was not measured.
 
 ### Pages on the mock backend
 
@@ -141,7 +143,7 @@ Host calls and KiB of answers, cold | warm:
 | Delivery | 28 / 92 \| 13 / 41 | 28 / 125 \| 13 / 56 | 28 / 168 \| 13 / 75 |
 | Settings (cold) | 43 / 104 | 43 / 152 | 43 / 217 |
 
-- The mock's answers are smaller than the real host's (447 KiB against 5.97 MB for Production at 40 h) because the mock book has no findings at scale.
+- The mock's answers are smaller than the real host's (447 KiB against 13.97 MB for Production at 40 h) because the mock book has no findings at scale.
 - The JS heap after a collection is 11 to 20 MB at 1 h and 23 to 34 MB at 40 h.
 - **Start split, 40 h.** First contentful paint is 400 to 510 ms (Delivery 432, Production 456, Script 468, Booth 508, Editing 420) and the first host call starts 330 to 450 ms after navigation, on every page and every book size. That time is fetching and compiling one 3.5 MB script (2.97 MB in the real build) and 165 to 200 ms evaluating its modules. It is 40 to 60 % of a cold page on the mock and does not depend on the book.
 - **CPU split at 40 h.** Production warm, 661 ms busy: browser style, layout and paint 30 %, `react-dom` 25 %, the Production components 23 %. Script warm, 938 ms: `react-dom` 28 %, the Script components 25 %. Cold loads add about 150 ms in the API client's modules (building the Zod schemas at import) and 80 to 120 ms in the mock backend, which the real app does not run. Validating answers with Zod is 54 to 67 ms, 4 to 5 % of a cold load.
@@ -160,18 +162,20 @@ A CPU profile at 40 h: `coverage.currentReports` is 99 % of `ManuscriptChapters`
 
 Each finished recording check queues a `chaptersync:state` read, so checking 103 chapters in a row left the host above 100 % CPU for more than 10 minutes after the last check had been written.
 
-### The same reads on a scratch build
+### The same reads with each ledger record decoded once
 
-One change: `LedgerStore.All` keeps each decoded record while its file's size and modified time are unchanged. Milliseconds, cold, one process.
+One change: `LedgerStore.All` keeps each decoded record while its file's size and modified time are unchanged. "Scratch" is that change applied to `710bd32`; "main" is `270bbb7`, which has it from #3759. Milliseconds, one process each: cold for the first two figures, then main's cold | warm.
 
-| Binding | 17 h as built → scratch | 40 h | 300 chapters |
+| Binding | 17 h: as built → scratch; main | 40 h | 300 chapters |
 | --- | --- | --- | --- |
-| `ManuscriptChapters` | 3,556 → 778 | 16,435 → 1,973 | 110,640 → 3,840 |
-| `ProductionOverview` | 3,627 → 837 | 15,195 → 2,072 | 110,310 → 3,374 |
-| `PickupsList` | 5,475 → 1,279 | 25,133 → 3,426 | 164,927 → 5,088 |
-| `ChapterSyncState` | 1,852 → 401 | 7,985 → 1,124 | 56,892 → 2,097 |
+| `ManuscriptChapters` | 3,556 → 778; 994 \| 757 | 16,435 → 1,973; 2,124 \| 2,123 | 110,640 → 3,840; 3,449 \| 3,028 |
+| `ProductionOverview` | 3,627 → 837; 991 \| 831 | 15,195 → 2,072; 2,229 \| 1,950 | 110,310 → 3,374; 3,203 \| 2,929 |
+| `PickupsList` | 5,475 → 1,279; 1,499 \| 1,278 | 25,133 → 3,426; 3,829 \| 3,584 | 164,927 → 5,088; 5,233 \| 4,868 |
+| `ChapterSyncState` | 1,852 → 401; 457 \| 402 | 7,985 → 1,124; 1,095 \| 943 | 56,892 → 2,097; 1,697 \| 1,459 |
 
-What is left in `ManuscriptChapters` on the scratch build, from profiles:
+So on `main` today a chapter-list read costs about 0.8 to 1.0 s at 44 checked chapters, 2.1 s at 103 and 3.0 to 3.4 s at 300, and the real app still sends it three times at once. The app-start table above was not re-run on `270bbb7`.
+
+What is left in `ManuscriptChapters`, from profiles of the scratch build:
 
 - **At 103 chapters:** decoding stored results is 71 % (4.38 of 6.17 s over three calls); the two passes are 3.13 s and 2.91 s.
 - **At 300 short chapters:** decoding results is 21 % (1.45 of 6.98 s over two calls). `EvaluateChapter` is 56 %: the ledger folder listed and each file stat'ed twice per chapter (`os.Lstat` 1.0 s, `os.ReadDir` 0.65 s), and `chapter-track-map.json` decoded once per chapter (1.1 s). Garbage collection is 18 % of all samples.
@@ -182,8 +186,8 @@ Ranked by seconds of waiting each time the narrator meets the cost, on a book wh
 
 | # | Cost | Measured | Where the narrator meets it |
 | --- | --- | --- | --- |
-| 1 | The ledger is decoded twice per checked chapter, in two passes per chapter-list read | chapter list 3.6 s, 16.4 s (111 s at 300 chapters); overview the same; pickups list 5.5 s, 25 s; sync state 1.85 s, 8.0 s | Every page (the shell reads the chapter list and the pickups list); a check that finishes queues a sync-state read |
-| 2 | The same slow read is sent two or three times at once, and again on refresh | each call 3.4 to 3.5 times slower: 12 to 13 s against 3.6 s; 58 s against 16.4 s. Reads continue for 28 to 63 s | App start and every page change ([#3658](https://github.com/countrymanprime/narration-studio/issues/3658)) |
+| 1 | The ledger is decoded twice per checked chapter, in two passes per chapter-list read (the decoding is fixed on `main` by #3759; the two passes and the per-chapter listing remain) | at `710bd32`: chapter list 3.6 s, 16.4 s (111 s at 300 chapters); overview the same; pickups list 5.5 s, 25 s; sync state 1.85 s, 8.0 s | Every page (the shell reads the chapter list and the pickups list); a check that finishes queues a sync-state read |
+| 2 | The same slow read is sent two or three times at once, and again on refresh | each call 3.4 to 4.1 times slower: 12 to 13 s against 3.6 s; 58 s against 16.4 s; sync state 33 s against 8.0 s. Reads continue for 28 to 63 s | App start and every page change ([#3658](https://github.com/countrymanprime/narration-studio/issues/3658)) |
 | 3 | The window, the web view and one 3 MB script before any book data | 1.4 s to the first answer on this rig; 330 to 450 ms of it in Chromium is the script | Every app start |
 | 4 | Every stored check result is decoded, twice, per chapter-list read | 0.78 s, 1.97 s per read with cost 1 fixed; 71 % of it at 103 chapters | Every page, once cost 1 is gone |
 | 5 | The ledger folder is listed and the link file decoded once per chapter | about 2 s of the 3.8 s left at 300 chapters with cost 1 fixed | Books with many chapters |
@@ -193,7 +197,7 @@ Ranked by seconds of waiting each time the narrator meets the cost, on a book wh
 | 9 | The Story Bible is decoded per read and sent whole | 48 ms, 107 ms per read, two or three reads a page; 3.36 MB at 40 h | Script, Story Bible, Booth, Editing, Settings |
 | 10 | The `.rpp` is parsed in full after each save, and every item's file is stat'ed on each read | parse 29 ms, 52 ms, 141 ms at 300 tracks; `ChapterTrackLinks` 64 ms, 147 ms | The first read after each REAPER save |
 
-Costs 1 and 2 are the seconds. With them fixed, every cost below is under 2 s at 103 chapters, and costs 9 and 10 are under 150 ms each.
+Costs 1 and 2 are the seconds. With cost 1 fixed, the costs below it are under 2 s per read at 103 chapters except the pickups list (3.4 s), and costs 9 and 10 are under 170 ms each.
 
 ## Options
 
@@ -248,7 +252,7 @@ The inventory for [#3778](https://github.com/countrymanprime/narration-studio/is
 
 | Derived value | Inputs | File and key | Recompute cost | Size | Proposed |
 | --- | --- | --- | --- | --- | --- |
-| Waveform peaks, 50 buckets a second, one resolution, whole source | a WAV | `analysis/cache/<hash>.json`; `CacheEntryKey` | 3.4 s per recorded hour ([EP0 spike](edit-and-proof-spike-ep0.md)) | 360 KB per recorded hour (same source) | Keep the store. The read path re-hashes the source and decodes the whole blob per item; fix in [#3767](https://github.com/countrymanprime/narration-studio/issues/3767), which also decides whether coarser levels are needed |
+| Waveform peaks, 50 buckets a second, one resolution, whole source | a WAV | `analysis/cache/<hash>.json`; `CacheEntryKey` | 3.4 s per recorded hour ([EP0 spike](edit-and-proof-spike-ep0.md)) | 360 KB per recorded hour (same source); about 0.9 MB on disk with RMS, per the #3778 thread | Keep the store. The read path re-hashes the source and decodes the whole blob per item; fix in [#3767](https://github.com/countrymanprime/narration-studio/issues/3767), which also decides whether coarser levels are needed |
 | Recogniser words per source | audio, model, language, hotwords | same store | a recogniser run; not measured here | up to 256 segments per source | Keep; prune last |
 | Editing scan per played range | an audio range | same store, key includes the range | a range decode; not measured here | not measured | Keep |
 | Recording-check result | the sidecar's report | `analysis/coverage/results/<recordId>.json`; record id | a recogniser run | about 800 KB a chapter | Keep; add the summary |
@@ -281,12 +285,13 @@ The inventory for [#3778](https://github.com/countrymanprime/narration-studio/is
 | Pickups list | pickup file, findings, per-chapter check state | 5.5 s, 25 s as built | Reads the shared evaluation; the shell asks for a count |
 | Story Bible reads; its status | the guide file; SHA-256 of the manuscript per status call | 48 ms, 107 ms per read | Hold the decoded document and the hash while the files are unchanged |
 | Settings lookup | up to three files per key | 8 to 11 ms per scope read; 63 opens for three bindings | Hold each scope's file while unchanged |
+| Recorded seconds per chapter; the chapter-to-track match | the `.rpp` parse, the links, the manuscript | inside `ChapterTrackLinks`: 64 ms, 147 ms | Leave computed |
 | `WorkspacePeaks` per item | alignment, `.rpp`, the peaks blob | not measured (needs audio) | [#3767](https://github.com/countrymanprime/narration-studio/issues/3767) |
 | Manuscript search | the parse; every paragraph folded per keystroke | not measured | Leave until measured ([#3766](https://github.com/countrymanprime/narration-studio/issues/3766)) |
 
 What the inventory says about the rule:
 
-- **The helper exists for audio.** `evidence.Identify` returns a file's size, modified time and a hash of three 64 KiB samples; `CacheEntryKey` hashes the path, the size, that partial hash, the analyzer id, the analyzer version and a parameter hash, and leaves the modified time out ([internal/evidence/cache.go](../../src/studio/desktop/internal/evidence/cache.go), [identity.go](../../src/studio/desktop/internal/evidence/identity.go)). An edit that keeps the size and misses the three samples keeps the key; that was the stale waveform fixed in [#3794](https://github.com/countrymanprime/narration-studio/pull/3794).
+- **The helper exists for audio.** `evidence.Identify` returns a file's size, modified time and a hash of three 64 KiB samples; `CacheEntryKey` hashes the path, the size, that partial hash, the analyzer id, the analyzer version and a parameter hash, and leaves the modified time out ([internal/evidence/cache.go](../../src/studio/desktop/internal/evidence/cache.go), [identity.go](../../src/studio/desktop/internal/evidence/identity.go)). An edit that keeps the size and misses the three samples keeps the key; that is the stale waveform [#3794](https://github.com/countrymanprime/narration-studio/pull/3794) addresses.
 - **Keys in use.** `CacheEntryKey`; `measure.Fingerprint` (size, modified time, full SHA-256); path + modified time + size in memory (`.rpp`, manuscript, results, take evidence, identity); byte equality (the held Story Bible); the manuscript's SHA-256 (Story Bible, script hash, check results); ledger fingerprints; the heartbeat change count (live tracks); a time limit (the DAW folder); a content-addressed name (TTS); a lower-cased word (online pronunciations). `hashParts` is copied in `internal/evidence/fingerprint.go`, `internal/coverage/params.go` and `internal/editing/util.go`.
 - **What is missing** is the same rule with a project file as the input, and one place that builds a key. The summary of slice 3 puts its key helper in `internal/evidence` so the rule has one home from the start.
 - **Bounds.** No size bound on `analysis/cache/` (`CacheStore.Prune` has no caller), `analysis/ledger/` (`LedgerStore.Retain` has no caller), `analysis/coverage/results/`, the findings files, the TTS previews or the Transcript Compare files. A bound has to be per kind and ordered by recompute cost: peaks first, recogniser words last; oldest-first across the store would delete transcripts to keep peaks.
@@ -314,7 +319,7 @@ From the [storage engine spike](storage-engine-spike.md) at 35 chapters: opening
 | Allocations, bytes allocated | 165,000, 20.6 MB | 385,000, 48.3 MB | 1,120,000, 141 MB |
 | A line scan for track GUID and name, item position and length | 2.4 ms | 5.0 ms | 14.9 ms |
 
-- **Gain.** 26 ms at 17 h and 126 ms at 300 tracks, once after each `.rpp` save; an unchanged file costs one `stat`. `ChapterTrackLinks` spends 26 % of its time at 40 h in `os.Stat` of every item's source, on every read. The manuscript decode is 7 to 23 ms once per start; streaming it would save part of that.
+- **Gain.** 26 ms at 17 h and 126 ms at 300 tracks, once after each `.rpp` save; an unchanged file costs one `stat`. `ChapterTrackLinks` spends 19 % of its samples at 40 h (26 % of the binding's own time) in `os.Stat` of every item's source, on every read. The manuscript decode is 7 to 23 ms once per start; streaming it would save part of that.
 - **Cost.** The scan reads less than the tree parse does (takes, sources, regions), so it is a second reader of the same format, or a rewrite of `tracks.Parse`.
 - **Staleness and corruption.** Two readers of one format can disagree about a malformed file; one of them would have to be the authority.
 - **Migration and contracts.** None.
@@ -370,8 +375,8 @@ The largest route chunks: Editing 318 KB, Settings 187 KB, Booth 162 KB, Story B
 
 ### Host-side worker parallelism
 
-- **Measured.** Calling a page's reads at once is 0.5 to 1.1 times the in-order time. `LedgerStore.All` takes no lock, so the limit is CPU and garbage collection, not a shared lock. Three identical chapter-list reads at once take 12 to 13 s each against 3.6 s alone.
-- **Gain.** Answering identical reads in flight from one computation removes the 3.4 times multiplier of cost 2. Not measured in a build.
+- **Measured.** Calling a page's reads at once is 0.5 to 1.25 times the in-order time. At `710bd32` `LedgerStore.All` took no lock, so the limit there was CPU and garbage collection. Since #3759 concurrent reads wait on the ledger index's mutex while it lists and stats the folder. Three identical chapter-list reads at once take 12 to 13 s each against 3.6 s alone.
+- **Gain.** Answering identical reads in flight from one computation removes the 3.4 to 4.1 times multiplier of cost 2. Not measured in a build.
 - **Cost and risk.** The coalescing belongs at the binding, keyed on the services snapshot and a generation number that every ledger or result write advances; otherwise the refresh sent after a check finishes joins a computation started before the write and returns the answer from before the check. It holds no lock across the computation.
 - **Migration and contracts.** None.
 - **Verdict.** Coalesce in the host ([slice 4](#recommended-order)) beside the page-side work of #3658; use workers only for the cold rebuild of slice 8.
@@ -382,13 +387,13 @@ The five largest answers at 40 h:
 
 | Answer | JSON | gzip -1 (time) | zstd fastest (time) | `json.Marshal` | Encoding the JSON again as a string |
 | --- | --- | --- | --- | --- | --- |
-| `FindingsList({})` | 13.74 MB | 1.80 MB (48 ms) | 1.45 MB (30 ms) | 78 ms | 24 ms, 15.37 MB |
-| `FindingsList(transcript)` | 6.14 MB | 0.69 MB (16 ms) | 0.60 MB (11 ms) | 41 ms | 12.7 ms, 6.90 MB |
+| `FindingsList({})` | 13.74 MB | 1.80 MB (48 ms) | 1.45 MB (28 ms) | 78 ms | 24 ms, 15.37 MB |
+| `FindingsList(transcript)` | 6.14 MB | 0.69 MB (16 ms) | 0.60 MB (15 ms) | 41 ms | 12.7 ms, 6.90 MB |
 | `PickupsList` | 3.99 MB | 0.80 MB (18 ms) | 0.71 MB (13 ms) | 14.5 ms | 6.8 ms, 4.22 MB |
-| `GuideEntities` | 3.36 MB | 0.90 MB (18 ms) | 0.74 MB (14 ms) | 12 ms | 4.7 ms, 3.60 MB |
-| `FindingsList(audio_quality)` | 3.07 MB | 0.36 MB (11 ms) | 0.31 MB (5.5 ms) | 22 ms | 7.1 ms, 3.46 MB |
+| `GuideEntities` | 3.36 MB | 0.90 MB (18 ms) | 0.74 MB (11 ms) | 12 ms | 4.7 ms, 3.60 MB |
+| `FindingsList(audio_quality)` | 3.07 MB | 0.36 MB (11 ms) | 0.31 MB (5.1 ms) | 22 ms | 7.1 ms, 3.46 MB |
 
-- Every binding returns its JSON as a string, which Wails encodes again: 6 to 12 % more bytes and 30 to 50 % more encoding time.
+- Every binding returns its JSON as a string, which Wails encodes again: 6 to 13 % more bytes and 30 to 50 % more encoding time.
 - **Gain.** The call stays inside one process, so compression has no network to save; it would add 11 to 48 ms of host time and a decompression step in the page. A binary format (MessagePack, CBOR) was not measured: the host has no such dependency, and the page's `JSON.parse` is native while a binary decoder would run in script. The page-side cost of validating answers is 4 to 5 % of a cold load.
 - **Cost.** A second encoder and decoder for every binding, and goldens in two forms.
 - **Staleness and migration.** None.
@@ -400,7 +405,7 @@ The five largest answers at 40 h:
 | | 1 h | 17 h | 40 h | 300 chapters |
 | --- | --- | --- | --- | --- |
 | Host heap in use after every page's reads | 6.6 MB | 14.6 MB | 27.4 MB | 39.4 MB |
-| Host resident memory after that, and at peak | 67, 73 MB | 99, 126 MB | 125, 222 MB | 161, 212 MB |
+| Host resident memory after that, and at peak | 69, 74 MB | 101, 129 MB | 128, 227 MB | 165, 217 MB |
 | Bytes allocated by that one pass | 0.13 GB | 8.1 GB | 37.5 GB | 277 GB |
 | Page JS heap | 11 to 20 MB | 16 to 25 MB | 23 to 34 MB | not run |
 
@@ -414,18 +419,25 @@ Each issue is one pull request. Gains are for 44 chapters, then 103, with a reco
 
 | # | Slice | Gain | Files, contracts | Issue |
 | --- | --- | --- | --- | --- |
-| 1 | The ledger is read once per binding read: one pass of `currentReports` per chapter-list read, one ledger listing and one link-file read per pass handed to each evaluation, each record decoded once (records are never rewritten, so the cache is keyed by file name), one `LedgerStore` per project | **Measured for the decode cache alone:** chapter list 3.6 → 0.78 s, 16.4 → 1.97 s, 111 → 3.8 s at 300 chapters; pickups list 5.5 → 1.3 s, 25 → 3.4 s; sync state 1.85 → 0.40 s, 8.0 → 1.1 s. **Expected** from the single pass: about half of what is left | In memory only. A test that counts decodes and directory listings | [#3801](https://github.com/countrymanprime/narration-studio/issues/3801) |
+| 1 | The ledger is read once per binding read. Done on `main` by #3759: each record decoded once. Remaining: one pass of `currentReports` per chapter-list read; one ledger listing and one link-file read per pass handed to each evaluation, so the folder is not listed and stat'ed per chapter under the index's mutex; one `LedgerStore` per project; a check that a decoded record's id matches its file name | **Measured for the decode cache (#3759):** chapter list 3.6 → 0.78 s, 16.4 → 1.97 s, 111 → 3.8 s at 300 chapters; pickups list 5.5 → 1.3 s, 25 → 3.4 s; sync state 1.85 → 0.40 s, 8.0 → 1.1 s. **Expected** from the remaining work: about half of what is left at 44 and 103 chapters, and most of the 3 s at 300, where 56 % of the profile is the per-chapter listing and link-file decode | In memory only. A test that counts decodes and directory listings | [#3801](https://github.com/countrymanprime/narration-studio/issues/3801) |
 | 2 | Beside slice 1: seed recording checks, findings and a Story Bible for the rig, and commit the host read benchmark with budgets counted in decodes and allocations, run on the Windows runner | Makes every number here reproducible and keeps slice 1 from regressing | Scripts and a Go benchmark; no app change | [#3803](https://github.com/countrymanprime/narration-studio/issues/3803) |
 | 3 | A summary beside each stored check result (present fraction, counts, paragraph lines, document id, manuscript hash), keyed by record id and a summary version; whether the check is current and the recorded-through place stay computed | **Expected:** chapter list 0.78 → about 0.1 to 0.2 s, 1.97 → about 0.3 to 0.5 s (result decoding is 71 % of the profile at 103 chapters). Not supported at 300 short chapters, where it is 21 % | A new derived file: data-files row, schema, version, discard on mismatch | [#3802](https://github.com/countrymanprime/narration-studio/issues/3802) |
-| 4 | Identical reads in flight share one computation, at the binding, keyed on the services snapshot and a write generation | **Expected:** removes the 3.4 times multiplier at start (12 to 13 s per call → the single-call time) | In memory. A race test: a read started after a write never gets the answer from before it | [#3810](https://github.com/countrymanprime/narration-studio/issues/3810) |
-| 5 | The pickups list and the sync state take each chapter's evaluation from the shared pass; the shell reads a pickups count; a finished check queues one sync-state read, not one per check | **Expected:** pickups list 1.3 → under 0.3 s; the shell stops moving 1.72 MB per page; no CPU tail after a run of checks | Host only; a count binding that needs no bridge | [#3804](https://github.com/countrymanprime/narration-studio/issues/3804) |
-| 6 | The chapter list answers without `paragraphIds`; its seven page-side readers take them from `ManuscriptParagraphs` | **Expected:** chapter-list answer 64.8 → about 14 KB at 44 chapters | A binding changes shape: contract row, golden, mock, `hostAPIVersion`; a multi-page UI change | [#3811](https://github.com/countrymanprime/narration-studio/issues/3811) |
+| 4 | Identical reads in flight share one computation, at the binding, keyed on the services snapshot and a write generation | **Expected:** removes the 3.4 to 4.1 times multiplier at start (12 to 13 s per call → the single-call time) | In memory. A race test: a read started after a write never gets the answer from before it | [#3810](https://github.com/countrymanprime/narration-studio/issues/3810) |
+| 5 | The pickups list and the sync state take each chapter's evaluation from the shared pass, through an evaluation path that reads the summary instead of decoding the full result (`ResultIn` decodes it today); the shell reads a pickups count; a finished check queues one sync-state read, not one per check | **Expected:** the shell stops moving 1.72 MB per page; no CPU tail after a run of checks. The pickups list's own time (1.3 s) falls only as far as the summary covers what gap classification reads; that schema is agreed with slice 3 first | Host, plus a count binding for the shell: contract row, mock, `hostAPIVersion` | [#3804](https://github.com/countrymanprime/narration-studio/issues/3804) |
+| 6 | The chapter list answers without `paragraphIds`. Nine page-side files read them today; six read one chapter's ids and can use `ManuscriptParagraphs`, three (`useDeepLink.ts`, `retailSampleRange.ts`, `evidenceLinks.ts`) search every chapter for a paragraph and need a paragraph-to-chapter read or an index range per chapter instead | **Expected:** chapter-list answer 64.8 → about 14 KB at 44 chapters | A binding changes shape: contract row, golden, mock, `hostAPIVersion`; a multi-page UI change | [#3811](https://github.com/countrymanprime/narration-studio/issues/3811) |
 | 7 | Findings are held decoded while the findings folder is unchanged; the summary and a single finding answer from the held set. Then, separately, Proof reads findings by chapter | **Expected:** summary 115 → under 5 ms; Proof moves about 0.2 MB instead of 12.05 MB | In memory first; the page change adds a filter to the list binding | [#3805](https://github.com/countrymanprime/narration-studio/issues/3805), [#3812](https://github.com/countrymanprime/narration-studio/issues/3812) |
 | 8 | Fill the manuscript, `.rpp`, ledger and summaries in the background at start; rebuild missing summaries with 4 workers outside the decoded-result cache | **Expected:** the first chapter list from memory; a cold rebuild 2.7 to 3.2 times faster | None | [#3806](https://github.com/countrymanprime/narration-studio/issues/3806) |
-| 9 | Hold the decoded Story Bible while its file is unchanged and stop the per-read `stat` of every item source. Separately, hold each settings scope's file while unchanged | **Expected:** a Story Bible read 48 → about 12 ms; `ChapterTrackLinks` about a quarter less; `settings.json` opens 63 → 1 | In memory | [#3807](https://github.com/countrymanprime/narration-studio/issues/3807), [#3813](https://github.com/countrymanprime/narration-studio/issues/3813) |
+| 9 | Hold the decoded Story Bible while its file is unchanged and stop the per-read `stat` of every item source. Separately, hold each settings scope's file while unchanged | **Expected:** a Story Bible read 48 → about 20 ms (decoding is 28 of the 48 ms); `ChapterTrackLinks` about a quarter less; `settings.json` opens 63 → 1 | In memory | [#3807](https://github.com/countrymanprime/narration-studio/issues/3807), [#3813](https://github.com/countrymanprime/narration-studio/issues/3813) |
 | 10 | Derived data, in order: one shared source-identity cache and one key builder in `internal/evidence`; then persist take evidence and delivery measurements under it; then a size bound and prune order per kind, with a ledger retention rule that keeps the newest complete record | **Expected:** a measured hour-long file is not measured again after a restart (58.8 s); ten per-call file hashes removed; disk bounded | `internal/evidence`; data-files rows gain a bound; the pruning change runs alone | [#3814](https://github.com/countrymanprime/narration-studio/issues/3814), [#3815](https://github.com/countrymanprime/narration-studio/issues/3815), [#3816](https://github.com/countrymanprime/narration-studio/issues/3816), with [#3778](https://github.com/countrymanprime/narration-studio/issues/3778) and [#3761](https://github.com/countrymanprime/narration-studio/issues/3761) |
 
-What can run together: slices 1 and 2; slice 7's host half, slice 9 and the identity cache of slice 10 at any time. Slices 1, 3, 5 and 8 touch `internal/coverage/read.go` and run in that order. Slices 6 and 7's page half both change a binding and the mock, and merge one at a time.
+What can run together, and what cannot:
+
+- Slices 1 and 2 run together. Slice 7's host half and slice 9's settings half can run at any time.
+- Slices 1, 3, 5 and 8 touch `internal/coverage/read.go` and run in that order. Slice 4 follows slice 1 (both touch the bindings and `app.go`), and its write generation has to cover every cache slices 1, 3 and 7 add, so each of those advances it.
+- Slices 5, 6 and 7's page half each change a binding, the mock and `hostAPIVersion`, and merge one at a time. Slices 5 and 6 also share `internal/pickuplist` and `recordedthroughs.go`, which read `paragraphIds`: 5 first.
+- Slice 3 owns the shape of the summary's paragraph lines; slice 6 changes only what the chapter list carries.
+- Slice 9's Story Bible and item-stat half and slice 8 both touch `tracks.go`: 9 first.
+- Slice 10's identity cache shares the `internal/evidence` package with slice 1 but not its files (`identity.go` against `ledger.go` and `ledger_index.go`). Its pruning deletes ledger records, so it comes after slice 1 and needs a test that a deleted record leaves the index.
 
 Page-side work is not part of this order and keeps its own issues and measurements: one read of each source per page ([#3658](https://github.com/countrymanprime/narration-studio/issues/3658)), Production's layout while figures arrive ([#3749](https://github.com/countrymanprime/narration-studio/issues/3749)), Script and Proof ([#3766](https://github.com/countrymanprime/narration-studio/issues/3766)), Editing and peaks ([#3767](https://github.com/countrymanprime/narration-studio/issues/3767)), the remaining pages ([#3768](https://github.com/countrymanprime/narration-studio/issues/3768)), app start and the bundle ([#3769](https://github.com/countrymanprime/narration-studio/issues/3769)).
 
@@ -443,7 +455,7 @@ Rules every slice keeps:
 - **Windows and the owner's machine: pending the owner.** Every number is from a Linux container. File opens are slower on Windows with Defender on, WebView2 starts differently from WebKitGTK, and the owner's book has its own number of checked chapters, items per chapter and past checks. One launch of the real book with `General.debug_logging` on writes the same `ui.call.ok` lines to `run.jsonl` that the start table here is built from, and would confirm or correct it.
 - **A partly checked book.** Cost 1 grows with checked chapters × ledger records, including records of earlier checks and of other analyzers. A book with 10 checked chapters of 44 pays less than the table; a book checked several times pays more.
 - **Each page driven in the real app.** The real app was timed at launch on Production only. Per-page host time is from bindings called in a Go test, and per-page drawing time is from the mock. Driving each page in the real app at each size is slice 2's job.
-- **A warm app start**, the 300-chapter app start, and the mock at 300 chapters.
+- **A warm app start**, the 300-chapter app start, the mock at 300 chapters, the warm Settings cell, first paint below 40 h, the "not kept" cells, a binary wire format, pre-warming on idle, and the in-memory size of the proposed caches. Slice 2 ([#3803](https://github.com/countrymanprime/narration-studio/issues/3803)) owns re-running these with the committed benchmark.
 - **A live DAW.** No REAPER was running, so `PickupsCount`, live track reads and the bridge are outside these numbers; they are in [REAPER bridge performance](reaper-bridge-performance.md).
 - **Audio.** Waveform peaks, take evidence and delivery measurement costs are quoted from earlier pages, not re-measured.
 - **The stand-in sidecar's result** (one token per word) was not compared with a real recogniser run's result size.
