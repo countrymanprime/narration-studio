@@ -538,6 +538,38 @@ H.test('a ledger that stays unwritable is not opened on every tick', function()
   H.truthy(blocked.tries - before > 0, 'it is still tried')
 end)
 
+H.test('a ledger that cannot be written is opened once in a tick, whichever paths of the tick want to write it', function()
+  local s, t = new_session()
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local blocked = { tries = 0 }
+  local real_open = io.open
+  io.open = function(path, mode, ...)
+    if tostring(path):find(LEDGER, 1, true) and (mode or 'r'):find('w', 1, true) then
+      blocked.tries = blocked.tries + 1
+      return nil, 'blocked'
+    end
+    return real_open(path, mode, ...)
+  end
+  -- A write of no rows removes the file, which is also an attempt to write it.
+  local real_remove = os.remove
+  os.remove = function(path, ...)
+    if tostring(path):find(LEDGER, 1, true) then
+      blocked.tries = blocked.tries + 1
+    end
+    return real_remove(path, ...)
+  end
+  -- Another project comes to the front: the row becomes a ghost and the write fails.
+  local tracks = s.fake.tracks
+  s.fake.tracks = {}
+  s:tick()
+  -- The project is back: the tick retries the failed write, and putting the ghost back would write the file again.
+  s.fake.tracks = tracks
+  local before = blocked.tries
+  s:tick()
+  io.open, os.remove = real_open, real_remove
+  H.eq(blocked.tries - before, 1, 'one attempt to write the ledger in the tick')
+end)
+
 -- a chapter that cannot be soloed ------------------------------------------------------------------------------------
 
 H.test('a stale chapter answers TRACK_STALE and puts the chapter soloed before back', function()
