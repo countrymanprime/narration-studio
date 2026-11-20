@@ -60,7 +60,7 @@ type chapterSyncBatch = chaptersync.Activity
 // last stored snapshot's time (null before the first sync). Batch is set only on the answer or event of a sync that
 // linked something or found a new unmatched track. UnsavedEdits says REAPER, running this project, has edits since the
 // last sync that are not saved yet (the heartbeat's edit counter moved; a sync reads only the saved file).
-// Activity is the stored list of batches, newest first (the audio engine panel's Sync activity). Chapters is one row per
+// Activity is the stored list of batches, newest first (kept for the host log's sake and the data file; no screen draws it, #3671). Chapters is one row per
 // narration chapter with its link and the status of its recording check, when the manuscript and the saved
 // .rpp can be read; empty otherwise.
 type chapterSyncState struct {
@@ -495,6 +495,11 @@ func (h *Host) runChapterSync(trigger string) (chapterSyncState, error) {
 	}
 	if err := chaptersync.NewStore(in.svc.config.projectFolder).Write(plan.Snapshot, entries...); err != nil {
 		return chapterSyncState{}, err
+	}
+	// The sync log lives here, not in Settings (#3671): one host-log line for each sync that did something, counts only (no chapter or track
+	// names), so a diagnostics bundle shows what the syncs did even after a re-import cleared the project's stored list.
+	if batch != nil && h.log != nil {
+		_ = h.log.Report("chapter_sync", fmt.Sprintf("%s: linked %d, new tracks %d", trigger, len(written), len(newUnmatched)))
 	}
 	state := in.stateOf(plan, kept, planned)
 	state.Counts.Linked = len(kept) + len(written)
