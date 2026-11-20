@@ -45,6 +45,8 @@ export function ToggleGroup({
   onChange,
   options,
   look = 'default',
+  disabled,
+  describedBy,
   className = '',
 }: {
   label: string;
@@ -52,11 +54,15 @@ export function ToggleGroup({
   onChange: (value: string) => void;
   options: readonly ToggleGroupOption[];
   look?: ToggleGroupLook;
+  /** Every chip is off. */
+  disabled?: boolean;
+  /** The ids of the text that describes the whole group (a setting's one-line description, its error). */
+  describedBy?: string;
   className?: string;
 }) {
   // The chip that has focus holds the tab stop while focus is in the group, so Tab and Shift+Tab leave the group from any chip.
   const [focused, setFocused] = useState<string | undefined>(undefined);
-  const reachable = options.filter((option) => !option.disabled);
+  const reachable = disabled ? [] : options.filter((option) => !option.disabled);
   const tabStop = (reachable.find((option) => option.value === focused) ?? reachable.find((option) => option.value === value) ?? reachable[0])?.value;
   const holdTabStop = (event: FocusEvent<HTMLDivElement>) => {
     // Each chip draws one button, in the order of `options`.
@@ -83,6 +89,7 @@ export function ToggleGroup({
     <div
       role="group"
       aria-label={label}
+      aria-describedby={describedBy}
       className={`${containerClass} ${className}`}
       onKeyDown={moveFocus}
       onFocus={holdTabStop}
@@ -93,7 +100,7 @@ export function ToggleGroup({
           key={option.value}
           label={option.label}
           active={value === option.value}
-          disabled={option.disabled}
+          disabled={disabled || option.disabled}
           title={option.title}
           disabledReason={option.disabledReason}
           look={look === 'segmented' ? 'segmented' : 'chip'}

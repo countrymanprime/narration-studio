@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ScopedSettingField } from '../../api/contracts/system';
@@ -29,7 +29,7 @@ function renderSetting(field: ScopedSettingField, change = vi.fn()) {
 }
 
 describe('ScopedSetting controls', () => {
-  it('shows a choice as a named select and reports the chosen value', () => {
+  it('shows a choice no tool declares a control for as a named select and reports the chosen value', () => {
     const change = renderSetting(FIELD);
     const select = screen.getByRole('combobox', { name: 'Model size' }) as HTMLSelectElement;
     expect(select.value).toBe('base');
@@ -361,6 +361,91 @@ describe('ScopedSetting controls', () => {
     const select = screen.getByRole('combobox', { name: 'Update channel' }) as HTMLSelectElement;
     expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['Candidates and stable', 'Stable only']);
     expect(Array.from(select.options).map((option) => option.value)).toEqual(['candidates', 'stable']);
+  });
+});
+
+// component-selection CS-E6 (#3681): a panel draws a choice with the control its key declares, the same one its Settings row draws.
+describe('ScopedSetting choices by the control they declare', () => {
+  const draw = (tool: string, field: ScopedSettingField, value = field.value) => {
+    const change = vi.fn();
+    render(
+      <TooltipProvider>
+        <ScopedSetting field={field} tool={tool} scope="global" value={value} change={change} onClearOverride={() => undefined} />
+      </TooltipProvider>,
+    );
+    return change;
+  };
+  const preset: ScopedSettingField = { ...FIELD, key: 'preset', label: 'Preset', choices: ['sample', 'spot_check'], value: 'sample', effectiveValue: 'sample' };
+
+  it('draws a two-option choice with no Settings row as a segmented group and reports the segment pressed', () => {
+    const change = draw('Preview', preset);
+    const group = screen.getByRole('group', { name: 'Preset' });
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(within(group).getByRole('button', { name: 'Sample' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(group).getByRole('button', { name: 'Spot check' }));
+    expect(change.mock.calls).toEqual([['spot_check']]);
+  });
+
+  it('draws a readiness signal as Required or Ignored, whichever signal it is', () => {
+    draw('StageRecommendations', {
+      ...FIELD,
+      key: 'editing.clicks',
+      label: 'No clicks left',
+      choices: ['required', 'ignored'],
+      value: 'ignored',
+      effectiveValue: 'ignored',
+    });
+    expect(
+      within(screen.getByRole('group', { name: 'No clicks left' }))
+        .getByRole('button', { name: 'Ignored' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it('draws a key as its Settings row declares it: the update channel as radios, in words', () => {
+    const change = draw('Updates', {
+      ...FIELD,
+      key: 'channel',
+      label: 'Update channel',
+      choices: ['candidates', 'stable'],
+      value: 'candidates',
+      effectiveValue: 'candidates',
+    });
+    const radios = within(screen.getByRole('radiogroup', { name: 'Update channel' }));
+    expect(radios.getByRole('radio', { name: 'Candidates and stable' }).getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(radios.getByRole('radio', { name: 'Stable only' }));
+    expect(change.mock.calls).toEqual([['stable']]);
+  });
+
+  it('shows the value a scope inherits as the chosen segment while it has none of its own', () => {
+    draw('Preview', { ...preset, value: '', isSet: false, effectiveValue: 'spot_check' }, '');
+    expect(
+      within(screen.getByRole('group', { name: 'Preset' }))
+        .getByRole('button', { name: 'Spot check' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it('shows a stored value the host no longer offers as a first, chosen segment', () => {
+    draw('Preview', { ...preset, value: 'teaser', effectiveValue: 'teaser' });
+    const segments = within(screen.getByRole('group', { name: 'Preset' })).getAllByRole('button');
+    expect(segments.map((segment) => [segment.textContent, segment.getAttribute('aria-pressed')])).toEqual([
+      ['teaser', 'true'],
+      ['Sample', 'false'],
+      ['Spot check', 'false'],
+    ]);
+  });
+
+  it('keeps a long or growing list a select, with the hint that names the option chosen', () => {
+    draw('RecordingCoverage', {
+      ...FIELD,
+      key: 'chunk_seconds',
+      label: 'Coverage chunk length',
+      choices: ['0', '60', '120', '300', '600', '900'],
+      value: '60',
+      effectiveValue: '60',
+    });
+    expect((screen.getByRole('combobox', { name: 'Coverage chunk length' }) as HTMLSelectElement).value).toBe('60');
   });
 });
 

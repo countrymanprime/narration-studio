@@ -1,12 +1,12 @@
 import type { ScopedSettingField } from '../../../types';
 import { ColourField } from '../../primitives/ColourField';
-import { Select } from '../../primitives/Select';
 import { useSettledDraft } from '../../primitives/settledDraft';
 import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
-import { describeNumberRange } from '../numberSetting';
+import { describeNumberRange, wholeNumberRange } from '../numberSetting';
 import { choiceLabel } from '../data/values';
 import type { SettingMeta } from '../registry/types';
+import { SettingChoice } from '../value/SettingChoice';
 import { SettingNumber } from '../value/SettingNumber';
 
 // One width for a setting's select and text box, so the controls down the page line up (alignment audit cause E); a program path is wider.
@@ -90,20 +90,30 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
     );
   }
   if (field.kind === 'choice') {
-    const options = field.choices.map((choice) => ({ value: choice, label: choiceLabel(row, choice) }));
-    // A stored value the host no longer offers still shows, so the control never claims a choice that is not the real one.
-    if (!field.choices.includes(value)) options.unshift({ value, label: choiceLabel(row, value) });
-    return (
-      <Select
+    const control = row.control ?? 'select';
+    const choice = (
+      <SettingChoice
+        control={control}
         id={id}
         label={name}
         value={value}
-        options={options}
+        options={field.choices.map((choice) => ({ value: choice, label: choiceLabel(row, choice) }))}
+        staleLabel={(stale) => choiceLabel(row, stale)}
+        unit={row.unit}
         disabled={disabled}
-        aria-describedby={describedBy}
-        className={FIELD_WIDTH}
+        describedBy={describedBy}
+        selectClassName={FIELD_WIDTH}
         onChange={onChange}
       />
+    );
+    // A number box says its range under it, as a `number` field's does; a stored value outside the choices is drawn as a select, which lists them.
+    const range = control === 'number' && field.choices.includes(value) ? wholeNumberRange(field.choices, row.unit) : undefined;
+    if (!range) return choice;
+    return (
+      <span className="flex flex-col gap-1">
+        {choice}
+        <span className={`${NOTE} text-[var(--text-muted)]`}>{describeNumberRange(range)}</span>
+      </span>
     );
   }
   if (field.kind === 'number' && field.number) {

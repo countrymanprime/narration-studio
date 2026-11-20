@@ -106,9 +106,9 @@ describe('Settings with no project: every category', () => {
     const { api } = await renderPage();
     const save = vi.spyOn(api, 'saveSettings');
     pick('App & updates');
-    const channel = await screen.findByRole('combobox', { name: /Update channel/ });
-    expect((channel as HTMLSelectElement).disabled).toBe(false);
-    fireEvent.change(channel, { target: { value: 'stable' } });
+    const stable = within(await screen.findByRole('radiogroup', { name: /Update channel/ })).getByRole('radio', { name: 'Stable only' });
+    expect(stable.getAttribute('aria-disabled')).toBeNull();
+    fireEvent.click(stable);
     await waitFor(() => expect(save).toHaveBeenCalledWith('Updates', 'global', { channel: 'stable' }));
   });
 

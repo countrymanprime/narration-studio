@@ -62,6 +62,25 @@ describe('RadioGroup', () => {
     expect(screen.getByRole('radio', { name: 'Keep for later' }).getAttribute('aria-checked')).toBe('true');
   });
 
+  it('turns every option off when the group is disabled, and reports nothing', async () => {
+    const onChange = vi.fn();
+    render(<RadioGroup label="What is it?" value="reference" onChange={onChange} options={OPTIONS} disabled />);
+    for (const radio of screen.getAllByRole('radio')) expect(radio.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.setup().click(screen.getByText('Keep for later'));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('radio', { name: 'Not a chapter' }).getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('is described by the text its caller names', () => {
+    render(
+      <>
+        <p id="why">Where a recording is kept.</p>
+        <RadioGroup label="What is it?" value="reference" onChange={() => undefined} options={OPTIONS} describedBy="why" />
+      </>,
+    );
+    expect(screen.getByRole('radiogroup', { name: 'What is it?' }).getAttribute('aria-describedby')).toBe('why');
+  });
+
   it('draws an unselected option with --surface-3 and a --border rim', () => {
     render(<Controlled />);
     const unselected = screen.getByRole('radio', { name: 'Keep for later' });

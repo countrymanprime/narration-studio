@@ -23,16 +23,29 @@ export function RadioGroup<Value extends string>({
   value,
   onChange,
   options,
+  disabled,
+  describedBy,
 }: {
   label: string;
   value: Value;
   onChange: (value: Value) => void;
   options: readonly RadioOption<Value>[];
+  /** Every option is off. */
+  disabled?: boolean;
+  /** The ids of the text that describes the whole group (a setting's one-line description, its error). */
+  describedBy?: string;
 }) {
   return (
-    <BaseRadioGroup aria-label={label} value={value} onValueChange={(next) => onChange(next as Value)} className="space-y-2.5">
+    <BaseRadioGroup
+      aria-label={label}
+      aria-describedby={describedBy}
+      value={value}
+      disabled={disabled}
+      onValueChange={(next) => onChange(next as Value)}
+      className="space-y-2.5"
+    >
       {options.map((option) => (
-        <RadioItem key={option.value} {...option} />
+        <RadioItem key={option.value} {...option} disabled={disabled || option.disabled} />
       ))}
     </BaseRadioGroup>
   );

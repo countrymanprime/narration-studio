@@ -72,6 +72,39 @@ describe('ToggleGroup', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('turns every chip off when the group is disabled: none is pressed or reached by Tab', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ToggleGroup
+        label="Verbosity"
+        value="Normal"
+        onChange={onChange}
+        options={[
+          { value: 'Quiet', label: 'Quiet' },
+          { value: 'Normal', label: 'Normal' },
+        ]}
+        disabled
+      />,
+    );
+    for (const chip of screen.getAllByRole('button')) expect((chip as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Quiet' }));
+    await user.tab();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(document.body);
+    expect(screen.getByRole('button', { name: 'Normal' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('is described by the text its caller names', () => {
+    render(
+      <>
+        <p id="why">How much the log says.</p>
+        <ToggleGroup label="Verbosity" value="Normal" onChange={() => undefined} options={[{ value: 'Normal', label: 'Normal' }]} describedBy="why" />
+      </>,
+    );
+    expect(screen.getByRole('group', { name: 'Verbosity' }).getAttribute('aria-describedby')).toBe('why');
+  });
+
   // component-selection CS-K6 (#3681): every chip used to be a tab stop, so a five-option group cost five Tab presses to pass.
   describe('as one tab stop', () => {
     const chip = (name: string) => screen.getByRole('button', { name });

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -292,7 +292,7 @@ describe('PreviewPanel pin and adjust', () => {
         .find((command) => command.label === 'Open Preview options')!
         .run(),
     );
-    fireEvent.change(await screen.findByRole('combobox', { name: 'Preset' }), { target: { value: 'spot_check' } });
+    fireEvent.click(within(await screen.findByRole('group', { name: 'Preset' })).getByRole('button', { name: 'Spot check' }));
     await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { preset: 'spot_check' }));
     await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
   });

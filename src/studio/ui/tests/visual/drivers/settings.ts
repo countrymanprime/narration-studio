@@ -271,7 +271,8 @@ export const settingsDrivers: Record<string, Driver> = {
         .first()
         .evaluate((select: HTMLSelectElement) => select.selectedOptions[0]?.textContent);
     await expect.poll(() => chosen('stt.chunk')).toBe('240 s');
-    await expect.poll(() => chosen('stt.compareChunk')).toBe('abc (invalid)');
+    // Four lengths are radios, so the stored value that is not one of them is a fifth, checked radio.
+    await page.locator('[data-row="stt.compareChunk"]').getByRole('radio', { name: 'abc (invalid)', checked: true }).waitFor();
     await page.locator('[data-row="stt.chunk"]').scrollIntoViewIfNeeded();
   },
   'speech-coverage-chunk': async (page) => {
@@ -750,7 +751,10 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'App & updates');
     await page.getByRole('switch', { name: /Tell me when a long task finishes/ }).click();
     await page.locator('[data-row="app.notify"][data-changed="true"]').waitFor();
-    await page.getByRole('combobox', { name: /Update channel/ }).selectOption('stable');
+    await page
+      .getByRole('radiogroup', { name: /Update channel/ })
+      .getByRole('radio', { name: 'Stable only' })
+      .click();
     await page.locator('[data-row="app.channel"][data-changed="true"]').waitFor();
     await page
       .getByRole('radio', { name: 'Changed', exact: true })

@@ -12,6 +12,7 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - Arrow Keys Move Focus And Enter Chooses
 - Disabled Chip Is Not Chosen
 - Chip Disabled With Reason
+- Disabled Group
 - Segmented
 - Segmented Measured Shapes
 
@@ -35,4 +36,5 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/value/SettingChoice.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`

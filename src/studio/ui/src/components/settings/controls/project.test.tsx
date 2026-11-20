@@ -468,7 +468,7 @@ describe('Settings: App & updates', () => {
     const status = vi.spyOn(api, 'updateStatus');
     await screen.findByRole('button', { name: 'Check now' });
     const before = status.mock.calls.length;
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    fireEvent.click(within(await screen.findByRole('radiogroup', { name: /Update channel/ })).getByRole('radio', { name: 'Stable only' }));
     await waitFor(() => expect(status.mock.calls.length).toBeGreaterThan(before));
   });
 

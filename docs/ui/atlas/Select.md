@@ -43,7 +43,6 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/inspector/TypeSelect.tsx`
 - `src/components/proof/notes/NotesPanel.tsx`
-- `src/components/proof/proofOptions/ProofOptions.tsx`
 - `src/components/recordingcheck/RunOptions.tsx`
 - `src/components/schedule/ContractPanel.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
@@ -54,12 +53,11 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/RetailSamplePanel.tsx`
-- `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/controls/AppearanceBodies.tsx`
 - `src/components/settings/controls/DeliveryBodies.tsx`
 - `src/components/settings/controls/MicBody.tsx`
 - `src/components/settings/controls/SampleOutputBody.tsx`
-- `src/components/settings/row/ValueControl.tsx`
+- `src/components/settings/value/SettingChoice.tsx`
 - `src/components/storybible/DialogueCueAttribution.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`

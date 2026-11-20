@@ -176,7 +176,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'speech-odd-chunk-values',
     description:
-      'Settings, Speech to text with Advanced open (?mockSettings=odd-chunk), scrolled to the Coverage chunk length row: a hand-edited 240 s reads "240 s" and is marked Changed (the Compare chunk length row above it holds "abc" and reads "abc (invalid)")',
+      'Settings, Speech to text with Advanced open (?mockSettings=odd-chunk), scrolled to the Coverage chunk length row: a hand-edited 240 s reads "240 s" and is marked Changed (the Compare chunk length row above it holds "abc", drawn as a fifth, chosen radio "abc (invalid)" above the four lengths)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

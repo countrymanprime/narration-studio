@@ -10,6 +10,7 @@ Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/Rad
 - Click Selects
 - Arrow Keys Move
 - Disabled Option
+- Disabled Group
 - Standalone
 
 ## Used by
@@ -26,3 +27,4 @@ Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/Rad
 - `src/components/settings/controls/SampleStorageBody.tsx`
 - `src/components/settings/controls/SyncEnabledBody.tsx`
 - `src/components/settings/controls/TakeToneBody.tsx`
+- `src/components/settings/value/SettingChoice.tsx`

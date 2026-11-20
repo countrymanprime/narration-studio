@@ -51,3 +51,14 @@ export function snapToStep(range: NumberSettingRange, n: number): number {
   const snapped = onStep(steps);
   return max !== null && snapped > max ? onStep(steps - 1) : snapped;
 }
+
+/**
+ * The range a list of choices spans when they are consecutive whole numbers ("0" to "10"), so the choice can be drawn as a number box; undefined
+ * for any other list.
+ */
+export function wholeNumberRange(choices: readonly string[], unit = ''): NumberSettingRange | undefined {
+  if (choices.length < 2 || !choices.every((choice) => /^-?\d+$/.test(choice))) return undefined;
+  const numbers = choices.map(Number);
+  if (!numbers.every((n, index) => index === 0 || n === numbers[index - 1] + 1)) return undefined;
+  return { min: numbers[0], max: numbers[numbers.length - 1], step: 1, unit };
+}

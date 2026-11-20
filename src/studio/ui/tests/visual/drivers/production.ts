@@ -454,7 +454,7 @@ export const productionDrivers: Record<string, Driver> = {
       .click();
     await page.getByRole('switch', { name: 'Suggest stage advances' }).waitFor();
     await page
-      .getByRole('combobox', { name: 'Rendered file: length matches the chapter (proofing)' })
+      .getByRole('group', { name: 'Rendered file: length matches the chapter (proofing)' })
       .evaluate((element) => element.scrollIntoView({ block: 'end' }));
   },
   'stage-evidence-recommended': async (page) => {

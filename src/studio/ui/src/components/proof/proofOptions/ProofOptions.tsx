@@ -4,14 +4,15 @@ import { Button } from '../../primitives/Button';
 import { ColourField } from '../../primitives/ColourField';
 import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
-import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
+import { choiceControlFor } from '../../settings/registry/choiceControls';
+import { SettingChoice } from '../../settings/value/SettingChoice';
 import { SettingNumber } from '../../settings/value/SettingNumber';
 import type { ScopedSettingField } from '../../../types';
 import { proofingChoiceLabel } from '../options';
 import { useProjectOptions } from './useProjectOptions';
 
-function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => Promise<boolean> }) {
+function Row({ field, tool, onSet }: { field: ScopedSettingField; tool: string; onSet: (key: string, value: string | null) => Promise<boolean> }) {
   const range = field.number;
   const control =
     field.kind === 'number' && range ? (
@@ -25,13 +26,15 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
         onChange={(value) => onSet(field.key, value === '' ? null : value)}
       />
     ) : field.kind === 'choice' ? (
-      <Select
+      <SettingChoice
+        control={choiceControlFor(tool, field.key)}
         label={field.label}
-        // As wide as a colour row's swatch and hex box, so the controls down the dialog share a right edge (alignment audit XPC-10).
-        className="w-[10.75rem]"
+        // A select is as wide as a colour row's swatch and hex box, so the controls down the dialog share a right edge (alignment audit XPC-10).
+        selectClassName="w-[10.75rem]"
         value={field.effectiveValue}
         options={field.choices.map((c) => ({ value: c, label: proofingChoiceLabel(field.key, c) }))}
-        onChange={(value) => void onSet(field.key, value)}
+        staleLabel={(stale) => proofingChoiceLabel(field.key, stale)}
+        onChange={(value) => onSet(field.key, value)}
       />
     ) : field.kind === 'color' ? (
       <ColourField mode="free" label={field.label} value={field.effectiveValue} hexClassName="max-w-[8rem]" onChange={(hex) => onSet(field.key, hex)} />
@@ -106,7 +109,7 @@ export function ProofOptions({
       <div className="flex flex-col gap-3">
         {note}
         {fields.map((field) => (
-          <Row key={field.key} field={field} onSet={set} />
+          <Row key={field.key} field={field} tool={tool} onSet={set} />
         ))}
         {error ? (
           <p role="alert" className="m-0 text-[length:var(--font-size-sm)] [overflow-wrap:anywhere] text-[var(--danger-text)]">

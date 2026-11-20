@@ -102,6 +102,18 @@ export const ChipDisabledWithReason: Story = {
   },
 };
 
+// The whole group off (a setting that cannot be changed now): the choice still shows and no chip takes a press or the Tab key.
+export const DisabledGroup: Story = {
+  args: { look: 'segmented', value: 'small', disabled: true, options: OPTIONS.slice(0, 2) },
+  play: async ({ args, canvasElement }) => {
+    const small = within(canvasElement).getByRole('button', { name: 'Small' });
+    await expect(small).toBeDisabled();
+    await expect(small).toHaveAttribute('aria-pressed', 'true');
+    within(canvasElement).getByRole('button', { name: 'Tiny' }).click();
+    await expect(args.onChange).not.toHaveBeenCalled();
+  },
+};
+
 // The segmented look (the Master platform switch): one bordered
 // container, the chosen segment filled `--accent`, the label in its own case (title case here, not uppercase).
 export const Segmented: Story = {

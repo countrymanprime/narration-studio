@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -51,14 +51,21 @@ describe('Stage suggestion options', () => {
     expect(screen.queryByRole('switch')).toBeNull();
     openOptions();
     expect((await screen.findByRole('switch', { name: 'Suggest stage advances' })).getAttribute('aria-checked')).toBe('true');
-    const select = screen.getByRole('combobox', { name: 'Text present in order (recording)' }) as HTMLSelectElement;
-    expect([...select.options].map((o) => o.textContent)).toEqual(['Required', 'Ignored']);
+    const policy = screen.getByRole('group', { name: 'Text present in order (recording)' });
+    expect(
+      within(policy)
+        .getAllByRole('button')
+        .map((segment) => [segment.textContent, segment.getAttribute('aria-pressed')]),
+    ).toEqual([
+      ['Required', 'true'],
+      ['Ignored', 'false'],
+    ]);
   });
 
   it('saves a change for this project and has the board read its suggestions again', async () => {
     const { save, readAgain } = mount();
     openOptions();
-    fireEvent.change(await screen.findByRole('combobox', { name: 'Text present in order (recording)' }), { target: { value: 'ignored' } });
+    fireEvent.click(within(await screen.findByRole('group', { name: 'Text present in order (recording)' })).getByRole('button', { name: 'Ignored' }));
     await waitFor(() => expect(save).toHaveBeenCalledWith('StageRecommendations', 'project', { 'recording.text_present': 'ignored' }));
     await waitFor(() => expect(readAgain).toHaveBeenCalledTimes(1));
   });

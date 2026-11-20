@@ -50,6 +50,10 @@ async function renderPage({
 const nav = () => screen.getByRole('navigation', { name: 'Settings categories' });
 const pick = (name: string) => fireEvent.click(within(nav()).getByRole('button', { name: new RegExp(`^${name}`) }));
 const row = (id: string) => document.querySelector<HTMLElement>(`[data-row="${id}"]`)!;
+/** An option of the Update channel row, the page's stand-in for "a choice": two radios. */
+const channelOption = async (name: 'Stable only' | 'Candidates and stable') =>
+  within(await screen.findByRole('radiogroup', { name: /Update channel/ })).getByRole('radio', { name });
+const chooseChannel = async (name: 'Stable only' | 'Candidates and stable') => fireEvent.click(await channelOption(name));
 const waitForRow = (id: string) =>
   waitFor(() => {
     const found = row(id);
@@ -136,7 +140,7 @@ describe('Settings: page frame', () => {
   it('puts Reset to defaults in the title line as a small button, not a 16 px link', async () => {
     await renderPage();
     pick('App & updates');
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     const reset = await screen.findByRole('button', { name: 'Reset to defaults' });
     expect(reset.className).toContain('min-h-[var(--button-height-sm)]');
     expect(reset.className).not.toContain('underline');
@@ -242,7 +246,7 @@ describe('Settings: row layout', () => {
   it("keeps a Changed row's title line one height, its bar the full row and Saved beside Reset (XSE1-22, XSE2-34, R3SE1-16)", async () => {
     await renderPage();
     pick('App & updates');
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     const changed = row('app.channel');
     await waitFor(() => expect(within(changed).getByText('Saved')).toBeTruthy());
     expect(within(changed).getByText('Changed').closest('[data-title-line]')!.className).toContain('min-h-6');
@@ -254,7 +258,7 @@ describe('Settings: row layout', () => {
   it('leaves a gap between the label and the control when the row stacks (R3SE2-15)', async () => {
     await renderPage();
     pick('App & updates');
-    await screen.findByRole('combobox', { name: /Update channel/ });
+    await channelOption('Stable only');
     expect(row('app.channel').className).toMatch(/(^| )gap-y-3( |$)/);
     expect(row('app.channel').className).toContain('@min-[761px]:gap-y-1.5');
   });
@@ -473,8 +477,7 @@ describe('Settings: editing', () => {
     const save = vi.spyOn(api, 'saveSettings');
     await renderPage({ api });
     pick('App & updates');
-    const channel = await screen.findByRole('combobox', { name: /Update channel/ });
-    fireEvent.change(channel, { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     await waitFor(() => expect(save).toHaveBeenCalledWith('Updates', 'global', { channel: 'stable' }));
     await waitFor(() => expect(within(row('app.channel')).getByText('Saved')).toBeTruthy());
     expect(within(row('app.channel')).getByText('Changed')).toBeTruthy();
@@ -483,12 +486,28 @@ describe('Settings: editing', () => {
     await waitFor(() => expect(within(row('app.channel')).queryByText('Changed')).toBeNull());
   });
 
+  // component-selection CS-E6 (#3681): a short choice is a group the row names, not a select the row's label points at.
+  it('draws a two-option choice as a segmented group and saves the segment pressed', async () => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
+    pick('Speech to text');
+    const group = await screen.findByRole('group', { name: 'Live model' });
+    expect(within(row('stt.liveModel')).queryByRole('combobox')).toBeNull();
+    expect(row('stt.liveModel').querySelector('label')!.htmlFor).toBe('');
+    expect(within(group).getByRole('button', { name: 'Tiny' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(group).getByRole('button', { name: 'Small' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Teleprompter', 'global', { model: 'small' }));
+    await waitFor(() => expect(within(group).getByRole('button', { name: 'Small' }).getAttribute('aria-pressed')).toBe('true'));
+    expect(within(row('stt.liveModel')).getByText('Changed')).toBeTruthy();
+  });
+
   it('sends one save for a Reset pressed again while its save is slow (#3231)', async () => {
     const api = createMockApi();
     const real = api.saveSettings.bind(api);
     await renderPage({ api });
     pick('App & updates');
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
     let release: () => void = () => undefined;
     const slow = vi.spyOn(api, 'saveSettings').mockImplementation(async (...args) => {
@@ -509,8 +528,9 @@ describe('Settings: editing', () => {
     const save = vi.spyOn(api, 'saveSettings');
     await renderPage({ api });
     pick('App & updates');
-    const channel = await screen.findByRole('combobox', { name: /Update channel/ });
-    fireEvent.change(channel, { target: { value: 'candidates' } });
+    await chooseChannel('Stable only');
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Updates', 'global', { channel: 'stable' }));
+    await chooseChannel('Candidates and stable');
     await waitFor(() => expect(save).toHaveBeenCalledWith('Updates', 'global', { channel: null }));
   });
 
@@ -561,11 +581,10 @@ describe('Settings: editing', () => {
     };
     await renderPage({ api });
     pick('App & updates');
-    const channel = (await screen.findByRole('combobox', { name: /Update channel/ })) as HTMLSelectElement;
-    fireEvent.change(channel, { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     expect((await within(row('app.channel')).findByText(/read-only/)).textContent).toContain('read-only');
     expect(screen.getByText('Changes cannot be saved right now.')).toBeTruthy();
-    expect(channel.value).toBe('candidates');
+    expect((await channelOption('Candidates and stable')).getAttribute('aria-checked')).toBe('true');
   });
 
   it('Advanced is closed until opened, and says how many settings it holds', async () => {
@@ -590,7 +609,7 @@ describe('Settings: editing', () => {
     const save = vi.spyOn(api, 'saveSettings');
     await renderPage({ api });
     pick('App & updates');
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     await waitFor(() => expect(within(nav()).getByLabelText('1 changed')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Reset to defaults' }));
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('Updates', 'global', { channel: null }));
@@ -901,7 +920,7 @@ describe('Settings: search and filters', () => {
     expect(screen.queryByText(/Try a word from the setting’s name/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'All' }));
     pick('App & updates');
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
     expect(row('app.channel')).toBeTruthy();
@@ -912,7 +931,7 @@ describe('Settings: search and filters', () => {
     await renderPage({ api });
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
     pick('App & updates');
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
     const reset = within(row('app.channel')).getByRole('button', { name: /Reset Update channel/ });
@@ -955,7 +974,7 @@ describe('Settings: search and filters', () => {
 
     // The computer's file.
     pick('App & updates');
-    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await chooseChannel('Stable only');
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));

@@ -1,13 +1,14 @@
 import { useId, type ReactNode } from 'react';
 import type { NumberSettingRange } from '../../api/contracts/system';
 import type { Scope, ScopedSettingField } from '../../types';
-import { Select } from '../primitives/Select';
 import { Switch } from '../primitives/Switch';
 import { TagInput } from '../primitives/TagInput';
 import { TextField } from '../primitives/TextField';
 import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { proofingChoiceLabel } from '../proof/options';
 import { describeNumberRange } from './numberSetting';
+import { choiceControlFor } from './registry/choiceControls';
+import { SettingChoice } from './value/SettingChoice';
 import { SettingNumber } from './value/SettingNumber';
 import { IconButton } from '../primitives/IconButton';
 import { ColourField } from '../primitives/ColourField';
@@ -188,6 +189,31 @@ function NumberSetting({
   );
 }
 
+/** The words for a choice in a panel; an empty value the host does not offer is "Not set". */
+const panelChoiceLabel = (key: string, value: string): string => (value === '' ? 'Not set' : proofingChoiceLabel(key, value));
+
+function ChoiceSetting({ field, tool, value, change }: { field: ScopedSettingField; tool?: string; value: string; change: (value: string) => void }) {
+  const control = choiceControlFor(tool, field.key);
+  const choice = (
+    <SettingChoice
+      control={control}
+      label={field.label}
+      value={value}
+      options={field.choices.map((choice) => ({ value: choice, label: proofingChoiceLabel(field.key, choice) }))}
+      staleLabel={(stale) => panelChoiceLabel(field.key, stale)}
+      selectClassName="w-full"
+      onChange={change}
+    />
+  );
+  // A closed select shows one option, so its hint names it. A group shows them all, and a hint around it would cover every option.
+  if (control !== 'select') return choice;
+  return (
+    <TooltipTarget text={optionTip(field, value)} className={GROWING_CONTROL_CLASSES}>
+      {choice}
+    </TooltipTarget>
+  );
+}
+
 export function ScopedSetting({
   field,
   tool,
@@ -275,15 +301,7 @@ export function ScopedSetting({
         ) : isText ? (
           <TextField label={field.label} className={GROWING_CONTROL_CLASSES} value={effective} onChange={(next) => change(next.trim() === '' ? '' : next)} />
         ) : (
-          <TooltipTarget text={optionTip(field, effective)} className={GROWING_CONTROL_CLASSES}>
-            <Select
-              label={field.label}
-              fullWidth
-              value={effective}
-              onChange={change}
-              options={field.choices.map((choice) => ({ value: choice, label: proofingChoiceLabel(field.key, choice) }))}
-            />
-          </TooltipTarget>
+          <ChoiceSetting field={field} tool={tool} value={effective} change={change} />
         )}
         {resetButton}
       </div>

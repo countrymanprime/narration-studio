@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { act } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -59,8 +59,14 @@ it('names the two chunk_seconds fields for what each one chunks, whatever the ho
       </ApiProvider>,
     );
   draw('TranscriptCompare');
-  const compare = await screen.findByRole('combobox', { name: 'Compare chunk length' });
-  expect(Array.from((compare as HTMLSelectElement).options).map((option) => option.value)).toEqual(['30', '60', '300', '600']);
+  // Four lengths are radios, as in the Settings row of the same key (component-selection CS-E6); six are a select.
+  const compare = await screen.findByRole('radiogroup', { name: 'Compare chunk length' });
+  expect(
+    within(compare)
+      .getAllByRole('radio')
+      .map((option) => option.getAttribute('aria-label') ?? option.closest('label')?.textContent),
+  ).toEqual(['30s', '1m', '5m', '10m']);
+  expect(within(compare).getByRole('radio', { name: '1m' }).getAttribute('aria-checked')).toBe('true');
   cleanup();
   draw('RecordingCoverage');
   const coverage = await screen.findByRole('combobox', { name: 'Coverage chunk length (0 = each item whole)' });

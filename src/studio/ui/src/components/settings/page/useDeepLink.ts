@@ -11,9 +11,15 @@ export function useDeepLink(target: string | null, ready: boolean, done: () => v
     const element = document.querySelector<HTMLElement>(`[data-row="${CSS.escape(target)}"], [data-page-setting="${CSS.escape(target)}"]`);
     if (!element) return undefined;
     element.scrollIntoView?.({ block: 'center' });
-    // The row's own control first; a row with a custom body has none by that id, so the first thing in its control column.
+    // The row's own control first. A row drawn as a group of options has no element by that id, so its chosen option. A row with a custom
+    // body, or a "Set on a page" entry (whose panel has a pressed scope switch that is not the setting), gets the first thing it holds.
+    const chosen = element.matches('[data-row]')
+      ? element.querySelector<HTMLElement>('[aria-pressed="true"]:not(:disabled), [role="radio"][aria-checked="true"]')
+      : null;
     const control =
-      element.querySelector<HTMLElement>(`[id="set-${target}"]`) ?? element.querySelector<HTMLElement>('input, select, button, [role="radio"], [tabindex]');
+      element.querySelector<HTMLElement>(`[id="set-${target}"]`) ??
+      chosen ??
+      element.querySelector<HTMLElement>('input, select, button, [role="radio"], [tabindex]');
     control?.focus({ preventScroll: true });
     setLit(target);
     done();

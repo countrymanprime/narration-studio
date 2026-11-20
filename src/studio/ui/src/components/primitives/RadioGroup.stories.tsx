@@ -76,6 +76,17 @@ export const DisabledOption: Story = {
   },
 };
 
+// The whole group off (a setting that cannot be changed now): every option is dimmed and a press chooses nothing.
+export const DisabledGroup: Story = {
+  args: { disabled: true },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText('Keep for later'));
+    await expect(args.onChange).not.toHaveBeenCalled();
+    await expect(canvas.getByRole('radio', { name: 'Keep for later' })).not.toBeChecked();
+  },
+};
+
 function StandaloneRadio() {
   const [checked, setChecked] = useState(false);
   return (

@@ -17,6 +17,7 @@ import { OpenLogFolderButton } from './OpenLogFolderButton';
 import { useRowReset } from './RowResetContext';
 import { useSettingsHost } from './SettingsHost';
 import { useSettingsNav } from './SettingsNav';
+import { isGroupControl } from '../value/SettingChoice';
 import { ValueControl } from './ValueControl';
 import { WorkerPlanNote } from './WorkerPlanNote';
 
@@ -151,7 +152,12 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
       <div className="flex min-w-0 flex-col gap-[3px]">
         {/* The title line is as tall as the Changed badge with or without it, so a switch beside it stays level (XSE1-22, XSE2-34). */}
         <span data-title-line className="flex min-h-6 flex-wrap items-center gap-2">
-          <label htmlFor={hasCustom || row.fact ? undefined : controlId} id={`${uid}l`} className="text-[0.9375rem] font-semibold">
+          {/* A group of options has no one element to point at: the group carries the row's name itself. */}
+          <label
+            htmlFor={hasCustom || row.fact || isGroupControl(row.control) ? undefined : controlId}
+            id={`${uid}l`}
+            className="text-[0.9375rem] font-semibold"
+          >
             {row.label}
           </label>
           {row.more && <HelpButton label={`About ${row.label}`}>{row.more}</HelpButton>}

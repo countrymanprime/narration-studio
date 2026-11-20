@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -55,7 +55,7 @@ const bool = (key: string, label: string, value: string, isSet = false): ScopedS
 });
 
 const FIELDS = {
-  Demo: [
+  Preview: [
     number('target', 'Target length (seconds)', '300'),
     choice('preset', 'Preset', ['sample', 'spot_check'], 'sample'),
     color('tint', 'Tint', 'B5473C', true),
@@ -67,7 +67,7 @@ function mount(over: Partial<NarrationApi> = {}) {
   const save = vi.fn(async () => undefined);
   const api = createMockApi({ settingsForScope: async () => FIELDS, saveSettings: save, ...over } as Partial<NarrationApi>);
   const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
-  render(<ProofOptions title="Demo options" group="Proof" tool="Demo" keys={['target', 'preset', 'tint', 'suggest']} />, { wrapper });
+  render(<ProofOptions title="Demo options" group="Proof" tool="Preview" keys={['target', 'preset', 'tint', 'suggest']} />, { wrapper });
   return {
     save,
     open: async () =>
@@ -79,13 +79,17 @@ function mount(over: Partial<NarrationApi> = {}) {
   };
 }
 
+const preset = (name: string) => within(screen.getByRole('group', { name: 'Preset' })).getByRole('button', { name });
+
 describe('Proof options', () => {
   it('is closed until opened, then shows each setting at the value in force for this project', async () => {
     const { open } = mount();
     expect(screen.queryByRole('textbox', { name: 'Target length (seconds)' })).toBeNull();
     await open();
     expect((await screen.findByRole('textbox', { name: 'Target length (seconds)' })) as HTMLInputElement).toHaveProperty('value', '300');
-    expect((screen.getByRole('combobox', { name: 'Preset' }) as HTMLSelectElement).value).toBe('sample');
+    // Two presets are a segmented group, as in Settings (component-selection CS-E6).
+    expect(preset('Sample').getAttribute('aria-pressed')).toBe('true');
+    expect(preset('Spot check').getAttribute('aria-pressed')).toBe('false');
     expect((screen.getByRole('textbox', { name: 'Tint hex' }) as HTMLInputElement).value).toBe('B5473C');
     expect((screen.getByLabelText('Tint') as HTMLInputElement).value).toBe('#b5473c');
   });
@@ -100,10 +104,10 @@ describe('Proof options', () => {
     fireEvent.change(box, { target: { value: '600' } });
     expect(save).not.toHaveBeenCalled();
     fireEvent.blur(box);
-    await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { target: '600' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { target: '600' }));
     expect(save).toHaveBeenCalledTimes(1);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Preset' }), { target: { value: 'spot_check' } });
-    await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { preset: 'spot_check' }));
+    fireEvent.click(preset('Spot check'));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { preset: 'spot_check' }));
   });
 
   it('clamps a number past the host range instead of saving it', async () => {
@@ -112,7 +116,7 @@ describe('Proof options', () => {
     const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
     fireEvent.change(box, { target: { value: '99999' } });
     fireEvent.blur(box);
-    await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { target: '3600' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { target: '3600' }));
   });
 
   it('saves a colour as six hex digits without the hash, in capitals, and keeps text that is not a colour in the box, unsaved and marked', async () => {
@@ -126,7 +130,7 @@ describe('Proof options', () => {
     expect(hex.getAttribute('aria-invalid')).toBe('true');
     fireEvent.change(hex, { target: { value: '#3f6ea6' } });
     fireEvent.blur(hex);
-    await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { tint: '3F6EA6' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { tint: '3F6EA6' }));
   });
 
   // B3 (#3680): after a refused save the box kept the refused text beside the old colour in the picker, and each blur sent it again.
@@ -146,7 +150,7 @@ describe('Proof options', () => {
     fireEvent.blur(hex);
     fireEvent.focus(hex);
     fireEvent.blur(hex);
-    expect(save).toHaveBeenCalledExactlyOnceWith('Demo', 'project', { tint: 'BB0001' });
+    expect(save).toHaveBeenCalledExactlyOnceWith('Preview', 'project', { tint: 'BB0001' });
   });
 
   // B2 (#3680): the host has not answered yet; Enter again, a held Enter and the blur after it send nothing more.
@@ -167,7 +171,7 @@ describe('Proof options', () => {
     const toggle = await screen.findByRole('switch', { name: 'Suggest advances' });
     expect(toggle.getAttribute('aria-checked')).toBe('true');
     fireEvent.click(toggle);
-    await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { suggest: 'false' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { suggest: 'false' }));
   });
 
   it('offers Reset, an icon button named for the setting, only on a setting this project overrides, and Reset hands the setting back to the default', async () => {
@@ -176,7 +180,7 @@ describe('Proof options', () => {
     await screen.findByRole('textbox', { name: 'Tint hex' });
     expect(screen.getAllByRole('button', { name: /^Reset / })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Reset Tint' }));
-    await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { tint: null }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Preview', 'project', { tint: null }));
   });
 
   it('says why when the settings cannot be read, and shows no rows', async () => {
@@ -187,7 +191,7 @@ describe('Proof options', () => {
     } as Partial<NarrationApi>);
     await open();
     expect((await screen.findByRole('alert')).textContent).toContain('unreadable');
-    expect(screen.queryByRole('combobox', { name: 'Preset' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Preset' })).toBeNull();
   });
 
   it('says why when a save is refused, and keeps the value in force', async () => {
@@ -197,8 +201,9 @@ describe('Proof options', () => {
       },
     } as Partial<NarrationApi>);
     await open();
-    fireEvent.change(await screen.findByRole('combobox', { name: 'Preset' }), { target: { value: 'spot_check' } });
+    await screen.findByRole('group', { name: 'Preset' });
+    fireEvent.click(preset('Spot check'));
     expect((await screen.findByRole('alert')).textContent).toContain('read-only');
-    expect((screen.getByRole('combobox', { name: 'Preset' }) as HTMLSelectElement).value).toBe('sample');
+    expect(preset('Sample').getAttribute('aria-pressed')).toBe('true');
   });
 });

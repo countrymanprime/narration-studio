@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeNumberRange, numberProblem, snapToStep } from './numberSetting';
+import { describeNumberRange, numberProblem, snapToStep, wholeNumberRange } from './numberSetting';
 
 const PEAK = { min: -60, max: 0, step: 0.1, unit: 'dBTP' };
 const COUNT = { min: 0, max: null, step: 1, unit: 'words' };
@@ -76,5 +76,24 @@ describe('snapToStep', () => {
         expect(numberProblem(range, String(snapToStep(range, n))), `${JSON.stringify(range)} ${n}`).toBeUndefined();
       }
     }
+  });
+});
+
+describe('wholeNumberRange', () => {
+  it('spans a list of consecutive whole numbers in steps of one, with the unit it is given', () => {
+    expect(wholeNumberRange(['0', '1', '2', '3'], 's')).toEqual({ min: 0, max: 3, step: 1, unit: 's' });
+    expect(wholeNumberRange(['-1', '0', '1'])).toEqual({ min: -1, max: 1, step: 1, unit: '' });
+  });
+
+  it.each([
+    ['a gap', ['0', '1', '3']],
+    ['numbers out of order', ['1', '0', '2']],
+    ['a fraction', ['0', '0.5', '1']],
+    ['a word', ['0', '1', 'abc']],
+    ['an empty value', ['', '0', '1']],
+    ['one value', ['4']],
+    ['nothing', []],
+  ])('is undefined for %s', (_name, choices) => {
+    expect(wholeNumberRange(choices)).toBeUndefined();
   });
 });

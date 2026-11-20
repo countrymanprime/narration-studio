@@ -2801,6 +2801,7 @@
         "Click Selects",
         "Arrow Keys Move",
         "Disabled Option",
+        "Disabled Group",
         "Standalone"
       ],
       "consumers": [
@@ -2815,7 +2816,8 @@
         "src/components/settings/controls/ProjectBodies.tsx",
         "src/components/settings/controls/SampleStorageBody.tsx",
         "src/components/settings/controls/SyncEnabledBody.tsx",
-        "src/components/settings/controls/TakeToneBody.tsx"
+        "src/components/settings/controls/TakeToneBody.tsx",
+        "src/components/settings/value/SettingChoice.tsx"
       ],
       "a11yDebt": false
     },
@@ -3306,7 +3308,6 @@
         "src/components/proof/NativeTakesPanel.tsx",
         "src/components/proof/inspector/TypeSelect.tsx",
         "src/components/proof/notes/NotesPanel.tsx",
-        "src/components/proof/proofOptions/ProofOptions.tsx",
         "src/components/recordingcheck/RunOptions.tsx",
         "src/components/schedule/ContractPanel.tsx",
         "src/components/schedule/MilestoneDialog.tsx",
@@ -3317,12 +3318,11 @@
         "src/components/settings/CreditsPanel.tsx",
         "src/components/settings/DeliveryProfilesPanel.tsx",
         "src/components/settings/RetailSamplePanel.tsx",
-        "src/components/settings/ScopedSetting.tsx",
         "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/controls/DeliveryBodies.tsx",
         "src/components/settings/controls/MicBody.tsx",
         "src/components/settings/controls/SampleOutputBody.tsx",
-        "src/components/settings/row/ValueControl.tsx",
+        "src/components/settings/value/SettingChoice.tsx",
         "src/components/storybible/DialogueCueAttribution.tsx",
         "src/components/storybible/VoiceReferencesSection.tsx",
         "src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx"
@@ -4307,6 +4307,7 @@
         "Arrow Keys Move Focus And Enter Chooses",
         "Disabled Chip Is Not Chosen",
         "Chip Disabled With Reason",
+        "Disabled Group",
         "Segmented",
         "Segmented Measured Shapes"
       ],
@@ -4329,6 +4330,7 @@
         "src/components/settings/page/ModelsPane.tsx",
         "src/components/settings/page/ScopedFieldsPanel.tsx",
         "src/components/settings/page/SettingsPage.tsx",
+        "src/components/settings/value/SettingChoice.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx"
       ],
       "a11yDebt": false

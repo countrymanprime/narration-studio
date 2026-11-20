@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ScopedSettingField } from '../../../types';
@@ -188,5 +188,106 @@ describe('ValueControl, a text or number box settles the same way', () => {
     fireEvent.change(box('Gap'), { target: { value: '' } });
     fireEvent.blur(box('Gap'));
     expect(onChange).toHaveBeenCalledExactlyOnceWith('');
+  });
+});
+
+// component-selection CS-E6 (#3681): the registry row says which control draws its choice.
+describe('ValueControl, a choice drawn by the control its row declares', () => {
+  const chunks = field({ kind: 'choice', choices: ['30', '60', '300'], value: '60' });
+  const choiceRow = (over: Partial<SettingMeta>) => ({ id: 'row.id', label: 'Chunk length', unit: 's', ...over }) as SettingMeta;
+  const draw = (meta: SettingMeta, over: { field?: ScopedSettingField; value?: string; which?: string } = {}) => {
+    const onChange = vi.fn();
+    render(
+      <ValueControl
+        row={meta}
+        field={over.field ?? chunks}
+        value={over.value ?? '60'}
+        which={over.which}
+        id="control"
+        describedBy="about"
+        onChange={onChange}
+      />,
+    );
+    return onChange;
+  };
+
+  it('segmented: a group named for the row and whose value it is, the stored value pressed, a press saved once', () => {
+    const onChange = draw(choiceRow({ control: 'segmented' }), { which: 'this project' });
+    const group = screen.getByRole('group', { name: 'Chunk length (this project)' });
+    expect(group.getAttribute('aria-describedby')).toBe('about');
+    expect(within(group).getByRole('button', { name: '60 s' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(within(group).getByRole('button', { name: '300 s' }));
+    expect(onChange.mock.calls).toEqual([['300']]);
+  });
+
+  it('segmented: a stored value the host no longer offers is a first, pressed segment that says what it is', () => {
+    draw(choiceRow({ control: 'segmented' }), { value: '45' });
+    expect(screen.getByRole('button', { name: '45 s' }).getAttribute('aria-pressed')).toBe('true');
+    cleanup();
+    draw(choiceRow({ control: 'segmented' }), { value: 'x' });
+    expect(screen.getByRole('button', { name: 'x (invalid)' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('radio: a radio group in the registry’s words, the stored value checked, another option saved once', () => {
+    const channel = field({ kind: 'choice', choices: ['candidates', 'stable'], value: 'candidates' });
+    const meta = choiceRow({
+      label: 'Update channel',
+      unit: undefined,
+      control: 'radio',
+      options: { candidates: { label: 'Candidates and stable' }, stable: { label: 'Stable only' } },
+    });
+    const onChange = draw(meta, { field: channel, value: 'candidates' });
+    const radios = within(screen.getByRole('radiogroup', { name: 'Update channel' }));
+    expect(radios.getByRole('radio', { name: 'Candidates and stable' }).getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(radios.getByRole('radio', { name: 'Stable only' }));
+    expect(onChange.mock.calls).toEqual([['stable']]);
+  });
+
+  it('select: the row’s id and one field width, as before', () => {
+    draw(choiceRow({ control: 'select' }));
+    const select = screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement;
+    expect(select.id).toBe('control');
+    expect(select.className).toContain('max-w-80');
+    expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['30 s', '60 s', '300 s']);
+  });
+
+  it('a row that declares nothing is a select', () => {
+    draw(choiceRow({}));
+    expect(screen.getByRole('combobox', { name: 'Chunk length' })).toBeTruthy();
+  });
+
+  describe('number, over a choice of consecutive whole numbers', () => {
+    const tone = field({ kind: 'choice', choices: Array.from({ length: 11 }, (_, n) => String(n)), value: '0' });
+    const toneRow = choiceRow({ label: 'Room tone', control: 'number' });
+    const box = () => screen.getByRole('textbox', { name: 'Room tone' }) as HTMLInputElement;
+
+    it('is a number box with the row’s id and unit and the range under it, and saves the whole number settled on as its stored text', () => {
+      const onChange = draw(toneRow, { field: tone, value: '0' });
+      expect(box().id).toBe('control');
+      expect(box().value).toBe('0');
+      expect(screen.getByText('s')).toBeTruthy();
+      expect(screen.getByText('From 0 to 10 s')).toBeTruthy();
+      fireEvent.change(box(), { target: { value: '2.6' } });
+      expect(onChange).not.toHaveBeenCalled();
+      fireEvent.blur(box());
+      expect(onChange.mock.calls).toEqual([['3']]);
+    });
+
+    it('keeps a number past the choices inside them', () => {
+      const onChange = draw(toneRow, { field: tone, value: '0' });
+      fireEvent.change(box(), { target: { value: '99' } });
+      fireEvent.keyDown(box(), { key: 'Enter' });
+      expect(onChange.mock.calls).toEqual([['10']]);
+    });
+
+    it('shows a stored value that is not one of the numbers in a select that lists them, and never as 0', () => {
+      draw(toneRow, { field: tone, value: 'abc' });
+      expect(screen.queryByRole('textbox')).toBeNull();
+      expect(screen.queryByText('From 0 to 10 s')).toBeNull();
+      const select = screen.getByRole('combobox', { name: 'Room tone' }) as HTMLSelectElement;
+      expect(select.value).toBe('abc');
+      expect(select.options[0].textContent).toBe('abc (invalid)');
+      expect(select.options).toHaveLength(12);
+    });
   });
 });

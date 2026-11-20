@@ -62,6 +62,12 @@ export type AssetRef = { kind: string | { followRow: string }; id: string };
 
 export type OptionNote = { label?: string; asset?: AssetRef };
 
+/**
+ * How a host `choice` field is drawn (component-selection CS-E6): `segmented` is a `ToggleGroup`, `radio` a `RadioGroup`, `select` a
+ * `Select`. `number` is a choice of consecutive whole numbers drawn as a number box.
+ */
+export type ChoiceControl = 'segmented' | 'radio' | 'select' | 'number';
+
 export type SettingMeta = {
   id: string;
   cat: Exclude<CategoryId, 'pages'>;
@@ -79,6 +85,8 @@ export type SettingMeta = {
   def: string;
   /** Words and downloads for a host choice, by value; a value without an entry shows as the host sent it. */
   options?: Record<string, OptionNote>;
+  /** The control a host `choice` field is drawn with. Every choice row drawn by the page's own renderer declares one (`choiceControls.test.ts`). */
+  control?: ChoiceControl;
   unit?: string;
   /** A fact the host reports and nobody can change (the only choice there is): drawn as words, never as a control. It is Changed only if a stored value differs from the default (a hand-edited file), so that stray value is never hidden. */
   fact?: boolean;
