@@ -342,6 +342,10 @@ export function createStoryBibleMock(
       await manuscriptReady;
       return wireClone(s.dialogueCues);
     },
+    guideDialogueCuesIn: async (chapterIds) => {
+      await manuscriptReady;
+      return wireClone(s.dialogueCues.filter((cue) => chapterIds.includes(cue.chapterId)));
+    },
     guideAttributeSpeakers: async () => {
       // The tag names the speaker, as the host's attribution reads it; a confirmed or edited line is never touched.
       const named = (tag: string) =>

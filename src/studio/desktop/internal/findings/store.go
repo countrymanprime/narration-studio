@@ -113,6 +113,7 @@ func (s *Store) RemoveAnalyzer(analyzer string) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer persist.Advance()
 	if err := os.RemoveAll(filepath.Join(s.dir(), analyzer)); err != nil {
 		return fmt.Errorf("could not remove the %s findings: %w", analyzer, err)
 	}

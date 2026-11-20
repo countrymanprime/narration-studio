@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -16,11 +17,21 @@ type CreatedTrack struct {
 	Index int
 }
 
-// CreatedFolder is what track_create answers for a chapter folder (#2840): the folder and its one child. Child is zero when the script is
-// older than the chapter folder: it ignored the child's name and added Folder as a plain track.
+// CreatedFolder is what track_create answers for a chapter folder (#2840): the folder and its first child. Child is zero when the script is
+// older than the chapter folder: it ignored the child's name and added Folder as a plain track. More holds the children after the first, in
+// the order they were asked for (#3748), and is shorter than asked for when the script is older than that: it adds the first child only.
 type CreatedFolder struct {
 	Folder CreatedTrack
 	Child  CreatedTrack
+	More   []CreatedTrack
+}
+
+// Children is every child the script answered, in order: the first, then More. Empty when the script added no child.
+func (f CreatedFolder) Children() []CreatedTrack {
+	if f.Child.GUID == "" {
+		return nil
+	}
+	return append([]CreatedTrack{f.Child}, f.More...)
 }
 
 // ErrTrackNameEmpty means the name for a new track is empty once trimmed, so nothing was sent (or the script refused it).
@@ -47,17 +58,37 @@ func (a *Actions) CreateChildTrack(ctx context.Context, name, parentGUID string)
 	return a.createTrack(ctx, name, normalizeGUID(parentGUID))
 }
 
-// CreateFolderTrack adds a chapter folder named name holding one child named childName, both after every other track, in one undo point
-// (#2840): a folder left open at the end of the project is closed on its last track first, so the new folder is not nested in the chapter
-// before it. It never saves the project, refuses while REAPER records (ErrRecording), and is not idempotent. A blank name or child name is
-// ErrTrackNameEmpty before anything is sent.
-func (a *Actions) CreateFolderTrack(ctx context.Context, name, childName string) (CreatedFolder, error) {
-	childName = strings.TrimSpace(childName)
-	if childName == "" {
+// CreateFolderTrack adds a chapter folder named name holding the children named children, in that order and after every other track, in one
+// undo point (#2840, #3748): the folder opens, the children sit one level down and the last closes it. A folder left open at the end of the
+// project is closed on its last track first, so the new folder is not nested in the chapter before it. It never saves the project, refuses
+// while REAPER records (ErrRecording), and is not idempotent. A blank name, no child or a blank child name is ErrTrackNameEmpty before anything
+// is sent; two child names equal without case (ASCII letters only) are refused by the script with nothing added.
+//
+// The children after the first travel in one field, a name a line: the bridge reads at most eight fields, so one field per name would merge
+// every name past the third into one track. A line break inside a name becomes a space here, as the script does, so no name can split in two.
+// A script from before #3748 reads the first child only: the answer then holds fewer children than asked for, with no error, and a caller that
+// sent several compares len(Children()) with what it asked for.
+func (a *Actions) CreateFolderTrack(ctx context.Context, name string, children ...string) (CreatedFolder, error) {
+	if len(children) == 0 {
 		return CreatedFolder{}, ErrTrackNameEmpty
 	}
-	return a.create(ctx, name, "", childName)
+	cleaned := make([]string, 0, len(children))
+	for _, child := range children {
+		child = strings.TrimSpace(lineBreaks.ReplaceAllString(child, " "))
+		if child == "" {
+			return CreatedFolder{}, ErrTrackNameEmpty
+		}
+		cleaned = append(cleaned, child)
+	}
+	rest := []string{"", cleaned[0]}
+	if len(cleaned) > 1 {
+		rest = append(rest, strings.Join(cleaned[1:], "\n"))
+	}
+	return a.create(ctx, name, rest...)
 }
+
+// lineBreaks is what the script turns into one space inside a track name: a run of them (narration_track_create.lua, clean_name).
+var lineBreaks = regexp.MustCompile(`[\r\n\t]+`)
 
 func (a *Actions) createTrack(ctx context.Context, name string, parent ...string) (CreatedTrack, error) {
 	created, err := a.create(ctx, name, parent...)
@@ -78,12 +109,21 @@ func (a *Actions) create(ctx context.Context, name string, rest ...string) (Crea
 		}
 		return CreatedFolder{}, err
 	}
+	var more []CreatedTrack
 	for _, event := range events {
-		if event.Tag == "TRACK_STALE" {
+		switch event.Tag {
+		case "TRACK_STALE":
 			return CreatedFolder{}, &TrackStaleError{GUID: event.Fields[2]}
-		}
-		if event.Tag == "TRACK_CREATED" {
-			return createdFrom(event.Fields)
+		case "TRACK_CHILD":
+			index, err := strconv.Atoi(event.Fields[3])
+			if err != nil {
+				return CreatedFolder{}, fmt.Errorf("REAPER answered track_create with a child index that is not a number: %w", err)
+			}
+			more = append(more, CreatedTrack{GUID: normalizeGUID(event.Fields[2]), Index: index, Name: event.Fields[4]})
+		case "TRACK_CREATED":
+			created, err := createdFrom(event.Fields)
+			created.More = more
+			return created, err
 		}
 	}
 	return CreatedFolder{}, fmt.Errorf("REAPER ended track_create without answering it")

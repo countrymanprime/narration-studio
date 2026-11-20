@@ -36,6 +36,7 @@ func Run(r Request) error {
 	if err := os.Remove(r.Out); err != nil && !os.IsNotExist(err) {
 		return err
 	}
+	persist.Advance() // a results file a read answered from may be gone
 	if err := r.Params.Validate(); err != nil {
 		return err
 	}

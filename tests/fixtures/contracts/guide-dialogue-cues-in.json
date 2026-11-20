@@ -1,0 +1,54 @@
+[
+  {
+    "chapterId": "chapter-6",
+    "corrected": false,
+    "evidence": {
+      "chapterId": "chapter-6",
+      "excerpt": "Have some wine.",
+      "paragraphId": "p-24",
+      "tag": ""
+    },
+    "id": "cue-2",
+    "paragraphId": "p-24",
+    "quote_end": 15,
+    "quote_start": 0,
+    "quote_text": "Have some wine.",
+    "speaker_entity_id": null,
+    "speaker_source": "unknown"
+  },
+  {
+    "chapterId": "chapter-6",
+    "corrected": false,
+    "evidence": {
+      "chapterId": "chapter-6",
+      "excerpt": "No room! Alice frowned.",
+      "paragraphId": "p-25",
+      "tag": ""
+    },
+    "id": "cue-3",
+    "paragraphId": "p-25",
+    "quote_end": 9,
+    "quote_start": 0,
+    "quote_text": "No room!",
+    "speaker_entity_id": "alice",
+    "speaker_source": "proximity"
+  },
+  {
+    "chapterId": "chapter-6",
+    "corrected": false,
+    "evidence": {
+      "chapterId": "chapter-6",
+      "excerpt": "Your hair wants cutting.",
+      "paragraphId": "p-26",
+      "reason": "The Hatter is the last character named before this line.",
+      "tag": ""
+    },
+    "id": "cue-4",
+    "paragraphId": "p-26",
+    "quote_end": 21,
+    "quote_start": 0,
+    "quote_text": "Your hair wants cutting.",
+    "speaker_entity_id": "hatter",
+    "speaker_source": "local-model"
+  }
+]

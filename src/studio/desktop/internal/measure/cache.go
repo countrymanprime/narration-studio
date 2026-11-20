@@ -104,6 +104,16 @@ func peaksCacheKey(identity evidence.SourceIdentity, perSecond int) evidence.Cac
 	}
 }
 
+// SlicePeaks answers the buckets of whole (a source's whole peaks, as CachedPeaksFile answers them for a nil
+// range) that overlap rng, as CachedPeaksFile does for that range: for a caller that cuts many ranges from one
+// source it read once.
+func SlicePeaks(whole Peaks, rng Range) (Peaks, error) {
+	if err := rng.validate(); err != nil {
+		return Peaks{}, err
+	}
+	return slicePeaks(whole, rng.StartSeconds, rng.StartSeconds+rng.LengthSeconds), nil
+}
+
 // slicePeaks narrows whole (starting at source second 0) to the buckets overlapping [start, end), clipped to
 // what whole actually holds; end before whole's own start, or start past its end, answers zero buckets.
 func slicePeaks(whole Peaks, start, end float64) Peaks {

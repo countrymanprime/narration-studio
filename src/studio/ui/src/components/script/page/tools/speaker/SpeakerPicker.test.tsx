@@ -9,7 +9,7 @@ import { createMockApi } from '../../../../../api/mockApi';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
 import { speakerColorIndex } from '../../../../primitives/speakerColor';
 import type { Phrase } from '../../data/script.selectors';
-import { useChapters, useEntries, useScriptCommands, useSpeakers } from '../../data/useScriptData';
+import { useChapterCues, useChapters, useEntries, useScriptCommands, useSpeakers } from '../../data/useScriptData';
 import { SpeakerPicker } from './SpeakerPicker';
 import { speakerChoices, speakersInChapter } from './speakerChoices';
 
@@ -175,10 +175,13 @@ describe('choosing confirms the speaker through the data layer', () => {
         <StudioProvider>{children}</StudioProvider>
       </ApiProvider>
     );
-    const { result } = renderHook(() => ({ chapters: useChapters(), speakers: useSpeakers(), entries: useEntries(), commands: useScriptCommands() }), {
-      wrapper,
-    });
-    await waitFor(() => expect(result.current.speakers.value).toBeDefined());
+    const { result } = renderHook(
+      () => ({ chapters: useChapters(), speakers: useSpeakers(), cues: useChapterCues('chapter-1'), entries: useEntries(), commands: useScriptCommands() }),
+      {
+        wrapper,
+      },
+    );
+    await waitFor(() => expect(result.current.speakers.status).toBe('ready'));
     await waitFor(() => expect(result.current.entries.entries.length).toBeGreaterThan(1));
     const cues = result.current.speakers.value as GuideDialogueCue[];
     const cue = cues.find((row) => row.speaker_entity_id && row.speaker_source !== 'correction');
@@ -215,7 +218,9 @@ describe('speakersInChapter over the mock host', () => {
         <StudioProvider>{children}</StudioProvider>
       </ApiProvider>
     );
-    const { result } = renderHook(() => ({ speakers: useSpeakers(), entries: useEntries(), chapters: useChapters() }), { wrapper });
+    const { result } = renderHook(() => ({ speakers: useSpeakers(), cues: useChapterCues('chapter-1'), entries: useEntries(), chapters: useChapters() }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.chapters.value?.length).toBeGreaterThan(0));
     await waitFor(() => expect(result.current.speakers.value?.length).toBeGreaterThan(0));
     await act(async () => {});

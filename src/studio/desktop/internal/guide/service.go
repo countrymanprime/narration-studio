@@ -472,6 +472,24 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 	return cues, nil
 }
 
+// DialogueCuesIn returns the dialogue cues of the given chapters, in the
+// file's order whatever order the ids come in. A chapter with no cues, an
+// unknown id or an empty list adds nothing, so the result can be empty but
+// is never nil.
+func (s *Service) DialogueCuesIn(chapterIDs []string) ([]DialogueCue, error) {
+	cues, err := s.DialogueCues()
+	if err != nil {
+		return nil, err
+	}
+	kept := make([]DialogueCue, 0, len(cues))
+	for _, cue := range cues {
+		if slices.Contains(chapterIDs, cue.ChapterID) {
+			kept = append(kept, cue)
+		}
+	}
+	return kept, nil
+}
+
 // CorrectCue records the narrator's own attribution for one dialogue cue
 // (speakerEntityID "unknown" or "" clears it back to unknown), so the next
 // refresh's mergeDialogueCues (cues.go) keeps it instead of overwriting it with

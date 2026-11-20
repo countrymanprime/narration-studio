@@ -138,6 +138,15 @@ func TestContractGuideDialogueCues(t *testing.T) {
 	checkBindingContract(t, "guide-dialogue-cues", cues)
 }
 
+func TestContractGuideDialogueCuesIn(t *testing.T) {
+	host := &Host{guide: contractGuideServiceWithDialogueCues(t)}
+	cues, err := host.GuideDialogueCuesIn([]string{"chapter-6", "missing"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBindingContract(t, "guide-dialogue-cues-in", cues)
+}
+
 func TestContractGuideAttributeSpeakers(t *testing.T) {
 	project := t.TempDir()
 	svc := guide.New(project, "", "", settings.New(project, project), nil)

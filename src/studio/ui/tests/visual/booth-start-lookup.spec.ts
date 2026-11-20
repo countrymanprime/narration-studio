@@ -53,9 +53,10 @@ async function openWithSlowLookup(page: Page, delay: number, modelCheckMs = 0): 
 async function startFromHere(page: Page, word = 40): Promise<void> {
   await page.locator('[data-booth-text] [data-word]').nth(word).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
 }
 
 test('a slow lookup shows Record busy within 100 ms of the press, and five presses make one host call', async ({ page }) => {
@@ -166,7 +167,7 @@ for (const [name, modelCheckMs, lookupMs] of [
     await expect(page.getByText('A take is already starting, so that press was ignored.')).toBeVisible();
     expect(await lookups(page)).toBe(lookupsBefore);
     expect(await reading()).toBe(first);
-    await expect(page.getByText(/Starting from/)).toHaveCount(1);
+    await expect(page.getByText(/Starting from/)).toHaveCount(0); // marking says nothing (#3319)
     await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
     expect(await lookups(page)).toBe(lookupsBefore);
     expect(await reading()).toBe(first);

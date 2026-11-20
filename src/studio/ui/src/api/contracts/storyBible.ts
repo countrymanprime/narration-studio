@@ -154,6 +154,8 @@ export interface StoryBibleApi {
   /** The Story Bible's extracted dialogue cues: one entry per quoted
    * span, with its resolved or unknown speaker. */
   guideDialogueCues(): Promise<GuideDialogueCue[]>;
+  /** The dialogue cues of the given chapters only, in the book's order: what a page that draws a few chapters reads. An id no chapter has adds nothing. */
+  guideDialogueCuesIn(chapterIds: readonly string[]): Promise<GuideDialogueCue[]>;
   /**
    * Records the narrator's own attribution for one dialogue cue. `speakerEntityId` of `"unknown"` or `""` clears
    * the cue back to unknown. A rebuild never overwrites a correction (mirroring the entity lock guard).
