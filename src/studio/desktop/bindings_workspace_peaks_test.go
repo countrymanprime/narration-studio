@@ -142,10 +142,10 @@ func TestWorkspacePeaksCachesAcrossCalls(t *testing.T) {
 	}
 }
 
-func TestSourcePeaksReaderReadsAFileOnceHoweverManyItemsAsk(t *testing.T) {
+func TestPeaksSourcesReadAFileOnceHoweverManyItemsAsk(t *testing.T) {
 	project := workspacePeaksProject(t)
 	file := filepath.Join(project, "media", "take.wav")
-	whole := sourcePeaksReader(context.Background(), evidence.NewCacheStore(project), project)
+	whole := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project).whole
 
 	first := whole(file)
 	if first.reason != "" || first.whole.Buckets != 4*50 {
@@ -159,7 +159,7 @@ func TestSourcePeaksReaderReadsAFileOnceHoweverManyItemsAsk(t *testing.T) {
 		t.Fatalf("second = %+v, want the first ask's peaks without reading the file again", second)
 	}
 	// A new reader (the next call) reads the file as it is now.
-	if next := sourcePeaksReader(context.Background(), evidence.NewCacheStore(project), project)(file); next.reason == "" {
+	if next := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project).whole(file); next.reason == "" {
 		t.Fatalf("next = %+v, want a reason for the missing file", next)
 	}
 }
@@ -207,18 +207,35 @@ func TestWorkspacePeaksCutsEveryItemOfOneSourceFromItsOwnRange(t *testing.T) {
 	}
 }
 
-func TestItemPeaksRefusesABadRangeBeforeReadingItsSource(t *testing.T) {
-	project := tracks.Project{Tracks: []tracks.Track{{Items: []tracks.Item{{GUID: "{ITEM-1}", Takes: []tracks.Take{{SourceFile: "take.mp3", SourceAvailable: true}}}}}}}
-	read := false
-	whole := func(string) sourcePeaks {
-		read = true
-		return sourcePeaks{reason: "no waveform"}
+// An item reads its source in the order it always did: a file that cannot be read says so whatever the range is, and
+// a bad range is refused before the file's peaks are read (so a file that is not a WAV does not answer for it).
+func TestItemPeaksChecksTheFileThenTheRangeThenThePeaks(t *testing.T) {
+	project := coverageProject(t) // its media/take.wav is the bytes "RIFF audio": readable, not a WAV
+	stub := filepath.Join(project, "media", "take.wav")
+	missing := filepath.Join(project, "media", "gone.wav")
+	items := func(file string) tracks.Project {
+		return tracks.Project{Tracks: []tracks.Track{{Items: []tracks.Item{{GUID: "{ITEM-1}", Takes: []tracks.Take{{SourceFile: file, SourceAvailable: true}}}}}}}
 	}
-
-	got := itemPeaks(whole, project, coverage.AlignmentItem{Index: 0, ItemGUID: "{ITEM-1}", Live: true, SourceStart: -1, Length: 2, PlayRate: 1})
-
-	if got.Reason != "this item's waveform could not be computed" || read {
-		t.Fatalf("got = %+v, source read = %v; want the bad range refused without reading the source", got, read)
+	item := func(start float64) coverage.AlignmentItem {
+		return coverage.AlignmentItem{Index: 0, ItemGUID: "{ITEM-1}", Live: true, SourceStart: start, Length: 2, PlayRate: 1}
+	}
+	for _, c := range []struct {
+		name, file string
+		start      float64
+		want       string
+	}{
+		{"missing file, bad range", missing, -1, "this item's source audio could not be read"},
+		{"missing file, good range", missing, 0, "this item's source audio could not be read"},
+		{"not a WAV, bad range", stub, -1, "this item's waveform could not be computed"},
+		{"not a WAV, good range", stub, 0, "no waveform"},
+	} {
+		sources := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project)
+		if got := itemPeaks(sources, items(c.file), item(c.start)); got.Reason != c.want || got.Peaks != nil {
+			t.Errorf("%s: got %+v, want reason %q", c.name, got, c.want)
+		}
+		if _, read := sources.peaks[c.file]; read != (c.name == "not a WAV, good range") {
+			t.Errorf("%s: the file's peaks were read = %v", c.name, read)
+		}
 	}
 }
 
