@@ -580,3 +580,80 @@ H.test('a voice added after record_stop keeps the take on its voice, in its own 
   H.eq(labels[#labels - 1], 'Recorded media')
   H.eq(s.fake.open_undo_blocks, 0)
 end)
+
+-- A chapter folder with several children (#3748): track_create|run|name||first|second|... adds the folder and every child in the order given, in the
+-- same one undo block. The folder opens, the children sit at 0 and the last closes it. The first child is answered inside TRACK_CREATED, as before; each
+-- further child is answered as TRACK_CHILD before it.
+local function guid(number)
+  return string.format('{%08d-0000-4000-8000-%012d}', number, number)
+end
+
+H.test('track_create of a folder with several children adds them in the order given and answers each', function()
+  local s, first, pickups = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator', 'Mara', 'Extras')
+  H.eq(s:events(), {
+    { 'TRACK_CHILD', 'c1', guid(5), '4', 'Mara' },
+    { 'TRACK_CHILD', 'c1', guid(6), '5', 'Extras' },
+    { 'TRACK_CREATED', 'c1', guid(3), '2', 'Chapter 2', guid(4), '3', 'Narrator' },
+  })
+  H.eq(s.fake.tracks[1], first)
+  H.eq(s.fake.tracks[2], pickups)
+  H.eq(depths(s), { { 'Chapter 1', 0 }, { 'Pickups', 0 }, { 'Chapter 2', 1 }, { 'Narrator', 0 }, { 'Mara', 0 }, { 'Extras', -1 } })
+end)
+
+H.test('track_create of a folder with several children is one undo point and inserts only after the last track', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator', 'Mara', 'Extras')
+  H.eq(#s.fake.undo, 1)
+  H.eq(s.fake.undo[1].label, H.brand.name .. ': add track')
+  H.eq(s.fake.open_undo_blocks, 0)
+  local inserts = {}
+  for _, call in ipairs(s.fake.calls) do
+    if call.name == 'InsertTrackAtIndex' then
+      inserts[#inserts + 1] = call.index
+    end
+  end
+  H.eq(inserts, { 2, 3, 4, 5 })
+end)
+
+H.test('track_create of a folder with several children closes a folder left open at the end first, and moves no other track', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local ch7 = s.fake:add_track('Ch 7')
+  local narrator = s.fake:add_track('Narrator')
+  ch7.folder_depth, narrator.folder_depth = 1, 0
+  s:send('track_create', 'c1', 'Chapter 8', '', 'Narrator', 'Extras')
+  H.eq(depths(s), { { 'Ch 7', 1 }, { 'Narrator', -1 }, { 'Chapter 8', 1 }, { 'Narrator', 0 }, { 'Extras', -1 } })
+end)
+
+H.test('track_create of a folder keeps emoji and right-to-left names as given', function()
+  local s = new_session()
+  local arabic, emoji = 'مرحبا', 'Dragon 🐉'
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator', arabic, emoji)
+  H.eq(depths(s)[5], { arabic, 0 })
+  H.eq(depths(s)[6], { emoji, -1 })
+end)
+
+H.test('track_create of a folder refuses a blank child name and adds nothing', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator', '  ', 'Extras')
+  H.eq(s:events(), { { 'ERROR', 'c1', 'Every track in a new chapter needs a name.' } })
+  H.eq(#s.fake.tracks, 2)
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('track_create of a folder refuses two children with the same name, ignoring case, and adds nothing', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator', 'Mara', 'MARA')
+  H.eq(s:events(), { { 'ERROR', 'c1', 'Two tracks in a new chapter would have the same name, so nothing was added.' } })
+  H.eq(#s.fake.tracks, 2)
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('track_create of a folder with several children refuses while REAPER is recording', function()
+  local s = new_session()
+  s.fake.play_state = 5
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator', 'Mara', 'Extras')
+  H.eq(s:events(), { { 'ERROR', 'c1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(#s.fake.tracks, 2)
+  H.eq(#s.fake.undo, 0)
+end)

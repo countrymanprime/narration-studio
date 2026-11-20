@@ -67,7 +67,9 @@ var realEvents = map[string][]string{
 	// src/studio/integrations/reaper/tests/track_select_test.lua (select_track).
 	"TRACK_SELECTED": {"TRACK_SELECTED", "t1", "{00000001-0000-4000-8000-000000000001}"},
 	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create of a chapter folder; a plain track sends the first five).
-	"TRACK_CREATED":    {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm", "{00000004-0000-4000-8000-000000000004}", "3", "Narrator"},
+	"TRACK_CREATED": {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm", "{00000004-0000-4000-8000-000000000004}", "3", "Narrator"},
+	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create of a folder with several children): each child after the first.
+	"TRACK_CHILD":      {"TRACK_CHILD", "c1", "{00000005-0000-4000-8000-000000000005}", "4", "Mara"},
 	"FOLDER_MOVE":      {"FOLDER_MOVE", "p1", "{00000006-0000-4000-8000-000000000006}", "Chapter 4", "{00000003-0000-4000-8000-000000000003}", "Chapter 3", "", ""},
 	"FOLDERS_PLANNED":  {"FOLDERS_PLANNED", "p1", "3"},
 	"FOLDERS_REPAIRED": {"FOLDERS_REPAIRED", "a1", "3"},
