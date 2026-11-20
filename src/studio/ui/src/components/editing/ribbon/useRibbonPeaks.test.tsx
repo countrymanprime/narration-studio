@@ -120,6 +120,15 @@ describe('usePrefetchPeaks', () => {
     view.unmount();
   });
 
+  it('reads nothing for a chapter the list does not have', async () => {
+    const { seen, workspacePeaks } = slowPeaks();
+    const api = { ...createMockApi(), workspacePeaks };
+    const view = renderHook(() => usePrefetchPeaks(book, 'gone'), { wrapper: withApi(api) });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(seen.order).toEqual([]);
+    view.unmount();
+  });
+
   it('stops when the page closes', async () => {
     const { seen, workspacePeaks } = slowPeaks();
     const api = { ...createMockApi(), workspacePeaks };
