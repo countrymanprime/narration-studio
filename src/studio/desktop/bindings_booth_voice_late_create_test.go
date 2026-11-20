@@ -116,7 +116,7 @@ func TestAChoiceOfALaneTheHostJustAddedIsNotRefusedWhenTheLiveListIsLate(t *test
 	}
 }
 
-// A refusal for a stalled REAPER names the budget that ran out: the voice calls run under readAloudVoiceStartTimeout (6 s), not 3 s.
+// A refusal for a stalled REAPER names the budget that ran out: the voice calls run under laneCommandTimeout, not 3 s.
 func TestALaneArmThatRunsOutOfTimeDoesNotSayThreeSeconds(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	fake := &fakeLaneRecorder{laneErr: context.DeadlineExceeded}
@@ -125,6 +125,23 @@ func TestALaneArmThatRunsOutOfTimeDoesNotSayThreeSeconds(t *testing.T) {
 		t.Fatalf("got %+v, want the choice kept with the arm's timeout named", got)
 	}
 	if want := "3 seconds"; strings.Contains(got.Message, want) {
-		t.Fatalf("message %q says %q, but a voice call waits %s in all (readAloudVoiceStartTimeout)", got.Message, want, readAloudVoiceStartTimeout)
+		t.Fatalf("message %q says %q, but a voice call waits %s in all (laneCommandTimeout)", got.Message, want, laneCommandTimeout)
+	}
+}
+
+// Switching lanes against a REAPER that read the arm and has not confirmed it: the choice stands, the narrator is told the arm may not
+// match (never "did not respond"), and the lane is listed as chosen by the next read.
+func TestASlowArmKeepsTheChoiceAndSaysItMayNotMatch(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeLaneRecorder{laneErr: bridge.ErrAnswerLate}
+	got := boothVoiceSet(t, host, fake, ids[0], voiceQueenTrack)
+	if got.Outcome != "selected" || got.TrackGUID != voiceQueenTrack || got.Armed {
+		t.Fatalf("got %+v, want the choice kept and not claimed armed", got)
+	}
+	if got.Message == "" || strings.Contains(strings.ToLower(got.Message), "didn't respond") {
+		t.Fatalf("message %q", got.Message)
+	}
+	if again := boothVoiceGet(t, host, ids[0]); again.TrackGUID != voiceQueenTrack {
+		t.Fatalf("the Booth records on %q, want the chosen lane", again.TrackGUID)
 	}
 }

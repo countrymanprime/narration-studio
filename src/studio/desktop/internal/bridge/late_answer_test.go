@@ -112,3 +112,21 @@ func TestOtherCommandsKeepTheUsualWait(t *testing.T) {
 		t.Fatalf("a read waited %v", time.Since(started))
 	}
 }
+
+// Switching the voice during a take is the same class (switch_voice): answered late is switched, not "did not answer".
+func TestSwitchVoiceAnsweredAfterTheUsualWaitIsStillAnswered(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		time.Sleep(300 * time.Millisecond)
+		return [][]string{{"VOICE_SWITCHED", run(command), testTrack, "12.5"}}
+	})
+	actions.SetTimeout(50 * time.Millisecond)
+	actions.SetLateWait(5 * time.Second)
+	got, err := actions.SwitchVoice(context.Background(), testTrack)
+	if err != nil {
+		t.Fatalf("a switch answered late failed: %v", err)
+	}
+	if got.TrackGUID != testTrack && got.TrackGUID != "" {
+		t.Fatalf("got %+v", got)
+	}
+}
