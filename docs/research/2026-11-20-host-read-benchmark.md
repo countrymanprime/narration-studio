@@ -54,7 +54,7 @@ Milliseconds, first call on a host that has read nothing | warm median.
 
 ### The work behind the slow reads
 
-Files decoded (first call / warm), record folders listed, and allocations of the first call. These are the counts `TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` caps in CI, on a 44-chapter book with short chapters; they follow the chapters and their checks, so that test sees the 17 hour column's decodes and listings.
+Files decoded (first call / warm), record folders listed, and allocations of the first call. These are the kinds of count `TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` caps in CI, on a 44-chapter book with short chapters (its caps are the lower counts of `f88e387`, [below](#the-same-reads-after-the-first-changes)); they follow the chapters and their checks, so that test sees the 17 hour column's decodes and listings.
 
 | Binding | 17 h | 17 h, 10 of 44 checked | 17 h, checked three times | 40 h | 300 chapters |
 | --- | --- | --- | --- | --- | --- |
@@ -65,8 +65,8 @@ Files decoded (first call / warm), record folders listed, and allocations of the
 | `FindingsSummary` | 44 / 44, 2, 0.12 M | 44 / 44, 2, 0.12 M | 44 / 44, 2, 0.12 M | 103 / 103, 2, 0.29 M | 300 / 300, 2, 0.14 M |
 
 - One chapter-list read of a 44-chapter book decodes 298 files and lists 178 folders once the ledger is in memory: about 7 decodes and 4 listings a checked chapter.
-- A book checked in part pays for its checked chapters: 10 of 44 costs a quarter to a third of the full book's time.
-- Earlier checks of a chapter cost a decode each on the first read (88 more for 88 more records) and nothing after it; the time of the four reads is within about 15 % of the book checked once, which is the spread between runs.
+- A book checked in part pays for its checked chapters: 10 of 44 costs between a quarter and two fifths of the full book's time.
+- Earlier checks of a chapter cost a decode each on the first read (88 more for 88 more records) and nothing after it; the time of the four reads is within 20 % of the book checked once, with one process a book.
 
 | Binding | 17 h, every chapter checked | 10 of 44 checked | Checked three times |
 | --- | --- | --- | --- |
@@ -87,7 +87,7 @@ Files decoded (first call / warm), record folders listed, and allocations of the
 | `ProductionOverview` | 670 \| 652 → 360 \| 353 | 1,631 \| 1,568 → 874 \| 790 | 2,458 \| 2,444 → 1,053 \| 800 |
 | `ChapterSyncState` | 349 \| 318 → 340 \| 308 | 872 \| 755 → 839 \| 749 | 1,538 \| 1,188 → 937 \| 661 |
 
-At 17 h a warm chapter-list read went from 298 decodes and 178 listings to 152 and 1, and its allocations from 2.00 to 1.00 million. The budget test's rows are the `f88e387` counts. The real-app tables below are from `270bbb7`.
+At 17 h a warm chapter-list read went from 298 decodes and 178 listings to 152 and 1, and the allocations of a first call from 2.23 to 1.22 million. The budget test's rows are the `f88e387` counts. The real-app tables below are from `270bbb7`.
 
 ## The real app
 
@@ -137,7 +137,7 @@ The slowest call of each first visit, in seconds as the page waited for it:
 | Delivery | `PickupsList` 0.07 | `PickupsList` 1.14 | n/r | `PickupsList` 5.60 |
 | Settings | `PickupsList` 0.12 | `PickupsList` 1.68 | n/r | `PickupsList` 5.87 |
 
-- Every page's slowest call is the pickup list, which the shell reads on each page change. At 17 h it takes 1.1 to 4.0 s on most pages against about 1 s on the host alone, and 9 to 16 s on Proof and Pickups, where it is asked for several times while findings are read.
+- From 17 h up the slowest call of every first visit but one (Pickups at 40 h) is the pickup list, which the shell reads on each page change. At 17 h it takes 1.1 to 4.0 s on most pages against about 1 s on the host alone, and 9 to 12 s on a first visit of Proof and Pickups (12 to 16 s on the second), where it is asked for several times while findings are read.
 - A second visit costs what the first did: nothing a page reads is kept.
 - Proof, Pickups and the Booth make reads on timers and after delays, so their last answer at 1 h (6 to 20 s) is not load time; compare a page across sizes, not with another page.
 - **40 h.** After the first visit of Pickups the app did not go quiet within the 15 minute limit: its last answer came at 291 s, one `TracksLive` answer took 140 s, and the window then stopped answering the accessibility bus, so the rows after it are "n/r" (not reached). The pickup list at that size is 1.49 MB.
@@ -161,7 +161,7 @@ The slowest call of each first visit, in seconds as the page waited for it:
 | Delivery | 556 / 625 \| 0 / 115 | 395 / 448 \| 49 / 78 | 393 / 452 \| 46 / 81 |
 | Settings | 480 / 640 \| 72 / 155 | 413 / 541 \| 87 / 152 | 466 / 584 \| 118 / 173 |
 
-A page's own cost stays under one second at every size; what a narrator waits for on a real book is the host reads above.
+A first change of 0 in three warm cells means the script saw no change of the page after its measurement began in most of the five runs; it prints 0 for that. A page's own cost stays under one second at every size; what a narrator waits for on a real book is the host reads above.
 
 ## Not measured
 
