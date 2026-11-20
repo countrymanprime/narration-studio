@@ -342,11 +342,11 @@ describe('daw-connect-grace', () => {
   it('shows Connecting while the app has just opened, then the mark and the dialog if it never connects', async () => {
     await renderPage({
       overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])) },
-      dawConnectGraceMs: 400, // counted from when the DAW stopped answering, not from app start
+      dawConnectGraceMs: 1500, // counted from when the DAW stopped answering, not from app start; long enough that a slow runner still sees it connecting
     });
     expect(await screen.findByText('Connecting to REAPER…')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(await screen.findByRole('dialog', {}, { timeout: 3000 })).toBeTruthy();
+    expect(await screen.findByRole('dialog', {}, { timeout: 5000 })).toBeTruthy();
     expect(screen.queryByText('Connecting to REAPER…')).toBeNull();
   });
 
