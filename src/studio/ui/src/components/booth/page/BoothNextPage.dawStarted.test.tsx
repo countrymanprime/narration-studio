@@ -154,6 +154,9 @@ describe("a take pressed in the app leaves the last take's message alone (intent
   it('only a take the DAW started takes the previous "Take saved" and its Undo away', async () => {
     const { dismissUndo } = mount('recording_here');
     await ready();
+    // The chapter's text is up: the page's own "chapter changed" dismissal has run, so what is counted below is the take's.
+    await screen.findByText('Nobody', { exact: false });
+    await act(async () => void (await Promise.resolve()));
     dismissUndo.mockClear();
     await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
     await stopShown();
