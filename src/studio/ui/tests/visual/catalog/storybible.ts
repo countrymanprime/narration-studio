@@ -110,6 +110,7 @@ export const storybibleStates: StateEntry[] = [
     state: 'entry-speaker-colour',
     description:
       'Story Bible, an entry in edit mode scrolled to Speaker colour: a row of eight swatches, Auto first with the hue it resolves to, the chosen one ringed and checked',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',
