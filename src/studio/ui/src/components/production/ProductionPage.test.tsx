@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the rebuilt layout, the dialogs its
 // icons open, the timer and the chip's feed, chapter sync, and the row menu that keeps the features the mock has no equivalent for.
-import { APP_STARTED_AT } from './pipeline/dawConnectGrace';
+import type { DawChoice } from '../../api/contracts/daw';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -342,12 +342,45 @@ describe('daw-connect-grace', () => {
   it('shows Connecting while the app has just opened, then the mark and the dialog if it never connects', async () => {
     await renderPage({
       overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])) },
-      dawConnectGraceMs: Date.now() - APP_STARTED_AT + 400,
+      dawConnectGraceMs: 1500, // counted from when the DAW stopped answering, not from app start; long enough that a slow runner still sees it connecting
     });
     expect(await screen.findByText('Connecting to REAPER…')).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(await screen.findByRole('dialog', {}, { timeout: 3000 })).toBeTruthy();
+    expect(await screen.findByRole('dialog', {}, { timeout: 5000 })).toBeTruthy();
     expect(screen.queryByText('Connecting to REAPER…')).toBeNull();
+  });
+
+  it('says the DAW is starting, and does not ask, while the host reports its own start, however long after the app opened (#3668)', async () => {
+    const starting = {
+      hasProject: true,
+      daw: 'REAPER',
+      source: 'linked',
+      chosen: 'REAPER',
+      state: 'starting',
+      reachable: false,
+      linkedFile: 'Alice.rpp',
+      foundFiles: ['Alice.rpp'],
+      launcherAutoStart: false,
+      options: [],
+      starting: { since: new Date().toISOString() },
+      bridge: null,
+    } as unknown as DawChoice;
+    await renderPage({
+      overrides: {
+        dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])),
+        dawChoice: vi.fn(async () => starting),
+      },
+      dawConnectGraceMs: 200,
+    });
+    expect(await screen.findByText('Starting REAPER…')).toBeTruthy();
+    // Past the 200 ms grace, long after the app opened: only the host's "starting" is holding the dialog back.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('asks at once when the host says it is not starting anything and the grace has run out', async () => {
+    await renderPage({ overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])) }, dawConnectGraceMs: 0 });
+    expect(await screen.findByRole('dialog', {}, { timeout: 3000 })).toBeTruthy();
   });
 
   it('never shows the dialog when the host connects inside the grace', async () => {
@@ -360,7 +393,7 @@ describe('daw-connect-grace', () => {
           return () => {};
         },
       },
-      dawConnectGraceMs: 60_000, // counted from when the code loaded, so far longer than the test runs
+      dawConnectGraceMs: 60_000,
     });
     await screen.findByText('Connecting to REAPER…');
     act(() => push(structuredClone(DAW_SETUPS['reaper'])));

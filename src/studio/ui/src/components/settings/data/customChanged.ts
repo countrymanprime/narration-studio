@@ -130,6 +130,9 @@ export const changedIsCovered = (row: { id: string; field?: unknown }): boolean 
 
 const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a.size === b.size && [...a].every((id) => b.has(id));
 
+/** How long a pass of the probes may run before a new read of the settings starts it again: a host read takes well under this, a probe that never answers never ends. */
+export const PROBE_STUCK_MS = 5000;
+
 /**
  * The ids of the custom rows whose value differs from the default, read again when a command's keys change in the host's fields (the only fact the
  * probes read from them), when a settings read follows a probe that failed, when a window-kept setting is written (the zoom body and the zoom
@@ -163,10 +166,10 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const keymapSet = settings.global?.Keymap?.some((field) => field.isSet) === true;
   const latestSettings = useRef(settings);
   latestSettings.current = settings;
-  // Whether the last pass of the probes answered every probe, and the settings it started with: a pass that did not (a probe failed or never
-  // answered) is asked again when the settings are read next, which is what the page's Retry does.
-  const passDone = useRef(true);
-  const passSettings = useRef(settings);
+  // The last pass of the probes: when it started, with which settings, and how it ended. A pass that failed, or has been out longer than
+  // `PROBE_STUCK_MS` (a probe that never answers), is asked again when the settings are read next, which is what the page's Retry does. A pass
+  // that is only running is not: the probes read nothing from the scope that arrives meanwhile.
+  const lastPass = useRef<{ settings: ReadSettings; startedAt: number; state: 'running' | 'ok' | 'failed' }>({ settings, startedAt: 0, state: 'ok' });
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
 
@@ -189,8 +192,8 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     let current = true;
     let profiles: Promise<DeliveryProfilesState> | undefined;
     let failed = false;
-    passDone.current = false;
-    passSettings.current = latestSettings.current;
+    const pass = { settings: latestSettings.current, startedAt: Date.now(), state: 'running' as 'running' | 'ok' | 'failed' };
+    lastPass.current = pass;
     const readDelivery = () => (profiles ??= api.deliveryProfiles());
     void Promise.all(
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
@@ -204,7 +207,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
       }),
     ).then((ids) => {
       if (!current) return;
-      passDone.current = !failed;
+      pass.state = failed ? 'failed' : 'ok';
       const next = new Set(ids.filter((id): id is string => id !== undefined));
       setChanged((previous) => (sameSet(previous, next) ? previous : next));
     });
@@ -215,7 +218,9 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
 
   // A new read of the settings while the last pass has not answered every probe asks the probes again (a pass that answered leaves nothing to ask).
   useEffect(() => {
-    if (!passDone.current && passSettings.current !== settings) setAgain((n) => n + 1);
+    const pass = lastPass.current;
+    const stuck = pass.state === 'running' && Date.now() - pass.startedAt > PROBE_STUCK_MS;
+    if ((pass.state === 'failed' || stuck) && pass.settings !== settings) setAgain((n) => n + 1);
   }, [settings]);
 
   const live = useMemo(

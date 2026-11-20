@@ -23,6 +23,8 @@ export type PassageMapWriter = {
   stop: (prev: PassagePlace, elapsed: number) => Promise<void>;
   /** Stops a run still open at `current()` and sends what is waiting. For leaving mid-take; never rejects. */
   flush: () => Promise<void>;
+  /** How many runs are still waiting to be sent, an open one included: a run the host refused stays here, so a caller can tell a flush that wrote nothing. */
+  unsent: () => number;
 };
 
 /**
@@ -81,6 +83,7 @@ export function usePassageMapWriter(deps: PassageMapWriterDeps): PassageMapWrite
         close(prev, elapsed);
         return send();
       },
+      unsent: () => waiting.length + (open ? 1 : 0),
       flush: () => {
         const now = open ? latest.current.current() : null;
         if (now) close(now.at, now.elapsed);
