@@ -2,7 +2,12 @@ package guide
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"slices"
 	"strings"
+
+	"desktop/internal/extraction"
 )
 
 // cueSourceLocalModel is the speaker_source of a line the local model suggested a speaker for (#3743).
@@ -47,9 +52,23 @@ type CueSuggestion struct {
 	Reason   string
 }
 
-// SpeakerFallback suggests speakers for lines the rules left unknown. note is a sentence for the narrator when it stopped
-// early; an error means it suggested nothing. It writes nothing: AttributeSpeakers decides what is kept.
-type SpeakerFallback func(ctx context.Context, cues []UnknownCue, characters []FallbackCharacter) (suggestions []CueSuggestion, note string, err error)
+// FallbackResult is what a fallback gave. Asked is how many of the lines it was handed, counted from the first, it put to the
+// model (a cap or an early stop makes that fewer than all); Note is a sentence for the narrator when it stopped early.
+type FallbackResult struct {
+	Suggestions []CueSuggestion
+	Asked       int
+	Note        string
+}
+
+// SpeakerFallback suggests speakers for lines the rules left unknown. An error means it suggested nothing. It writes nothing:
+// AttributeSpeakers decides what is kept. Two runs may call it at once.
+type SpeakerFallback func(ctx context.Context, cues []UnknownCue, characters []FallbackCharacter) (FallbackResult, error)
+
+// maxFallbackReasonRunes is the longest reason kept on a cue, whoever gave it.
+const maxFallbackReasonRunes = 300
+
+// fallbackFailed is what the narrator is told when the fallback could not run at all.
+const fallbackFailed = "The local model could not be asked, so the lines the rules left unknown stay unknown."
 
 // SetSpeakerFallback gives AttributeSpeakers a fallback for the lines the rules leave unknown; nil, the default, is none.
 func (s *Service) SetSpeakerFallback(fallback SpeakerFallback) {
@@ -61,46 +80,50 @@ func (s *Service) SetSpeakerFallback(fallback SpeakerFallback) {
 }
 
 // fillUnknownSpeakers asks the fallback about every unknown, unconfirmed line and writes what it suggests as suggestions:
-// the speaker, speaker_source "local-model" and the reason, on lines that are still unknown and unconfirmed when it answers.
-// It returns how many lines it filled and a sentence for the narrator when the fallback stopped or failed. It never fails
-// the run: the rules' result is already written.
-func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled int, note string) {
+// the speaker, speaker_source "local-model" and the reason, on lines that are still unknown and unconfirmed when it answers,
+// for an entry that still speaks then. It returns the ids of the lines it filled and a sentence for the narrator when the
+// fallback stopped, failed or was not asked about every line. It never fails the run: the rules' result is already written.
+func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled map[string]bool, note string) {
 	fallback := s.speakerFallback.Load()
 	if fallback == nil {
-		return 0, ""
+		return nil, ""
 	}
-	const failed = "The local model could not be asked, so the lines the rules left unknown stay unknown."
 	cues, characters, err := s.fallbackQuestions()
 	if err != nil {
-		return 0, failed
+		slog.Warn("the speaker fallback could not read its questions", "error", err)
+		return nil, fallbackFailed
 	}
 	if len(cues) == 0 || len(characters) == 0 {
-		return 0, ""
+		return nil, ""
 	}
-	suggestions, note, err := (*fallback)(ctx, cues, characters)
+	result, err := (*fallback)(ctx, cues, characters)
 	if err != nil {
-		return 0, failed
+		slog.Warn("the speaker fallback failed", "error", err)
+		return nil, fallbackFailed
 	}
 	asked := make(map[string]bool, len(cues))
 	for _, cue := range cues {
 		asked[cue.CueID] = true
 	}
-	listed := make(map[string]bool, len(characters))
-	for _, character := range characters {
-		listed[character.EntityID] = true
-	}
 	byCue := map[string]CueSuggestion{}
-	for _, suggestion := range suggestions {
-		suggestion.Reason = strings.TrimSpace(suggestion.Reason)
-		if _, taken := byCue[suggestion.CueID]; taken || !asked[suggestion.CueID] || !listed[suggestion.EntityID] || suggestion.Reason == "" {
+	for _, suggestion := range result.Suggestions {
+		suggestion.Reason = extraction.CleanSentence(suggestion.Reason, maxFallbackReasonRunes)
+		if _, taken := byCue[suggestion.CueID]; taken || !asked[suggestion.CueID] || suggestion.Reason == "" {
 			continue
 		}
 		byCue[suggestion.CueID] = suggestion
 	}
-	if len(byCue) == 0 {
-		return 0, note
+	s.rememberDeclined(cues, characters, min(max(result.Asked, 0), len(cues)), byCue)
+	note = result.Note
+	if note == "" && result.Asked < len(cues) {
+		note = fmt.Sprintf("The local model was asked about %d of the %d lines the rules left unknown; run it again for the rest.", max(result.Asked, 0), len(cues))
 	}
+	if len(byCue) == 0 {
+		return nil, note
+	}
+	filled = map[string]bool{}
 	err = s.mutateInHost(func(document map[string]any) (bool, error) {
+		speakers := speakingEntityIDs(document)
 		rows, _ := document["dialogue_cues"].([]any)
 		for _, raw := range rows {
 			cue, ok := raw.(map[string]any)
@@ -109,8 +132,8 @@ func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled int, note str
 			}
 			id, _ := cue["id"].(string)
 			suggestion, ok := byCue[id]
-			// The narrator may have picked a speaker while the model was reading: their line is theirs.
-			if !ok || truthy(cue["corrected"]) || cue["speaker_source"] == "correction" || cue["speaker_entity_id"] != nil {
+			// The narrator may have picked a speaker, a rule found one or the entry gone while the model was reading.
+			if !ok || truthy(cue["corrected"]) || cue["speaker_source"] == "correction" || cue["speaker_entity_id"] != nil || !speakers[suggestion.EntityID] {
 				continue
 			}
 			cue["speaker_entity_id"] = suggestion.EntityID
@@ -121,18 +144,70 @@ func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled int, note str
 				cue["evidence"] = evidence
 			}
 			evidence["reason"] = suggestion.Reason
-			filled++
+			filled[id] = true
 		}
-		return filled > 0, nil
+		return len(filled) > 0, nil
 	})
 	if err != nil {
-		return 0, failed
+		slog.Warn("the speaker fallback's suggestions could not be written", "error", err)
+		return nil, fallbackFailed
 	}
 	return filled, note
 }
 
-// fallbackQuestions is what a fallback is asked: the unknown, unconfirmed lines, each with its passage, and the entries
-// whose type speaks.
+// speakingEntityIDs is the ids of the document's entries whose type speaks; none when its types cannot be read.
+func speakingEntityIDs(document map[string]any) map[string]bool {
+	ids := map[string]bool{}
+	speaking, err := speakingTypes(document)
+	if err != nil {
+		return ids
+	}
+	entities, _ := document["entities"].([]any)
+	for _, raw := range entities {
+		entity, _ := raw.(map[string]any)
+		id, _ := entity["id"].(string)
+		if category, _ := entity["category"].(string); id != "" && slices.Contains(speaking, category) {
+			ids[id] = true
+		}
+	}
+	return ids
+}
+
+// declinedKey names a line the model was asked about and gave no kept answer for, with the cast it was asked with: a changed
+// cast (a new entry, a new alias) makes the line worth asking again.
+func declinedKey(cueID string, characters []FallbackCharacter) string {
+	var b strings.Builder
+	b.WriteString(cueID)
+	for _, c := range characters {
+		b.WriteString("\x00" + c.EntityID + "\x01" + c.Name + "\x01" + strings.Join(c.Aliases, "\x02"))
+	}
+	return b.String()
+}
+
+// rememberDeclined records the asked lines that got no kept answer, so the next run's cap is spent on lines the model has not
+// seen instead of the same first ones. It lasts while the project is open; nothing is written.
+func (s *Service) rememberDeclined(cues []UnknownCue, characters []FallbackCharacter, asked int, kept map[string]CueSuggestion) {
+	s.fallbackMu.Lock()
+	defer s.fallbackMu.Unlock()
+	if s.fallbackDeclined == nil {
+		s.fallbackDeclined = map[string]bool{}
+	}
+	for _, cue := range cues[:asked] {
+		if _, ok := kept[cue.CueID]; !ok {
+			s.fallbackDeclined[declinedKey(cue.CueID, characters)] = true
+		}
+	}
+}
+
+// declined reports whether the model already declined this line with this cast.
+func (s *Service) declined(cueID string, characters []FallbackCharacter) bool {
+	s.fallbackMu.Lock()
+	defer s.fallbackMu.Unlock()
+	return s.fallbackDeclined[declinedKey(cueID, characters)]
+}
+
+// fallbackQuestions is what a fallback is asked: the unknown, unconfirmed lines the model has not already declined, each with
+// its passage, and the entries whose type speaks.
 func (s *Service) fallbackQuestions() ([]UnknownCue, []FallbackCharacter, error) {
 	all, err := s.DialogueCues()
 	if err != nil {
@@ -164,6 +239,9 @@ func (s *Service) fallbackQuestions() ([]UnknownCue, []FallbackCharacter, error)
 		i, ok := at[[2]string{cue.ChapterID, cue.ParagraphID}]
 		if !ok {
 			continue // the manuscript changed under the cue; the next refresh drops it
+		}
+		if s.declined(cue.ID, characters) {
+			continue
 		}
 		question := UnknownCue{CueID: cue.ID, ChapterID: cue.ChapterID, ParagraphID: cue.ParagraphID, Quote: cue.QuoteText}
 		for j := max(0, i-fallbackParagraphsBefore); j <= i+fallbackParagraphsAfter && j < len(paragraphs); j++ {

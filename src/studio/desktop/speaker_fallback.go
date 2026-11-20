@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 
 	"desktop/internal/extraction"
 	"desktop/internal/extractionport"
@@ -9,20 +10,20 @@ import (
 	"desktop/internal/guide"
 )
 
+// localModelOutOfTime is what the narrator is told when the run's time ended while the model was reading.
+const localModelOutOfTime = "The local model ran out of time, so the lines after it keep the rules' answer."
+
 // localModelSpeakerFallback is the Story Bible's speaker fallback (guide.SpeakerFallback) over the local-model source (#3743):
 // each unknown line becomes one question, and an answer the source keeps comes back tied to its line by the question's place,
 // so two lines that read the same are told apart. How many lines one run may ask about is the source's MaxQuotes; a model that
-// stops early gives its note. Nothing here reads a file or the network: the source is handed everything it is asked about.
+// stops early, or a run whose time ends, keeps what was answered and gives a note. Nothing here reads a file or the network:
+// the source is handed everything it is asked about. Runs may overlap: each works on its own copy of the source.
 func localModelSpeakerFallback(source localmodel.Source) guide.SpeakerFallback {
-	return func(ctx context.Context, cues []guide.UnknownCue, characters []guide.FallbackCharacter) ([]guide.CueSuggestion, string, error) {
+	return func(ctx context.Context, cues []guide.UnknownCue, characters []guide.FallbackCharacter) (guide.FallbackResult, error) {
 		listed := make([]localmodel.Character, len(characters))
-		entity := map[string]string{}
-		twice := map[string]bool{}
+		entity := make(map[string]string, len(characters))
 		for i, c := range characters {
 			listed[i] = localmodel.Character{Name: c.Name, Aliases: c.Aliases}
-			if _, seen := entity[c.Name]; seen {
-				twice[c.Name] = true
-			}
 			entity[c.Name] = c.EntityID
 		}
 		questions := make([]localmodel.Question, len(cues))
@@ -33,20 +34,23 @@ func localModelSpeakerFallback(source localmodel.Source) guide.SpeakerFallback {
 			}
 			questions[i] = localmodel.Question{ChapterID: cue.ChapterID, ParagraphID: cue.ParagraphID, Quote: cue.Quote, Passage: passage, Characters: listed}
 		}
-		source.Questions = func() ([]localmodel.Question, error) { return questions, nil }
+		run := source // a copy: the closure's own source is shared by every run
+		run.Questions = func() ([]localmodel.Question, error) { return questions, nil }
 		note := ""
-		answered, err := source.Answer(ctx, extractionport.Input{Note: func(sentence string) { note = sentence }})
-		if err != nil {
-			return nil, "", err
+		answers, err := run.Answer(ctx, extractionport.Input{Note: func(sentence string) { note = sentence }})
+		switch {
+		case err != nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)):
+			note = localModelOutOfTime
+		case err != nil:
+			return guide.FallbackResult{}, err
 		}
-		suggestions := make([]guide.CueSuggestion, 0, len(answered))
-		for _, a := range answered {
-			name := a.Raw.Payload.Speaker
-			// The source never answers with a name two characters share; the check keeps that true here too.
-			if id, ok := entity[name]; ok && !twice[name] {
-				suggestions = append(suggestions, guide.CueSuggestion{CueID: cues[a.Question].CueID, EntityID: id, Reason: a.Raw.Note})
+		result := guide.FallbackResult{Asked: answers.Asked, Note: note}
+		for _, a := range answers.Kept {
+			// The source answers only with a name exactly one character has, so the name finds its entry.
+			if id, ok := entity[a.Raw.Payload.Speaker]; ok && a.Question < len(cues) {
+				result.Suggestions = append(result.Suggestions, guide.CueSuggestion{CueID: cues[a.Question].CueID, EntityID: id, Reason: a.Raw.Note})
 			}
 		}
-		return suggestions, note, nil
+		return result, nil
 	}
 }

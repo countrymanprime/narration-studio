@@ -318,6 +318,10 @@ func correctCue(document map[string]any, cueID, speaker string) (bool, error) {
 		}
 		cue["speaker_source"] = "correction"
 		cue["corrected"] = true
+		// A local model's reason was for its own suggestion, not for the narrator's choice.
+		if evidence, ok := cue["evidence"].(map[string]any); ok {
+			delete(evidence, "reason")
+		}
 		return true, nil
 	}
 	return false, errCueNotFound

@@ -22,8 +22,9 @@ type SpeakerAttribution struct {
 	KeptConfirmed int `json:"keptConfirmed"`
 	// Previous holds the earlier suggestion of every Filled and Changed line, for RestoreSpeakers.
 	Previous []CueSpeaker `json:"previous"`
-	// ModelFilled is how many lines the rules left unknown now carry a speaker the local model suggested in this run; they are
-	// counted in Filled too. ModelNote is a sentence for the narrator when the model stopped early or could not be asked.
+	// ModelFilled is how many lines the rules left unknown now carry a speaker the local model suggested in this run; each is
+	// counted in Filled or Changed too. ModelNote is a sentence for the narrator when the model stopped early, could not be
+	// asked or was not asked about every line.
 	ModelFilled int    `json:"modelFilled"`
 	ModelNote   string `json:"modelNote"`
 }
@@ -52,7 +53,7 @@ func (s *Service) AttributeSpeakers(ctx context.Context) (SpeakerAttribution, er
 		was[cue.ID] = cue
 	}
 	result := SpeakerAttribution{
-		Cues: counts.Cues, Attributed: counts.Attributed + modelFilled, Previous: []CueSpeaker{}, ModelFilled: modelFilled, ModelNote: modelNote,
+		Cues: counts.Cues, Attributed: counts.Attributed + len(modelFilled), Previous: []CueSpeaker{}, ModelFilled: len(modelFilled), ModelNote: modelNote,
 	}
 	for _, cue := range after {
 		if cue.Corrected || cue.SpeakerSource == "correction" {
@@ -60,7 +61,10 @@ func (s *Service) AttributeSpeakers(ctx context.Context) (SpeakerAttribution, er
 			continue
 		}
 		prior, existed := was[cue.ID]
-		if existed && sameSpeaker(prior.SpeakerEntityID, cue.SpeakerEntityID) {
+		// A line the model filled in this run moved even when it names the speaker a rule named before: its source changed, and
+		// undo must be able to take it back.
+		movedToModel := modelFilled[cue.ID] && prior.SpeakerSource != cueSourceLocalModel
+		if existed && sameSpeaker(prior.SpeakerEntityID, cue.SpeakerEntityID) && !movedToModel {
 			continue
 		}
 		if cue.SpeakerEntityID == nil && (!existed || prior.SpeakerEntityID == nil) {

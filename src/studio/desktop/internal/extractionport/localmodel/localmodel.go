@@ -138,14 +138,21 @@ type Answered struct {
 	Raw      extractionport.Raw
 }
 
-// Extract is Answer without the questions' places.
+// Answers is what one run gave: the suggestions that passed the checks, and Asked, how many questions, counted from the first,
+// the model answered, whether or not its answer was kept.
+type Answers struct {
+	Kept  []Answered
+	Asked int
+}
+
+// Extract is Answer without the questions' places. A cancelled ctx returns ctx.Err() and nothing else.
 func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
-	answered, err := s.Answer(ctx, in)
+	answers, err := s.Answer(ctx, in)
 	if err != nil {
 		return nil, err
 	}
-	raws := make([]extractionport.Raw, len(answered))
-	for i, a := range answered {
+	raws := make([]extractionport.Raw, len(answers.Kept))
+	for i, a := range answers.Kept {
 		raws[i] = a.Raw
 	}
 	return raws, nil
@@ -153,33 +160,34 @@ func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extract
 
 // Answer asks the model about each question, up to MaxQuotes, and returns the answers that pass the checks above. It writes
 // nothing. A model that fails ends the run early and says so through in.Note; what it had answered is kept, and the run does
-// not fail, so the rules' result stands. A cancelled ctx returns ctx.Err(), also when it is cancelled during the last question.
-func (s Source) Answer(ctx context.Context, in extractionport.Input) ([]Answered, error) {
+// not fail, so the rules' result stands. A ctx that ends, also during the last question, returns ctx.Err() together with what
+// the model had answered before it ended, so a caller with a deadline can keep that.
+func (s Source) Answer(ctx context.Context, in extractionport.Input) (Answers, error) {
 	if _, err := s.Extractor(); err != nil {
-		return nil, err
+		return Answers{}, err
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return Answers{}, err
 	}
 	questions, err := s.Questions()
 	if err != nil {
-		return nil, fmt.Errorf("reading the quotes the rules left unknown: %w", err)
+		return Answers{}, fmt.Errorf("reading the quotes the rules left unknown: %w", err)
 	}
 	limit := 0
 	if s.MaxQuotes != nil {
 		limit = s.MaxQuotes()
 	}
-	answered := []Answered{}
+	answers := Answers{Kept: []Answered{}}
 	for i, q := range questions {
 		if i >= limit {
 			break
 		}
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return answers, err
 		}
 		answer, err := s.Ask.Ask(ctx, q)
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, ctxErr
+			return answers, ctxErr
 		}
 		if err != nil {
 			s.log(fmt.Sprintf("the local model failed after %d of %d answers: %v", i, min(len(questions), limit), err))
@@ -188,14 +196,15 @@ func (s Source) Answer(ctx context.Context, in extractionport.Input) ([]Answered
 			}
 			break
 		}
+		answers.Asked = i + 1
 		if raw, ok := accept(q, answer); ok {
-			answered = append(answered, Answered{Question: i, Raw: raw})
+			answers.Kept = append(answers.Kept, Answered{Question: i, Raw: raw})
 		}
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return answers, err
 	}
-	return answered, nil
+	return answers, nil
 }
 
 func (s Source) log(line string) {
@@ -349,22 +358,5 @@ func withoutQuote(text, quote string) string {
 	return text
 }
 
-// cleanReason is a model's reason as one line of valid text: control characters and runs of white space become one space, format
-// characters (a right-to-left override among them) are removed, and the rest is cut at MaxReasonRunes.
-func cleanReason(s string) string {
-	s = strings.ToValidUTF8(s, "")
-	s = strings.Map(func(r rune) rune {
-		switch {
-		case unicode.IsControl(r):
-			return ' '
-		case unicode.Is(unicode.Cf, r):
-			return -1
-		}
-		return r
-	}, s)
-	s = strings.Join(strings.Fields(s), " ")
-	if r := []rune(s); len(r) > MaxReasonRunes {
-		s = string(r[:MaxReasonRunes])
-	}
-	return s
-}
+// cleanReason is a model's reason as one line the narrator can be shown (extraction.CleanSentence), at most MaxReasonRunes.
+func cleanReason(s string) string { return extraction.CleanSentence(s, MaxReasonRunes) }

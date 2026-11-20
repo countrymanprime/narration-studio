@@ -2,6 +2,7 @@ package guide
 
 import (
 	"context"
+	"desktop/internal/extraction"
 	"errors"
 	"maps"
 	"math/big"
@@ -89,7 +90,8 @@ func refreshCues(ctx context.Context, manuscriptPath, guidePath string, chapterI
 	if err != nil {
 		return CueCounts{}, err
 	}
-	cues, err := mergeDialogueCues(fresh, previous, index)
+	speakers := cueSpeakerIDs(entities, speaking)
+	cues, err := mergeDialogueCues(fresh, previous, speakers)
 	if err != nil {
 		return CueCounts{}, err
 	}
@@ -97,6 +99,7 @@ func refreshCues(ctx context.Context, manuscriptPath, guidePath string, chapterI
 		if cues, err = keepOtherChapters(cues, previous, chapters, paragraphs); err != nil {
 			return CueCounts{}, err
 		}
+		cues = withoutOrphanSuggestions(cues, speakers)
 	}
 	if err := ctx.Err(); err != nil {
 		return CueCounts{}, err
@@ -309,11 +312,11 @@ func cueNameKeys(entity *pyObject) ([]string, error) {
 // mergeDialogueCues is manuscript_guide.py merge_dialogue_cues: a fresh cue whose id a corrected cue of the file has takes that cue's
 // speaker (and its source, "correction" when it has none) and stays corrected; every other fresh cue is as found, with one case the
 // sidecar never had: a fresh cue with no speaker whose id a "local-model" cue of the file has keeps that cue's speaker, source and
-// reason while that speaker is still in speakers (cueSpeakerIndex), so a refresh does not wipe what the model suggested, and a
+// reason while that speaker is still in speakers (cueSpeakerIDs), so a refresh does not wipe what the model suggested, and a
 // speaker the rules find always wins. The file's cues are
 // read first, all of them: one that is not an object, has no id or an id that is a list or an object is errCuesShape, as the sidecar
 // crashed on it.
-func mergeDialogueCues(fresh []*pyObject, previous any, speakers map[string]any) ([]*pyObject, error) {
+func mergeDialogueCues(fresh []*pyObject, previous any, speakers map[string]bool) ([]*pyObject, error) {
 	walked, err := pyIter(previous)
 	if err != nil {
 		return nil, errCuesShape
@@ -366,7 +369,7 @@ func mergeDialogueCues(fresh []*pyObject, previous any, speakers map[string]any)
 
 // modelSuggested reports whether prior is a local model's suggestion a refresh may carry: its source says so, it has a reason, and
 // its speaker is still an entry that speaks.
-func modelSuggested(prior *pyObject, speakers map[string]any) bool {
+func modelSuggested(prior *pyObject, speakers map[string]bool) bool {
 	if prior.values["speaker_source"] != cueSourceLocalModel {
 		return false
 	}
@@ -374,19 +377,58 @@ func modelSuggested(prior *pyObject, speakers map[string]any) bool {
 	if !ok {
 		return false
 	}
-	if reason, _ := evidence.values["reason"].(string); reason == "" {
+	if reason, _ := evidence.values["reason"].(string); extraction.CleanSentence(reason, 0) == "" {
 		return false
 	}
-	speaker, ok := prior.values["speaker_entity_id"].(string)
-	if !ok || speaker == "" {
-		return false
-	}
-	for _, id := range speakers {
-		if id == speaker {
-			return true
+	speaker, _ := prior.values["speaker_entity_id"].(string)
+	return speakers[speaker]
+}
+
+// cueSpeakerIDs is the ids of the entries whose type speaks: who a kept suggestion may still name. Unlike cueSpeakerIndex it
+// does not need a name the rules can match, so an entry named in another script, or whose names an earlier entry took, counts.
+func cueSpeakerIDs(entities any, speaking map[string]bool) map[string]bool {
+	ids := map[string]bool{}
+	walked, _ := pyIter(entities)
+	for _, item := range walked {
+		entity, ok := item.(*pyObject)
+		if !ok {
+			continue
+		}
+		category, _ := entity.values["category"].(string)
+		if id, _ := entity.values["id"].(string); id != "" && speaking[category] {
+			ids[id] = true
 		}
 	}
-	return false
+	return ids
+}
+
+// withoutOrphanSuggestions is cues with every local model's suggestion whose entry no longer speaks made unknown again, reason
+// removed: the cues a chapter refresh keeps from the file are not recomputed, and such a line would otherwise name nobody and
+// never be asked about again.
+func withoutOrphanSuggestions(cues []*pyObject, speakers map[string]bool) []*pyObject {
+	for i, cue := range cues {
+		if cue.values["speaker_source"] != cueSourceLocalModel || pyTruthy(cue.values["corrected"]) {
+			continue
+		}
+		if speaker, _ := cue.values["speaker_entity_id"].(string); speakers[speaker] {
+			continue
+		}
+		copied := &pyObject{keys: slices.Clone(cue.keys), values: maps.Clone(cue.values)}
+		copied.set("speaker_entity_id", nil)
+		copied.set("speaker_source", "unknown")
+		if evidence, ok := cue.values["evidence"].(*pyObject); ok {
+			kept := &pyObject{values: maps.Clone(evidence.values)}
+			for _, key := range evidence.keys {
+				if key != "reason" {
+					kept.keys = append(kept.keys, key)
+				}
+			}
+			delete(kept.values, "reason")
+			copied.set("evidence", kept)
+		}
+		cues[i] = copied
+	}
+	return cues
 }
 
 // keepOtherChapters is refresh_cues with --chapter-id: the file's cues of every other chapter are kept, and all of them sorted (stably)

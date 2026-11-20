@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"desktop/internal/brand"
 	"desktop/internal/extractionport/localmodel"
@@ -160,18 +163,108 @@ func TestAnUnwiredLocalModelLeavesTheRulesResultAndSaysSo(t *testing.T) {
 	}
 }
 
-// Two entries with one name: the source answers neither, and the fallback would not guess between them if it did.
+// Two entries with one name: the source answers neither, so the fallback is never asked to pick between them.
 func TestTheLocalModelFallbackNeverPicksBetweenTwoEntriesWithOneName(t *testing.T) {
 	fallback := localModelSpeakerFallback(fakeLocalModel(10))
-	cue := guide.UnknownCue{CueID: "cue-1", ChapterID: "c1", ParagraphID: "p2", Quote: "Well?", Passage: []guide.FallbackParagraph{
+	twins := []guide.FallbackCharacter{{EntityID: "bo-1", Name: "Bo"}, {EntityID: "bo-2", Name: "Bo"}}
+	if result, err := fallback(context.Background(), []guide.UnknownCue{kitchenCue("cue-1")}, twins); err != nil || len(result.Suggestions) != 0 || result.Asked != 1 {
+		t.Fatalf("result %+v, %v", result, err)
+	}
+	one, err := fallback(context.Background(), []guide.UnknownCue{kitchenCue("cue-1")}, twins[:1])
+	if err != nil || len(one.Suggestions) != 1 || one.Suggestions[0] != (guide.CueSuggestion{CueID: "cue-1", EntityID: "bo-1", Reason: "Bo is the last character named before this line."}) {
+		t.Fatalf("result %+v, %v", one, err)
+	}
+}
+
+// kitchenCue is a line the fake answers "Bo" for.
+func kitchenCue(id string) guide.UnknownCue {
+	return guide.UnknownCue{CueID: id, ChapterID: "c1", ParagraphID: "p2", Quote: "Well?", Passage: []guide.FallbackParagraph{
 		{ID: "p1", ChapterID: "c1", Text: "Bo came into the kitchen and sat down."}, {ID: "p2", ChapterID: "c1", Text: `"Well?"`},
 	}}
-	twins := []guide.FallbackCharacter{{EntityID: "bo-1", Name: "Bo"}, {EntityID: "bo-2", Name: "Bo"}}
-	if suggestions, _, err := fallback(context.Background(), []guide.UnknownCue{cue}, twins); err != nil || len(suggestions) != 0 {
-		t.Fatalf("suggestions %+v, %v", suggestions, err)
+}
+
+// Two presses of the button overlap: each run of one fallback gets the answers to its own questions. Run with -race.
+func TestOverlappingRunsOfOneLocalModelFallbackKeepTheirOwnAnswers(t *testing.T) {
+	fallback := localModelSpeakerFallback(fakeLocalModel(10))
+	bo := []guide.FallbackCharacter{{EntityID: "bo", Name: "Bo"}}
+	var wg sync.WaitGroup
+	failures := make(chan string, 64)
+	for worker := range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cues := make([]guide.UnknownCue, 1+worker%5)
+			for i := range cues {
+				cues[i] = kitchenCue(fmt.Sprintf("w%d-c%d", worker, i))
+			}
+			for range 100 {
+				result, err := fallback(context.Background(), cues, bo)
+				if err != nil || len(result.Suggestions) != len(cues) || result.Asked != len(cues) {
+					failures <- fmt.Sprintf("handed %d lines, got %+v, %v", len(cues), result, err)
+					return
+				}
+				for i, suggestion := range result.Suggestions {
+					if suggestion.CueID != cues[i].CueID {
+						failures <- fmt.Sprintf("an answer for %s came back for %s", cues[i].CueID, suggestion.CueID)
+						return
+					}
+				}
+			}
+		}()
 	}
-	one, _, err := fallback(context.Background(), []guide.UnknownCue{cue}, twins[:1])
-	if err != nil || len(one) != 1 || one[0] != (guide.CueSuggestion{CueID: "cue-1", EntityID: "bo-1", Reason: "Bo is the last character named before this line."}) {
-		t.Fatalf("suggestions %+v, %v", one, err)
+	wg.Wait()
+	close(failures)
+	for failure := range failures {
+		t.Fatal(failure)
+	}
+}
+
+// slowAsker answers like the fake after a wait, or with the context's error when the run's time ends first.
+type slowAsker struct{ wait time.Duration }
+
+func (a slowAsker) Ask(ctx context.Context, q localmodel.Question) (localmodel.Answer, error) {
+	select {
+	case <-ctx.Done():
+		return localmodel.Answer{}, ctx.Err()
+	case <-time.After(a.wait):
+		return localmodeltest.Asker{}.Ask(ctx, q)
+	}
+}
+
+// The run's time ends while the model reads: what it had answered is kept and the narrator is told it ran out of time.
+func TestALocalModelThatRunsOutOfTimeKeepsTheAnswersAlreadyGiven(t *testing.T) {
+	svc := speakerFallbackProject(t)
+	source := fakeLocalModel(10)
+	source.Ask = slowAsker{wait: 200 * time.Millisecond}
+	svc.SetSpeakerFallback(localModelSpeakerFallback(source))
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	result, err := svc.AttributeSpeakers(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cues := cuesOf(t, svc)
+	if result.ModelFilled != 1 || result.ModelNote != localModelOutOfTime || speakerOf(cues["p3"]) != "bo" || speakerOf(cues["p5"]) != "" {
+		t.Fatalf("result %+v, cues %+v", result, cues)
+	}
+}
+
+// Under a cap, a second run reaches the lines the first did not ask about, and the first says it did not ask about all.
+func TestARerunUnderTheCapReachesLinesTheModelHasNotBeenAskedYet(t *testing.T) {
+	svc := speakerFallbackProject(t)
+	svc.SetSpeakerFallback(localModelSpeakerFallback(fakeLocalModel(1)))
+	first, err := svc.AttributeSpeakers(context.Background())
+	if err != nil || first.ModelFilled != 1 || first.ModelNote != "The local model was asked about 1 of the 3 lines the rules left unknown; run it again for the rest." {
+		t.Fatalf("first %+v, %v", first, err)
+	}
+	second, err := svc.AttributeSpeakers(context.Background())
+	if err != nil || second.ModelFilled != 1 || speakerOf(cuesOf(t, svc)["p5"]) != "ada" {
+		t.Fatalf("second %+v, %v", second, err)
+	}
+	// The third run asks about chapter two's line, which nobody is named before; the fourth has nothing left to ask.
+	third, _ := svc.AttributeSpeakers(context.Background())
+	fourth, _ := svc.AttributeSpeakers(context.Background())
+	if third.ModelFilled != 0 || third.ModelNote != "" || fourth.ModelFilled != 0 || fourth.ModelNote != "" {
+		t.Fatalf("third %+v fourth %+v", third, fourth)
 	}
 }
