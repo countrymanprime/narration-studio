@@ -302,6 +302,13 @@
   },
   {
     "page": "storybible",
+    "state": "entries-ticked",
+    "viewport": "desktop",
+    "docName": "storybible-entries-ticked",
+    "caption": "Story Bible - three entries ticked: the header row shows the count, Delete 3 entries and Clear the selection"
+  },
+  {
+    "page": "storybible",
     "state": "entity-selected",
     "viewport": "desktop",
     "docName": "storybible-entity",
@@ -435,6 +442,13 @@
   },
   {
     "page": "booth",
+    "state": "record-starting",
+    "viewport": "desktop",
+    "docName": "booth-record-starting",
+    "caption": "Booth - the app opening REAPER on the linked project: the quiet Starting REAPER mark above the footer, and no dialog"
+  },
+  {
+    "page": "booth",
     "state": "record-connect-closed",
     "viewport": "desktop",
     "docName": "booth-record-connect-closed",
@@ -481,13 +495,6 @@
     "viewport": "desktop",
     "docName": "settings-diagnostics-preview",
     "caption": "Settings - App & updates: the diagnostics bundle preview with the files it holds, what it leaves out and the leak check"
-  },
-  {
-    "page": "settings",
-    "state": "recording-sync-activity",
-    "viewport": "desktop",
-    "docName": "settings-sync-activity",
-    "caption": "Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made"
   },
   {
     "page": "settings",

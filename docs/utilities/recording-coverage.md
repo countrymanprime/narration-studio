@@ -106,7 +106,8 @@ flowchart LR
 
 - **The manifest comes from the saved project, not from REAPER.** `src/studio/desktop/internal/coverage` reads the `.rpp`
   the audio engine panel selected, the chapter's one confirmed track (`chapter-track-map.json`, analysis evidence ledger) and,
-  when that track is a REAPER folder of voices, every track inside it (`tracks.Project.WithDescendants`), and
+  when that track is a REAPER folder of voices, every track inside it except one marked as not a voice (a music bed or room tone,
+  `tracks.Project.ChapterMembers`, `voice-tracks.json`), and
   each item's active take and played range, `[SOFFS, SOFFS + LENGTH × PLAYRATE]`, in position order. Muted items are
   listed and skipped. A chapter that cannot be checked gets a typed reason and nothing runs: not linked, several
   tracks, the linked track missing, a missing or non-audio source, an empty range, not a narration chapter, or no
@@ -163,7 +164,7 @@ flowchart LR
   transcribe. Cancel keeps the finished items. One check runs at a time, and a run ends with one `job:ended` event
   ([bindings_coverage.go](../../src/studio/desktop/bindings_coverage.go),
   [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording)).
-- **A result is current, stale or never.** It goes stale when the saved project changes under it: an item added,
+- **A result is current, stale or never.** The check reads the same tracks the run did (the linked track, or for a folder of voices the tracks inside it less one marked as not a voice), so marking a music bed moves it between current and stale only if the run had read the bed. It goes stale when the saved project changes under it: an item added,
   removed, trimmed, moved, muted or switched to another take, or an audio file changed. It also goes stale when the
   chapter's text, the equivalences, the vocabulary hints or an alignment setting changes. A different Whisper model or
   language keeps it current and labelled with the model (Q13).

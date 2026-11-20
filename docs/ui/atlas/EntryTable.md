@@ -8,6 +8,7 @@ Storybook title: `Story Bible/Entry table`. Source: `src/components/storybible/E
 
 - Entries
 - Sort And Open
+- Ticked
 - One Entry
 - Nothing To Show
 - Long And Mixed Names

@@ -59,8 +59,8 @@ export type MockApiSeed = {
   /** The project's tracks sit in REAPER folders (`?mockTrackFolders=1`). */
   trackFolders?: boolean;
   /** What TracksLive answers: the saved project because REAPER is not answering (`?mockLiveTracks=saved`), or the first read and then a
-   * refusal on every later one (`failing`). Left out, REAPER answers with its tracks. */
-  liveTracks?: 'saved' | 'failing';
+   * refusal on every later one (`failing`), or a refusal on every read, the first included (`unreadable`). Left out, REAPER answers with its tracks. */
+  liveTracks?: 'saved' | 'failing' | 'unreadable';
   /** A Voice folders project: Chapter 1 linked to a folder of voice tracks, Extras assigned two characters (`?mockVoiceFolders=1`). */
   voiceFolders?: boolean;
   /** Every track of the saved project holds no item, as when the chapter was never recorded (`?mockEmptyTracks=1`): Editing's note says the track is empty. */
@@ -161,7 +161,7 @@ export type MockApiSeed = {
    * activity row from a save in REAPER. `pickups` is on, with a pickup track beside the first chapter's track. `activity` is on, with Chapter 1 linked by sync and Chapter 2 by the narrator, and a Sync
    * activity list of three batches (the engine panel's activity state). Unset, sync is on and has run before with nothing new, so no dialog or
    * toast covers the other states. */
-  chapterSync?: 'ask' | 'off' | 'linked' | 'unsaved' | 'pickups' | 'activity' | 'background';
+  chapterSync?: 'ask' | 'off' | 'linked' | 'unsaved' | 'pickups' | 'activity' | 'needs-you' | 'background';
   /** Background recording checks at boot (`src/studio/desktop/coverage_background.go`): `confirm` has two changed chapters and the
    * first-time notice unanswered, so the notice shows; `running` has a background check of the first chapter in progress (the
    * coverage mock holds it at 42%) with one more chapter waiting; `waiting` has two chapters waiting while REAPER records.

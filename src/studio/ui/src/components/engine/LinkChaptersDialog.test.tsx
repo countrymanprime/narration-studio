@@ -11,7 +11,7 @@ import { headingName } from '../../chapterHeading';
 import { trackName } from '../tracks/trackName';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import { createOverlayService } from '../../overlay/overlayService';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { LineIdentityState, NarrationApi, Track } from '../../types';
@@ -120,7 +120,7 @@ describe('LinkChaptersDialog', () => {
       </ApiProvider>,
     );
 
-    const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    const picker = await screen.findByRole('combobox', { name: `${layout === 'folders' ? 'Folder' : 'Track'} for ${WIRE_CHAPTERS[0].title}` });
     const labels = within(picker)
       .getAllByRole('option')
       .map((option) => option.textContent);
@@ -165,6 +165,61 @@ describe('LinkChaptersDialog', () => {
     expect(labelled).not.toMatch(/\(linked to \s*\)/);
     // eslint-disable-next-line no-control-regex
     expect(labelled).not.toMatch(/[\u0000-\u001f\u202a-\u202e\u2066-\u2069]/);
+  });
+
+  // #3363: a chapter with several links showed the first of its tracks as if it were the only link.
+  it('shows a chapter with several links as Several tracks, on an option of its own', async () => {
+    const [chapter] = WIRE_CHAPTERS;
+    const [one, two] = WIRE_TRACKS_PROJECT.tracks;
+    renderDialog({}, { chapterTrackMappings: [wireLink(one.guid, chapter.id), wireLink(two.guid, chapter.id)] });
+    const select = (await screen.findByRole('combobox', { name: `Track for ${chapter.title}` })) as HTMLSelectElement;
+    await waitFor(() => expect(select.selectedOptions[0]?.textContent).toBe('Several tracks'));
+    // Every track, the first included, keeps its own name and stays a pick; the other chapters' rows are unchanged.
+    const names = within(select)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(names).toContain(trackName(one.name, one.index));
+    expect(within(screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` })).queryByRole('option', { name: 'Several tracks' })).toBeNull();
+  });
+
+  it('lets the first of its several tracks be picked, which leaves only that link', async () => {
+    const user = userEvent.setup();
+    const [chapter] = WIRE_CHAPTERS;
+    const [one, two] = WIRE_TRACKS_PROJECT.tracks;
+    const { api } = renderDialog({}, { chapterTrackMappings: [wireLink(one.guid, chapter.id), wireLink(two.guid, chapter.id)] });
+    const select = await screen.findByRole('combobox', { name: `Track for ${chapter.title}` });
+    await waitFor(() => expect((select as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('Several tracks'));
+    await user.selectOptions(select, one.guid);
+    await waitFor(async () =>
+      expect((await api.chapterTrackMapList()).mappings.filter((m) => m.chapterId === chapter.id).map((m) => m.trackGuid)).toEqual([one.guid]),
+    );
+  });
+
+  it('still says Several tracks when the first of its tracks is gone from the project', async () => {
+    const [chapter] = WIRE_CHAPTERS;
+    const [, two] = WIRE_TRACKS_PROJECT.tracks;
+    renderDialog({}, { chapterTrackMappings: [wireLink('{GONE}', chapter.id), wireLink(two.guid, chapter.id)] });
+    const select = (await screen.findByRole('combobox', { name: `Track for ${chapter.title}` })) as HTMLSelectElement;
+    await waitFor(() => expect(select.selectedOptions[0]?.textContent).toBe('Several tracks'));
+  });
+
+  it('says Several folders in a Voice folders project', async () => {
+    const [chapter] = WIRE_CHAPTERS;
+    const [one, two] = WIRE_TRACKS_PROJECT.tracks;
+    const api = createMockApi({}, { chapterTrackMappings: [wireLink(one.guid, chapter.id), wireLink(two.guid, chapter.id)] });
+    render(
+      <ApiProvider api={api}>
+        <OverlayProvider service={createOverlayService()}>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <VoiceLayoutContext.Provider value="folders">
+              <Dialog onClose={vi.fn()} />
+            </VoiceLayoutContext.Provider>
+          </ChapterTrackStateProvider>
+        </OverlayProvider>
+      </ApiProvider>,
+    );
+    const select = (await screen.findByRole('combobox', { name: `Folder for ${chapter.title}` })) as HTMLSelectElement;
+    await waitFor(() => expect(select.selectedOptions[0]?.textContent).toBe('Several folders'));
   });
 
   // #3398: picking a track another chapter holds moves it, so the option says who holds it before the pick, as the Chapter links list does.

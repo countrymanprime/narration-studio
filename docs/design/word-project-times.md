@@ -25,7 +25,7 @@ The answer also carries `version` (`<stored check>@<change count>`) and `changeC
 
 ## Freshness
 
-The host's existing tick already reads the heartbeat's change counter (it makes `unsavedChanges`). When the counter differs from the last one it emits `daw_project_edited {changeCount}`. The page reads a new table on that event, on opening and when the window is shown again; a read in flight is followed by one more if another event came meanwhile. No timer polls the items. An edit that arrives between the event and the new table is followed by the old table for that moment (at most the host tick plus one read).
+The host's existing tick already reads the heartbeat's change counter (it makes `unsavedChanges`). When the counter differs from the last one it emits `daw_project_edited {changeCount}`. The page reads a new table on that event, on opening and when the window is shown again; a read in flight is followed by one more if another event came meanwhile, also when that read failed, and the read in flight is one per chapter however often the window is hidden and shown (the map is kept while it is read again); a read out longer than `WORD_TIMES_READ_LIMIT_MS` (20 s, by `performance.now()`) is given up on when an edit waits behind it (a timer makes that read, no further event needed), so one that never settles does not stop the later reads; the answer of a read given up on is still taken if it is newer than what the page has, and never over a newer one. No timer polls the items. An edit that arrives between the event and the new table is followed by the old table for that moment (at most the host tick plus one read).
 
 ## The page
 

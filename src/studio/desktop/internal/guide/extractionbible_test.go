@@ -3,9 +3,9 @@ package guide
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -15,19 +15,18 @@ import (
 	"desktop/internal/settings"
 )
 
-// recordingSidecar is a fake sidecar process: it appends its arguments, one command per line with the parts joined by a unit separator,
-// to a log file and prints what a create prints.
+// recordingSidecar is a fake sidecar process: the test binary itself in its "record" mode (TestMain), which appends its arguments, one
+// command per line with the parts joined by a unit separator, to a log file and prints what a create prints. It runs on every OS (it was a
+// shell script, so the Windows run, the only one CI has for Go, skipped these tests).
 func recordingSidecar(t *testing.T, root string) (program, log string) {
 	t.Helper()
-	if runtime.GOOS == "windows" {
-		t.Skip("the fake sidecar is a shell script")
-	}
-	log = filepath.Join(root, "calls.log")
-	program = filepath.Join(root, "fake-guide")
-	script := "#!/bin/sh\nIFS=\"$(printf '\\037')\"\necho \"$*\" >> '" + log + "'\nif [ \"$1\" = create ]; then echo 'CREATED|new-id'; fi\n"
-	if err := os.WriteFile(program, []byte(script), 0o700); err != nil {
+	program, err := os.Executable()
+	if err != nil {
 		t.Fatal(err)
 	}
+	log = filepath.Join(root, "calls.log")
+	t.Setenv(fakeSidecarEnv, "record")
+	t.Setenv(fakeRecordLogEnv, log)
 	return program, log
 }
 
@@ -177,5 +176,27 @@ func TestExtractionBibleRefusesANameWithASemicolon(t *testing.T) {
 	}
 	if len(calls(t, log)) != 0 {
 		t.Fatal("no sidecar process starts")
+	}
+}
+
+// The recording sidecar is a real process on every OS: it logs the arguments it was started with and answers a create, which is what
+// the extraction tests below depend on (it used to be a shell script that Windows could not run).
+func TestTheRecordingSidecarLogsItsArgumentsAndAnswersACreateOnEveryOS(t *testing.T) {
+	root := t.TempDir()
+	program, log := recordingSidecar(t, root)
+
+	out, err := exec.Command(program, "create", "--name", "A Story").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.TrimSpace(string(out)); got != "CREATED|new-id" {
+		t.Fatalf("create answered %q, want CREATED|new-id", got)
+	}
+	if _, err := exec.Command(program, "update", "--id", "x").Output(); err != nil {
+		t.Fatal(err)
+	}
+	want := [][]string{{"create", "--name", "A Story"}, {"update", "--id", "x"}}
+	if got := calls(t, log); !reflect.DeepEqual(got, want) {
+		t.Fatalf("logged %q, want %q", got, want)
 	}
 }

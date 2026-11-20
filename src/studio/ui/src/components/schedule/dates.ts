@@ -1,3 +1,5 @@
+import { clock } from '../../clock';
+
 /** Calendar dates as the plan writes them, "YYYY-MM-DD", worked on as local dates so a day is a day in every time zone. */
 const DAY = 86_400_000;
 
@@ -21,11 +23,8 @@ export const fmtD = (d: Date): string => d.toLocaleDateString('en-US', { month: 
 /** Whether `s` is a real calendar date written "YYYY-MM-DD", in the years 1000 to 9999 (JavaScript reads years under 100 as 19xx, so the day counts would be wrong). */
 export const isIsoDate = (s: string): boolean => /^[1-9]\d{3}-\d{2}-\d{2}$/.test(s) && iso(parseIso(s)) === s;
 
-/** Hours as "h:mm". */
-export const hm = (h: number): string => {
-  const m = Math.max(0, Math.round(h * 60));
-  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
-};
+/** Hours as hours and minutes with their units, "5h 40m" (the one marked form, `clock`'s `marked` option, which rounds to the minute): every Production and Schedule hours figure (#3443). */
+export const hm = (h: number): string => clock(h * 3600, { marked: true });
 
 export const num = (n: number): string => n.toLocaleString('en-US');
 

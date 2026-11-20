@@ -398,8 +398,8 @@
   {
     "name": "every track counts as armed",
     "file": "narration_track_state.lua",
-    "find": "if armed(reaper.GetTrack(0, index)) then",
-    "replace": "if true then"
+    "find": "    if armed(track) then\n      count = count + 1",
+    "replace": "    if true then\n      count = count + 1"
   },
   {
     "name": "a muted item is reported as playing",
@@ -464,8 +464,8 @@
   {
     "name": "record_stop stops a recording the app did not start",
     "file": "narration_transport.lua",
-    "find": "  if not state.recording then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
-    "replace": "  if false then\n    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+    "find": "  if not state.recording then\n    -- A press that armed",
+    "replace": "  if false then\n    -- A press that armed"
   },
   {
     "name": "an arm the narrator changed during the take is overwritten",
@@ -530,8 +530,8 @@
   {
     "name": "a start REAPER never reports is still claimed as the app recording",
     "file": "narration_transport.lua",
-    "find": "          state.recording = nil\n          event(session_dir, 'ERROR', record.run_id, 'REAPER did not start recording.')",
-    "replace": "          event(session_dir, 'ERROR', record.run_id, 'REAPER did not start recording.')"
+    "find": "          state.recording = nil\n          -- REAPER may still start late",
+    "replace": "          -- REAPER may still start late"
   },
   {
     "name": "a start cancelled while REAPER was starting is left running",
@@ -2970,13 +2970,13 @@
   {
     "name": "the end rule ignores where the last take stopped",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and math.max(folder_end(folder, guid_set(skip_text)), track_end(target)) or track_end(target), true, false)",
     "replace": "    if true then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
     "name": "the end rule keeps any cursor, so a take records over later audio",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and math.max(folder_end(folder, guid_set(skip_text)), track_end(target)) or track_end(target), true, false)",
     "replace": "    if false then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
@@ -3108,8 +3108,8 @@
   {
     "name": "the narrator's track selection is not put back",
     "file": "narration_transport.lua",
-    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetTrackSelected(track, row.selected)",
-    "replace": "      if false then\n        reaper.SetTrackSelected(track, row.selected)"
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)",
+    "replace": "      if false then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)"
   },
   {
     "name": "the isolation file is left behind after everything is put back",
@@ -3187,6 +3187,36 @@
     "name": "an unknown track read option is read as the one-track read",
     "file": "narration_track_state.lua",
     "find": "if option ~= '' and option ~= 'children' and option ~= 'none' then",
+    "replace": "if false then"
+  },
+  {
+    "name": "a refused press leaves the narrator's arms changed: record_stop with no recording of ours restores nothing",
+    "file": "narration_transport.lua",
+    "find": "    if not recording() and not state.start_gave_up then\n      restore_arms(state)\n    end\n    event(session_dir, 'RECORD_NOT_OURS', run_id)",
+    "replace": "    event(session_dir, 'RECORD_NOT_OURS', run_id)"
+  },
+  {
+    "name": "one given-up start turns the restore off for the rest of the session",
+    "file": "narration_transport.lua",
+    "find": "  state.recording = record\n  state.start_gave_up = nil\n",
+    "replace": "  state.recording = record\n"
+  },
+  {
+    "name": "record_stop puts the arms back under a start that may still begin late",
+    "file": "narration_transport.lua",
+    "find": "if not recording() and not state.start_gave_up then",
+    "replace": "if not recording() then"
+  },
+  {
+    "name": "record_stop restores the arms under the narrator's own recording",
+    "file": "narration_transport.lua",
+    "find": "if not recording() and not state.start_gave_up then",
+    "replace": "if not state.start_gave_up then"
+  },
+  {
+    "name": "arm_only arms a playing REAPER, so a press the heartbeat let through leaves the narrator's arms changed",
+    "file": "narration_transport.lua",
+    "find": "if not keep and reaper.GetPlayState() ~= 0 then",
     "replace": "if false then"
   },
   {
@@ -3696,7 +3726,7 @@
   {
     "name": "go_to a folder leaves its tracks unselected",
     "file": "narration_track_select.lua",
-    "find": "  for _, member in ipairs(members) do\n    reaper.SetTrackSelected(member, true)\n  end\n",
+    "find": "  for _, member in ipairs(members) do\n    reaper.SetMediaTrackInfo_Value(member, 'I_SELECTED', 1)\n  end\n",
     "replace": ""
   },
   {
@@ -3716,5 +3746,311 @@
     "file": "narration_track_select.lua",
     "find": "      target = math.max(target, track_end(member))\n",
     "replace": ""
+  },
+  {
+    "name": "go_to selects a folder's tracks with SetTrackSelected, which counts as a project edit",
+    "file": "narration_track_select.lua",
+    "find": "    reaper.SetMediaTrackInfo_Value(member, 'I_SELECTED', 1)\n",
+    "replace": "    reaper.SetTrackSelected(member, true)\n"
+  },
+  {
+    "name": "go_to moves while REAPER records",
+    "file": "narration_track_select.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is recording. Stop recording first.')\n    return\n  end\n",
+    "replace": ""
+  },
+  {
+    "name": "arm_lane monitors without being asked",
+    "file": "narration_transport.lua",
+    "find": "mode == 'monitor' and registry.monitor_lane or nil",
+    "replace": "registry.monitor_lane"
+  },
+  {
+    "name": "monitoring the narrator turned off or changed meanwhile is put back anyway",
+    "file": "narration_monitor.lua",
+    "find": "    elseif reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == ON then",
+    "replace": "    elseif true then"
+  },
+  {
+    "name": "monitoring that was on already is set and put back as if it were ours",
+    "file": "narration_monitor.lua",
+    "find": "    local needs = reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0",
+    "replace": "    local needs = true"
+  },
+  {
+    "name": "monitor_restore touches the monitoring while REAPER records",
+    "file": "narration_monitor.lua",
+    "find": "    if busy() then\n      state.waiting = #state.rows > 0",
+    "replace": "    if false then\n      state.waiting = #state.rows > 0"
+  },
+  {
+    "name": "changing the lane leaves the earlier lane monitored",
+    "file": "narration_monitor.lua",
+    "find": "    local _, _, left = put_back(others)\n    if #left > 0 then",
+    "replace": "    local left = others\n    if #left > 0 then"
+  },
+  {
+    "name": "a restore that waited for a recording is never finished",
+    "file": "narration_monitor.lua",
+    "find": "    if state.waiting then\n      state.waiting = false\n      release()",
+    "replace": "    if false then\n      state.waiting = false\n      release()"
+  },
+  {
+    "name": "the ledger of a closed REAPER is read while another take runs",
+    "file": "narration_monitor.lua",
+    "find": "    if busy() then\n      return\n    end\n    state.in_tick = true\n    state.tick_wrote = false\n    recover()",
+    "replace": "    state.in_tick = true\n    state.tick_wrote = false\n    recover()"
+  },
+  {
+    "name": "a leftover ledger is erased by a restore that runs before the file is read",
+    "file": "narration_monitor.lua",
+    "find": "  local function release()\n    recover()",
+    "replace": "  local function release()"
+  },
+  {
+    "name": "a lane monitored before the first tick overwrites the crashed REAPER's ledger",
+    "file": "narration_monitor.lua",
+    "find": "    state.waiting = false\n    recover()\n    local guid",
+    "replace": "    state.waiting = false\n    local guid"
+  },
+  {
+    "name": "a restore that waited takes back a lane monitored after the recording stopped",
+    "file": "narration_monitor.lua",
+    "find": "    state.waiting = false\n    recover()\n    local guid",
+    "replace": "    recover()\n    local guid"
+  },
+  {
+    "name": "a damaged ledger row writes a value the lane never had",
+    "file": "narration_monitor.lua",
+    "find": "local guid = line:match('^([^\\t]+)\\t0$')",
+    "replace": "local guid = line:match('^([^\\t]+)\\t%-?%d+$')"
+  },
+  {
+    "name": "a monitoring turned on is put back to on",
+    "file": "narration_monitor.lua",
+    "find": "state.rows = { mine or (needs and { guid = guid, was = 0 }) or nil }",
+    "replace": "state.rows = { mine or (needs and { guid = guid, was = 1 }) or nil }"
+  },
+  {
+    "name": "a waiting restore cannot be dropped when the Booth is entered again",
+    "file": "narration_monitor.lua",
+    "find": "    if mode == 'cancel' then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "an unknown second argument of monitor_restore falls through to a restore",
+    "file": "narration_monitor.lua",
+    "find": "    if mode ~= '' and mode ~= 'cancel' then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "monitoring is turned on although its ledger cannot be written",
+    "file": "narration_monitor.lua",
+    "find": "    if needs and not mine and not written then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "a lane already on the ledger is not turned on again when the ledger cannot be rewritten",
+    "file": "narration_monitor.lua",
+    "find": "    if needs and not mine and not written then",
+    "replace": "    if needs and not written then"
+  },
+  {
+    "name": "the ledger grows without a bound",
+    "file": "narration_monitor.lua",
+    "find": "    while #state.ghosts > 0 and #state.rows + #state.ghosts > MAX_ROWS do",
+    "replace": "    while false do"
+  },
+  {
+    "name": "ghosts are never tried again on a tick",
+    "file": "narration_monitor.lua",
+    "find": "      if place ~= state.tried then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "a row whose track is not there is dropped from the ledger",
+    "file": "narration_monitor.lua",
+    "find": "    if not track then\n      left[#left + 1] = row",
+    "replace": "    if not track then\n      kept = kept"
+  },
+  {
+    "name": "the lane being armed again loses its own row",
+    "file": "narration_monitor.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        others[#others + 1] = row",
+    "replace": "      if false then\n        mine = row\n      else\n        others[#others + 1] = row"
+  },
+  {
+    "name": "a failed write of the ledger is reported as written",
+    "file": "narration_monitor.lua",
+    "find": "  return out:close() and written and true or false",
+    "replace": "  return true"
+  },
+  {
+    "name": "chapter_end counts a track the host named as not a voice",
+    "file": "narration_transport.lua",
+    "find": "  for _, track in ipairs(chapter_audio_members(folder, skip)) do",
+    "replace": "  for _, track in ipairs(core.with_descendants(folder)) do"
+  },
+  {
+    "name": "a folder the host named as not a voice keeps its children in the chapter's audio",
+    "file": "narration_transport.lua",
+    "find": "      inside = math.max(delta, 0)",
+    "replace": "      inside = 0"
+  },
+  {
+    "name": "the host's list of tracks that are not a voice is ignored by record_start",
+    "file": "narration_transport.lua",
+    "find": "args[4] or '', args[5] or '')",
+    "replace": "args[4] or '', '')"
+  },
+  {
+    "name": "the chapter folder can be left out of its own audio",
+    "file": "narration_transport.lua",
+    "find": "  local out = { members[1] }",
+    "replace": "  local out = {}"
+  },
+  {
+    "name": "a track named in a spelling other than the exact GUID is not matched",
+    "file": "narration_transport.lua",
+    "find": "    local guid = normalize_guid(token)\n    if guid ~= '' then\n      set[guid] = true",
+    "replace": "    local guid = tostring(token)\n    if guid ~= '' then\n      set[guid] = true"
+  },
+  {
+    "name": "the armed track can be left out of its own end",
+    "file": "narration_transport.lua",
+    "find": "math.max(folder_end(folder, guid_set(skip_text)), track_end(target))",
+    "replace": "folder_end(folder, guid_set(skip_text))"
+  },
+  {
+    "name": "a skipped folder never closes, so every track after it is dropped",
+    "file": "narration_transport.lua",
+    "find": "    if inside > 0 then\n      inside = inside + delta",
+    "replace": "    if inside > 0 then\n      inside = inside"
+  },
+  {
+    "name": "play isolation selects the played track with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "      reaper.SetMediaTrackInfo_Value(other, 'I_SELECTED', row.set_selected and 1 or 0)\n",
+    "replace": "      reaper.SetTrackSelected(other, row.set_selected)\n"
+  },
+  {
+    "name": "play isolation restore puts the selection back with SetTrackSelected, which counts as a project edit",
+    "file": "narration_transport.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SELECTED', row.selected and 1 or 0)\n",
+    "replace": "        reaper.SetTrackSelected(track, row.selected)\n"
+  },
+  {
+    "name": "play restore puts the selection back over a selection the narrator changed during the play",
+    "file": "narration_transport.lua",
+    "find": "      if flag(reaper.GetMediaTrackInfo_Value(track, 'I_SELECTED')) == row.set_selected then\n",
+    "replace": "      if true then\n"
+  },
+  {
+    "name": "play restore puts the mute back over a mute the narrator set during the play",
+    "file": "narration_transport.lua",
+    "find": "      if row.set_mute ~= nil and reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == row.set_mute then\n",
+    "replace": "      if row.set_mute ~= nil then\n"
+  },
+  {
+    "name": "a ledger that could not be written is never written again",
+    "file": "narration_monitor.lua",
+    "find": "    if state.unsaved then\n      if (state.wait or 0) <= 0 then",
+    "replace": "    if false then\n      if (state.wait or 0) <= 0 then"
+  },
+  {
+    "name": "the ledger the running bridge wrote is read back as a leftover",
+    "file": "narration_monitor.lua",
+    "find": "    if state.recovered then\n      return\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a record_start still waiting for REAPER is not a take in the way of a restore",
+    "file": "narration_monitor.lua",
+    "find": "    return take ~= nil and not take.started",
+    "replace": "    return false"
+  },
+  {
+    "name": "a leftover row with a lower case GUID names no track",
+    "file": "narration_monitor.lua",
+    "find": ":gsub('[{}%s]', ''):upper()",
+    "replace": ":gsub('[{}%s]', '')"
+  },
+  {
+    "name": "a leftover row with a GUID of another spelling is looked up as written",
+    "file": "narration_monitor.lua",
+    "find": "  local wanted = normalize_guid(guid_text)",
+    "replace": "  local wanted = tostring(guid_text)"
+  },
+  {
+    "name": "a ledger of four times the bound is read",
+    "file": "narration_monitor.lua",
+    "find": "input:read(65536)",
+    "replace": "input:read(262144)"
+  },
+  {
+    "name": "a ghost is not tried again in a second unsaved project with as many tracks",
+    "file": "narration_monitor.lua",
+    "find": "tostring(front) .. '|' .. (path or '')",
+    "replace": "(path or '')"
+  },
+  {
+    "name": "a ghost is not made the live row when its lane is armed again",
+    "file": "narration_monitor.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        kept_ghosts",
+    "replace": "      if false then\n        mine = row\n      else\n        kept_ghosts"
+  },
+  {
+    "name": "an unwritable ledger is opened on every tick",
+    "file": "narration_monitor.lua",
+    "find": "      if (state.wait or 0) <= 0 then",
+    "replace": "      if true then"
+  },
+  {
+    "name": "an unwritable ledger is never tried again after the first miss on a tick",
+    "file": "narration_monitor.lua",
+    "find": "state.wait = state.misses <= 1 and 0 or math.min(2 ^ (state.misses - 2), MAX_RETRY_WAIT)",
+    "replace": "state.wait = MAX_RETRY_WAIT * 1000"
+  },
+  {
+    "name": "arm_lane accepts a third argument it does not know",
+    "file": "narration_transport.lua",
+    "find": "    if mode ~= '' and mode ~= 'monitor' then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "arm_lane with monitor answers armed with no monitoring behind it",
+    "file": "narration_transport.lua",
+    "find": "    if mode == 'monitor' and not registry.monitor_lane then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "a second ghost row of an armed lane is left to switch it off",
+    "file": "narration_monitor.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        kept_ghosts",
+    "replace": "      if row.guid == guid and not mine then\n        mine = row\n      else\n        kept_ghosts"
+  },
+  {
+    "name": "a write inside a tick resets the spacing of the retries",
+    "file": "narration_monitor.lua",
+    "find": "    elseif from_tick or state.in_tick then",
+    "replace": "    elseif from_tick then"
+  },
+  {
+    "name": "a failing write is tried again in the same tick, by whichever path comes second",
+    "file": "narration_monitor.lua",
+    "find": "    if state.in_tick and state.tick_wrote and state.unsaved then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "chapter_track_state does not cut the armed list",
+    "file": "narration_track_state.lua",
+    "find": "if #guids < ARMED_LIST_LIMIT then",
+    "replace": "if true then"
+  },
+  {
+    "name": "chapter_track_state lists only the last armed track",
+    "file": "narration_track_state.lua",
+    "find": "        guids[#guids + 1] = normalize_guid(reaper.GetTrackGUID(track))",
+    "replace": "        guids = { normalize_guid(reaper.GetTrackGUID(track)) }"
   }
 ]

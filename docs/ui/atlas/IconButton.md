@@ -65,7 +65,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/engine/LiveTracksStatus.tsx`
 - `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/ShowInDaw.tsx`
-- `src/components/engine/SyncActivityLog.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/LoadError.tsx`
@@ -161,5 +160,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`
+- `src/components/storybible/useBulkDelete.tsx`
 - `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
 - `src/components/voicesamples/SamplePlayButton.tsx`

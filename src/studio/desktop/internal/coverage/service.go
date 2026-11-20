@@ -46,6 +46,9 @@ type Config struct {
 	LoadCredits func(kind string) (title, text string, err error)
 	// Reporter logs a stored file that cannot be read; may be nil.
 	Reporter *persist.Reporter
+	// ChapterAudio sets the rule for which tracks inside a chapter's folder are its audio (tracks.Project.WithAudioSkip): the host makes a
+	// track marked as not a voice a non-chapter track (#3557). nil reads every track inside the folder, as a Config built before it did.
+	ChapterAudio func(tracks.Project) tracks.Project
 	// ProjectReader reads the saved .rpp ProjectFile resolves; nil falls back to tracks.Parse
 	// directly, so a Config literal built before this field existed keeps reading exactly as it did before.
 	ProjectReader dawport.ProjectReader
@@ -250,7 +253,7 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 	return &Service{
 		config: config, launch: launch, changed: changed, now: time.Now, pollInterval: defaultPollInterval,
 		ledger: ledger, cache: cache, mapping: mapping, identities: &evidence.IdentityCache{},
-		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter},
+		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter, cache: newResultCache()},
 		state:   State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
 		jobs:    map[string]*job{}, preparing: map[string]bool{},
 	}
@@ -487,6 +490,9 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 	trackGUID, err := confirmedTrack(s.mapping, basis.DocumentID, basis.ChapterID)
 	if err != nil {
 		return nil, err
+	}
+	if s.config.ChapterAudio != nil {
+		project = s.config.ChapterAudio(project)
 	}
 	planned, err := buildPlan(project, trackGUID, memoIdentify(s.config.Project, s.identities.Refresh))
 	if err != nil {

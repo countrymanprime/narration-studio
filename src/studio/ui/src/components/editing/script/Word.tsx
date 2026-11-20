@@ -48,9 +48,9 @@ function describe(it: DocItem, mark: Mark): string {
     case 'cut':
       return 'Cut from the audio';
     case 'dup':
-      return `Read twice: said again, ${clock(it.t0 ?? 0)}${score(it)}`;
+      return `Read twice: said again, ${clock(it.t0 ?? 0, { full: true })}${score(it)}`;
     case 'extra':
-      return `Not in the script, ${clock(it.t0 ?? 0)}${score(it)}`;
+      return `Not in the script, ${clock(it.t0 ?? 0, { full: true })}${score(it)}`;
     case 'miss':
       return 'In the script, not read';
     case 'mis':

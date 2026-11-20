@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { COLD_READ_NO_VOICE, useBoothVoices } from '../voices/useBoothVoices';
+import { coldReadNoVoice, useBoothVoices } from '../voices/useBoothVoices';
 import { createdSentence, destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { VoiceControl } from '../voices/VoiceControl';
@@ -7,6 +7,7 @@ import { WhoIsInDialog, type WhoAsk } from '../voices/WhoIsInDialog';
 import { castOf } from '../voices/whoIsIn';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useSearchParams } from 'react-router-dom';
+import { readAddress } from '../../../navigation/address';
 import { headingName } from '../../../chapterHeading';
 import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
@@ -47,6 +48,8 @@ import { UNKNOWN_SPEAKER, wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
 import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
+import { prefetchMatch } from '../../connection/chapterMatchCache';
+import { useChapterTrackProject } from '../../chapterTracks/ChapterTrackState';
 import { recordSetupFor } from '../record/recordSetupModel';
 import type { RecordBlock } from '../record/useRecordControl';
 import { PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
@@ -71,7 +74,9 @@ import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
-import { useFollowChapterInDaw, useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
+import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
+import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { useDawPullBack } from '../../../hooks/useDawPullBack';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -137,8 +142,12 @@ function BoothExit({ onExit, children }: { onExit: () => void; children: ReactNo
 }
 
 function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: string) => void; exitTo: string; projectFolder: string }) {
+  // Leaving the Booth puts back the input monitoring it turned on; stepping through chapters inside it does not.
+  const overlay = useOverlay();
+  useReleaseBoothMonitorOnLeave((sentence) => sayDawArming(overlay, sentence));
   const [params, setParams] = useSearchParams();
-  const asked = useMemo(() => readBoothQuery(params), [params]);
+  // An address that cannot be read is no request: the gate in front of the page says so (it holds the page while a take records), and the page does not act on a half-read chapter.
+  const asked = useMemo(() => (readAddress('booth', { search: `?${params.toString()}`, hash: '' }).kind === 'bad' ? null : readBoothQuery(params)), [params]);
   // The pickup session the address opened; opening the Booth any other way is no session. It stays across chapter changes.
   const pickupKey = readPickupIds(params).join(',');
   const pickupIds = useMemo(() => (pickupKey ? pickupKey.split(',') : []), [pickupKey]);
@@ -152,23 +161,28 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   // The chapters the Booth opened on by itself (the one it opened on with no address, the one it followed the DAW to): the DAW is already there, so
   // it is not moved. A chapter the narrator goes to is moved to (BoothSession is keyed by the chapter), and one left stops being exempt, so going
   // back to it moves the DAW.
+  // The chapter the narrator left the Booth on (browser storage, so it survives an app restart). Read once, when the Booth opens.
+  const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
   const selfOpened = useRef(new Set<string>());
   const firstChapter = useRef(false);
   const shownChapter = data.source?.chapter.id ?? '';
   if (shownChapter !== '' && !firstChapter.current) {
     firstChapter.current = true;
-    if (!openedByAddress.current) selfOpened.current.add(shownChapter);
+    // The chapter the Booth opens on because the narrator left it there is not exempt: the DAW has been somewhere else since (a restart), so it is
+    // moved to it once it can follow (#3428, A12). Only a chapter that nothing remembered is one the DAW is assumed to be on.
+    if (!openedByAddress.current && kept?.chapterId !== shownChapter) selfOpened.current.add(shownChapter);
   }
   const lastChapter = useRef('');
   useEffect(() => {
     if (lastChapter.current !== '' && lastChapter.current !== shownChapter) selfOpened.current.delete(lastChapter.current);
     lastChapter.current = shownChapter;
   }, [shownChapter]);
+  // The chapter the narrator left the Booth on is read first: the DAW may already be on it (a return from another page), and then it is not moved.
+  const readDawFirst = !openedByAddress.current && kept !== null && kept.chapterId === shownChapter;
   const moveDaw = openedByAddress.current || (shownChapter !== '' && !selfOpened.current.has(shownChapter));
   const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
   // With no chapter asked for, the Booth opens on the chapter the narrator last left in this project, at the place they left; the DAW's chapter
   // is the way in only when none is kept (or the chapter is gone). The place is read once, when the Booth opens.
-  const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
   const [returning, setReturning] = useState<LastPlace | null>(null);
   // A reload (or a link naming the chapter with no line) keeps the chapter in the address: the place kept for that chapter is still where it opens.
   const [reloaded, setReloaded] = useState<LastPlace | null>(() => (asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null));
@@ -182,7 +196,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   }, [planned, pickupIds, setParams]);
   const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
   useFollowDawOnOpen({
-    enabled: asked === null,
+    // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
+    enabled: asked === null && planned === null,
     chapterIds,
     onChapter: (chapterId) => {
       selfOpened.current.add(chapterId);
@@ -245,6 +260,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         from={shown?.from}
         requested={asked}
         moveDaw={moveDaw}
+        readDawFirst={readDawFirst}
         projectFolder={projectFolder}
         returnTo={goingBackTo ?? undefined}
         onReturned={() => {
@@ -272,6 +288,7 @@ type SessionProps = {
   requested: BoothChapterTarget | null;
   /** The Booth was opened at a chapter: the DAW is moved to it too. */
   moveDaw: boolean;
+  readDawFirst: boolean;
   /** The project the place is kept under, and the place to go back to (the Booth opened on the chapter the narrator left). */
   projectFolder: string;
   returnTo?: LastPlace;
@@ -296,6 +313,7 @@ function BoothSession({
   from,
   requested,
   moveDaw,
+  readDawFirst,
   projectFolder,
   returnTo,
   onReturned,
@@ -466,14 +484,16 @@ function BoothSession({
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
   const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   const followChapterInDaw = useFollowChapterInDaw();
-  useMoveDawOnOpen({
+  const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
     chapterId,
     canFollow: !!control.capabilities?.capabilities.follow_position?.available,
     target: moveTarget,
+    onlyIfElsewhere: readDawFirst,
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
   });
+  useDawPullBack(chapterId, moving);
 
   const { inThisChapter, characters, inChapter, colourOf, setSpeaker } = useBoothSpeakers({
     paragraphs,
@@ -516,7 +536,6 @@ function BoothSession({
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
   // A cold read needs no voice and no track (#3430): who records a character is not asked, and nothing is added at the DAW.
   const coldMode = page.coldRead.mode && !control.recording;
-  const askWho = useCallback((ask: WhoAsk) => (coldMode ? voiceToast(COLD_READ_NO_VOICE) : setWhoAsk(ask)), [coldMode, voiceToast]);
   const dest = destinationFor(useVoiceLayout());
   const voices = useBoothVoices({
     chapterId: recordId,
@@ -529,6 +548,20 @@ function BoothSession({
     onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
     asking: whoAsk !== null,
   });
+  // Entering the chapter arms the voice the next take records on and monitors it (the same switch as the move above); a cold read waits for its end.
+  const armNow = useArmBoothOnOpen({
+    enabled: !coldMode && source.kind === 'chapter',
+    follow: followChapterInDaw,
+    chapterId,
+    canArm: !!control.capabilities?.capabilities.record?.available,
+    recording: control.recording,
+    voice: voices.current?.guid ?? '',
+    say: (sentence) => sayDawArming(overlay, sentence),
+  });
+  const askWho = useCallback(
+    (ask: WhoAsk) => (coldMode ? voiceToast(coldReadNoVoice(voices.voices.length > 0)) : setWhoAsk(ask)),
+    [coldMode, voiceToast, voices.voices.length],
+  );
   const [voiceListOpen, setVoiceListOpen] = useState(false);
   const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);
   const cast = useMemo(
@@ -572,6 +605,8 @@ function BoothSession({
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
+    // A cold read needs no voice: the list would only refuse every pick, so the key says so like the other voice keys.
+    if (coldMode) return voiceToast(coldReadNoVoice(voices.voices.length > 0));
     if (voices.voices.length === 0) return voiceToast(dest.noVoiceKeys(voices.linkKind), 'info');
     voices.reload();
     setVoiceListOpen(true);
@@ -624,6 +659,15 @@ function BoothSession({
     complete: recordedLabel?.complete,
   });
   const capabilities = control.capabilities;
+  // The tracks the dialog for an unlinked chapter offers are read here, in the background, as soon as the chapter is known: the
+  // dialog then opens with them (#3669). A read that fails leaves the dialog to read for itself.
+  const trackMap = usePort('chapterTrackMap');
+  const linkProject = useChapterTrackProject();
+  // Again when the DAW comes back (it may have restarted with other tracks); a read newer than 30 s is not repeated.
+  const dawReachable = capabilities?.reachable === true;
+  useEffect(() => {
+    if (recordId) prefetchMatch(linkProject, recordId, () => trackMap.chapterTrackMatch(recordId), dawReachable);
+  }, [trackMap, linkProject, recordId, dawReachable]);
   const dawChoice = useDawChoice();
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
   useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason, recording: control.recording });
@@ -632,7 +676,8 @@ function BoothSession({
   // the notices answer, so each one reopens its dialog.
   const [recordAsks, setRecordAsks] = useState(0);
   const recordName = pickerChapters.find((item) => item.id === pickerValue)?.name ?? title;
-  const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks');
+  const linkProblem =
+    !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks' || control.gate?.cause === 'track_missing');
   const setupPlan = capabilities && control.factsLoaded && !control.recording ? recordSetupFor(capabilities, control.facts) : null;
   // What the top-bar chip says besides the DAW's own state: the Booth's gate first (the same finding its notices and footer word), then what
   // the DAW answered for the chapter. A state in which Record still works (another track armed) is not shown.
@@ -642,17 +687,19 @@ function BoothSession({
       ? 'no_track'
       : control.gate?.cause === 'several_tracks'
         ? 'several_tracks'
-        : control.gate?.cause === 'recording_elsewhere' || control.dawStatus === 'recording_elsewhere'
-          ? 'recording_elsewhere'
-          : control.dawStatus === 'unavailable'
-            ? 'not_connected'
-            : control.dawStatus === 'not_armed'
-              ? 'not_armed'
-              : undefined;
+        : control.gate?.cause === 'track_missing'
+          ? 'track_missing'
+          : control.gate?.cause === 'recording_elsewhere' || control.dawStatus === 'recording_elsewhere'
+            ? 'recording_elsewhere'
+            : control.dawStatus === 'unavailable'
+              ? 'not_connected'
+              : control.dawStatus === 'not_armed'
+                ? 'not_armed'
+                : undefined;
   const noticeShown = (linkProblem && !!capabilities) || !!setupPlan;
   parts.current.recordBlocked = (block) => {
     const noticeUp =
-      ((block.cause === 'no_track' || block.cause === 'several_tracks') && linkProblem) ||
+      ((block.cause === 'no_track' || block.cause === 'several_tracks' || block.cause === 'track_missing') && linkProblem) ||
       ((block.cause === 'capability' || block.cause === 'wrong_project') && !!setupPlan);
     if (noticeUp) return setRecordAsks((n) => n + 1);
     overlay.dismissTopic(PRESS_NOTE_TOPIC);
@@ -662,6 +709,23 @@ function BoothSession({
   useEffect(() => {
     if (control.recording) overlay.dismissTopic(LINKED_TOPIC);
   }, [overlay, control.recording]);
+  // The chapter's track appears while the Booth is on it (made or linked here, or by the Engine panel or Chapter links): the entry arm found nothing to arm,
+  // so the new voice is armed and monitored now (#3670), with the switch on, and never for another chapter: only this chapter's own link counts. "Unlinked" is
+  // remembered until the DAW answers with a track for the chapter, so a failed read, a DAW that went away or one recording by itself neither counts as the
+  // track appearing nor forgets that it was missing; a take of this app holds the arm until it stops.
+  const unlinkedNow = control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks' || control.gate?.cause === 'track_missing';
+  const hasTrackNow =
+    !unlinkedNow &&
+    (control.dawStatus === 'ready' || control.dawStatus === 'not_armed' || control.dawStatus === 'other_armed' || control.dawStatus === 'several_armed');
+  const sawUnlinked = useRef({ chapterId, unlinked: false });
+  useEffect(() => {
+    if (sawUnlinked.current.chapterId !== chapterId) sawUnlinked.current = { chapterId, unlinked: false };
+    if (unlinkedNow) sawUnlinked.current.unlinked = true;
+    else if (hasTrackNow && sawUnlinked.current.unlinked && !control.recording) {
+      sawUnlinked.current.unlinked = false;
+      armNow();
+    }
+  }, [chapterId, unlinkedNow, hasTrackNow, control.recording, armNow]);
   const linked = (created?: Created) => {
     control.refresh();
     // The folder the DAW just made, or the voices of a folder the narrator linked, are not in the saved project yet: read them again.
@@ -674,7 +738,7 @@ function BoothSession({
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
   // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
-  const recordWhy = linkProblem ? dest.footerNoLink(recordName) : control.reason;
+  const recordWhy = linkProblem ? (control.gate?.cause === 'track_missing' ? dest.footerMissing(recordName) : dest.footerNoLink(recordName)) : control.reason;
   const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
@@ -829,7 +893,7 @@ function BoothSession({
                       chapterId={recordId}
                       chapterName={recordName}
                       dawName={page.dawName}
-                      several={control.gate?.cause === 'several_tracks'}
+                      state={control.gate?.cause === 'several_tracks' ? 'several' : control.gate?.cause === 'track_missing' ? 'missing' : 'unlinked'}
                       create={capabilities.capabilities.track_create}
                       asked={recordAsks}
                       onLinked={linked}
@@ -932,6 +996,8 @@ function BoothSession({
                 onChoose={voices.choose}
                 open={voiceListOpen}
                 onOpenChange={(next) => {
+                  // A cold read needs no voice: the list would only refuse every pick, so the click says so, as Num . does.
+                  if (next && coldMode) return voiceToast(coldReadNoVoice(voices.voices.length > 0));
                   if (next) voices.reload();
                   setVoiceListOpen(next);
                 }}
@@ -964,4 +1030,9 @@ function BoothSession({
       </ContextMenuHost>
     </CommandScope>
   );
+}
+
+/** What the Booth says when the DAW would not arm a voice on entry, or would not put the monitoring back on leaving: the DAW's own sentence, one toast per topic. */
+function sayDawArming(overlay: ReturnType<typeof useOverlay>, sentence: string) {
+  overlay.toast(sentence, { tone: 'error', topic: 'daw-arming' });
 }

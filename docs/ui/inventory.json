@@ -448,6 +448,7 @@
         "src/components/storybible/suggested/panel/ScanStatus.tsx",
         "src/components/storybible/suggested/row/Quotes.tsx",
         "src/components/storybible/suggested/scan/AnalysisPrompt.tsx",
+        "src/components/storybible/useBulkDelete.tsx",
         "src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx",
         "src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx",
         "src/components/storybible/voicesamples/VoiceSampleRow.tsx",
@@ -563,7 +564,8 @@
         "Space Toggles",
         "Indeterminate",
         "Label Less",
-        "Label Less Indeterminate"
+        "Label Less Indeterminate",
+        "Out Of The Tab Order"
       ],
       "consumers": [
         "src/components/booth/voices/WhoIsInDialog.tsx",
@@ -591,6 +593,7 @@
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
+        "src/components/storybible/EntryTable.tsx",
         "src/components/storybible/suggested/scan/AnalysisPrompt.tsx"
       ],
       "a11yDebt": false
@@ -761,6 +764,7 @@
         "src/components/settings/row/SettingRowView.tsx",
         "src/components/storybible/GuideDetail.tsx",
         "src/components/storybible/VoiceDataPanel.tsx",
+        "src/components/storybible/useBulkDelete.tsx",
         "src/components/storybible/voicesamples/useVoiceSampleActions.tsx",
         "src/overlay/OverlayHost.tsx"
       ],
@@ -1101,6 +1105,7 @@
       "stories": [
         "Entries",
         "Sort And Open",
+        "Ticked",
         "One Entry",
         "Nothing To Show",
         "Long And Mixed Names",
@@ -1603,7 +1608,6 @@
         "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ShowInDaw.tsx",
-        "src/components/engine/SyncActivityLog.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/LoadError.tsx",
@@ -1699,6 +1703,7 @@
         "src/components/storybible/source/PronunciationCandidates.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
         "src/components/storybible/suggested/row/SuggestionRow.tsx",
+        "src/components/storybible/useBulkDelete.tsx",
         "src/components/storybible/voicesamples/VoiceSampleRow.tsx",
         "src/components/voicesamples/SamplePlayButton.tsx"
       ],
@@ -1908,6 +1913,7 @@
       "stories": [
         "Default",
         "Few Hints",
+        "Off Hint",
         "Is A Note Region"
       ],
       "consumers": [
@@ -3519,6 +3525,27 @@
       "a11yDebt": false
     },
     {
+      "title": "Primitives/SpokenFigure",
+      "name": "SpokenFigure",
+      "source": "src/components/primitives/SpokenFigure.tsx",
+      "stories": [
+        "Default",
+        "Inside Text",
+        "Under A Minute",
+        "Plain Text"
+      ],
+      "consumers": [
+        "src/components/primitives/StatTile.tsx",
+        "src/components/production/overview/StageBar.tsx",
+        "src/components/production/overview/WeekCard.tsx",
+        "src/components/production/pipeline/NextUp.tsx",
+        "src/components/production/pipeline/PipelineTable.tsx",
+        "src/components/production/target/TargetPopover.tsx",
+        "src/components/schedule/WorkedOut.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "Proof/Spot takes",
       "name": "Spot takes",
       "source": "src/components/proof/spot/Spot.stories.tsx",
@@ -3863,7 +3890,8 @@
         "In A Card",
         "Matches The Mock",
         "Fixed Columns",
-        "Tree"
+        "Tree",
+        "Custom Header Span"
       ],
       "consumers": [
         "src/components/editing/backups/BackupsList.tsx",
@@ -4168,7 +4196,6 @@
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/EnginePanel.tsx",
-        "src/components/engine/SyncActivityLog.tsx",
         "src/components/engine/useChapterFolders.ts",
         "src/components/engine/useLiveTracks.ts",
         "src/components/engine/useVoiceTracks.ts",
@@ -4213,6 +4240,7 @@
         "src/components/storybible/source/NamePronunciation.tsx",
         "src/components/storybible/suggested/import/useImportPrompts.ts",
         "src/components/storybible/suggested/panel/useSuggestions.ts",
+        "src/components/storybible/useBulkDelete.tsx",
         "src/components/storybible/useHearEntry.ts",
         "src/components/storybible/usePreviewAudio.ts",
         "src/components/storybible/voicesamples/EntryVoiceSamples.tsx",

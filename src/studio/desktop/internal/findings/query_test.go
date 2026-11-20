@@ -221,9 +221,9 @@ func TestSummaryFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	denyRead(t, path)
-	if _, err := store.Summary(); err == nil {
-		t.Fatal("Summary must report a scope file it cannot read, not undercount")
+	makeUnreadable(t, path)
+	if _, err := store.Summary(); err == nil || !strings.Contains(err.Error(), "c-0001.json") {
+		t.Fatalf("Summary must report the scope file it cannot read, naming it, not undercount: %v", err)
 	}
 }
 

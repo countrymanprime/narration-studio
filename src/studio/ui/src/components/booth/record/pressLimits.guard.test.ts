@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { LEAVE_STOP_WAIT_MS } from '../leave/useBoothLeaveGuard';
 import { DISK_FLOOR_BYTES_PER_S, MODEL_CATALOG_BYTES, PRESS_LIMITS_MS, PRESS_LIMIT_BASIS, recordStartLimit, type PressStage } from './pressLimits';
 
 // #3321: a Record press never waits on a host call without a limit. Every host call the press awaits before or during the start is listed here
@@ -124,9 +125,12 @@ describe('each limit is above the host call it waits for', () => {
   it('a roll: rollTimeout', () => {
     expect(PRESS_LIMITS_MS.roll).toBeGreaterThanOrEqual(seconds('bindings_daw_roll.go', 'rollTimeout') + MARGIN_MS);
   });
-  it('the Booth voice choice: readAloudVoiceStartTimeout (the record start timeout plus the live track list wait)', () => {
+  it('the Booth voice choice: laneCommandTimeout (the answer wait, the late wait and two live track list reads)', () => {
     expect(PRESS_LIMITS_MS.voiceChoice).toBeGreaterThanOrEqual(
-      seconds('bindings_readaloud_record.go', 'readAloudRecordStartTimeout') + seconds('tracks_live.go', 'tracksLiveTimeout') + MARGIN_MS,
+      seconds('bindings_readaloud_record.go', 'readAloudRecordStartTimeout') +
+        seconds('internal/bridge/actions.go', 'LateAnswerWait') +
+        2 * seconds('tracks_live.go', 'tracksLiveTimeout') +
+        MARGIN_MS,
     );
   });
   it('the model check is the read of every catalog model at the disk floor (#3432)', () => {
@@ -140,6 +144,10 @@ describe('each limit is above the host call it waits for', () => {
   it('every limit states its basis', () => {
     for (const stage of Object.keys(PRESS_LIMITS_MS)) expect(PRESS_LIMIT_BASIS[stage as PressStage]?.length, stage).toBeGreaterThan(20);
     expect(Object.keys(PRESS_LIMIT_BASIS).sort()).toEqual(Object.keys(PRESS_LIMITS_MS).sort());
+  });
+  // #3697: a wait that wraps a limited call must outlast it, or it gives up on an answer the limit would have delivered, and a stop that lands after it leaves a refusal over a saved take.
+  it('the leave guard waits for a stop longer than the stop limit it wraps', () => {
+    expect(LEAVE_STOP_WAIT_MS).toBeGreaterThan(PRESS_LIMITS_MS.recordStop);
   });
   it('the Booth picks recordStartInApp for the app recorder and recordStart for a DAW engine', () => {
     expect(recordStartLimit(true)).toBe('recordStartInApp');

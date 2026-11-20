@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
@@ -17,6 +18,8 @@ import { TrackSelect } from '../mapping/TrackSelect';
 import { plainTrackChoices, rankedChoices, type TrackChoice } from '../mapping/trackChoices';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
+import { destinationFor } from './destination';
+import { useVoiceLayout } from './voiceLayout';
 import { StatusBadge } from '../primitives/StatusBadge';
 import {
   chapterSyncBackgroundWaitText,
@@ -28,8 +31,8 @@ import {
 
 /**
  * Chapter sync's own section of the engine panel the on/off state and last-sync summary, the Needs you list with an inline Link
- * (chapterTrackSet, the same binding as Chapter links below), and the tracks sync could not place. The Sync activity log is in
- * Settings (Recording & DAW › Advanced). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
+ * (chapterTrackSet, the same binding as Chapter links below), and the tracks sync could not place. The log of what each sync did is not drawn
+ * anywhere: the host keeps it in the project folder for diagnostics (#3671). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
  * decision, not a second copy of it here. `daw` is the DAW the project records with, which its text names.
  */
 export function ChapterSyncPanel({
@@ -49,6 +52,7 @@ export function ChapterSyncPanel({
 }) {
   const api = useApi();
   const actions = useChapterLinkActions();
+  const voiceLayout = useVoiceLayout();
   const state = useChapterSync(api);
   // The picker offers every track of the project, each labelled with the chapter that holds it, as the other pickers do (owner answer 2 on #3398):
   // the shared state's tracks and links, so a link made elsewhere shows here, and the names the manuscript's current headings.
@@ -126,14 +130,16 @@ export function ChapterSyncPanel({
   const link = async (chapterId: string, trackGuid: string) => {
     if (!trackGuid) return;
     setLinkingChapterId(chapterId);
+    let written = false;
     try {
       // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
       const { linkedNotice } = await actions.set(chapterId, trackGuid, nameOf);
+      written = true;
       notify(linkedNotice);
       await loadPreview();
       onChanged();
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(linkFailureSentence(written ? 'unread' : 'set', error), 'error');
     } finally {
       setLinkingChapterId('');
     }
@@ -191,7 +197,7 @@ export function ChapterSyncPanel({
                 {choices.length > 0 && (
                   <div className="flex w-full min-w-0 items-center gap-2">
                     <TrackSelect
-                      label={`Track for ${nameOf(item.chapterId) ?? item.chapterTitle}`}
+                      label={destinationFor(voiceLayout).pickerLabel(nameOf(item.chapterId) ?? item.chapterTitle)}
                       choices={choices}
                       fullWidth
                       value={selected}
@@ -199,7 +205,7 @@ export function ChapterSyncPanel({
                     />
                     <Button
                       pending={linkingChapterId === item.chapterId}
-                      disabledReason={selected ? '' : 'Choose a track for this chapter first.'}
+                      disabledReason={selected ? '' : `Choose a ${destinationFor(voiceLayout).noun} for this chapter first.`}
                       onClick={() => void link(item.chapterId, selected)}
                     >
                       Link

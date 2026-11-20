@@ -1,3 +1,4 @@
+import { STARTING_TIP, STARTING_WORD } from '../../daw/dawSession';
 import type { AudacityLink, DawKind } from '../../api/contracts/daw';
 import { audacityTitle } from '../engine/audacityLinkText';
 import { dawShortName } from '../../studio/StudioProvider';
@@ -5,6 +6,7 @@ import { statusTone, type StatusId } from '../../kinds/statusTone';
 import type { HeaderChipTone } from '../primitives/HeaderChip';
 import { EngineChipButton } from '../engine/EngineChipButton';
 import { toneColors } from '../primitives/StatusBadge';
+import { useDawStarting } from '../../daw/useDawSession';
 
 // The header's recording-engine chip (the research mock's top bar): the name of the recorder the project is connected to, with a dot
 // for how it is doing. A state that needs the narrator also says so in words ("REAPER: Other project"), so the states do not differ by
@@ -41,6 +43,7 @@ export function EngineChip({
   /** True while the shared DAW-link binding is running for any of its three call sites (docs/architecture/interaction-feedback.md#the-standard's ref guard). */
   linkingDawFile?: boolean;
 }) {
+  const starting = useDawStarting();
   if (engine === 'builtin' || daw === 'none') {
     // The app's own recorder has no DAW to link, so its chip goes straight to where the engine is chosen. aria-label: the visible text hides
     // below `md`, leaving the dot as the chip's only content.
@@ -77,8 +80,11 @@ export function EngineChip({
   if (forAudacity && reachable && !linked) tooltip = 'Audacity is answering. Link the open project.';
   const status: StatusId =
     forAudacity && !reachable ? 'not_running' : !linked ? 'not_linked' : mismatch ? 'wrong_project' : !reachable ? 'not_running' : 'linked';
+  // The host is starting the DAW: say that, not "Not running" (#3668).
+  const startingNow = starting && status === 'not_running';
+  if (startingNow) tooltip = STARTING_TIP;
   const tone = statusTone(status) as HeaderChipTone;
-  const word = STATE_WORD[status];
+  const word = startingNow ? STARTING_WORD : STATE_WORD[status];
   // The words drawn come first in the name: axe fails a name that does not contain the text the button draws.
   const drawn = [label, word].filter(Boolean).join(': ');
   const dot = tone === 'neutral' ? 'var(--non-text)' : toneColors(tone).line;

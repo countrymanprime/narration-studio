@@ -163,6 +163,10 @@ func (s *Service) evaluate(project tracks.Project, projectFile evidence.LedgerPr
 	if _, err := confirmedTrack(s.mapping, basis.DocumentID, basis.ChapterID); err != nil {
 		return ChapterResult{}, err
 	}
+	// The run read the chapter's audio (the voices of its folder, less a track marked as not a voice), so the check reads the same set (#3593).
+	if s.config.ChapterAudio != nil {
+		project = s.config.ChapterAudio(project)
+	}
 	evaluation, evaluationBasis, err := evidence.EvaluateChapter(s.ledger, s.mapping, evidence.ChapterEvaluationRequest{
 		Project: project, ProjectFolder: s.config.Project, ProjectFile: projectFile,
 		DocumentID: basis.DocumentID, ChapterID: basis.ChapterID,

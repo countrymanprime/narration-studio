@@ -1,6 +1,6 @@
 import { flagged, isLow, itemAt, runwayEnd, type ChapterDoc, type DocItem } from '../model';
 import type { PageState } from '../script/scriptState';
-import { clockTenths } from '../../../clock';
+import { clock } from '../../../clock';
 import { pluralWord, formatCount } from '../../../plural';
 
 /** Which kind of flagged word a tinted span covers: extra words, a misread, or a low-confidence word. */
@@ -60,7 +60,16 @@ export function windowLayout(doc: ChapterDoc, t0: number, t1: number, playT: num
   const inside = (i: DocItem): boolean => i.t0 != null && i.t1 != null && i.t1 >= t0 && i.t0 <= t1;
   const items = doc.items.filter(inside);
   const flagWords = flagged(doc).filter((i) => inside(i) || (i.st === 'miss' && items.some((w) => w.pid === i.pid)));
-  return layoutOf(pid, items, flagWords.length, flagWords, t0, t1, playT, `The audio from ${clockTenths(t0)} to ${clockTenths(t1)}, ${secs(t1 - t0)}.`);
+  return layoutOf(
+    pid,
+    items,
+    flagWords.length,
+    flagWords,
+    t0,
+    t1,
+    playT,
+    `The audio from ${clock(t0, { full: true })} to ${clock(t1, { full: true })}, ${secs(t1 - t0)}.`,
+  );
 }
 
 function layoutOf(

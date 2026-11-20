@@ -3,12 +3,13 @@
 // page's route and reads the address with `navigation/address.ts`; the page inside keeps reading its own address as before.
 
 import { creditsKindOfId } from '../credits/creditsEntries';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { readPickupIds } from '../booth/page/boothQuery';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
+import { useOverlay } from '../../overlay/OverlayProvider';
 import { Button } from '../primitives/Button';
 import { BoothSkeleton } from '../booth/page/BoothSkeleton';
 import { EditingBodySkeleton } from '../editing/page/EditingSkeleton';
@@ -90,18 +91,43 @@ export function AddressGate({
   chapterParam,
   chapters,
   reloadChapters,
+  held = false,
   children,
 }: {
   page: AddressPage;
+  /**
+   * The page is holding something the narrator has not let go of (the Booth, while a take records or its end is not confirmed): an address it cannot act on does not
+   * replace it. A chapter the list lacks goes to the page, which asks as it does for any chapter; a malformed address is said in a message, put back and ignored (#3555 item 4).
+   */
+  held?: boolean;
   /** The `:chapterId` the route matched, for Editing. */
   chapterParam?: string;
   chapters: readonly ListedChapter[] | null;
   reloadChapters: () => Promise<void>;
   children: ReactNode;
 }) {
-  const { search, hash } = useLocation();
+  const { pathname, search, hash } = useLocation();
+  const navigate = useNavigate();
   const read = useMemo(() => readAddress(page, { search, hash, param: chapterParam }), [page, search, hash, chapterParam]);
   const check = useChapterCheck(askedOf(read), chapters, reloadChapters);
+  const overlay = useOverlay();
+  const keep = held && page === 'booth' && (read.kind === 'bad' || check.state !== 'ok');
+  const reason = read.kind === 'bad' ? read.message : '';
+  // The last address the page was shown at: an ignored link is put back to it, so the take's end does not turn the ignored address into the "could not be opened" card, and a
+  // second identical link is answered like the first.
+  const shown = useRef<string | null>(null);
+  if (!keep && read.kind === 'address') shown.current = `${pathname}${search}${hash}`;
+  // A malformed address is said here and put back, whatever it half names: the Booth does not act on it either. A well-formed one that names a chapter the manuscript lacks is
+  // the Booth's to ask about, as for any chapter.
+  const ignored = keep && read.kind === 'bad' ? `${search}${hash}` : null;
+  useEffect(() => {
+    if (ignored === null) return;
+    overlay.toast(`${reason} The Booth stays as it is.`);
+    navigate(shown.current ?? pathname, { replace: true });
+    // `ignored` is the address being ignored; the rest is read as it is then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ignored, overlay, reason]);
+  if (keep) return <>{children}</>;
   if (read.kind === 'bad') return <BadAddress page={page} message={read.message} />;
   if (check.state === 'checking') return <CheckingLink page={page} />;
   if (check.state === 'missing') {

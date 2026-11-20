@@ -2,6 +2,7 @@ import type { IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
 import { ProgressBar } from './ProgressBar';
 import { SectionLabel } from './SectionLabel';
+import { SpokenFigure } from './SpokenFigure';
 
 export const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
@@ -59,13 +60,18 @@ export function StatTile({
       </SectionLabel>
       {/* Plex Mono, weight 500: 22 px by default, 30 px for the Production `kpi` tile (the mock's `.kpi .v`). */}
       <div
-        className={`row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : size === 'compact' ? 'text-[length:var(--font-size-base)] leading-[1.4]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}
+        className={`relative row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : size === 'compact' ? 'text-[length:var(--font-size-base)] leading-[1.4]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}
       >
-        <span style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>{value}</span>
+        <SpokenFigure text={value} className="whitespace-nowrap" style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }} />
+        {/* A break opportunity between the value and its unit: the unit, never split, moves under the value whole. The space is for a screen reader ("4h 35m left"); the margin is the sighted gap. */}
+        {unit && <wbr />}
+        {unit && <span className="sr-only select-none"> </span>}
         {unit && (
-          <span className={`ml-1 ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
-            {unit}
-          </span>
+          <SpokenFigure
+            text={unit}
+            className={`ml-1 whitespace-nowrap ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`}
+            style={{ color: 'var(--text-muted)' }}
+          />
         )}
       </div>
       {hint && (

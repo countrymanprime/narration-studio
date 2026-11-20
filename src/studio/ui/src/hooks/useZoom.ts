@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { announceBrowserSettingChange } from '../browserSettings';
 import type { SystemApi } from '../api/contracts/system';
 import { useDebouncedValue } from './useDebouncedValue';
 
@@ -67,6 +68,9 @@ export function useZoom(api: Pick<SystemApi, 'windowZoom' | 'windowSetZoom' | 'w
   useEffect(() => {
     if (debouncedLevel === savedRef.current) return;
     savedRef.current = debouncedLevel;
+    // The Changed mark of the Zoom row reads the window's zoom, which has changed by now (the keys and the wheel set it), so it is asked again
+    // here and not when the save answers: a save that fails or never answers leaves the window zoomed all the same.
+    announceBrowserSettingChange();
     void api.windowSaveZoom(debouncedLevel).catch(() => undefined);
   }, [debouncedLevel, api]);
 

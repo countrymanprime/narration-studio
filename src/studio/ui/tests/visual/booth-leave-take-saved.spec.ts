@@ -42,7 +42,7 @@ for (const exit of exits) {
   test(`Stop and leave by ${exit.via} names ${exit.page}, and "Take saved" with Undo is on ${exit.page} for its whole life`, async ({ page }) => {
     await recording(page);
     await exit.go(page);
-    await expect(question(page)).toContainText(`Leaving the Booth for ${exit.page} stops it.`);
+    await expect(question(page)).toContainText(`Leaving the Booth for ${exit.page} stops it and saves the take.`);
     await question(page).getByRole('button', { name: 'Stop and leave' }).click();
     await expect.poll(() => new URL(page.url()).pathname).toBe(exit.path);
     await expect(saved(page)).toBeVisible();
@@ -94,7 +94,7 @@ test('Stop and leave in a pickup session says the take is saved and the pickup m
   await pastStartGuard(page);
   await page.waitForTimeout(2500);
   await page.keyboard.press('Escape');
-  await expect(question(page)).toContainText('Leaving the Booth for Pickups stops it.');
+  await expect(question(page)).toContainText('Leaving the Booth for Pickups stops it and saves the take.');
   await question(page).getByRole('button', { name: 'Stop and leave' }).click();
   await expect.poll(() => new URL(page.url()).pathname).toBe('/pickups');
   const toast = page.getByText(/^Take saved · 1 pickup marked recorded$/);

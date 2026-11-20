@@ -55,7 +55,7 @@ export function BackupsList({
             </TableCell>
             <TableCell>{b.label ?? ''}</TableCell>
             <TableCell numeric align="left">
-              {clock(b.start)}–{clock(b.end)}
+              {clock(b.start, { full: true })}–{clock(b.end, { full: true })}
             </TableCell>
             <TableCell>
               <Status backup={b} missing={missing.has(b.id)} />

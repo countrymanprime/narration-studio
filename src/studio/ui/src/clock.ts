@@ -1,6 +1,8 @@
 // The one place a number of seconds becomes a clock reading. A page does not format a duration itself (issue 3277): two screens
 // showing the same length must show the same text, so the rounding and the padding are decided here once.
 
+import { plural } from './plural';
+
 export type ClockOptions = {
   /** 2 pads the minutes ("06:42"), as the REC badge and the recording timer are drawn. Default 1 ("6:42"). */
   minuteDigits?: 1 | 2;
@@ -8,11 +10,18 @@ export type ClockOptions = {
   hours?: 'always';
   /**
    * `hh:mm:ss.fff`, always: two-digit hours, minutes and seconds and the milliseconds after a dot (a colon there would read as frames), "00:01:05.300".
-   * Rounded to the millisecond (unlike the default form, which floors whole seconds), so no sub-millisecond fraction is hidden and 59.9996 reads
-   * "00:01:00.000", never "00:00:59.1000"; a value exactly half a millisecond up rounds as the double does. Capped at a billion seconds. Overrides the
-   * other options. Owner, 2026-11-13 (#3443); no screen adopts it until the owner names one.
+   * Floored to the millisecond, like every other reading here (a clock never shows a time that has not happened yet), so 59.9996 reads "00:00:59.999",
+   * never "00:01:00.000" beside a floored "0:59". The value is taken to the microsecond first, so a time that is a whole number of milliseconds (65.3) is not
+   * read one short for the double's sake. Capped at a billion seconds. Overrides the other options. Owner, 2026-11-13 and 2026-11-16 (#3443): the form of every
+   * position on Editing and Proof.
    */
   full?: true;
+  /**
+   * Hours and minutes with their units, "5h 40m" ("0h 10m", "100h 30m"), always marked, so a length of hours beside lengths in minutes and seconds ("10:12") cannot be
+   * read as minutes and seconds (owner, 2026-11-16, #3443): every Production and Schedule hours figure. It ROUNDS to the nearest minute (59.6 s reads "0h 01m", where the
+   * floored default reads "0:59"), as the Production figures always did; `full` and the default floor. Overrides the other options except `full`.
+   */
+  marked?: true;
 };
 
 /** The longest length `full` writes: a billion seconds, in milliseconds. */
@@ -26,6 +35,7 @@ const pad = (value: number): string => String(value).padStart(2, '0');
  */
 export function clock(seconds: number, options: ClockOptions = {}): string {
   if (options.full) return clockFull(seconds);
+  if (options.marked) return clockMarked(seconds);
   const whole = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
   const hours = Math.floor(whole / 3600);
   const minutes = Math.floor((whole % 3600) / 60);
@@ -33,10 +43,28 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
   return `${String(minutes).padStart(options.minuteDigits ?? 1, '0')}:${pad(whole % 60)}`;
 }
 
-/** `hh:mm:ss.fff` (see `ClockOptions.full`): milliseconds are rounded first and carried, so every field is in range. */
+/** "5h 40m" (see `ClockOptions.marked`): to the nearest minute; negative and non-finite input read "0h 00m", as the default reads "0:00"; capped at a billion seconds like `full`, so an absurd value never prints digits a double cannot hold. */
+function clockMarked(seconds: number): string {
+  const minutes = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.round(seconds / 60)), Math.floor(MAX_FULL_MILLIS / 1000 / 60)) : 0;
+  return `${Math.floor(minutes / 60)}h ${pad(minutes % 60)}m`;
+}
+
+/**
+ * A `marked` figure spelled out for a screen reader: "5 hours 40 minutes", "10 minutes", "less than a minute" ("<0h 01m"). "0h 10m" is read letter by letter and "<" is dropped by
+ * the usual punctuation settings, so an accessible name uses this and the visible text stays as `clock` wrote it. A figure inside longer text ("/ 3h 08m") is spelled out where it stands; text with none comes back unchanged.
+ */
+export function spokenMarked(text: string): string {
+  return text.replace(/(<)?(\d+)h (\d{2})m/g, (_whole, less: string | undefined, h: string, m: string) => {
+    if (less) return 'less than a minute';
+    const [hours, minutes] = [Number(h), Number(m)];
+    return [hours > 0 ? plural(hours, 'hour') : '', minutes > 0 || hours === 0 ? plural(minutes, 'minute') : ''].filter(Boolean).join(' ');
+  });
+}
+
+/** `hh:mm:ss.fff` (see `ClockOptions.full`): floored to the millisecond, so every field is in range and no reading is ahead of the time it stands for. */
 function clockFull(seconds: number): string {
   // Capped at a billion seconds (over thirty years): beyond that the milliseconds are not exact in a double, and `seconds * 1000` can overflow.
-  const millis = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.round(seconds * 1000)), MAX_FULL_MILLIS) : 0;
+  const millis = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.floor(Math.round(seconds * 1e6) / 1000)), MAX_FULL_MILLIS) : 0;
   const whole = Math.floor(millis / 1000);
   return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor(whole / 60) % 60)}:${pad(whole % 60)}.${String(millis % 1000).padStart(3, '0')}`;
 }

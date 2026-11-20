@@ -29,7 +29,7 @@ export const cutTitle = (n: number, mute: boolean): string =>
 function laterText(mode: CutOptions['mode'], len: number, later: { before: number; after: number } | null): string {
   if (mode === 'gap') return `does not move; room tone fills ${sec(len)}`;
   return later
-    ? `moves ${sec(len)} earlier in this chapter (${clock(later.before)} becomes ${clock(later.after)})`
+    ? `moves ${sec(len)} earlier in this chapter (${clock(later.before, { full: true })} becomes ${clock(later.after, { full: true })})`
     : `moves ${sec(len)} earlier in this chapter`;
 }
 
@@ -99,7 +99,7 @@ export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName
       {r ? <Strips items={doc.items.filter((i) => i.pid === r.pid)} start={r.start} end={r.end} keys={r.keys} closeGap={mode === 'close'} /> : null}
       <dl className={FACTS}>
         <Fact label="Cut range" className={FACT_VALUE_MONO} data-cut-range>
-          {r ? `${clock(sum.start)} to ${clock(sum.end)} · ${sec(sum.len)}` : '—'}
+          {r ? `${clock(sum.start, { full: true })} to ${clock(sum.end, { full: true })} · ${sec(sum.len)}` : '—'}
         </Fact>
         <SubWordRow span={span} items={sum.audible} attr="data-cut-subword" />
         {ends ? (

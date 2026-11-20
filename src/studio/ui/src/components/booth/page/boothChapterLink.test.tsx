@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChapterTrackCreateResult, ChapterTrackMatch } from '../../../api/contracts/chapterTrackMap';
@@ -7,6 +7,8 @@ import type { ReadAloudReaperState } from '../../../api/contracts/teleprompter';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
+import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
+import { forgetMatches } from '../../connection/chapterMatchCache';
 import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { VoiceLayoutContext } from '../../engine/voiceLayout';
 import { forgetAppTake } from '../record/useRecordControl';
@@ -18,6 +20,7 @@ vi.mock('../takeTone', async (original) => ({ ...(await original<typeof import('
 beforeEach(() => {
   forgetAppTake();
   resetOpenOnce();
+  forgetMatches();
 });
 afterEach(() => {
   cleanup();
@@ -76,7 +79,9 @@ function renderUnlinked(over: Partial<NarrationApi> = {}, layout: 'flat' | 'fold
     <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
       <PortOverrides clients={{ daw }}>
         <VoiceLayoutContext.Provider value={layout}>
-          <BoothNextPage hasManuscript navigate={vi.fn()} />
+          <ChapterTrackStateProvider projectFolder="C:/Book" enabled notify={() => {}}>
+            <BoothNextPage hasManuscript navigate={vi.fn()} />
+          </ChapterTrackStateProvider>
         </VoiceLayoutContext.Provider>
       </PortOverrides>
     </BoothHost>,
@@ -100,6 +105,50 @@ describe('an unlinked chapter in the Booth', () => {
     expect(teleprompterStart).not.toHaveBeenCalled();
     expect(daw.recordStart).not.toHaveBeenCalled();
   });
+
+  // #3669: the tracks are read as the Booth opens, before the link check says the chapter is unlinked, so the dialog is not a spinner.
+  it('opens its dialog with the tracks to choose from and Link ready, because they were read before the link check answered', async () => {
+    const slowLinkCheck = new Promise<ReadAloudReaperState>((resolve) => setTimeout(() => resolve(UNLINKED), 400));
+    const withTracks: ChapterTrackMatch = {
+      ...EMPTY_PROJECT,
+      status: 'matched',
+      tracks: [{ guid: '{T-1}', name: 'Chapter 1', index: 0, depth: 0, isFolder: false, hasAudio: true }],
+      candidates: [{ trackGuid: '{T-1}', trackName: 'Chapter 1', trackIndex: 0, score: 1, source: 'track-name', region: null }],
+    };
+    // The host takes its time over the tracks: only a read started before the dialog opened is done by the time it does.
+    const chapterTrackMatch = vi.fn(() => new Promise<ChapterTrackMatch>((resolve) => setTimeout(() => resolve(withTracks), 100)));
+    renderUnlinked({ readAloudReaperState: () => slowLinkCheck, chapterTrackMatch });
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    // No waiting for the dialog's own read: the choices are there on the first look.
+    expect(within(dialog).queryByText(/Reading the REAPER tracks/)).toBeNull();
+    expect(within(dialog).getByRole('combobox')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Link track' }).getAttribute('aria-disabled')).not.toBe('true');
+    expect(chapterTrackMatch.mock.calls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // The owner's reported order: the link check answers first, the tracks come a moment later. The dialog waits for them instead of opening on nothing to pick.
+  it('does not open its dialog on an empty list when the link check answers before the tracks: the chip shows, then the dialog opens with the picker ready', async () => {
+    const withTracks: ChapterTrackMatch = {
+      ...EMPTY_PROJECT,
+      status: 'matched',
+      tracks: [{ guid: '{T-1}', name: 'Chapter 1', index: 0, depth: 0, isFolder: false, hasAudio: true }],
+      candidates: [{ trackGuid: '{T-1}', trackName: 'Chapter 1', trackIndex: 0, score: 1, source: 'track-name', region: null }],
+    };
+    renderUnlinked({ chapterTrackMatch: () => new Promise<ChapterTrackMatch>((resolve) => setTimeout(() => resolve(withTracks), 500)) });
+    // While the tracks are being read the chip says so, and no dialog is up.
+    expect(await screen.findByRole('button', { name: /Reading the REAPER tracks…/ })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' }, { timeout: 4000 });
+    expect(within(dialog).queryByText(/Reading the REAPER tracks/)).toBeNull();
+    expect(within(dialog).getByRole('combobox')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Link track' }).getAttribute('aria-disabled')).not.toBe('true');
+  });
+
+  it('opens the dialog anyway, reading for itself, when the host never answers the tracks', async () => {
+    renderUnlinked({ chapterTrackMatch: () => new Promise<ChapterTrackMatch>(() => undefined) });
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' }, { timeout: 5000 });
+    expect(within(dialog).getByText(/Reading the REAPER tracks/)).toBeTruthy();
+  }, 15000);
 
   it('the top-bar setup chip warns while the chapter has no track, and is plain again once a track is linked', async () => {
     renderUnlinked();
@@ -192,12 +241,90 @@ describe('an unlinked chapter in the Booth', () => {
     await waitFor(() => expect(daw.recordStart).toHaveBeenCalledTimes(1));
   });
 
-  it("keeps the chip and says the DAW's refusal in the dialog when the track cannot be added", async () => {
+  // #3670: the entry arm found no track for the unlinked chapter; the track just created is armed and monitored now, without a second press.
+  it('asks the DAW to arm the voice of the track it just created', async () => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    renderUnlinked({ dawArmBoothVoice } as Partial<NarrationApi>);
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
+    await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBeGreaterThan(before));
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
+    expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
+  });
+
+  // #3670: the chapter's track made by another screen (the Engine panel, Chapter links) while the Booth is on that chapter is armed once it is linked.
+  it('asks the DAW to arm the chapter once its track appears from another screen, once', async () => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    let appeared = false;
+    renderUnlinked({ dawArmBoothVoice, readAloudReaperState: async () => (appeared ? READY : UNLINKED) } as Partial<NarrationApi>);
+    await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    appeared = true;
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1));
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
+    expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
+  });
+
+  // qa-breaker: "unlinked" is remembered until the DAW answers with a track, so a read that fails or a DAW that is recording by itself between the two is not
+  // taken for the track appearing, and does not make the arm be lost either.
+  it.each([
+    ['a failed read', { status: 'unavailable', reason: 'failed', message: 'x', playing: false, recording: false } as ReadAloudReaperState],
+    ['a DAW that is not running', { status: 'unavailable', reason: 'not_running', message: 'x', playing: false, recording: false } as ReadAloudReaperState],
+    ['a DAW recording by itself', { status: 'recording_elsewhere', message: 'x', playing: false, recording: false } as ReadAloudReaperState],
+  ])('arms once, at the link, when %s comes between the missing track and the appearing one', async (_name, between) => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    let answer: ReadAloudReaperState = UNLINKED;
+    renderUnlinked({ dawArmBoothVoice, readAloudReaperState: async () => answer } as Partial<NarrationApi>);
+    await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    const refocus = async () => {
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await act(async () => new Promise((r) => setTimeout(r, 40)));
+    };
+    answer = between;
+    await refocus();
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before);
+    answer = READY;
+    await refocus();
+    await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1));
+    await refocus();
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
+  });
+
+  it('a chapter that stays unlinked asks nothing however the DAW comes and goes', async () => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    let answer: ReadAloudReaperState = UNLINKED;
+    renderUnlinked({ dawArmBoothVoice, readAloudReaperState: async () => answer } as Partial<NarrationApi>);
+    await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    for (const next of [{ ...UNLINKED, status: 'unavailable', reason: 'not_running' } as ReadAloudReaperState, UNLINKED, UNLINKED]) {
+      answer = next;
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await act(async () => new Promise((r) => setTimeout(r, 40)));
+    }
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before);
+  });
+
+  it("keeps the chip and says the DAW's refusal as a toast when the track cannot be added", async () => {
     const message = 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.';
-    renderUnlinked({ chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'standalone', message }) } as Partial<NarrationApi>);
+    const { overlay } = renderUnlinked({ chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'standalone', message }) } as Partial<NarrationApi>);
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
-    expect((await within(dialog).findByRole('alert')).textContent).toBe(message);
+    await waitFor(() => expect(overlay.getSnapshot().toasts.map((t) => t.text)).toContain(message));
+    expect(within(dialog).queryByRole('alert')).toBeNull();
     expect(recordButton().getAttribute('aria-disabled')).toBe('true');
   });
 
@@ -208,6 +335,36 @@ describe('an unlinked chapter in the Booth', () => {
     expect(await screen.findByRole('dialog', { name: 'Chapter One is linked to more than one track' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Linked to several tracks. Show details', hidden: true })).toBeTruthy();
   });
+
+  // #3368: the Engine says "Track missing" for a link to a track the project no longer has; the Booth said "Not linked to a track".
+  it('a chapter whose linked track is gone says so, not that it is not linked', async () => {
+    renderUnlinked({
+      readAloudReaperState: async () => ({
+        ...UNLINKED,
+        reason: 'track_missing',
+        message: 'The track linked to "Chapter 1" is no longer in the REAPER project.',
+      }),
+    } as Partial<NarrationApi>);
+    expect(await screen.findByRole('dialog', { name: /’s track is not in the project$/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Track missing. Show details', hidden: true })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Not linked to a track. Show details', hidden: true })).toBeNull();
+  });
+
+  it.each([
+    ['flat', 'track', 'Track missing'],
+    ['folders', 'folder', 'Folder missing'],
+  ] as const)(
+    'a missing link in a %s project: footer says the %s is not in the project, never that there is none, and the chips say what the Engine says',
+    async (layout, noun, chip) => {
+      renderUnlinked({ readAloudReaperState: async () => ({ ...UNLINKED, reason: 'track_missing', message: 'gone' }) } as Partial<NarrationApi>, layout);
+      await screen.findByRole('dialog');
+      const why = document.getElementById('brec-why')?.textContent ?? '';
+      expect(why).toContain(`${noun} is not in the project`);
+      expect(why).not.toContain(`has no ${noun}`);
+      expect(screen.getByRole('button', { name: `${chip}. Show details`, hidden: true })).toBeTruthy();
+      expect(screen.getByRole('button', { name: `Recording setup: REAPER, ${chip.toLowerCase()}`, hidden: true })).toBeTruthy();
+    },
+  );
 });
 
 describe('every other press that cannot start a take is said in front of the narrator', () => {

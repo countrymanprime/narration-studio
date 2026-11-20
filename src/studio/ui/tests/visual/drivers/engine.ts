@@ -1,7 +1,7 @@
 // How to reach each `engine` state in STATE_CATALOG (see app.drivers.ts): the engine panel, opened from the header's engine chip,
 // and the REAPER tools' dialogs opened from it.
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickVisible, openAdvanced, openEditingCheckFromEngine, openEnginePanel, openSettings, showSettingsRow } from './shared';
+import { type Driver, clickVisible, openEditingCheckFromEngine, openEnginePanel } from './shared';
 
 export const engineDrivers: Record<string, Driver> = {
   default: async (page) => {
@@ -27,21 +27,12 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     await page.getByText(/Waiting: REAPER is recording/).waitFor();
   },
-  // Chapter sync's "Needs you" list: undoing an automatic link in the sync activity log (Settings > Recording & DAW > Advanced) leaves that
-  // chapter for the narrator to link, and no seed starts there.
+  // Chapter sync's "Needs you" list: an automatic link that was undone leaves its chapter for the narrator to link (the `needs-you` seed).
   'sync-needs-you': async (page) => {
-    await openSettings(page, 'Recording & DAW', '?mockChapterSync=activity');
-    await openAdvanced(page);
-    const row = await showSettingsRow(page, 'daw.syncActivity');
-    await row
-      .getByRole('button', { name: /^Undo: Linked/ })
-      .first()
-      .click();
+    await page.goto('/?mockChapterSync=needs-you');
+    await settlePage(page);
     await openEnginePanel(page);
     await page.getByRole('heading', { name: /^Needs you \(\d+\)$/ }).waitFor();
-    // The undo answers with "Link undone." over the Tracks table: the picture is the panel.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
-    await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
   // An Audacity project: its card replaces the REAPER project section.
   'audacity-linked': async (page) => {
@@ -150,6 +141,23 @@ export const engineDrivers: Record<string, Driver> = {
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();
     await page.getByRole('treeitem', { name: /White Rabbit/ }).waitFor();
+  },
+  // The host refuses a link from the Chapter links list: an error toast, no line in the list, the row keeps its picker (#3365).
+  'links-set-refused': async (page) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterTrackSet: () => Promise.reject(new Error('That chapter is not in the manuscript.')),
+      };
+    });
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.scrollIntoViewIfNeeded();
+    const row = table.locator('tbody tr').nth(1);
+    await row.getByRole('combobox', { name: /^Track for / }).selectOption({ label: 'Click Track' });
+    await row.getByRole('button', { name: /^Use this track/ }).click();
+    await page.getByText('The link could not be made: That chapter is not in the manuscript.').waitFor();
   },
   'folder-tracks-picker': async (page) => {
     await page.goto('/?mockTrackFolders=1&mockChapterLink=none');
@@ -309,6 +317,33 @@ export const engineDrivers: Record<string, Driver> = {
       .first()
       .scrollIntoViewIfNeeded();
     await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
+  },
+  'voice-folders-link-several': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=ambiguous');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const note = page.getByRole('table', { name: 'Chapter links' }).getByText('Linked to several folders').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.waitFor();
+  },
+  'voice-folders-link-missing': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=missing');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const note = page.getByRole('table', { name: 'Chapter links' }).getByText('Linked folder is missing from this project').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.waitFor();
+  },
+  'link-chapters-several': async (page) => {
+    await page.goto('/?mockChapterLink=ambiguous');
+    await settlePage(page);
+    await openEnginePanel(page);
+    await clickVisible(page, 'button', 'Link chapters to tracks');
+    await page
+      .getByRole('combobox', { name: /^Track for / })
+      .first()
+      .waitFor();
+    await page.locator('select option:checked', { hasText: 'Several tracks' }).first().waitFor({ state: 'attached' });
   },
   'link-chapters-preview': async (page) => {
     await page.goto('/?mockChapterLink=none');

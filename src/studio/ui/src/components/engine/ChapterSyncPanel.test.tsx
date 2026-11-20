@@ -131,6 +131,18 @@ describe('ChapterSyncPanel', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked.'));
   });
 
+  // #3365: a rejected link is the shared sentence, as an error toast, and the panel keeps its list.
+  it('says a rejected Link with the shared sentence as an error', async () => {
+    const chapterTrackSet = vi.fn().mockRejectedValue(new Error('the bridge timed out'));
+    const api = createMockApi({ chapterSyncPreview: async () => needsYouPreview(), chapterTrackSet }, {});
+    const notify = vi.fn();
+    render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={notify} onChanged={() => {}} />}</ApiProvider>);
+    await screen.findByText('Needs you (1)');
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('The link could not be made: the bridge timed out', 'error'));
+    expect(screen.getByText('Needs you (1)')).toBeTruthy();
+  });
+
   // Owner answer 2 on #3398: the sync panel's picker offers every track of the project, with the chapter holding each, as the other pickers do.
   it('offers every track of the project, labelling the ones another chapter holds, and the sync’s candidate stays the pick', async () => {
     const [held, free] = WIRE_TRACKS_PROJECT.tracks;
@@ -212,7 +224,7 @@ describe('ChapterSyncPanel', () => {
     expect(screen.getByText('1 chapter linked automatically, 1 by you')).toBeTruthy();
   });
 
-  it('does not list the Sync activity: that log is in Settings', async () => {
+  it('does not list the Sync activity: the log is kept in the project folder, not drawn anywhere (#3671)', async () => {
     render(
       <ApiProvider api={createMockApi({}, { chapterSync: 'activity' })}>
         {<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={() => {}} onChanged={() => {}} />}

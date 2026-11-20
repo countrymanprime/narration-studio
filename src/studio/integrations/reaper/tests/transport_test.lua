@@ -58,6 +58,123 @@ H.test('arm_only is refused while REAPER is recording, and nothing changes', fun
   H.eq(arms(s), { 0, 1, 0 })
 end)
 
+H.test('arm_only is refused while REAPER plays or is paused, with the arms untouched', function()
+  for _, play_state in ipairs({ 1, 2 }) do
+    local s, chapter, other = new_session()
+    other.armed = true
+    s.fake.play_state = play_state
+    s:send('arm_only', 'a1', chapter.guid)
+    H.eq(s:events(), { { 'ERROR', 'a1', 'REAPER is playing. Stop it first.' } })
+    H.eq(arms(s), { 0, 1, 0 })
+    s.fake.play_state = 0
+    s:send('arm_only', 'a2', chapter.guid)
+    H.eq(s:events()[1][1], 'ARMED')
+  end
+end)
+
+H.test('arm_lane may arm while REAPER plays: the Booth chooses a voice during playback', function()
+  local s, chapter = new_session()
+  s.fake.play_state = 1
+  s:send('arm_lane', 'a1', chapter.guid)
+  H.eq(s:events()[1][1], 'ARMED')
+end)
+
+H.test('a refused press gives the arms back: record_stop after a record_start refused over a playing REAPER restores them', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s:events()
+  H.eq(arms(s), { 1, 0, 0 })
+  s.fake.play_state = 1
+  s:send('record_start', 'r1', chapter.guid)
+  H.eq(s:events(), { { 'ERROR', 'r1', 'REAPER is playing. Stop it first.' } })
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } })
+  H.eq(arms(s), { 0, 1, 0 })
+  s:send('record_stop', 's2')
+  H.eq(arms(s), { 0, 1, 0 })
+end)
+
+H.test('after a refused press, even a paused one, the arms come back but an arm the narrator set meanwhile is kept', function()
+  local s, chapter, other = new_session()
+  local third = s.fake:add_track('Third')
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s:events()
+  s.fake.play_state = 2
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  third.armed = true
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } })
+  H.eq(arms(s), { 0, 1, 0, 1 })
+  H.eq(third.armed, true)
+end)
+
+H.test('record_stop keeps the arms moved for a start the watch gave up on, so a late start records on the app track only', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s.fake.record_fails = true
+  s:send('record_start', 'r1', chapter.guid)
+  for _ = 1, 40 do
+    s:tick()
+  end
+  s:events()
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } })
+  H.eq(arms(s), { 1, 0, 0 })
+end)
+
+H.test('a successful start ends the give-up guard: a later refused press gets its arms back', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s.fake.record_fails = true
+  s:send('record_start', 'r1', chapter.guid)
+  for _ = 1, 40 do
+    s:tick()
+  end
+  s.fake.record_fails = false
+  s:send('record_stop', 's1')
+  s:send('record_start', 'r2', chapter.guid)
+  for _ = 1, 3 do
+    s:tick()
+  end
+  s:send('record_stop', 's2')
+  s:send('arm_only', 'a2', chapter.guid)
+  s.fake.play_state = 1
+  s:send('record_start', 'r3', chapter.guid)
+  s:events()
+  s:send('record_stop', 's3')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's3' } })
+  H.eq(arms(s), { 0, 1, 0 })
+end)
+
+H.test('the arms a guarded record_stop kept come back at the next stop once REAPER no longer records', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s:events()
+  s.fake.play_state = 5
+  s:send('record_stop', 's1')
+  H.eq(arms(s), { 1, 0, 0 })
+  s.fake.play_state = 0
+  s:send('record_stop', 's2')
+  H.eq(arms(s), { 0, 1, 0 })
+end)
+
+H.test('record_stop with no recording of ours leaves the arms alone while REAPER records a take of the narrator', function()
+  local s, chapter, other = new_session()
+  other.armed = true
+  s:send('arm_only', 'a1', chapter.guid)
+  s:events()
+  s.fake.play_state = 5
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } })
+  H.eq(arms(s), { 1, 0, 0 })
+end)
+
 H.test('arm_only reports a track that is gone and arms nothing in its place', function()
   local s, _, other = new_session()
   other.armed = true
@@ -253,6 +370,90 @@ H.test('record_start with chapter_end on an empty folder starts at the project s
   s.fake.cursor = 12
   s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
   H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '0.000000' } })
+end)
+
+-- #3559: a track the host names as not a voice (a music bed the narrator marked) is not the chapter's audio, so a bed that runs on past the
+-- narration does not move where the next take starts. The host sends the GUIDs as the fifth argument; an older host sends none.
+local function bed_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local narrator = s.fake:add_track('Narrator')
+  local bed = s.fake:add_track('Music bed')
+  folder.folder_depth = 1
+  bed.folder_depth = -1
+  s.fake:add_item(narrator, { position = 0, length = 60 })
+  s.fake:add_item(bed, { position = 0, length = 120 })
+  narrator.armed = true
+  return s, folder, narrator, bed
+end
+
+H.test('record_start with chapter_end and no list counts a music bed, as every older host expects', function()
+  local s, folder, narrator = bed_session()
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '120.000000' } })
+end)
+
+H.test('record_start with chapter_end continues after the narration, not after a track the host names as not a voice', function()
+  local s, folder, narrator, bed = bed_session()
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid, bed.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '60.000000' } })
+  H.eq(s.fake.cursor, 60)
+end)
+
+H.test('the list of tracks that are not a voice is read in any spelling and ignores what it cannot match', function()
+  local s, folder, narrator, bed = bed_session()
+  local bare = bed.guid:gsub('[{}]', ''):lower()
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid, ' {DEADBEEF-0000-4000-8000-00000000FFFF} ,,' .. bare .. ' ')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '60.000000' } })
+end)
+
+H.test('a folder the host names as not a voice leaves out every track inside it, and the voice after it stays', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local narrator = s.fake:add_track('Narrator')
+  local beds = s.fake:add_track('Beds')
+  local one = s.fake:add_track('Bed 1')
+  local two = s.fake:add_track('Bed 2')
+  local hero = s.fake:add_track('Hero')
+  folder.folder_depth = 1
+  beds.folder_depth = 1
+  two.folder_depth = -1
+  hero.folder_depth = -1
+  s.fake:add_item(narrator, { position = 0, length = 60 })
+  s.fake:add_item(one, { position = 0, length = 300 })
+  s.fake:add_item(two, { position = 0, length = 200 })
+  s.fake:add_item(hero, { position = 60, length = 25 })
+  narrator.armed = true
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid, beds.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '85.000000' } })
+end)
+
+H.test('the chapter folder itself is never left out, even when the list names it and every track inside it', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local narrator = s.fake:add_track('Narrator')
+  local bed = s.fake:add_track('Music bed')
+  folder.folder_depth = 1
+  bed.folder_depth = -1
+  s.fake:add_item(folder, { position = 0, length = 10 })
+  s.fake:add_item(bed, { position = 0, length = 120 })
+  narrator.armed = true
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid, folder.guid .. ',' .. bed.guid .. ',' .. narrator.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '10.000000' } })
+end)
+
+H.test('a track the host names as not a voice is still a target inside the folder, and the take starts after its own audio', function()
+  local s, folder, narrator, bed = bed_session()
+  narrator.armed = false
+  bed.armed = true
+  s:send('record_start', 'r1', bed.guid, 'chapter_end', folder.guid, bed.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', bed.guid, '120.000000' } })
+end)
+
+H.test('the list does not change a refusal: a folder that does not resolve is stale and nothing moves', function()
+  local s, _, narrator, bed = bed_session()
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', '{00000000-0000-4000-8000-0000000000FF}', bed.guid)
+  H.eq(s:events()[1][1], 'TRACK_STALE')
 end)
 
 H.test('record_start with chapter_end refuses a target that is not inside the folder and moves nothing', function()

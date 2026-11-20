@@ -104,6 +104,23 @@ async function openBoothReading(page: Page, seam: 'loading' | 'fails'): Promise<
   await clickNav(page, 'Booth');
 }
 
+/** The Booth on a chapter whose linked track is gone: the mock cannot seed it, so the page's own read is overridden before it loads (#3368). */
+async function openBoothTrackMissing(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      readAloudReaperState: async () => ({
+        status: 'no_link',
+        reason: 'track_missing',
+        message: 'The track linked to "Chapter 1" is no longer in the REAPER project.',
+        playing: false,
+        recording: false,
+      }),
+    };
+  });
+  await openBooth(page, UNLINKED);
+}
+
 /** Moves the Booth's Text settings › Column width slider to one end and closes the popover. */
 async function setBoothColumnWidth(page: Page, key: 'Home' | 'End'): Promise<void> {
   await page.getByRole('button', { name: 'Text settings' }).click();
@@ -212,6 +229,44 @@ export const boothDrivers: Record<string, Driver> = {
       .getByText(/has no track to record on/)
       .waitFor();
   },
+  // The DAW cannot add a track from the app: Create is off and its reason is on its tooltip, not a line in the dialog (#3365).
+  'record-unlinked-create-off': async (page) => {
+    await openBooth(page, `${UNLINKED}&mockDawCreate=off`);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    const create = dialog.getByRole('button', { name: 'Create a new track' });
+    await create.waitFor();
+    await create.hover();
+    await page
+      .getByRole('tooltip')
+      .getByText(/cannot add a track from this app/)
+      .waitFor();
+  },
+  // The host refuses the link: an error toast over the open dialog, which stays for a retry (#3365).
+  'record-unlinked-link-refused': async (page) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterTrackSet: () => Promise.reject(new Error('That chapter is not in the manuscript.')),
+      };
+    });
+    await openBooth(page, UNLINKED);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    await dialog.getByRole('combobox', { name: /^Track for / }).waitFor();
+    await dialog.getByRole('button', { name: 'Link track' }).click();
+    await page.getByText('The link could not be made: That chapter is not in the manuscript.').waitFor();
+  },
+  // The chapter's linked track was deleted in the DAW: the host answers track_missing and the dialog says the track is not in the project.
+  'record-track-missing': async (page) => {
+    await openBoothTrackMissing(page);
+    const dialog = page.getByRole('dialog', { name: /track is not in the project$/ });
+    await dialog.getByRole('button', { name: 'Create a new track' }).waitFor();
+  },
+  'record-track-missing-closed': async (page) => {
+    await openBoothTrackMissing(page);
+    const dialog = page.getByRole('dialog', { name: /track is not in the project$/ });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page.locator('#brec-link').getByRole('button', { name: 'Track missing. Show details' }).waitFor();
+  },
   // Create a new track: REAPER adds one named after the chapter and it is linked; the message says so and Record is ready.
   'record-unlinked-created': async (page) => {
     await openBooth(page, UNLINKED);
@@ -230,6 +285,17 @@ export const boothDrivers: Record<string, Driver> = {
     // The bridge is down and the project is not linked: the dialog opens by itself, with the launcher steps and Open in REAPER (off until a file is linked).
     await page.getByRole('dialog', { name: /is not connected/ }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
+  },
+  // The linked project while the host starts REAPER (#3668): the mark says so and the dialog does not open, however long after the app opened.
+  'record-starting': async (page) => {
+    await openBooth(page, '?mockDawConnected=0&mockDawChoice=starting');
+    await page
+      .locator('#brec-setup')
+      .getByRole('button', { name: /Starting REAPER/ })
+      .waitFor();
+    await page.waitForTimeout(600);
+    if ((await page.getByRole('dialog', { name: /is not connected/ }).count()) > 0)
+      throw new Error('the not-connected dialog opened while the host is starting REAPER');
   },
   // The same with the dialog closed by its X: the quiet mark stands above the footer and reopens it.
   'record-connect-closed': async (page) => {

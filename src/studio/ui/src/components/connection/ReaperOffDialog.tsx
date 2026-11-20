@@ -1,6 +1,8 @@
+import { startingDetail, startingTitle } from '../../daw/dawSession';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawCapabilities, DawChoice, DawKind } from '../../api/contracts/daw';
+import { useDawState } from '../../daw/useDawSession';
 import { usePort } from '../../ports/usePort';
 import { recorderName } from '../../studio/dawNames';
 import { useSecondsSince } from '../layout/CheckLine';
@@ -14,7 +16,7 @@ function choiceSentence(choice: DawChoice | null | undefined, name: string): str
     case 'linked':
       return `The project is linked, but ${name} has not connected: it is closed, or its bridge has not started yet.`;
     case 'starting':
-      return `This app opened ${name} on the linked project and is waiting for its bridge to answer.`;
+      return startingDetail(name);
     case 'not_running':
       return `${name} connected before and has stopped answering.`;
     case 'not_linked':
@@ -84,7 +86,10 @@ export function ReaperOffDialog({
 }: ReaperOffDialogProps) {
   const name = nameOverride ?? recorderName(daw);
   const choiceApi = usePort('dawChoice');
-  const [choice, setChoice] = useState<DawChoice | null>();
+  const [ownChoice, setChoice] = useState<DawChoice | null>();
+  // The session's reading is what the chip and the page say, so it is what the dialog says too, the moment it opens; this dialog's own read is only for when the session has none.
+  const sessionChoice = useDawState((state) => state.choice);
+  const choice = sessionChoice ?? ownChoice;
   // Read again with every check, so "linked" turns into "connected" at once and the sentence under the title stays true.
   useEffect(() => {
     let live = true;
@@ -112,6 +117,7 @@ export function ReaperOffDialog({
   const heardFor = useSecondsSince(heardAt);
   const unlinked = linked === undefined ? choice?.state === 'not_linked' : !linked;
   const detail = choiceSentence(choice, name);
+  const starting = choice?.state === 'starting';
 
   const check = () => {
     setChecking(true);
@@ -133,7 +139,8 @@ export function ReaperOffDialog({
   const start = {
     label: launch.state.phase === 'waiting' ? 'Connecting…' : (startLabel ?? `Start ${name}`),
     onPress: launch.start,
-    pending: busy,
+    // The host is already starting the DAW: a second press would be a second launch, so Start waits with it (#3668).
+    pending: busy || starting,
     disabled: unlinked,
   };
   const last = checkedFor === null ? 'Not checked yet.' : `Last checked ${checkedFor} s ago.`;
@@ -141,14 +148,17 @@ export function ReaperOffDialog({
 
   return (
     <ResolveShell
-      title={`${name === 'the DAW' ? 'The DAW' : name} is not connected`}
-      description={sentence}
+      // While the host is starting the DAW the dialog says so and does not tell the narrator to open it: that is what the app is doing (#3668).
+      title={starting ? startingTitle(name) : `${name === 'the DAW' ? 'The DAW' : name} is not connected`}
+      description={starting ? (detail ?? sentence) : sentence}
       onClose={onClose}
       primary={unlinked ? { label: 'Link project file…', onPress: link, pending: linking } : start}
       extra={unlinked ? start : undefined}
       secondary={{ label: 'Check again', onPress: check, pending: checking }}
     >
-      {detail && <p>{detail}</p>}
+      {!starting && detail && <p>{detail}</p>}
+      {/* The host's own account of a start that went nowhere: REAPER was opened but its bridge never answered. */}
+      {choice?.bridge?.problem && <p>{choice.bridge.problem}</p>}
       <p className="text-[var(--text-muted)]">{stillWorks}</p>
       {linkProblem && (
         <p ref={problemRef} role="alert" className="text-[var(--danger-text)]">
@@ -160,7 +170,8 @@ export function ReaperOffDialog({
           {name} could not be started: {launch.state.message}
         </p>
       )}
-      {launch.state.phase === 'failed' && (
+      {/* While the host says it is starting the DAW, "has not answered yet" would be false: it has not had its time yet. */}
+      {launch.state.phase === 'failed' && !starting && (
         <p role="alert" className="text-[var(--danger-text)]">
           {launch.state.message}
         </p>

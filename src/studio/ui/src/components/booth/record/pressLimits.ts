@@ -29,8 +29,8 @@ export const PRESS_LIMITS_MS = {
    * for the sidecar's first event, so its worst case is about 30 s before the model loads; this is above that with a margin.
    */
   listening: 45_000,
-  /** The start of the take by a DAW engine: the host's own limit is `readAloudVoiceStartTimeout`, 6 s (3 s for the track list, 3 s for the DAW to report recording). */
-  recordStart: 10_000,
+  /** The start of the take by a DAW engine: the host's own limit is `readAloudVoiceStartTimeout`, 10 s (7 s for the track list, 3 s for the DAW to report recording). */
+  recordStart: 14_000,
   /** The start of the take by the app's own recorder: the host runs it under `recorderDevicesTimeout`, 20 s, so the limit is above that. */
   recordStartInApp: 25_000,
   /** The stop of a take whose listening failed (`dropUnheardTake`). The host's stop goes through the bridge, which answers within `DefaultAnswerTimeout` (3 s, internal/bridge/navigation.go) when the DAW does not; this limit is the start's, well above that, so a stop is never cut off sooner than the bridge would give up. */
@@ -40,7 +40,7 @@ export const PRESS_LIMITS_MS = {
   /** Rolling again in a take (R, Punch and roll): the host's own limit is `rollTimeout`, 5 s (the stop, the cursor move and the DAW recording again). */
   roll: 8_000,
   /** Making the voice a passage was recorded on the take's track (a punch). */
-  voiceChoice: 8_000,
+  voiceChoice: 45_000,
 } as const;
 
 /**
@@ -68,7 +68,8 @@ export const PRESS_LIMIT_BASIS: Record<PressStage, string> = {
   recordStop: "host limit: the bridge's DefaultAnswerTimeout, 3 s (internal/bridge/navigation.go); this is the start's limit",
   undoLast: 'host limit: undoLastTimeout, 12 s',
   roll: 'host limit: rollTimeout (read from the Go source by the guard)',
-  voiceChoice: 'host limit: BoothVoiceSet runs under readAloudVoiceStartTimeout, 6 s (read from the Go source by the guard)',
+  voiceChoice:
+    'host limit: BoothVoiceSet runs under laneCommandTimeout: the arm wait, the late wait for a command the DAW has read and two live list reads (read from the Go source by the guard)',
 };
 
 /** The limit of the DAW's start of the take: the app's own recorder takes longer than a DAW engine to answer. */

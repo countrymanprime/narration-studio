@@ -26,7 +26,7 @@ const timesSaid = (page: Page, text: RegExp) =>
   }, text.source);
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
 
-/** Opens the Booth with the named host call hanging once (the first press) and answering normally after; `recordStartLate` answers after 12 s. */
+/** Opens the Booth with the named host call hanging once (the first press) and answering normally after; `recordStartLate` answers after 16 s. */
 async function openWith(page: Page, hung: Hung): Promise<void> {
   await page.addInitScript((which) => {
     const w = window as unknown as { __calls: Calls; __armed: boolean; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
@@ -60,7 +60,7 @@ async function openWith(page: Page, hung: Hung): Promise<void> {
         w.__calls.hangs += 1;
         return which === 'recordStart'
           ? new Promise(() => {})
-          : new Promise((resolve) => setTimeout(() => resolve({ outcome: 'started', position: 0, message: '' }), 12_000));
+          : new Promise((resolve) => setTimeout(() => resolve({ outcome: 'started', position: 0, message: '' }), 16_000));
       };
       overrides.readAloudRecordStop = () => {
         w.__calls.stops += 1;
@@ -93,7 +93,7 @@ test('a DAW start that never answers ends the press with a sentence and Record i
   await arm(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 20_000 });
   expect(await timesSaid(page, /gave up waiting for REAPER to start recording/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   // The overridden start never reached the mock DAW, so its recording state says nothing here: what counts is that no stop was sent for a take that never started.
@@ -107,9 +107,9 @@ test('a DAW start that answers after its limit is stopped, never left running', 
   await openWith(page, 'recordStartLate');
   await arm(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/gave up waiting for REAPER to start recording/).first()).toBeVisible({ timeout: 20_000 });
   expect(await timesSaid(page, /gave up waiting for REAPER to start recording/)).toBe(1);
-  // The host answers at 12 s with a take; the Booth gave up at 10 s, so it stops that take.
+  // The host answers at 16 s with a take; the Booth gave up at 14 s (PRESS_LIMITS_MS.recordStart), so it stops that take.
   await expect.poll(async () => (await calls(page)).stops, { timeout: 8000 }).toBeGreaterThanOrEqual(1);
   await expect(stop(page)).toHaveCount(0);
 });
@@ -169,7 +169,8 @@ test('a voice choice that never answers ends a punch press with a sentence and s
     .first()
     .click();
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/could not be set in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  // The press waits PRESS_LIMITS_MS.voiceChoice (45 s): above the host's whole budget for the arm (laneCommandTimeout).
+  await expect(page.getByText(/could not be set in time, so no take was started/).first()).toBeVisible({ timeout: 52_000 });
   expect(await timesSaid(page, /could not be set in time, so no take was started/)).toBe(1);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   expect(await dawRecording(page)).toBe(false);

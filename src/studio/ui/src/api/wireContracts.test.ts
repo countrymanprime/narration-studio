@@ -3854,6 +3854,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 });
     expect(await api.dawGoToChapter('c-0001', 'at', 17.25)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
     expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: 'c-0001', selected: 1, cursor: 17.25 });
+    expect(await api.dawGoToChapter('c-0001', 'start', 0)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawPlace()).toEqual({ ok: true, message: '', chapterId: 'c-0001', selected: 1, cursor: 0 });
     const bad = await api.dawGoToChapter('c-0001', 'at', -1);
     expect(bad.refused).toBe('The place to go to is not a usable number of seconds.');
 
@@ -3863,6 +3865,20 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(refused.ok).toBe(false);
     expect(refused.message).toBe((await off.dawCapabilities()).capabilities.follow_position.message);
     expect((await off.dawGoToChapter('c-0001', 'end', 0)).refused).toBe(refused.message);
+  });
+
+  it('dawArmBoothVoice and dawReleaseBoothMonitor answer the arm on entering the Booth and the release on leaving it: the host goldens parse, and the mock answers as the host does', async () => {
+    expectMatches(dawResultSchema, readGolden('daw-arm-booth-voice-done.json'), 'daw-arm-booth-voice-done.json');
+    expectMatches(dawResultSchema, readGolden('daw-arm-booth-voice-refused.json'), 'daw-arm-booth-voice-refused.json');
+    expectMatches(dawResultSchema, readGolden('daw-release-booth-monitor-done.json'), 'daw-release-booth-monitor-done.json');
+
+    const api = createMockApi({}, { daw: {} });
+    expect(await api.dawArmBoothVoice('c-0001')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawReleaseBoothMonitor()).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+
+    // A DAW with no record capability (Audacity has no arm or monitoring to change, nothing built in answers) is left alone without a word.
+    const off = createMockApi({}, { daw: { reachable: false } });
+    expect(await off.dawArmBoothVoice('c-0001')).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
   });
 
   it('dawTransportSync and daw_position_changed: the host goldens parse, every key is required, and the mock answers and streams as the host does', async () => {
@@ -4779,6 +4795,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawPunchPreroll',
       'dawPlace',
       'dawGoToChapter',
+      'dawArmBoothVoice',
+      'dawReleaseBoothMonitor',
       'dawTransportSync',
       'workspaceWordTimes',
       'subscribeDawProjectEdited',

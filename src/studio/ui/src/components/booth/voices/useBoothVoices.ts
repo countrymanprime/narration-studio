@@ -1,3 +1,4 @@
+import { COLD_READ_NO_VOICE_REASON } from '../../../input/hints';
 import { releaseFocusToPage } from '../releaseFocusToPage';
 import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,8 +18,12 @@ import { chapterLink } from '../../chapterTracks/chapterLink';
 /** The id of the Booth's voice button. */
 export const VOICE_CONTROL_ID = 'bvoice';
 
-/** Said when a voice is asked for while the main button reads Cold read: a cold read records nothing, so it needs no voice and makes no call to the DAW. */
-export const COLD_READ_NO_VOICE = 'A cold read needs no voice. Choose Record to pick one.';
+/**
+ * Said when a voice is asked for while the main button reads Cold read: a cold read records nothing, so it needs no voice and makes no call to the DAW.
+ * It points to Record only when there are voices to pick there; a chapter with none gets the reason alone.
+ */
+export const coldReadNoVoice = (hasVoices: boolean): string =>
+  hasVoices ? `${COLD_READ_NO_VOICE_REASON}. Choose Record to pick one.` : `${COLD_READ_NO_VOICE_REASON}.`;
 
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
@@ -97,7 +102,17 @@ export function useBoothVoices({
   const [stopping, setStopping] = useState(false);
   const [choosing, setChoosing] = useState(false);
   const [revision, setRevision] = useState(0);
-  const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
+  // Counts the changes after which an arm read taken earlier no longer says what the DAW has: a choice starting or ending (even of the voice the Booth
+  // already has, or a refused one) and the "Who is in Num N?" question opening or closing. Each change drops the read in flight and takes a new one.
+  const [epoch, setEpoch] = useState(0);
+  const [reaper, setReaper] = useState<{
+    chapterId: string;
+    status: string;
+    trackGuid: string;
+    armedCount?: number;
+    armedTrackGuids?: string[];
+    stamp: { voice: string; recording: boolean; asking: boolean; epoch: number };
+  } | null>(null);
 
   // The chapter's one link, once the shared state has answered: a chapter with no one link has no folder to read.
   const answered = trackState.readAt !== null;
@@ -133,10 +148,16 @@ export function useBoothVoices({
     [notify],
   );
 
+  // Counts the changes this page made to the voice the host records on and to the voices it added (a choice, an add). A read of the host
+  // that began before such a change answers for the voice as it was: its result must not put the old voice back or drop the lane just
+  // added (#3645, a lane that vanished and a selection that fell back to lane 1).
+  const localChanges = useRef(0);
+
   // The characters and the voice the host records on, read again whenever the shared tracks are (`readAt`) and after a change made here.
   useEffect(() => {
     if (!chapterId) return;
     let live = true;
+    const startedAt = localChanges.current;
     const pressed = retryPressed.current;
     retryPressed.current = false;
     if (!link) {
@@ -165,6 +186,7 @@ export function useBoothVoices({
       if (!live) return;
       if (!hostFailed) failing.current = false;
       setCharacters(entities.filter((entity) => entity.category === 'Character'));
+      if (localChanges.current !== startedAt) return;
       setHostVoice({
         chapterId,
         guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
@@ -195,15 +217,40 @@ export function useBoothVoices({
       setReaper(null);
       return;
     }
+    // A voice being chosen is not read: the host is arming the lane, and the read would wait in REAPER's queue beside the arm itself and answer
+    // before the arm lands, so what it says is the DAW's word on the voice being left, not the one chosen. The choice bumps the epoch again as it
+    // ends, which drops such a read from the arm-by-hand follow; the arm dot would still have shown it. The read after the answer is the one that
+    // counts (#3647); the dot keeps its last state until then (the host bounds a choice at its lane command timeout).
+    if (choosing) return;
     let live = true;
+    // What the Booth had when this read began: a read taken during a take, or before the voice changed, is not the DAW's word on the Booth's voice now.
+    const stamp = { voice: hostVoice.guid, recording, asking, epoch };
     teleprompter
       .readAloudReaperState(chapterId)
-      .then((state) => live && setReaper({ chapterId, status: state.status, trackGuid: state.trackGuid ?? '', armedCount: state.armedCount }))
+      .then(
+        (state) =>
+          live &&
+          setReaper({
+            chapterId,
+            status: state.status,
+            trackGuid: state.trackGuid ?? '',
+            armedCount: state.armedCount,
+            armedTrackGuids: state.armedTrackGuids,
+            stamp,
+          }),
+      )
       .catch(() => live && setReaper(null));
     return () => {
       live = false;
     };
-  }, [chapterId, teleprompter, hostVoice.guid, recording, coldRead, revision, trackState.readAt]);
+  }, [chapterId, teleprompter, hostVoice.guid, recording, asking, coldRead, choosing, epoch, revision, trackState.readAt]);
+
+  const askingBefore = useRef(asking);
+  useEffect(() => {
+    if (askingBefore.current === asking) return;
+    askingBefore.current = asking;
+    setEpoch((n) => n + 1);
+  }, [asking]);
 
   // The voices the Booth added this session are listed before the narrator saves the project in the DAW (BoothVoiceGet's `added`).
   const added = hostVoice.chapterId === chapterId ? hostVoice.added : undefined;
@@ -244,6 +291,8 @@ export function useBoothVoices({
   recordingNow.current = recording;
   const coldNow = useRef(coldRead);
   coldNow.current = coldRead;
+  const haveVoices = useRef(false);
+  haveVoices.current = voices.length > 0;
   // Set by a voice key pressed with no take running; the answer to the choice starts the take (see `send`).
   const recordOnChoice = useRef(false);
   const sending = useRef<Voice | undefined>(undefined);
@@ -252,12 +301,15 @@ export function useBoothVoices({
   const send = useCallback(
     (voice: Voice) => {
       sending.current = voice;
+      localChanges.current += 1;
       let accepted = false;
       setChoosing(true);
+      setEpoch((n) => n + 1);
       voiceTracks
         .boothVoiceSet(chapterId, voice.guid)
         .then((answer) => {
           accepted = answer.outcome !== 'refused';
+          armUnconfirmed.current = answer.outcome === 'selected' && !answer.armed;
           if (answer.outcome === 'refused') {
             notify(answer.message ?? 'The voice was not changed.', 'error');
             // The voices this page lists are not the saved project's any more: read them again.
@@ -270,6 +322,7 @@ export function useBoothVoices({
               if (answer.reason === 'track_missing') refreshAll();
             }
             const guid = answer.trackGuid;
+            localChanges.current += 1;
             setHostVoice((last) => ({ chapterId, guid, added: last.chapterId === chapterId ? last.added : [] }));
           }
         })
@@ -280,6 +333,7 @@ export function useBoothVoices({
           queued.current = undefined;
           if (next && next.guid !== voice.guid) return send(next);
           setChoosing(false);
+          setEpoch((n) => n + 1);
           // A key pressed with no take running: the take starts on the voice the host now records on, unless a take began meanwhile.
           const start = recordOnChoice.current;
           recordOnChoice.current = false;
@@ -291,7 +345,7 @@ export function useBoothVoices({
 
   const choose = useCallback(
     (voice: Voice, fromKey = false) => {
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       // Only a key records at once, and only when no take runs (a take that runs is switched live); a pick from the list leaves Record to the narrator.
       if (fromKey && !recordingNow.current) recordOnChoice.current = true;
       // A voice chosen is the voice recorded: the stand-in for a character with no track ends.
@@ -310,7 +364,7 @@ export function useBoothVoices({
   const byKey = useCallback(
     (n: number) => {
       releaseFocusToPage();
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       if (voices.length === 0) {
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
@@ -351,7 +405,7 @@ export function useBoothVoices({
   const add = useCallback(
     async (name: string, characterIds: string[]) => {
       if (coldNow.current) {
-        notify(COLD_READ_NO_VOICE, 'info');
+        notify(coldReadNoVoice(haveVoices.current), 'info');
         return false;
       }
       try {
@@ -362,6 +416,7 @@ export function useBoothVoices({
           ? undefined
           : characters.find((entity) => same(entity.canonical_name) || entity.aliases.some((alias) => same(alias.text)));
         const ids = named && characterIds.length > 0 && !characterIds.includes(named.id) ? [named.id, ...characterIds] : characterIds;
+        const changesBefore = localChanges.current;
         const answer = await voiceTracks.boothVoiceAdd(chapterId, name, ids);
         if (answer.outcome === 'refused') {
           notify(answer.message ?? 'The track was not added.', 'error');
@@ -369,9 +424,17 @@ export function useBoothVoices({
         }
         setStandIn(null);
         const guid = answer.trackGuid ?? '';
+        // The add arms the new voice (#3670); when the DAW would not (a message says so) the old lane is still the one armed, which the next DAW report must
+        // not read as the narrator arming it by hand.
+        armUnconfirmed.current = Boolean(answer.message);
+        // The track is added and chosen, but the DAW would not arm it (#3670): said, as for a voice chosen from the list.
+        if (answer.message) notify(answer.message, 'error');
+        // A voice chosen while the add waited keeps its place: the late lane is listed, not selected (the host does the same).
+        const keepChoice = localChanges.current !== changesBefore;
+        localChanges.current += 1;
         setHostVoice((last) => ({
           chapterId,
-          guid,
+          guid: keepChoice && last.chapterId === chapterId ? last.guid : guid,
           added: [...(last.chapterId === chapterId ? last.added : []), { guid, name: answer.name ?? name }],
         }));
         // The characters are on the new track's name: the Voices card and the keys read them from the setup.
@@ -401,7 +464,7 @@ export function useBoothVoices({
   const use = useCallback(
     async (voice: Voice, characterIds: string[]) => {
       if (coldNow.current) {
-        notify(COLD_READ_NO_VOICE, 'info');
+        notify(coldReadNoVoice(haveVoices.current), 'info');
         return false;
       }
       try {
@@ -424,7 +487,7 @@ export function useBoothVoices({
 
   const standInFor = useCallback(
     (character: WhoCharacter) => {
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       const narrator = voices.find((voice) => voice.narrator);
       if (!narrator) {
         notify(`${character.name} has no track, and this chapter has no Narrator track to record on.`, 'error');
@@ -440,7 +503,7 @@ export function useBoothVoices({
   const step = useCallback(
     (by: 1 | -1) => {
       releaseFocusToPage();
-      if (coldNow.current) return notify(COLD_READ_NO_VOICE, 'info');
+      if (coldNow.current) return notify(coldReadNoVoice(haveVoices.current), 'info');
       // A key's stop is being answered: stepping now would switch a take that is ending.
       if (stopFor.current !== undefined) return;
       if (voices.length === 0) {
@@ -460,6 +523,52 @@ export function useBoothVoices({
 
   const reload = refreshAll;
   const read = reaper?.chapterId === chapterId ? reaper : null;
+  // A lane armed in the DAW by hand is the Booth's voice too (#3429). The read names the armed tracks: leave out the Booth's own voice and, when
+  // exactly one other track is armed, that is the narrator's new lane (a plain arm click leaves the old lane armed too). When it is another voice of
+  // this chapter and the app is neither recording nor choosing, the Booth takes it through the host, which arms a track REAPER has armed already
+  // (a no-op that disarms the old lane), so nothing bounces back. Only a read begun under the voice the Booth has now and with no take running
+  // counts, so a read in flight when the app chose, or taken during a take, is never acted on late. A guid asked once is not asked again until
+  // the DAW reports something else, so a refusal is not repeated on every read.
+  const followed = useRef('');
+  // Set when a choice was made but the DAW did not confirm the arm (#3645): its next report of another armed lane is the old arm still standing,
+  // not the narrator arming that lane by hand, so it is not followed (it would put the old voice back over the one just chosen).
+  const armUnconfirmed = useRef(false);
+  // null while no read counts (none yet, taken during a take, or begun under another voice or question state): that says nothing, so it neither follows
+  // nor forgets. `key` is the DAW's armed set: a set already acted on is not acted on again, so a DAW that keeps two lanes armed cannot make the Booth
+  // swap between them, and a refusal is not repeated on every read.
+  const armedByHand = useMemo(() => {
+    if (!read || read.stamp.recording || read.stamp.asking !== asking || read.stamp.voice !== hostVoice.guid || read.stamp.epoch !== epoch) return null;
+    if (read.status !== 'other_armed' && read.status !== 'several_armed') return { lane: '', key: '' };
+    const armedNow = (read.armedTrackGuids ?? []).map((guid) => guid.toLowerCase());
+    // Voices of this chapter other than the Booth's own: the folder track or another chapter's track armed beside them is not a lane change.
+    const others = armedNow.filter((guid) => guid !== current?.guid.toLowerCase() && voices.some((voice) => voice.guid.toLowerCase() === guid));
+    return { lane: others.length === 1 ? others[0] : '', key: [...armedNow].sort().join(' ') };
+  }, [read, hostVoice.guid, asking, epoch, current, voices]);
+  // A chapter change, or a read that failed (the DAW went quiet), forgets what was acted on: the next report is a fresh one.
+  useEffect(() => {
+    followed.current = '';
+  }, [chapterId]);
+  useEffect(() => {
+    if (!read) followed.current = '';
+  }, [read]);
+  useEffect(() => {
+    if (armedByHand === null) return;
+    if (armedByHand.lane === '') {
+      followed.current = '';
+      armUnconfirmed.current = false;
+      return;
+    }
+    if (recording || choosing || asking || followed.current === armedByHand.key) return;
+    if (armUnconfirmed.current) {
+      armUnconfirmed.current = false;
+      followed.current = armedByHand.key;
+      return;
+    }
+    const voice = voices.find((each) => each.guid.toLowerCase() === armedByHand.lane);
+    if (!voice || voice.guid.toLowerCase() === current?.guid.toLowerCase()) return;
+    followed.current = armedByHand.key;
+    choose(voice);
+  }, [armedByHand, recording, choosing, asking, voices, current, choose]);
   // During this app's take the voice it records on is armed: the start and every switch answer say so, and the state read then only says REAPER records.
   const arm: BoothVoices['arm'] = recording
     ? { state: 'armed' }

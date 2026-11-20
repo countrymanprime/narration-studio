@@ -92,6 +92,34 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-unlinked-create-off',
+    description:
+      'The same dialog when the DAW cannot add a track from the app (?mockDawCreate=off): Create a new track is off, with no line of explanation in the dialog; hovering or focusing it shows why on its tooltip, and Link track and Check again work as before',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-track-missing',
+    description:
+      'Booth on a chapter whose linked track is no longer in the project (the host answers track_missing; the page injects it): the "Chapter 1’s track is not in the project" dialog opens by itself, saying Record cannot start until the chapter is linked to a track that is in the project, with Link track, Create a new track and Check again',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-unlinked-link-refused',
+    description:
+      'The Link dialog after the host refuses the link (Link track pressed, "That chapter is not in the manuscript."): the dialog stays open for a retry and the failure is an error toast over it, "The link could not be made: …", with no line added to the dialog',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-track-missing-closed',
+    description:
+      'The same Booth after the dialog was closed: the "Track missing" chip under the text reopens it, the top-bar setup chip reads "REAPER · track missing", and Record looks off',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-unlinked-created',
     description:
       'The same Booth after Create a new track: REAPER added a track named after the chapter and it is linked; the message says so and that the REAPER project should be saved, the chip is gone and Record is ready',
@@ -102,6 +130,13 @@ export const boothStates: StateEntry[] = [
     state: 'record-connect',
     description:
       "Booth opened without REAPER's bridge (?mockDawConnected=0 with the record capability on, the app started on its own): Record is disabled with the capability's sentence, and a dialog opens by itself saying REAPER is not connected, with what still works, when it last checked, the launcher steps (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path), Open in REAPER and connect (off until a project file is linked) and Check again",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-starting',
+    description:
+      'Booth for a linked project while the app opens REAPER on it (?mockDawConnected=0&mockDawChoice=starting, #3668): the quiet mark above the footer reads "Starting REAPER…" and no dialog opens; Record stays disabled until REAPER answers',
     ...REFLOW,
   },
   {
@@ -224,7 +259,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'leave-dialog',
     description:
-      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth for Script stops it."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED',
+      'Booth, Escape pressed during a take: the "Stop recording?" question ("REAPER is recording. Leaving the Booth for Script stops it and saves the take."), with Keep recording (the mock\'s name for staying) and Stop and leave; the take is held while it is open, so the pill reads REC PAUSED',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },

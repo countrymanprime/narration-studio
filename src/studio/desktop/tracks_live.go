@@ -24,7 +24,7 @@ import (
 // the reason the live list was not used.
 
 // tracksLiveTimeout bounds one live read; a REAPER that does not answer in it is "not answering", and the saved project is shown.
-const tracksLiveTimeout = 3 * time.Second
+const tracksLiveTimeout = 7 * time.Second
 
 // Where TracksLive's tracks came from.
 const (
@@ -76,7 +76,7 @@ func trackListerFrom(svc hostServices) (dawport.TrackLister, dawport.Support) {
 		}
 		return nil, dawport.Support{Reason: dawport.ReasonFailed, Message: err.Error()}
 	}
-	return lister, dawport.Support{Available: true}
+	return withTracksCache(svc, lister), dawport.Support{Available: true}
 }
 
 // tracksLiveIn reads the project's tracks from lister when the engine has the selected project file open, else from that file.

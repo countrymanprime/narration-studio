@@ -90,8 +90,9 @@ type EvaluatorResult struct {
 	// item_muted (only position, mute or order changed) - the cases where every
 	// item's AnalysisKey, and therefore its result cache entry, is unaffected. Always false for StateCurrent
 	// and StateNever.
-	Recomposable     bool
-	Record           *LedgerRecord
+	Recomposable bool
+	Record       *LedgerRecord
+	// ChangedItemGUIDs are the changed items' ledger keys: an item's GUID, or "GUID#2" for a later item that repeats it (itemKeys).
 	ChangedItemGUIDs []string
 }
 
@@ -152,6 +153,7 @@ func ComputeChapterFingerprint(items []tracks.Item, identify SourceIdentifier) (
 	itemFacts := map[string]LedgerItemFact{}
 	var newestSource time.Time
 	entries := make([]TrackFingerprintEntry, 0, len(items))
+	keys := newItemKeys()
 
 	for _, item := range items {
 		if !item.Supported || item.GUID == "" {
@@ -165,17 +167,18 @@ func ComputeChapterFingerprint(items []tracks.Item, identify SourceIdentifier) (
 		if err != nil {
 			continue
 		}
+		itemID := keys.key(item.GUID)
 		if identity.ModTime.After(newestSource) {
 			newestSource = identity.ModTime
 		}
 
 		played := ItemPlayedRange(item)
-		key := ComputeAnalysisKey(identity, played, take.PlayRate)
-		fingerprint := ComputeItemFingerprint(key, item)
+		analysisKey := ComputeAnalysisKey(identity, played, take.PlayRate)
+		fingerprint := ComputeItemFingerprint(analysisKey, item)
 
-		itemFingerprints[item.GUID] = fingerprint
-		analysisKeys[item.GUID] = key
-		itemFacts[item.GUID] = LedgerItemFact{
+		itemFingerprints[itemID] = fingerprint
+		analysisKeys[itemID] = analysisKey
+		itemFacts[itemID] = LedgerItemFact{
 			Position:       item.Position,
 			Length:         item.Length,
 			Muted:          item.Muted,
@@ -400,11 +403,19 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 		return EvaluatorResult{State: StateNever}, BuildBasis(req.ProjectFile, recordTime, time.Time{}), nil
 	}
 
-	track, ok := findTrack(req.Project, link.TrackGUID)
+	// The chapter's audio is every member of its track: the track itself, or for a folder of voices the tracks inside it less a track marked
+	// as not a voice (tracks.Project.ChapterMembers). The plan a run was made from fingerprints the same set, in the same order, so the read
+	// and the write agree (#3593).
+	members, ok := req.Project.ChapterMembers(link.TrackGUID)
 	if !ok {
 		result := EvaluatorResult{State: StateNever, Reasons: []EvaluatorReason{ReasonMappedTrackMissing}}
 		return result, BuildBasis(req.ProjectFile, recordTime, time.Time{}), nil
 	}
+	var items []tracks.Item
+	for _, member := range members {
+		items = append(items, member.Items...)
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].Position < items[j].Position })
 
 	identify := func(sourceFile string) (SourceIdentity, error) {
 		if sourceFile == "" {
@@ -415,7 +426,7 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 		}
 		return Identify(sourceFile, req.ProjectFolder)
 	}
-	current, newestSource := ComputeChapterFingerprint(track.Items, identify)
+	current, newestSource := ComputeChapterFingerprint(items, identify)
 	basis := BuildBasis(req.ProjectFile, recordTime, newestSource)
 
 	record, found, err := latestCompleteRecord(ledger, req.AnalyzerID, req.ChapterID)
@@ -442,16 +453,6 @@ func singleMappingFor(links []TrackMapping, chapterID string) (TrackMapping, boo
 		}
 	}
 	return match, count == 1
-}
-
-// findTrack returns project's track with the given GUID.
-func findTrack(project tracks.Project, trackGUID string) (tracks.Track, bool) {
-	for _, track := range project.Tracks {
-		if track.GUID == trackGUID {
-			return track, true
-		}
-	}
-	return tracks.Track{}, false
 }
 
 // latestCompleteRecord returns the newest record for (analyzerID, chapterID)
@@ -492,4 +493,27 @@ func newestRecordTime(ledger *LedgerStore, chapterID string) (time.Time, error) 
 		}
 	}
 	return newest, nil
+}
+
+// itemKeys hands out the keys items are stored under in a LedgerFingerprint's maps: an item's GUID, so every record written before this
+// stays readable. Two items of one chapter can share a GUID (a track copied in from another project), and keyed alike the second would hide
+// the first, so a trim of the first read as a recomposable move (#3608): a repeat gets "#2", "#3" after its GUID, the first whose key no item
+// has taken (a real GUID that already ends in "#2" keeps its own key). Only an item that is fingerprinted asks for a key, so one that is
+// skipped (no playable source, an unreadable file) does not shift its twin's. The items come in position order, which fixes who is "#2".
+type itemKeys struct {
+	taken map[string]bool
+	seen  map[string]int
+}
+
+func newItemKeys() *itemKeys { return &itemKeys{taken: map[string]bool{}, seen: map[string]int{}} }
+
+// key is the next unused key for an item with this GUID.
+func (k *itemKeys) key(guid string) string {
+	k.seen[guid]++
+	candidate := guid
+	for n := k.seen[guid]; k.taken[candidate]; n++ {
+		candidate = guid + "#" + strconv.Itoa(n)
+	}
+	k.taken[candidate] = true
+	return candidate
 }

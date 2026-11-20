@@ -13,6 +13,8 @@ export type ConfirmSpec = {
   armAfterMs?: number;
   /** No Enter or Space is taken for this long after the question appears, whichever button has focus: for a question raised by a key the narrator may press twice. A click and Escape are not held back. */
   ignoreEnterAfterMs?: number;
+  /** Where focus goes on close when the element that had it is gone: the control the narrator asked from (the chapter picker). Absent, the page's <main>. */
+  returnFocus?: () => HTMLElement | null;
 };
 
 /** The answer to "may the narrator leave for `next`?": go ahead, or ask this first. */
@@ -28,12 +30,15 @@ type LeaveVerdict =
       decide?: () => Promise<boolean>;
     };
 
-type LeaveGuard = (next: string) => LeaveVerdict;
+/** `peek`: only asking whether the guard would ask (the page's own render does): it must change nothing, as `checkLeave` may on the way to a move. */
+type LeaveGuard = (next: string, options?: { peek?: boolean }) => LeaveVerdict;
 
 export type LeaveGuardStore = {
   /** Replaces the guard; `null` removes it. */
   setLeaveGuard(guard: LeaveGuard | null): void;
   checkLeave(next: string): LeaveVerdict;
+  /** The verdict `checkLeave` would give, with nothing marked as asked: for a render to read. */
+  peekLeave(next: string): LeaveVerdict;
 };
 
 export function createLeaveGuard(): LeaveGuardStore {
@@ -43,5 +48,6 @@ export function createLeaveGuard(): LeaveGuardStore {
       guard = next;
     },
     checkLeave: (next) => guard?.(next) ?? 'allow',
+    peekLeave: (next) => guard?.(next, { peek: true }) ?? 'allow',
   };
 }

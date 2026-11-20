@@ -13,12 +13,15 @@ export function LooseSuggestionRows({
   selectedId,
   tabStopId,
   onSelect,
+  leadingCell = false,
 }: {
   suggestions: readonly ExtractionSuggestion[];
   selectedId: string | null;
   /** The row that holds the table's one tab stop, when it is one of these. */
   tabStopId?: string | null;
   onSelect: (id: string) => void;
+  /** The table has a column of tick boxes before the name: these rows have nothing to tick, so they leave it empty. */
+  leadingCell?: boolean;
 }) {
   return (
     <>
@@ -30,6 +33,7 @@ export function LooseSuggestionRows({
           tabStop={tabStopId === suggestion.id}
           onActivate={() => onSelect(suggestion.id)}
         >
+          {leadingCell && <TableCell className="px-0" />}
           {/* One line like an entry row (the table counts every row as one 39 px row), the full summary as the hint; the score sits in the
               Kind cell, which takes the Hear button's 26 px column too, where a pill overflowed (SBX-17, R3SB2-7). */}
           <TableCell>

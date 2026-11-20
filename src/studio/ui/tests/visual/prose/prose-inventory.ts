@@ -242,7 +242,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/LinkChaptersDialog.tsx',
-    text: "Choose which REAPER track holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve.",
+    text: "Choose which REAPER … holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve.",
     class: 'overlay',
   },
   {
@@ -295,12 +295,12 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/pickups/list/PickupsTable.tsx', text: 'Can’t tell if this list is current. … Last read at ….', class: 'error' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
-    text: 'The linked track… is not in the project now. It may have been deleted or the project saved elsewhere. Link another track below.',
+    text: 'The linked … … is not in the project now. It may have been deleted or the project saved elsewhere. Link another … below.',
     class: 'overlay',
   },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
-    text: 'Not linked yet. This track looks like the chapter; link it to use it for checks and recorded time.',
+    text: 'Not linked yet. This … looks like the chapter; link it to use it for checks and recorded time.',
     class: 'overlay',
   },
   { file: 'components/production/ChapterTrackPanel.tsx', text: 'look like this chapter. Link the one it is recorded on.', class: 'overlay' },
@@ -359,13 +359,8 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/proof/ProofChapterPage.tsx',
-    text: 'This chapter isn&rsquo;t linked to a REAPER track yet. Link one from the Chapter links table in the audio engine panel.',
+    text: 'This chapter isn’t linked to a REAPER … yet. Link one from the Chapter links table in the audio engine panel.',
     class: 'empty',
-  },
-  {
-    file: 'components/proof/ProofChapterPage.tsx',
-    text: 'This chapter&rsquo;s linked track is no longer in the project.',
-    class: 'state',
   },
   {
     file: 'components/proof/inspector/EvidenceChangedBanner.tsx',
@@ -594,15 +589,9 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'The Booth reads the chapters of this book. Go back to the chapters to pick one.',
     class: 'empty',
   },
-  { file: 'components/connection/ChapterLinkDialog.tsx', text: '… cannot add a … from this app. Add one in …, then check again.', class: 'overlay' },
   {
     file: 'components/connection/ReaperOffDialog.tsx',
     text: 'The project is linked, but … has not connected: it is closed, or its bridge has not started yet.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/connection/ReaperOffDialog.tsx',
-    text: 'This app opened … on the linked project and is waiting for its bridge to answer.',
     class: 'overlay',
   },
   {

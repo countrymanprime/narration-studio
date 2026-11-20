@@ -3,8 +3,10 @@
 # Pickups
 
 Pickups lists every line to record again, so you can gather them into one session in the [Booth](booth.md). It sits
-under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch and does not
-move the DAW's cursor. Each line opens in the Booth, where you record it.
+under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch. Each line
+opens in the Booth, where you record it. With one chapter chosen, the DAW selects that chapter's track, and the tracks
+inside it, and puts its cursor where the chapter's audio starts (turn off **DAW follows your chapter** in
+[Settings](settings.md) to leave the DAW alone); with all chapters it moves nothing. When you come back to the app after selecting something else in the DAW, the DAW's selection is put back on that chapter (your cursor stays); the app asks only when the window gets focus back and never while the DAW records. The chosen chapter is not kept across a restart (the page opens on all chapters, which follows nothing).
 While the list is being read, the table shows grey rows shaped like its lines under the page title, **Add a pickup by hand** is off, and the Pickup session panel shows blocks for **Lines** and **Length**, not a count; if it cannot be read, the page says so with **Check again**.
 
 ## Record your pickups
@@ -49,7 +51,7 @@ title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by cha
   a repeat and a long silence are red; a breath, click, noise or plosive is amber; a pronunciation is blue. **Open** is amber, a thing
   still to do, and **Recorded** is green;
 - **Hear the original in context**, which plays the recording at this line with 3 seconds either side (press it again to
-  stop; it is off, with the reason in its tooltip, for a line that has no place in the recording yet and for a chapter that is not linked to a track). With REAPER linked it plays through
+  stop; it is off, with the reason in its tooltip, for a line that has no place in the recording yet and for a chapter that is not linked to a track, or to a folder in a Voice folders project). With REAPER linked it plays through
   REAPER; when REAPER cannot play now, the app plays the line's recording and a message says why. While REAPER is recording
   nothing plays;
 - **Open in Booth at this line** (Enter on a selected line), **Show in REAPER** (**Show in Audacity** with Audacity: the same button as on Editing, Proof and Production), which selects the note the line came from in your DAW and puts the edit cursor on its spot, **Mark recorded** (or **Mark open again**) and, set apart after a
@@ -96,7 +98,7 @@ removals in a row are one message that counts them ("Removed 3 lines from pickup
 
 ### When REAPER is not connected
 
-A **REAPER not connected** mark appears at the right end of the list's header, before **Check recordings**. It opens the dialog described on [Production](production.md): **Link project file…** when no REAPER project is linked yet, **Start REAPER**, and **Check again**. The list stays readable and editable; markers and checks wait until REAPER is running. A **Saved project** mark beside it says the chapters' tracks are the project file's as last saved, not REAPER's now (hold the pointer on it for why and when they were read); it goes away when REAPER answers.
+A **REAPER not connected** mark appears at the right end of the list's header, before **Check recordings**. It opens the dialog described on [Production](production.md): **Link project file…** when no REAPER project is linked yet, **Start REAPER**, and **Check again**. The list stays readable and editable; markers and checks wait until REAPER is running. When REAPER cannot play the line itself and the tracks could not be read, Hear the original says **The tracks could not be read** and why. A **Saved project** mark beside it says the chapters' tracks are the project file's as last saved, not REAPER's now (hold the pointer on it for why and when they were read); it goes away when REAPER answers.
 
 ### When the list cannot be read
 

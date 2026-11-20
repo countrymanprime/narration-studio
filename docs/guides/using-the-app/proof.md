@@ -45,7 +45,7 @@ hurried".
 
    Add an optional note in the box first if the reason helps later ("tense changed; author wants past").
    The decision buttons stay at the bottom of the Inspector while you scroll. In a short window, or with large text, where they would fill more than 40% of the window, they scroll with the panel instead, so they never hide a control you tabbed to.
-4. **The next note is selected** and a message says what was saved ("00:12.4 · Needs pickup") with **Undo**. Ctrl+Z,
+4. **The next note is selected** and a message says what was saved ("00:00:12.400 · Needs pickup") with **Undo**. Ctrl+Z,
    or **Undo the last change** in the jump menu, takes the decision back too.
 
 If the check runs again while you look and the evidence changes, the decision is not saved: Proof shows **Before** and
@@ -79,8 +79,8 @@ A chapter shows its **Recording check** card and its recording:
   is recorded against the script's estimate; and what the check counted, against the script and in the audio. **Check
   recordings** runs it (with **Stop checking** while it runs). Under **Last check** it says what the last check found and when. It is off, with the reason, when the chapter has no recording or
   no text, or the DAW is not reachable. A chapter with no measured recording shows no check result, only why (no track
-  linked, more than one, the linked track not in the saved project, or no saved project), with the audio engine panel
-  where it can be fixed. **Show the findings** lists what the check found, each with the suggested
+  linked, more than one, the linked track not in the saved project, or no saved project; a Voice folders project says folder
+  for track), with the audio engine panel where it can be fixed. **Show the findings** lists what the check found, each with the suggested
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
   remembered. Words that say the script beside them again (a retake or a restart) are listed as **Said twice**, with the
   words said again and **Fix in edit**, not as extra words: they are a second take. **Open in Editing** opens the line on
@@ -146,7 +146,7 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
   DAW.
 
 Under them, **Sources** names the checks the notes came from, with a count for each, before any chip or search narrows
-the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
+the list. The table lists Time (hours, minutes, seconds and milliseconds, `00:02:14.600`), Type, Script vs heard, From and Resolution (**To
 review**, **Needs pickup**, **Fix in edit**, **Fine as read** or **Defer**) for every note. Script vs heard is the note's headline
 sentence with the words in question marked in the note's own colour and form, for example “are” read as “our”; a note whose
 spot has more than one take also has a takes badge at the right of that column. A note still to review shows its Resolution
@@ -199,7 +199,7 @@ The Inspector shows:
 
 A decision is saved at once and the next note is selected. If focus was on a note, it moves to that next note too, so the focused row, the panel and a screen reader agree; a decision made with focus elsewhere leaves focus where it is. A message says what was saved, with **Undo** to put the
 note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. On a narrower window, where the panel sits under the notes, the messages rise above the decision buttons instead. The four decision buttons stay at the bottom of the panel while you scroll the evidence and the takes above them, so a decision is always one click or key away. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
-[undo history](navigation.md) take it back too, as "Decision “Fine as read” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Fine as read** says you heard it and the line stays as it was read: the note is cleared, and it is no longer a pickup. **Reopen** puts a decided note back
+[undo history](navigation.md) take it back too, as "Decision “Fine as read” at 00:00:12.400"; from another chapter, the undo opens the note's own chapter and selects the note. **Fine as read** says you heard it and the line stays as it was read: the note is cleared, and it is no longer a pickup. **Reopen** puts a decided note back
 to review.
 
 Leaving Proof for Booth, Script or Editing and coming Back opens the note you had selected, with the note you had typed for
@@ -266,7 +266,7 @@ recording cannot be heard, and the button says why.
 went. **Add marker in** your DAW puts one marker on the note's spot, whatever you decided about the note. The marker is
 named like the ones a chapter's [comparison
 export](#comparing-the-recording-with-the-script) adds, so Export markers does not add it a second time, and if the spot
-already has one nothing is added: the Inspector says "A marker is already at 3:41." It is the one button the Editing flag card and the Pickups panel use too, so its label and its reason when it is off are the same on all three; in the right-click menu the entry is off for the reason the button is. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
+already has one nothing is added: the Inspector says "A marker is already at 00:03:41.000." It is the one button the Editing flag card and the Pickups panel use too, so its label and its reason when it is off are the same on all three; in the right-click menu the entry is off for the reason the button is. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
 the DAW removes it.
 
 With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.
@@ -326,7 +326,7 @@ The view runs the full width of the page, like Proof, with its breadcrumb and ti
 While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
 If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings** beside it opens
-[Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. When the tracks are the saved project's, not REAPER's now, a **Saved project** mark in the title row says so (hold the pointer on it for why). A chapter with no linked REAPER track says so in a line
+[Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. When REAPER's tracks could not be read at all, the line under the check card says **The tracks could not be read** and why, the same sentence Editing and Pickups give, instead of leaving the waveform's place empty. When the tracks are the saved project's, not REAPER's now, a **Saved project** mark in the title row says so (hold the pointer on it for why). A chapter with no linked REAPER track says so in a line
 under the title, with the way to the audio engine panel.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)

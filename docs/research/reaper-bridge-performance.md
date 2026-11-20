@@ -106,6 +106,46 @@ The remaining 30 opens a second are the idle loop's listing. The longest tick mo
 
 What is left of a track read is about 9 to 12 ms of ReaScript calls per 1000 items and the Lua that builds the lines, both proportional to what the read lists.
 
+## Requests per action (#3647)
+
+The owner reports every REAPER interaction slow and hitting the 3 s limit. Two questions: what one command costs REAPER, and how many commands one user action sends.
+
+**One command, on a project of 50 tracks and 1,800 items** (the bridge harness with a counting proxy around `reaper`; times convert the call and line counts with the unit costs above, about 1.1 µs a ReaScript call and 27 µs an event line; Linux, Windows unmeasured):
+
+| Command | ReaScript calls | Event lines | Bytes | REAPER ms |
+| --- | ---: | ---: | ---: | ---: |
+| `ping`, `project_state`, `read_place`, `select_track`, `chapter_folders`, `last_action` | 7 to 19 | 1 | under 100 | under 0.1 |
+| `tracks_read` | 214 | 52 | 3.7 KB | 1.6 |
+| `chapter_track_state`, no items | 128 | 2 | 0.2 KB | 0.2 |
+| `chapter_track_state`, one voice track, with items | 629 | 48 | 8 to 10 KB | 2 |
+| `chapter_track_state`, a chapter folder, with items | 4,128 | 363 | 80 KB | 14 |
+| `go_to`, a folder (`end`, `start`) | 1,141, 777 | 2, 1 | 0.1 KB | 1.3, 0.9 |
+| `arm_lane` | 316 | 1 | 0.1 KB | 0.4 |
+
+No command on a page-open, poll, focus or lane path reads every item of the project: `tracks_read` reads none, and an item read is bounded by the one chapter asked for. The commands that scan `CountMediaItems(0)` look an item up by GUID or edit it (navigation, takes, replace, range, retake lanes, line identity, level normalize, workspace) and run on a click. A lane switch's Lua commands cost about 3 ms of REAPER time together, so no handler explains a 3 s limit.
+
+**One user action, in requests** (from the UI hooks and host bindings on `main` at the time; `TR` is `tracks_read`, `CTS` is `chapter_track_state` without items):
+
+| Action | Requests before | Where they came from |
+| --- | --- | --- |
+| Booth idle, per 5 s | 3 TR + 1 CTS | the page's live read (`useLiveTracks`) answers, and its `readAt` re-runs `boothVoiceGet` (a TR) and `readAloudReaperState` (a TR and a CTS) |
+| Booth idle, per 15 s | 1 TR + 1 CTS | `useRecordControl` asks the same `readAloudReaperState` as `useBoothVoices` |
+| Booth lane switch | about 4 TR + 3 CTS + `arm_lane` | `BoothVoiceSet` (TR, then `arm_lane`), then three `readAloudReaperState` from the choice's epoch and voice changes |
+| Booth window focus | about 9 | live tracks, record control, voices, listening mic and the pull-back all listen to focus |
+| Editing idle | 1 TR per 5 s, a transport lease every 3 s, 2 requests per REAPER edit | |
+
+The answers are small, so the volume costs REAPER little; what it multiplies is the round trip of each request (a command file, a REAPER tick that lists and reads the folder, an `events.log` append, a host poll): 11 to 80 ms measured on Linux above, unmeasured on Windows.
+
+**Fix 1: one track list per edit counter.** The live track list is read through `cachedTrackLister` (`tracks_cache.go`): while the heartbeat's change count equals the count the last answer carried, and the answer is under 10 s old, the last answer is reused; callers that arrive while a read is out share it; a track this app creates drops the answer. With no counter nothing is reused, and nothing read before the bridge may have started over (a heartbeat gap longer than 5 s, another project, a counter that went down: `Reachability.Epoch`). An unchanged idle Booth tick goes from 3 TR to at most 1 TR per 10 s, and the four callers of one action share one read.
+
+**The resume prompt's follow reads items only when the cursor settles** (#3664). The follow loop of the read-aloud dialog's resume prompt (`resumefollow.go`) asked for the chapter's whole folder every second for up to 30 minutes, to see that REAPER plays or records, that the cursor moved, and, once it settled, whether it is on the chapter's audio. It now reads the itemless state each tick (the transport and the edit cursor) and the items once, when the cursor has settled; a play or record that starts between the two reads, or a cursor that moved on, is judged on the second read. For a chapter folder of 360 items on the project above, one tick goes from about 4,100 ReaScript calls, 360 event lines and 80 KB to about 130 calls, 2 to 3 lines and under 0.3 KB (the two rows of the table above), so a minute of following no longer appends about 4.8 MB to `events.log` (which restarts at 8 MiB) but about 15 KB. The settle itself still reads the whole folder, once per settle (and once per tick while that read fails): a bounded summary of "where the audio ends and what is under the cursor" is the next step.
+
+**Lane actions against a real REAPER, at 0 to 5,000 items** (#3645, the rigs are #3702). Each Booth action timed with the host's own client, its 150 ms tick and the page's concurrent reads, on REAPER 7.82 in CI with items cut from the pinned LibriVox chapter. Linux: lane switch about 105 ms, lane create about 75 ms, record press 121 to 150 ms; Windows (no audio device, so no record): lane switch 120 to 209 ms, lane create 87 to 105 ms; nothing above 226 ms and none of it grows with the item count except the folder read (31 to 78 ms at 5,000). The app's log now explains a slow case on its own: `bridge.slow`, with `queue_ms` and `reaper_ms`.
+
+**A voice switch reads the DAW's arms once, after the host's answer** (#3647). `useBoothVoices` re-read the chapter's arm state (`readAloudReaperState`: a track list and a state read) whenever the voice, the epoch or the live track list changed, and a choice bumps the epoch when it starts, so a switch asked for one read while the host was still arming the lane (it waits in REAPER's queue beside `arm_lane`) and another once the answer landed. The first answers before the arm lands (both wait in REAPER's queue), so it is the DAW's word on the voice being left, and the Booth drops it from the arm-by-hand follow when the choice ends (the epoch bump); the arm dot would have shown it. The hook now reads nothing while a choice is in flight, and the dot keeps its last state until the read after the answer (a host choice is bounded by its lane command timeout). Measured with the mock api around the hook: 2 reads per switch before, 1 after (a held `boothVoiceSet` sees none). Not changed: `useRecordControl` reads on the capability counter and on a take starting or stopping, not on a switch.
+
+**The stored coverage result is decoded once per change of its file** (#3664). Each `WorkspaceWordTimes` made the host read the chapter's stored result (`analysis/coverage/results/<record>.json`: the alignment's per-word tokens) from disk and decode it, which is most of what `Service.Alignment` costs: for a chapter of 9,000 words, 23 ms per read, about two thirds of it that decode (a CPU profile of the Go test, `json.Unmarshal` under `resultStore.read`). A stored result is written once, atomically, under its record's id, so `resultStore` now keeps the last four decoded results, each valid for the file's size and modification time, and hands out a copy of the lists (an edit by a caller is not seen by the next read). The same read goes from 23 ms to 2.2 ms. The manuscript (`manuscript.Service.Load`) and the saved project's `.rpp` parse were already cached by file change.
+
 ## Not measured here
 
 - Windows: file opens, directory listings and antivirus scans of `events.log`, which grows for the whole session. Each is a candidate this Linux run cannot rank.

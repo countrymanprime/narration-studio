@@ -12,7 +12,7 @@ import type { TrackMapping } from '../../types';
 export type ChapterLinkState = 'unlinked' | 'linked' | 'missing' | 'several';
 
 /** What each state is called wherever it is named, so a page does not write its own ("Missing", "Track missing", "not linked"). */
-export const LINK_STATE_LABEL: Record<ChapterLinkState, string> = {
+const LINK_STATE_LABEL: Record<ChapterLinkState, string> = {
   unlinked: 'Not linked',
   linked: 'Linked',
   missing: 'Track missing',
@@ -41,7 +41,24 @@ export function linkStateOf(link: ChapterLink, trackExists: boolean): ChapterLin
   return link.state;
 }
 
-/** The state's name as a label, in the project's words: a Voice folders chapter is linked to folders, not tracks. */
+/** The state's name as a label, in the project's words: a Voice folders chapter is linked to folders, not tracks. Every surface words a state through this. */
 export function linkStateLabel(state: ChapterLinkState, folders: boolean): string {
-  return state === 'several' && folders ? 'Several folders' : LINK_STATE_LABEL[state];
+  if (folders && state === 'several') return 'Several folders';
+  if (folders && state === 'missing') return 'Folder missing';
+  return LINK_STATE_LABEL[state];
+}
+
+const MAX_WHY = 200;
+
+/** The host's words in a sentence, cut so a huge message cannot push a page's content out of view (an in-page sentence or a toast). */
+export const cutHostWords = (text: string): string => (text.length > MAX_WHY ? `${text.slice(0, MAX_WHY - 1)}…` : text);
+
+/**
+ * Why the shared track state has no tracks to show, when it has none because the read failed: the one sentence every page that needs the tracks
+ * says (Pickups' refusal, Editing's note, Proof's timeline slot, the Engine panel's status line), or null when the tracks were read, are still
+ * being read, or an earlier read is still shown (that case is the Saved project mark and "Last read"). #3394.
+ */
+export function tracksUnreadable(state: { project?: unknown; live: { error: string } }): string | null {
+  if (state.project !== undefined || !state.live.error) return null;
+  return `The tracks could not be read: ${cutHostWords(state.live.error)}`;
 }

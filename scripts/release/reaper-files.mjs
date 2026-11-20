@@ -18,6 +18,7 @@ export const REAPER_FILES = [
   'narration_line_identity.lua',
   'narration_master_render.lua',
   'narration_media_file.lua',
+  'narration_monitor.lua',
   'narration_navigation.lua',
   'narration_pickups.lua',
   'narration_preroll.lua',

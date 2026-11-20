@@ -94,6 +94,31 @@ export const SortAndOpen: Story = {
   },
 };
 
+/** Entries ticked to delete together: the header row becomes the count and the Delete button, and the select-all box shows a dash. */
+function TickedTable() {
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(new Set([FEW[0]!.id]));
+  return (
+    <Harness
+      rows={FEW}
+      selection={{
+        ticked,
+        onToggle: (id) => setTicked((now) => new Set(now.has(id) ? [...now].filter((x) => x !== id) : [...now, id])),
+        onToggleAll: () => setTicked((now) => (now.size < FEW.length ? new Set(FEW.map((row) => row.id)) : new Set())),
+        bar: <span>{ticked.size} selected</span>,
+      }}
+    />
+  );
+}
+
+export const Ticked: Story = {
+  render: () => <TickedTable />,
+  play: async ({ canvasElement }) => {
+    const view = within(canvasElement);
+    await userEvent.click(view.getByRole('checkbox', { name: 'Select every entry' }));
+    await expect(view.getAllByRole('checkbox', { checked: true }).length).toBeGreaterThan(FEW.length);
+  },
+};
+
 export const OneEntry: Story = { render: () => <Harness rows={FEW.slice(0, 1)} /> };
 
 /** An empty book, or a filter that matches nothing: the table says so where the rows would be. */

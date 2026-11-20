@@ -5,7 +5,7 @@ import { recorderName, recorderNameCapital, wrongProjectReason } from '../../../
 /** What the host says of the chapter's track (`readAloudReaperState`): how many it has, and its own sentence for the ones that stop a take. */
 export type ChapterRecordState = {
   /** `unread` until the host has answered; Record is then left to the host's own refusal at the press. */
-  tracks: 'unread' | Exclude<ChapterLinkState, 'missing'>;
+  tracks: 'unread' | ChapterLinkState;
   message: string;
   /** The DAW is already recording a take this app did not start (`recording_elsewhere`): a second start would fight it, so Record says so first. */
   elsewhere?: boolean;
@@ -14,7 +14,7 @@ export type ChapterRecordState = {
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
 export type OpenProject = 'same' | 'different' | 'unknown';
 
-export type RecordRefusal = { code: 'capability' | 'wrong_project' | 'recording_elsewhere' | 'no_track' | 'several_tracks'; reason: string };
+export type RecordRefusal = { code: 'capability' | 'wrong_project' | 'recording_elsewhere' | 'no_track' | 'several_tracks' | 'track_missing'; reason: string };
 
 /**
  * Why Record cannot start in this chapter, or null. Every sentence is the capability's own or the host's refusal, none is
@@ -38,5 +38,6 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
   if (!capabilities.capabilities.track_state?.available) return null;
   if (chapter.tracks === 'unlinked') return { code: 'no_track', reason: chapter.message };
   if (chapter.tracks === 'several') return { code: 'several_tracks', reason: chapter.message };
+  if (chapter.tracks === 'missing') return { code: 'track_missing', reason: chapter.message };
   return null;
 }

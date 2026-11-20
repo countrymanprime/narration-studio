@@ -45,7 +45,7 @@ export function SelectionBar({
       aria-label="Playback and selection"
       className="@container/bar flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 py-2"
     >
-      <div className="flex items-center gap-1.5">
+      <div className="flex max-w-full min-w-0 items-center gap-1.5">
         <IconButton action="previousWord" onClick={() => playback.skip(-1)} />
         <IconButton
           action={playback.playing ? 'pause' : 'play'}
@@ -55,28 +55,30 @@ export function SelectionBar({
           onClick={playback.toggle}
         />
         <IconButton action="nextWord" onClick={() => playback.skip(1)} />
-        <span className="ml-1.5 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[15px] font-medium whitespace-nowrap">
-          {clock(at)}
-          <span className="text-[var(--text-muted)]"> / {clock(end)}</span>
+        {/* The position (12 characters in `full`) and the chapter's length: where the row is too narrow (a small window) the length drops under the position, never cut off. */}
+        <span className="ml-1.5 min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[15px] font-medium">
+          <span className="whitespace-nowrap">{clock(at, { full: true })}</span>{' '}
+          <span className="whitespace-nowrap text-[var(--text-muted)]">/ {clock(end)}</span>
         </span>
       </div>
       {output}
-      {/* Below 60 rem the summary takes a row of its own under the transport, so the actions stay on the transport row at the right instead of
+      {/* The selection's summary never makes the bar taller by itself where it sits beside the transport (from 60 rem): the words and the badge are one line and the range, with its length, a smaller one under them (a position is 12 characters, two of them 25 with their length), both inside the bar's own height. Below 60 rem the summary takes a row of its own under the transport, so the actions stay on the transport row at the right instead of
           dropping under the transport buttons like a second toolbar (alignment audit R3ED-9, XED-26). */}
       <div
         aria-live="polite"
         data-bar-summary
-        className="flex min-w-0 flex-[1_1_200px] flex-wrap items-center gap-2.5 @max-[60rem]/bar:order-last @max-[60rem]/bar:basis-full"
+        className="flex min-w-0 flex-[1_1_200px] flex-wrap items-center gap-x-2.5 gap-y-0.5 @max-[60rem]/bar:order-last @max-[60rem]/bar:basis-full @min-[60rem]/bar:gap-y-0 @min-[60rem]/bar:leading-[1.375rem]"
       >
         {has ? (
           <>
             <b>{plural(count, 'word')}</b>
             {summary.audible.length > 0 ? (
               <span
-                className="min-w-0 truncate font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
-                title={`${clock(summary.start)} to ${clock(summary.end)} · ${summary.len.toFixed(1)} s`}
+                className="order-last min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[length:var(--font-size-label)] text-[var(--text-muted)] @min-[60rem]/bar:basis-full @min-[60rem]/bar:leading-3.5"
+                title={`${clock(summary.start, { full: true })} to ${clock(summary.end, { full: true })} · ${summary.len.toFixed(1)} s`}
               >
-                {clock(summary.start)} to {clock(summary.end)} · {summary.len.toFixed(1)} s
+                {clock(summary.start, { full: true })} to {clock(summary.end, { full: true })}{' '}
+                <span className="whitespace-nowrap">· {summary.len.toFixed(1)} s</span>
               </span>
             ) : null}
             {allCut ? (

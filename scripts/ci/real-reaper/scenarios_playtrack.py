@@ -9,6 +9,7 @@ dummy device has no hardware, so what the meters read is REAPER's own mix. What 
 
 from __future__ import annotations
 
+import json
 import time
 
 from scenario import Env, scenario
@@ -236,3 +237,50 @@ def play_range_folder_child(env: Env) -> str:
     assert child > 0.1, f"the child was not heard through its parent: {child:.3f}"
     assert parent < 0.02, f"the folder parent's own audio is audible: {parent:.3f}"
     return f"the mix holds the child's tone at {child:.2f} and the folder parent's own item's at {parent:.3f}: the parent is a route, not a track that plays"
+
+
+def project_flags(env: Env) -> dict:
+    """The change count the host turns into daw_project_edited, the undo top and the dirty flag."""
+    return env.lua("return { changes = reaper.GetProjectStateChangeCount(0), undo = reaper.Undo_CanUndo2(0) or '', dirty = reaper.IsProjectDirty(0) }")
+
+
+def assert_flags_unchanged(before: dict, after: dict, what: str) -> None:
+    assert after == before, f"{what} moved the project's change count, undo top or dirty flag: {before} -> {after}"
+
+
+@scenario(
+    "transport_sync",
+    "play_from, play_range, stop_play",
+    "play_from and play_range with a track leave the change count, undo top and dirty flag where they were, while playing and after each way the play ends, and the selection, solos and mutes come back exactly (#3580)",
+    needs_audio=True,
+)
+def play_leaves_count(env: Env) -> str:
+    fx = arrange(env)
+    rows: dict[str, dict] = {}
+    for label, ends in (("play_range_ends_itself", "end"), ("play_range_stop_play", "stop_play"), ("play_from_stopped_by_hand", "hand")):
+        hand_state(env, "Chapter 2", soloed=("Pickups",), muted=("Chapter 1",))
+        before = narrator_state(env)
+        flags = project_flags(env)
+        assert not flags["dirty"], f"{label}: the project is dirty before the play: {flags}"
+        if label.startswith("play_range"):
+            play_range(env, 0.0, 2.0 if ends == "end" else 6.0, fx["ch1"])
+        else:
+            env.ok("play_from", "1", fx["ch1"], until="TRANSPORT_PLAYING")
+        env.wait_for(lambda: play_state(env) == 1, what="REAPER to play")
+        during = project_flags(env)
+        assert_flags_unchanged(flags, during, f"{label}: the isolation")
+        if ends == "end":
+            env.wait_for(lambda: play_state(env) == 0, timeout=8, what="REAPER to stop itself at the end of the stretch")
+        elif ends == "stop_play":
+            env.ok("stop_play", until="TRANSPORT_STOPPED")
+        else:
+            stop_by_hand(env)
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        env.wait_for(lambda want=before: narrator_state(env) == want, timeout=8, what="the narrator's tracks to be put back")
+        after = project_flags(env)
+        assert_flags_unchanged(flags, after, f"{label}: the restore")
+        rows[label] = {"before": flags, "during": during, "after": after, "narrator": {k: list(v) for k, v in before.items()}}
+    folder = env.out / "select_count"
+    folder.mkdir(exist_ok=True)
+    (folder / "play.json").write_text(json.dumps(rows, indent=2, sort_keys=True), encoding="utf-8")
+    return "change count, undo top and dirty flag unchanged during and after play_range (ends itself, stop_play) and play_from (stopped by hand); selection, solos and mutes exact each time"
