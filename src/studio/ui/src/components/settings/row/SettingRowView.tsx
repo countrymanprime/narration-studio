@@ -105,13 +105,18 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const error = store.rowErrors[row.id];
   const hasCustom = children !== undefined;
   const rowEl = useRef<HTMLDivElement>(null);
-  const reset = useRowReset(row.id);
+  const ownReset = useRowReset(row.id);
   const { notify } = useSettingsHost();
+  // A custom body over a host field of its own is put back as any field is: its saved value cleared.
+  const reset = ownReset ?? (hasCustom && row.field ? () => store.write(row, 'global', null) : undefined);
   const comp = computerValue(row, global);
   const own = overrideValue(row, project);
   // A custom body has no host field to compare, except a row this window keeps, which has its own reader.
   useBrowserSettingsVersion();
-  const changed = hasCustom ? isBrowserChanged(row) || store.customChanged.has(row.id) : isAnyChanged(row, global, project, store.customChanged);
+  // A custom body that draws a host field of its own (a switch that can be off with a reason) is changed when that field is.
+  const changed = hasCustom
+    ? isBrowserChanged(row) || store.customChanged.has(row.id) || (Boolean(row.field) && global !== undefined && isChanged(row, global))
+    : isAnyChanged(row, global, project, store.customChanged);
   // A rejected value shows its reason, not a Saved mark left over from the last good one: the fade that hides the mark is a motion animation, so under reduced motion nothing else would.
   const saved = store.saved?.row === row.id && !store.rowErrors[row.id] && !refused.global && !refused.project;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);

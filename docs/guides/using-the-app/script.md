@@ -44,25 +44,27 @@ Enter moves focus to the open tab of the rail (or opens the rail, where it is a 
 
 ## A local model for unknown speakers
 
-Some quoted lines have no speech tag and no name near them, so the search leaves them with the grey question-mark chip. A model that runs on this computer can read the paragraphs around such a line and suggest who speaks it. It is off until you turn it on, and nothing it reads leaves this computer.
+Some quoted lines have no speech tag and no character's name near them, or the name beside them is not yet a Story Bible entry that speaks, so the search leaves them with the grey question-mark chip. A model that runs on this computer can read the paragraphs around such a line and suggest who speaks it. It is off until you turn it on, and nothing it reads leaves this computer.
 
 This version of the app has no local model to install yet, so the switch in Settings is off and says **No local model is installed.** The steps below are how it works once a model is installed.
 
 1. Open [Settings](settings.md#project), choose **Project**, and under **Unknown speakers** turn on **Ask a local model about unknown speakers**.
 2. On the Script page, press **Find who speaks each line**. The message says how many lines were attributed and how many of them the local model suggested, with **Undo**.
-3. Click the chip of a line it filled. **Confirm** is first in the menu, with **Suggested by the local model:** and the model's one-sentence reason beneath it. Rest the pointer on the reason to read all of it when it is cut short.
+3. Go to a line it filled and click its chip. **Confirm** is first in the menu, with **Suggested by the local model:** and the model's one-sentence reason beneath it. Rest the pointer on the reason to read all of it when it is cut short.
 4. Press **Confirm** if the model is right, or pick someone else. Either way the line is yours from then on and the reason goes.
 
 ![Script - a line the local model suggested a speaker for: Confirm with the model's reason beneath it](../../images/ui/script-speaker-suggested-by-model.webp)
 
 What to expect:
 
-- The model's speaker is a suggestion like any other: a dashed chip, never a confirmed one. A line you confirmed, picked or cleared is never asked about and never changed.
+- The model's speaker is a suggestion like any other: a dashed chip, never a confirmed one. Rest the pointer on a dashed chip to see **Suggested by the local model** on the ones it filled; the lines it filled can be in any chapter. A line you confirmed, picked or cleared is never asked about and never changed.
 - The reason is the model's own sentence, shown as plain text. It says why the model chose that speaker; it is not checked for being true.
 - One run asks about at most the number of lines set in **Lines the local model may take per run** (20 at first). When more lines are unknown than that, the message says how many it asked about; press the button again for the rest. A line the model could not answer is not asked again until you add or rename a character, change the text around the line, or reopen the project.
 - If the model stops or runs out of time, the message says so. What it had answered is kept, and the lines the search attributed stay as they are.
 - A later search keeps the model's suggestion until the search itself finds the speaker (which then replaces it) or the character is deleted or stops being a type that speaks (the line is then unknown again).
-- **Undo** takes the whole run back, the model's lines included.
+- **Undo** takes the run back, the model's lines included: each line it filled or changed goes back to what it was, except that a line which already held a model's suggestion before the run goes back to unknown (the model's reason is not kept for undo).
+- The switch is read when a run starts: turning it off while a run is under way does not stop that run.
+- The picture above is from the demo book, where a stand-in for the model picks the speaker of the nearest attributed line; it is wrong there, which is why its answer is only ever a suggestion.
 
 ## Searching the script
 

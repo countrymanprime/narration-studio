@@ -206,12 +206,8 @@ export function createMockApi(
     dawRecording: () => dawControl.recording(),
   });
   const merges = createMergeEvents();
-  // The local model's settings as the host layers them: the project's value when set, else the computer's.
-  const guideSetting = (key: string) => {
-    const field = (scope: 'project' | 'global') => settings.settings[scope].ManuscriptGuide?.find((item) => item.key === key);
-    const project = field('project');
-    return project?.isSet ? project.value : (field('global')?.effectiveValue ?? '');
-  };
+  // The local model's settings as the host reads them: this computer's value only, never a project's.
+  const guideSetting = (key: string) => settings.settings.global.ManuscriptGuide?.find((item) => item.key === key)?.effectiveValue ?? '';
   const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges, () => {
     const lines = Number(guideSetting('speaker_fallback_max_quotes'));
     return { on: guideSetting('speaker_fallback') === 'true', maxLines: Number.isInteger(lines) && lines >= 1 && lines <= 200 ? lines : 20 };

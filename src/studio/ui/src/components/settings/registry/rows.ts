@@ -696,7 +696,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'computer',
     def: 'false',
     field: { tool: 'ManuscriptGuide', key: 'speaker_fallback' },
-    desc: 'Suggests a speaker for lines the rules cannot attribute.',
+    desc: 'Suggests a speaker for the lines Find who speaks each line leaves unknown. Nothing leaves this computer.',
     more: 'When on, Find who speaks each line on the Script page also asks a model that runs on this computer about the quoted lines the rules leave without a speaker. Each answer is a suggestion with a one-sentence reason, shown when you open the line’s speaker; a line you confirmed or edited is never asked about or changed, and Undo takes the run back. Nothing is sent off this computer. Off until you turn it on.',
     used: ['script', 'bible'],
     syn: 'local model llm ai fallback unattributed unknown speaker attribution suggest who speaks quote dialogue reasoning offline',

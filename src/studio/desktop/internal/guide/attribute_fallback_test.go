@@ -625,3 +625,68 @@ func TestARefreshCleansAndCapsTheReasonItCarries(t *testing.T) {
 		t.Fatalf("reason (%d runes) %q", len([]rune(reason)), reason[:min(len(reason), 80)])
 	}
 }
+
+// An answer naming nobody the fallback was given is no answer: the line counts as declined, so a capped run moves on.
+func TestAnAnswerForAnEntryOutsideTheCastDoesNotHoldUpLaterLines(t *testing.T) {
+	var asked [][]string
+	s := cueProject(t, map[string]any{"entities": []any{cueAda, attributeBo, fallbackPlace}, "types": []any{speakingCharacter[0], map[string]any{"name": "Place", "colour": "blue", "speaks": false}}},
+		[3]string{"c1", "p1", `"One?"`}, [3]string{"c1", "p2", `"Two?"`}, [3]string{"c1", "p3", `"Three?"`})
+	s.SetSpeakerFallback(func(_ context.Context, cues []UnknownCue, _ []FallbackCharacter) (FallbackResult, error) {
+		var quotes []string
+		result := FallbackResult{}
+		for i, cue := range cues[:min(2, len(cues))] {
+			quotes = append(quotes, cue.Quote)
+			result.Suggestions = append(result.Suggestions, CueSuggestion{CueID: cue.CueID, EntityID: []string{"entity-ghost", "entity-hall"}[i], Reason: "Somebody says it."})
+		}
+		asked = append(asked, quotes)
+		result.Asked = len(quotes)
+		return result, nil
+	})
+	first := attributed(t, s)
+	attributed(t, s)
+	if got := fmt.Sprint(asked); got != "[[One? Two?] [Three?]]" || first.ModelFilled != 0 {
+		t.Fatalf("asked %s; first %+v", got, first)
+	}
+}
+
+func TestAFallbackThatPanicsLeavesTheRulesResultAndSaysSo(t *testing.T) {
+	s := fallbackProject(t, func(context.Context, []UnknownCue, []FallbackCharacter) (FallbackResult, error) {
+		panic("the adapter broke")
+	})
+	result, err := s.AttributeSpeakers(context.Background())
+	if err != nil || result.Filled != 1 || result.ModelFilled != 0 || result.ModelNote != fallbackFailed || len(result.Previous) != 1 {
+		t.Fatalf("result %+v, %v", result, err)
+	}
+}
+
+// What makes a declined line worth asking again: a character renamed, or given another name. Nothing else about the cast changed.
+func TestADeclinedLineIsAskedAgainWhenACharacterIsRenamedOrGainsAName(t *testing.T) {
+	asked := 0
+	s := cueProject(t, map[string]any{"entities": []any{cueAda, attributeBo}, "types": speakingCharacter}, [3]string{"c1", "p1", `"Is anyone here?"`})
+	s.SetSpeakerFallback(func(_ context.Context, cues []UnknownCue, _ []FallbackCharacter) (FallbackResult, error) {
+		asked++
+		return FallbackResult{Asked: len(cues)}, nil
+	})
+	attributed(t, s)
+	attributed(t, s)
+	setEntities(t, s, cueAda, character("entity-bo", "Bartholomew"))
+	attributed(t, s)
+	setEntities(t, s, cueAda, character("entity-bo", "Bartholomew", "Barty"))
+	attributed(t, s)
+	attributed(t, s)
+	if asked != 3 {
+		t.Fatalf("asked %d times, want 3: once at first, once after the rename, once after the new name", asked)
+	}
+}
+
+func TestWithNoEntryThatSpeaksTheFallbackIsNotAsked(t *testing.T) {
+	asked := 0
+	s := cueProject(t, map[string]any{"entities": []any{fallbackPlace}, "types": []any{map[string]any{"name": "Place", "colour": "blue", "speaks": false}}}, [3]string{"c1", "p1", `"Is anyone here?"`})
+	s.SetSpeakerFallback(func(_ context.Context, cues []UnknownCue, _ []FallbackCharacter) (FallbackResult, error) {
+		asked++
+		return FallbackResult{Asked: len(cues)}, nil
+	})
+	if result := attributed(t, s); asked != 0 || result.ModelNote != "" {
+		t.Fatalf("asked %d times with nobody who could speak; result %+v", asked, result)
+	}
+}

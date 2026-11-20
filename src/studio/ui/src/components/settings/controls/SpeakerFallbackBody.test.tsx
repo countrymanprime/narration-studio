@@ -88,6 +88,19 @@ describe('settings-unknown-speakers-switch', () => {
     expect(toggle.getAttribute('aria-describedby')).toBe(reason.id);
   });
 
+  it('once on, the row is marked Changed and its Reset turns it off again', async () => {
+    const api = createMockApi();
+    const toggle = await renderProject(api);
+    await waitFor(() => expect(toggle.getAttribute('aria-disabled')).toBeNull());
+    expect(screen.queryByRole('button', { name: /^Reset Ask a local model about unknown speakers/ })).toBeNull();
+    await userEvent.click(toggle);
+    const reset = await screen.findByRole('button', { name: /^Reset Ask a local model about unknown speakers/ });
+    expect(document.querySelector('[data-row="project.speakerFallback"]')?.getAttribute('data-changed')).toBe('true');
+    await userEvent.click(reset);
+    await waitFor(async () => expect((await fallbackValue(api))?.effectiveValue).toBe('false'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Reset Ask a local model about unknown speakers/ })).toBeNull());
+  });
+
   it('keeps the model and the lines per run off, each with the reason, until the switch is on', async () => {
     const toggle = await renderProject(createMockApi());
     const model = screen.getByRole('combobox', { name: /Local model for unknown speakers/ });

@@ -1176,6 +1176,30 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     });
   });
 
+  it('the mock agrees with the host on a re-run, the switch turned off, a confirm and the project scope', async () => {
+    const api = createMockApi();
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    const on = await api.guideAttributeSpeakers();
+    expect(on.modelFilled).toBeGreaterThan(0);
+    const suggested = (await api.guideDialogueCues()).filter((cue) => cue.speaker_source === 'local-model');
+    // A second run with nothing new changes nothing, and the suggestion outlives the switch being turned off.
+    expect(await api.guideAttributeSpeakers()).toMatchObject({ filled: 0, changed: 0, modelFilled: 0, previous: [] });
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'false' });
+    expect(await api.guideAttributeSpeakers()).toMatchObject({ filled: 0, changed: 0, modelFilled: 0, previous: [] });
+    expect((await api.guideDialogueCues()).filter((cue) => cue.speaker_source === 'local-model')).toEqual(suggested);
+    // Confirming a suggested line drops the model's reason.
+    const line = suggested[0]!;
+    await api.guideCorrectCue(line.id, line.speaker_entity_id!);
+    const confirmed = (await api.guideDialogueCues()).find((cue) => cue.id === line.id);
+    expect(confirmed).toMatchObject({ speaker_source: 'correction', corrected: true });
+    expect(confirmed?.evidence.reason).toBeUndefined();
+    // The three settings are this computer's: a project cannot hold them.
+    await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback: 'true' })).rejects.toThrow(/global/);
+    await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback_max_quotes: '200' })).rejects.toThrow(/global/);
+    // The local model is never started from a scan.
+    expect((await api.extractionSources()).find((source) => source.id === 'local-model')).toMatchObject({ runs: false, available: true });
+  });
+
   it("undo never restores a local model's suggestion: the reason is not kept, so the line goes back to unknown, as the host does", async () => {
     const api = createMockApi();
     await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: 'alice', speakerSource: 'local-model' }]);

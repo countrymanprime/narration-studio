@@ -112,7 +112,7 @@ func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled map[string]bo
 	if len(cues) == 0 || len(characters) == 0 {
 		return nil, ""
 	}
-	result, err := fallback(ctx, cues, characters)
+	result, err := askFallback(ctx, fallback, cues, characters)
 	if err != nil {
 		slog.Warn("the speaker fallback failed", "error", err)
 		return nil, fallbackFailed
@@ -121,10 +121,15 @@ func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled map[string]bo
 	for _, cue := range cues {
 		asked[cue.CueID] = true
 	}
+	listed := make(map[string]bool, len(characters))
+	for _, character := range characters {
+		listed[character.EntityID] = true
+	}
 	byCue := map[string]CueSuggestion{}
 	for _, suggestion := range result.Suggestions {
 		suggestion.Reason = extraction.CleanSentence(suggestion.Reason, maxFallbackReasonRunes)
-		if _, taken := byCue[suggestion.CueID]; taken || !asked[suggestion.CueID] || suggestion.Reason == "" {
+		// An answer naming nobody it was given is no answer: the line counts as declined, so later runs move past it.
+		if _, taken := byCue[suggestion.CueID]; taken || !asked[suggestion.CueID] || !listed[suggestion.EntityID] || suggestion.Reason == "" {
 			continue
 		}
 		byCue[suggestion.CueID] = suggestion
@@ -169,6 +174,17 @@ func (s *Service) fillUnknownSpeakers(ctx context.Context) (filled map[string]bo
 		return nil, fallbackFailed
 	}
 	return filled, note
+}
+
+// askFallback calls the fallback and turns a panic in it into an error: the rules' result is already written, and a model
+// adapter that breaks must not take the run, and the narrator's undo list, down with it.
+func askFallback(ctx context.Context, fallback SpeakerFallback, cues []UnknownCue, characters []FallbackCharacter) (result FallbackResult, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, err = FallbackResult{}, fmt.Errorf("the speaker fallback panicked: %v", recovered)
+		}
+	}()
+	return fallback(ctx, cues, characters)
 }
 
 // speakingEntityIDs is the ids of the document's entries whose type speaks; none when its types cannot be read.

@@ -52,6 +52,9 @@ export function createSettingsMock(
   const bindings = {
     saveSettings: async (tool, scope, values) => {
       if (seed === 'save-fails') throw new Error(READ_ONLY_SETTINGS);
+      // As the host (saveSettings in src/studio/desktop/app.go): the local model for unknown speakers is this computer's, never a project's.
+      if (tool === 'ManuscriptGuide' && scope !== 'global' && Object.keys(values).some((key) => key.startsWith('speaker_fallback')))
+        throw new Error('the local model for unknown speakers is global: it is installed on this computer, not in this project');
       // The host checks each value against its field's kind before it writes any (`validateSettingValue` in src/studio/desktop/app.go). The
       // mock holds the colour rule, the one a page can break by sending text as typed; a cleared field (null) is not a value to check.
       for (const field of settings[scope][tool] || []) {

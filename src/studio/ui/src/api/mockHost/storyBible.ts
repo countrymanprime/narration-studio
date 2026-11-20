@@ -355,11 +355,15 @@ export function createStoryBibleMock(
         if (cue.corrected || cue.speaker_source === 'correction') return cue;
         const found = cue.evidence.tag ? named(cue.evidence.tag) : undefined;
         const speaker = found?.id ?? null;
-        if (speaker === cue.speaker_entity_id) return cue;
+        // As the host's refresh: a model's suggestion stays while the rules find no speaker for the line; a speaker they find replaces it.
+        if (cue.speaker_source === 'local-model' && speaker === null) return cue;
+        if (speaker === cue.speaker_entity_id && cue.speaker_source !== 'local-model') return cue;
         previous.push({ cueId: cue.id, speakerEntityId: cue.speaker_entity_id, speakerSource: cue.speaker_source });
         if (cue.speaker_entity_id === null) filled += 1;
         else changed += 1;
-        return { ...cue, speaker_entity_id: speaker, speaker_source: speaker ? 'tag' : 'unknown' };
+        const evidence = { ...cue.evidence };
+        delete evidence.reason;
+        return { ...cue, evidence, speaker_entity_id: speaker, speaker_source: speaker ? 'tag' : 'unknown' };
       });
       // Then the local model's stand-in, when Settings turned it on: the lines the rules left unknown take its suggestion.
       const speaking = new Set(types.filter((type) => type.speaks).map((type) => type.name));
@@ -439,9 +443,13 @@ export function createStoryBibleMock(
       if (!cue) throw new Error('Cue not found.');
       const value = speakerEntityId.trim();
       const speaker = value === '' || value.toLowerCase() === 'unknown' ? null : value;
-      s.dialogueCues = s.dialogueCues.map((row) =>
-        row.id === cueId ? { ...row, speaker_entity_id: speaker, speaker_source: 'correction', corrected: true } : row,
-      );
+      s.dialogueCues = s.dialogueCues.map((row) => {
+        if (row.id !== cueId) return row;
+        // As the host: a model's reason was for its own suggestion, not for the narrator's choice.
+        const evidence = { ...row.evidence };
+        delete evidence.reason;
+        return { ...row, evidence, speaker_entity_id: speaker, speaker_source: 'correction', corrected: true };
+      });
     },
     guideTypes: async () => wireClone(types),
     guideTypesChanged: async () =>
