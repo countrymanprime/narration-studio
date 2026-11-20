@@ -205,6 +205,26 @@ describe('an unlinked chapter in the Booth', () => {
     expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
   });
 
+  // #3670: the chapter's track made by another screen (the Engine panel, Chapter links) while the Booth is on that chapter is armed once it is linked.
+  it('asks the DAW to arm the chapter once its track appears from another screen, once', async () => {
+    const dawArmBoothVoice = vi.fn(async (_chapterId: string) => ({ ok: true, message: '', changed: true, undoSteps: 0 }));
+    let appeared = false;
+    renderUnlinked({ dawArmBoothVoice, readAloudReaperState: async () => (appeared ? READY : UNLINKED) } as Partial<NarrationApi>);
+    await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    const before = dawArmBoothVoice.mock.calls.length;
+    appeared = true;
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1));
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(dawArmBoothVoice.mock.calls.length).toBe(before + 1);
+    expect(dawArmBoothVoice).toHaveBeenLastCalledWith('c1');
+  });
+
   it("keeps the chip and says the DAW's refusal as a toast when the track cannot be added", async () => {
     const message = 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.';
     const { overlay } = renderUnlinked({ chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'standalone', message }) } as Partial<NarrationApi>);

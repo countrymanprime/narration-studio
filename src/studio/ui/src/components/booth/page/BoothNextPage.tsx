@@ -696,12 +696,19 @@ function BoothSession({
   useEffect(() => {
     if (control.recording) overlay.dismissTopic(LINKED_TOPIC);
   }, [overlay, control.recording]);
+  // The chapter's track appears while the Booth is on it (made or linked here, or by the Engine panel or Chapter links): the entry arm found nothing to arm,
+  // so the new voice is armed and monitored now (#3670), with the switch on, and never for another chapter: only this chapter's own link counts.
+  const unlinkedNow = control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks' || control.gate?.cause === 'track_missing';
+  const wasUnlinked = useRef({ chapterId, unlinked: false });
+  useEffect(() => {
+    const before = wasUnlinked.current;
+    wasUnlinked.current = { chapterId, unlinked: unlinkedNow };
+    if (before.chapterId === chapterId && before.unlinked && !unlinkedNow && control.gate !== undefined && !control.recording) armNow();
+  }, [chapterId, unlinkedNow, control.gate, control.recording, armNow]);
   const linked = (created?: Created) => {
     control.refresh();
     // The folder the DAW just made, or the voices of a folder the narrator linked, are not in the saved project yet: read them again.
     voices.reload();
-    // The entry arm found no track to arm for this chapter: the voice of the new link is armed and monitored now (#3670).
-    armNow();
     overlay.toast(
       created ? createdSentence(created, recordName, page.dawName) : dest.linkedToast(recordName),
       // The save the narrator owes REAPER is worth more than the usual five seconds.
