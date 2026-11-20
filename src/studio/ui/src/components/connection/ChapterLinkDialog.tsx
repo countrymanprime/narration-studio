@@ -6,6 +6,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { useChapterTrackProject, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
+import { cachedMatch, rememberMatch } from './chapterMatchCache';
 import { dialogChapterName, useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { useChapterNameOf } from '../chapterTracks/useChapterNameOf';
 import { useSecondsSince } from '../layout/CheckLine';
@@ -83,7 +84,12 @@ export function ChapterLinkDialog({
   // The links are the app's one chapter-track state, not a snapshot of the dialog's own: a link made here shows on the Engine panel, the Booth
   // and Settings at once, and one made there shows here (#3350). Only the links are watched; the match is this chapter's own question.
   const { mappings: links, applyMappings, refreshLinks } = useChapterTrackState({ enabled: true, tracks: false });
-  const [read, setRead] = useState<Read>({ status: 'loading' });
+  // The Booth read the tracks ahead (#3669): the dialog opens with them to choose from and reads again behind them.
+  const projectNow = useChapterTrackProject();
+  const [read, setRead] = useState<Read>(() => {
+    const ahead = cachedMatch(projectNow, chapterId);
+    return ahead ? { status: 'ready', match: ahead, at: Date.now() } : { status: 'loading' };
+  });
   const [asked, setAsked] = useState(0);
   // Check again reads the manuscript too, so a chapter renamed since the dialog opened is named as it is now (label and toast alike).
   const nameOf = useChapterNameOf(true, asked);
@@ -112,6 +118,7 @@ export function ChapterLinkDialog({
     ]).then(
       ([match, fresh]) => {
         if (!live) return;
+        rememberMatch(projectNow, chapterId, match);
         setRead({ status: 'ready', match, at: Date.now() });
         if (linksFailure) setRefused(`The links could not be read again: ${linksFailure}. The last ones are shown.`);
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
@@ -121,18 +128,18 @@ export function ChapterLinkDialog({
             : bestChoice(trackChoices(match, fresh ?? linksRef.current, undefined, nameOfRef.current)),
         );
       },
-      (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
+      // A failed read behind tracks already on screen keeps them: they are what the narrator can act on, and Check again tries again.
+      (error: unknown) => live && setRead((now) => (now.status === 'ready' && asked === 0 ? now : { status: 'failed', message: apiErrorMessage(error) })),
     );
     return () => {
       live = false;
     };
-  }, [trackMap, chapterId, asked, refreshLinks, dawName]);
+  }, [trackMap, chapterId, asked, refreshLinks, dawName, projectNow]);
 
   const readingRef = useRef(true);
   readingRef.current = read.status === 'loading';
   // Another project opened under this dialog (or the project closed): its chapter is not in what is read now, and a link would be written to the
   // wrong project, so the dialog goes away rather than offering it (#3416).
-  const projectNow = useChapterTrackProject();
   const openedFor = useRef(projectNow);
   useEffect(() => {
     if (projectNow !== openedFor.current) onClose();
@@ -151,13 +158,15 @@ export function ChapterLinkDialog({
   const readSeconds = useSecondsSince(read.status === 'ready' ? read.at : null);
 
   const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, links, chapterId, nameOf) : []), [read, links, chapterId, nameOf]);
-  const held = choices.find((c) => c.guid === chosen && c.heldBy);
+  // Tracks shown ahead of the first read are already preselected: the best match until the narrator picks another.
+  const picked = chosen ?? (read.status === 'ready' ? bestChoice(trackChoices(read.match, links, undefined, nameOf)) : null);
+  const held = choices.find((c) => c.guid === picked && c.heldBy);
 
   const link = () => {
-    if (!chosen || linking) return;
+    if (!picked || linking) return;
     setLinking(true);
     setRefused(null);
-    actions.set(chapterId, chosen, nameOf).then(
+    actions.set(chapterId, picked, nameOf).then(
       ({ result, displacedNotice, linkedNotice }) => {
         setLinking(false);
         applyMappings(result.mappings);
@@ -216,7 +225,21 @@ export function ChapterLinkDialog({
       onClose={onClose}
       returnFocus={returnFocus}
       primary={
-        createFirst ? createAction : { label: dest.linkButton, onPress: link, pending: linking, disabled: !chosen || read.status !== 'ready' || creating }
+        createFirst
+          ? createAction
+          : {
+              label: dest.linkButton,
+              onPress: link,
+              pending: linking,
+              disabled: !picked || read.status !== 'ready' || creating,
+              // Never a button that only looks dead: the tooltip says what it waits for.
+              disabledReason:
+                read.status !== 'ready'
+                  ? `Reading the ${dawName} tracks…`
+                  : creating
+                    ? `Adding the ${dest.noun}…`
+                    : `Choose a ${dest.noun} to link ${chapterName} to.`,
+            }
       }
       secondary={{ label: 'Check again', onPress: checkAgain, pending: read.status === 'loading' }}
     >
@@ -234,7 +257,7 @@ export function ChapterLinkDialog({
       )}
       {read.status === 'ready' && !noTracks && (
         <>
-          <TrackSelect label={dest.pickerLabel(chapterName)} choices={choices} value={chosen ?? ''} onChange={setChosen} fullWidth />
+          <TrackSelect label={dest.pickerLabel(chapterName)} choices={choices} value={picked ?? ''} onChange={setChosen} fullWidth />
           {held && (
             <p className="text-[var(--text-muted)]">
               {held.name} is linked to {held.heldBy}. Linking it here moves it.

@@ -173,7 +173,8 @@ A chip under the text, above the footer, names each problem the Booth can fix an
 footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · track missing**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take this app did not start, or **not running** for a DAW that is not running):
 
 - **Not linked to a track.** The chapter has no track in the DAW project, or several (the chip then reads **Linked to several tracks**), or the track it was linked to is no longer in the project (**Track missing**, as in the audio engine panel). The dialog opens by itself the first
-  time you open the chapter, and again each time you press Record. It offers two fixes:
+  time you open the chapter, and again each time you press Record. The Booth reads the project's tracks in the background as soon as the chapter
+  and REAPER are known, so the dialog opens with them to choose from; if they are still being read, **Link track** says so on its tooltip until they arrive. It offers two fixes:
   - **Link track**: choose one of the project's tracks (the best match by name is chosen for you). A track linked to another
     chapter says so, and linking it here moves it.
   - **Create a new track**: REAPER adds a track named after the chapter at the end of the project and links it. With no tracks

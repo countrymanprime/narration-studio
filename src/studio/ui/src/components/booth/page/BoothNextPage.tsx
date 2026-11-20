@@ -48,6 +48,8 @@ import { UNKNOWN_SPEAKER, wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
 import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
+import { prefetchMatch } from '../../connection/chapterMatchCache';
+import { useChapterTrackProject } from '../../chapterTracks/ChapterTrackState';
 import { recordSetupFor } from '../record/recordSetupModel';
 import type { RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
@@ -656,6 +658,14 @@ function BoothSession({
     complete: recordedLabel?.complete,
   });
   const capabilities = control.capabilities;
+  // The tracks the dialog for an unlinked chapter offers are read here, in the background, as soon as the chapter and the DAW are known: the
+  // dialog then opens with them (#3669). A read that fails leaves the dialog to read for itself.
+  const trackMap = usePort('chapterTrackMap');
+  const linkProject = useChapterTrackProject();
+  const dawReachable = capabilities?.reachable === true;
+  useEffect(() => {
+    if (recordId && dawReachable) prefetchMatch(linkProject, recordId, () => trackMap.chapterTrackMatch(recordId));
+  }, [trackMap, linkProject, recordId, dawReachable]);
   const dawChoice = useDawChoice();
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
   useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason, recording: control.recording });

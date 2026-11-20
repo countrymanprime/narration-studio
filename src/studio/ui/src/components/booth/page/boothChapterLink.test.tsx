@@ -7,6 +7,8 @@ import type { ReadAloudReaperState } from '../../../api/contracts/teleprompter';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
+import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
+import { forgetMatches } from '../../connection/chapterMatchCache';
 import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { VoiceLayoutContext } from '../../engine/voiceLayout';
 import { forgetAppTake } from '../record/useRecordControl';
@@ -18,6 +20,7 @@ vi.mock('../takeTone', async (original) => ({ ...(await original<typeof import('
 beforeEach(() => {
   forgetAppTake();
   resetOpenOnce();
+  forgetMatches();
 });
 afterEach(() => {
   cleanup();
@@ -76,7 +79,9 @@ function renderUnlinked(over: Partial<NarrationApi> = {}, layout: 'flat' | 'fold
     <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
       <PortOverrides clients={{ daw }}>
         <VoiceLayoutContext.Provider value={layout}>
-          <BoothNextPage hasManuscript navigate={vi.fn()} />
+          <ChapterTrackStateProvider projectFolder="C:/Book" enabled notify={() => {}}>
+            <BoothNextPage hasManuscript navigate={vi.fn()} />
+          </ChapterTrackStateProvider>
         </VoiceLayoutContext.Provider>
       </PortOverrides>
     </BoothHost>,
@@ -99,6 +104,26 @@ describe('an unlinked chapter in the Booth', () => {
     // Nothing ran before the dialog: no listening session, no take.
     expect(teleprompterStart).not.toHaveBeenCalled();
     expect(daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  // #3669: the tracks are read as the Booth opens, before the link check says the chapter is unlinked, so the dialog is not a spinner.
+  it('opens its dialog with the tracks to choose from and Link ready, because they were read before the link check answered', async () => {
+    const slowLinkCheck = new Promise<ReadAloudReaperState>((resolve) => setTimeout(() => resolve(UNLINKED), 400));
+    const withTracks: ChapterTrackMatch = {
+      ...EMPTY_PROJECT,
+      status: 'matched',
+      tracks: [{ guid: '{T-1}', name: 'Chapter 1', index: 0, depth: 0, isFolder: false, hasAudio: true }],
+      candidates: [{ trackGuid: '{T-1}', trackName: 'Chapter 1', trackIndex: 0, score: 1, source: 'track-name', region: null }],
+    };
+    // The host takes its time over the tracks: only a read started before the dialog opened is done by the time it does.
+    const chapterTrackMatch = vi.fn(() => new Promise<ChapterTrackMatch>((resolve) => setTimeout(() => resolve(withTracks), 100)));
+    renderUnlinked({ readAloudReaperState: () => slowLinkCheck, chapterTrackMatch });
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    // No waiting for the dialog's own read: the choices are there on the first look.
+    expect(within(dialog).queryByText(/Reading the REAPER tracks/)).toBeNull();
+    expect(within(dialog).getByRole('combobox')).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Link track' }).getAttribute('aria-disabled')).not.toBe('true');
+    expect(chapterTrackMatch.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
   it('the top-bar setup chip warns while the chapter has no track, and is plain again once a track is linked', async () => {
