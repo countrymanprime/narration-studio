@@ -17,7 +17,7 @@ const soloNotQuietedSentence = "%s could not quiet the other chapters: %s."
 // soloLeftSentence is what the narrator is told, once, when a solo that may be on could not be taken off (the page shows it as a toast): what may stay
 // silent and what to do. It is said only when something may be soloed, and it does not say when the narrator left: the DAW may have gone away mid-visit.
 // The page sends the restore again when the DAW can follow again, and the DAW's own ledger puts it back the next time its bridge starts.
-const soloLeftSentence = "%s could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in %s."
+const soloLeftSentence = "%s could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in %s if they still are when you leave the Booth."
 
 // soloDebt is what the host knows of the solo it asked the DAW for. started counts the solos asked for (counted just before the request, since one that
 // timed out may still have landed) and through is the count a restore the DAW answered covered, so a solo started while a restore was in flight is never
@@ -34,6 +34,13 @@ func (d *soloDebt) mayBeSoloed() bool { return d.started.Load() > d.through.Load
 func (d *soloDebt) start() {
 	if d != nil {
 		d.started.Add(1)
+	}
+}
+
+// cancel takes back a solo the DAW answered it did not do.
+func (d *soloDebt) cancel() {
+	if d != nil {
+		d.started.Add(-1)
 	}
 }
 
@@ -56,7 +63,13 @@ func (d *soloDebt) restore(ctx context.Context, name string, follower dawport.Pl
 	if !pending {
 		return dawport.Result{OK: true}
 	}
-	d.owed.Store(true)
+	// A failure answered after a later restore went through owes nothing the later one did not already take off.
+	if d.started.Load() > d.through.Load() {
+		d.owed.Store(true)
+	}
+	if !d.mayBeSoloed() {
+		return dawport.Result{OK: true}
+	}
 	if reached {
 		return result
 	}
@@ -105,6 +118,11 @@ func dawSoloChapterWith(ctx context.Context, svc hostServices, name string, supp
 	debt.start()
 	soloed, err := soloer.SoloChapter(ctx, track)
 	if err != nil {
+		var stale *bridge.TrackStaleError
+		if errors.As(err, &stale) {
+			// The DAW answered that the track is gone: nothing was soloed by this call, so it is not owed.
+			debt.cancel()
+		}
 		return soloRefusal(name, err), nil
 	}
 	return dawport.Result{OK: true, Changed: soloed.Changed}, nil

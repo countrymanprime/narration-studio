@@ -493,7 +493,7 @@ function BoothSession({
   });
   useDawPullBack(chapterId, moving);
 
-  // While the narrator is on this chapter the DAW soloes it in place so the other chapters are quiet; leaving the Booth puts it back (a pickup session is recorded here too).
+  // While the narrator is on this chapter the DAW soloes it in place so the other chapters are quiet; leaving the Booth takes it off (a pickup session is recorded here too).
   useDawSoloesChapter(chapterId);
   const { inThisChapter, characters, inChapter, colourOf, setSpeaker } = useBoothSpeakers({
     paragraphs,

@@ -37,7 +37,7 @@ local MAX_ROWS = 64
 local MAX_RETRY_WAIT = 256
 local SAVE_WHILE_BUSY =
   'The project was not saved because a chapter is soloed while REAPER plays one track or waits to record, and the file would hold the solo. Save again once it stops.'
-local NO_LEDGER = "The chapter's track could not be soloed because REAPER's resource folder is not writable, so the other chapters stay as they were."
+local NO_LEDGER = "The chapter's track could not be soloed because REAPER's resource folder is not writable, so nothing was soloed."
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()
@@ -300,7 +300,8 @@ return function(registry)
       end
     end
     if not ok then
-      error(err, 0)
+      -- The write raised: the chapter is soloed again above, and the save is answered as refused with the error, so the bridge answers ERROR.
+      return false, tostring(err)
     end
     return true
   end

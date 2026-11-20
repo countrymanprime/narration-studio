@@ -1,4 +1,4 @@
--- Solo in place on the chapter the narrator records: solo_chapter and solo_restore (narration_solo_chapter.lua). One I_SOLO write on the chapter's folder;
+-- Solo in place on the chapter the Booth is on: solo_chapter and solo_restore (narration_solo_chapter.lua). One I_SOLO write on the chapter's folder;
 -- nothing inside the chapter or in another chapter is written, a solo or mute the narrator set is never changed, and only what was soloed is put back,
 -- and only where the track still reads what was set.
 
@@ -480,10 +480,7 @@ H.test('the chapter is not soloed when the ledger that puts it back cannot be wr
   local s, t = new_session()
   host.makedirs(s:path(LEDGER))
   s:send('solo_chapter', 'c1', t.ch1.guid)
-  H.eq(
-    s:events(),
-    { { 'ERROR', 'c1', "The chapter's track could not be soloed because REAPER's resource folder is not writable, so the other chapters stay as they were." } }
-  )
+  H.eq(s:events(), { { 'ERROR', 'c1', "The chapter's track could not be soloed because REAPER's resource folder is not writable, so nothing was soloed." } })
   H.eq(solos(s), { 0, 0, 0, 0, 0, 0 })
   s:send('solo_restore', 'r1')
   H.eq(s:events(), { { 'SOLO_RESTORED', 'r1', '0', '0', '0' } })
@@ -909,16 +906,71 @@ H.test('save_project while a play isolation is in place and a chapter is soloed 
   H.eq(s.fake.saves or 0, saves)
 end)
 
-H.test('save_project puts the chapter back even when the write raises, and the error still reaches the bridge', function()
+H.test('save_project puts the chapter back even when the write raises, and answers ERROR', function()
   local s, t = new_session()
   s:send('solo_chapter', 'c1', t.ch1.guid)
+  s:events()
   local real = reaper.Main_SaveProject
   reaper.Main_SaveProject = function()
     error('disk gone')
   end
-  pcall(function()
-    s:send('save_project', 's1', s.fake.project_path)
-  end)
+  s:send('save_project', 's1', s.fake.project_path)
   reaper.Main_SaveProject = real
   H.eq(solos(s), { 2, 0, 0, 0, 0, 0 }, 'the chapter is soloed again')
+  local event = s:events()[1]
+  H.eq(event[1], 'ERROR')
+  H.truthy(event[3]:find('disk gone', 1, true))
+end)
+
+H.test('save_project does not solo again a chapter the narrator unsoloed, or changed to another solo, meanwhile', function()
+  for _, narrator in ipairs({ 0, 1 }) do
+    local s, t = new_session()
+    s:send('solo_chapter', 'c1', t.ch1.guid)
+    t.ch1.solo = narrator
+    s.fake.calls = {}
+    s:send('save_project', 's1', s.fake.project_path)
+    H.eq(writes(s), {}, 'no I_SOLO write for a solo the narrator changed')
+    H.eq(t.ch1.solo, narrator)
+  end
+end)
+
+H.test("save_project during a play isolation with no chapter soloed saves, and the isolation's solo is in the file: the transport's own limit", function()
+  local s, t = new_session()
+  with_audio(s, t)
+  s:send('play_from', 'p1', '10', t.ch2.guid)
+  local on_disk
+  local real = reaper.Main_SaveProject
+  reaper.Main_SaveProject = function(...)
+    on_disk = solos(s)
+    return real(...)
+  end
+  s:send('save_project', 's1', s.fake.project_path)
+  reaper.Main_SaveProject = real
+  H.eq(on_disk, { 0, 0, 0, 2, 0, 0 })
+end)
+
+H.test('solo_restore recovers a leftover play isolation before it writes a solo of its own', function()
+  local registry
+  local s, t = new_session({
+    setup = function(r)
+      registry = r
+    end,
+  })
+  s:send('solo_chapter', 'c1', t.ch1.guid)
+  local real = registry.transport_recover
+  registry.transport_recover = function(...)
+    s.fake.calls[#s.fake.calls + 1] = { name = 'transport_recover' }
+    return real(...)
+  end
+  s.fake.calls = {}
+  s:send('solo_restore', 'r1')
+  local recovered, wrote
+  for index, call in ipairs(s.fake.calls) do
+    if call.name == 'transport_recover' and not recovered then
+      recovered = index
+    elseif call.name == 'SetMediaTrackInfo_Value' and call.key == 'I_SOLO' and not wrote then
+      wrote = index
+    end
+  end
+  H.truthy(recovered and wrote and recovered < wrote, 'the transport recovers before our write')
 end)

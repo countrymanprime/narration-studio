@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, renderHook, waitFor, act } from '@testing-library/react';
+import { cleanup, render as renderTree, renderHook, waitFor, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../api/ApiContext';
 import type { DawCapabilities } from '../api/contracts/daw';
@@ -145,90 +146,199 @@ describe('useDawSoloesChapter', () => {
 });
 
 describe('a restore that did not reach the DAW', () => {
-  const hostSentence = "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER.";
+  const hostSentence =
+    "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER if they still are when you leave the Booth.";
   const failed = { ok: false, changed: false, message: hostSentence, undoSteps: 0, refused: hostSentence };
 
-  async function pageWith(
-    answers: Array<typeof done | typeof failed>,
-    solo: typeof done | { ok: false; changed: false; message: string; undoSteps: 0 } = done,
-  ) {
+  /** A DAW with a state: the chapter it holds soloed. `restoreAnswers` scripts the next restores ('fail', 'throw', or ok when empty). */
+  async function daw(setSwitch = 'true') {
     const real = await capsWith(true);
     const off = await capsWith(false);
     let push: (caps: DawCapabilities) => void = () => undefined;
-    const dawSoloRestore = vi.fn(async () => answers.shift() ?? done);
-    const dawSoloChapter = vi.fn(async () => solo);
+    const state = { soloed: '', restores: 0, script: [] as Array<'fail' | 'throw'>, solo: 'ok' as 'ok' | 'refuse' };
+    const dawSoloChapter = vi.fn(async (id: string) => {
+      if (state.solo === 'refuse') return { ok: false, changed: false, message: 'no', undoSteps: 0 };
+      state.soloed = id;
+      return done;
+    });
+    const dawSoloRestore = vi.fn(async () => {
+      state.restores += 1;
+      const next = state.script.shift();
+      if (next === 'throw') throw new Error('bridge down');
+      if (next === 'fail') return failed;
+      state.soloed = '';
+      return done;
+    });
     const api = createMockApi({
       dawSoloChapter,
       dawSoloRestore,
-      settingsForScope: async () => setting('true'),
+      settingsForScope: async () => setting(setSwitch),
       dawCapabilities: async () => real,
       subscribeDawCapabilities: (onUpdate: (caps: DawCapabilities) => void) => {
         push = onUpdate;
         return () => undefined;
       },
     });
-    const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
-    return { dawSoloChapter, dawSoloRestore, wrapper, real, off, push: (caps: DawCapabilities) => act(() => push(caps)) };
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StrictMode>
+        <ApiProvider api={api}>{children}</ApiProvider>
+      </StrictMode>
+    );
+    return { state, dawSoloChapter, dawSoloRestore, wrapper, real, off, push: (caps: DawCapabilities) => act(() => push(caps)) };
   }
 
   async function toasts() {
     const told: string[] = [];
+    const dismissed: string[] = [];
     const { overlay } = await import('../overlay/overlayService');
     const spy = vi.spyOn(overlay, 'toast').mockImplementation((text: string) => void told.push(text));
-    return { told, restore: () => spy.mockRestore() };
+    const gone = vi.spyOn(overlay, 'dismissTopic').mockImplementation((topic: string) => void dismissed.push(topic));
+    return {
+      told,
+      dismissed,
+      restore: () => {
+        spy.mockRestore();
+        gone.mockRestore();
+      },
+    };
   }
 
-  it('retries the restore when the DAW reports it can follow again, on any page, not only the Booth', async () => {
-    const page = await pageWith([failed, done]);
+  /** The app shell with the Booth inside it: React runs the child's effects before the shell's. */
+  function Booth({ chapter }: { chapter: string }) {
+    useDawSoloesChapter(chapter);
+    return null;
+  }
+  function Shell({ chapter }: { chapter: string }) {
+    useRetryOwedSoloRestore('/booth');
+    return <Booth chapter={chapter} />;
+  }
+
+  it('a DAW that goes and comes back while the Booth is on a chapter ends with the chapter soloed', async () => {
+    const d = await daw();
     const { restore } = await toasts();
-    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: page.wrapper });
-    await waitFor(() => expect(page.dawSoloChapter).toHaveBeenCalledTimes(1));
-    booth.unmount();
-    await waitFor(() => expect(page.dawSoloRestore).toHaveBeenCalledTimes(1));
-    // The app shell is mounted whichever page is open: the DAW goes and comes back, and the owed restore is sent again.
-    renderHook(() => useRetryOwedSoloRestore(), { wrapper: page.wrapper });
-    await page.push(page.off);
-    await page.push(page.real);
-    await waitFor(() => expect(page.dawSoloRestore).toHaveBeenCalledTimes(2));
+    d.state.script.push('fail');
+    renderTree(<Shell chapter="c-1" />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    await d.push(d.off);
+    await waitFor(() => expect(d.state.restores).toBeGreaterThan(0));
+    await d.push(d.real);
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
     await act(async () => {});
-    expect(page.dawSoloRestore).toHaveBeenCalledTimes(2);
+    expect(d.state.soloed).toBe('c-1');
     restore();
   });
 
-  it('tells the narrator once, with the host sentence', async () => {
-    const page = await pageWith([failed, failed]);
+  it('a Booth whose solo is refused after the DAW comes back is left as the DAW answered', async () => {
+    const d = await daw();
+    const { restore } = await toasts();
+    d.state.script.push('fail');
+    renderTree(<Shell chapter="c-1" />, { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    await d.push(d.off);
+    await waitFor(() => expect(d.state.restores).toBeGreaterThan(0));
+    d.state.solo = 'refuse';
+    await d.push(d.real);
+    await waitFor(() => expect(d.state.restores).toBeGreaterThan(1));
+    await act(async () => {});
+    expect(d.state.soloed).toBe('');
+    restore();
+  });
+
+  it('retries the restore from the shell on any page, and the Booth that left stays taken off', async () => {
+    const d = await daw();
+    const { restore } = await toasts();
+    d.state.script.push('fail');
+    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    booth.unmount();
+    await waitFor(() => expect(d.state.restores).toBe(1));
+    expect(d.state.soloed).toBe('c-1');
+    renderHook(() => useRetryOwedSoloRestore('/editing'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe(''));
+    restore();
+  });
+
+  it('an owed restore is sent again without the DAW going away: on the next report and the next page change', async () => {
+    const d = await daw();
+    const { restore } = await toasts();
+    d.state.script.push('fail', 'fail');
+    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    booth.unmount();
+    await waitFor(() => expect(d.state.restores).toBe(1));
+    const shell = renderHook(({ page }: { page: string }) => useRetryOwedSoloRestore(page), { wrapper: d.wrapper, initialProps: { page: '/editing' } });
+    await waitFor(() => expect(d.state.restores).toBe(2));
+    shell.rerender({ page: '/proof' });
+    await waitFor(() => expect(d.state.soloed).toBe(''));
+    restore();
+  });
+
+  it('the owed restore is retried whatever the switch said when the app started', async () => {
+    const first = await daw();
+    const { restore } = await toasts();
+    first.state.script.push('fail');
+    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: first.wrapper });
+    await waitFor(() => expect(first.state.soloed).toBe('c-1'));
+    booth.unmount();
+    await waitFor(() => expect(first.state.restores).toBe(1));
+    const switchedOff = await daw('false');
+    renderHook(() => useRetryOwedSoloRestore('/'), { wrapper: switchedOff.wrapper });
+    await waitFor(() => expect(switchedOff.dawSoloRestore).toHaveBeenCalledTimes(1));
+    restore();
+  });
+
+  it('tells the narrator once, takes the toast away when the restore goes through, and a restore that threw and was then refused is told too', async () => {
+    const d = await daw();
+    const { told, dismissed, restore } = await toasts();
+    d.state.script.push('throw', 'fail');
+    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    booth.unmount();
+    await waitFor(() => expect(d.state.restores).toBe(1));
+    expect(told).toEqual([]);
+    const shell = renderHook(({ page }: { page: string }) => useRetryOwedSoloRestore(page), { wrapper: d.wrapper, initialProps: { page: '/editing' } });
+    await waitFor(() => expect(told).toEqual([hostSentence]));
+    shell.rerender({ page: '/proof' });
+    await waitFor(() => expect(d.state.soloed).toBe(''));
+    expect(told).toHaveLength(1);
+    expect(dismissed).toEqual(['daw-solo-left']);
+    restore();
+  });
+
+  it('tells a refusal even when no solo was answered as done: the host alone decides what may be soloed', async () => {
+    const d = await daw();
+    d.state.solo = 'refuse';
+    d.state.script.push('fail');
     const { told, restore } = await toasts();
-    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: page.wrapper });
-    await waitFor(() => expect(page.dawSoloChapter).toHaveBeenCalledTimes(1));
+    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.dawSoloChapter).toHaveBeenCalled());
     booth.unmount();
     await waitFor(() => expect(told).toEqual([hostSentence]));
-    renderHook(() => useRetryOwedSoloRestore(), { wrapper: page.wrapper });
-    await waitFor(() => expect(page.dawSoloRestore).toHaveBeenCalledTimes(2));
-    await act(async () => {});
-    expect(told).toHaveLength(1);
     restore();
   });
 
   it('says nothing about leaving the Booth when the DAW goes away mid-visit', async () => {
-    const page = await pageWith([failed]);
+    const d = await daw();
+    d.state.script.push('fail');
     const { told, restore } = await toasts();
-    renderHook(() => useDawSoloesChapter('c-1'), { wrapper: page.wrapper });
-    await waitFor(() => expect(page.dawSoloChapter).toHaveBeenCalledTimes(1));
-    await page.push(page.off);
+    renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.state.soloed).toBe('c-1'));
+    await d.push(d.off);
     await waitFor(() => expect(told).toHaveLength(1));
-    expect(told[0]).not.toMatch(/\bleft\b|leaving|leave/i);
+    expect(told[0]).not.toMatch(/\bleft\b/i);
     restore();
   });
 
-  it('says nothing when no solo was answered as done', async () => {
-    const page = await pageWith([failed], { ok: false, changed: false, message: 'no', undoSteps: 0 });
-    const { told, restore } = await toasts();
-    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: page.wrapper });
-    await waitFor(() => expect(page.dawSoloChapter).toHaveBeenCalledTimes(1));
+  it('owes nothing when the call throws and no solo was answered as done', async () => {
+    const d = await daw();
+    d.state.solo = 'refuse';
+    d.state.script.push('throw');
+    const booth = renderHook(() => useDawSoloesChapter('c-1'), { wrapper: d.wrapper });
+    await waitFor(() => expect(d.dawSoloChapter).toHaveBeenCalled());
     booth.unmount();
-    await waitFor(() => expect(page.dawSoloRestore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(d.state.restores).toBe(1));
+    renderHook(() => useRetryOwedSoloRestore('/'), { wrapper: d.wrapper });
     await act(async () => {});
-    expect(told).toEqual([]);
-    restore();
+    expect(d.state.restores).toBe(1);
   });
 });

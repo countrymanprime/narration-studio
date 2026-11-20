@@ -448,7 +448,7 @@ type MonitorReleaser interface {
 	KeepMonitor(ctx context.Context) error
 }
 
-// ChapterSoloer is an optional role of follow_position: while the narrator records a chapter, the engine soloes that chapter's track in place so the other
+// ChapterSoloer is an optional role of follow_position: while the Booth is on a chapter, the engine soloes that chapter's track in place so the other
 // chapters go quiet, and puts the solo back when they leave (#3428). One write on one track: nothing inside the chapter and no other chapter is touched,
 // a solo the narrator already set is left as it is and is not put back, and a solo the narrator changed since is kept. It changes nothing while the
 // engine records or plays an isolated track (the answers say Waiting; the engine does it right after). A track that is gone is a stale error. Only an

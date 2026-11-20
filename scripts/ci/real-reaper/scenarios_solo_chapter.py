@@ -1,6 +1,6 @@
 """Real-REAPER scenarios, group: the DAW follows the chapter, solo in place on the chapter (#3428, PR D).
 
-`solo_chapter` soloes the chapter's folder track in place while the narrator records it, `solo_restore` puts it back
+`solo_chapter` soloes the chapter's folder track in place while the Booth is on that chapter, `solo_restore` puts it back
 (src/studio/integrations/reaper/narration_solo_chapter.lua). The harness proves the rules against a fake; these rows show what the fake cannot:
 
 - the mix: with the folder soloed only that chapter's tone is in the rendered master mix (the voices inside the folder are heard, the other chapter

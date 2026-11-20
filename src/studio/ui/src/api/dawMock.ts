@@ -512,6 +512,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   let refuseRelease: string | null = null;
   let refuseRestore: string | null = null;
   const unlinked = new Set<string>();
+  // The solo asked while the DAW recorded: the DAW applies it right after the stop (narration_solo_chapter.lua's tick).
+  let waitingSolo: string | null = null;
+  const applyWaitingSolo = () => {
+    if (waitingSolo !== null) solo.chapterId = waitingSolo;
+    waitingSolo = null;
+  };
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: DawGoToWhere; seconds: number }[] = [];
@@ -665,10 +671,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     stopInDaw: () => {
       live.transport = { playing: false, recording: false };
+      applyWaitingSolo();
       publish();
     },
     endTakeInDaw: (undoSteps = 1) => {
       live.transport = { playing: false, recording: false };
+      applyWaitingSolo();
       publish();
       for (const on of endedSubs) on({ undoSteps });
     },
@@ -847,12 +855,20 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         return refusedMove('This chapter has no linked track in the DAW.');
       }
       // While the DAW records it touches nothing and does it right after the stop: done, nothing changed yet.
-      if (currentTransport(live, currentCapabilities(live)).recording) return { ok: true, changed: false, message: '', undoSteps: 0 };
+      if (currentTransport(live, currentCapabilities(live)).recording) {
+        waitingSolo = chapterId;
+        return { ok: true, changed: false, message: '', undoSteps: 0 };
+      }
+      waitingSolo = null;
       const changed = solo.chapterId !== chapterId;
       solo.chapterId = chapterId;
       return { ok: true, changed, message: '', undoSteps: 0 };
     },
     dawSoloRestore: async () => {
+      // A DAW that does not answer cannot take the solo off: the host refuses when a solo may be on, and says nothing when none is.
+      if (!currentCapabilities(live).reachable && solo.chapterId !== '')
+        return refusedMove("The DAW did not answer, so the other chapters may stay silent. Unsolo the chapter's track in the DAW.");
+      waitingSolo = null;
       if (refuseRestore !== null) {
         const sentence = refuseRestore;
         refuseRestore = null;

@@ -36,4 +36,23 @@ describe('the mock DAW, chapter solo', () => {
     expect(await daw.dawSoloChapter('c-0001')).toEqual(done(false));
     expect(daw.control.soloed().chapterId).toBe('');
   });
+
+  it('applies a solo asked during a take once the take stops', async () => {
+    const daw = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: true } });
+    await daw.dawSoloChapter('c-0001');
+    expect(daw.control.soloed().chapterId).toBe('');
+    daw.control.stopInDaw();
+    expect(daw.control.soloed().chapterId).toBe('c-0001');
+  });
+
+  it('refuses a restore while the DAW does not answer, when a solo is on', async () => {
+    const daw = createDawMock({ daw: 'REAPER', connected: true, transport: { playing: false, recording: false } });
+    expect(await daw.dawSoloRestore()).toEqual(done(false));
+    await daw.dawSoloChapter('c-0001');
+    daw.control.quiet();
+    const refused = await daw.dawSoloRestore();
+    expect(refused.ok).toBe(false);
+    expect(refused.refused).toContain('may stay silent');
+    expect(daw.control.soloed().chapterId).toBe('c-0001');
+  });
 });

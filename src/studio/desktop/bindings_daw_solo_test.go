@@ -228,6 +228,39 @@ func TestARestoreAnsweredAfterALaterSoloKeepsTheSoloOwed(t *testing.T) {
 	}
 }
 
+func TestAStaleFailedRestoreDoesNotReownADebtALaterRestoreCleared(t *testing.T) {
+	var debt soloDebt
+	debt.start()
+	slow := &blockedSoloer{entered: make(chan struct{}), release: make(chan struct{})}
+	slow.restoreErr = bridge.ErrNoAnswer
+	first := make(chan dawport.Result)
+	go func() { first <- debt.restore(t.Context(), "REAPER", slow) }()
+	<-slow.entered
+	if got := debt.restore(t.Context(), "REAPER", &fakeSoloer{}); !got.OK {
+		t.Fatalf("the later restore = %+v", got)
+	}
+	close(slow.release)
+	if got := <-first; !got.OK || got.Refused != "" {
+		t.Fatalf("the earlier failure after a later success = %+v, want done and silent", got)
+	}
+	if debt.mayBeSoloed() {
+		t.Fatal("nothing is soloed, so nothing is owed")
+	}
+}
+
+func TestARestoreAfterOnlyRefusedSolosSaysNothing(t *testing.T) {
+	host, ids := newReadAloudReaperHost(t)
+	var debt soloDebt
+	role := &fakeSoloer{soloErr: &bridge.TrackStaleError{GUID: readAloudTrack}}
+	if got, _ := dawSoloChapterWith(t.Context(), host.services(), "REAPER", available(), role, ids[0], &debt); got.OK {
+		t.Fatal("a stale track must refuse")
+	}
+	role.restoreErr = bridge.ErrNoAnswer
+	if got := debt.restore(t.Context(), "REAPER", role); !got.OK || got.Refused != "" {
+		t.Fatalf("restore after only a stale solo = %+v, want done and silent", got)
+	}
+}
+
 func TestASoloTheHostRefusedBeforeAskingTheDawIsNotCounted(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	var debt soloDebt

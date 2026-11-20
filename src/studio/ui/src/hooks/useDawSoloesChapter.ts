@@ -3,7 +3,7 @@ import type { DawPlaceApi } from '../ports';
 import { usePort } from '../ports/usePort';
 import { useDawCapabilities } from './useDawCapabilities';
 import { useFollowChapterInDaw } from './useDawGoesToChapter';
-import { useToasts } from './useToasts';
+import { overlay as appOverlay } from '../overlay/overlayService';
 
 /** The calls to the DAW run one after the other in the order the page made them, so a chapter entered right after the last one was left is never put back by it. */
 let queue: Promise<unknown> = Promise.resolve();
@@ -13,37 +13,51 @@ const inOrder = (call: () => Promise<unknown>) => {
 
 /**
  * What this page knows of the solo, whichever page asked for it: `maySolo` is set when a solo was answered as done and cleared when a restore was; `owed`
- * when a restore that had something to take off failed; `told` once the narrator has been told (the host's sentence, said once per owed restore).
+ * when a restore that may have had something to take off failed; `told` once the narrator has been told (the host's sentence, said once per owed restore).
+ * `held` is the chapter a Booth that is on a chapter wants soloed: the one owner of the order, so a restore sent late never takes off a solo in force.
  */
 let maySolo = false;
 let owed = false;
 let told = false;
+let held: string | null = null;
+const TOLD_TOPIC = 'daw-solo-left';
 
-type Say = (sentence: string) => void;
+type Ui = { say: (sentence: string) => void; withdraw: () => void };
 
-const restoreNow = (place: DawPlaceApi, say: Say | null) =>
+/** Sends the restore. `reassert` is for a retry, which may arrive while a Booth is on a chapter: that chapter is soloed again after it. */
+const restoreNow = (place: DawPlaceApi, ui: Ui, reassert: boolean) =>
   inOrder(async () => {
     try {
       const answer = await place.dawSoloRestore();
       if (answer.ok) {
         maySolo = false;
         owed = false;
+        if (told) ui.withdraw();
         told = false;
-        return;
-      }
-      // Nothing was answered as soloed and nothing is owed: nothing to take off, so nothing to say.
-      if (!maySolo && !owed) return;
-      // Something was soloed and could not be taken off: it is owed, and the host's sentence says what and what to do.
-      owed = true;
-      if (say && !told && answer.refused) {
-        told = true;
-        say(answer.refused);
+      } else {
+        // The host alone decides what may be soloed: a refusal carries its sentence, which is told once.
+        owed = true;
+        if (!told && answer.refused) {
+          told = true;
+          ui.say(answer.refused);
+        }
       }
     } catch {
       // The call did not reach the host; the page's own DAW notices say so, and what may be soloed stays owed.
       owed = maySolo || owed;
     }
+    if (reassert && held !== null) {
+      const chapter = held;
+      if ((await place.dawSoloChapter(chapter)).ok) maySolo = true;
+    }
   });
+
+function useUi(): Ui {
+  return {
+    say: (sentence) => appOverlay.toast(sentence, { tone: 'error', topic: TOLD_TOPIC }),
+    withdraw: () => appOverlay.dismissTopic(TOLD_TOPIC),
+  };
+}
 
 /** Whether the switch is on and the DAW can follow. */
 function useSoloActive(): boolean {
@@ -65,26 +79,31 @@ function useSoloActive(): boolean {
 export function useDawSoloesChapter(chapterId: string | undefined): void {
   const place = usePort('dawPlace');
   const active = useSoloActive();
-  const { notify } = useToasts();
+  const ui = useUi();
   const wanted = active && chapterId ? chapterId : null;
   const sent = useRef(false);
 
-  const takeOff = useRef(() => {});
-  takeOff.current = () => {
+  const takeOff = () => {
     sent.current = false;
-    restoreNow(place, (sentence) => notify(sentence, 'error'));
+    restoreNow(place, ui, false);
   };
+  const takeOffRef = useRef(takeOff);
+  takeOffRef.current = takeOff;
 
   useEffect(() => {
     if (wanted === null) {
       // The Booth is still open but is on no chapter: the chapter soloed before is taken off.
-      if (sent.current) takeOff.current();
+      if (sent.current) takeOffRef.current();
       return;
     }
+    held = wanted;
     sent.current = true;
     inOrder(async () => {
       if ((await place.dawSoloChapter(wanted)).ok) maySolo = true;
     });
+    return () => {
+      held = null;
+    };
   }, [wanted, place]);
 
   // Only the page being left, or the switch or the DAW going away, takes it off.
@@ -92,21 +111,29 @@ export function useDawSoloesChapter(chapterId: string | undefined): void {
     if (!active) return;
     return () => {
       // Nothing is sent for a page that never soloed (no chapter in view).
-      if (sent.current) takeOff.current();
+      if (sent.current) takeOffRef.current();
     };
   }, [active, place]);
 }
 
-/** Mounted once in the app shell: an owed restore is sent again whenever the DAW can follow again, on any page (Editing, Proof and Master & QC put it back too). */
-export function useRetryOwedSoloRestore(): void {
+/**
+ * Mounted once in the app shell: an owed restore is sent again on the next report of the DAW's capabilities and on the next page change, on any page and
+ * whatever the switch said when the app started (the restore does not look at it). A Booth that is on a chapter at that moment has its solo set again after it.
+ */
+export function useRetryOwedSoloRestore(page: string): void {
   const place = usePort('dawPlace');
-  const active = useSoloActive();
+  const { caps } = useDawCapabilities();
+  const ui = useUi();
+  const reachable = !!caps?.capabilities.follow_position?.available;
+  const uiRef = useRef(ui);
+  uiRef.current = ui;
   useEffect(() => {
-    if (active && owed) restoreNow(place, null);
-  }, [active, place]);
+    if (reachable && owed) restoreNow(place, uiRef.current, true);
+  }, [caps, page, place, reachable]);
 }
 
 /** For tests only: forgets what the page knows of the solo, so one test's owed restore does not reach the next. */
 export function resetSoloDebtForTest(): void {
   maySolo = owed = told = false;
+  held = null;
 }

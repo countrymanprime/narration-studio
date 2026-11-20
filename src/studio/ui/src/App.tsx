@@ -330,7 +330,7 @@ function AppRoutes() {
   const settingsOrigin = useSettingsOrigin();
   const zoom = useZoom(api);
   // An owed restore of the chapter solo is sent again whenever the DAW can follow again, whichever page is open (hooks/useDawSoloesChapter.ts).
-  useRetryOwedSoloRestore();
+  useRetryOwedSoloRestore(location.pathname);
   const journal = useJournal();
   const overlay = useOverlay();
   const dawKind = useDawKind();
