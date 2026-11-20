@@ -26,8 +26,8 @@ const LAYOUTS = [
   { value: 'folders', label: 'Voice folders' },
 ] as const;
 
-/** A marked child's name and badge, dimmed: the row is still there, but the Voice switch that turns it back on is not, so it stays at full strength. */
-const DIMMED = 'opacity-60';
+/** A marked child's name, muted (a token that holds contrast in both themes, not an opacity): the row is still there, and so are the badge and the switch that turns it back on, at full strength. */
+const DIMMED = 'text-[var(--text-muted)]';
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 
@@ -145,6 +145,7 @@ export function VoicesCard({
                       <TableCell align="right">
                         <CharacterPicker
                           voice={voice}
+                          placeName={trackName(voice.name, projectPlace(voice.guid))}
                           voices={voices}
                           characters={characters}
                           setup={setup}
@@ -236,6 +237,7 @@ const shortName = (name: string) => ([...name].length > 40 ? `${[...name].slice(
 
 function CharacterPicker({
   voice,
+  placeName,
   voices,
   characters,
   setup,
@@ -243,6 +245,8 @@ function CharacterPicker({
   onNarratorCharacter,
 }: {
   voice: Voice;
+  /** What the row calls the track: its name, or "Track n" by its place in the project when it has none. */
+  placeName: string;
   /** Every voice of the folder, to say which other track already records a character. */
   voices: readonly Voice[];
   characters: readonly GuideEntity[];
@@ -252,7 +256,8 @@ function CharacterPicker({
 }) {
   if (voice.notVoice) {
     const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
-    return <IconButton label={`Choose who the ${shortName(trackName(voice.name))} track records`} action="edit" size="sm" disabledReason={reason} />;
+    const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
+    return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
   }
   const label = voice.narrator ? 'Choose the character the Narrator track also voices' : `Choose who the ${shortName(voice.name.trim())} track records`;
   if (!voice.narrator && !savable(voice.name)) {

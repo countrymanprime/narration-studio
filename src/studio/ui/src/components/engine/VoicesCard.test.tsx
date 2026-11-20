@@ -214,9 +214,10 @@ describe('the Voices card', () => {
     const marked = rows[1];
     expect(within(marked).getByText('Queen')).toBeTruthy();
     expect(within(marked).getByText('Not a voice')).toBeTruthy();
-    // The name and badge are dimmed; the Voice switch that turns the row back on is not.
-    expect(within(marked).getByText('Queen').closest('td')?.className).toContain('opacity-60');
-    expect(within(marked).getByRole('switch', { name: 'Queen counts as a voice' }).closest('td')?.className).not.toContain('opacity-60');
+    // The name is muted (a colour token, not an opacity, so contrast holds in both themes); the badge and the switch that turns the row back on are not.
+    expect(within(marked).getByText('Queen').closest('td')?.className).toContain('text-[var(--text-muted)]');
+    expect(within(marked).getByText('Not a voice').closest('td')?.className).not.toContain('opacity');
+    expect(within(marked).getByRole('switch', { name: 'Queen counts as a voice' }).closest('td')?.className).not.toContain('opacity');
     expect(within(marked).getByRole('button', { name: 'Choose who the Queen track records' }).getAttribute('aria-disabled')).toBe('true');
     const queen = within(marked).getByRole('switch', { name: 'Queen counts as a voice' });
     expect(queen.getAttribute('aria-checked')).toBe('false');
@@ -256,6 +257,26 @@ describe('the Voices card', () => {
     expect(screen.getByRole('table', { name: /^Voices of / })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
     expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
+  });
+
+  it('a marked blank-named track is named by its place in the project by the row, the switch and the edit button alike', () => {
+    const blank = [track('folder', 'Ch 8', 0, true), track('b1', '   ', 1)];
+    render(
+      <VoicesCard
+        tracks={blank}
+        chapters={chapters}
+        mappings={[{ chapterId: 'ch8', trackGuid: 'folder' }] as never}
+        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['b1'], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('switch', { name: 'Track 2 counts as a voice' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choose who Track 2 records' })).toBeTruthy();
   });
 
   it('a Flat folder with a chapter-linked child and a music bed lists only the music bed', async () => {
