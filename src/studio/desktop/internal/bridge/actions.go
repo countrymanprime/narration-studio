@@ -416,6 +416,8 @@ const takenPoll = 10 * time.Millisecond
 // takenPoll. It is how a request's wait is split into the time the command queued and REAPER's own time.
 type takenWatch struct {
 	done chan struct{}
+	// stat looks at the command file; os.Stat, except in a test that needs a stat that fails some other way than "not there".
+	stat func(string) (os.FileInfo, error)
 	mu   sync.Mutex
 	// +checklocks:mu
 	target string
@@ -435,7 +437,7 @@ const (
 )
 
 func watchTaken(target string) *takenWatch {
-	w := &takenWatch{done: make(chan struct{})}
+	w := &takenWatch{done: make(chan struct{}), stat: os.Stat}
 	w.mu.Lock()
 	w.target = target
 	w.mu.Unlock()
@@ -480,7 +482,7 @@ func (w *takenWatch) seen() bool {
 	}
 	target := w.target
 	w.mu.Unlock()
-	if _, err := os.Stat(target); !os.IsNotExist(err) {
+	if _, err := w.stat(target); !os.IsNotExist(err) {
 		return false
 	}
 	// A commands folder that is gone too is not REAPER reading the command.

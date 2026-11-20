@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -72,12 +73,14 @@ func TestACommandREAPERNeverReadIsAllQueueTime(t *testing.T) {
 // An outcome that shows REAPER answered is never logged as a command REAPER did not read, even when the poll could not see the file go (a stat
 // that fails some other way than "not there", as a file whose delete is pending can on Windows): the time is then unknown, not all queue.
 func TestAnAnsweredRequestIsTakenEvenWhenTheFileGoingWasNotSeen(t *testing.T) {
-	// A path under a regular file: stat fails with "not a directory", which is not "does not exist".
-	file := filepath.Join(t.TempDir(), "plain")
-	if err := os.WriteFile(file, nil, 0o600); err != nil {
-		t.Fatal(err)
+	// A stat that fails some other way than "does not exist", as a file whose delete is pending can on Windows.
+	watch := &takenWatch{
+		done:   make(chan struct{}),
+		target: filepath.Join(t.TempDir(), "00000001.cmd"),
+		stat: func(string) (os.FileInfo, error) {
+			return nil, &os.PathError{Op: "stat", Path: "x", Err: fs.ErrPermission}
+		},
 	}
-	watch := &takenWatch{done: make(chan struct{}), target: filepath.Join(file, "00000001.cmd")}
 	defer watch.stop()
 	started := time.Now().Add(-200 * time.Millisecond)
 
