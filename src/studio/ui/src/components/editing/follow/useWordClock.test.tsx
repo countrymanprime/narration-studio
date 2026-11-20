@@ -271,6 +271,96 @@ describe('the page asks the host for where its words play', () => {
     expect(text('version')).toBe('rec@2');
   });
 
+  it('replaces a read that hangs once something waits behind it and the limit passes, with no further event, and makes that read once', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const real = api.workspaceWordTimes.bind(api);
+    let calls = 0;
+    const asked = vi.spyOn(api, 'workspaceWordTimes').mockImplementation((id: string) => {
+      calls += 1;
+      return calls === 1 ? new Promise<never>(() => undefined) : real(id);
+    });
+    daw.setWordTimes(table('rec@2', linear(300)));
+    daw.editInDaw();
+    await wait(1000);
+    daw.editInDaw();
+    await wait(WORD_TIMES_READ_LIMIT_MS + 1000);
+    expect(asked).toHaveBeenCalledTimes(2);
+    expect(text('version')).toBe('rec@2');
+  });
+
+  it('takes the late answer of a read given up on when nothing newer has answered, and never over a newer one', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const settle: Array<(answer: Awaited<ReturnType<typeof api.workspaceWordTimes>>) => void> = [];
+    vi.spyOn(api, 'workspaceWordTimes').mockImplementation(() => new Promise((resolve) => settle.push(resolve)));
+    daw.editInDaw();
+    await wait(WORD_TIMES_READ_LIMIT_MS + 100);
+    daw.editInDaw();
+    await wait(10);
+    expect(settle).toHaveLength(2);
+    settle[0](table('rec@old', linear(200)));
+    await wait(10);
+    expect(text('version')).toBe('rec@old');
+    settle[1](table('rec@new', linear(300)));
+    await wait(10);
+    expect(text('version')).toBe('rec@new');
+  });
+
+  it('does not take an older answer over a newer one, and a late failure of a given-up read starts no third read', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const settle: Array<{ resolve: (answer: Awaited<ReturnType<typeof api.workspaceWordTimes>>) => void; reject: (reason: Error) => void }> = [];
+    const asked = vi.spyOn(api, 'workspaceWordTimes').mockImplementation(() => new Promise((resolve, reject) => settle.push({ resolve, reject })));
+    daw.editInDaw();
+    await wait(WORD_TIMES_READ_LIMIT_MS + 100);
+    daw.editInDaw();
+    await wait(10);
+    settle[1].resolve(table('rec@new', linear(300)));
+    await wait(10);
+    expect(text('version')).toBe('rec@new');
+    settle[0].resolve(table('rec@old', linear(200)));
+    await wait(10);
+    expect(text('version')).toBe('rec@new');
+    expect(asked).toHaveBeenCalledTimes(2);
+
+    daw.editInDaw();
+    await wait(WORD_TIMES_READ_LIMIT_MS + 100);
+    daw.editInDaw();
+    await wait(10);
+    const before = asked.mock.calls.length;
+    settle[settle.length - 2].reject(new Error('late'));
+    await wait(100);
+    expect(asked.mock.calls.length).toBe(before);
+  });
+
+  it('a system clock set back while a read hangs does not stop the later reads', async () => {
+    const { api } = await mount();
+    daw.setWordTimes(table('rec@1', linear(100)));
+    daw.editInDaw();
+    await wait(10);
+    const real = api.workspaceWordTimes.bind(api);
+    let calls = 0;
+    vi.spyOn(api, 'workspaceWordTimes').mockImplementation((id: string) => {
+      calls += 1;
+      return calls === 1 ? new Promise<never>(() => undefined) : real(id);
+    });
+    daw.editInDaw();
+    await wait(100);
+    vi.setSystemTime(Date.now() - 3_600_000);
+    daw.setWordTimes(table('rec@2', linear(300)));
+    await wait(WORD_TIMES_READ_LIMIT_MS + 1000);
+    daw.editInDaw();
+    await wait(50);
+    expect(text('version')).toBe('rec@2');
+  });
+
   it('drops the answer of a read that was out when the DAW stopped being able to make a table, and shows no map', async () => {
     const { api, again } = await mount();
     const real = api.workspaceWordTimes.bind(api);

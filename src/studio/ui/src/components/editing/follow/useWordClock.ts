@@ -9,9 +9,11 @@ import { useVisible } from './useDawPlayPosition';
 type Flight = {
   generation: number;
   reading: boolean;
-  /** When the read in flight began (ms), and which read it is: a read out longer than `WORD_TIMES_READ_LIMIT_MS` is given up on. */
+  /** When the read in flight began (`performance.now()`, which a changed system clock does not move), and which read it is. */
   startedAt: number;
   token: number;
+  /** The newest read whose answer the page took: an answer of an older read, even a late one, is never taken over it. */
+  applied: number;
   again: boolean;
   held: number;
   active: boolean;
@@ -26,6 +28,7 @@ const freshFlight = (generation: number): Flight => ({
   reading: false,
   startedAt: 0,
   token: 0,
+  applied: 0,
   again: false,
   held: -1,
   active: false,
@@ -69,19 +72,25 @@ export function useWordClock(
     if (!enabled || !visible) return;
     const run = flight.current;
     const read = (): void => {
-      if (run.reading && Date.now() - run.startedAt < WORD_TIMES_READ_LIMIT_MS) {
-        run.again = true;
-        return;
+      if (run.reading) {
+        if (performance.now() - run.startedAt < WORD_TIMES_READ_LIMIT_MS) {
+          run.again = true;
+          return;
+        }
+        // Out longer than the limit: given up on, and replaced by this one (what waited behind it is this read's to answer).
+        run.again = false;
       }
-      // A read out longer than the limit is given up on (its answer, if it ever comes, is not used): the next one starts.
       run.reading = true;
-      run.startedAt = Date.now();
+      run.startedAt = performance.now();
       const token = ++run.token;
+      // A read still out at the limit with something waiting behind it is replaced then, with no further event needed.
+      const limit = window.setTimeout(() => {
+        if (flight.current === run && run.token === token && run.reading && run.again && run.active) run.read();
+      }, WORD_TIMES_READ_LIMIT_MS);
       // A read that fails and one that answers both end the read in flight; an edit that came meanwhile is read next either way, once (a read
       // that fails with nothing waiting is not repeated: that would be a hot loop on a DAW that cannot answer).
       const followUp = (): void => {
         run.reading = false;
-        if (flight.current !== run) return;
         // What waited behind the read is read now by whichever run of the effect is on (the one that started this read may be a hidden
         // window's, long gone); with the window hidden it is dropped, the next show reads anyway.
         if (run.again) {
@@ -91,14 +100,21 @@ export function useWordClock(
       };
       sync.workspaceWordTimes(chapterId).then(
         (answer) => {
-          if (flight.current !== run || run.token !== token) return;
-          run.held = answer.available ? answer.changeCount : -1;
-          setTable(answer.available ? answer : null);
-          setAnswered(true);
-          followUp();
+          window.clearTimeout(limit);
+          if (flight.current !== run) return;
+          // An answer newer than what the page has is taken, even from a read given up on (the one that replaced it may fail or be slower); an
+          // older one never replaces a newer.
+          if (token > run.applied) {
+            run.applied = token;
+            run.held = answer.available ? answer.changeCount : -1;
+            setTable(answer.available ? answer : null);
+            setAnswered(true);
+          }
+          if (token === run.token) followUp();
         },
         () => {
-          if (flight.current !== run || run.token !== token) return;
+          window.clearTimeout(limit);
+          if (flight.current !== run || token !== run.token) return;
           setAnswered(true);
           followUp();
         },
