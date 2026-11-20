@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState } from 'react';
 import type { ScopedSettingField } from '../../../types';
+import { ColourField } from '../../primitives/ColourField';
 import { Select } from '../../primitives/Select';
+import { useSettledDraft } from '../../primitives/settledDraft';
 import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
 import { describeNumberRange, numberProblem } from '../numberSetting';
@@ -64,29 +66,21 @@ function SettledBox({
   placeholder?: string;
   className?: string;
 }) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  const settle = () => {
-    if (draft !== value) onSettle(draft);
-  };
+  const box = useSettledDraft(value, onSettle);
   return (
     <TextField
       id={id}
       label={label}
       mono={mono}
       inputMode={inputMode}
-      value={draft}
+      value={box.draft}
       disabled={disabled}
       placeholder={placeholder}
       className={className}
       aria-describedby={describedBy}
       aria-invalid={invalid ? true : undefined}
-      onChange={setDraft}
-      onBlur={settle}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') settle();
-        if (event.key === 'Escape') setDraft(value);
-      }}
+      onChange={box.setDraft}
+      {...box.boxProps}
     />
   );
 }
@@ -166,26 +160,17 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
   }
   if (field.kind === 'color') {
     return (
-      <span className="flex items-center gap-2">
-        <TextField
-          label={`${name} swatch`}
-          type="color"
-          value={`#${value.replace('#', '').padEnd(6, '0').slice(0, 6)}`}
-          disabled={disabled}
-          onChange={(next) => onChange(next.slice(1).toUpperCase())}
-        />
-        <SettledBox
-          id={id}
-          label={name}
-          mono
-          value={value}
-          disabled={disabled}
-          invalid={invalid}
-          describedBy={describedBy}
-          className="w-28"
-          onSettle={(next) => onChange(next.replace('#', '').toUpperCase())}
-        />
-      </span>
+      <ColourField
+        mode="free"
+        label={name}
+        id={id}
+        describedBy={describedBy}
+        invalid={invalid}
+        disabled={disabled}
+        hexClassName="w-28"
+        value={value}
+        onChange={onChange}
+      />
     );
   }
   return (

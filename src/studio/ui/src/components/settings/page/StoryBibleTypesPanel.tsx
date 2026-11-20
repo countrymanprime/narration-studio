@@ -4,11 +4,12 @@ import { usePort } from '../../../ports/usePort';
 import { GUIDE_TYPE_COLOURS, type GuideType, type GuideTypeColour } from '../../../types';
 import { projectDataChanged } from '../data/projectDataSignal';
 import { kindSwatch } from '../../storybible/entryList';
+import { typeHueColour } from '../../../kinds/entityColour';
 import { Checkbox } from '../../primitives/Checkbox';
+import { ColourField, type ColourChoice } from '../../primitives/ColourField';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
-import { Select } from '../../primitives/Select';
-import { Swatch } from '../../primitives/Swatch';
+import { Swatch, type SwatchColour } from '../../primitives/Swatch';
 import { TextField } from '../../primitives/TextField';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { plural } from '../../../plural';
@@ -16,7 +17,12 @@ import { shortName } from '../../../studio/drafts/draftSentence';
 import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
 
 const COLOUR_LABELS: Record<GuideTypeColour, string> = { green: 'Green', blue: 'Blue', violet: 'Violet', amber: 'Amber', teal: 'Teal', rose: 'Rose' };
-const COLOUR_OPTIONS = GUIDE_TYPE_COLOURS.map((colour) => ({ value: colour, label: COLOUR_LABELS[colour] }));
+// A type's hue is drawn from the token its chips use (`typeHueColour`), so the choice and the chip cannot differ.
+const COLOUR_CHOICES: readonly ColourChoice<GuideTypeColour>[] = GUIDE_TYPE_COLOURS.map((colour) => ({
+  value: colour,
+  token: typeHueColour(colour).line.slice(2) as SwatchColour,
+  name: COLOUR_LABELS[colour],
+}));
 const NEW_NAME = 'Give the type a new name.';
 
 export type StoryBibleTypesViewProps = {
@@ -86,13 +92,17 @@ function TypeRow({
         />
       </span>
       <span className="flex w-full items-center gap-2 pl-6 @max-sm:pl-0 @lg:w-auto @lg:gap-3 @lg:pl-0">
-        <Select
+        <ColourField
+          mode="palette"
+          form="popover"
           label={`Colour for ${type.name}`}
           className="w-[100px] @lg:w-[130px]"
+          choices={COLOUR_CHOICES}
           value={type.colour}
-          disabled={busy}
-          options={COLOUR_OPTIONS}
-          onChange={(colour) => onColour(type.name, colour as GuideTypeColour)}
+          pending={busy}
+          onChange={(colour) => {
+            if (colour) onColour(type.name, colour);
+          }}
         />
         <TooltipTarget text="Entries of this type can be picked as the speaker of a quoted line">
           <Checkbox checked={type.speaks} disabled={busy} onChange={(speaks) => onSpeaks(type.name, speaks)}>

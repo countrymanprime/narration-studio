@@ -144,7 +144,10 @@ describe('ColourField palette while a save runs, and when off', () => {
     expect(radio('Blue').tabIndex).toBe(0);
     radio('Blue').focus();
     expect(document.activeElement).toBe(radio('Blue'));
-    await userEvent.keyboard('{ArrowRight} ');
+    await userEvent.keyboard('{ArrowRight}{ArrowDown}{ArrowLeft}{ArrowUp}{ArrowRight}');
+    // An arrow key does not move focus off the swatch being saved: focus and the check stay on the same swatch.
+    expect(document.activeElement).toBe(radio('Blue'));
+    await userEvent.keyboard(' ');
     await userEvent.click(radio('Green'));
     expect(onChange).not.toHaveBeenCalled();
     expect(checked('Blue')).toBe('true');
@@ -290,6 +293,9 @@ describe('freeNames', () => {
     ['Marker Colour', 'Marker colour', 'Marker hex'],
     ['Colour', 'Colour', 'Hex'],
     ['Décor', 'Décor colour', 'Décor hex'],
+    ['Note colour (this project)', 'Note colour (this project)', 'Note hex (this project)'],
+    ['Tint (all projects)', 'Tint colour (all projects)', 'Tint hex (all projects)'],
+    ['Colour (all projects)', 'Colour (all projects)', 'Hex (all projects)'],
   ])('%s names the picker %j and the box %j', (label, picker, hex) => {
     expect(freeNames(label)).toEqual({ picker, hex });
   });

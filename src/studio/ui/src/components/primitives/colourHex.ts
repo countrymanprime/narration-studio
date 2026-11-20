@@ -14,7 +14,10 @@ export function isStoredHex(hex: string): boolean {
 // A native colour input must hold some `#rrggbb`: mid grey stands for "no colour yet", and leans toward no hue.
 const UNSET_PICKER_VALUE = '#808080';
 
-/** The value a native colour input shows for a stored colour: `#rrggbb` in lower case, or mid grey for an unset or malformed one. */
+/**
+ * The value a native colour input shows for a stored colour: `#rrggbb` in lower case, or mid grey for an unset or malformed one. A colour the
+ * host kept in lower case (it accepts either case) is shown as itself.
+ */
 export function toPickerValue(hex: string): string {
-  return isStoredHex(hex) ? `#${hex.toLowerCase()}` : UNSET_PICKER_VALUE;
+  return isStoredHex(hex.toUpperCase()) ? `#${hex.toLowerCase()}` : UNSET_PICKER_VALUE;
 }

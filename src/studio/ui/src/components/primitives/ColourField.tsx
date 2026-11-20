@@ -97,7 +97,7 @@ function Palette<V extends string>({
       className={`flex flex-wrap items-center gap-1 ${form === 'row' ? className : ''}`}
     >
       {entries.map((entry) => (
-        <SwatchRadio key={entry.key} entry={entry} onPress={onPress} />
+        <SwatchRadio key={entry.key} entry={entry} pending={pending} onPress={onPress} />
       ))}
     </BaseRadioGroup>
   );
@@ -126,7 +126,8 @@ function Palette<V extends string>({
     </button>
   );
   return (
-    <Popover trigger={trigger} label={label} align="start" sideOffset={4} compact open={open} onOpenChange={setOpen}>
+    // The box sits in a list that scrolls (a dialog's body, a Settings page), so the swatches stay inside the window when the box scrolls away or the window shrinks.
+    <Popover trigger={trigger} label={label} align="start" sideOffset={4} compact fitToWindow open={open} onOpenChange={setOpen}>
       {row(pickAndClose)}
     </Popover>
   );
@@ -137,7 +138,7 @@ function Palette<V extends string>({
 const RADIO_CLASSES =
   'box-border inline-flex h-7 min-w-7 cursor-pointer items-center justify-center gap-1 rounded-[var(--control-radius)] border-2 border-transparent data-[checked]:border-[var(--text)] data-[disabled]:cursor-not-allowed data-[disabled]:opacity-55 not-data-[disabled]:not-data-[checked]:hover:bg-[var(--surface-2)]';
 
-function SwatchRadio({ entry, onPress }: { entry: Entry; onPress?: (key: string, how: 'press' | 'enter') => void }) {
+function SwatchRadio({ entry, pending, onPress }: { entry: Entry; pending: boolean; onPress?: (key: string, how: 'press' | 'enter') => void }) {
   return (
     <TooltipTarget text={entry.name}>
       <BaseRadio.Root
@@ -145,6 +146,9 @@ function SwatchRadio({ entry, onPress }: { entry: Entry; onPress?: (key: string,
         aria-label={entry.name}
         onClick={() => onPress?.(entry.key, 'press')}
         onKeyDown={(event: KeyboardEvent) => {
+          // While a save runs the group checks nothing, but it would still move focus on an arrow key, leaving focus on one swatch and the
+          // check on another. The key stops here, so focus stays on the swatch being saved and the next key after the answer starts from it.
+          if (pending && event.key.startsWith('Arrow')) event.stopPropagation();
           if (event.key === 'Enter') onPress?.(entry.key, 'enter');
         }}
         className={`${RADIO_CLASSES} ${entry.caption ? 'px-1' : ''}`}
@@ -164,10 +168,15 @@ function SwatchRadio({ entry, onPress }: { entry: Entry; onPress?: (key: string,
 
 const HEX_HINT = 'Six hex digits, like B5473C';
 
-/** The picker's and the hex box's names. A label that already ends in "color" or "colour" does not say it twice. */
+/**
+ * The picker's and the hex box's names. A label that already ends in "color" or "colour" does not say it twice, and a note in brackets at
+ * its end (a Settings row's "(this project)") stays at the end: "Note colour (this project)" names "Note colour (this project)" and
+ * "Note hex (this project)".
+ */
 export function freeNames(label: string): { picker: string; hex: string } {
-  const base = label.replace(/\s*colou?r$/i, '').trim();
-  return base ? { picker: `${base} colour`, hex: `${base} hex` } : { picker: 'Colour', hex: 'Hex' };
+  const [, words = '', note = ''] = /^(.*?)(\s*\([^()]*\))?\s*$/.exec(label) ?? [];
+  const base = words.replace(/\s*colou?r$/i, '').trim();
+  return base ? { picker: `${base} colour${note}`, hex: `${base} hex${note}` } : { picker: `Colour${note}`, hex: `Hex${note}` };
 }
 
 function Free({

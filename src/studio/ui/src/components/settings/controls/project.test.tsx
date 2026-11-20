@@ -251,7 +251,8 @@ describe('Settings: Project', () => {
     it('changes the colour', async () => {
       const api = await openTypes();
       const setColour = vi.spyOn(api, 'guideTypeSetColour');
-      fireEvent.change(within(types()).getByRole('combobox', { name: 'Colour for Place' }), { target: { value: 'rose' } });
+      await userEvent.click(within(types()).getByRole('button', { name: 'Colour for Place: Blue' }));
+      await userEvent.click(await screen.findByRole('radio', { name: 'Rose' }));
       await waitFor(() => expect(setColour).toHaveBeenCalledWith('Place', 'rose'));
     });
 

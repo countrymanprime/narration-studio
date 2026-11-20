@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
@@ -57,6 +57,8 @@ async function openDialog(count = 6) {
   return dialog;
 }
 const lastSaved = () => save.mock.calls.at(-1)![0];
+// The Colour column's box of the mark at `index`: a button named "Colour: <chosen>", which opens the swatches.
+const colourBox = (dialog: HTMLElement, index: number) => within(dialog).getAllByRole('button', { name: /^Colour: / })[index]!;
 
 describe('define-marks-edits-the-types', () => {
   it('closes on a press outside the dialog: every change is saved as it is made, so no input is lost (issue 1706)', async () => {
@@ -68,11 +70,14 @@ describe('define-marks-edits-the-types', () => {
 
   it('saves a colour, a line and Asks as each changes, and the swatch follows', async () => {
     const dialog = await openDialog();
-    const swatch = within(dialog).getAllByTestId('mark-swatch')[0]!;
-    const before = swatch.style.background;
-    await userEvent.selectOptions(within(dialog).getAllByLabelText('Colour')[0]!, 'ok');
+    const swatch = () => (within(dialog).getAllByTestId('mark-swatch')[0]!.firstElementChild as HTMLElement).style.background;
+    const before = swatch();
+    await userEvent.click(colourBox(dialog, 0));
+    await userEvent.click(await screen.findByRole('radio', { name: 'Green' }));
     await waitFor(() => expect(lastSaved()[0]).toMatchObject({ key: 'stress', colour: 'ok' }));
-    await waitFor(() => expect(swatch.style.background).not.toBe(before));
+    await waitFor(() => expect(swatch()).not.toBe(before));
+    expect(swatch()).toBe('var(--ok)');
+    await waitFor(() => expect(colourBox(dialog, 0).getAttribute('aria-label')).toBe('Colour: Green'));
     await userEvent.selectOptions(within(dialog).getAllByLabelText('Line')[0]!, 'wavy');
     await waitFor(() => expect(lastSaved()[0]).toMatchObject({ style: 'wavy' }));
     await userEvent.click(within(dialog).getAllByRole('checkbox', { name: 'Asks' })[0]!);
@@ -147,6 +152,72 @@ describe('define-marks-edits-the-types', () => {
     expect(toast).toHaveBeenCalledWith(KEEP_ONE);
     expect(save).toHaveBeenCalledTimes(1);
     expect(within(dialog).getAllByLabelText('Mark name')).toHaveLength(1);
+  });
+});
+
+// The colour box opens a row of swatches, and an arrow key saves each step: a narrator crossing the row sends several saves before the first answers.
+describe('rapid colour changes (Define marks)', () => {
+  type Pending = { types: MarkType[]; answer: (types: MarkType[] | null) => void };
+
+  async function openSlowDialog() {
+    const sent: Pending[] = [];
+    const slowSave = (types: MarkType[]): Promise<MarkType[] | null> => new Promise((resolve) => sent.push({ types, answer: resolve }));
+    render(
+      <Host api={api}>
+        <MarksDialog saveMarkTypes={slowSave} onClose={() => undefined} />
+      </Host>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Define how you mark up' });
+    await waitFor(() => expect(within(dialog).getAllByLabelText('Mark name')).toHaveLength(6));
+    await userEvent.click(colourBox(dialog, 0));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Copper' })));
+    return { dialog, sent };
+  }
+  const checkedColour = () =>
+    screen
+      .getAllByRole('radio')
+      .find((radio) => radio.getAttribute('aria-checked') === 'true')
+      ?.getAttribute('aria-label');
+
+  it('three arrow keys send three saves in order and keep focus on the swatch, with no answer yet', async () => {
+    const { sent } = await openSlowDialog();
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}');
+    expect(sent.map((save) => save.types[0]!.colour)).toEqual(['info', 'ok', 'warn']);
+    expect(checkedColour()).toBe('Amber');
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Amber' }));
+  });
+
+  it('answers in order: an earlier answer does not put its colour back while a later save is out', async () => {
+    const { dialog, sent } = await openSlowDialog();
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}');
+    await act(async () => sent[0]!.answer(sent[0]!.types));
+    expect(checkedColour()).toBe('Green');
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Green' }));
+    await act(async () => sent[1]!.answer(sent[1]!.types));
+    expect(checkedColour()).toBe('Green');
+    expect(colourBox(dialog, 0).getAttribute('aria-label')).toBe('Colour: Green');
+  });
+
+  it('answers out of order: the last colour chosen stays, whichever answer comes last', async () => {
+    const { dialog, sent } = await openSlowDialog();
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}');
+    await act(async () => sent[1]!.answer(sent[1]!.types));
+    await act(async () => sent[0]!.answer(sent[0]!.types));
+    expect(checkedColour()).toBe('Green');
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Green' }));
+    // The next change is built on the last colour, not on the late answer's.
+    await userEvent.keyboard('{Escape}{Escape}');
+    await userEvent.click(within(dialog).getAllByRole('checkbox', { name: 'Asks' })[0]!);
+    expect(sent[2]!.types[0]).toMatchObject({ colour: 'ok', asks: true });
+  });
+
+  it('a refused save puts back the last colour the host kept, not an older one', async () => {
+    const { dialog, sent } = await openSlowDialog();
+    await userEvent.keyboard('{ArrowRight}{ArrowRight}');
+    await act(async () => sent[0]!.answer(sent[0]!.types));
+    await act(async () => sent[1]!.answer(null));
+    expect(checkedColour()).toBe('Blue');
+    expect(colourBox(dialog, 0).getAttribute('aria-label')).toBe('Colour: Blue');
   });
 });
 

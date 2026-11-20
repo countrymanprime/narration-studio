@@ -29,6 +29,8 @@ describe('isStoredHex', () => {
 describe('toPickerValue', () => {
   it('writes a stored colour the way a colour input holds it', () => {
     expect(toPickerValue('B5473C')).toBe('#b5473c');
+    // The host accepts either case, so a settings file may hold lower case.
+    expect(toPickerValue('b5473c')).toBe('#b5473c');
   });
 
   it.each(['', 'B547', 'not a colour'])('shows mid grey for %j', (hex) => {

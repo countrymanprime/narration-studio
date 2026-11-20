@@ -1,51 +1,14 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
+import { ColourField } from '../../primitives/ColourField';
 import { Dialog } from '../../primitives/Dialog';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
-import { TextField } from '../../primitives/TextField';
 import type { ScopedSettingField } from '../../../types';
 import { proofingChoiceLabel } from '../options';
 import { useProjectOptions } from './useProjectOptions';
-
-// A native colour input can only show a full #rrggbb value; a stored colour is six capital hex digits without the hash.
-const HEX = /^[0-9A-F]{6}$/;
-const NEUTRAL_PICKER = '#808080';
-const asHex = (text: string): string => text.trim().replace(/^#/, '').toUpperCase();
-
-function ColourRow({ field, onSave }: { field: ScopedSettingField; onSave: (hex: string) => void }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const shown = draft ?? field.effectiveValue;
-  const settle = () => {
-    if (draft === null) return;
-    const hex = asHex(draft);
-    if (HEX.test(hex) && hex !== field.effectiveValue) onSave(hex);
-    setDraft(null);
-  };
-  return (
-    <div className="flex items-center gap-2">
-      <TextField
-        label={`${field.label} picker`}
-        type="color"
-        value={HEX.test(field.effectiveValue) ? `#${field.effectiveValue}` : NEUTRAL_PICKER}
-        onChange={(value) => onSave(asHex(value))}
-      />
-      <TextField
-        label={field.label}
-        mono
-        className="max-w-[8rem]"
-        value={shown}
-        onChange={setDraft}
-        onBlur={settle}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') settle();
-        }}
-      />
-    </div>
-  );
-}
 
 function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => void }) {
   const range = field.number;
@@ -73,7 +36,7 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
         onChange={(value) => onSet(field.key, value)}
       />
     ) : field.kind === 'color' ? (
-      <ColourRow field={field} onSave={(hex) => onSet(field.key, hex)} />
+      <ColourField mode="free" label={field.label} value={field.effectiveValue} hexClassName="max-w-[8rem]" onChange={(hex) => onSet(field.key, hex)} />
     ) : null;
   const reset = field.isSet ? (
     <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => onSet(field.key, null)}>

@@ -51,20 +51,55 @@ describe('ScopedSetting controls', () => {
     expect(change).toHaveBeenCalledWith('');
   });
 
+  const colourField = (effectiveValue: string) => ({ ...FIELD, key: 'color_note', label: 'Note color', kind: 'color' as const, choices: [], effectiveValue });
+
   it('shows a colour as a picker and a hex box that store the value without the hash, in capitals', () => {
-    const change = renderSetting({ ...FIELD, key: 'color_note', label: 'Note color', kind: 'color', choices: [], effectiveValue: 'ffd54f' });
-    const picker = screen.getByLabelText('Note color hex') as HTMLInputElement;
+    const change = renderSetting(colourField('ffd54f'));
+    const picker = screen.getByLabelText('Note colour') as HTMLInputElement;
     expect(picker.type).toBe('color');
     expect(picker.value).toBe('#ffd54f');
-    fireEvent.change(picker, { target: { value: '#a1b2c3' } });
-    expect(change).toHaveBeenLastCalledWith('A1B2C3');
-    fireEvent.change(screen.getByRole('textbox', { name: 'Note color' }), { target: { value: '#ff8800' } });
+    const box = screen.getByRole('textbox', { name: 'Note hex' });
+    fireEvent.change(box, { target: { value: '#ff8800' } });
+    fireEvent.blur(box);
     expect(change).toHaveBeenLastCalledWith('FF8800');
   });
 
+  it('shows the stored colour in the picker and reports a picked one once, when the picker closes', () => {
+    const change = renderSetting(colourField('FFD54F'));
+    const picker = screen.getByLabelText('Note colour') as HTMLInputElement;
+    expect(picker.value).toBe('#ffd54f');
+    fireEvent.input(picker, { target: { value: '#a1b2c3' } });
+    expect(change).not.toHaveBeenCalled();
+    picker.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(change).toHaveBeenCalledExactlyOnceWith('A1B2C3');
+  });
+
+  // The form's Save button saves the draft as it stands: a half-typed code must not reach it (#3680, S5).
+  it('reports a typed colour when the box is left or Enter is pressed, never per key, and never a half-typed code', () => {
+    const change = renderSetting(colourField('FFD54F'));
+    const box = screen.getByRole('textbox', { name: 'Note hex' });
+    fireEvent.change(box, { target: { value: 'FF8' } });
+    fireEvent.change(box, { target: { value: 'FF88' } });
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.blur(box);
+    expect(change).not.toHaveBeenCalled();
+    expect(box.getAttribute('aria-invalid')).toBe('true');
+    fireEvent.change(box, { target: { value: 'ff8800' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(change).toHaveBeenCalledExactlyOnceWith('FF8800');
+  });
+
+  it('an emptied colour box reports "", which is "not set"', () => {
+    const change = renderSetting(colourField('FFD54F'));
+    const box = screen.getByRole('textbox', { name: 'Note hex' });
+    fireEvent.change(box, { target: { value: '' } });
+    fireEvent.blur(box);
+    expect(change).toHaveBeenCalledExactlyOnceWith('');
+  });
+
   it('shows a neutral grey in the picker for an unset colour and "Not set" in the box', () => {
-    renderSetting({ ...FIELD, key: 'color_note', label: 'Note color', kind: 'color', choices: [], effectiveValue: '' });
-    expect((screen.getByLabelText('Note color hex') as HTMLInputElement).value).toBe('#808080');
+    renderSetting(colourField(''));
+    expect((screen.getByLabelText('Note colour') as HTMLInputElement).value).toBe('#808080');
     expect(screen.getByPlaceholderText('Not set')).toBeTruthy();
   });
 

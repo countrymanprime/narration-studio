@@ -9,6 +9,7 @@ import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { proofingChoiceLabel } from '../proof/options';
 import { describeNumberRange, numberProblem } from './numberSetting';
 import { Button } from '../primitives/Button';
+import { ColourField } from '../primitives/ColourField';
 
 // Terms of a "tags" field are comma-joined (a term never holds a comma; TagInput.tsx commits on Enter or a typed
 // comma). Splitting also accepts a pasted line break, drops blanks, caps a term at TagInput's own MAX_TERM_LENGTH,
@@ -85,16 +86,6 @@ const optionTip = (field: ScopedSettingField, value: string) =>
   field.key.includes('color')
     ? `Use ${value} as the saved base color.`
     : `${proofingChoiceLabel(field.key, value)} is the selected ${field.label.toLowerCase()} option.`;
-
-// A native color input can only show a full #rrggbb value. An empty or invalid
-// setting is not zero-padded to #000000, which would look like a
-// deliberate black; show a neutral gray instead and let the text field say
-// "Not set".
-const NEUTRAL_PICKER_COLOR = '#808080';
-const pickerColor = (value: string) => {
-  const hex = value.replace('#', '');
-  return /^[0-9a-f]{6}$/i.test(hex) ? `#${hex}` : NEUTRAL_PICKER_COLOR;
-};
 
 // One setting: the label above its control below `md`, the label beside it from `md` (Tailwind's 48rem, the app's own layout
 // breakpoint). The two-column template does not apply below `md`: a grid gives a fixed-range track (the label's
@@ -266,17 +257,17 @@ export function ScopedSetting({
             />
           </div>
         ) : isColor ? (
-          <>
-            <TextField label={`${field.label} hex`} type="color" value={pickerColor(effective)} onChange={(value) => change(value.slice(1).toUpperCase())} />
-            <TextField
-              label={field.label}
-              mono
-              className={HEX_CONTROL_CLASSES}
-              placeholder="Not set"
-              value={effective}
-              onChange={(value) => change(value.replace('#', '').toUpperCase())}
-            />
-          </>
+          // The pair takes the row's free width: the hex box settles on Enter or on leaving it, so a half-typed code never marks the form changed.
+          <ColourField
+            mode="free"
+            label={field.label}
+            value={effective}
+            allowUnset
+            placeholder="Not set"
+            className={GROWING_CONTROL_CLASSES}
+            hexClassName={HEX_CONTROL_CLASSES}
+            onChange={change}
+          />
         ) : isText ? (
           <TextField label={field.label} className={GROWING_CONTROL_CLASSES} value={effective} onChange={(next) => change(next.trim() === '' ? '' : next)} />
         ) : (

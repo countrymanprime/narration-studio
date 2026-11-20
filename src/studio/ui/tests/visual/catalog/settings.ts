@@ -1,7 +1,15 @@
 // The `settings` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: one page of eight categories and an index of what
 // moved to a page (src/studio/ui/src/components/settings), then the states of the page itself (search, a deep link, loading, unreadable, save failed).
 import type { StateEntry } from '../lib/types';
-import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK, TOAST_FADES_OUT, wholePage } from './shared';
+import {
+  REFLOW,
+  KEEPS_DESKTOP_SCROLL,
+  FOLDS_WITH_THE_PAGE_WIDTH,
+  FREEZES_THE_CLOCK,
+  TOAST_FADES_OUT,
+  wholePage,
+  POPUP_ANCHORED_AT_FIRST_WIDTH,
+} from './shared';
 
 export const settingsStates: StateEntry[] = [
   {
@@ -347,6 +355,14 @@ export const settingsStates: StateEntry[] = [
     state: 'project',
     description:
       'Settings, Project: the Manuscript row (imported date and words, Replace manuscript…), then the Story Bible section with the language model, Entry types and Marks',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'project-type-colour',
+    description:
+      'Settings, Project scrolled to Entry types with the colour box of Place opened: a row of six swatches in a popover under the box, Blue ringed and checked',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
     ...REFLOW,
   },
   {

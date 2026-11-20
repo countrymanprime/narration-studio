@@ -86,7 +86,8 @@ describe('Proof options', () => {
     await open();
     expect((await screen.findByRole('textbox', { name: 'Target length (seconds)' })) as HTMLInputElement).toHaveProperty('value', '300');
     expect((screen.getByRole('combobox', { name: 'Preset' }) as HTMLSelectElement).value).toBe('sample');
-    expect((screen.getByRole('textbox', { name: 'Tint' }) as HTMLInputElement).value).toBe('B5473C');
+    expect((screen.getByRole('textbox', { name: 'Tint hex' }) as HTMLInputElement).value).toBe('B5473C');
+    expect((screen.getByLabelText('Tint colour') as HTMLInputElement).value).toBe('#b5473c');
   });
 
   it('saves a number at the project layer once it is a valid, in-range value, and a choice as picked', async () => {
@@ -109,13 +110,15 @@ describe('Proof options', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { target: '3600' }));
   });
 
-  it('saves a colour as six hex digits without the hash, in capitals, and ignores text that is not a colour', async () => {
+  it('saves a colour as six hex digits without the hash, in capitals, and keeps text that is not a colour in the box, unsaved and marked', async () => {
     const { save, open } = mount();
     await open();
-    const hex = await screen.findByRole('textbox', { name: 'Tint' });
+    const hex = (await screen.findByRole('textbox', { name: 'Tint hex' })) as HTMLInputElement;
     fireEvent.change(hex, { target: { value: 'zzz' } });
     fireEvent.blur(hex);
     expect(save).not.toHaveBeenCalled();
+    expect(hex.value).toBe('zzz');
+    expect(hex.getAttribute('aria-invalid')).toBe('true');
     fireEvent.change(hex, { target: { value: '#3f6ea6' } });
     fireEvent.blur(hex);
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { tint: '3F6EA6' }));
@@ -133,7 +136,7 @@ describe('Proof options', () => {
   it('offers Reset only on a setting this project overrides, and Reset hands the setting back to the default', async () => {
     const { save, open } = mount();
     await open();
-    await screen.findByRole('textbox', { name: 'Tint' });
+    await screen.findByRole('textbox', { name: 'Tint hex' });
     expect(screen.getAllByRole('button', { name: /^Reset / })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Reset Tint' }));
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { tint: null }));

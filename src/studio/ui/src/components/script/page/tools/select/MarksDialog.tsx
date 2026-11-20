@@ -3,17 +3,20 @@ import { MARK_COLOURS, MARK_STYLES, MARK_TYPE_NAME_MAX, type MarkColour, type Ma
 import { overlay } from '../../../../../overlay/overlayService';
 import { Button } from '../../../../primitives/Button';
 import { Checkbox } from '../../../../primitives/Checkbox';
+import { ColourField, type ColourChoice } from '../../../../primitives/ColourField';
 import { Dialog } from '../../../../primitives/Dialog';
 import { Icon } from '../../../../primitives/Icon';
 import { IconButton } from '../../../../primitives/IconButton';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Select } from '../../../../primitives/Select';
+import { Swatch } from '../../../../primitives/Swatch';
 import { TextField } from '../../../../primitives/TextField';
 import { useMarks } from '../../data/useScriptData';
 import { markSwatch } from '../../rail/threads/markSwatch';
 import { plural } from '../../../../../plural';
 
 const COLOUR_LABELS: Record<MarkColour, string> = { copper: 'Copper', info: 'Blue', ok: 'Green', warn: 'Amber', bad: 'Red', violet: 'Violet' };
+const COLOUR_CHOICES: readonly ColourChoice<MarkColour>[] = MARK_COLOURS.map((value) => ({ value, token: markSwatch(value), name: COLOUR_LABELS[value] }));
 const STYLE_LABELS: Record<MarkStyle, string> = {
   highlight: 'Highlight',
   underline: 'Underline',
@@ -51,17 +54,26 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
   const [types, setTypes] = useState<MarkType[]>(stored);
   const [sure, setSure] = useState<string | null>(null);
   const saved = useRef(stored);
+  // Changes can follow each other faster than the host answers (an arrow key held across the colours saves each step). Each save has a turn:
+  // an answer older than one already kept is dropped, and the rows are redrawn from the host only when the newest save has answered, so a late
+  // answer never puts an earlier choice back under the narrator's hand.
+  const turns = useRef({ sent: 0, answered: 0, kept: 0 });
   useEffect(() => {
     saved.current = stored;
-    setTypes(stored);
+    if (turns.current.answered === turns.current.sent) setTypes(stored);
   }, [stored]);
   const used = (key: string): number => marks.filter((mark) => mark.type === key).length;
 
   const commit = async (next: MarkType[], removeUses = false): Promise<void> => {
+    const turn = ++turns.current.sent;
     setTypes(next);
     const answer = await saveMarkTypes(next, removeUses);
-    if (answer) saved.current = answer;
-    setTypes(saved.current);
+    turns.current.answered += 1;
+    if (answer && turn > turns.current.kept) {
+      turns.current.kept = turn;
+      saved.current = answer;
+    }
+    if (turn === turns.current.sent) setTypes(saved.current);
   };
   const edit = (index: number, change: Partial<MarkType>): Promise<void> => commit(types.map((row, i) => (i === index ? { ...row, ...change } : row)));
   const rename = (index: number, name: string): void => setTypes((current) => current.map((row, i) => (i === index ? { ...row, name } : row)));
@@ -99,12 +111,9 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
         <ul className={`${ROW_GRID} m-0 list-none gap-y-2 p-0`}>
           {types.map((type, index) => (
             <li key={type.key || `new-${index}`} className={ROW_GRID}>
-              <span
-                aria-hidden="true"
-                data-testid="mark-swatch"
-                className="inline-block size-[18px] shrink-0 rounded-[3px]"
-                style={{ background: `var(--${markSwatch(type.colour)})` }}
-              />
+              <span data-testid="mark-swatch" className="inline-flex">
+                <Swatch colour={markSwatch(type.colour)} size={18} />
+              </span>
               <div className={`min-w-0 ${NARROW.name}`}>
                 <TextField
                   label="Mark name"
@@ -116,13 +125,16 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
                   }}
                 />
               </div>
-              <Select
+              <ColourField
+                mode="palette"
+                form="popover"
                 label="Colour"
-                fullWidth
-                className={NARROW.colour}
+                className={`w-full ${NARROW.colour}`}
+                choices={COLOUR_CHOICES}
                 value={type.colour}
-                onChange={(colour) => void edit(index, { colour: colour as MarkColour })}
-                options={MARK_COLOURS.map((value) => ({ value, label: COLOUR_LABELS[value] }))}
+                onChange={(colour) => {
+                  if (colour) void edit(index, { colour });
+                }}
               />
               <Select
                 label="Line"
