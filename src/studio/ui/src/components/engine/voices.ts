@@ -80,10 +80,17 @@ function charactersOf(track: Track, entities: readonly GuideEntity[], setup: Voi
 }
 
 /** The voices of the chapter linked to `folderGuid`: the first Narrator child is key 0 wherever it sits, the others 1 to 9 in order. */
-export function folderVoices(tracks: readonly Track[], folderGuid: string, entities: readonly GuideEntity[], setup: VoiceTracksState): Voice[] {
+export function folderVoices(
+  tracks: readonly Track[],
+  folderGuid: string,
+  entities: readonly GuideEntity[],
+  setup: VoiceTracksState,
+  /** Children another chapter is linked to: never voices, as the host leaves them out when it keys a folder's voices. */
+  linked: ReadonlySet<string> = new Set(),
+): Voice[] {
   let next = 1;
   let narratorSeen = false;
-  const children = folderChildren(tracks, folderGuid);
+  const children = folderChildren(tracks, folderGuid).filter((child) => !linked.has(child.guid));
   const anyNamed = children.some((child) => same(child.name, NARRATOR) && !setup.notVoiceGuids.includes(child.guid.toLowerCase()));
   return children.map((track) => {
     // Only the first Narrator child is key 0; a second one is an ordinary voice, so no two tracks share a key.

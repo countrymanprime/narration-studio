@@ -71,21 +71,22 @@ export function VoicesCard({
       return link ? [{ chapter, folder: link.trackGuid }] : [];
     });
   }, [tracks, chapters, mappings]);
+  const linkedTracks = useMemo(() => new Set(mappings.map((mapping) => mapping.trackGuid)), [mappings]);
   // In a Voice folders project every linked folder is a chapter's folder of voices. In a Flat one the host still records a chapter linked to a
-  // folder on one of its own tracks (a folder none of whose children is another chapter's link), so those are the voices a narrator can mark.
+  // folder on one of the folder's tracks that no chapter is linked to, so those children are the voices a narrator can mark (a Part folder with
+  // one chapter's track and a music bed lists the music bed).
   const links = useMemo(
     () =>
       setup.layout === 'folders'
         ? folderLinks
-        : folderLinks.filter((link) => {
-            const children = folderChildren(tracks, link.folder);
-            return children.length > 0 && !children.some((child) => mappings.some((mapping) => mapping.trackGuid === child.guid));
-          }),
-    [setup.layout, folderLinks, tracks, mappings],
+        : folderLinks.filter((link) => folderChildren(tracks, link.folder).some((child) => !linkedTracks.has(child.guid))),
+    [setup.layout, folderLinks, tracks, linkedTracks],
   );
   const [picked, setPicked] = useState('');
   const current = links.find((link) => link.chapter.id === picked) ?? links[0];
-  const voices = current ? folderVoices(tracks, current.folder, characters, setup) : [];
+  // A blank-named track is named by its place in the project, as Chapter links names it, not by its place in the folder.
+  const projectPlace = (guid: string) => tracks.findIndex((track) => track.guid === guid);
+  const voices = current ? folderVoices(tracks, current.folder, characters, setup, setup.layout === 'folders' ? undefined : linkedTracks) : [];
 
   // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
   const chapterPicker = links.length > 0 && (
@@ -116,29 +117,29 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', '6rem', '3.5rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['3.5rem', 'auto', 'auto', '9rem', '3.5rem']}>
                 <TableHead sticky>
                   <TableRow>
                     <TableHeader>Key</TableHeader>
                     <TableHeader>Track</TableHeader>
                     <TableHeader>Characters</TableHeader>
-                    <TableHeader>Counts as voice</TableHeader>
+                    <TableHeader className="whitespace-nowrap">Counts as voice</TableHeader>
                     <TableHeader hiddenLabel="Actions" />
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {voices.map((voice, at) => (
+                  {voices.map((voice) => (
                     <TableRow key={voice.guid}>
                       <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>
                       <TableCell className={`[overflow-wrap:anywhere] ${voice.notVoice ? DIMMED : ''}`}>
-                        <bdi>{trackName(voice.name)}</bdi>
+                        <bdi>{trackName(voice.name, projectPlace(voice.guid))}</bdi>
                       </TableCell>
-                      <TableCell className={voice.notVoice ? DIMMED : ''}>
+                      <TableCell>
                         <VoiceCharacters voice={voice} />
                       </TableCell>
                       <TableCell align="center">
                         <Switch checked={!voice.notVoice} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
-                          <span className="sr-only">{`${shortName(trackName(voice.name, at))} counts as a voice`}</span>
+                          <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
                         </Switch>
                       </TableCell>
                       <TableCell align="right">

@@ -258,7 +258,34 @@ describe('the Voices card', () => {
     expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true);
   });
 
-  it('a Flat project whose linked folder holds another chapter’s track lists no voices', () => {
+  it('a Flat folder with a chapter-linked child and a music bed lists only the music bed', async () => {
+    const part = [track('part', 'Part 1', 0, true), track('c8', 'Chapter 8', 1), track('bed', 'Music bed', 1)];
+    const handlers = { onNotAVoice: vi.fn() };
+    render(
+      <VoicesCard
+        tracks={part}
+        chapters={chapters}
+        mappings={
+          [
+            { chapterId: 'ch7', trackGuid: 'c8' },
+            { chapterId: 'ch8', trackGuid: 'part' },
+          ] as never
+        }
+        setup={{ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
+        characters={cast}
+        layoutInCard
+        onLayout={vi.fn()}
+        onTrackCharacters={vi.fn()}
+        onNarratorCharacter={vi.fn()}
+        onNotAVoice={handlers.onNotAVoice}
+      />,
+    );
+    expect(screen.queryByRole('switch', { name: 'Chapter 8 counts as a voice' })).toBeNull();
+    await userEvent.setup().click(screen.getByRole('switch', { name: 'Music bed counts as a voice' }));
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('bed', true);
+  });
+
+  it('a Flat project whose linked folder holds only another chapter’s track lists no voices', () => {
     const nested = [track('c8', 'Ch 8', 0, true), track('c9', 'Chapter 9', 1)];
     render(
       <VoicesCard
