@@ -108,12 +108,14 @@ const SIZES: [number, number][] = [
   [275, 300],
   [275, 340],
   [275, 380],
+  [275, 400],
   [360, 261],
   [360, 330],
   [360, 380],
   [400, 261],
   [400, 340],
-  ...Array.from({ length: 139 }, (_, step): [number, number] => [320, 261 + step]),
+  [400, 400],
+  ...Array.from({ length: 140 }, (_, step): [number, number] => [320, 261 + step]),
 ];
 
 for (const c of CASES) {
