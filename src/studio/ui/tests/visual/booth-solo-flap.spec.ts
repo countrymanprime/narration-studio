@@ -37,7 +37,9 @@ test('an owed restore is sent again when the window gets focus, with the narrato
       'REAPER could not take the solo off the chapter’s track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent.',
     ),
   );
-  await goToPage(page, 'Script');
+  // The Booth has no navigation rail: Escape leaves it for the Script page (booth-acceptance row 32).
+  await page.keyboard.press('Escape');
+  await page.getByRole('heading', { level: 1, name: 'Script' }).waitFor({ timeout: 8000 });
   await settlePage(page);
   expect(await soloed(page)).not.toBe('');
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
