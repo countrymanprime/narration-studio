@@ -40,7 +40,7 @@ type indexedRecord struct {
 func (index *ledgerIndex) refresh(dir string, read func(id string) (LedgerRecord, persist.Outcome)) ([]LedgerRecord, error) {
 	index.mu.Lock()
 	defer index.mu.Unlock()
-	entries, err := os.ReadDir(dir)
+	entries, err := persist.ReadDir(dir)
 	if os.IsNotExist(err) {
 		index.records = nil
 		return nil, nil
