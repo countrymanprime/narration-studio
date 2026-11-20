@@ -66,7 +66,7 @@ func TestASlowBridgeStepLeavesAWarningWithItsSplit(t *testing.T) {
 	host.recordBridgeTiming(bridge.RequestTiming{Command: "arm_lane", Outcome: "answered", Elapsed: 120 * time.Millisecond, Queue: 40 * time.Millisecond, Taken: true})
 	host.recordBridgeTiming(bridge.RequestTiming{Command: "chapter_track_state", Outcome: "answered", Elapsed: 1800 * time.Millisecond, Queue: 300 * time.Millisecond, Taken: true})
 	host.recordBridgeTiming(bridge.RequestTiming{Command: "record_start", Outcome: "no_answer", Elapsed: 3 * time.Second, Queue: 3 * time.Second})
-	host.recordBridgeTiming(bridge.RequestTiming{Command: "arm_lane", Outcome: "answered", Elapsed: 1200 * time.Millisecond, Queue: -time.Millisecond, Taken: true})
+	host.recordBridgeTiming(bridge.RequestTiming{Command: "arm_lane", Outcome: "answered", Elapsed: 1200 * time.Millisecond, Queue: bridge.QueueUnknown, Taken: true})
 
 	var timing, slow []map[string]any
 	for _, record := range runLogRecords(t, path) {

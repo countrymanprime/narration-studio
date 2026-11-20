@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -85,8 +86,8 @@ func TestAnAnsweredRequestIsTakenEvenWhenTheFileGoingWasNotSeen(t *testing.T) {
 	started := time.Now().Add(-200 * time.Millisecond)
 
 	queue, taken := watch.queue(started, 200*time.Millisecond, "answered")
-	if !taken || queue != -1 {
-		t.Errorf("answered: queue %v taken %v, want unknown (-1) and taken", queue, taken)
+	if !taken || queue != QueueUnknown {
+		t.Errorf("answered: queue %v taken %v, want QueueUnknown and taken", queue, taken)
 	}
 	queue, taken = watch.queue(started, 200*time.Millisecond, "no_answer")
 	if taken || queue != 200*time.Millisecond {
@@ -147,5 +148,69 @@ func TestACommandFolderThatVanishesIsNotREAPERReadingTheCommand(t *testing.T) {
 	got := timings()
 	if len(got) != 1 || got[0].Taken || got[0].Queue != got[0].Elapsed {
 		t.Fatalf("timings = %+v, want not taken, the whole wait as queue", got)
+	}
+}
+
+// A take-back that fails with the file still there (a read-only folder, a sharing violation) is not REAPER reading the command: it may
+// still run, and the host log must not say REAPER had already read it.
+func TestATakeBackThatFailsWithTheFileStillThereIsNotTaken(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	timings := observeTimings(actions)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
+	fake.stall(400 * time.Millisecond)
+	actions.SetTimeout(60 * time.Millisecond)
+	client.remove = func(string) error { return &os.PathError{Op: "remove", Path: "x", Err: fs.ErrPermission} }
+	var lines []string
+	var mu sync.Mutex
+	client.SetLog(func(kind, message string) {
+		mu.Lock()
+		defer mu.Unlock()
+		lines = append(lines, kind+": "+message)
+	})
+
+	_, _ = actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack)
+	got := timings()
+	if len(got) != 1 || got[0].Taken || got[0].Queue != got[0].Elapsed {
+		t.Fatalf("timings = %+v, want not taken, the whole wait as queue", got)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(lines) != 1 || !strings.Contains(lines[0], "could not be taken back") || strings.Contains(lines[0], "already read") {
+		t.Errorf("host log = %q, want it to say the command could not be taken back", lines)
+	}
+}
+
+// A command REAPER read (the watch saw its file go) stays taken when the commands folder is removed afterwards and the timeout then fires.
+func TestACommandReadBeforeTheFolderVanishedIsStillTaken(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	timings := observeTimings(actions)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		time.Sleep(time.Second) // REAPER ran it and never answers within the timeout
+		return nil
+	})
+	actions.SetTimeout(300 * time.Millisecond)
+	go func() {
+		time.Sleep(120 * time.Millisecond)
+		_ = os.RemoveAll(filepath.Join(dir, "commands"))
+	}()
+
+	_, _ = actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack)
+	got := timings()
+	if len(got) != 1 || !got[0].Taken || got[0].Queue >= got[0].Elapsed {
+		t.Fatalf("timings = %+v, want taken, queue within the wait", got)
+	}
+}
+
+// The observer is a log write; a panic in it must not cost the caller an answer REAPER gave.
+func TestAnObserverPanicDoesNotLoseAnAnswer(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ARMED", run(command), testTrack, "0", "1"}}
+	})
+	actions.SetTimeout(5 * time.Second)
+	actions.SetObserver(func(RequestTiming) { panic("observer") })
+
+	if _, err := actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack); err != nil {
+		t.Fatalf("an answered request failed: %v", err)
 	}
 }

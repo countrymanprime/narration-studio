@@ -21,6 +21,9 @@ const slowBridgeStep = time.Second
 // A request that took slowBridgeStep or longer, or ended with no answer or could not be sent, also writes a `bridge.slow` warning with the same fields, so the
 // next slow Booth action is explained by one line of the log that needs nothing from the narrator.
 func (h *Host) recordBridgeTiming(timing bridge.RequestTiming) {
+	if timing.Queue < 0 {
+		timing.Queue = bridge.QueueUnknown
+	}
 	if timing.Queue > timing.Elapsed {
 		timing.Queue = timing.Elapsed
 	}
