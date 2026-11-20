@@ -47,7 +47,7 @@ describe('settings-unknown-speakers-switch', () => {
     const api = createMockApi();
     const save = vi.spyOn(api, 'saveSettings');
     const toggle = await renderProject(api);
-    await waitFor(() => expect(toggle.hasAttribute('disabled') || toggle.getAttribute('aria-disabled') === 'true').toBe(false));
+    await waitFor(() => expect(toggle.getAttribute('aria-disabled')).toBeNull());
     expect(toggle.getAttribute('aria-checked')).toBe('false');
     expect(screen.queryByText(/No local model is installed/)).toBeNull();
     await userEvent.click(toggle);
@@ -67,10 +67,15 @@ describe('settings-unknown-speakers-switch', () => {
     );
     const save = vi.spyOn(api, 'saveSettings');
     const toggle = await renderProject(api);
-    expect(await screen.findByText('No local model is installed.')).toBeTruthy();
-    expect(toggle.hasAttribute('disabled') || toggle.getAttribute('aria-disabled') === 'true').toBe(true);
+    const reason = await screen.findByText('No local model is installed.');
+    // The reason is the switch's own description and the switch is still a tab stop, so a keyboard and a screen reader get it.
+    expect(toggle.getAttribute('aria-disabled')).toBe('true');
+    expect(toggle.getAttribute('aria-describedby')).toBe(reason.id);
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
     expect(toggle.getAttribute('aria-checked')).toBe('false');
     await userEvent.click(toggle);
+    await userEvent.keyboard(' ');
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -78,13 +83,33 @@ describe('settings-unknown-speakers-switch', () => {
     const api = createMockApi();
     vi.spyOn(api, 'extractionSources').mockRejectedValue(new Error('the host is gone'));
     const toggle = await renderProject(api);
-    expect(await screen.findByText('Could not check for a local model.')).toBeTruthy();
-    expect(toggle.hasAttribute('disabled') || toggle.getAttribute('aria-disabled') === 'true').toBe(true);
+    const reason = await screen.findByText('Could not check for a local model.');
+    expect(toggle.getAttribute('aria-disabled')).toBe('true');
+    expect(toggle.getAttribute('aria-describedby')).toBe(reason.id);
   });
 
-  it('lists the model and the lines per run beside it, with the defaults', async () => {
-    await renderProject(createMockApi());
-    expect(await screen.findByText('Local model for unknown speakers')).toBeTruthy();
-    expect(screen.getByText('Lines the local model may take per run')).toBeTruthy();
+  it('keeps the model and the lines per run off, each with the reason, until the switch is on', async () => {
+    const toggle = await renderProject(createMockApi());
+    const model = screen.getByRole('combobox', { name: /Local model for unknown speakers/ });
+    const lines = screen.getByRole('textbox', { name: /Lines the local model may take per run/ });
+    const reasons = () => screen.queryAllByText('Turn on the local model above to change this.');
+    expect((model as HTMLSelectElement).disabled).toBe(true);
+    expect((lines as HTMLInputElement).disabled).toBe(true);
+    expect(reasons()).toHaveLength(2);
+    for (const control of [model, lines]) {
+      expect(control.getAttribute('aria-describedby')?.split(' ')).toEqual(
+        expect.arrayContaining(
+          reasons()
+            .map((reason) => reason.id)
+            .filter((id) => control.getAttribute('aria-describedby')?.includes(id)),
+        ),
+      );
+      expect(reasons().some((reason) => control.getAttribute('aria-describedby')?.split(' ').includes(reason.id))).toBe(true);
+    }
+    await waitFor(() => expect(toggle.getAttribute('aria-disabled')).toBeNull());
+    await userEvent.click(toggle);
+    await waitFor(() => expect((screen.getByRole('combobox', { name: /Local model for unknown speakers/ }) as HTMLSelectElement).disabled).toBe(false));
+    expect((screen.getByRole('textbox', { name: /Lines the local model may take per run/ }) as HTMLInputElement).disabled).toBe(false);
+    expect(reasons()).toHaveLength(0);
   });
 });

@@ -115,7 +115,10 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   // A rejected value shows its reason, not a Saved mark left over from the last good one: the fade that hides the mark is a motion animation, so under reduced motion nothing else would.
   const saved = store.saved?.row === row.id && !store.rowErrors[row.id] && !refused.global && !refused.project;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
-  const describedBy = `${uid}d${waiting ? ` ${uid}p` : ''}${error ? ` ${uid}e` : ''}`;
+  // A row another switch governs is off while that switch is, and says so (CS-B4).
+  const governor = row.governedBy ? rowOf(row.governedBy.row) : undefined;
+  const governedOff = Boolean(governor) && store.fieldsOf(governor!).global?.effectiveValue !== 'true';
+  const describedBy = `${uid}d${waiting ? ` ${uid}p` : ''}${governedOff ? ` ${uid}g` : ''}${error ? ` ${uid}e` : ''}`;
 
   /** What the host is sent: a value equal to the default clears the setting instead of pinning it, an emptied number is "not set". */
   const toSend = (value: string, scope: 'global' | 'project'): string | null => {
@@ -223,6 +226,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                   which={row.scope === 'both' ? 'all projects' : undefined}
                   describedBy={describedBy}
                   invalid={Boolean(error)}
+                  disabled={governedOff}
                   onChange={(value) => apply(value, 'global')}
                   onDraftProblem={draftRefused('global')}
                 />
@@ -252,6 +256,11 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
               )}
               {saved && <SavedWord key={store.saved?.n} />}
             </div>
+            {governedOff && (
+              <span id={`${uid}g`} data-governed-off={row.id} className="text-[0.8125rem] text-[var(--text-muted)]">
+                {row.governedBy!.reason}
+              </span>
+            )}
             {global.kind === 'choice' && <AssetNote row={row} value={comp} kindOf={kindOf} />}
             {row.scope === 'both' && !hasProject && (
               <div className="text-[0.8125rem] text-[var(--text-muted)]" data-override-waits={row.id}>

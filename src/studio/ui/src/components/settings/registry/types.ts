@@ -92,6 +92,9 @@ export type SettingMeta = {
   costly?: { title: string; body: string; confirm: string };
   /** The row only applies to this recording tool and is hidden for another; `daw` is any DAW, hidden for the built-in recorder. */
   needs?: 'reaper' | 'daw';
+  /** The row's control is off, with `reason` beside it, while the bool row `row` is not on: a setting that only matters once another is
+   * turned on (component selection, CS-B4). The row stays where it is, so the layout does not move. */
+  governedBy?: { row: string; reason: string };
   /** A note beside the control on when it takes effect. */
   effect?: string;
   /** A line under the control that the host works out for the value shown: `workerPlan` is how many transcriptions a recording check

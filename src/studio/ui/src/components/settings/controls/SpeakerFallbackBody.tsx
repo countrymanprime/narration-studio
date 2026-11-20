@@ -12,8 +12,9 @@ const CANNOT_TELL = 'Could not check for a local model.';
 /**
  * Whether Find who speaks each line also asks a local model about the lines the rules leave unknown (issue 3743). The switch works
  * only when the host's `local-model` extraction source is available, which is the host's own statement that a model is installed;
- * otherwise it is off and the host's reason stands beside it, so the narrator sees what is missing instead of a switch that does
- * nothing. The reason is the host's sentence, drawn as text.
+ * otherwise it is off with the host's reason as its description and beside it (`Switch disabledReason`), so a keyboard, a pointer
+ * and a screen reader all learn what is missing instead of meeting a switch that does nothing. The reason is the host's sentence,
+ * drawn as text.
  */
 export function SpeakerFallbackBody() {
   const row = rowOf('project.speakerFallback')!;
@@ -35,12 +36,9 @@ export function SpeakerFallbackBody() {
   }, [api]);
   const on = store.fieldsOf(row).global?.effectiveValue === 'true';
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <Switch checked={on && !missing} disabled={Boolean(missing)} onChange={(next) => void store.write(row, 'global', next ? 'true' : null)}>
-        <span className="sr-only">{row.label}: </span>
-        <span aria-hidden="true">{on && !missing ? 'On' : 'Off'}</span>
-      </Switch>
-      {missing && <span className="text-xs text-[var(--text-muted)]">{missing}</span>}
-    </div>
+    <Switch checked={on && !missing} disabledReason={missing} onChange={(next) => void store.write(row, 'global', next ? 'true' : null)}>
+      <span className="sr-only">{row.label}: </span>
+      <span aria-hidden="true">{on && !missing ? 'On' : 'Off'}</span>
+    </Switch>
   );
 }
