@@ -38,6 +38,8 @@ export const TOAST_MAX_MS = 60_000;
 /** How long an information message stays when its button is the only way to what it announces (the scan's Show them): longer than a keyboard user needs to Tab to it. */
 export const TOAST_ACTION_MS = 12_000;
 const FADE_MS = 150;
+/** How often the time-left bar steps under reduced motion (#3667): the one exception to the motion rule, a timer shown without moving. */
+export const TOAST_STEP_MS = 1000;
 /** How long an action has to put focus where it wants (the Schedule's restored row, after its Undo resolves) before focus is handed back to where it was. */
 // shortcut: a fixed wait, not the action's own promise (`onAction` returns nothing); upgrade when an action reports when it is done.
 export const ACTION_FOCUS_MS = 250;
@@ -73,6 +75,15 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   const focused = useRef(false);
   const [held, setHeld] = useState(false);
   const hold = () => setHeld(hover.current || focused.current);
+  // The time gone, in whole seconds, for the stepped bar drawn under reduced motion (below): it starts again from nothing whenever the hold changes, as the timers do.
+  const [elapsedMs, setElapsedMs] = useState(0);
+  useEffect(() => {
+    setElapsedMs(0);
+    if (held) return;
+    const from = Date.now();
+    const tick = window.setInterval(() => setElapsedMs(Math.min(stays, Math.floor((Date.now() - from) / TOAST_STEP_MS) * TOAST_STEP_MS)), TOAST_STEP_MS);
+    return () => window.clearInterval(tick);
+  }, [held, stays]);
   // The control that had focus before the toast took it: where focus goes back once the toast is gone and no other toast is to take it.
   const origin = useRef<HTMLElement | null>(null);
   const settle = (from: HTMLElement, always: boolean) => {
@@ -127,12 +138,19 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {/* The time left (#3667): a 3 px bar along the bottom edge inside the clipped box, so it takes no room and sits under no button (the buttons end 6 px above it). It shrinks over the
           same `stays` the timers above wait, from `held` the same way: a hold shows it whole and still, and leaving starts it again from the full width, as the timer starts again.
-          Under reduced motion it is not drawn (a bar that never moves says nothing); an error's edge strip keeps its whole height. */}
+          Under reduced motion the animated bar is not drawn and a stepped one is: the same bar, redrawn once a second with no animation (`motion-still:`), so the owner and a narrator who asked
+          for less motion still see the time go (the one exception to the motion rule, docs/design/motion-and-animation.md). An error's edge strip keeps its whole height. */}
       <span
         data-toast-countdown
         aria-hidden="true"
         style={held ? undefined : { animationDuration: `${stays}ms` }}
         className={`pointer-events-none absolute right-0 bottom-0 ${isError ? 'left-1' : 'left-0'} h-[3px] origin-left bg-[color-mix(in_srgb,var(--toast-text)_55%,transparent)] motion-still:hidden ${held ? '' : 'motion-ok:animate-[toast-countdown_linear_forwards]'}`}
+      />
+      <span
+        data-toast-countdown-stepped
+        aria-hidden="true"
+        style={{ transform: `scaleX(${1 - elapsedMs / stays})` }}
+        className={`pointer-events-none absolute right-0 bottom-0 ${isError ? 'left-1' : 'left-0'} hidden h-[3px] origin-left bg-[color-mix(in_srgb,var(--toast-text)_55%,transparent)] motion-still:block`}
       />
       {isError ? (
         <FontAwesomeIcon icon={faCircleExclamation} aria-hidden="true" />

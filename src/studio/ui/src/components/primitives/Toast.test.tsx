@@ -443,6 +443,56 @@ describe('ToastRegion time left (#3667)', () => {
     expect(runs(bar('Message 1'))).toBe(true);
   });
 
+  describe('under reduced motion the stepped bar (#3667)', () => {
+    const stepped = (text: string) => screen.getByText(text).closest('[data-tone]')!.querySelector<HTMLElement>('[data-toast-countdown-stepped]')!;
+    const scale = (el: HTMLElement) => Number(/scaleX\(([\d.]+)\)/.exec(el.style.transform)?.[1]);
+
+    it('is drawn only under reduced motion, takes no press and is not read out', () => {
+      render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      const el = stepped('Message 1');
+      expect(el.className).toMatch(/(^| )hidden /);
+      expect(el.className).toContain('motion-still:block');
+      expect(el.className).toContain('pointer-events-none');
+      expect(el.getAttribute('aria-hidden')).toBe('true');
+      expect(el.textContent).toBe('');
+    });
+
+    it("steps once a second over the toast's own time, with no animation, and is empty when the toast goes", () => {
+      render(<ToastRegion messages={[info(1), failure(2)]} dismiss={vi.fn()} />);
+      expect(scale(stepped('Message 1'))).toBe(1);
+      act(() => void vi.advanceTimersByTime(999));
+      expect(scale(stepped('Message 1')), 'not before a whole second').toBe(1);
+      act(() => void vi.advanceTimersByTime(1));
+      expect(scale(stepped('Message 1'))).toBeCloseTo(1 - 1000 / TOAST_INFO_MS);
+      act(() => void vi.advanceTimersByTime(1500));
+      expect(scale(stepped('Message 1')), 'the whole second it has reached').toBeCloseTo(1 - 2000 / TOAST_INFO_MS);
+      expect(scale(stepped('Failure 2')), 'an error lasts longer, so its bar is longer').toBeCloseTo(1 - 2000 / TOAST_ERROR_MS);
+      expect(stepped('Message 1').className).not.toContain('animate-');
+      expect(stepped('Message 1').style.animationDuration).toBe('');
+    });
+
+    it('holds whole and still while the pointer or focus holds the toast, and starts again from full on leaving', () => {
+      render(<ToastRegion messages={[{ ...info(1), action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
+      const toast = screen.getByText('Message 1').closest('[data-tone]')!;
+      act(() => void vi.advanceTimersByTime(3000));
+      expect(scale(stepped('Message 1'))).toBeCloseTo(1 - 3000 / TOAST_INFO_MS);
+      fireEvent.pointerEnter(toast);
+      expect(scale(stepped('Message 1'))).toBe(1);
+      act(() => void vi.advanceTimersByTime(20_000));
+      expect(scale(stepped('Message 1')), 'still whole while held').toBe(1);
+      fireEvent.pointerLeave(toast);
+      act(() => void vi.advanceTimersByTime(1000));
+      expect(scale(stepped('Message 1')), 'from the full time again').toBeCloseTo(1 - 1000 / TOAST_INFO_MS);
+      act(() => screen.getByRole('button', { name: 'Undo' }).focus());
+      expect(scale(stepped('Message 1'))).toBe(1);
+    });
+
+    it("starts after an error's edge strip", () => {
+      render(<ToastRegion messages={[failure(2)]} dismiss={vi.fn()} />);
+      expect(stepped('Failure 2').className).toContain(' left-1 ');
+    });
+  });
+
   it("starts after an error's edge strip, so the strip keeps its whole height, and takes the full width on an information toast", () => {
     render(<ToastRegion messages={[info(1), failure(2)]} dismiss={vi.fn()} />);
     expect(bar('Failure 2').className).toContain(' left-1 ');

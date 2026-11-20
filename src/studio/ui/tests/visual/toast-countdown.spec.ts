@@ -5,8 +5,8 @@ import { expect, test, type Page } from '@playwright/test';
 test.use({ viewport: { width: 1440, height: 900 }, colorScheme: 'light' });
 
 /** Raises the recent project's Undo toast (removing a recent project) in the real app, with motion on. */
-async function raise(page: Page): Promise<void> {
-  await page.emulateMedia({ reducedMotion: 'no-preference' });
+async function raise(page: Page, motion: 'no-preference' | 'reduce' = 'no-preference'): Promise<void> {
+  await page.emulateMedia({ reducedMotion: motion });
   await page.goto('/?mockNoProject=1');
   await page
     .getByRole('button', { name: /^Remove .* from recent projects/ })
@@ -120,4 +120,46 @@ test('in a 320 x 300 window under a dialog the bar still sits in the toast and c
     };
   });
   expect(state).toEqual({ inside: true, overlaps: 0 });
+});
+
+// Under reduced motion (Windows' animation effects off, or Settings > Motion > Reduce) the bar is drawn too, stepped once a second with no animation: the one exception to the motion rule.
+test('under reduced motion a stepped bar shows the time, with no animation, and is held while the pointer is on the toast', async ({ page }) => {
+  await raise(page, 'reduce');
+  const read = () =>
+    page.evaluate(() => {
+      const toast = document.querySelector('[data-toast-region] [data-tone]')!;
+      const animated = toast.querySelector('[data-toast-countdown]')!;
+      const step = toast.querySelector('[data-toast-countdown-stepped]')!;
+      const at = step.getBoundingClientRect();
+      const box = toast.getBoundingClientRect();
+      return {
+        animatedShown: getComputedStyle(animated).display !== 'none',
+        animations: toast.getAnimations({ subtree: true }).filter((a) => a instanceof CSSAnimation && a.animationName === 'toast-countdown').length,
+        shown: getComputedStyle(step).display !== 'none',
+        height: Math.round(at.height),
+        flush: Math.abs(at.bottom - box.bottom) < 1,
+        scale: new DOMMatrix(getComputedStyle(step).transform).a,
+        overlaps: [...toast.querySelectorAll('button')].filter((b) => b.getBoundingClientRect().bottom > at.top).length,
+      };
+    });
+  const first = await read();
+  expect(first).toMatchObject({ animatedShown: false, animations: 0, shown: true, height: 3, flush: true, overlaps: 0 });
+  expect(first.scale).toBeCloseTo(1, 1);
+  // It goes down in whole steps: sampled every 250 ms for 3 s, the width changes at most four times and never goes up.
+  const seen: number[] = [];
+  for (let n = 0; n < 12; n += 1) {
+    await page.waitForTimeout(250);
+    seen.push(Math.round((await read()).scale * 1000) / 1000);
+  }
+  const changes = seen.filter((value, index) => index > 0 && value !== seen[index - 1]).length;
+  expect(changes, `widths seen ${seen.join(', ')}`).toBeGreaterThanOrEqual(2);
+  expect(changes).toBeLessThanOrEqual(4);
+  expect(seen[seen.length - 1]!).toBeLessThan(seen[0]!);
+  expect([...seen].sort((a, b) => b - a)).toEqual(seen);
+  // Held: whole and still while the pointer is on the toast, longer than the toast lasts.
+  await page.locator('[data-toast-region] [data-tone]').first().hover();
+  await expect.poll(async () => (await read()).scale).toBeCloseTo(1, 1);
+  await page.waitForTimeout(5500);
+  await expect(page.locator('[data-toast-region] [data-tone]').first()).toBeVisible();
+  expect((await read()).scale).toBeCloseTo(1, 1);
 });

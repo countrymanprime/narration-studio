@@ -128,7 +128,7 @@ with an **Open** button. When it covers a project you have open, **Back** return
 - The pin on a row moves that project under a **Pinned** heading at the top of the list, above **Recent**, and keeps it on
   the list after ten newer projects have been opened. Press it again to unpin.
 - With no recent projects the list says so and offers **New project** in it.
-- **×** on a row takes the project off the list. Its files are kept, and a message offers **Undo** for a few seconds. Every message of this kind shows how long it has left as a thin bar along its bottom edge (unless the app is set to reduce motion); the bar stays full while the pointer is on the message or focus is in it, and starts again when you leave.
+- **×** on a row takes the project off the list. Its files are kept, and a message offers **Undo** for a few seconds. Every message of this kind shows how long it has left as a thin bar along its bottom edge; the bar stays full while the pointer is on the message or focus is in it, and starts again when you leave.
 - A project whose folder has been moved or deleted drops off the list by itself.
 - The **Settings** button at the top right opens [Settings](settings.md#before-a-project-is-open) without a project, to
   download models, check for an update or change what belongs to this computer. Its **Back to project picker** returns
