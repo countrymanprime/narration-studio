@@ -171,7 +171,7 @@ const CREATE = afterTracks(outcome('failed', NOT_CONFIRMED_TRACK), LONG_MS);
 /**
  * The host calls that send REAPER a command and wait for its answer, each with what the real host answers when REAPER does not answer in time (traced from the
  * bindings in src/studio/desktop for #3752). A call that is not here is not slowed: it reads files or the heartbeat, starts a job whose answer is an event, or its
- * answer on a silent REAPER depends on state this layer cannot see (`dawReleaseBoothMonitor`: only when a monitoring is owed; the voice-sample and teleprompter
+ * answer on a silent REAPER depends on state this layer cannot see (`dawReleaseBoothMonitor` and `dawSoloRestore`: only when a monitoring or a solo is owed; the voice-sample and teleprompter
  * follow calls). `chapterTrackLinks`, `chapterTrackMatch` and `boothVoiceGet` answer from the saved project after 7 s; the mock has one project, so here they answer as usual, late.
  */
 export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
@@ -208,7 +208,6 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   dawPlace: one(answer({ ok: false, message: WITHIN_3S, chapterId: '', selected: 0, cursor: 0 })),
   dawGoToChapter: LATE_REFUSAL,
   dawSoloChapter: LATE_REFUSAL,
-  dawSoloRestore: LATE_REFUSAL,
   // A play, a stop or a cursor move is waited for; the watch is a lease renewed every few seconds and keeps the 3 s.
   dawTransportSync: {
     steps: [

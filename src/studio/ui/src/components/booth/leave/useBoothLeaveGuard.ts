@@ -44,7 +44,7 @@ const claimOf = (session: BoothLeaveSession): Claim => (!(session.startedByApp ?
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
 
-/** How long the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order); the stop has `LEAVE_STOP_WAIT_MS`. */
+/** How long the end check and the passage map's run are each given after the narrator said yes; the press still out (a start, or a Stop already pressed) and the stop have `LEAVE_STOP_WAIT_MS`. */
 export const LEAVE_WAIT_MS = 8000;
 /**
  * How long the stop itself is given: just above the page's own stop limit (`PRESS_LIMITS_MS.recordStop`), so the page's limit ends a stop that never answers first, with its
