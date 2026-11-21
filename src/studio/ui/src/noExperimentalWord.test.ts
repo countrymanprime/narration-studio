@@ -36,8 +36,8 @@ function sourcesUnder(root: string, skip: (path: string) => boolean = () => fals
 /** Every string literal, template piece and JSX text in `text` that carries the word, other than the wire level itself. */
 function wordsIn(fileName: string, text: string): string[] {
   // Parsing every source took 3 s alone and passed the 15 s limit on a loaded runner. A literal can only carry the word when the file's
-  // text does, or spells a character as an escape, so only those files are parsed.
-  if (!WORD.test(text) && !/\\[ux]/.test(text)) return [];
+  // text does, or when a backslash could be spelling or joining it (an escape of any kind, a line continuation), so only those files are parsed.
+  if (!WORD.test(text) && !text.includes('\\')) return [];
   const file = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true, fileName.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const hits: string[] = [];
   const visit = (node: ts.Node) => {
@@ -65,6 +65,10 @@ describe('no word the narrator reads says "experimental"', () => {
     expect(wordsIn('a.ts', "if (support.level === 'experimental') go(); const levels = ['supported', 'experimental'];")).toEqual([]);
     expect(wordsIn('a.ts', '// an experimental comment is not read by the narrator\nconst x = 1;')).toEqual([]);
     expect(wordsIn('a.ts', "const label = 'Exp\\u0065rimental mode';")).toHaveLength(1);
+    expect(wordsIn('a.ts', "const label = 'exp\\x65rimental mode';")).toHaveLength(1);
+    expect(wordsIn('a.ts', "const label = 'exp\\erimental mode';")).toHaveLength(1);
+    expect(wordsIn('a.ts', "const label = 'experi\\\nmental mode';")).toHaveLength(1);
+    expect(wordsIn('a.ts', 'const label = `experi\\\nmental mode`;')).toHaveLength(1);
     expect(wordsIn('a.ts', "const label = 'Recording';")).toEqual([]);
   });
 
