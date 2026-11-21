@@ -13,8 +13,11 @@ type LiveTracks struct {
 	ProjectPath string // the open project's .rpp, "" when never saved
 	Unsaved     bool
 	ChangeCount int // GetProjectStateChangeCount: rises on every edit, restarts when the project opens
-	Tracks      []LiveTrack
-	Total       int
+	// Revision is the script's one value for this list (its tracks in order: GUID, name, folder depth), the same the heartbeat carries; ""
+	// from a script that sends none. The list is REAPER's for as long as the heartbeat's revision equals it.
+	Revision string
+	Tracks   []LiveTrack
+	Total    int
 }
 
 // LiveTrack is one track: its 0-based index, GUID, name ("" for a track never named, as the saved .rpp has it) and
@@ -38,6 +41,9 @@ func (a *Actions) ReadTracks(ctx context.Context) (LiveTracks, error) {
 		switch event.Tag {
 		case "TRACKS_READ":
 			read.ProjectPath, read.Unsaved, read.ChangeCount, seen = event.Fields[2], event.Fields[3] == "1", int(numberAt(event.Fields, 4)), true
+			if len(event.Fields) > 5 {
+				read.Revision = event.Fields[5]
+			}
 		case "TRACKS_ROW":
 			read.Tracks = append(read.Tracks, LiveTrack{
 				Index:       int(numberAt(event.Fields, 2)),

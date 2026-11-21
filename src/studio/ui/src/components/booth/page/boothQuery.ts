@@ -4,7 +4,7 @@ const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 
 /**
  * Where Record from here opens the Booth: a paragraph and a character offset in it, as a selection in the Script gives them. Record from here also
- * chooses that place as the next take's start; `placeOnly` (a bookmark jump from another chapter, `&only=1`) only puts the reading there.
+ * chooses that place as the next take's start; `placeOnly` (a bookmark jump from another chapter, `&only=1`) starts there too but draws no mark: the cursor is the mark (#3858).
  */
 export type BoothStart = { paragraphId: string; offset: number; placeOnly?: boolean };
 

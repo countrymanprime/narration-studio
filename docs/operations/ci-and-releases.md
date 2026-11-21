@@ -654,11 +654,14 @@ runner called:
   library is missing) takes the network path: poll the resolver and retry `playwright install --with-deps chromium` for up to 9 minutes
   (#3410), then keep the downloaded packages for the next run when apt kept any. A cached set that does not pass is not replaced until the
   runner image or Playwright version changes.
-- **Failure diagnostics.** A failing visual test leaves `src/studio/ui/test-results/<test>/trace.zip` (Playwright
-  `trace: 'retain-on-failure'`: DOM snapshots, network and console for every action; a passing test keeps nothing,
-  and no retry is involved, [What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)). When a step of the
-  `Test (Linux i/6)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
-  with `pnpm exec playwright show-trace <trace.zip>` from `src/studio/ui`, or drop it on trace.playwright.dev. The atlas
+- **Failure diagnostics.** The visual suite records no trace on its first pass (`trace: 'off'` in `playwright.config.ts`: recording
+  every test took 19% of the suite's test time, [the test speed plan](../research/test-speed-plan-2026-11.md)). When the `visual` step of a
+  `Test (Linux i/6)` job fails, the step `visual (the failed tests again, with a trace)` runs only the failed tests with `--last-failed --trace on`,
+  which leaves `src/studio/ui/test-results/<test>/trace.zip` for each (DOM snapshots, network and console for every action). That step
+  decides nothing: the first pass has failed the job, and a test that passes the second time was still red
+  ([What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)). The job uploads the folder as the
+  `ui-visual-traces-<i>` artifact for three days. Open a trace with `pnpm exec playwright show-trace <trace.zip>` from `src/studio/ui`, or
+  drop it on trace.playwright.dev. For a trace of a local failure, run the test with `--trace on`. The atlas
   config (`playwright.atlas.config.ts`) keeps no trace yet.
 - **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the sidecars,
   `config`, `fixtures` and `reaper` (its Go tests read their goldens and data); the sidecars read `narration-common` and `config`.
