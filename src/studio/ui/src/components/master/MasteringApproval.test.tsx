@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -556,6 +556,47 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       expect(screen.getByRole('alertdialog')).toBeTruthy();
       await pressInDialog('Approve and master');
       await waitFor(() => expect(exportStart).toHaveBeenCalledTimes(1));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  // The pointer is not drawn while the approval is sent. If it had the keyboard, the keyboard stays in the dialog, on the chain's list (qa on #3870).
+  it('keeps the keyboard in the dialog when the pointer goes as the approval is sent', async () => {
+    observeAs(false);
+    Element.prototype.scrollIntoView = vi.fn();
+    try {
+      let answer: (() => void) | undefined;
+      const { exportStart } = await mount('daw');
+      exportStart.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            answer = () =>
+              resolve({
+                id: 'x',
+                kind: 'render_export',
+                phase: 'running',
+                message: 'Preparing 4 files.',
+                percent: 0,
+                master: true,
+                provider: 'daw',
+                format: 'mp3',
+                logs: [],
+                elapsed: 0,
+                files: [],
+              });
+          }),
+      );
+      await openDialog();
+      const pointer = await within(dialog()).findByRole('button', { name: '2 effects above' });
+      pointer.focus();
+      // Not a pointer press, which would move focus to Approve first.
+      fireEvent.click(within(dialog()).getByRole('button', { name: 'Approve and master' }));
+      await waitFor(() => expect(within(dialog()).queryByRole('button', { name: '2 effects above' })).toBeNull());
+      expect(dialog().contains(document.activeElement)).toBe(true);
+      expect(document.activeElement?.getAttribute('aria-label')).toBe('FX chain this render runs');
+      await act(async () => answer?.());
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     } finally {
       vi.unstubAllGlobals();
     }

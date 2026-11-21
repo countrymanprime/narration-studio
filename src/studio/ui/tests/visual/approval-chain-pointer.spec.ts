@@ -131,6 +131,78 @@ test("Master / the approval's chain pointer takes no room at every width from 27
   expect(compared).toBe(172);
 });
 
+// What the pointer may cover inside the body (qa on #3870). At the body's scroll end the last file's row is whole above it: the dialog keeps a constant room under its last list.
+for (const [width, height, driver] of [
+  [320, 400, 'to-spec-approve-daw'],
+  [320, 436, 'to-spec-approve-daw'],
+  [320, 400, 'to-spec-approve-many'],
+  [768, 1024, 'to-spec-approve-long-chain'],
+  [1440, 900, 'to-spec-approve-long-chain'],
+] as const) {
+  test(`Master / the approval's chain pointer leaves the last file row readable at the scroll's end / ${driver} ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await settlePage(page);
+    await masterDrivers[driver]!(page);
+    await page.setViewportSize({ width, height });
+    await scrollChain(page, 'end');
+    await expect(chip(page)).toBeVisible();
+    await frames(page);
+    const covered = await page.evaluate(() => {
+      const popup = document.querySelector('[role="alertdialog"]')!;
+      const pointer = popup.querySelector('[data-chain-pointer] button')!.getBoundingClientRect();
+      const row = [...popup.querySelectorAll('table')].pop()!.querySelector('tbody tr:last-child')!;
+      const range = document.createRange();
+      range.selectNodeContents(row);
+      return [...range.getClientRects()].filter(
+        (text) =>
+          text.width > 0 && text.bottom > pointer.top + 0.5 && text.top < pointer.bottom - 0.5 && text.right > pointer.left && text.left < pointer.right,
+      ).length;
+    });
+    expect(covered, "boxes of the last file row's text under the pointer").toBe(0);
+  });
+}
+
+// A control in the body that takes the keyboard is not left under the pointer: the body is about 100 px tall at these sizes and the pointer takes its lower third.
+for (const [width, height, driver] of [
+  [275, 300, 'to-spec-approve-no-fx'],
+  [320, 300, 'to-spec-approve-long-chain'],
+  [360, 300, 'to-spec-approve-chain-off'],
+] as const) {
+  test(`Master / Tab never leaves the keyboard on a control under the approval's chain pointer / ${driver} ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await settlePage(page);
+    await masterDrivers[driver]!(page);
+    await page.setViewportSize({ width, height });
+    await frames(page);
+    const under: string[] = [];
+    let inBody = 0;
+    for (let tabs = 0; tabs < 10; tabs += 1) {
+      await page.keyboard.press('Tab');
+      await frames(page);
+      const found = await page.evaluate(() => {
+        const el = document.activeElement;
+        const popup = document.querySelector('[role="alertdialog"]')!;
+        const all = [...popup.querySelectorAll('button')];
+        const body = all[all.length - 1]!.closest('.border-t')!.previousElementSibling!;
+        if (!(el instanceof HTMLElement) || !body.contains(el) || el === body || el.closest('[data-chain-pointer]')) return null;
+        const at = el.getBoundingClientRect();
+        const frame = body.getBoundingClientRect();
+        // Where the control's focus is seen: its own middle for a button, the top of what shows of a list.
+        const y = Math.min(Math.max(at.top + Math.min(at.height / 2, 8), frame.top + 1), frame.bottom - 1);
+        const hit = document.elementFromPoint(at.left + Math.min(at.width / 2, 20), y);
+        return { name: el.getAttribute('aria-label') ?? el.tagName, under: Boolean(hit?.closest('[data-chain-pointer]')) };
+      });
+      if (!found) continue;
+      inBody += 1;
+      if (found.under) under.push(found.name);
+    }
+    expect(inBody, 'Tab reached the controls in the body').toBeGreaterThanOrEqual(3);
+    expect(under).toEqual([]);
+  });
+}
+
 // The step itself: as the window gets shorter one pixel at a time the action row keeps its height on each side of the 400 px chrome change, and the body never jumps.
 for (const width of [275, 320, 360, 400, 480, 640]) {
   test(`Master / the approval's action row and body do not step as the window shrinks / ${width} wide`, async ({ page }) => {

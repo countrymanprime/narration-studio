@@ -83,7 +83,7 @@ function ChainList({ chain, onView }: { chain: ExportPlan['chain'] | null | unde
   return (
     <div data-decision-critical="">
       {/* The "i" follows the count's last word, so it stays beside the text when the line wraps (round 3 ux). */}
-      <SectionLabel as="p" className="mt-2">
+      <SectionLabel as="p" className="mt-2 [&_button]:scroll-mb-11">
         {chainCount(tracks)}{' '}
         <span className="inline-flex align-middle normal-case">
           <Tooltip label="What this approval covers" text={CHAIN_SCOPE} />
@@ -192,14 +192,16 @@ export function MasteringApprovalDialog({
   };
   // A pointer that goes while it has the keyboard (the window grew) takes the keyboard out of the dialog with it: it goes to the
   // chain's list, which the pointer named. Focus anywhere else in the dialog stays where it is (round 5, B2).
-  const wasBelow = useRef(chainBelow);
+  // The pointer is drawn while the first effect is out of view, and not while the approval is being sent.
+  const pointerShown = chainBelow && !pending;
+  const wasBelow = useRef(pointerShown);
   useEffect(() => {
-    const went = wasBelow.current && !chainBelow;
-    wasBelow.current = chainBelow;
+    const went = wasBelow.current && !pointerShown;
+    wasBelow.current = pointerShown;
     const dialog = chainRef.current?.closest('[role="alertdialog"]');
     const active = document.activeElement;
     if (went && dialog && (active === null || !active.isConnected || !dialog.contains(active))) chainList()?.focus({ preventScroll: true });
-  }, [chainBelow]);
+  }, [pointerShown]);
   // What the chip over the body says, and its hint: the whole sentence the pointer used to carry as a third button.
   const above = effects === 0 ? 'Chain above: no effects' : `${plural(effects, 'effect')} above${off > 0 ? `, ${off} off` : ''}`;
   const aboveHint = effects === 0 ? 'See the chain above: no effects' : `See the ${plural(effects, 'effect')} above${off > 0 ? `, ${off} switched off` : ''}`;
@@ -280,10 +282,13 @@ export function MasteringApprovalDialog({
           />
         </div>
       )}
+      {/* Room under the last list for the pointer, always there so nothing moves when the pointer comes or goes: at the scroll's end the last file's row is whole above the chip
+          (without it the chip sat on that row's region at every scroll position, qa on #3870). */}
+      {plan.provider === 'daw' && <div aria-hidden="true" className="h-7" />}
       {/* The pointer to a chain that is out of view floats over the bottom edge of the body and takes no room: as a third button it wrapped the action row onto a second
           line the moment it appeared, and the body lost 42 px (#3605 item 4). A zero-height sticky row, last in the body, so it rides the body's bottom edge. */}
       {/* While the approval is being sent the pointer is not drawn: a dimmed chip over the list let the row under it show through its label. */}
-      {chainBelow && !pending && (
+      {pointerShown && (
         // 8 px above the body's bottom edge wherever the body is scrolled, as the mock drew it: at the scroll's end the row's own place is above the body's bottom padding
         // (1 rem; 0.5 rem at 400 px of height or less), so there it is moved down by the difference, with the opposite margin under it so the content's height is unchanged.
         <div
