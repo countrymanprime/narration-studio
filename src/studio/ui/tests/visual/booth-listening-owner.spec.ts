@@ -112,6 +112,8 @@ for (const how of ['Stop', 'Stop and leave'] as const) {
   test(`a listening start that answers after its limit for a press the narrator ended with ${how} is stopped when it answers`, async ({ page }) => {
     test.setTimeout(120_000);
     await openBooth(page, 'listeningStartPastLimit');
+    // The page clock runs the press's 45 s limit and the mock's 55 s answer in order, without waiting for them.
+    await page.clock.install();
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
     await page.waitForTimeout(1500);
@@ -121,9 +123,10 @@ for (const how of ['Stop', 'Stop and leave'] as const) {
       await page.keyboard.press('Escape');
       await page.getByRole('button', { name: /Stop and leave/ }).click();
     }
-    await page.waitForTimeout(50_000);
+    await page.clock.runFor(50_000);
     const before = (await calls(page)).listeningStops;
     // The start answers at 55 s.
+    await page.clock.runFor(6000);
     await expect.poll(async () => (await calls(page)).listeningStops, { timeout: 15_000 }).toBeGreaterThan(before);
   });
 }
