@@ -117,10 +117,25 @@ const RACE_EVERYTHING = [
 ];
 
 /**
+ * Files outside the Go module that no Go test reads, so changing them races nothing: the UI, the site, the docs tooling, the pages of
+ * `docs/` that are prose, and the top-level documents. A file outside the module that is not here (a script, a fixture, `docs/reference/`,
+ * a manifest) may be read by a test, and races everything: the direction of every unsure case.
+ */
+const GO_FREE = [
+  /^src\/studio\/ui\//,
+  /^src\/web\//,
+  /^tools\//,
+  /^docs\/(adr|design|guides|images|operations|prds|research|ui|utilities|workflows)\//,
+  /^docs\/[^/]+\.md$/,
+  /^[^/]+\.md$/,
+  /^LICENSE$/,
+];
+
+/**
  * The import paths of the packages a pull request touches, or null for "all of them" (`changed` is null: not a pull request, or its base
  * could not be read; or a changed file is one of RACE_EVERYTHING). A file belongs to the package whose folder is its nearest ancestor,
  * so a fixture under `testdata/` counts for its package; `dirs` maps each package's folder, relative to the repository root with
- * forward slashes, to its import path. A changed file outside the module (the UI, a document, a sidecar) touches no Go package.
+ * forward slashes, to its import path. A changed file outside the module touches no Go package only when it is in GO_FREE; any other races everything.
  */
 export function touchedPackages(dirs, changed) {
   if (changed === null) return null;
@@ -132,6 +147,7 @@ export function touchedPackages(dirs, changed) {
       if ((dir === '' || file.startsWith(`${dir}/`)) && (nearest === null || dir.length > nearest.length)) nearest = dir;
     }
     if (nearest !== null) touched.add(dirs[nearest]);
+    else if (!GO_FREE.some((pattern) => pattern.test(file))) return null;
   }
   return touched;
 }

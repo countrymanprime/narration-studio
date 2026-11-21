@@ -334,13 +334,13 @@ test('a pull request touches the package whose folder is the nearest above each 
   assert.deepEqual(touched(['src/app/main.go', 'src/app/internal/a/a.go']), [MODULE, `${MODULE}/internal/a`]);
   assert.deepEqual(touched(['src/app/internal/gone/old.go']), [MODULE], 'a file of a package that no longer exists counts for the nearest one above');
   assert.deepEqual(touched(['src\\app\\internal\\a\\a.go']), [`${MODULE}/internal/a`], 'a path with backslashes');
-  assert.deepEqual(touched(['src/ui/App.tsx', 'docs/a.md']), [], 'a change outside the module touches no Go package');
+  assert.deepEqual(touched(['src/studio/ui/src/App.tsx', 'docs/guides/a.md', 'docs/README.md', 'README.md', 'tools/docs-site/x.py', 'docs/images/ui/a.png']), [], 'a change in a place no Go test reads touches no Go package');
   assert.deepEqual(touched([]), []);
 });
 
 test('a change the rule cannot place, or a run that is not a pull request, touches every package', () => {
   assert.equal(touchedPackages(FOLDERS, null), null, 'not a pull request, or its base could not be read');
-  for (const file of ['src/app/go.mod', 'src/app/go.sum', 'go.work', '.github/workflows/_quality.yml', '.github/actions/nx-run/action.yml', 'scripts/ci/coverage-gate.mjs', 'scripts/ci/pr-scope.mjs', 'scripts/toolchain.json', 'scripts/quality.mjs', 'src/studio/desktop/project.json', 'config/defaults.json', 'tests/fixtures/a.json', 'src/studio/integrations/reaper/x.lua', 'src/studio/sidecars/manuscript-guide/x.py', 'src/studio/sidecars/manuscript-teleprompter/x.py', 'src/studio/sidecars/transcript-compare/x.py', 'src/studio/libs/python/narration_common/x.py']) {
+  for (const file of ['src/app/go.mod', 'src/app/go.sum', 'go.work', '.github/workflows/_quality.yml', '.github/actions/nx-run/action.yml', 'scripts/ci/coverage-gate.mjs', 'scripts/ci/pr-scope.mjs', 'scripts/toolchain.json', 'scripts/quality.mjs', 'src/studio/desktop/project.json', 'config/defaults.json', 'tests/fixtures/a.json', 'src/studio/integrations/reaper/x.lua', 'src/studio/sidecars/manuscript-guide/x.py', 'src/studio/sidecars/manuscript-teleprompter/x.py', 'src/studio/sidecars/transcript-compare/x.py', 'src/studio/libs/python/narration_common/x.py', 'scripts/research/bridge-fake-driver.py', 'src/studio/tests/audacity3/real/foundation/golden/a.json', 'docs/reference/storybible-import-format.md', 'docs/architecture/provider-ports.md', 'nx.json', 'package.json', 'pnpm-lock.yaml', 'scripts/release/reaper-files.mjs', 'something-new/file.txt']) {
     assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', file]), null, file);
   }
 });
