@@ -79,7 +79,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 168
+const hostAPIVersion = 170
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -421,6 +421,8 @@ type Host struct {
 	// chapterSyncEmitMu keeps one emitChapterSyncState at a time: each reads the state and sends it, so two started by quick link changes cannot
 	// send in the opposite order from their reads and leave the UI on the older state (#3416).
 	chapterSyncEmitMu sync.Mutex
+	// chapterSyncEmitWaiting is set while one emitChapterSyncState waits for chapterSyncEmitMu: later requests leave the read to it.
+	chapterSyncEmitWaiting atomic.Bool
 	// background counts the fire-and-forget goroutines the host starts through goBackground (cue refreshes, chapter-sync triggers, the
 	// backups prune, the Audacity probe), so a test can wait for them before it removes the project folder they write into. Nothing in
 	// the app waits on it: a quit or a user action never blocks on this work.
@@ -669,6 +671,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
 	go h.cleanStaleDownloads()
+	h.goBackground(h.warmProject) // the read caches, while the window loads (warm.go)
 	return nil
 }
 
@@ -1444,6 +1447,7 @@ func (h *Host) onSecondInstance(instance application.SecondInstanceData) {
 		bringWindowForward()
 		if attached {
 			h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
+			h.goBackground(h.warmProject)                                      // the new project's read caches (warm.go)
 			emitEvent("system:attached", map[string]any{"attached": true})
 		} else if reason != "" {
 			emitEvent("system:attached", map[string]any{"attached": false, "reason": reason})

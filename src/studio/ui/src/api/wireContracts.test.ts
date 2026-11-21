@@ -154,6 +154,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterCreateOptionsSchema,
   chapterTrackCreateSchema,
   chapterFoldersSchema,
   trackMappingSchema,
@@ -222,7 +223,7 @@ import {
 } from './schemas/teleprompter';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsOpenCountSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import {
@@ -1759,6 +1760,61 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
       expect(refused.outcome).toBe('refused');
     }
+  });
+
+  it('ChapterCreateOptions lists nothing to choose for a flat project, and the known voices and Extras for a Voice folders project (#3748)', async () => {
+    const flat = createMockApi({}, { reaperState: 'no_link' });
+    const none = await flat.chapterCreateOptions();
+    expectMatches(chapterCreateOptionsSchema, none, 'mock chapter create options, flat');
+    expect(none).toMatchObject({ folders: false, voices: [] });
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    await api.voiceTracksSetCharacters('Dragon 🐉', ['dragon']);
+    const options = await api.chapterCreateOptions();
+    expectMatches(chapterCreateOptionsSchema, options, 'mock chapter create options, folders');
+    expect(options).toMatchObject({
+      folders: true,
+      narrator: 'Narrator',
+      voices: [{ name: 'Dragon 🐉', checked: true }],
+      extras: { name: 'Extras', checked: true },
+    });
+  });
+
+  it('ChapterTrackCreate with a choice makes the folder with the Narrator, the chosen voices and Extras in order, and the next options remember it (#3748)', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    await api.voiceTracksSetCharacters('Dragon', ['dragon']);
+    await api.voiceTracksSetCharacters('Mara', ['mara']);
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id, { voices: ['Mara'], extras: true });
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, folder with a choice');
+    if (created.outcome !== 'created') throw new Error('expected a created folder');
+    expect(created.children?.map((child) => child.name)).toEqual(['Narrator', 'Mara', 'Extras']);
+    const live = await api.tracksLive();
+    const folder = live.project.tracks.find((track) => track.guid === created.track.guid);
+    const names = live.project.tracks
+      .filter((track) => (folder?.index ?? -1) < track.index && track.index <= (folder?.index ?? -1) + 3)
+      .map((track) => track.name);
+    expect(names).toEqual(['Narrator', 'Mara', 'Extras']);
+    const options = await api.chapterCreateOptions();
+    expect(options.voices).toEqual([
+      { name: 'Dragon', checked: false },
+      { name: 'Mara', checked: true },
+    ]);
+  });
+
+  // Walkthrough: the mock marks the Extras track as the host does, so the Booth cannot arm it; a project that gives characters to Extras keeps it a voice.
+  it('a created Extras is marked not-a-voice in the project, unless the project gives characters to a track called Extras (#3748)', async () => {
+    const kept = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const keptChapters = await ownChapters(kept);
+    await kept.chapterTrackCreate(keptChapters[1].id);
+    expect((await kept.voiceTracksGet()).notVoiceGuids).toEqual([]);
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    await api.voiceTracksSetCharacters('Extras', []);
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id);
+    if (created.outcome !== 'created') throw new Error('expected a created folder');
+    const extras = created.children?.find((child) => child.name === 'Extras');
+    expect(extras).toMatchObject({ notVoice: true });
+    expect((await api.voiceTracksGet()).notVoiceGuids).toEqual([extras?.guid.toLowerCase()]);
   });
 
   it('the ChapterTrackCreate answer in a Voice folders project: a folder with a Narrator, both in the live track list at once', async () => {
@@ -4543,6 +4599,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     const listed = await api.pickupsList();
     expectMatches(pickupListSchema, listed, 'mock pickups list');
+    // The open count is the list's own count: the golden's against the merged golden, the mock's against its list.
+    const hostCount = pickupsOpenCountSchema.parse(readGolden('pickups-open-count.json'));
+    expect(hostCount.open).toBe(merged.pickups.filter((pickup) => pickup.done !== true).length);
+    const counted = await api.pickupsOpenCount();
+    expectMatches(pickupsOpenCountSchema, counted, 'mock pickups open count');
+    expect(counted.open).toBe(listed.pickups.filter((pickup) => !pickup.done).length);
     expect(listed.pickups.map((pickup) => pickup.source)).toEqual(['speech', 'speech', 'audio']);
     const added = await api.pickupsAdd('chapter-1', 12, '  A line read again  ');
     expectMatches(pickupListSchema, added, 'mock pickups add');
@@ -4766,6 +4828,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackMapList',
       'chapterTrackSet',
       'chapterTrackCreate',
+      'chapterCreateOptions',
+      'chapterCreateDefaultSet',
       'chapterFoldersCheck',
       'chapterFoldersRepair',
       'chapterTrackUnlink',
@@ -4789,6 +4853,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pickupsCount',
       'pickupsState',
       'pickupsList',
+      'pickupsOpenCount',
       'pickupsAdd',
       'pickupsRemove',
       'pickupsSetIncluded',

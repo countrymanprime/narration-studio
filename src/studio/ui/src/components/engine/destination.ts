@@ -4,7 +4,9 @@ import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackM
 import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 
 /** What the DAW made for a chapter, as `ChapterTrackCreate` answers: `voice` is the Narrator inside a new chapter folder, absent for a plain track. */
-export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice'> & { track: { name: string; index?: number } };
+export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice' | 'children' | 'message'> & {
+  track: { name: string; index?: number };
+};
 
 /** What a chapter's link points at, as far as the project's tracks say: nothing, a plain track, a folder with no voices, or a track they do not hold yet. */
 /** The one sentence for a link to a track the project does not hold; the host (linkGoneSentence in bindings_booth_voice.go) and the Booth mock say the same. */
@@ -94,10 +96,18 @@ export function destinationFor(layout: VoiceTracksLayout) {
   };
 }
 
-/** What the DAW made, named as it was given: a folder with its Narrator, or the track; and that it is not saved yet. */
+/** The names of the tracks a new folder was made with, "Narrator, Alice and Extras", when it has more than the Narrator; null for a plain track or a folder with only its Narrator. */
+export function childNames(created: CreatedDestination): string | null {
+  const names = (created.children ?? []).map((child) => child.name);
+  if (names.length < 2) return null;
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** What the DAW made, named as it was given: a folder with its tracks (the Narrator, and the voices and Extras when it was made with them), or the track; that it is not saved yet; and, when the create was partly done, what is left. */
 export function createdSentence(created: CreatedDestination, chapter: string, dawName: string): string {
+  const named = childNames(created);
   const what = created.voice
-    ? `Folder “${readable(created.track.name, created.track.index)}” with a ${created.voice.name} track`
+    ? `Folder “${readable(created.track.name, created.track.index)}” with ${named ? `${named} tracks` : `a ${created.voice.name} track`}`
     : `Track “${readable(created.track.name, created.track.index)}”`;
-  return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.`;
+  return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.${created.message ? ` ${created.message}` : ''}`;
 }

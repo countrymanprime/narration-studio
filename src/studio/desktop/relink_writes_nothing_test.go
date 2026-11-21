@@ -95,7 +95,7 @@ func TestLinkingRelinkingSyncingAndTheLayoutSwitchNeverChangeTheDAWProject(t *te
 	if _, err := host.ChapterTrackUnlink(ids[1]); err != nil {
 		t.Fatal(err)
 	}
-	_, _ = host.ChapterTrackCreate(ids[1])
+	_, _ = host.ChapterTrackCreate(ids[1], "")
 	if calls := dawWrites(fake.Calls()); len(calls) != 1 || calls[0] != "track_create.CreateTrack" {
 		t.Fatalf("the create press reached the DAW as %v, want one track_create.CreateTrack", calls)
 	}

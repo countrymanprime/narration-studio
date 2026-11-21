@@ -85,6 +85,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'record-unlinked-folders',
+    description:
+      'The same dialog in a Voice folders project (?mockVoiceFolders=1): "Chapter 1 is not linked to a folder", and above Create a new folder the list of what the folder is made with, the Narrator as always made, the voices (White Rabbit and Alice ticked, Cheshire Cat left out) with All 3 voices, and Extras ticked (#3748)',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'record-unlinked-closed',
     description:
       'The same Booth after the dialog was closed: the "Not linked to a track" chip under the text reopens it, Record looks off (its description, not drawn in the footer while the chip is up, says the chapter has no track to record on and that Record links one); a press of Record reopens the dialog',
