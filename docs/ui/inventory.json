@@ -3498,6 +3498,7 @@
       "source": "src/components/script/page/tools/speaker/SpeakerPicker.tsx",
       "stories": [
         "Suggested",
+        "Suggested By The Local Model",
         "Searching",
         "Empty"
       ],
@@ -3904,6 +3905,7 @@
         "Off",
         "On",
         "Disabled",
+        "Off With A Reason",
         "Press Toggles",
         "Space Toggles"
       ],
@@ -3912,6 +3914,7 @@
         "src/components/proof/proofOptions/ProofOptions.tsx",
         "src/components/settings/DeliveryProfileEditor.tsx",
         "src/components/settings/ScopedSetting.tsx",
+        "src/components/settings/controls/SpeakerFallbackBody.tsx",
         "src/components/settings/row/ValueControl.tsx"
       ],
       "a11yDebt": false
