@@ -200,3 +200,77 @@ describe('a chapter with a recording', () => {
     expect(chip()).toBe('Recorded 80%');
   });
 });
+
+// One rule for where a take starts (#3858): a place the narrator chose wins; else where the recording ends; else the beginning. Record starts from the
+// cursor, and a lookup of the place is made only for a place that was chosen.
+describe('where Record starts, by entry and by how much of the chapter is recorded (#3858)', () => {
+  const FOUND = { outcome: 'found' as const, start: 12, end: 20 };
+  const punchApi = (recorded: Record<string, RecordedThrough> = {}) => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' as const }));
+    const api = pageApi({ manuscriptChapters: async () => withRecorded(recorded), boothPunchTarget, boothVoiceSet } as Partial<NarrationApi>);
+    return { api, boothPunchTarget };
+  };
+  const record = async () => {
+    await userEvent.keyboard(' ');
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+  };
+
+  it('partly recorded, opened at the resume point: Record continues with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('said'));
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
+  it('partly recorded, then a click elsewhere: Record looks that place up', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('said'));
+    act(() => void screen.getByText('walked').click());
+    await waitFor(() => expect(reading()).toBe('walked'));
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('partly recorded, a click elsewhere and then back to the resume point: Record continues with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('said'));
+    act(() => void screen.getByText('walked').click());
+    await waitFor(() => expect(reading()).toBe('walked'));
+    act(() => void screen.getByText('said').click());
+    await waitFor(() => expect(reading()).toBe('said'));
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
+  it('nothing recorded, opened at the beginning: Record starts there with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi();
+    renderPage({ search: '?chapter=c2', api });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    expect(reading()).toBe('Chapter');
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
+  it('nothing recorded, then a click: Record looks the clicked place up', async () => {
+    const { api, boothPunchTarget } = punchApi();
+    renderPage({ search: '?chapter=c2', api });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    act(() => void screen.getByText('day').click());
+    await waitFor(() => expect(reading()).toBe('day'));
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('a link to a line (Record from here) wins over the recording: Record looks that line up', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ search: '?chapter=c1&para=p3&at=9', api });
+    await waitFor(() => expect(reading()).not.toBe('said'));
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+});

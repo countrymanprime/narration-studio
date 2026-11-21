@@ -239,12 +239,11 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
   const markAndStartRef = useRef<(unit: number) => Promise<void>>(async () => {});
 
-  /** R: while a take runs, roll again from the phrase chosen with Mark the start here, otherwise from the current one; before one, start the take there in the same press. */
+  /** R: while a take runs, roll again from the phrase chosen with Mark the start here, otherwise from the current one; before one it is Record (#3858: one start rule). */
   const punchAndRoll = useCallback(async () => {
     const s = sessionRef.current;
-    const from = s.punchAt ?? s.phrase;
-    if (!s.recording) return markAndStartRef.current(from);
-    return rollFrom(from);
+    if (!s.recording) return startTakeRef.current();
+    return rollFrom(s.punchAt ?? s.phrase);
   }, [rollFrom]);
 
   /**

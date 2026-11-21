@@ -3,10 +3,10 @@ import type { CreditsKind } from '../readerModel';
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 
 /**
- * Where Record from here opens the Booth: a paragraph and a character offset in it, as a selection in the Script gives them. It also chooses that
- * place as the next take's start, as a bookmark in another chapter does: an explicit entry wins (#3858).
+ * Where Record from here opens the Booth: a paragraph and a character offset in it, as a selection in the Script gives them. Record from here also
+ * chooses that place as the next take's start; `placeOnly` (a bookmark jump from another chapter, `&only=1`) starts there too but draws no mark: the cursor is the mark (#3858).
  */
-export type BoothStart = { paragraphId: string; offset: number };
+export type BoothStart = { paragraphId: string; offset: number; placeOnly?: boolean };
 
 /** What the Booth works with: a chapter (and where to start from in it). The credits are chapters (`credits-opening`, `credits-closing`). */
 export type BoothChapterTarget = { chapter: string; from?: BoothStart };
@@ -30,7 +30,9 @@ export function boothQuery(input: BoothTarget, pickups: readonly string[] = []):
   const session = pickups.length > 0 ? `&pickups=${pickups.map(encodeURIComponent).join(',')}` : '';
   const target = toBoothTarget(input);
   const chapter = `?chapter=${encodeURIComponent(target.chapter)}`;
-  const from = target.from ? `&para=${encodeURIComponent(target.from.paragraphId)}&at=${Math.max(0, Math.floor(target.from.offset))}` : '';
+  const from = target.from
+    ? `&para=${encodeURIComponent(target.from.paragraphId)}&at=${Math.max(0, Math.floor(target.from.offset))}${target.from.placeOnly ? '&only=1' : ''}`
+    : '';
   return `${chapter}${from}${session}`;
 }
 
@@ -42,7 +44,10 @@ export function readBoothQuery(params: URLSearchParams): BoothChapterTarget | nu
   if (!chapter) return null;
   const paragraphId = params.get('para');
   const offset = Number(params.get('at') ?? '0');
-  return paragraphId ? { chapter, from: { paragraphId, offset: Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0 } } : { chapter };
+  const placeOnly = params.get('only') === '1';
+  return paragraphId
+    ? { chapter, from: { paragraphId, offset: Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0, ...(placeOnly ? { placeOnly } : {}) } }
+    : { chapter };
 }
 
 /** The pickups of the session the address opens, in order; empty when the Booth was opened any other way, which is no session. */

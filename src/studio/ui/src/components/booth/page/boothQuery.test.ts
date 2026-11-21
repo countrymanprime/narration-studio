@@ -9,6 +9,12 @@ describe('boothQuery', () => {
     expect(boothQuery({ credits: 'closing' })).toBe('?chapter=credits-closing');
   });
 
+  it('a place that only puts the reading there (a bookmark jump) carries `only=1` and reads back', () => {
+    const target = { chapter: 'c2', from: { paragraphId: 'q1', offset: 2, placeOnly: true } };
+    expect(boothQuery(target)).toBe('?chapter=c2&para=q1&at=2&only=1');
+    expect(readBoothQuery(new URLSearchParams('chapter=c2&para=q1&at=2&only=1'))).toEqual(target);
+  });
+
   it('reads back what it wrote, and nothing from an address that names nothing', () => {
     for (const target of [{ chapter: 'c 1' }, { chapter: 'c1', from: { paragraphId: 'p3', offset: 12 } }, { chapter: 'credits-opening' }])
       expect(readBoothQuery(new URLSearchParams(boothQuery(target).slice(1)))).toEqual(target);

@@ -37,8 +37,8 @@ test('repro A: a refused take keeps its start, the arrow keys move it to the rea
   const chosen = await reading(page);
   await arrowDown(page, 4);
   expect(await reading(page)).not.toBe(chosen);
-  // A move is the narrator's choice of start: the start is where the reading is, and Record looks exactly that spot up once.
-  await expect(nextRoll(page)).toBeVisible();
+  // A move is the narrator's choice of start: the cursor is the only mark, and Record looks exactly that spot up once.
+  await expect(nextRoll(page)).toHaveCount(0);
   const before = await lookups(page);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
@@ -57,8 +57,8 @@ test('repro B: Record from here on the Script, the arrow keys move the start to 
   const chosen = await reading(page);
   await arrowDown(page, 3);
   expect(await reading(page)).not.toBe(chosen);
-  // A move is the narrator's choice of start: the start is where the reading is, and Record looks exactly that spot up once.
-  await expect(nextRoll(page)).toBeVisible();
+  // A move is the narrator's choice of start: the cursor is the only mark, and Record looks exactly that spot up once.
+  await expect(nextRoll(page)).toHaveCount(0);
   const before = await lookups(page);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
