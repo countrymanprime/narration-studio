@@ -303,7 +303,7 @@ func TestReferencedRecordIDsStillStopsAfterTheStagesServiceMovedTheFileAside(t *
 			writeRaw(t, project, `{"schemaVersion":1,"documentId":"d","decisions":[{"basis":[{"ledgerRecordIds":["rec-1"]}]}]`)
 			_, _ = NewDecisionStore(project, nil).List("d") // the service's read quarantines the file
 			if _, err := os.Stat(DecisionsFile(project)); err == nil {
-				t.Skip("the read did not move the file aside here")
+				t.Fatal("the stages service's read did not move the corrupt file aside, so this test no longer tests the hole it guards")
 			}
 			if got, err := NewDecisionStore(project, nil).ReferencedRecordIDs(); err == nil || got != nil {
 				t.Fatalf("ReferencedRecordIDs = %v, %v; want an error while the kept-aside copy is there", got, err)

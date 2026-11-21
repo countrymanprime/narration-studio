@@ -65,23 +65,19 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	}
 	// Retain cannot be interrupted, so a check that starts mid-pass is honoured here: every record after that is refused before anything
 	// is removed for it (the loop through the rest is quick), and it stays.
-	stopped, looked := false, 0
+	halted, stopped := false, false // halted: no more removals; stopped: because a check started or the pass was cancelled
 	beforeDelete := func(record evidence.LedgerRecord) error {
-		if stopped || stop() || ctx.Err() != nil {
-			stopped = true
+		if halted || stop() || ctx.Err() != nil {
+			halted, stopped = true, true
 			return errPassStopped
 		}
 		// A decision may have been made since the ids were read (an editing scan or a comparison is not held off by a check): the ids are
-		// read again every so often, and a record a decision now names stays.
-		if looked%rereadEvery == 0 {
-			again, err := l.referenced()
-			if err != nil {
-				stopped = true // nothing more is removed without the ids; the error stays in the report
-				return fmt.Errorf("the decisions could not be read again: %w", err)
-			}
-			referenced = again
+		// read again before each record goes, and a record a decision now names stays. The file is small.
+		referenced, err := l.referenced()
+		if err != nil {
+			halted = true // nothing more is removed without the ids; the error stays in the report
+			return fmt.Errorf("the decisions could not be read again: %w", err)
 		}
-		looked++
 		if referenced[record.ID] {
 			return errPassStopped
 		}
@@ -109,9 +105,6 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	report.BytesAfter, report.FilesAfter = after.BytesBefore, after.FilesBefore
 	return report
 }
-
-// rereadEvery is how many records the pass removes between two reads of the decisions.
-const rereadEvery = 25
 
 // errPassStopped is what beforeDelete answers for a record the pass was stopped before.
 var errPassStopped = errors.New("the retention pass was stopped")

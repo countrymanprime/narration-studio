@@ -11,9 +11,11 @@ import (
 // #3816: the code that deletes derived files is called only from the retention steps the host composes (retention_ledger.go and the
 // steps wired after it), so every automatic delete has one place to review and the threat-model row (7c) to match. A new caller is
 // added here on purpose, with its guard tests.
+// deletingCode matches the deleting code by selector, so a call and a method value are both seen.
+var deletingCode = regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults)\b|\bRemoveRegular\b`)
+
 func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 	// The deleting code is reached by a selector (a call or a method value), never by name alone, so a reference taken as a value is seen too.
-	reference := regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults)\b|\bRemoveRegular\b`)
 	// The files that define it, and the retention step files allowed to name it.
 	defining := map[string]bool{
 		"internal/evidence/ledger.go": true, "internal/coverage/results.go": true, "internal/persist/remove.go": true,
@@ -37,7 +39,7 @@ func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		for _, found := range reference.FindAllString(withoutCommentLines(string(text)), -1) {
+		for _, found := range deletingCode.FindAllString(withoutCommentLines(string(text)), -1) {
 			// RemoveRegular is also how the two stores delete their own files; those are the defining files.
 			if !defining[slash] && !steps[slash] {
 				t.Errorf("%s names %s: the code that deletes derived files is called only from the retention steps (see the test's comment)", slash, strings.TrimPrefix(found, "."))
@@ -52,13 +54,12 @@ func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 
 // The guard sees a method value taken from an unlisted file, which a call-text match did not.
 func TestTheRetentionGuardSeesAMethodValue(t *testing.T) {
-	reference := regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults)\b|\bRemoveRegular\b`)
 	for _, source := range []string{"sweep := s.SweepOrphanResults; sweep()", "l.ledger.Retain(keys, nil, nil)", "persist.RemoveRegular(root, name)", "run(checks.RemoveStoredResult)"} {
-		if !reference.MatchString(source) {
+		if !deletingCode.MatchString(source) {
 			t.Errorf("the guard does not see %q", source)
 		}
 	}
-	if reference.MatchString("ledgerRetentionKeys and retentionOff") {
+	if deletingCode.MatchString("ledgerRetentionKeys and retentionOff") {
 		t.Error("the guard flags a name that only contains the word")
 	}
 }

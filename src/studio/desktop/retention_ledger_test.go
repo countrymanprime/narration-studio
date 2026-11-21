@@ -234,7 +234,7 @@ func TestTheLedgerStepStopsEveryPassWhileTheDecisionsFileIsCorrupt(t *testing.T)
 	}
 }
 
-// A check that starts in the middle of the pass stops the removals: what is left of the pass removes nothing.
+// A check that starts in the middle of the pass (from inside the first removal) stops the removals: the rest of the records are refused.
 func TestTheLedgerStepStopsRemovingWhenACheckStartsMidPass(t *testing.T) {
 	rig := newStepRig(t)
 	// Five chapters, each with an old complete record and a newer one: five records are superseded.
@@ -251,17 +251,16 @@ func TestTheLedgerStepStopsRemovingWhenACheckStartsMidPass(t *testing.T) {
 			}
 		}
 	}
-	asked := 0
-	stop := func() bool { asked++; return asked > 3 } // the first calls pass; then a check starts
-	report := rig.run(stop)
-	if !report.Stopped || report.Removed >= 5 {
-		t.Fatalf("report = %+v, want a stopped pass that did not remove all five", report)
+	checkRunning := false
+	step := rig.step()
+	inner := step.removeResult
+	step.removeResult = func(id string) error { checkRunning = true; return inner(id) } // a check starts as the first result goes
+	report := step.Run(context.Background(), func() bool { return checkRunning })
+	if !report.Stopped || report.Removed != 1 || report.Err != nil || rig.sweepRuns != 0 {
+		t.Fatalf("report = %+v, sweeps %d; want the first record removed, a stopped pass, no error and no sweep", report, rig.sweepRuns)
 	}
-	if report.Err != nil {
-		t.Fatalf("stopping reported %v as a failure", report.Err)
-	}
-	if got := len(rig.left()); got != 10-report.Removed {
-		t.Fatalf("ledger holds %d records after %d removed", got, report.Removed)
+	if got := len(rig.left()); got != 9 {
+		t.Fatalf("ledger holds %d records, want 9", got)
 	}
 }
 
@@ -311,8 +310,8 @@ func TestTheLedgerStepStopsWhenTheDecisionsCannotBeReadAgain(t *testing.T) {
 		return nil, errors.New("the decisions file is being rewritten")
 	}
 	report := rig.run(never)
-	if report.Err == nil || report.Removed != 0 || !slices.Equal(rig.left(), []string{"c0", "c1"}) {
-		t.Fatalf("report = %+v, ledger holds %v; want an error and nothing removed", report, rig.left())
+	if report.Err == nil || report.Removed != 0 || report.Stopped || !slices.Equal(rig.left(), []string{"c0", "c1"}) {
+		t.Fatalf("report = %+v, ledger holds %v; want an error, nothing removed and no \"stopped\" (no check stopped it)", report, rig.left())
 	}
 }
 
@@ -321,5 +320,35 @@ func TestTheLedgerStepWithNoLedgerIsAnError(t *testing.T) {
 	step := ledgerRetention{project: t.TempDir(), measure: measureDirs(nil)}
 	if report := step.Run(context.Background(), never); report.Err == nil || report.Removed != 0 {
 		t.Fatalf("report = %+v, want an error", report)
+	}
+}
+
+// A decision made between two of the pass's records is seen too: the ids are read before each record goes.
+func TestTheLedgerStepSeesADecisionMadeBetweenTwoRecords(t *testing.T) {
+	rig := newStepRig(t)
+	for i := range 30 {
+		chapter := fmt.Sprintf("c-%04d", i+1)
+		for _, id := range []string{"old", "new"} {
+			rig.clock = rig.clock.Add(time.Minute)
+			record := evidence.LedgerRecord{
+				ID: chapter + id, AnalyzerID: coverage.AnalyzerID, AnalyzerVersion: "1", Scope: evidence.LedgerScope{DocumentID: "d", ChapterID: chapter},
+				StartedAt: rig.clock, CompletedAt: rig.clock.Add(time.Second), Outcome: evidence.LedgerComplete,
+			}
+			if _, err := rig.ledger.Write(record); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	reads := 0
+	rig.referenced = func() (map[string]bool, error) {
+		reads++
+		if reads <= 5 {
+			return map[string]bool{}, nil
+		}
+		return map[string]bool{"c-0010old": true}, nil // named after five reads, mid-pass, before this record goes
+	}
+	rig.run(never)
+	if !slices.Contains(rig.left(), "c-0010old") {
+		t.Fatalf("c-0010old, named by a decision made mid-pass, was removed (reads = %d)", reads)
 	}
 }
