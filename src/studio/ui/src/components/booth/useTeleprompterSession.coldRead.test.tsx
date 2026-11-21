@@ -16,7 +16,9 @@ const IDLE: TeleprompterState = { phase: 'idle', message: '', engine: null, chap
 const FLAG: TeleprompterEvent = { type: 'flag', id: 1, kind: 'skipped', start: 3, end: 5, heard: '' };
 
 function setup() {
-  let onState: (state: TeleprompterState) => void = () => {};
+  // Every subscriber hears a state: the hook's own listener and the one a stop keeps while it waits.
+  const onStates = new Set<(state: TeleprompterState) => void>();
+  const onState = (next: TeleprompterState) => onStates.forEach((listener) => listener(next));
   let onEvent: (event: TeleprompterEvent) => void = () => {};
   const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
   const teleprompterStop = vi.fn(async () => {});
@@ -25,8 +27,8 @@ function setup() {
     teleprompterStop,
     teleprompterState: async () => IDLE,
     subscribeTeleprompterState: (listener: (state: TeleprompterState) => void) => {
-      onState = listener;
-      return () => {};
+      onStates.add(listener);
+      return () => onStates.delete(listener);
     },
     subscribeTeleprompterEvent: (listener: (event: TeleprompterEvent) => void) => {
       onEvent = listener;
@@ -90,9 +92,8 @@ describe('stopping and waiting', () => {
     const { hook, state, teleprompterStop } = setup();
     await state({ phase: 'running', coldRead: true });
     let done = false;
-    let waiting: Promise<void> = Promise.resolve();
     act(() => {
-      waiting = hook.result.current.stopAndWait().then(() => {
+      void hook.result.current.stopAndWait().then(() => {
         done = true;
       });
     });
@@ -100,8 +101,8 @@ describe('stopping and waiting', () => {
     await state({ phase: 'stopping', coldRead: true });
     expect(done).toBe(false);
     await state({ phase: 'stopped', coldRead: true });
-    await act(() => waiting);
-    expect(done).toBe(true);
+    // On the host's word, well inside the 9 s after which it answers anyway.
+    await waitFor(() => expect(done).toBe(true), { timeout: 1000 });
   });
 
   it('answers at once when nothing runs', async () => {

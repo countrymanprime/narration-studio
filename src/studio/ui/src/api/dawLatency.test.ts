@@ -84,6 +84,9 @@ describe('withDawLatency', () => {
       tracksLive: call('tracksLive', { source: 'live' }),
       tracksList: call('tracksList', { tracks: ['saved'] }),
       readAloudRecordStop: call('readAloudRecordStop', { outcome: 'stopped' }),
+      dawFxRangeParams: call('dawFxRangeParams', { ok: true }),
+      dawRoll: call('dawRoll', { ok: true }),
+      dawTransportSync: call('dawTransportSync', { ok: true }),
       readAloudReaperState: call('readAloudReaperState', { status: 'ready' }),
       boothVoiceSet: call('boothVoiceSet', { outcome: 'selected' }),
       dawArmBoothVoice: call('dawArmBoothVoice', { ok: true }),
@@ -137,14 +140,59 @@ describe('withDawLatency', () => {
     expect(tracks.answer).toMatchObject({ source: 'saved', reason: 'not_running', project: { tracks: ['saved'] } });
   });
 
-  it('answers as the host does at its 3 s wait, and the command still reaches the DAW when the link lets it through', async () => {
+  it('answers a read as the host does at its 3 s wait, and the read still reaches the DAW when the link lets it through', async () => {
     const { api, reached } = host();
-    const stop = watch(slowed(api, '10s').readAloudRecordStop());
+    const params = watch(slowed(api, '10s').dawFxRangeParams('ch1', 0, 1, 'Chain'));
     await vi.advanceTimersByTimeAsync(3_000);
-    expect(stop.answer).toMatchObject({ outcome: 'refused', reason: 'not_running' });
+    expect(params.answer).toMatchObject({ ok: false, refused: expect.stringContaining('is not answering') });
     expect(reached).toEqual([]);
     await vi.advanceTimersByTimeAsync(7_000);
+    expect(reached).toEqual(['dawFxRangeParams']);
+  });
+
+  it('waits for a write REAPER has read: a stop on a 10 s link is the stop, never "not answering"', async () => {
+    const { api, reached } = host();
+    const stop = watch(slowed(api, '10s').readAloudRecordStop());
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(stop.answer).toBeUndefined();
+    expect(reached).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(stop.answer).toEqual({ outcome: 'stopped' });
     expect(reached).toEqual(['readAloudRecordStop']);
+  });
+
+  it('says REAPER took a write it has not confirmed after the long wait, and the write still lands', async () => {
+    const { api, reached } = host();
+    const stop = watch(slowed(api, '30s').readAloudRecordStop());
+    await vi.advanceTimersByTimeAsync(22_999);
+    expect(stop.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(stop.answer).toMatchObject({ outcome: 'refused', reason: 'timeout', message: expect.stringContaining('took the command') });
+    await vi.advanceTimersByTimeAsync(7_000);
+    expect(reached).toEqual(['readAloudRecordStop']);
+  });
+
+  it('waits for a play and a stop of the transport, and keeps the 3 s for the watch it renews', async () => {
+    const { api } = host();
+    const slow = slowed(api, '10s');
+    const watching = watch(slow.dawTransportSync('watch', 0));
+    const playing = watch(slow.dawTransportSync('play', 12));
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(watching.answer).toMatchObject({ ok: false, refused: 'REAPER did not answer within 3 seconds.' });
+    expect(playing.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(7_000);
+    expect(playing.answer).toEqual({ ok: true });
+  });
+
+  it('answers a roll as DawRoll does on a 10 s link: the position read fails without refusing, and the roll REAPER took is said as taken at 5 s', async () => {
+    const { api, reached } = host();
+    const roll = watch(slowed(api, '10s').dawRoll('ch1', 12, false));
+    await vi.advanceTimersByTimeAsync(4_999);
+    expect(roll.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(roll.answer).toMatchObject({ ok: false, refused: expect.stringContaining('took the command') });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(reached).toEqual(['dawRoll']);
   });
 
   it('waits the long wait for a voice switch and for the arm, and reads the track list once for both', async () => {

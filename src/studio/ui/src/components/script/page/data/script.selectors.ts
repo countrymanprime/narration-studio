@@ -6,7 +6,7 @@
 import type { GuideDialogueCue, GuideEntity, GuidePronunciation, GuideType } from '../../../../api/contracts/storyBible';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
-import { cueSpeakerState, type CueSpeakerState } from '../../../manuscript/dialogueCues.selectors';
+import { cueSpeakerState, cueSuggestionReason, type CueSpeakerState } from '../../../manuscript/dialogueCues.selectors';
 import { plural } from '../../../../plural';
 
 /** A flagged word's key as the host stores it: the text trimmed and lower-cased. */
@@ -174,12 +174,15 @@ export function speakerCandidates(entries: readonly GuideEntity[], types: readon
   return entries.filter((entry) => speaking.has(entry.category));
 }
 
-/** A quoted phrase of a paragraph, from the Story Bible's dialogue cues; `state` is the chip's (`cueSpeakerState`). */
-export type Phrase = { cueId: string; start: number; end: number; text: string; speaker: GuideEntity | null; state: CueSpeakerState };
+/** A quoted phrase of a paragraph, from the Story Bible's dialogue cues; `state` is the chip's (`cueSpeakerState`), and `reason`
+ * is why a local model suggested the speaker (`cueSuggestionReason`). */
+export type Phrase = { cueId: string; start: number; end: number; text: string; speaker: GuideEntity | null; state: CueSpeakerState; reason?: string };
 
 const phraseOf = (speakers: readonly GuideEntity[], cue: GuideDialogueCue): Phrase => {
   const speaker = entryById(speakers, cue.speaker_entity_id) ?? null;
-  return { cueId: cue.id, start: cue.quote_start, end: cue.quote_end, text: cue.quote_text, speaker, state: cueSpeakerState(cue, speaker) };
+  const state = cueSpeakerState(cue, speaker);
+  const reason = state === 'suggested' ? cueSuggestionReason(cue) : undefined;
+  return { cueId: cue.id, start: cue.quote_start, end: cue.quote_end, text: cue.quote_text, speaker, state, ...(reason ? { reason } : {}) };
 };
 
 /**

@@ -720,6 +720,30 @@ describe('useBoothLeaveGuard', () => {
       expect(t.dialog()).toBeUndefined();
     });
 
+    // #3752, qa-breaker: Stop was pressed, a slow DAW has taken it, and the narrator leaves. The guard waits for that stop as long as the stop itself may
+    // take, and never says it could not stop a take that then stops.
+    it('a stop already out that lands after 20 s is waited for: no refusal, and the narrator leaves', async () => {
+      vi.useFakeTimers();
+      const t = setup({ settle: () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 20_000)) });
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(19_000);
+      });
+      expect(t.dialog()).toBeUndefined();
+      expect(t.go).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_000);
+      });
+      await act(() => done);
+      expect(t.dialog()).toBeUndefined();
+      expect(t.go).toHaveBeenCalledWith('/script');
+    });
+
     it('a start that never lands ends the same way', async () => {
       const t = await yesAndWait({ settle: never });
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
@@ -969,7 +993,7 @@ describe('useBoothLeaveGuard', () => {
         });
         t.hook.unmount();
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(2 * LEAVE_WAIT_MS + 500);
+          await vi.advanceTimersByTimeAsync(Math.max(2 * LEAVE_WAIT_MS, LEAVE_STOP_WAIT_MS) + 500);
         });
         return t;
       };

@@ -11,6 +11,8 @@ const LAUNCH = launchOptions();
 
 export default defineConfig({
   testDir: './tests/atlas',
+  // A folder of its own, as the aria config has: a run empties its output folder first, and the default one holds the visual suite's traces.
+  outputDir: './test-results/atlas',
   globalSetup: './tests/atlas/global-setup.ts',
   fullyParallel: true,
   workers: 4,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"sync"
 	"time"
 
 	"desktop/internal/evidence"
@@ -90,10 +91,14 @@ func (p *SignalProvider) projectUnreadable(err error) stages.Signal {
 // parsed once by the same rules as a recording check (D6), its modified time,
 // and the project's ledger and confirmed mapping, each read once for the
 // evaluation (the ledger when a provider first asks) so no provider lists the
-// ledger folder or reads the link file per chapter (issue 3801). A saved project that cannot be used is ProjectErr, a refusal with its
+// ledger folder or reads the link file per chapter (issue 3801), and the
+// manuscript, loaded once when a provider first asks (issue 3896). A saved project that cannot be used is ProjectErr, a refusal with its
 // Reason, never a failed read.
 func (s *Service) EvidenceView(_ context.Context, documentID string) stages.EvidenceView {
 	view := stages.EvidenceView{DocumentID: documentID, ProjectFolder: s.config.Project, Ledger: s.ledger.SnapshotWhenAsked(), Mapping: s.mapping.SnapshotWhenAsked(documentID)}
+	if s.config.LoadManuscript != nil {
+		view.Manuscript = sync.OnceValues(s.config.LoadManuscript)
+	}
 	if s.config.Project == "" {
 		view.ProjectErr = unknown(ReasonNoProject, "open a project first")
 		return view

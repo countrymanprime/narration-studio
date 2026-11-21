@@ -213,6 +213,19 @@ describe('phrases-come-from-the-dialogue-cues', () => {
     expect(phrasesOf(cues, entries, { id: 'p1', chapterId: 'c2' })).toEqual([]);
   });
 
+  it("carries a local model's reason on its suggestion, and on no other phrase", () => {
+    const reasoned = (id: string, speakerId: string | null, source: GuideDialogueCue['speaker_source'], corrected = false): GuideDialogueCue => {
+      const base = cue(id, 'p1', 0, speakerId, source);
+      return { ...base, corrected, evidence: { ...base.evidence, reason: 'She was named last.' } };
+    };
+    const reasons = (row: GuideDialogueCue) => phrasesOf([row], entries, { id: 'p1', chapterId: 'c1' }).map((p) => p.reason);
+    expect(reasons(reasoned('m', speaker.id, 'local-model'))).toEqual(['She was named last.']);
+    expect(reasons(reasoned('m', speaker.id, 'local-model', true))).toEqual([undefined]);
+    expect(reasons(reasoned('m', speaker.id, 'tag'))).toEqual([undefined]);
+    // The entry is gone or cannot speak: the line is unknown, so there is no suggestion to explain.
+    expect(reasons(reasoned('m', 'gone', 'local-model'))).toEqual([undefined]);
+  });
+
   it('unattributed counts the unknown phrases of a chapter, a missing entry included', () => {
     expect(unattributed(cues, entries, 'c1')).toBe(2);
     expect(unattributed(cues, entries, 'c2')).toBe(0);

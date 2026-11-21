@@ -105,7 +105,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `pages.yml` (`Pages`) | push to `main` that touches the site's paths, manual | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on `main` | not a pull request check: `Docs checks` builds and checks the site on a pull request |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on each open `agent-train` issue whose `Last pass:` line is over two hours old | not a pull request check |
-| `main-health.yml` (`Main health`) | push to `main` (one run at a time, none cancelled, at most one waiting); scheduled every three hours (minute 37) as a backstop, observed 2 to 3 runs a day, often an hour or two late (GitHub delays and drops scheduled runs; 2026-11-04 to 11-06); manual | `Has main moved since the last run` (skips a scheduled run when the last run that ended green or red was on the same commit; a run that was cancelled, or had a job cancelled at its time limit, does not count, so the schedule tries that commit again; a push or a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` when that run failed or one of its jobs was cancelled at its time limit (a run a person cancelled ticks nothing; `scripts/ci/main-health-workflow.test.mjs`) | not a pull request check |
+| `main-health.yml` (`Main health`) | push to `main` (one run at a time, none cancelled, at most one waiting); scheduled every three hours (minute 37) as a backstop, observed 2 to 3 runs a day, often an hour or two late (GitHub delays and drops scheduled runs; 2026-11-04 to 11-06); manual | `Has main moved since the last run` (skips a scheduled run when the last run that ended green or red was on the same commit; a run that was cancelled, or had a job cancelled at its time limit, does not count, so the schedule tries that commit again; a push or a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` when that run failed or one of its jobs was cancelled at its time limit (a run a person cancelled ticks nothing; `scripts/ci/main-health-workflow.test.mjs`); the same job then opens the `main-red` issue (or comments on the open one) with the failed jobs and the commits since the last green run, and `Close the main-red issue when main is green` closes it after a run that passed (`scripts/ci/train-health.mjs red` and `green`). While that issue is open, merge only the fix or the revert | not a pull request check |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
 The tests of `scripts/github/*.test.mjs` (the label and milestone sync) run in the `repo-scripts` step of `quality / Test (Linux quick)`. Nothing runs on a schedule except
@@ -654,11 +654,14 @@ runner called:
   library is missing) takes the network path: poll the resolver and retry `playwright install --with-deps chromium` for up to 9 minutes
   (#3410), then keep the downloaded packages for the next run when apt kept any. A cached set that does not pass is not replaced until the
   runner image or Playwright version changes.
-- **Failure diagnostics.** A failing visual test leaves `src/studio/ui/test-results/<test>/trace.zip` (Playwright
-  `trace: 'retain-on-failure'`: DOM snapshots, network and console for every action; a passing test keeps nothing,
-  and no retry is involved, [What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)). When a step of the
-  `Test (Linux i/6)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
-  with `pnpm exec playwright show-trace <trace.zip>` from `src/studio/ui`, or drop it on trace.playwright.dev. The atlas
+- **Failure diagnostics.** The visual suite records no trace on its first pass (`trace: 'off'` in `playwright.config.ts`: recording
+  every test took 19% of the suite's test time, [the test speed plan](../research/test-speed-plan-2026-11.md)). When the `visual` step of a
+  `Test (Linux i/6)` job fails, the step `visual (the failed tests again, with a trace)` runs only the failed tests with `--last-failed --trace on`,
+  which leaves `src/studio/ui/test-results/<test>/trace.zip` for each (DOM snapshots, network and console for every action). That step
+  decides nothing: the first pass has failed the job, and a test that passes the second time was still red
+  ([What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)). The job uploads the folder as the
+  `ui-visual-traces-<i>` artifact for three days. Open a trace with `pnpm exec playwright show-trace <trace.zip>` from `src/studio/ui`, or
+  drop it on trace.playwright.dev. For a trace of a local failure, run the test with `--trace on`. The atlas
   config (`playwright.atlas.config.ts`) keeps no trace yet.
 - **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the sidecars,
   `config`, `fixtures` and `reaper` (its Go tests read their goldens and data); the sidecars read `narration-common` and `config`.
