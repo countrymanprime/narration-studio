@@ -39,6 +39,8 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
   const [busy, setBusy] = useState<string>();
   const [problem, setProblem] = useState<string>();
   const [checkedAt, markChecked, reads] = useCheckedAt();
+  // A background read (focus, a pushed change) can clear the error line; the stamp from before a failed press must not come back with it.
+  const [failedAt, setFailedAt] = useState(0);
   const now = useNow(link !== undefined && link.state !== 'answering');
 
   if (!link) {
@@ -135,10 +137,10 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             size="sm"
             pending={busy === 'check'}
             disabled={busy !== undefined && busy !== 'check'}
-            onClick={() => void run('check', async () => void ((await check()) && markChecked()))}
+            onClick={() => void run('check', async () => void ((await check()) ? markChecked() : setFailedAt(Date.now())))}
           />
           {/* A failure shown beside the stamp would read as a good check followed by noise, so the stamp waits for the next good read. */}
-          <CheckedStamp at={error ? null : checkedAt} reads={reads} />
+          <CheckedStamp at={error || (checkedAt ?? 0) <= failedAt ? null : checkedAt} reads={reads} />
         </span>
       </div>
       {(problem ?? error) && (

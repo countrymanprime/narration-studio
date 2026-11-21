@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -112,6 +112,34 @@ describe('AudacityLinkCard states', () => {
     await user.click(screen.getByRole('button', { name: 'Check again' }));
     expect((await screen.findByRole('alert')).textContent).toContain('could not be read');
     expect(screen.queryByText(/^Checked /)).toBeNull();
+  });
+
+  it('a background read after a failed check does not bring back the Checked time from before it', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'silent' } });
+    renderCard({}, api);
+    await card();
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByText(/^Checked \d/)).toBeTruthy());
+    api.audacityLinkCheck = () => Promise.reject(new Error('Audacity could not be read.'));
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await screen.findByRole('alert');
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(screen.queryByText(/^Checked /)).toBeNull();
+  });
+
+  it.each([undefined, '', new Error(''), {}])('a check that fails with no message (%s) still says what failed in a sentence', async (reason) => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'silent' } });
+    renderCard({}, api);
+    await card();
+    api.audacityLinkCheck = () => Promise.reject(reason);
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    const text = (await screen.findByRole('alert')).textContent ?? '';
+    expect(text).not.toMatch(/: $|undefined|\[object Object\]/);
   });
 
   it('says when it last asked even while Audacity is not running (the host answers that too)', async () => {

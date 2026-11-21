@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AudacityLink } from '../../api/contracts/daw';
-import { apiErrorMessage } from '../../api/errorMessage';
+import { readableFailure } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 
 export type AudacityLinkView = {
@@ -37,7 +37,7 @@ export function useAudacityLink(enabled = true): AudacityLinkView {
     setReceivedAt(Date.now());
   }, []);
   const fail = useCallback((failure: unknown) => {
-    if (live.current) setError(`How Audacity is doing could not be read: ${apiErrorMessage(failure)}`);
+    if (live.current) setError(`How Audacity is doing could not be read: ${readableFailure(failure, 'no reason was given')}`);
   }, []);
 
   const read = useCallback(() => port.audacityLink().then(adopt, fail), [port, adopt, fail]);
