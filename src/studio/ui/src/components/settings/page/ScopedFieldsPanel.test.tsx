@@ -42,7 +42,7 @@ it('keeps an edit typed before the panel has copied the settings it just read', 
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = previous;
   const field = firstField();
   expect(field).toBeDefined();
-  fireEvent.change(field!, { target: { value: '7' } });
+  fireEvent.change(field!, { target: { value: '0.7' } });
   fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
   await act(async () => undefined);
   expect(saved).toHaveBeenCalledTimes(1);
