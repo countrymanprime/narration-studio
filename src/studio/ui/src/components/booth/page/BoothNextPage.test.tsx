@@ -1340,6 +1340,8 @@ describe('bookmarks on the page', () => {
       .getAllByRole('menuitem')
       .map((item) => item.textContent);
     expect(labels.slice(0, 1)).toEqual(['Bookmark here']);
+    expect(labels).not.toContain('Roll again');
+    expect(labels).not.toContain('Mark the start here');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await waitFor(() => expect(ribbons()).toHaveLength(1));

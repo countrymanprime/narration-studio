@@ -42,7 +42,6 @@ export type RollActions = TakeControls & {
   beginTake: (punchAt?: number) => void | Promise<void>;
   /** Makes the voice the passage was recorded on the one the take records on; false (with the reason said) when it could not. */
   chooseVoice?: (trackGuid: string) => Promise<boolean>;
-  /** Marks the phrase the next roll starts from; before a take, `move` also moves the reading position there. */
   /** Lets go of the phrase the narrator chose. */
   clearStart?: () => void;
   /** Moves the reading position to the phrase a roll started from. */

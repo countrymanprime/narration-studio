@@ -80,7 +80,7 @@ const VOICE_IN_DAW = { when: 'takeInDaw', reason: (dawName: string) => `This tak
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
     { id: 'reading.toggle', label: 'Record / stop', off: [TAKE_IN_DAW] },
-    { id: 'booth.roll', label: 'Roll again', off: [TAKE_IN_DAW] },
+    { id: 'booth.roll', label: 'Roll again (during a take)', off: [TAKE_IN_DAW] },
     { id: 'booth.phrase.prev', with: ['booth.phrase.next'], label: 'Phrase' },
     { id: 'booth.word.prev', with: ['booth.word.next'], label: 'Word' },
     { id: 'bookmark.here', label: 'Bookmark' },
