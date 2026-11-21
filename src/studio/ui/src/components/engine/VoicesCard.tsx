@@ -34,6 +34,8 @@ const DIMMED = 'text-[var(--text-muted)]';
 const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
 /** What the switch says it does, short: a hint wider or taller than this hides the switches of the rows above it. */
 const SWITCH_HINT = 'Counts as a voice. Turn off for a track that is not one (a music bed).';
+/** What the "Not a voice" badge says of its row. */
+const NOT_A_VOICE_HINT = 'Turned off as a voice: no key, no character, and the Booth does not list it. Turn its switch back on to use it.';
 /** The explanation behind the card's help button: a shorter form of the Settings row's "?" text. */
 const SWITCH_HELP =
   'Each switch says whether a track of the folder counts as a voice. Turn it off for a track that is not one, such as a music bed or room tone: it gets no number key, records no character, and the Booth does not list it. The voices after it each take the key before theirs.';
@@ -196,7 +198,7 @@ export function VoicesCard({
                     {!narrow && <TableHeader>Key</TableHeader>}
                     <TableHeader>{narrow ? 'Track and characters' : 'Track'}</TableHeader>
                     {!narrow && <TableHeader>Characters</TableHeader>}
-                    {!narrow && <TableHeader>Voice</TableHeader>}
+                    {!narrow && <TableHeader info={SWITCH_HINT}>Voice</TableHeader>}
                     <TableHeader hiddenLabel={narrow ? 'Voice and actions' : 'Actions'} />
                   </TableRow>
                 </TableHead>
@@ -265,7 +267,12 @@ export function VoicesCard({
 }
 
 function VoiceCharacters({ voice }: { voice: Voice }) {
-  if (voice.notVoice) return <StatusBadge tone="neutral" label="Not a voice" />;
+  if (voice.notVoice)
+    return (
+      <TooltipTarget text={NOT_A_VOICE_HINT}>
+        <StatusBadge tone="neutral" label="Not a voice" />
+      </TooltipTarget>
+    );
   if (voice.characters.length === 0) return <span style={{ color: 'var(--text-muted)' }}>{voice.narrator ? 'Narration' : 'No character'}</span>;
   return (
     <span className="flex flex-wrap items-center gap-1">
@@ -335,7 +342,11 @@ function CharacterPicker({
   if (voice.notVoice) {
     const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
     const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
-    return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
+    return (
+      <TooltipTarget text={reason}>
+        <IconButton label={name} action="edit" size="sm" disabledReason={reason} />
+      </TooltipTarget>
+    );
   }
   const label = voice.narrator
     ? 'Choose the character the Narrator track also voices'
