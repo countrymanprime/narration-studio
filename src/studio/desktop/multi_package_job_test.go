@@ -472,3 +472,62 @@ func TestSanitizeFolderNameIsSafeOnWindows(t *testing.T) {
 		t.Error("Foo and Foo. name different folders, but Windows treats them as one")
 	}
 }
+
+func TestMultiPackageOnePlatformSaysPackageInTheSingular(t *testing.T) {
+	dir := t.TempDir()
+	chapter, opening, closing, sample := filepath.Join(dir, "1.mp3"), filepath.Join(dir, "o.mp3"), filepath.Join(dir, "c.mp3"), filepath.Join(dir, "s.mp3")
+	for _, path := range []string{chapter, opening, closing, sample} {
+		writeFixtureFile(t, path, "encoded "+path)
+	}
+	host := multiPackageHost(t, "mp3", chapter, opening, closing, sample)
+	host.pickPackageFolder = func() (string, error) { return filepath.Join(t.TempDir(), "root"), nil }
+	encode, _ := countingEncoder(t)
+	host.encodeFile = encode
+	items := []PackageItem{
+		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter},
+		{Kind: string(packager.KindRetailSample), Path: sample},
+		{Kind: string(packager.KindCreditsOpening), Path: opening},
+		{Kind: string(packager.KindCreditsClosing), Path: closing},
+	}
+	sel := []ProfileSelection{{ProfileID: deliveryprofile.ACXID, ProfileVersion: deliveryprofile.ACXVersion}}
+	if _, err := host.startMultiPackage(MultiPackageRequest{Selections: sel, Items: items}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitMultiPackage(t, host)
+	if job.Phase != "success" || job.Message != "Built 1 package." {
+		t.Fatalf("expected success with %q, got %q (%s)", "Built 1 package.", job.Phase, job.Message)
+	}
+}
+
+func TestMultiPackageResultLinesAgreeWithTheirCount(t *testing.T) {
+	phases := func(list ...string) []MultiPackageResult {
+		results := make([]MultiPackageResult, len(list))
+		for i, phase := range list {
+			results[i].Phase = phase
+		}
+		return results
+	}
+	cases := []struct {
+		name      string
+		results   []MultiPackageResult
+		cancelled bool
+		want      string
+	}{
+		{"one built", phases("success"), false, "Built 1 package."},
+		{"two built", phases("success", "success"), false, "Built 2 packages."},
+		{"one cancelled", phases("pending"), true, "Cancelled. 0 of 1 package was built."},
+		{"two cancelled", phases("success", "pending"), true, "Cancelled. 1 of 2 packages were built."},
+		{"one failed", phases("error"), false, "1 of 1 package could not be built; the rest are ready."},
+		{"one of two failed", phases("success", "error"), false, "1 of 2 packages could not be built; the rest are ready."},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			host := newTestHost(t)
+			job := &multiPackageJobState{id: "package-multi-test", phase: "running", started: time.Now(), results: c.results}
+			host.finishMultiPackage(job, nil, c.cancelled)
+			if job.message != c.want {
+				t.Fatalf("message = %q, want %q", job.message, c.want)
+			}
+		})
+	}
+}

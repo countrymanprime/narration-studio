@@ -1,4 +1,5 @@
 import type { Measured } from '../api/schemas/base';
+import { audibleSeconds } from '../recordedThrough';
 import { CHAPTER_LENGTHS, PICKUP_BOOTH, ROOM_TONE_DB, TAKE_LOG, type TakeLogEntry } from '../fixtures/measurements';
 import type { NarrationApi } from '../types';
 
@@ -49,7 +50,9 @@ export function createHostMeasurements(api: MeasurementsHostApi): MeasurementsPo
       const overview = await api.productionOverview();
       const lengths: Record<string, number> = {};
       for (const chapter of overview.chapters) {
-        if (chapter.recordedSeconds !== null) lengths[chapter.id] = chapter.recordedSeconds;
+        // One rule for audio: a length under a second is no length (0 s), so the pace and every other reader of these lengths agree with the board.
+        const seconds = audibleSeconds(chapter.recordedSeconds);
+        if (seconds !== null) lengths[chapter.id] = seconds;
       }
       return Object.keys(lengths).length ? { ok: true, value: lengths } : none(NO_LENGTHS);
     },
@@ -82,7 +85,12 @@ export function createMockMeasurements(options: MockMeasurementsOptions = {}): M
       const db = roomTone[mic];
       return Promise.resolve(off || db === undefined ? none(NOTHING) : { ok: true, value: db });
     },
-    chapterLengths: () => Promise.resolve(off || !Object.keys(lengths).length ? none(NO_LENGTHS) : { ok: true, value: { ...lengths } }),
+    chapterLengths: () =>
+      Promise.resolve(
+        off || !Object.keys(lengths).length
+          ? none(NO_LENGTHS)
+          : { ok: true, value: Object.fromEntries(Object.entries(lengths).map(([id, seconds]) => [id, audibleSeconds(seconds) ?? 0])) },
+      ),
     takeLog: () => Promise.resolve(off || !log.length ? none(NOTHING) : { ok: true, value: log.map((entry) => ({ ...entry })) }),
     pickupSessionSeconds(ids) {
       const known = Object.values(booth.seconds);

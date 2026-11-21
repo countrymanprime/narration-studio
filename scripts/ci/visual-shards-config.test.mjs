@@ -31,7 +31,7 @@ test('test-shards, the job name, the Vitest, visual and atlas splits and ci.yml 
   assert.match(testJob, new RegExp(`name: Test \\(Linux \\$\\{\\{ matrix\\.shard \\}\\}/${n}\\)`));
   assert.match(testJob, new RegExp(`coverage-gate\\.mjs vitest src/studio/ui --shard="\\$SHARD/${n}"`));
   assert.match(testJob, new RegExp(`visual-shards\\.mjs split --shard "\\$SHARD/${n}"`));
-  assert.match(testJob, new RegExp(`run atlas --shard="\\$SHARD/${n}"`));
+  assert.match(testJob, new RegExp(`atlas-scope\\.mjs --shard="\\$SHARD/${n}"`));
   assert.ok(
     ci.includes(`visual-shards: ${'$'}{{ github.event.pull_request.draft != true && needs.quality.outputs.ui-affected == 'true' && '${n}' || '0' }}`),
     `ci.yml must pass visual-shards '${n}' to ci-gate in the full tier`,
