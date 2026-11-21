@@ -212,7 +212,7 @@ func wordPerTokenSidecar(_ context.Context, _ string, args ...string) (coverage.
 		}
 	}
 	child := &coverageChild{}
-	go func() {
+	func() { // the sidecar has finished by the time the host first looks: the watch waits out no poll (gapSidecar does the same)
 		code := 0
 		if err := hearTheChapter(values); err != nil {
 			code = 1

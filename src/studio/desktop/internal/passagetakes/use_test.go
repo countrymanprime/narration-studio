@@ -109,6 +109,7 @@ func TestREAPERsRefusalsAreWordedAndNothingIsClaimedChanged(t *testing.T) {
 		"stale take":  {&bridge.StaleError{GUID: guidA, Reason: "take"}, ReasonStale, "no longer"},
 		"standalone":  {bridge.ErrUnavailable, ReasonStandalone, "not connected"},
 		"not running": {bridge.ErrNoAnswer, ReasonNotRunning, "not answering"},
+		"took it":     {bridge.ErrAnswerLate, ReasonFailed, "took the command but did not confirm it"},
 		"old script":  {bridge.ErrScriptOutdated, ReasonScriptOutdated, "older"},
 		"other":       {errors.New("boom"), ReasonFailed, "boom"},
 	}

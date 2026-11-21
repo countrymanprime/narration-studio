@@ -178,6 +178,7 @@ func TestEveryRequestReportsItsTiming(t *testing.T) {
 			return trackStateAnswer(command)
 		})
 		actions.SetTimeout(100 * time.Millisecond)
+		actions.SetLateWait(100 * time.Millisecond)
 
 		if _, err := actions.ChapterTrackState(context.Background(), testTrack); err != nil {
 			t.Fatal(err)

@@ -84,7 +84,7 @@ H.test('timing off asks REAPER for the switch about once a second, not on every 
 end)
 
 -- The host's record-press timeline (docs/research/record-press-timeline.md) follows the same switch: the heartbeat says it is on.
-H.test('timing on: the heartbeat carries a seventh field, 1, so the host times a record press too; off it has six', function()
+H.test('timing on: the heartbeat carries a seventh field, 1, so the host times a record press too; off it is empty', function()
   local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
   s.fake.clock_step = 0.01
   local latest = nil
@@ -97,11 +97,11 @@ H.test('timing on: the heartbeat carries a seventh field, 1, so the host times a
     return latest
   end
   s:tick()
-  H.eq(#last_heartbeat(), 7, 'a heartbeat with the switch off keeps its six fields after the tag')
+  H.eq(last_heartbeat()[8], '', 'a heartbeat with the switch off sends the field empty')
   timing_on(s)
   for _ = 1, 400 do
     s:tick()
-    if #last_heartbeat() == 8 then
+    if last_heartbeat()[8] == '1' then
       break
     end
   end
@@ -109,9 +109,9 @@ H.test('timing on: the heartbeat carries a seventh field, 1, so the host times a
   reaper.DeleteExtState(s.bridge.SESSION_SECTION, s.bridge.TIMING_KEY, false)
   for _ = 1, 400 do
     s:tick()
-    if #last_heartbeat() == 7 then
+    if last_heartbeat()[8] == '' then
       break
     end
   end
-  H.eq(#last_heartbeat(), 7, 'switched off, the heartbeat drops the field again')
+  H.eq(last_heartbeat()[8], '', 'switched off, the heartbeat sends the field empty again')
 end)

@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck } from '@fortawesome/free-solid-svg-icons';
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, type ReactNode } from 'react';
 
 export type ListboxOption = {
   id: string;
@@ -54,6 +54,15 @@ export function Listbox({
   // Drops the frame, radius and shadow, for a list that sits inside a surface that already has them (the jump menu's dialog).
   flush?: boolean;
 }) {
+  // The text box moves the active row with the arrow keys; in a list taller than its scroll box the row is brought into view, so
+  // Enter never picks a row the narrator cannot see. Not on open: the list starts where its surface put it.
+  const activeId = activeIndex === undefined ? undefined : options[activeIndex]?.id;
+  const shown = useRef(activeId);
+  useEffect(() => {
+    if (shown.current === activeId) return;
+    shown.current = activeId;
+    if (activeId !== undefined) document.getElementById(listboxOptionId(id, activeId))?.scrollIntoView?.({ block: 'nearest' });
+  }, [id, activeId]);
   return (
     <div
       className={`flex flex-col overflow-hidden bg-[var(--surface)] ${flush ? '' : 'rounded-[var(--radius-card)] border border-[var(--line-strong)] shadow-[var(--shadow-lg)]'}`}

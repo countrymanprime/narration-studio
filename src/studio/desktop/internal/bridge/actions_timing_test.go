@@ -188,6 +188,7 @@ func TestATakeBackThatFailsWithTheFileStillThereIsNotTaken(t *testing.T) {
 		fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
 		fake.stall(400 * time.Millisecond)
 		actions.SetTimeout(60 * time.Millisecond)
+		actions.SetLateWait(20 * time.Millisecond) // ends inside the stall: REAPER has still not read the command
 		client.remove = func(string) error { return &os.PathError{Op: "remove", Path: "x", Err: fs.ErrPermission} }
 		var lines []string
 		var mu sync.Mutex
@@ -248,7 +249,7 @@ func TestAnObserverPanicDoesNotLoseAnAnswer(t *testing.T) {
 	}
 }
 
-// A command in mayRunLong that REAPER read and answers late is waited for (waitLate), and its timing still says REAPER read it: the split
+// A command that changes REAPER, read and answered late, is waited for (waitLate), and its timing still says REAPER read it: the split
 // is kept through the longer wait, whether the answer lands or the wait ends.
 func TestALateAnswerKeepsItsQueueAndReaperSplit(t *testing.T) {
 	onVirtualClock(t, func(t *testing.T) {
