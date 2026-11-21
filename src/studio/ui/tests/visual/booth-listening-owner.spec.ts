@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
+import { pastStartGuard } from './helpers/startGuard';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 test.setTimeout(90_000);
@@ -420,6 +421,9 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     // Nothing stopped the take behind the narrator; Stop is theirs and works.
     expect((await calls(page)).stops).toBe(1);
     await expect(stop).toBeVisible();
+    // The Booth ignores a Stop within a second of the take's start (START_GUARD_MS: a double tap is not a stop): this flow took 0.9 to 1.0 s from the
+    // start, so on a fast runner the press fell inside it and the host never saw the stop (#3931).
+    await pastStartGuard(page);
     await watchAddedText(page);
     const clicked = Date.now();
     await stop.click();
