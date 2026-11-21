@@ -228,12 +228,47 @@ func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Pr
 		if err != nil {
 			return "", nil, err
 		}
-		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. Add a track inside the folder in %s, and save.", title, readAloudAdapterName(svc)))
+		fix := fmt.Sprintf("Add a track inside the folder in %s, and save.", readAloudAdapterName(svc))
+		if markedChildren(svc, link, project) {
+			fix = "Every track in it is turned off as not a voice. Turn one back on in the Voices card, or add a track inside the folder in " + readAloudAdapterName(svc) + ", and save."
+		}
+		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. %s", title, fix))
 		return "", &refused, nil
 	}
 	// A setup that cannot be read leaves the Narrator to be found by name, as before.
 	setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	return voiceFor(voices, svc.boothVoices.For(chapterID), setup), nil, nil
+}
+
+// markedChildren is whether the folder link names has a direct child and every one of them is marked as not a voice, so the fix for a folder with
+// no voices is to turn one back on, not to add a track. False when the folder or the setup cannot be read.
+func markedChildren(svc hostServices, link string, project *tracks.Project) bool {
+	setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
+	if err != nil {
+		return false
+	}
+	if project == nil {
+		read, err := liveSelectedProject(svc)
+		if err != nil {
+			return false
+		}
+		project = &read
+	}
+	members, ok := project.WithDescendants(link)
+	if !ok || !members[0].IsFolder {
+		return false
+	}
+	children := 0
+	for _, member := range members[1:] {
+		if member.Depth != members[0].Depth+1 {
+			continue
+		}
+		children++
+		if !setup.IsNotVoice(member.GUID) {
+			return false
+		}
+	}
+	return children > 0
 }
 
 // boothVoiceChoices is the voice the Booth chose for each chapter of one project, by chapter id: the track its next record start

@@ -84,11 +84,14 @@ export function useVoiceTracks(notify: Notify, { characters: wantCharacters = tr
         (current) => withTrackCharacters(current, track, ids),
         () => voiceTracks.voiceTracksSetCharacters(track, ids),
       ),
-    setNotAVoice: (guid: string, notAVoice: boolean) =>
+    /** `consequence` is what the change does beyond the row (the Booth's voice moves, the keys renumber): told once, as a notice, since nothing else on the page shows it. */
+    setNotAVoice: (guid: string, notAVoice: boolean, consequence?: string) => {
       save(
         (current) => withNotAVoice(current, guid, notAVoice),
         () => voiceTracks.voiceTracksSetNotAVoice(guid, notAVoice),
-      ),
+      );
+      if (consequence) notify(consequence, 'info');
+    },
     setNarratorCharacter: (id: string) =>
       save(
         (current) => ({ ...current, narratorCharacter: id }),

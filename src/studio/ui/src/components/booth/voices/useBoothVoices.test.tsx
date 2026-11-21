@@ -483,6 +483,23 @@ describe("the Booth's voices", () => {
     }
   });
 
+  // #3828 finding 5: with every track marked the refusal names the fix that works (turn one back on), not "add a track", which does not help.
+  it('says to turn a track back on when every track of the folder is marked, and to add one when the folder is empty', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const first = await mount({}, false, api);
+    await waitFor(() => expect(first.hook.current.voices.length).toBeGreaterThan(1));
+    const everyone = first.hook.current.voices.map((voice) => voice.guid);
+    cleanup();
+    expect((await api.boothVoiceGet(chapterId)).outcome).toBe('selected');
+    for (const guid of everyone) await api.voiceTracksSetNotAVoice(guid, true);
+    const marked = await api.boothVoiceGet(chapterId);
+    expect(marked).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(marked.outcome === 'refused' && marked.message).toContain('Turn one back on in the Voices card');
+    const started = await api.readAloudRecordStart(chapterId);
+    expect(started).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(started.outcome === 'refused' && started.message).toContain('turned off as not a voice');
+  });
+
   // A chapter with no one link has no folder, so it lists no voices and the control names no link. Whether the DAW is read at all belongs to
   // the shared state (a project with no linked DAW file is never read: ChapterTrackStateProvider's `enabled`).
   it('lists no voices for a chapter that is not linked', async () => {
