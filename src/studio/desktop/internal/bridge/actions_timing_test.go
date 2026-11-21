@@ -104,6 +104,7 @@ func TestACommandREAPERReadButAnsweredLateIsTaken(t *testing.T) {
 		return nil
 	})
 	actions.SetTimeout(100 * time.Millisecond)
+	actions.SetLateWait(noLateAnswerWithin)
 
 	if _, err := actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack); err == nil {
 		t.Fatal("no error from a request answered after its timeout")
@@ -139,6 +140,7 @@ func TestACommandFolderThatVanishesIsNotREAPERReadingTheCommand(t *testing.T) {
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
 	fake.stall(600 * time.Millisecond)
 	actions.SetTimeout(150 * time.Millisecond)
+	actions.SetLateWait(noLateAnswerWithin)
 	go func() {
 		time.Sleep(30 * time.Millisecond)
 		_ = os.RemoveAll(filepath.Join(dir, "commands"))
@@ -190,6 +192,7 @@ func TestACommandReadBeforeTheFolderVanishedIsStillTaken(t *testing.T) {
 		return nil
 	})
 	actions.SetTimeout(300 * time.Millisecond)
+	actions.SetLateWait(noLateAnswerWithin)
 	go func() {
 		time.Sleep(120 * time.Millisecond)
 		_ = os.RemoveAll(filepath.Join(dir, "commands"))
