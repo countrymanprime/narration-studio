@@ -71,8 +71,8 @@ function RadioChoice({ label, value, options, onChange, describedBy, disabled }:
 }
 
 /**
- * A choice of consecutive whole numbers as a number box. A stored value that is not one of them cannot be shown in the box, so it is a select until
- * one is chosen. The box cannot be emptied: "not set" is not one of the choices, and the host refuses it.
+ * A choice of consecutive whole numbers as a number box. The box cannot be emptied: "not set" is not one of the choices, and the host refuses it.
+ * `SettingChoice` draws a stored value the host does not offer as a select instead.
  */
 function NumberChoice(props: DrawProps): ReactElement {
   const { label, value, options, unit, onChange, id, describedBy, disabled } = props;
@@ -114,10 +114,23 @@ export const resetBeside = (control: ChoiceControl | undefined): { line: string;
 /** A control that is a group of options, which has no one element a `<label>` can point at. */
 export const isGroupControl = (control: ChoiceControl | undefined): boolean => control === 'segmented' || control === 'radio';
 
+const BESIDE = 'flex flex-wrap items-center gap-x-2.5 gap-y-1.5';
+/**
+ * How a Settings row lays out a project's own value under the computer's: `block` holds the words "This project uses" and `line`, and `line`
+ * holds the control and the way back to the computer's value. A select, a box or a switch reads as one sentence on one line. A group of options
+ * is a block of its own, its words above it and clear of the computer's group by more than the distance between two options, so two radio stacks
+ * do not read as one list; under a radio stack the way back is below the last option, where it cannot be taken for one option's.
+ */
+export function projectValueLayout(control: ChoiceControl | undefined): { block: string; line: string } {
+  if (control === 'radio') return { block: 'mt-2 flex flex-col items-start gap-1.5', line: 'flex flex-col items-start gap-1.5' };
+  if (control === 'segmented') return { block: 'mt-2 flex flex-col items-start gap-1.5', line: `${BESIDE} max-w-full` };
+  return { block: BESIDE, line: 'contents' };
+}
+
 /**
  * One host `choice` setting, drawn by the control it declares (component-selection CS-E6): the Settings rows, the "Set on a page" panels and the
- * pages' options dialogs all draw a choice with this. A stored value the host no longer offers is shown first and chosen, in every control, so
- * the control never claims a choice that is not the real one (CS-E4). A group the host offers one option for, with that option stored, is the
+ * pages' options dialogs all draw a choice with this. A stored value the host no longer offers is shown first and chosen, in every control (a
+ * number box becomes a select for it), so the control never claims a choice that is not the real one (CS-E4). A group the host offers one option for, with that option stored, is the
  * option's words and no control (CS-B7): there is nothing to choose. While a save is out the value on its way is the chosen one, so choosing it
  * again sends nothing and going back to the stored value is sent.
  */
@@ -133,6 +146,8 @@ export function SettingChoice({ control, staleLabel, ...rest }: SettingChoicePro
     );
   }
   const shown = isOffered ? options : [{ value, label: staleLabel?.(value) ?? value }, ...options];
-  const Draw = DRAW[control];
+  // A number box's range is what the host offers. A stale whole number next to it ("-1" before "0" to "10") would widen the box's range to a value
+  // the host refuses, so any stale value is a select, which lists the real choices, until one is chosen.
+  const Draw = control === 'number' && !isOffered ? SelectChoice : DRAW[control];
   return <Draw {...rest} value={value} options={shown} onChange={send} />;
 }

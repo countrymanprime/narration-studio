@@ -18,7 +18,7 @@ import { OpenLogFolderButton } from './OpenLogFolderButton';
 import { useRowReset } from './RowResetContext';
 import { useSettingsHost } from './SettingsHost';
 import { useSettingsNav } from './SettingsNav';
-import { isGroupControl, resetBeside } from '../value/SettingChoice';
+import { isGroupControl, projectValueLayout, resetBeside } from '../value/SettingChoice';
 import { ValueControl } from './ValueControl';
 import { WorkerPlanNote } from './WorkerPlanNote';
 
@@ -134,6 +134,8 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   };
   const defaultLabel = global?.kind === 'choice' ? choiceLabel(row, row.def) : row.def || 'empty';
   const beside = resetBeside(global?.kind === 'choice' ? row.control : undefined);
+  const ownValue = projectValueLayout(global?.kind === 'choice' ? row.control : undefined);
+  const noOwnValue = projectValueLayout(undefined);
   const kindOf = (rowId: string): string => {
     const other = rowOf(rowId);
     return other ? computerValue(other, store.fieldsOf(other).global) : '';
@@ -262,32 +264,34 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
             )}
             {row.scope === 'both' && project && hasProject && (
               <div
-                className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]"
+                className={`${own !== undefined || opening ? ownValue.block : noOwnValue.block} text-[0.8125rem] text-[var(--text-muted)]`}
                 data-override={own !== undefined ? row.id : undefined}
               >
                 {own !== undefined || opening ? (
                   <>
                     <span>This project uses</span>
-                    <ValueControl
-                      row={row}
-                      field={project}
-                      id={`${controlId}-p`}
-                      value={projectValue(row, global, project)}
-                      which="this project"
-                      describedBy={describedBy}
-                      onChange={(value) => apply(value, 'project')}
-                    />
-                    <Button
-                      variant="link"
-                      size="sm"
-                      aria-label={`Use computer setting for ${row.label}`}
-                      onClick={() => {
-                        setOpening(false);
-                        void store.write(row, 'project', null);
-                      }}
-                    >
-                      Use computer setting
-                    </Button>
+                    <div className={ownValue.line}>
+                      <ValueControl
+                        row={row}
+                        field={project}
+                        id={`${controlId}-p`}
+                        value={projectValue(row, global, project)}
+                        which="this project"
+                        describedBy={describedBy}
+                        onChange={(value) => apply(value, 'project')}
+                      />
+                      <Button
+                        variant="link"
+                        size="sm"
+                        aria-label={`Use computer setting for ${row.label}`}
+                        onClick={() => {
+                          setOpening(false);
+                          void store.write(row, 'project', null);
+                        }}
+                      >
+                        Use computer setting
+                      </Button>
+                    </div>
                     {global.kind === 'choice' && <AssetNote row={row} value={own ?? comp} kindOf={kindOf} />}
                   </>
                 ) : (

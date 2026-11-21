@@ -69,8 +69,10 @@ it('names the two chunk_seconds fields for what each one chunks, whatever the ho
   expect(within(compare).getByRole('radio', { name: '60 s' }).getAttribute('aria-checked')).toBe('true');
   cleanup();
   draw('RecordingCoverage');
-  const coverage = await screen.findByRole('combobox', { name: 'Coverage chunk length (0 = each item whole)' });
-  expect(Array.from((coverage as HTMLSelectElement).options).map((option) => option.value)).toContain('0');
+  const coverage = await screen.findByRole('combobox', { name: 'Coverage chunk length' });
+  // The label does not explain 0 in words of its own: the option says what it is, in the Settings row's words.
+  const whole = Array.from((coverage as HTMLSelectElement).options).find((option) => option.value === '0');
+  expect(whole?.textContent).toBe('Each file whole');
 });
 
 // B7 (#3680): text left in a colour box that is not a colour was dropped without a word on leaving, and was drawn under the other scope.

@@ -619,11 +619,11 @@ describe('CompareRun starting values from Settings', () => {
       const chosen = within(group)
         .getAllByRole('button')
         .filter((button) => button.getAttribute('aria-pressed') === 'true');
-      expect(chosen.map((button) => button.textContent)).toEqual(['1m']);
+      expect(chosen.map((button) => button.textContent)).toEqual(['60 s']);
     });
   });
 
-  it('says so when the stored chunk is not one of its choices, instead of silently starting on 1m', async () => {
+  it('says so when the stored chunk is not one of its choices, instead of silently starting on 60 s', async () => {
     const field = (key: string, effectiveValue: string) => ({ key, effectiveValue }) as never;
     const settingsForScope = vi.fn().mockResolvedValue({ TranscriptCompare: [field('chunk_seconds', 'abc')] });
     const notify = vi.fn();
@@ -641,6 +641,6 @@ describe('CompareRun starting values from Settings', () => {
         />
       </ApiProvider>,
     );
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('(abc) is not one this panel offers; starting on 1m')));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('(abc) is not one this panel offers; starting on 60 s')));
   });
 });

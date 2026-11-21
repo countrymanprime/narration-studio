@@ -290,6 +290,21 @@ describe('ValueControl, a choice drawn by the control its row declares', () => {
       expect(select.options).toHaveLength(12);
     });
 
+    // A hand-edited -1 is one below the lowest choice: drawn as a box it had a minimum of -1, so an arrow could send a value the host refuses.
+    it.each(['-1', '11'])(
+      'shows a stored whole number just outside the choices (%s) in the select, with no range note and the eleven real choices',
+      (stored) => {
+        const onChange = draw(toneRow, { field: tone, value: stored });
+        expect(screen.queryByRole('textbox')).toBeNull();
+        expect(screen.queryByText(/^From /)).toBeNull();
+        const select = screen.getByRole('combobox', { name: 'Room tone' }) as HTMLSelectElement;
+        expect(select.value).toBe(stored);
+        expect(Array.from(select.options).map((option) => option.value)).toEqual([stored, ...tone.choices]);
+        fireEvent.change(select, { target: { value: '0' } });
+        expect(onChange.mock.calls).toEqual([['0']]);
+      },
+    );
+
     // qa-breaker B1 on #3681: '' went to the host, which refuses it for a choice.
     it('an emptied box sends nothing and shows the stored value again', () => {
       const onChange = draw(toneRow, { field: tone, value: '7' });

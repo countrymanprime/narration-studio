@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { ROWS } from '../../src/components/settings/registry/rows';
 import { proofChapterDrivers } from './drivers/proof-chapter';
 import { settlePage } from './helpers/settle';
 
@@ -12,6 +13,7 @@ async function drive(page: Page, state: string, size = { width: 1440, height: 90
   await proofChapterDrivers[state](page);
 }
 
+const COMPARE_CHUNK_LABELS = Object.values(ROWS.find((row) => row.id === 'stt.compareChunk')!.options!).map((option) => option.label);
 const compare = (page: Page) => page.getByRole('region', { name: /^Compare the recording/ });
 const headerHeight = (page: Page, name: RegExp) =>
   page
@@ -36,6 +38,24 @@ for (const size of [
     const model = compare(page).getByRole('group', { name: 'Whisper model' }).getByRole('button');
     const tops = new Set<number>();
     for (const button of await model.all()) tops.add(Math.round((await button.boundingBox())!.y));
+    expect(tops.size).toBe(1);
+  });
+}
+
+// The run's chips are the Compare chunk length setting for one run, so they say its words ("300 s", not "5m": ux-review 5 on #3681), and the
+// longer words still fit one line.
+for (const size of [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'narrow-desktop', width: 960, height: 640 },
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'phone', width: 390, height: 844 },
+]) {
+  test(`Proof chapter / the Chunk length chips say the setting’s words on one row / ${size.name}`, async ({ page }) => {
+    await drive(page, 'compare-setup', size);
+    const chips = compare(page).getByRole('group', { name: 'Chunk length' }).getByRole('button');
+    await expect(chips).toHaveText(COMPARE_CHUNK_LABELS);
+    const tops = new Set<number>();
+    for (const chip of await chips.all()) tops.add(Math.round((await chip.boundingBox())!.y));
     expect(tops.size).toBe(1);
   });
 }

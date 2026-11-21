@@ -131,7 +131,8 @@ describe('SettingChoice as a number box', () => {
     expect(onChange.mock.calls).toEqual([['10']]);
   });
 
-  it.each(['abc', '15', '2.5'])('falls back to a select that shows a stored "%s", which no number box over the choices could', (stored) => {
+  // "-1" sits next to "0", so with it the choices are still consecutive: a box over them would start at -1, which the host refuses.
+  it.each(['abc', '15', '2.5', '-1', '11'])('falls back to a select that shows a stored "%s", which no number box over the choices could', (stored) => {
     const onChange = draw('number', { value: stored, options: TONE, staleLabel: (value) => `${value} (invalid)` });
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(select().value).toBe(stored);

@@ -15,7 +15,7 @@ import { useScopedFields, useSettingsForms } from '../data/settingsForms';
 // each for what it chunks (issue 2980); the host's label is the fallback for every other field.
 const LABELS: Record<string, string> = {
   'TranscriptCompare.chunk_seconds': 'Compare chunk length',
-  'RecordingCoverage.chunk_seconds': 'Coverage chunk length (0 = each item whole)',
+  'RecordingCoverage.chunk_seconds': 'Coverage chunk length',
 };
 
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', project: 'This project' };
