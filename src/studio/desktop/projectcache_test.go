@@ -386,3 +386,28 @@ func TestAParseInFlightDoesNotBlockCachedReadsOfOtherProjects(t *testing.T) {
 		t.Fatal("a cached read of B waited for the parse of A")
 	}
 }
+
+func TestAnAudacitySnapshotRewrittenAtTheSameSizeAndTimeIsParsedAgain(t *testing.T) {
+	savedProjects.reset()
+	t.Cleanup(savedProjects.reset)
+	path := filepath.Join(t.TempDir(), audacity.SnapshotFile)
+	snapshot := `{"version": 1, "tracks": [{"name": "Chapter I", "start": 0, "end": 10}], "labels": []}`
+	if err := os.WriteFile(path, []byte(snapshot), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	firstTrack := func() string {
+		t.Helper()
+		project, err := readProject(path)
+		if err != nil || len(project.Tracks) == 0 {
+			t.Fatalf("project = %v, %v", project, err)
+		}
+		return project.Tracks[0].Name
+	}
+	if got := firstTrack(); got != "Chapter I" {
+		t.Fatalf("first track = %q, want Chapter I", got)
+	}
+	filetest.RewriteInPlace(t, path, "Chapter I", "Chapter X")
+	if got := firstTrack(); got != "Chapter X" {
+		t.Fatalf("after a rewrite that kept the size and the time the first track is %q, want Chapter X", got)
+	}
+}
