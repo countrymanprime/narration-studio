@@ -14,6 +14,7 @@ import {
   planTests,
   scopeOf,
   testsOfReport,
+  underEveryPage,
   weightsOf,
 } from './visual-shards.mjs';
 
@@ -304,4 +305,30 @@ test('a page that draws another page’s code is touched by a change to it, howe
   assert.equal(inScope(boothSpec, scope), true);
   assert.equal(inScope(proofSpec, scope), false);
   assert.deepEqual([...scopeOf(changed).pages], ['script'], 'without the sources only the changed folder counts');
+});
+
+test('a module the entry wires in under every page owes the whole suite, though no page imports it', () => {
+  const S = `${UI}src/`;
+  const sources = new Map([
+    [`${S}main.tsx`, "import { App } from './App';\nimport { createMockApi } from './api/mockApi';"],
+    [`${S}App.tsx`, "import { BoothPage } from './components/booth/BoothPage';\nimport { useKeys } from './input/useKeys';"],
+    [`${S}api/mockApi.ts`, "import { plan } from './scheduleMock';"],
+    [`${S}api/scheduleMock.ts`, 'export const plan = 1;'],
+    [`${S}input/useKeys.ts`, 'export const useKeys = 1;'],
+    [`${S}components/booth/BoothPage.tsx`, "import { text } from './text';"],
+    [`${S}components/booth/text.ts`, 'export const text = 1;'],
+    [`${S}devtools/orphan.ts`, 'export const x = 1;'],
+  ]);
+  assert.deepEqual([...underEveryPage(sources)].sort(), [
+    `${S}App.tsx`,
+    `${S}api/mockApi.ts`,
+    `${S}api/scheduleMock.ts`,
+    `${S}input/useKeys.ts`,
+    `${S}main.tsx`,
+  ]);
+  for (const file of ['App.tsx', 'main.tsx', 'api/mockApi.ts', 'api/scheduleMock.ts', 'input/useKeys.ts']) {
+    assert.equal(scopeOf([`${S}${file}`], sources).everything, true, file);
+  }
+  assert.equal(scopeOf([`${S}components/booth/text.ts`], sources).everything, false, 'a page’s own module is that page’s');
+  assert.equal(scopeOf([`${S}devtools/orphan.ts`], sources).everything, false, 'a module nothing reaches owes the matrix and the no-page specs');
 });

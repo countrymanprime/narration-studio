@@ -136,6 +136,7 @@ const SPECS = `${UI_ROOT}tests/visual/`;
 /** The state matrix: every catalogued page and state at every viewport. It draws every page, so it runs on every pull request. */
 const MATRIX_SPEC = 'app.spec.ts';
 const OVERLAY_GUARD = 'helpers/overlayGuardFor.ts';
+const APP_ENTRY = `${UI_ROOT}src/main.tsx`;
 /** The page at `/`. */
 const LANDING_PAGE = 'production';
 
@@ -187,15 +188,24 @@ const IMPORT = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
  * repository path to its text. A page folder is not a boundary: the Booth draws the Script page's reader fonts and bookmark editor, so a
  * change inside `components/script/` reaches Booth files, and the Booth's specs are owed. Imports here are relative paths.
  */
-export function importersOf(changed, sources) {
-  const importers = new Map();
+/** The app's import graph: for each source file, the source files it imports. */
+function importsOf(sources) {
+  const imports = new Map();
   for (const [file, text] of sources) {
+    const targets = new Set();
     for (const [, specifier] of text.matchAll(IMPORT)) {
       const base = posix.join(posix.dirname(file), specifier);
       const target = [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`].find((path) => sources.has(path));
-      if (target) importers.set(target, (importers.get(target) ?? new Set()).add(file));
+      if (target) targets.add(target);
     }
+    imports.set(file, targets);
   }
+  return imports;
+}
+
+export function importersOf(changed, sources) {
+  const importers = new Map();
+  for (const [file, targets] of importsOf(sources)) for (const target of targets) importers.set(target, (importers.get(target) ?? new Set()).add(file));
   const reached = new Set(changed);
   const queue = [...changed];
   while (queue.length > 0) {
@@ -203,6 +213,26 @@ export function importersOf(changed, sources) {
       if (!reached.has(importer)) {
         reached.add(importer);
         queue.push(importer);
+      }
+    }
+  }
+  return reached;
+}
+
+/**
+ * What the app runs on whatever page is open: every module the entry (`main.tsx`) reaches without going through a page's folder. The
+ * entry wires things in that no page imports (the mock host behind `ApiContext`, the shell, the key handling in `App.tsx`), so the
+ * importers of such a module name no page although every page runs on it. A change to one owes the whole suite.
+ */
+export function underEveryPage(sources, entry = APP_ENTRY) {
+  const imports = importsOf(sources);
+  const reached = new Set([entry]);
+  const queue = [entry];
+  while (queue.length > 0) {
+    for (const target of imports.get(queue.pop()) ?? []) {
+      if (!reached.has(target) && !pageOfFolder(target)) {
+        reached.add(target);
+        queue.push(target);
       }
     }
   }
@@ -233,6 +263,9 @@ export function scopeOf(changed, sources) {
     app.push(file);
     if (!pageOfFolder(file)) scope.shared = true;
   }
+  const everywhere = sources ? underEveryPage(sources) : new Set();
+  const root = app.find((file) => everywhere.has(file));
+  if (root) return { everything: true, reason: `${root} runs under every page` };
   for (const file of sources ? importersOf(app, sources) : app) {
     if (OVERLAY_CODE.test(file)) scope.overlays = true;
     const page = pageOfFolder(file);

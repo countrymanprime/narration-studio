@@ -837,7 +837,8 @@ a state with extra viewports is more, and the `aria` step ran on the shard that 
   anywhere (`pagesNamedIn`: a Booth spec that opens Pickups is owed by both); a change that touches Production, the page the app opens on, owes every
   behaviour spec; a spec named for no page (`dialog-*`, `toast-*`, `crossPage`) runs on any change to the app's source. A page's overlay guard rows run
   when the page is touched, and every row when an overlay primitive or the shell is reached. A changed spec file runs. A unit test, a story or a doc
-  changes nothing. Any other changed file (a stylesheet or data file in the app, the suite's helpers, catalog or configs, a lockfile, a workflow, a
+  changes nothing. A module the entry (`main.tsx`) reaches without going through a page's folder runs under every page (the mock host, `App.tsx`,
+  the shell, the key handling), so a change to one runs the whole suite (`underEveryPage`). Any other changed file (a stylesheet or data file in the app, the suite's helpers, catalog or configs, a lockfile, a workflow, a
   script, another project) runs the whole suite. So a change to a widely used primitive runs everything, and a change to one page's own component
   runs that page's specs. The step prints the scope, and shard 1 writes it into the run's summary: how many tests run and how many are left. Every
   run that is not a pull request (`Main health` on `main`, a manual run of `CI` on the branch) splits the whole suite, so a test left off a pull
