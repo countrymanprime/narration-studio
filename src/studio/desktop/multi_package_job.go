@@ -379,13 +379,13 @@ func (h *Host) finishMultiPackage(job *multiPackageJobState, broken error, cance
 		job.message = "The packages could not be built."
 	case cancelled:
 		job.phase = "cancelled"
-		job.message = fmt.Sprintf("Cancelled. %d of %d packages were built.", success, len(job.results))
+		job.message = fmt.Sprintf("Cancelled. %d of %d %s built.", success, len(job.results), plural(len(job.results), "package was", "packages were"))
 	case failed > 0:
 		job.phase = "error"
-		job.message = fmt.Sprintf("%d of %d packages could not be built; the rest are ready.", failed, len(job.results))
+		job.message = fmt.Sprintf("%d of %d %s not be built; the rest are ready.", failed, len(job.results), plural(len(job.results), "package could", "packages could"))
 	default:
 		job.phase = "success"
-		job.message = fmt.Sprintf("Built %d packages.", success)
+		job.message = fmt.Sprintf("Built %d %s.", success, plural(success, "package", "packages"))
 	}
 	id, phase, message, started := job.id, job.phase, job.message, job.started
 	job.mu.Unlock()

@@ -472,3 +472,29 @@ func TestSanitizeFolderNameIsSafeOnWindows(t *testing.T) {
 		t.Error("Foo and Foo. name different folders, but Windows treats them as one")
 	}
 }
+
+func TestMultiPackageOnePlatformSaysPackageInTheSingular(t *testing.T) {
+	dir := t.TempDir()
+	chapter, opening, closing, sample := filepath.Join(dir, "1.mp3"), filepath.Join(dir, "o.mp3"), filepath.Join(dir, "c.mp3"), filepath.Join(dir, "s.mp3")
+	for _, path := range []string{chapter, opening, closing, sample} {
+		writeFixtureFile(t, path, "encoded "+path)
+	}
+	host := multiPackageHost(t, "mp3", chapter, opening, closing, sample)
+	host.pickPackageFolder = func() (string, error) { return filepath.Join(t.TempDir(), "root"), nil }
+	encode, _ := countingEncoder(t)
+	host.encodeFile = encode
+	items := []PackageItem{
+		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter},
+		{Kind: string(packager.KindRetailSample), Path: sample},
+		{Kind: string(packager.KindCreditsOpening), Path: opening},
+		{Kind: string(packager.KindCreditsClosing), Path: closing},
+	}
+	sel := []ProfileSelection{{ProfileID: deliveryprofile.ACXID, ProfileVersion: deliveryprofile.ACXVersion}}
+	if _, err := host.startMultiPackage(MultiPackageRequest{Selections: sel, Items: items}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitMultiPackage(t, host)
+	if job.Phase != "success" || job.Message != "Built 1 package." {
+		t.Fatalf("expected success with %q, got %q (%s)", "Built 1 package.", job.Phase, job.Message)
+	}
+}
