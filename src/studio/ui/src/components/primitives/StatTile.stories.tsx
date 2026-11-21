@@ -73,3 +73,13 @@ export const WithIcon: Story = {
 };
 
 export const Compact: Story = { args: { label: 'Workers', value: '3/4 busy', hint: undefined, icon: 'transcriptionsAtOnce', size: 'compact' } };
+
+// #3443: an hours figure under a minute, "<0h 01m", with its unit under it where the tile is narrow: whole, and read "less than a minute left".
+export const UnderAMinute: Story = {
+  args: { label: 'Recording', value: '<0h 01m', unit: 'left', hint: 'est. 3.0× the book', size: 'kpi' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('<0h 01m')).toBeVisible();
+    await expect(canvas.getByText('less than a minute')).toBeTruthy();
+  },
+};

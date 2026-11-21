@@ -201,7 +201,7 @@ func ComputeChapterFingerprint(items []tracks.Item, identify SourceIdentifier) (
 // into one comparable string for LedgerItemFact, so a merely-touched source
 // file is never mistaken for a replaced one.
 func sourceIdentitySummary(identity SourceIdentity) string {
-	return hashParts(identity.Path, strconv.FormatInt(identity.Size, 10), identity.PartialHash)
+	return HashParts(identity.Path, strconv.FormatInt(identity.Size, 10), identity.PartialHash)
 }
 
 // EvaluateFingerprints is the evaluator's pure comparison: given the
