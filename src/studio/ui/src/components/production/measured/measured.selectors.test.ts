@@ -50,6 +50,11 @@ describe('measured selectors', () => {
     expect(weekFigures(log, d(2026, 9, 26), d(2026, 9, 1), d(2026, 8, 1), 1).target).toBeNull();
   });
 
+  it('the weekly target is exact, not rounded to the second, so a clock floors it', () => {
+    // 1 finished hour over 60 days, times seven: 420 s; 59.79 s over 7 days of a 1-day plan is 418.53 s.
+    expect(weekFigures(log, d(2026, 9, 26), d(2026, 9, 1), d(2026, 9, 2), 59.79 / 3600).target).toBeCloseTo(59.79 * 7, 6);
+  });
+
   it('week-figures-never-invent-a-number', () => {
     expect(weekFigures(no, d(2026, 9, 26), d(2026, 9, 1), d(2026, 10, 1), 1)).toMatchObject({ week: no, last24h: no });
     expect(weekFigures(no, d(2026, 9, 26), d(2026, 9, 1), null, 1)).toEqual({ week: no, target: null, last24h: no });

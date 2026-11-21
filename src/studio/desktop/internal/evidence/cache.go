@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -60,20 +59,11 @@ type CacheEntryKey struct {
 // source file that is merely touched does not invalidate a cache entry
 // whose sampled content is unchanged.
 func (k CacheEntryKey) hash() string {
-	parts := []string{
-		k.Source.Path,
-		strconv.FormatInt(k.Source.Size, 10),
-		k.Source.PartialHash,
-		k.AnalyzerID,
-		k.AnalyzerVersion,
-		k.ParamHash,
-	}
+	scope := []string{"whole-source"}
 	if k.PlayedRange != nil {
-		parts = append(parts, "range", formatSeconds(k.PlayedRange.Start), formatSeconds(k.PlayedRange.End))
-	} else {
-		parts = append(parts, "whole-source")
+		scope = []string{"range", formatSeconds(k.PlayedRange.Start), formatSeconds(k.PlayedRange.End)}
 	}
-	return hashParts(parts...)
+	return DerivedKey(SourceInput(k.Source), k.AnalyzerID, k.AnalyzerVersion, k.ParamHash, scope...)
 }
 
 // cacheEnvelope is the on-disk shape of one cache file: an opaque blob (the
