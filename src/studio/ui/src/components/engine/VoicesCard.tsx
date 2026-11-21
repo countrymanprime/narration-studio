@@ -36,7 +36,7 @@ const RECORDING_REASON = 'A take is recording. Stop it before you change which t
 const SWITCH_HINT = 'Counts as a voice. Turn off for a track that is not one (a music bed).';
 /** The explanation behind the card's help button: a shorter form of the Settings row's "?" text. */
 const SWITCH_HELP =
-  'Each switch says whether a track of the folder counts as a voice. Turn it off for a track that is not one, such as a music bed or room tone: it gets no number key, records no character, and the Booth does not list it. The keys of the voices after it move up by one.';
+  'Each switch says whether a track of the folder counts as a voice. Turn it off for a track that is not one, such as a music bed or room tone: it gets no number key, records no character, and the Booth does not list it. The voices after it each take the key before theirs.';
 /** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
 const NARROW = '(max-width: 30rem)';
 const subscribeNarrow = (notify: () => void) => {
@@ -47,19 +47,30 @@ const subscribeNarrow = (notify: () => void) => {
 const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 
 /** What turning a voice off or on does beyond its row, so it is not a surprise in the Booth: the Narrator's key 0 goes (the Booth records on the next voice), or the keys of the voices after it move by one. Empty when nothing moves. */
-function switchConsequence(voice: Voice, voices: readonly Voice[], counts: boolean, place: number): string | undefined {
+function switchConsequence(voice: Voice, voices: readonly Voice[], counts: boolean, place: number, layout: VoiceTracksLayout): string | undefined {
+  const others = voices.filter((other) => other.guid !== voice.guid && !other.notVoice);
   // A marked Narrator row is not flagged `narrator` (it has no key), so it is known by its name.
-  if (voice.narrator || same(voice.name, 'narrator'))
-    return counts
-      ? 'The Narrator is a voice again. Key 0 is back, and the Booth may record on it.'
-      : 'The Narrator is turned off as a voice. Key 0 has no track, and the Booth records on the next voice until you turn it back on.';
+  if (voice.narrator || same(voice.name, 'narrator')) {
+    if (counts) return 'The Narrator is a voice again. Key 0 is back, and the Booth may record on it.';
+    if (others.some((other) => same(other.name, 'narrator'))) return 'The Narrator is turned off as a voice. Key 0 goes to the next track named Narrator.';
+    if (others.length === 0 && layout === 'folders')
+      return 'The Narrator is turned off as a voice. No voice is left, so the Booth cannot record until you turn one back on.';
+    return 'The Narrator is turned off as a voice. Key 0 has no track, and the Booth records on the next voice until you turn it back on.';
+  }
+  const name = bidiIsolated(shortName(trackName(voice.name, place)));
+  if (!counts && others.length === 0 && layout === 'folders')
+    return `${name} is turned off as a voice. No voice is left, so the Booth cannot record until you turn one back on.`;
+  // A track past the ninth has no key to give up; one before it moves every voice after it by one key, including a tenth that gains key 9.
+  if (!counts && voice.key === '') return undefined;
   const at = voices.findIndex((other) => other.guid === voice.guid);
-  if (!voices.slice(at + 1).some((other) => other.key !== '' && !other.narrator)) return undefined;
-  const name = shortName(trackName(voice.name, place));
+  if (!voices.slice(at + 1).some((other) => !other.notVoice && !other.narrator)) return undefined;
   return counts
-    ? `${name} is a voice again. The keys of the voices after it moved down one.`
-    : `${name} is turned off as a voice. The keys of the voices after it moved up one.`;
+    ? `${name} is a voice again. The voices after it each take the next key.`
+    : `${name} is turned off as a voice. The voices after it each take the key before theirs.`;
 }
+
+/** A track's name inside a sentence of another direction: isolated, so a right-to-left name does not turn the sentence around. */
+const bidiIsolated = (name: string) => `\u2068${name}\u2069`;
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 
@@ -126,7 +137,7 @@ export function VoicesCard({
       <Switch
         checked={!voice.notVoice}
         disabled={recording}
-        onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, counts, projectPlace(voice.guid)))}
+        onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, counts, projectPlace(voice.guid), setup.layout))}
       >
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>

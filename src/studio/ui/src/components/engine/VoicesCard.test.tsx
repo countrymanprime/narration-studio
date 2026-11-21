@@ -217,6 +217,55 @@ describe('the Voices card', () => {
     expect(handlers.onNotAVoice).toHaveBeenCalledWith('nar', true, expect.stringContaining('the Booth records on the next voice'));
   });
 
+  // qa-breaker on #3841: the notice says only what is true of the folder in front of the narrator.
+  describe('what the notice says of the folder', () => {
+    const drawFolder = (names: string[], notVoiceGuids: string[] = [], layout: 'folders' | 'flat' = 'folders') => {
+      cleanup();
+      const list = [track('c8', 'Ch 8', 0, true), ...names.map((name, at) => track(`t${at}`, name, 1)), track('c9', 'Chapter 9', 0)];
+      const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn(), onNotAVoice: vi.fn() };
+      render(
+        <VoicesCard
+          tracks={list}
+          chapters={chapters}
+          mappings={mappings}
+          setup={{ layout, narratorCharacter: '', narratorGuids: [], notVoiceGuids, tracks: [] }}
+          characters={cast}
+          layoutInCard
+          {...handlers}
+        />,
+      );
+      return handlers;
+    };
+
+    it('turning off the last voice says no voice is left (Voice folders), and says nothing of it in Flat, where the host records on the folder', async () => {
+      const folders = drawFolder(['Queen']);
+      await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
+      expect(folders.onNotAVoice).toHaveBeenCalledWith('t0', true, expect.stringContaining('No voice is left'));
+      const flat = drawFolder(['Queen'], [], 'flat');
+      await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
+      expect(flat.onNotAVoice).toHaveBeenCalledWith('t0', true, undefined);
+    });
+
+    it('turning off a Narrator when another track is named Narrator says key 0 goes to it', async () => {
+      const handlers = drawFolder(['Narrator', 'Narrator', 'Queen']);
+      await userEvent.setup().click(screen.getAllByRole('switch', { name: 'Narrator counts as a voice' })[0]);
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t0', true, expect.stringContaining('Key 0 goes to the next track named Narrator'));
+    });
+
+    it('turning off the ninth voice says the voices after it take the key before theirs, so a tenth gains key 9', async () => {
+      const names = Array.from({ length: 11 }, (_, at) => `Voice ${String(at + 1).padStart(2, '0')}`);
+      const handlers = drawFolder(['Narrator', ...names]);
+      await userEvent.setup().click(screen.getByRole('switch', { name: 'Voice 09 counts as a voice' }));
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t9', true, expect.stringContaining('each take the key before theirs'));
+    });
+
+    it('names a right-to-left track inside isolates and a blank track by its place, as its row does', async () => {
+      const handlers = drawFolder(['Queen', 'שלום', 'Hatter']);
+      await userEvent.setup().click(screen.getByRole('switch', { name: 'שלום counts as a voice' }));
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t1', true, expect.stringContaining('\u2068שלום\u2069'));
+    });
+  });
+
   it('turning a marked Narrator back on says key 0 is back, not that other keys moved', async () => {
     const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['nar'], tracks: [] });
     await userEvent.setup().click(screen.getByRole('switch', { name: 'Narrator counts as a voice' }));
@@ -240,7 +289,7 @@ describe('the Voices card', () => {
     );
     const user = userEvent.setup();
     await user.click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
-    expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('queen', true, expect.stringContaining('keys of the voices after it moved up one'));
+    expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('queen', true, expect.stringContaining('voices after it each take the key before theirs'));
     await user.click(screen.getByRole('switch', { name: 'Hatter counts as a voice' }));
     expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('hatter', true, undefined);
   });
