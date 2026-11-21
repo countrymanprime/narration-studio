@@ -261,7 +261,6 @@ export function useRecordControl({
   const system = usePort('system');
   const teleprompter = usePort('teleprompter');
   const tracks = usePort('tracks');
-  const sync = usePort('dawTransportSync');
   const following = useChapterTrackState().live.following;
   const recorder = usePort('recording');
   const [capabilities, setCapabilities] = useState<DawCapabilities | null>(null);
@@ -585,11 +584,9 @@ export function useRecordControl({
   const refusedForChapter =
     takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'unlinked' || match.tracks === 'several' || match.tracks === 'missing'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter || link.open === 'different';
-  // What the DAW tells the Booth, held until the Booth is idle: a change of the track list (another project, a track added or removed: `daw_tracks_changed`) reads on the
-  // next second; an edit of the project (`daw_project_edited`, which rises when a track is armed or disarmed too) reads at most as often as the notice timer, since edits
-  // stream. An event heard during a take or a press is read when it ends, not lost.
+  // A change of the DAW's track list (another project, a track added or removed: `daw_tracks_changed`) is read on the next idle second: held while a take or a press runs
+  // and read after, so it is not lost (during a take the 4 s timer reads too). The flag is a ref, so the effect below restarting does not drop it.
   const listChanged = useRef(false);
-  const projectEdited = useRef(false);
   const followingRef = useRef(following);
   followingRef.current = following;
   useEffect(() => {
@@ -597,19 +594,18 @@ export function useRecordControl({
     const again = () => {
       since = 0;
       listChanged.current = false;
-      projectEdited.current = false;
       setReads((n) => n + 1);
     };
     const onVisible = () => document.visibilityState === 'visible' && again();
     window.addEventListener('focus', again);
     document.addEventListener('visibilitychange', onVisible);
-    // One tick a second counts toward the timer, so a change of its length (a read that fails, a notice) never restarts the count.
+    // One tick a second counts toward the timer, so `following` changing its length (a first read that carries a revision, a failed one) never restarts the count.
     const timer = window.setInterval(() => {
       since += 1000;
       const quick = unready || recording || projectFailed || undecided;
       const limit = quick ? POLL_MS : followingRef.current ? READY_FOLLOWING_POLL_MS : READY_POLL_MS;
       const idle = !recordingRef.current && !busy.current;
-      if (since >= limit || (idle && (listChanged.current || (projectEdited.current && since >= POLL_MS)))) again();
+      if (since >= limit || (idle && listChanged.current)) again();
     }, 1000);
     return () => {
       window.removeEventListener('focus', again);
@@ -617,18 +613,13 @@ export function useRecordControl({
       window.clearInterval(timer);
     };
   }, [unready, recording, projectFailed, undecided]);
-  useEffect(() => {
-    const offList = tracks.subscribeTracksChanged(() => {
-      listChanged.current = true;
-    });
-    const offEdited = sync.subscribeDawProjectEdited(() => {
-      projectEdited.current = true;
-    });
-    return () => {
-      offList();
-      offEdited();
-    };
-  }, [tracks, sync]);
+  useEffect(
+    () =>
+      tracks.subscribeTracksChanged(() => {
+        listChanged.current = true;
+      }),
+    [tracks],
+  );
 
   // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers. A stopped transport is
   // also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now before the end is believed

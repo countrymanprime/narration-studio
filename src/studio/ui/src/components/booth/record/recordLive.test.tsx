@@ -472,9 +472,9 @@ describe('another project opened in the DAW while Record is ready or a take runs
   });
 
   // #3880: what the DAW says while Record is idle is read at once, and the slow timer is only the backstop for what has no event.
-  /** An api whose two DAW events the test sends by hand, and whose link read (`bootstrap`) it counts. */
+  /** An api whose track list event the test sends by hand, and whose link read (`bootstrap`) it counts. */
   function eventApi() {
-    const heard = { list: () => {}, edited: () => {}, bootstraps: 0, offList: vi.fn(), offEdited: vi.fn() };
+    const heard = { list: () => {}, bootstraps: 0, offList: vi.fn() };
     const base = createMockApi();
     const api = createMockApi({
       bootstrap: async () => {
@@ -484,10 +484,6 @@ describe('another project opened in the DAW while Record is ready or a take runs
       subscribeTracksChanged: (on) => {
         heard.list = () => on({ revision: '' });
         return heard.offList;
-      },
-      subscribeDawProjectEdited: (on) => {
-        heard.edited = () => on({ changeCount: 1 });
-        return heard.offEdited;
       },
     });
     return { api, heard };
@@ -502,23 +498,6 @@ describe('another project opened in the DAW while Record is ready or a take runs
     await act(async () => heard.list());
     await act(() => vi.advanceTimersByTimeAsync(1100));
     expect(heard.bootstraps).toBeGreaterThan(before);
-  });
-
-  it('an edit of the project (a track armed in the DAW) is read within the notice timer, many edits as one read', async () => {
-    const { api, heard } = eventApi();
-    const daw = mount(CONNECTED, api);
-    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
-    await act(() => vi.advanceTimersByTimeAsync(500));
-    const before = heard.bootstraps;
-    await act(async () => {
-      for (let i = 0; i < 20; i += 1) heard.edited();
-    });
-    await act(() => vi.advanceTimersByTimeAsync(1100));
-    expect(heard.bootstraps).toBe(before);
-    await act(() => vi.advanceTimersByTimeAsync(POLL_MS));
-    expect(heard.bootstraps).toBe(before + 1);
-    await act(() => vi.advanceTimersByTimeAsync(POLL_MS));
-    expect(heard.bootstraps).toBe(before + 1);
   });
 
   it('a change heard during a take is read once the take ends, not lost', async () => {
@@ -540,17 +519,15 @@ describe('another project opened in the DAW while Record is ready or a take runs
     await act(async () => emitTransport({ playing: false, recording: false }));
     await waitFor(() => expect(daw.result.current.recording).toBe(false));
     await act(() => vi.advanceTimersByTimeAsync(1100));
-    console.log('BOOT', during, heard.bootstraps);
     expect(heard.bootstraps).toBeGreaterThan(during);
   });
 
-  it('the Booth stops hearing both events when it is left', async () => {
+  it('the Booth stops hearing the event when it is left', async () => {
     const { api, heard } = eventApi();
     const daw = mount(CONNECTED, api);
     await waitFor(() => expect(daw.result.current.disabled).toBe(false));
     daw.unmount();
     expect(heard.offList).toHaveBeenCalled();
-    expect(heard.offEdited).toHaveBeenCalled();
   });
 
   it('with the DAW following its track list the idle timer is the slow one; without, it is the old one', async () => {
