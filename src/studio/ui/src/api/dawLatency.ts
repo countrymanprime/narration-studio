@@ -208,6 +208,8 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   dawArmBoothVoice: laneCommand(answer(refused(TOOK_NOT_CONFIRMED))),
   dawPlace: one(answer({ ok: false, message: WITHIN_3S, chapterId: '', selected: 0, cursor: 0 })),
   dawGoToChapter: LATE_REFUSAL,
+  dawSoloChapter: LATE_REFUSAL,
+  dawSoloRestore: LATE_REFUSAL,
   // A play, a stop or a cursor move is waited for; the watch is a lease renewed every few seconds and keeps the 3 s.
   dawTransportSync: {
     steps: [
