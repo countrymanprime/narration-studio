@@ -40,3 +40,20 @@ func TestSaveSucceedsWhileAReaderHoldsTheFileOpen(t *testing.T) {
 		t.Fatalf("content = %q, want new", got)
 	}
 }
+
+func TestReadFileMaxStopsAtTheLimitWhateverTheSizeSaid(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "f")
+	if err := os.WriteFile(path, make([]byte, 100), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if raw, err := ReadFileMax(path, 100); err != nil || len(raw) != 100 {
+		t.Fatalf("a file at the limit: %d bytes, %v", len(raw), err)
+	}
+	if _, err := ReadFileMax(path, 99); !errors.Is(err, ErrTooLarge) {
+		t.Fatalf("a file over the limit: err = %v, want ErrTooLarge", err)
+	}
+	if raw, err := ReadFileMax(filepath.Join(dir, "none"), 10); err == nil || raw != nil {
+		t.Fatalf("a missing file answered %d bytes and %v", len(raw), err)
+	}
+}

@@ -147,6 +147,9 @@ func WriteSnapshot(path string, snap Snapshot) error {
 // maxSnapshotBytes bounds what the reader takes: a long book is some thousand clips and labels, far under this.
 const maxSnapshotBytes = 32 << 20
 
+// MaxSnapshotBytes is the largest snapshot file the reader takes, for a caller that reads the bytes itself.
+const MaxSnapshotBytes = maxSnapshotBytes
+
 // ReadSnapshot reads and checks a snapshot file: a newer version, a non-finite time or an inverted range is refused.
 func ReadSnapshot(path string) (Snapshot, error) {
 	info, err := os.Stat(path)

@@ -411,3 +411,70 @@ func TestAnAudacitySnapshotRewrittenAtTheSameSizeAndTimeIsParsedAgain(t *testing
 		t.Fatalf("after a rewrite that kept the size and the time the first track is %q, want Chapter X", got)
 	}
 }
+
+func TestWithCurrentSourcesCopiesWhatACallerCouldWriteInto(t *testing.T) {
+	cached := tracks.Project{Tracks: []tracks.Track{{
+		PlayingLanes: []int{1, 2},
+		Items: []tracks.Item{{
+			Ext: map[string]string{"k": "v"},
+			Takes: []tracks.Take{{
+				Ext:     map[string]string{"k": "v"},
+				Section: &tracks.SectionOffsets{},
+			}},
+		}},
+	}}}
+	copied := withCurrentSources(cached)
+	copied.Tracks[0].PlayingLanes[0] = 99
+	copied.Tracks[0].Items[0].Ext["k"] = "HACKED"
+	copied.Tracks[0].Items[0].Takes[0].Ext["k"] = "HACKED"
+	*copied.Tracks[0].Items[0].Takes[0].Section = tracks.SectionOffsets{StartPos: 99}
+	held := cached.Tracks[0]
+	if held.PlayingLanes[0] != 1 || held.Items[0].Ext["k"] != "v" || held.Items[0].Takes[0].Ext["k"] != "v" || *held.Items[0].Takes[0].Section != (tracks.SectionOffsets{}) {
+		t.Fatalf("a write into the copy reached the cached parse: %+v", held)
+	}
+}
+
+// A snapshot above the Audacity reader's limit is refused from its size: it is not read and hashed first.
+func TestAnAudacitySnapshotAboveTheReadersLimitIsNotReadFirst(t *testing.T) {
+	savedProjects.reset()
+	t.Cleanup(savedProjects.reset)
+	path := filepath.Join(t.TempDir(), audacity.SnapshotFile)
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Truncate(path, audacity.MaxSnapshotBytes+1); err != nil { // sparse
+		t.Fatal(err)
+	}
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	_, err := readProject(path)
+	runtime.ReadMemStats(&after)
+	if err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Fatalf("err = %v, want the reader's too large refusal", err)
+	}
+	if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 1<<20 {
+		t.Fatalf("refusing the snapshot allocated %d bytes, want under 1 MB", allocated)
+	}
+}
+
+// A path whose size is not its content (a link to a device) is not read without end: the reader is asked by path, and kept nothing.
+func TestAProjectPathThatIsADeviceIsNotReadWithoutEnd(t *testing.T) {
+	savedProjects.reset()
+	t.Cleanup(savedProjects.reset)
+	reader := &pathOnlyProjectReader{}
+	withProjectReaderRole(t, reader)
+	path := filepath.Join(t.TempDir(), "Book.rpp")
+	if err := os.Symlink("/dev/zero", path); err != nil {
+		t.Skipf("no /dev/zero here: %v", err)
+	}
+	done := make(chan error, 1)
+	go func() { _, err := readProject(path); done <- err }()
+	select {
+	case err := <-done:
+		if err != nil || reader.reads != 1 || len(savedProjects.entries) != 0 {
+			t.Fatalf("err = %v, reads = %d, kept = %d; want the reader asked once by path and nothing kept", err, reader.reads, len(savedProjects.entries))
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("reading a path that is a device did not stop")
+	}
+}

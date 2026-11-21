@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -236,9 +237,18 @@ func parseProject(path string, raw []byte) (project tracks.Project, fromRaw bool
 // projectCacheSize is how many saved projects the cache keeps: the selected file and the one it was switched from, with room to spare.
 const projectCacheSize = 4
 
-// maxCachedProjectBytes is the largest file the cache reads and hashes: the largest saved project measured is 11.9 MB (300 chapters)
-// and the Audacity reader's own limit is 32 MB, so a larger file goes to the reader by path, for its own limit and error.
+// maxCachedProjectBytes is the largest file the cache reads and hashes: the largest saved project measured is 11.9 MB (300 chapters).
+// A larger file goes to the reader by path and is not kept; the Audacity reader refuses it with its own error, and the REAPER
+// reader (tracks.Parse) reads it whole, with no limit of its own.
 const maxCachedProjectBytes = 64 << 20
+
+// projectByteLimit is the most the cache reads of the file at path: an Audacity snapshot is refused by its reader above its own limit.
+func projectByteLimit(path string) int64 {
+	if audacity.IsSnapshot(path) {
+		return audacity.MaxSnapshotBytes
+	}
+	return maxCachedProjectBytes
+}
 
 // projectCache keeps the parse of each of the last few saved project files while the file's bytes are the ones it was parsed from
 // (#3287, #3863): every read hashes the file, so a rewrite that keeps its size and its modification time is parsed again, and a save
@@ -259,18 +269,15 @@ type projectCacheEntry struct {
 }
 
 // read answers path's parse from the cache when the file's bytes are the ones it holds the parse of, or parses them (parse) and keeps
-// it. A file that cannot be read, or is larger than maxCachedProjectBytes, is handed to parse with no bytes and nothing is kept, so
+// it. A file that cannot be read, or is larger than projectByteLimit, is handed to parse with no bytes and nothing is kept, so
 // the parser reports why; a parse that was not made from the bytes read here (a reader that only reads by path) is not kept either,
 // so that reader parses on every call. The file is read with persist.ReadFile: the host opens it on every call, and on Windows that
 // open does not stop the DAW from replacing the file while it is read.
 func (c *projectCache) read(path string, parse projectParse) (tracks.Project, error) {
 	c.reads.Add(1)
-	if info, err := os.Stat(path); err != nil || info.Size() > maxCachedProjectBytes {
-		project, _, err := parse(path, nil)
-		return project, err
-	}
-	raw, err := persist.ReadFile(path)
+	raw, err := persist.ReadFileMax(path, projectByteLimit(path))
 	if err != nil {
+		// Too large, not a file, or unreadable: the parser reports why, and nothing is kept.
 		project, _, err := parse(path, nil)
 		return project, err
 	}
@@ -319,18 +326,25 @@ func (c *projectCache) forget(path string) {
 
 // withCurrentSources is project with each item's and take's SourceAvailable asked of the disk again: the parse records whether the
 // audio file was there, and that changes without the .rpp changing (a take deleted, a drive mounted). It copies the track, item,
-// take, region and marker lists, so the cached parse stays as it was when a caller writes into them; a track's PlayingLanes and an
-// item's or take's Ext are shared with it.
+// take, region and marker lists, a track's PlayingLanes, an item's and a take's Ext and a take's Section, so the cached parse stays as it
+// was when a caller writes into any of them.
 func withCurrentSources(project tracks.Project) tracks.Project {
 	list := make([]tracks.Track, len(project.Tracks))
 	for i, track := range project.Tracks {
+		track.PlayingLanes = slices.Clone(track.PlayingLanes)
 		track.Items = slices.Clone(track.Items)
 		for j := range track.Items {
 			item := &track.Items[j]
 			item.SourceAvailable = sourceAvailable(item.SourceFile, item.SourceAvailable)
+			item.Ext = maps.Clone(item.Ext)
 			item.Takes = slices.Clone(item.Takes)
 			for k := range item.Takes {
 				take := &item.Takes[k]
+				take.Ext = maps.Clone(take.Ext)
+				if take.Section != nil {
+					section := *take.Section
+					take.Section = &section
+				}
 				take.SourceAvailable = sourceAvailable(take.SourceFile, take.SourceAvailable)
 			}
 		}
