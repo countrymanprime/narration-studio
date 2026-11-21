@@ -8,6 +8,7 @@ import (
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
 	"desktop/internal/daw"
+	"desktop/internal/dawport"
 )
 
 func TestDawTracksChangedGolden(t *testing.T) {
@@ -125,5 +126,42 @@ func TestDawTracksChangedIsSentAgainForAnotherProjectsTracker(t *testing.T) {
 	host.pollDawTracksChanged()
 	if want := []string{"aaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaa"}; !reflect.DeepEqual(*sent, want) {
 		t.Fatalf("got %q want %q", *sent, want)
+	}
+}
+
+// A heartbeat value type that cannot be compared (a slice field) and names a revision: the tick must not compare it with ==.
+type sliceBeat struct{ unused []int }
+
+func (sliceBeat) Reachable() bool                      { return true }
+func (sliceBeat) CurrentProject() (string, bool)       { return "C:/Projects/Alice/Alice.rpp", false }
+func (sliceBeat) Matches(string) bool                  { return true }
+func (sliceBeat) ChangeCount() (int, bool)             { return 1, true }
+func (sliceBeat) Transport() (dawport.Transport, bool) { return dawport.Transport{}, false }
+func (sliceBeat) TracksRevision() (string, bool)       { return "aaaaaaaaaaaaaaaa", true }
+
+func TestDawTracksChangedDoesNotCompareAHeartbeatThatCannotBeCompared(t *testing.T) {
+	host, _ := newTestHostWithHeartbeat(t)
+	host.ctx = context.Background()
+	recordTracksChanged(t)
+	host.reachability = sliceBeat{}
+	host.pollDawTracksChanged()
+	host.pollDawTracksChanged() // would panic on `==` of two sliceBeat values
+}
+
+// The tick and TracksLive share one test for a heartbeat that names a revision: with a DAW whose heartbeat the engine does not report
+// (Audacity has none), a fresh revision is neither sent nor stamped, so the page keeps its timer.
+func TestATracksRevisionThePageCannotRelyOnIsNeitherSentNorStamped(t *testing.T) {
+	host, reach := newTestHostWithHeartbeat(t)
+	host.ctx = context.Background()
+	sent := recordTracksChanged(t)
+	host.config.daw = "Audacity"
+	reach.Record(tracksBeat("aaaaaaaaaaaaaaaa"))
+	host.pollDawTracksChanged()
+	host.pollDawTracksChanged()
+	if want := []string{""}; !reflect.DeepEqual(*sent, want) {
+		t.Fatalf("got %q want %q", *sent, want)
+	}
+	if revision, _ := host.heartbeatTracks(host.services()); revision != "" {
+		t.Fatalf("heartbeatTracks = %q, want none", revision)
 	}
 }

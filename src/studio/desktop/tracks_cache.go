@@ -237,13 +237,19 @@ func (l cachedTrackLister) revision() (string, bool) {
 // tracksRevisionOf is the track list's revision in heartbeat's last beat, or not known: no heartbeat, a stale one, or one that carries none.
 func tracksRevisionOf(heartbeat dawport.Heartbeat) (string, bool) {
 	if h, ok := heartbeat.(interface{ TracksRevision() (string, bool) }); ok {
-		revision, known := h.TracksRevision()
-		if wireRevision(revision) == "" {
-			return "", false
-		}
-		return revision, known
+		return h.TracksRevision()
 	}
 	return "", false
+}
+
+// wireTracksRevisionOf is tracksRevisionOf when the revision is one the page can read (wireRevision), else not known. The cache compares
+// the raw text; only what reaches the page goes through this.
+func wireTracksRevisionOf(heartbeat dawport.Heartbeat) (string, bool) {
+	revision, known := tracksRevisionOf(heartbeat)
+	if !known || wireRevision(revision) == "" {
+		return "", false
+	}
+	return revision, true
 }
 
 // wireRevision is revision when it is what the page's schema accepts (16 lower-case hex digits, what the script writes), else "": a script

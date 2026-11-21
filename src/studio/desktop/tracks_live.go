@@ -63,7 +63,12 @@ func (h *Host) tracksLive() (tracksLive, error) {
 	lister, support := trackListerFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
 	defer cancel()
-	return tracksLiveIn(ctx, svc, lister, support, time.Now())
+	answer, err := tracksLiveIn(ctx, svc, lister, support, time.Now())
+	// The page stops its timer on a revision, so it holds one only where the tick that sends daw_tracks_changed would send it too.
+	if revision, _ := h.heartbeatTracks(svc); revision == "" {
+		answer.Revision = ""
+	}
+	return answer, err
 }
 
 // trackListerFrom asks svc's DAW port resolver for the tracks_read role and says why when it is not available now, as
@@ -109,7 +114,7 @@ func tracksLiveIn(ctx context.Context, svc hostServices, lister dawport.TrackLis
 			return tracksLive{}, savedErr
 		}
 		answer.Source, answer.Reason, answer.Message = tracksSourceSaved, reason, message
-	} else if _, known := tracksRevisionOf(svc.reachability); known {
+	} else if _, known := wireTracksRevisionOf(svc.reachability); known {
 		// Only with a heartbeat that names a revision: the page stops its timer on one, and with no heartbeat nothing sends it the next event.
 		answer.Revision = read.revision
 	}
