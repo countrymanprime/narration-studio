@@ -118,6 +118,15 @@ describe('Story Bible types panel (SN-M53)', () => {
     expect((await api.guideTypes()).map((type) => type.name)).toContain('Location');
   });
 
+  it('a new type named with only invisible characters is refused like an empty one and adds nothing (#3382 f)', async () => {
+    const api = await renderPanel();
+    const add = vi.spyOn(api, 'guideTypeAdd');
+    const box = within(panel()).getByRole('textbox', { name: 'New type' });
+    fireEvent.change(box, { target: { value: String.fromCodePoint(0x200b, 0x200d) } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(add).not.toHaveBeenCalled();
+  });
+
   it('remove is disabled while a type is in use or is the last one; adding needs a new name', async () => {
     const api = await renderPanel();
     const remove = vi.spyOn(api, 'guideTypeRemove');
