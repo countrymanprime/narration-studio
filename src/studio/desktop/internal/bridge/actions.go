@@ -253,7 +253,8 @@ const LateAnswerWait = 20 * time.Second
 // keepsShortWait are the commands that change nothing in REAPER, so an abandoned wait leaves nothing to land: the reads a page polls
 // (a late answer to a poll would only hold the next one) and the reads asked once. watch_transport is here too: it is a lease the
 // host renews every few seconds, and a renewal that is lost is made good by the next. tracks_read is not: its late answer is the live
-// track list, where the short wait answers the saved project without the lane just made (#3645).
+// track list, where the short wait answers the saved project without the lane just made (#3645). A command stays here only while its Lua
+// handler changes nothing: one that gains a write comes off the list in the same change.
 var keepsShortWait = map[string]bool{
 	"chapter_track_state": true, "read_place": true, "daw_meters": true, "play_position": true, "watch_transport": true,
 	"last_action": true, "list_fx_chains": true, "master_chain_read": true, "punch_preroll": true, "range_fx_chosen": true,
