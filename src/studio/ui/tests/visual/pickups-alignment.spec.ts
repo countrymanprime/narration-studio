@@ -32,7 +32,6 @@ for (const size of [
       .evaluateAll((rows) =>
         rows.map((row) => {
           const [, time, type] = [...row.children] as HTMLElement[];
-          const text = time!.querySelector('span,div') ?? time!;
           const range = document.createRange();
           range.selectNodeContents(time!);
           return {
@@ -40,8 +39,9 @@ for (const size of [
             textRight: range.getBoundingClientRect().right,
             cellRight: time!.getBoundingClientRect().right,
             typeLeft: type!.getBoundingClientRect().left,
+            typeClipped: type!.scrollWidth > type!.clientWidth,
+            line: (row.children[3] as HTMLElement).getBoundingClientRect().width,
             clipped: time!.scrollWidth > time!.clientWidth,
-            hasSpan: Boolean(text),
           };
         }),
       );
@@ -49,6 +49,9 @@ for (const size of [
     for (const cell of cells) {
       expect(cell.text, 'a full-form time').toMatch(/00:\d\d:\d\d\.\d{3}/);
       expect(cell.clipped, cell.text ?? '').toBe(false);
+      expect(cell.typeClipped, 'the type chip').toBe(false);
+      // Main drew the line column about 188 px wide at 1440; the longer time must not squeeze it by more than a few px.
+      if (size.width === 1440) expect(cell.line).toBeGreaterThanOrEqual(180);
       expect(cell.textRight, cell.text ?? '').toBeLessThanOrEqual(cell.typeLeft);
     }
   });

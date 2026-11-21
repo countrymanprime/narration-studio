@@ -124,7 +124,7 @@ describe('the-pickups-table-scrolls-instead-of-clipping', () => {
     expect(region.className).toContain('overflow-x-auto');
     // Fixed columns (XPK-3): one width per column, the line's the rest, so no state moves a heading.
     const cols = [...within(region).getByRole('table', { name: 'Pickups' }).querySelectorAll('col')].map((col) => col.style.width || 'auto');
-    expect(cols).toEqual(['2.625rem', '7.25rem', '6.5rem', 'auto', '4.5rem', '6.25rem', '12rem']);
+    expect(cols).toEqual(['2.625rem', '6.5rem', '5.25rem', 'auto', '4.5rem', '6.25rem', '12rem']);
   });
 });
 
