@@ -443,7 +443,9 @@ test('narrowing the docs folders: only files no Go test reads are Go-free', () =
 });
 
 // The list above is only as good as its upkeep: this finds the repository files the Go tests read through `docs/` and fails when one is
-// in a place the rule treats as Go-free, which is how a test that starts reading another doc gets noticed.
+// in a place the rule treats as Go-free, which is how a test that starts reading another doc gets noticed. It reads each line of the
+// tests as text, so it cannot see a path held in a variable or constant, a path on a line apart from its read, a raw string, or a read
+// through a command.
 test('no Go test reads a file under docs/ that the race scope treats as Go-free', () => {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const goTests = [];
@@ -460,8 +462,11 @@ test('no Go test reads a file under docs/ that the race scope treats as Go-free'
   for (const file of goTests) {
     for (const line of readFileSync(file, 'utf8').split('\n')) {
       if (/^\s*\/\//.test(line)) continue;
-      for (const joined of line.matchAll(/"docs"\s*,\s*"([^"]+)"(?:\s*,\s*"([^"]+)")?/g)) reads.push(['docs', joined[1], joined[2]].filter(Boolean).join('/'));
-      if (/ReadFile|ReadDir|Open|Glob|RepoFile|WalkDir|Stat/.test(line)) for (const literal of line.matchAll(/"(docs\/[^"]+)"/g)) reads.push(literal[1]);
+      for (const joined of line.matchAll(/"docs"((?:\s*,\s*"[^"]*")+)/g)) {
+        const parts = [...joined[1].matchAll(/"([^"]*)"/g)].map((part) => part[1]).filter((part) => part !== '..');
+        reads.push(['docs', ...parts].join('/'));
+      }
+      if (/ReadFile|ReadDir|Open|Glob|RepoFile|WalkDir|Stat/.test(line)) for (const literal of line.matchAll(/"(?:\.\.\/)*(docs\/[^"]+)"/g)) reads.push(literal[1]);
     }
   }
   assert.ok(reads.length > 0, 'found the reads that exist today (dawportdoc, importer, extractionport)');
