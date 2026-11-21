@@ -61,6 +61,9 @@ for (const size of SIZES) {
     await item.getByText(/^Sends “/).waitFor({ timeout: 8000 });
     const both = await item.evaluate((element) => element.getBoundingClientRect().height);
     expect.soft(both, 'the row with both lookups open is still a few lines, not a screen').toBeLessThan(size.width < 480 ? 600 : 420);
+    // The quotes and the name are one unit: at 390 the opening quote must not be left alone at the end of a line.
+    const quotedHeights = await item.locator('[data-quoted-name]').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+    expect.soft(Math.max(...quotedHeights), 'a quoted name is one line').toBeLessThan(24);
     const sideways = await page.evaluate(() =>
       Array.from(document.querySelectorAll('*')).some(
         (node) => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX === 'auto' && node.clientWidth > 0 && node.scrollWidth > 5000,

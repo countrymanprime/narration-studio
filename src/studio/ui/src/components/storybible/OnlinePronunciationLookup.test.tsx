@@ -68,6 +68,6 @@ describe('OnlinePronunciationLookup: a long name stays one line in its sentences
     await setup(long);
     const quoted = screen.getByTitle(long);
     expect(quoted.className).toContain('truncate');
-    expect(quoted.parentElement?.textContent).toContain('alone to Merriam-Webster, on your own key.');
+    expect(quoted.closest('[data-quoted-name]')?.parentElement?.textContent).toContain('alone to Merriam-Webster, on your own key.');
   });
 });
