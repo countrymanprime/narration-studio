@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { clock } from './clock';
 import type { RecordedThrough } from './api/contracts/manuscript';
 import { buildPipelineRows } from './components/production/pipeline/pipelineRows';
 import { chapter as productionChapter } from './components/production/pipeline/pipelineFixtures';
 import { recordedStart } from './components/booth/companion/companionResume';
-import { chapterRecordedDetail, recordedAtDetail, recordedAtOf, recordedPercent, recordedThroughLabel } from './recordedThrough';
+import { chapterRecordedDetail, recordedAtDetail, recordedAtOf, recordedPercent, recordedThroughLabel, throughPercent } from './recordedThrough';
 
 const PARAGRAPHS = [
   { id: 'p1', text: 'Alice was beginning to get very tired.' },
@@ -70,10 +71,11 @@ describe('what the Booth says about how far a chapter is recorded', () => {
 // #3443: the one percent the Record cell and Next up show. 0 only with no measured audio; any audio is at least 1; only the host's complete is 100.
 describe('recordedPercent', () => {
   const chapter = (recordedSeconds: number | null, recordedThrough?: RecordedThrough) => ({ recordedSeconds, wordCount: 9300, recordedThrough });
-  it('any measured audio is at least 1%, and none is 0%', () => {
+  it('any recorded second is at least 1%, and under a second (it prints 0:00) is 0%', () => {
     for (const [seconds, percent] of [
       [0, 0],
-      [0.001, 1],
+      [0.001, 0],
+      [0.99, 0],
       [1, 1],
       [18, 1],
       [35.99, 1],
@@ -145,4 +147,28 @@ describe('every page prints the same recorded percent', () => {
       });
     }
   }
+});
+
+// #3869: a recorded length under one second prints as 0:00, so the percent beside it reads 0 (any recorded second reads at least 1). Over lengths from 0 to 2 s the percent is 0
+// exactly when the printed length is 0:00, with no host percent and with a host 0; a host 1 to 99 and complete are unchanged by the length.
+describe('a recorded length and its percent agree about audio under one second', () => {
+  const lengths = Array.from({ length: 201 }, (_, step) => step / 100);
+  const row = (recordedSeconds: number, recordedThrough?: RecordedThrough) => ({ recordedSeconds, wordCount: 9300, recordedThrough });
+  it('reads 0% exactly when the length prints 0:00 (no host percent, and a host 0)', () => {
+    for (const seconds of lengths) {
+      const printsZero = clock(seconds) === '0:00';
+      expect(recordedPercent(row(seconds), 9300) === 0, `no host, ${seconds} s`).toBe(printsZero);
+      expect(recordedPercent(row(seconds, through({ percent: 0 })), 9300) === 0, `host 0, ${seconds} s`).toBe(printsZero);
+      expect(throughPercent(recordedAtOf({ recordedThrough: through({ percent: 0 }), recordedSeconds: seconds })!) === 0, `pair, ${seconds} s`).toBe(
+        printsZero,
+      );
+    }
+  });
+  it('leaves a host 1 to 99 and complete as the host says, whatever the length', () => {
+    for (const seconds of lengths) {
+      expect(recordedPercent(row(seconds, through({ percent: 50 })), 9300), `host 50, ${seconds} s`).toBe(50);
+      expect(recordedPercent(row(seconds, through({ percent: 1 })), 9300), `host 1, ${seconds} s`).toBe(1);
+      expect(recordedPercent(row(seconds, through({ complete: true, percent: 100 })), 9300), `complete, ${seconds} s`).toBe(100);
+    }
+  });
 });

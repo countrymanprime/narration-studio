@@ -181,4 +181,18 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     expect(screen.getByText('Recorded 0:12')).toBeTruthy();
     expect(screen.queryByText('Nothing measured for this chapter yet.')).toBeNull();
   });
+
+  // #3869: a take under one second leaves "Recorded 0:00" in This chapter; the notice must not read 1% beside it.
+  it('a take under one second does not read 1% recorded beside Recorded 0:00', async () => {
+    const zero: RecordedThrough = { ...through, percent: 0 };
+    const base = pageApi({} as Partial<NarrationApi>);
+    const overview = await base.productionOverview();
+    const api = pageApi({
+      manuscriptChapters: async () => CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 0.5 } : chapter)),
+      productionOverview: async () => ({ ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 0.5 }] }),
+    } as Partial<NarrationApi>);
+    renderCompanion(api);
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 0% through'));
+    await waitFor(() => expect(screen.getByText('Recorded 0:00')).toBeTruthy());
+  });
 });

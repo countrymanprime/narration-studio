@@ -9,13 +9,19 @@ const wordsOf = (text: string): string[] => text.match(/\S+/g) ?? [];
  */
 export type RecordedAt = { through: RecordedThrough; audio: boolean };
 
+/**
+ * Whether a recorded length counts as audio for the percent: one whole second or more. A length under a second prints as 0:00, so it reads 0% beside it (any recorded second reads
+ * at least 1%). One rule for `recordedAtOf` and `recordedPercent`.
+ */
+export const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;
+
 /** The pair of a chapter as one read gave it; undefined when nothing says any of the chapter is recorded. */
 export const recordedAtOf = (chapter: { recordedThrough?: RecordedThrough; recordedSeconds?: number | null }): RecordedAt | undefined =>
-  chapter.recordedThrough ? { through: chapter.recordedThrough, audio: (chapter.recordedSeconds ?? 0) > 0 } : undefined;
+  chapter.recordedThrough ? { through: chapter.recordedThrough, audio: hasAudio(chapter.recordedSeconds) } : undefined;
 
 /**
  * The percent the host's `recordedThrough` is printed as, by every page (the Booth chip and lists, the Record cell and its tips, the Rec. name, Next up, the Companion):
- * 100 only when the host says complete, else 1 to 99, and 0 only when the host says 0 and no audio is measured on the track (a host 0 with audio reads 1: the host rounds the
+ * 100 only when the host says complete, else 1 to 99, and 0 only when the host says 0 and no audio (one second or more) is measured on the track (a host 0 with audio reads 1: the host rounds the
  * share of words, so a chapter is at 0 until half a percent of its words are recorded, with audio already there).
  */
 export function throughPercent({ through, audio }: RecordedAt): number {
@@ -72,8 +78,8 @@ export function recordedShare(chapter: { recordedThrough?: RecordedThrough; reco
  * only the host says so). Null when nothing is measured.
  */
 export function recordedPercent(chapter: { recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number }, wph: number): number | null {
-  // 0 only when no audio is measured (0 s, or a host 0 with nothing on the track); any measured audio is at least 1, up to 99; only the host's "complete" is 100.
-  const audio = chapter.recordedSeconds !== null && chapter.recordedSeconds > 0;
+  // 0 only when no audio is measured (under one second, which prints as 0:00, or a host 0 with nothing on the track); any recorded second is at least 1, up to 99; only the host's "complete" is 100.
+  const audio = hasAudio(chapter.recordedSeconds);
   const atLeastOne = (percent: number): number => Math.min(99, Math.max(1, percent));
   if (chapter.recordedThrough) {
     return throughPercent({ through: chapter.recordedThrough, audio });
