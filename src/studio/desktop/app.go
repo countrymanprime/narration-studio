@@ -131,6 +131,9 @@ type Host struct {
 	// dawTracksRevision is the track-list revision the last daw_tracks_changed carried (bindings_daw_trackschanged.go), and dawTracksSeen whether one was sent.
 	// +checklocks:mu
 	dawTracksRevision string
+	// dawTracksEpoch is the heartbeat's epoch when that revision was sent: the same revision after a restart or another project is sent again.
+	// +checklocks:mu
+	dawTracksEpoch uint64
 	// +checklocks:mu
 	dawTracksSeen bool
 	// dawUnsavedTracker is the edit-counter baseline DawProjectState's unsavedChanges is read against

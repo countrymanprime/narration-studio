@@ -52,7 +52,7 @@ type tracksLive struct {
 	Message string         `json:"message"`
 	ReadAt  string         `json:"readAt"`
 	Project tracks.Project `json:"project"`
-	// Revision is the heartbeat's track-list revision when a live list was answered, the value daw_tracks_changed carries
+	// Revision is the revision REAPER's own answer gave the live list (the heartbeat's when it is current), the value daw_tracks_changed carries
 	// (bindings_daw_trackschanged.go); "" for the saved file's tracks and for a bridge that sends none. A page holding a non-empty one
 	// waits for the event instead of reading on a timer.
 	Revision string `json:"revision"`
@@ -97,6 +97,12 @@ func tracksLiveIn(ctx context.Context, svc hostServices, lister dawport.TrackLis
 		saved = tracks.Project{Path: selected}
 	}
 	answer := tracksLive{Source: tracksSourceLive, ReadAt: now.UTC().Format(time.RFC3339)}
+	// The revision is the read list's own, never the heartbeat's at this moment: a list read before a change must not be stamped with the
+	// revision after it, or the page would take that change's event for a list it already shows.
+	read := &revisionLister{TrackLister: lister}
+	if lister != nil {
+		lister = read
+	}
 	project, reason, message := liveProject(ctx, readAloudAdapterName(svc), lister, support, selected, saved)
 	if reason != "" {
 		if savedErr != nil {
@@ -104,11 +110,25 @@ func tracksLiveIn(ctx context.Context, svc hostServices, lister dawport.TrackLis
 		}
 		answer.Source, answer.Reason, answer.Message = tracksSourceSaved, reason, message
 	} else {
-		answer.Revision, _ = tracksRevisionOf(svc.reachability)
+		answer.Revision = read.revision
 	}
 	answer.Project = project
 	rememberVoiceTracks(svc, project)
 	return answer, nil
+}
+
+// revisionLister remembers the revision of the last list its lister answered.
+type revisionLister struct {
+	dawport.TrackLister
+	revision string
+}
+
+func (r *revisionLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, error) {
+	live, err := r.TrackLister.ReadTracks(ctx)
+	if err == nil {
+		r.revision = live.Revision
+	}
+	return live, err
 }
 
 // liveProject is saved with the engine's live track list laid over it (mergeLiveTracks), or saved itself with the reason the live

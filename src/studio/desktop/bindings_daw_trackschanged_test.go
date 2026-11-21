@@ -46,7 +46,18 @@ func TestDawTracksChangedIsSentOncePerRevision(t *testing.T) {
 	tick("")                 // an older script took over: back to not known
 	tick("bbbbbbbbbbbbbbbb")
 
-	want := []string{"", "aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "", "bbbbbbbbbbbbbbbb"}
+	// Another project with the same list: the heartbeat names another file, the epoch moves, and the same revision is sent again.
+	other := tracksBeat("bbbbbbbbbbbbbbbb")
+	other.Fields[2] = "C:/Projects/Alice/Copy.rpp"
+	reach.Record(other)
+	host.pollDawTracksChanged()
+	host.pollDawTracksChanged()
+	// The DAW link goes away: a page that held a revision is told none is known.
+	host.reachability = nil
+	host.pollDawTracksChanged()
+	host.pollDawTracksChanged()
+
+	want := []string{"", "aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", ""}
 	if !reflect.DeepEqual(sent, want) {
 		t.Fatalf("daw_tracks_changed must be sent once per change of revision, got %q want %q", sent, want)
 	}

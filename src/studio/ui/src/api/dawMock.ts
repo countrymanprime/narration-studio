@@ -458,6 +458,8 @@ export interface DawMockControl {
   refuseNextSync(sentence: string): void;
   /** The word table the DAW answers (`workspaceWordTimes`); null (the start) is a DAW that cannot make one, so the page follows nothing in it. */
   setWordTimes(table: WordTimes | null): void;
+  /** The narrator added a track in the DAW: it is in the live track list at once and `daw_tracks_changed` is sent (wired by mockApi.ts to the tracks mock). */
+  addTrackInDaw(name: string): void;
   /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
   editInDaw(): void;
   /** `daw_project_edited` is sent with the counter as it is, not raised: it models the host's first poll after a start or a relink, a count the page already holds repeated. */
@@ -694,6 +696,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     setWordTimes: (table) => {
       sync.wordTimes = table === null ? null : wireClone(table);
     },
+    addTrackInDaw: () => {},
     editInDaw: () => {
       sync.changeCount += 1;
       for (const on of editSubs) on({ changeCount: sync.changeCount });

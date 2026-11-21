@@ -106,9 +106,9 @@ export function useLiveTracks({
   const skipTicks = useRef(0);
   const hasProject = useRef(false);
   // The track-list revision the list shown was read at; '' is none known (no read yet, a failed read, the saved file, an older script), and
-  // the timer reads. `heard` is the revision of an event that arrived during a read, checked when that read ends.
+  // the timer reads. `heard` is that an event arrived during a read: the read may have left before the change, so one more follows it.
   const revision = useRef('');
-  const heard = useRef<string | null>(null);
+  const heard = useRef(false);
   const readRef = useRef<() => void>(() => {});
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
@@ -175,11 +175,10 @@ export function useLiveTracks({
           if (!mounted.current) return;
           if (inFlight.current === 0) setBusy(false);
           if (id === pressedRead.current) setRefreshing(false);
-          // The list changed again while this read was out: read once more, unless this read already answered that revision.
-          const missed = heard.current;
-          if (inFlight.current > 0 || missed === null) return;
-          heard.current = null;
-          if (missed !== revision.current || missed === '') readRef.current();
+          // The list changed while this read was out: read once more.
+          if (inFlight.current > 0 || !heard.current) return;
+          heard.current = false;
+          readRef.current();
         });
       newest.current = run;
       return run;
@@ -213,17 +212,19 @@ export function useLiveTracks({
     };
     const timer = window.setInterval(onTimer, LIVE_TRACKS_POLL_MS);
     readRef.current = auto;
-    // REAPER's list changed, or its revision became known or not known. A hidden window reads when it is shown again.
-    const stop = tracks.subscribeTracksChanged((change) => {
-      if (document.visibilityState !== 'visible') return;
-      if (inFlight.current > 0) heard.current = change.revision;
-      else if (change.revision !== revision.current || change.revision === '') auto();
+    // REAPER's list changed, its revision became known or not known, or REAPER has another project with the same list: the host sends
+    // the event only on a change, so each one reads. A hidden window reads when it is shown again.
+    const stop = tracks.subscribeTracksChanged(() => {
+      if (inFlight.current > 0) heard.current = true;
+      else if (document.visibilityState === 'visible') auto();
     });
     window.addEventListener('focus', auto);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.clearInterval(timer);
       stop();
+      readRef.current = () => {};
+      heard.current = false;
       window.removeEventListener('focus', auto);
       document.removeEventListener('visibilitychange', onVisible);
     };

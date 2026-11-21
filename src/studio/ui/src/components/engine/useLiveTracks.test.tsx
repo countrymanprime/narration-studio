@@ -21,10 +21,10 @@
 //   two readers at once (the dialog opening)   'joining while a read is in flight sends nothing more, and reads when none is'
 //   leave mid-action (unmount mid-read)        'an answer after the panel closed is dropped'
 //   REAPER reports a revision                  'with a revision the timer reads nothing, and an event with a new revision reads at once'
-//   repeats an event                           'an event carrying the revision already shown reads nothing'
+//   repeats an event (other project, same list) 'an event carrying the revision already shown still reads: REAPER may have another project with the same list'
 //   loses an event                             'focus and Refresh still read while a revision is held' (and the host's next change sends its own event)
 //   revision no longer known (REAPER gone)     'an event with no revision reads at once and the timer takes over again'
-//   event during a read (answers out of order) 'an event during a read reads once more when it ends, unless that read already answered its revision'
+//   event during a read (answers out of order) 'an event during a read reads once more when it ends, hidden or not, and never after the panel is switched off'
 //   read fails while a revision is held        'a failed read forgets the revision, so the timer reads again'
 //   event while hidden                         'an event while the window is hidden reads nothing; coming back reads'
 //   leave (unmount)                            'the subscription ends with the panel'
@@ -503,6 +503,16 @@ describe('reading the live track list', () => {
       return { api, revision, subs, send, reads };
     }
 
+    it('the mock: a track added in REAPER (emoji and right-to-left in its name) shows without a timer, focus or Refresh', async () => {
+      const api = createMockApi();
+      const { hook } = mount(api);
+      await settle();
+      const before = hook.current.project?.tracks.length ?? 0;
+      await act(async () => window.__NARRATION_MOCK_DAW__?.addTrackInDaw('Chapter 9 – הים 🌊'));
+      expect(hook.current.project?.tracks).toHaveLength(before + 1);
+      expect(hook.current.project?.tracks.at(-1)?.name).toBe('Chapter 9 – הים 🌊');
+    });
+
     it('with a revision the timer reads nothing, and an event with a new revision reads at once', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const { api, revision, send, reads } = eventHost(A);
@@ -518,13 +528,12 @@ describe('reading the live track list', () => {
       expect(reads()).toBe(2);
     });
 
-    it('an event carrying the revision already shown reads nothing', async () => {
+    it('an event carrying the revision already shown still reads: REAPER may have another project with the same list', async () => {
       const { api, send, reads } = eventHost(A);
       mount(api);
       await settle();
       await send(A);
-      await send(A);
-      expect(reads()).toBe(1);
+      expect(reads()).toBe(2);
     });
 
     it('focus and Refresh still read while a revision is held', async () => {
@@ -554,7 +563,7 @@ describe('reading the live track list', () => {
       expect(reads()).toBe(4);
     });
 
-    it('an event during a read reads once more when it ends, unless that read already answered its revision', async () => {
+    it('an event during a read reads once more when it ends, hidden or not, and never after the panel is switched off', async () => {
       const { api, pending } = heldHost();
       const subs = new Set<(change: { revision: string }) => void>();
       api.subscribeTracksChanged = (on) => {
@@ -562,17 +571,25 @@ describe('reading the live track list', () => {
         return () => subs.delete(on);
       };
       const send = (next: string) => act(async () => subs.forEach((on) => on({ revision: next })));
-      mount(api);
+      const { rerender } = mount(api);
       await settle();
       // The first read left before the change and answers the old list: read again.
+      await send(B);
       await send(B);
       expect(pending).toHaveLength(1);
       await act(async () => pending[0].resolve(answer([], { revision: A })));
       expect(pending).toHaveLength(2);
-      // This read left before a second event but answers its revision: nothing more to read.
-      await send(B);
+      // The window is hidden and shown again inside one read: the event that arrived meanwhile is not lost.
+      await act(async () => setVisibility('hidden'));
+      await send(A);
+      await act(async () => setVisibility('visible'));
       await act(async () => pending[1].resolve(answer([], { revision: B })));
-      expect(pending).toHaveLength(2);
+      expect(pending).toHaveLength(3);
+      // Switched off (an Audacity project) during a read that an event arrived in: nothing reads after it.
+      await send(B);
+      rerender({ enabled: false });
+      await act(async () => pending[2].resolve(answer([], { revision: B })));
+      expect(pending).toHaveLength(3);
     });
 
     it('a failed read forgets the revision, so the timer reads again', async () => {
