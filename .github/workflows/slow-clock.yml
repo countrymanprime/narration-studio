@@ -5,8 +5,8 @@ name: Slow clock
 # spec fails every time. Nightly and by hand, never on a pull request: a pull request run is the full gate and this is a margin check.
 #
 # A red run opens, or comments on, the `slow-clock-red` issue (scripts/ci/train-health.mjs red slow-clock) and the next green run closes it. It
-# holds nothing: this says a spec's wait is too short, not that `main` is broken (main-health.yml does that). The fix is `pastStartGuard`
-# (src/studio/ui/tests/visual/helpers/startGuard.ts) in the spec.
+# holds nothing: this says the Booth specs fail on a slower clock, not that `main` is broken (main-health.yml does that). For a spec that presses Stop
+# soon after a start the fix is `pastStartGuard` (src/studio/ui/tests/visual/helpers/startGuard.ts); read any other failure first, it may be a real timing regression.
 #
 # Five specs are left out because the slowed clock itself breaks them, not a start guard. Each needs its timers on the page's clock:
 #   booth-alignment.spec.ts, `record-connect` x4: the DAW's "not connected" dialog waits for a heartbeat gap measured with `Date.now`, while the
