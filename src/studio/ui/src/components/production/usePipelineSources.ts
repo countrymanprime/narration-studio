@@ -51,6 +51,9 @@ export function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' 
  */
 const noSubscribe = () => () => undefined;
 
+/** How long a project switch waits for the new project's refresh key before it reads for the same key. */
+const SWITCH_WAIT_MS = 400;
+
 export function usePipelineSources(
   active: boolean,
   refreshKey: string,
@@ -80,30 +83,38 @@ export function usePipelineSources(
   useEffect(() => {
     if (!active) return;
     let live = true;
-    findings.findingsList({}).then(
-      (page) => live && setProofRead({ value: proofByChapter(page.findings), generation }),
-      () => live && setProofRead({ value: undefined, generation }),
-    );
-    scriptPrep.scriptPrepList().then(
-      (record) =>
-        live && setPrepRead({ value: Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state])), generation }),
-      () => live && setPrepRead({ value: undefined, generation }),
-    );
-    // A held list is served on a first ask and in a new project (the store was emptied: it reads); a new refresh key in the same project reads it now.
-    const previous = asked.current;
-    asked.current = { generation, key: refreshKey };
-    const readList = async () => {
-      if (!store) return manuscript.manuscriptChapters();
-      if (previous && previous.generation === generation && previous.key !== refreshKey) await store.load('chapters');
-      else await store.ensure('chapters');
-      return store.getState().slots.chapters;
+    const read = () => {
+      findings.findingsList({}).then(
+        (page) => live && setProofRead({ value: proofByChapter(page.findings), generation }),
+        () => live && setProofRead({ value: undefined, generation }),
+      );
+      scriptPrep.scriptPrepList().then(
+        (record) =>
+          live &&
+          setPrepRead({ value: Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state])), generation }),
+        () => live && setPrepRead({ value: undefined, generation }),
+      );
+      // A held list is served on a first ask and in a new project (the store was emptied: it reads); a new refresh key in the same project reads it now.
+      const previous = asked.current;
+      asked.current = { generation, key: refreshKey };
+      const readList = async () => {
+        if (!store) return manuscript.manuscriptChapters();
+        if (previous && previous.generation === generation && previous.key !== refreshKey) await store.load('chapters');
+        else await store.ensure('chapters');
+        return store.getState().slots.chapters;
+      };
+      const tag = `${generation}:${refreshKey}`;
+      void Promise.all([readList().catch(() => undefined), measure.measureState().catch(() => undefined)]).then(
+        ([chapters, job]) => live && setPair({ tag, chapters, job }),
+      );
     };
-    const tag = `${generation}:${refreshKey}`;
-    void Promise.all([readList().catch(() => undefined), measure.measureState().catch(() => undefined)]).then(
-      ([chapters, job]) => live && setPair({ tag, chapters, job }),
-    );
+    // A project switch resets the store, and the new project's key follows from the bootstrap a moment later, which reads everything for that key. Reading
+    // at the reset too would read it all twice: it waits for the key, and reads on its own only when none comes (a copy of the project has the same key).
+    const switched = asked.current !== undefined && asked.current.generation !== generation && asked.current.key === refreshKey;
+    const timer = setTimeout(read, switched ? SWITCH_WAIT_MS : 0);
     return () => {
       live = false;
+      clearTimeout(timer);
     };
   }, [active, refreshKey, generation, store, findings, measure, scriptPrep, manuscript]);
 

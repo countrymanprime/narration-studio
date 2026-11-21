@@ -378,4 +378,42 @@ describe('usePipelineSources under the store (#3658)', () => {
     await act(() => result.current.store.load('chapters'));
     await waitFor(() => expect(result.current.pipeline.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
   });
+  it('reads each source once for a project switch whose new key follows the reset, as a key change alone does', async () => {
+    const counts = { findings: 0, prep: 0, measure: 0, chapters: 0 };
+    const api = {
+      ...createMockApi(),
+      findingsList: async () => {
+        counts.findings += 1;
+        return { findings: [], total: 0 };
+      },
+      measureState: async () => {
+        counts.measure += 1;
+        return { phase: 'success', files: [file('Alpha.wav', 'met')] } as unknown as MeasureJob;
+      },
+      manuscriptChapters: async () => {
+        counts.chapters += 1;
+        return [chapter('c1', 0, 'Alpha')];
+      },
+      scriptPrepList: async () => {
+        counts.prep += 1;
+        return { chapters: [], words: [] };
+      },
+    } as unknown as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result, rerender } = renderHook(({ k }) => ({ pipeline: usePipelineSources(true, k), store: useStoreHandle() }), {
+      wrapper,
+      initialProps: { k: 'a' },
+    });
+    await waitFor(() => expect(result.current.pipeline.master).toBeDefined());
+    expect(counts).toEqual({ findings: 1, prep: 1, measure: 1, chapters: 1 });
+    act(() => result.current.store.reset());
+    rerender({ k: 'b' });
+    await waitFor(() => expect(result.current.pipeline.master).toBeDefined());
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(counts).toEqual({ findings: 2, prep: 2, measure: 2, chapters: 2 });
+  });
 });
