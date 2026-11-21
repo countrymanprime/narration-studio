@@ -8,9 +8,9 @@ export const NEEDS_PROJECT_FOR_PROJECT = 'Open a project to set these for a proj
 
 /**
  * Rows whose scope is not `project` but whose control reads or writes the open project all the same: `project.credits` edits the templates
- * (the computer's) beside this project's values, and cannot read those with no project.
+ * (the computer's) beside this project's values, and cannot read those with no project;  reads the open project's DAW.
  */
-const READS_THE_PROJECT: ReadonlySet<string> = new Set(['project.credits']);
+const READS_THE_PROJECT: ReadonlySet<string> = new Set(['project.credits', 'daw.backups']);
 
 /**
  * Whether a row can only be changed with a project open: its scope is the project's, or its control reads the project. With no project it is

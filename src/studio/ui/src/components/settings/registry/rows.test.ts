@@ -267,6 +267,12 @@ describe('every layer the old Recording check rules panel offered is still offer
   });
 });
 
+describe('the Audacity backups row says which layer it writes (found by the qa-breaker, N3)', () => {
+  it('is a row a project may override, not "This project": the save goes to the layer in force, Global unless the project has its own', () => {
+    expect(ROWS.find((row) => row.id === 'daw.backups')!.scope).toBe('both');
+  });
+});
+
 describe('panel rows are found by the words the panels themselves use', () => {
   it('finds the favourite effects by "favorite" and the compare marker colours by "color"', () => {
     expect(search('favorite').some((hit) => hit.row.id === 'daw.fxFavourites')).toBe(true);

@@ -9,6 +9,7 @@ import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { plural } from '../../plural';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 
 const TOOL = 'DAW';
 const WINDOW_KEY = 'backups.window_seconds';
@@ -183,6 +184,12 @@ export function BackupsSection() {
     if (row.field.number && numberProblem(row.field.number, draft)) return;
     void save(row.scope, { [key]: draft === '' ? null : draft });
   };
+
+  // A value outside its range is held in its box, not saved: leaving the category or the page asks before it is dropped (#3877 N6).
+  const refused = rows.some(
+    ({ field }) => drafts[field.key] !== undefined && field.number !== undefined && numberProblem(field.number, drafts[field.key]!) !== undefined,
+  );
+  useUnsavedDraft('audacity-backups', { dirty: refused, label: 'a backups value outside its range', discard: () => setDrafts({}) });
 
   if (!loadError && !hasBackups(caps)) return null;
   const support = caps?.capabilities['backups'];

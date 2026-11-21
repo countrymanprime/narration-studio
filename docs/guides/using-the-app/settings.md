@@ -54,7 +54,7 @@ the picker.
   its place, described as "a project's", and says **Open a project to change this.** It shows no value, since there is no project to hold one. A **Used by** list names the pages without
   links, **Also set in** is left out, and the **In this project** filter is off.
 - A panel row (such as **Recording check rules**) that has a computer value and a project value edits the computer's, and says **Open a project to
-  set these for a project.** Audacity's backups belong to the project alone and say **Open a project to change this.**
+  set these for a project.** Audacity's backups are read from the open project's recording tool, so they say **Open a project to change this.** A value is saved for every project unless the project already has its own.
 
 ## Every setting says whose it is and who uses it
 
