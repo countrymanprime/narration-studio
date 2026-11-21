@@ -30,7 +30,7 @@ func TestTheRegistryListsTheFiveSourcesInOrderWithRulesTheDefault(t *testing.T) 
 		got = append(got, row{e.Name, e.Descriptor.Label, e.New().Runs()})
 	}
 	want := []row{
-		{"rules", "Rules", true}, {"imported", "Imported file", false}, {"local-model", "Local model", true},
+		{"rules", "Rules", true}, {"imported", "Imported file", false}, {"local-model", "Local model", false},
 		{"gliner", "GLiNER", true}, {"booknlp", "BookNLP", true},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -41,8 +41,8 @@ func TestTheRegistryListsTheFiveSourcesInOrderWithRulesTheDefault(t *testing.T) 
 			t.Errorf("the default on %s is %q, want rules", platform, names[0])
 		}
 	}
-	if got, want := extractionport.RunnableNames(), []string{"rules", "local-model", "gliner", "booknlp"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("RunnableNames = %v, want %v (an imported file is not started from the Story Bible)", got, want)
+	if got, want := extractionport.RunnableNames(), []string{"rules", "gliner", "booknlp"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("RunnableNames = %v, want %v (an imported file and the local model are not started from the Story Bible)", got, want)
 	}
 }
 

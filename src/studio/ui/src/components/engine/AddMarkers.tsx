@@ -26,8 +26,11 @@ export type MarkersGate = { available: boolean; message?: string };
 
 /** REAPER takes markers only into a linked project file, and the top bar's badge asks for the link first, so the button says the same. */
 const NOT_LINKED = 'Link a REAPER project (.rpp) file to add markers.';
-/** How long a press waits for the DAW before it says so and frees the button. */
-const ASK_DEADLINE_MS = 15000;
+/**
+ * How long a press waits for the DAW before it says so and frees the button: above the host's own wait for a move or a marker the DAW has taken
+ * (3 s, then 20 s more, `LateAnswerWait`), so the page never says the DAW did not answer before the host does (`lateWaitLimits.guard.test.ts`).
+ */
+export const ASK_DEADLINE_MS = 26_000;
 const NONE_PLACED = 'None of these lines has a place in the recording yet.';
 
 /** The label every Add marker control carries, a button's and a menu entry's alike. `count` is the pickups that have a place; undefined while it is not known. */

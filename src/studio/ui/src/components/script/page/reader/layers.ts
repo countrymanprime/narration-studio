@@ -34,6 +34,8 @@ export type PhraseLayer = Span & {
   speakerId: string | null;
   /** The speaker entry's own colour (`speakerColour`, D6); null when no entry speaks, which draws the neutral dashed chip. */
   colour: EntityColour | null;
+  /** The speaker was suggested by the local model (`Phrase.reason`): the chip says so, since such a line is the one to check hardest. */
+  byModel?: boolean;
   /** The speaker's name, or `?` when none is known. */
   label: string;
   state: Phrase['state'];
@@ -133,6 +135,7 @@ const phraseLayer = (types: readonly GuideType[], phrase: Phrase): PhraseLayer =
   colour: speakerColour(types, phrase.speaker ? { category: phrase.speaker.category, speakerColor: phrase.speaker.speaker_color } : undefined),
   label: phrase.speaker?.canonical_name ?? '?',
   state: phrase.state,
+  ...(phrase.reason ? { byModel: true } : {}),
 });
 
 /** Every layer one paragraph draws except Find, which the reader adds from its matches. */

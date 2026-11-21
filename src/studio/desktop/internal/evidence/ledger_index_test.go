@@ -5,9 +5,13 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"desktop/internal/filetest"
+	"desktop/internal/persist"
 )
 
 // decodesOf is how many record files the store has read and decoded so far: the work the tests below guard (issue 3749).
@@ -114,6 +118,54 @@ func TestARewrittenRecordFileIsDecodedAgain(t *testing.T) {
 	}
 }
 
+// The file's size and modification time are not its identity: content that changed under both is what the next read answers, and
+// the untouched files are not decoded again.
+func TestALedgerRecordRewrittenAtTheSameSizeAndTimeIsDecodedAgain(t *testing.T) {
+	reader, _, project := ledgerOf(t, 2)
+	before, ok := reader.Latest("rc", "c-0001")
+	if !ok || before.AnalyzerVersion == "" {
+		t.Fatalf("first read = %+v, %v", before, ok)
+	}
+	other := strings.Repeat("9", len(before.AnalyzerVersion))
+	path := filepath.Join(LedgerDir(project), before.ID+".json")
+	filetest.RewriteInPlace(t, path, `"`+before.AnalyzerVersion+`"`, `"`+other+`"`)
+	if got, _ := reader.Latest("rc", "c-0001"); got.AnalyzerVersion != other {
+		t.Fatalf("read after the rewrite = %q, want %q", got.AnalyzerVersion, other)
+	}
+	if got, _ := reader.Latest("rc", "c-0001"); got.AnalyzerVersion != other {
+		t.Fatalf("read of the untouched file = %q, want %q", got.AnalyzerVersion, other)
+	}
+	if decodes := decodesOf(reader); decodes != 3 {
+		t.Fatalf("decoded %d files, want 3 (two, then the rewritten one once)", decodes)
+	}
+}
+
+// A record the store wrote is held as it was written: reading it back decodes nothing.
+func TestARecordTheStoreWroteIsReadBackWithoutADecode(t *testing.T) {
+	_, writer, _ := ledgerOf(t, 3)
+	if all, err := writer.All(); err != nil || len(all) != 3 {
+		t.Fatalf("All = %d records, %v; want 3", len(all), err)
+	}
+	if decodes := decodesOf(writer); decodes != 0 {
+		t.Fatalf("the writing store decoded %d of its own records, want 0", decodes)
+	}
+}
+
+// The store holds what it wrote as the file reads, so a caller that goes on using its record changes nothing a read answers.
+func TestWhatAWriterDoesToItsRecordAfterWriteIsNotSeenByAll(t *testing.T) {
+	store := NewLedgerStore(t.TempDir())
+	record := baseLedgerRecord("rc", "c-0001", time.Now(), LedgerComplete)
+	record.Counts = map[string]int{"items": 3}
+	if _, err := store.Write(record); err != nil {
+		t.Fatal(err)
+	}
+	record.Counts["items"] = 99
+	all, err := store.All()
+	if err != nil || len(all) != 1 || all[0].Counts["items"] != 3 {
+		t.Fatalf("All = %+v, %v; want the record as written, with 3 items", all, err)
+	}
+}
+
 func TestACorruptRecordFileIsReadOnceAndItsRepairIsSeen(t *testing.T) {
 	reader, writer, project := ledgerOf(t, 2)
 	corrupt := filepath.Join(LedgerDir(project), "broken.json")
@@ -145,13 +197,19 @@ func TestAnUnreadableRecordFileIsTriedAgain(t *testing.T) {
 	if err := os.Mkdir(blocked, 0o755); err != nil { // a folder in a record's place reads as unreadable on every platform
 		t.Fatal(err)
 	}
+	unreadable := 0
+	reader.Reporter = &persist.Reporter{Log: func(kind, _ string) {
+		if kind == "persisted_unreadable" {
+			unreadable++
+		}
+	}}
 	for range 2 {
 		if all, _ := reader.All(); len(all) != 1 {
 			t.Fatalf("All beside an unreadable file = %d, want 1", len(all))
 		}
 	}
-	if decodes := decodesOf(reader); decodes != 3 {
-		t.Fatalf("decoded %d files, want 3 (the readable one once, the unreadable one on both reads)", decodes)
+	if decodes := decodesOf(reader); decodes != 1 || unreadable != 2 {
+		t.Fatalf("decoded %d files and tried the unreadable one %d times, want 1 (the readable one once) and 2 (on both reads)", decodes, unreadable)
 	}
 }
 

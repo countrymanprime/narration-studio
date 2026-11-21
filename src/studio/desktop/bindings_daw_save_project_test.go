@@ -66,7 +66,8 @@ func TestDawSaveProjectWordsWhatKeptTheRoleFromAnswering(t *testing.T) {
 	}{
 		"no answer":   {bridge.ErrNoAnswer, "REAPER is not answering."},
 		"unavailable": {bridge.ErrUnavailable, "REAPER is not connected to this app"},
-		"late":        {context.DeadlineExceeded, "did not answer the save within 15 seconds"},
+		"late":        {context.DeadlineExceeded, "did not answer the save within 26 seconds"},
+		"took it":     {bridge.ErrAnswerLate, "REAPER took the command but did not confirm it in time"},
 		"other":       {errors.New("disk on fire"), "REAPER could not save the project: disk on fire."},
 	} {
 		got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), &fakeSaver{err: test.err}, "Book.rpp", nil)

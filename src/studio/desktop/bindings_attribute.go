@@ -18,7 +18,7 @@ type GuideCueSpeaker struct {
 }
 
 // GuideAttributeSpeakers attributes every unconfirmed quoted line and returns {cues, attributed, filled, changed, keptConfirmed,
-// previous}. It runs under the same deadline as a refresh after an import, and a failure writes nothing.
+// previous, modelFilled, modelNote}. It runs under the same deadline as a refresh after an import, and a failure writes nothing.
 func (h *Host) GuideAttributeSpeakers() (string, error) {
 	service := h.services().guide
 	if service == nil {
