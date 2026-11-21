@@ -190,6 +190,7 @@ func (s *LedgerStore) Write(record LedgerRecord) (LedgerRecord, error) {
 	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return LedgerRecord{}, fmt.Errorf("could not write the analysis ledger record: %w", err)
 	}
+	s.index.put(record.ID, persist.Sum(bytes), record)
 	return record, nil
 }
 
@@ -303,13 +304,14 @@ func (snapshot LedgerSnapshot) List(analyzerID, chapterID string) ([]LedgerRecor
 	return matched, nil
 }
 
-// All returns every readable record in the store, in no particular order. A record is decoded once and kept while its file
-// is unchanged (ledgerIndex), so the records share their maps and slices with later reads: read them, never change them.
+// All returns every readable record in the store, in no particular order. A record is decoded once and kept while its file's
+// bytes are unchanged (ledgerIndex), and a record this store wrote is kept as it was given to Write, so the records share their
+// maps and slices with later reads and with Write's caller: read them, never change them.
 // An unreadable or wrong-schema file is skipped, not reported as an error:
 // the store is meant to survive a corrupt neighbour (these are derived
 // facts a re-analysis can always replace, persist.Disposable's class).
 func (s *LedgerStore) All() ([]LedgerRecord, error) {
-	return s.index.refresh(s.dir, func(id string) (LedgerRecord, persist.Outcome) { return s.decodeRecord(s.recordPath(id)) })
+	return s.index.refresh(s.dir, s.Reporter, decodeRecord)
 }
 
 // Reads is the work the store's reads have done so far: how often it listed the folder and how many record files it
@@ -403,30 +405,30 @@ func (s *LedgerStore) recordPath(id string) string {
 	return filepath.Join(s.dir, id+".json")
 }
 
+// readRecord reads and decodes one record file; false is a file that is missing or does not read as a record.
 func (s *LedgerStore) readRecord(path string) (LedgerRecord, bool) {
-	record, outcome := s.decodeRecord(path)
+	var record LedgerRecord
+	outcome := s.Reporter.ReadJSON(path, ledgerRecordName, persist.Disposable, func(raw []byte) (err error) {
+		record, err = decodeRecord(path, raw)
+		return err
+	})
 	return record, outcome == persist.Loaded
 }
 
-// decodeRecord reads and decodes one record file, with how the read went: only persist.Loaded carries a record.
-func (s *LedgerStore) decodeRecord(path string) (LedgerRecord, persist.Outcome) {
-	var record LedgerRecord
-	outcome := s.Reporter.ReadJSON(path, "analysis ledger record", persist.Disposable, func(raw []byte) error {
-		var decoded LedgerRecord
-		if err := json.Unmarshal(raw, &decoded); err != nil {
-			return err
-		}
-		if decoded.SchemaVersion > ledgerSchemaVersion {
-			return fmt.Errorf("schema version %d newer than supported %d", decoded.SchemaVersion, ledgerSchemaVersion)
-		}
-		// A record is found by its file's name and by the id inside it; a file copied or renamed by hand would answer for both.
-		if id, _ := recordID(filepath.Base(path)); decoded.ID != id {
-			return fmt.Errorf("record id %q does not match its file name", decoded.ID)
-		}
-		record = decoded
-		return nil
-	})
-	return record, outcome
+// decodeRecord decodes the bytes of the record file at path.
+func decodeRecord(path string, raw []byte) (LedgerRecord, error) {
+	var decoded LedgerRecord
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return LedgerRecord{}, err
+	}
+	if decoded.SchemaVersion > ledgerSchemaVersion {
+		return LedgerRecord{}, fmt.Errorf("schema version %d newer than supported %d", decoded.SchemaVersion, ledgerSchemaVersion)
+	}
+	// A record is found by its file's name and by the id inside it; a file copied or renamed by hand would answer for both.
+	if id, _ := recordID(filepath.Base(path)); decoded.ID != id {
+		return LedgerRecord{}, fmt.Errorf("record id %q does not match its file name", decoded.ID)
+	}
+	return decoded, nil
 }
 
 // recordID reports the record ID a ledger file's name carries: any name

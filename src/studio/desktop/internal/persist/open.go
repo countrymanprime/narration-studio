@@ -1,12 +1,13 @@
 package persist
 
 import (
-	"io"
+	"bytes"
+	"math"
 	"os"
 	"sync/atomic"
 )
 
-// decodes and listings count the work ReadJSON and ReadDir did in this process, for the tests that budget what a host read costs.
+// decodes and listings count the work ReadJSON, ReadHeld (a file it decoded, not one it only hashed) and ReadDir did in this process, for the tests that budget what a host read costs.
 var decodes, listings atomic.Int64
 
 // Work reports how many files ReadJSON has read and decoded and how many folders ReadDir has listed since the process started. A
@@ -27,5 +28,14 @@ func ReadFile(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer func() { _ = file.Close() }()
-	return io.ReadAll(file)
+	// One buffer of the file's size: io.ReadAll grows and copies its buffer as it goes, which more than doubled the read
+	// of a megabyte file, and every held file is read whole on every ask (issue 3863).
+	var buffer bytes.Buffer
+	if info, err := file.Stat(); err == nil && info.Size() > 0 && info.Size() < math.MaxInt32 {
+		buffer.Grow(int(info.Size()) + bytes.MinRead)
+	}
+	if _, err := buffer.ReadFrom(file); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
 }
