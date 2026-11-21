@@ -189,7 +189,7 @@ jobs:
     #         every test) run in `CI passed` from each shard's capture records and manifest. `aria` (the role trees, about 50 s) runs on the
     #         shard the split names.
     #       - the component atlas (full tier): every Storybook story x light/dark x wide/narrow, with play() interactions, axe and overflow
-    #         checks (`pnpm atlas --shard=i/6`); shard 1 also checks docs/ui equals a fresh generation (fix with
+    #         checks (`scripts/atlas-scope.mjs --shard=i/6`: on a pull request the stories the change reaches, else all); shard 1 also checks docs/ui equals a fresh generation (fix with
     #         `pnpm --dir src/studio/ui docs:atlas`).
     #     A change that does not reach the UI runs shard 1 alone (lint's `test-shards`), whose steps then find nothing to do. The shard still
     #     starts because its own scope check differs from lint's on a workflow pin bump that reaches neither this job nor the gate: there
@@ -305,12 +305,15 @@ jobs:
         id: aria
         if: ${{ !cancelled() && steps.split.outputs.aria == 'true' }}
         run: pnpm --dir src/studio/ui run aria
+      # On a pull request the atlas draws the stories the change reaches (the import graph, src/studio/ui/scripts/atlas-scope.mjs) and
+      # builds no Storybook when it reaches none; every other run draws all of them. `atlas docs` below always checks every page.
       - name: atlas
         id: atlas
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         env:
           SHARD: ${{ matrix.shard }}
-        run: pnpm --dir src/studio/ui run atlas --shard="$SHARD/6"
+        working-directory: src/studio/ui
+        run: node scripts/atlas-scope.mjs --shard="$SHARD/6"
       - name: atlas docs
         id: atlas-docs
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' && matrix.shard == 1 }}

@@ -103,8 +103,20 @@
       "workflow": "_quality.yml",
       "job": "test-linux",
       "step": [
-        "run atlas --shard=\"$SHARD/6\""
-      ]
+        "node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""
+      ],
+      "note": "On a pull request the step draws the stories the change reaches through the import graph (src/studio/ui/scripts/atlas-scope.mjs, #3860); the entry below is what it leaves to main."
+    },
+    {
+      "id": "ui-atlas/stories-the-change-does-not-reach",
+      "was": "quality / ui-atlas (shard i/2)",
+      "tier": "post-merge",
+      "workflow": "_quality.yml",
+      "job": "test-linux",
+      "step": [
+        "node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""
+      ],
+      "safety_net": "Every run of ci.yml that is not a pull request draws every story: Main health on each push to main and every three hours, where a red run opens the blocking main-red issue and ticks HOLD on the train issue. On the pull request every story still renders with its play() in jsdom (src/stories.test.tsx, the Vitest step) and atlas docs checks every page. A manual run of CI on the branch draws every story before the merge."
     },
     {
       "id": "ui-atlas/atlas-docs",
