@@ -13,7 +13,7 @@ export type RecordedAt = { through: RecordedThrough; audio: boolean };
  * Whether a recorded length counts as audio for the percent: one whole second or more. A length under a second prints as 0:00, so it reads 0% beside it (any recorded second reads
  * at least 1%). One rule for `recordedAtOf` and `recordedPercent`.
  */
-export const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;
+const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;
 
 /** The pair of a chapter as one read gave it; undefined when nothing says any of the chapter is recorded. */
 export const recordedAtOf = (chapter: { recordedThrough?: RecordedThrough; recordedSeconds?: number | null }): RecordedAt | undefined =>
