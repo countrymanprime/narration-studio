@@ -36,7 +36,7 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { CREATE_QUIET_MS, resetChapterTrackCreateGuard, useChapterLinks } from './useChapterLinks';
 import { VoiceLayoutContext } from './voiceLayout';
@@ -49,8 +49,11 @@ import { headingName } from '../../chapterHeading';
 import { chapterName } from '../../chapterName';
 import type { NarrationApi, Track, VoiceTracksLayout } from '../../types';
 
+// The quiet after a create (CREATE_QUIET_MS) is passed on a fake clock, not waited for.
+beforeEach(() => void vi.useFakeTimers({ shouldAdvanceTime: true }));
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.restoreAllMocks();
   resetChapterTrackCreateGuard();
 });
@@ -140,7 +143,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-const pastQuiet = () => new Promise((resolve) => setTimeout(resolve, CREATE_QUIET_MS + 30));
+const pastQuiet = () => act(() => vi.advanceTimersByTimeAsync(CREATE_QUIET_MS + 30));
 
 describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   it('puts one create button on each unlinked row, and none on a linked or missing-track row', async () => {
@@ -167,7 +170,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('links the chapter to the new track at once, toasts what was made and reads the live tracks again', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const { api, notify, live } = renderTable();
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
@@ -183,7 +186,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('in Voice folders, offers a folder and shows the new folder with its one voice', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = createMockApi({}, { voiceFolders: true });
     const { notify } = renderTable({ api, layout: 'folders' });
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -199,7 +202,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('a partly done create says what is left in the same toast, and names every track the folder was made with (#3748)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi({}, { voiceFolders: true });
     const message = 'REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.';
     const api = {
@@ -223,7 +226,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('is busy while the DAW answers: the button spins, Confirm is off, and a second press adds nothing', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const answer = deferred<ChapterTrackCreateResult>();
     const create = vi.fn(() => answer.promise);
@@ -256,7 +259,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     ['standalone', 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.'],
     ['not_running', 'REAPER is not answering, so no track can be added. Check that REAPER is open, then try again.'],
   ] as const)('a refusal (%s) is the host’s sentence as an error toast, and the row is unchanged', async (reason, message) => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const { notify, live } = renderTable({ api: { ...base, chapterTrackCreate: async () => ({ outcome: 'refused', reason, message }) } });
     const { row } = await firstRow();
@@ -272,7 +275,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('a REAPER that is not connected to the mock refuses with its own sentence', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const { notify } = renderTable({ api: createMockApi({}, { reaperState: 'unavailable' }) });
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
@@ -280,7 +283,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('a failed call is an error toast that says the track could not be added', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const { notify } = renderTable({ api: { ...base, chapterTrackCreate: () => Promise.reject(new Error('the host went away')) } });
     const { row } = await firstRow();
@@ -290,7 +293,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('keeps a right-to-left and emoji title exactly, and truncates a long one with its full name as the title', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const rtl = 'פרק ١ \u{1F30A} البحر';
     const long = `Chapter 2: ${'A very long chapter title that goes on '.repeat(6).trim()}`;
@@ -325,7 +328,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('a layout switched mid-press: the host’s answer decides what the toast says was made', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const answer = deferred<ChapterTrackCreateResult>();
     const { notify } = renderTable({ api: { ...base, chapterTrackCreate: () => answer.promise } });
@@ -337,7 +340,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('shows the new track from the answer until the list reads it, then a track deleted in the DAW shows as missing', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const harness = renderTable();
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
@@ -351,7 +354,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await waitFor(() => expect(within(row).getByRole('img', { name: 'Track missing' })).toBeTruthy());
   });
   it('ignores a create press within the quiet time after an answer, and takes one after it (F1)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const create = vi.fn((chapterId: string) => base.chapterTrackCreate(chapterId));
     renderTable({ api: { ...base, chapterTrackCreate: create } });
@@ -369,7 +372,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('a remount while a create is pending shows the row busy and cannot press again (B2)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const answer = deferred<ChapterTrackCreateResult>();
     const create = vi.fn(() => answer.promise);
@@ -394,7 +397,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     ['already_linked', 'This chapter is already linked to “Chapter 1” in REAPER. Change or clear that link instead of adding another track.'],
     ['name_taken', 'REAPER already has a track named “Chapter 1: Down the Rabbit-Hole”. Link that one with the picker instead of adding another.'],
   ] as const)('a %s refusal is an error toast and the row is unchanged (B2, F2)', async (reason, message) => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const { notify, live } = renderTable({ api: { ...base, chapterTrackCreate: async () => ({ outcome: 'refused', reason, message }) } });
     const { row } = await firstRow();
@@ -405,7 +408,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('the mock refuses a name a track already has after the chapter was unlinked, as the host does (F2)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = createMockApi();
     await api.chapterTrackCreate(WIRE_CHAPTERS[0].id);
     await api.chapterTrackUnlink(WIRE_CHAPTERS[0].id);
@@ -416,7 +419,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('a link that could not be saved after the DAW added the track is an error toast, and the live tracks are read again (B6)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const base = createMockApi();
     const message = 'REAPER added the track “Chapter 1: Down the Rabbit-Hole”, but its link could not be saved: the disk is full.';
     const { notify, live } = renderTable({ api: { ...base, chapterTrackCreate: async () => ({ outcome: 'refused', reason: 'link_failed', message }) } });
@@ -427,7 +430,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   });
 
   it('drops a created track that a read answered after the create leaves out, so the row says Track missing (B4)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const harness = renderTable();
     const { row } = await firstRow();
     await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
@@ -454,7 +457,7 @@ describe('The check on the track the chapter already has', () => {
   }
 
   it('says what it found when no live read applies', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const { notify, live } = renderTable();
     const { row } = await firstRow();
     await linkAndReopen(live, user, row);
@@ -467,7 +470,7 @@ describe('The check on the track the chapter already has', () => {
   });
 
   it('adds no message of its own when the live read failed', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const { notify, live } = renderTable();
     const { row } = await firstRow();
     await linkAndReopen(live, user, row);
@@ -487,7 +490,7 @@ describe('The check on the track the chapter already has', () => {
     expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
   });
   it('keeps the picker open when the track is gone, so another can be chosen', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const { notify, live } = renderTable();
     const { row } = await firstRow();
     await linkAndReopen(live, user, row);
@@ -508,7 +511,7 @@ describe('The check on the track the chapter already has', () => {
   });
 
   it('holds Cancel while the re-read runs and keeps a pick made meanwhile', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const { live } = renderTable();
     const { row } = await firstRow();
     await linkAndReopen(live, user, row);
@@ -529,7 +532,7 @@ describe('The check on the track the chapter already has', () => {
 // qa-breaker (#3281): a pick whose track left the list is no pick, however the list got shorter.
 describe('A pick whose track is gone', () => {
   it('leaves the check off, and pressing it links nothing', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const { api, setTracks } = renderTable();
     const set = vi.spyOn(api, 'chapterTrackSet');
     const { row } = await firstRow();
@@ -561,7 +564,7 @@ describe('A pick whose track is gone', () => {
 // qa-breaker (#3281): REAPER can give a track no name; the row said its link was missing while the badge said Linked.
 describe('A linked track with no name', () => {
   it('shows under the one name for a blank track, not as a missing one', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const unnamed = WIRE_TRACKS_PROJECT.tracks.map((track, index) => (index === 0 ? { ...track, name: '' } : track));
     renderTable({ tracks: unnamed });
     const { row } = await firstRow();

@@ -1,4 +1,5 @@
 import { Fragment, memo, type MouseEvent, type ReactNode } from 'react';
+import { SUGGESTED_BY_MODEL } from '../../../manuscript/dialogueCues.selectors';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { kindChipColors, kindDef, type KindId } from '../../../../kinds/kindMap';
 import { kindMarkStyle } from '../../../../kinds/markStyle';
@@ -41,7 +42,9 @@ function Chip({ phrase, onPick }: { phrase: PhraseLayer; onPick?: ParaProps['onP
   };
   const kind = CHIP_KIND[phrase.state];
   const colours = kindChipColors(kind, phrase.colour ?? undefined);
-  const name = phrase.state === 'unknown' ? 'speaker unknown' : `${phrase.label}, ${STATE_WORDS[phrase.state]}`;
+  // A local model's suggestion is told apart from the search's own without opening it: in the chip's name and its tooltip.
+  const how = phrase.byModel ? SUGGESTED_BY_MODEL.toLowerCase() : STATE_WORDS[phrase.state];
+  const name = phrase.state === 'unknown' ? 'speaker unknown' : `${phrase.label}, ${how}`;
   return (
     // native-control-ok: the chip is an inline label in running text, with no box of its own; Button and IconButton draw a bordered control
     <button
@@ -49,6 +52,7 @@ function Chip({ phrase, onPick }: { phrase: PhraseLayer; onPick?: ParaProps['onP
       data-chip={phrase.cueId}
       data-state={phrase.state}
       data-label={phrase.label}
+      title={phrase.byModel ? SUGGESTED_BY_MODEL : undefined}
       aria-label={`Speaker: ${name}. Change speaker`}
       onClick={click}
       // The chip is drawn 23 px tall in the 0.7 em line; presses land in a 24 px box around it (alignment audit R3SC-8).

@@ -32,6 +32,12 @@ const readAloudRecordStartTimeout = 3 * time.Second
 // (bridge.LateAnswerWait, #3645) and room for the read-back after it.
 const laneCommandTimeout = bridge.DefaultAnswerTimeout + bridge.LateAnswerWait + 2*tracksLiveTimeout
 
+// writeCommandTimeout bounds a binding that sends one command that changes the DAW's project, with at most one short read before it: the
+// usual wait for the read, then the command's own usual wait and the late wait the bridge gives it once the DAW has read it
+// (bridge.LateAnswerWait, #3752). A shorter bound ends that wait first and reports as not confirmed a change that is about to land. A
+// command the DAW never read still fails at the usual wait.
+const writeCommandTimeout = 2*bridge.DefaultAnswerTimeout + bridge.LateAnswerWait
+
 // readAloudVoiceStartTimeout is readAloudRecordStartTimeout plus the wait for REAPER's live track list (tracksLiveTimeout) that a call
 // resolving the chapter's voice makes first, so a slow list read does not eat the arm's own budget (a list answering in 2.5 s must
 // still leave the arm its 3 s).
@@ -110,6 +116,21 @@ func readAloudConnectionRefusal(name, connection string) ReadAloudRecording {
 	return readAloudRefused(connection, fmt.Sprintf("%s is not connected to this app. To record with reading, open %s; the app connects to it by itself.", name, name))
 }
 
+// lateAnswerSentence is what a binding says of a command the DAW took and had not confirmed when the wait ended (bridge.ErrAnswerLate): it
+// may have done it, so the sentence is neither "not answering" nor "nothing changed", and the narrator looks before trying again.
+func lateAnswerSentence(name string) string {
+	return fmt.Sprintf("%s took the command but did not confirm it in time, so what it did may not match. Check %s.", name, name)
+}
+
+// lateAnswerError is err with lateAnswerSentence for its text when the DAW took the command, for a binding that hands its error to the
+// page as it is: the bridge's own text for it opens with "did not answer", which the page would show for a change that may land.
+func lateAnswerError(name string, err error) error {
+	if errors.Is(err, bridge.ErrAnswerLate) {
+		return errors.New(lateAnswerSentence(name))
+	}
+	return err
+}
+
 // readAloudUnsupportedRefusal is the refusal when the linked DAW does not report the record (or, for a punch, the punch)
 // capability: it speaks of recording, which is what the narrator pressed, and names the DAW.
 func readAloudUnsupportedRefusal(name string) ReadAloudRecording {
@@ -125,7 +146,7 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 		return readAloudRefused(readAloudTrackMissing, fmt.Sprintf("The track linked to this chapter is no longer in the %s project. Link it again in the audio engine panel.", name))
 	case errors.Is(err, bridge.ErrAnswerLate):
 		// REAPER took the command and had not confirmed it when the wait ended (#3645): it may have done it, so this is neither "not answering" nor "nothing started".
-		return readAloudRefused("timeout", fmt.Sprintf("%s took the command but did not confirm it in time, so what it did may not match. Check %s.", name, name))
+		return readAloudRefused("timeout", lateAnswerSentence(name))
 	case errors.Is(err, context.DeadlineExceeded):
 		return readAloudRefused("timeout", fmt.Sprintf("%s did not confirm within 3 seconds. Nothing started.", name))
 	case errors.Is(err, bridge.ErrNoTrackArmed):

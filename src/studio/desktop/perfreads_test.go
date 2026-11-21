@@ -160,7 +160,8 @@ var budgetBook = perfBook{Chapters: 44, Paragraphs: 4, Items: 10, Checked: 44, C
 // listings are what main costs today, exactly; allocations are that with half as much again, since the runtime's own vary.
 // A change that makes a read cheaper lowers its row; one that needs a row raised says why in its pull request.
 //
-// What the counts see: a decode is a file read through persist's Reporter.ReadJSON (the ledger, the stored results, the
+// What the counts see: a decode is a file read and decoded through persist's Reporter.ReadJSON or ReadHeld (the ledger and the
+// stored results are read and hashed on every ask and decoded, and counted, only when their bytes changed; the
 // findings, the links, the pickup list), and a listing is a folder listed through persist.ReadDir (the ledger, the evidence
 // cache, the findings). A file read with os.ReadFile or a folder listed with os.ReadDir is in the allocations only.
 var readBudgets = []readBudget{

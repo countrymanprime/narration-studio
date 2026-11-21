@@ -163,7 +163,7 @@ class SourceRegistry(Registry[ExtractionSource]):
 BUILT_IN = (
     ExtractionDescriptor(RULES, "Rules", modes=(EXTRACT,), icon="auto"),
     ExtractionDescriptor(IMPORTED, "Imported file", modes=(EXTRACT,), icon="import", runs=False),
-    ExtractionDescriptor(LOCAL_MODEL, "Local model", modes=(EXTRACT,), icon="globe", scored=False),
+    ExtractionDescriptor(LOCAL_MODEL, "Local model", modes=(EXTRACT,), icon="globe", runs=False, scored=False),
     ExtractionDescriptor(GLINER, "GLiNER", modes=(EXTRACT,), icon="locate", assets=("gliner",)),
     ExtractionDescriptor(BOOKNLP, "BookNLP", modes=(EXTRACT,), icon="dictionary", assets=("booknlp-small", "booknlp-big")),
 )
