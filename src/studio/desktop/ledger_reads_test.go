@@ -27,10 +27,14 @@ func TestAPagesReadsListTheLedgerOncePerPassAndDecodeNothingTwice(t *testing.T) 
 		// One pass gives the chapter list both its recorded fractions and the proof lines for how far a chapter is recorded.
 		{"the chapter list", host.ManuscriptChapters, 1},
 		{"chapter sync", host.ChapterSyncState, 1},
-		// The pickup list reads the chapter list, then makes a pass of its own.
-		{"the pickup list", host.PickupsList, 2},
+		// The pickup list makes one pass: it reads the chapters without their recorded fractions (issue 3804).
+		{"the pickup list", host.PickupsList, 1},
+		{"the open pickups count", host.PickupsOpenCount, 1},
 		{"the Production overview", host.ProductionOverview, 1},
 	}
+	// Counted from before the first read of each: the check just stored its result, which nothing has decoded yet, so a
+	// reader that went back to the whole result would decode it here.
+	results := host.coverage.ResultsDecoded()
 	for _, each := range reads { // the first read of each decodes what it needs
 		if _, err := each.read(); err != nil {
 			t.Fatalf("%s: %v", each.name, err)
@@ -48,6 +52,16 @@ func TestAPagesReadsListTheLedgerOncePerPassAndDecodeNothingTwice(t *testing.T) 
 		if decodesAfter != decodes {
 			t.Errorf("%s decoded %d ledger files it had decoded before", each.name, decodesAfter-decodes)
 		}
+	}
+	// None of them reads a stored result itself: the figures and the gaps come from each result's summary.
+	if decoded := host.coverage.ResultsDecoded() - results; decoded != 0 {
+		t.Errorf("the reads decoded %d stored results, want 0", decoded)
+	}
+	// Nor did anything before them: the check stores its result without reading it back, and the chaptersync:state read it
+	// starts takes the summary. A reader that decoded the result before the count began would have hidden itself behind
+	// the decoded-result cache.
+	if total := host.coverage.ResultsDecoded(); total != 0 {
+		t.Errorf("%d stored results were decoded since the check, want 0", total)
 	}
 }
 
