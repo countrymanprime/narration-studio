@@ -80,6 +80,36 @@ describe('useFxFavourites', () => {
     await waitFor(() => expect(result.current.names).toEqual(['Air.RfxChain', 'Warm.RfxChain']));
   });
 
+  // qa-breaker: a double click stars a chain, the list moves it to the top, and the second click lands on the chain that moved under the pointer.
+  it('a second press within the quiet window is a double press and changes nothing', async () => {
+    const save = vi.fn(async () => {});
+    const wrapper = withApi({
+      saveSettings: save as unknown as NarrationApi['saveSettings'],
+      settingsForScope: async () => ({
+        DAW: [
+          {
+            key: 'fx_favourites',
+            label: 'Favourite effects',
+            kind: 'tags',
+            choices: [],
+            value: '',
+            isSet: false,
+            effectiveValue: '',
+            effectiveSource: 'default',
+          },
+        ],
+      }),
+    } as Partial<NarrationApi>);
+    const { result } = renderHook(() => useFxFavourites(), { wrapper });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    act(() => {
+      result.current.toggle('Warm.RfxChain');
+      result.current.toggle('Air.RfxChain');
+    });
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    expect(save).toHaveBeenCalledWith('DAW', 'global', { fx_favourites: 'Warm.RfxChain' });
+  });
+
   it('says why when the setting cannot be read or saved, and keeps the last list', async () => {
     const wrapper = withApi({
       ...stored('Air.RfxChain'),
