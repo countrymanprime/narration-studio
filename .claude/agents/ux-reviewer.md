@@ -23,7 +23,7 @@ A branch (or PR) and the paths of screenshots of every page the change touches, 
 
 ## Report
 
-`Verdict: pass` or `Verdict: fail`, then a table: component or file, rule number, what you saw (with the screenshot path), blocking or advisory. A rule you could not check from the evidence is "not verified", never a pass. No praise and no restating what is correct.
+`Verdict: pass` or `Verdict: fail`, a line `Design system: used <primitive> / hand-rolled <what>` ([rule](../rules/product-rules.md); hand-rolled or ad-hoc styles and colours are a fail), then a table: component or file, rule number, what you saw (with the screenshot path), blocking or advisory. A rule you could not check from the evidence is "not verified", never a pass. No praise and no restating what is correct.
 
 ## Rules
 

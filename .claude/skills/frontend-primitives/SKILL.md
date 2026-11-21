@@ -9,11 +9,12 @@ Recent UI mistakes were the same few: a second copy of something that already ex
 
 ## Before adding an element
 
-0. [One thing per job](../../rules/product-rules.md): search the primitives, `docs/ui/inventory.json` and the atlas first. A new control, or a mock-up of one, that does what an existing primitive does is a **FAIL** unless it replaces that primitive and deletes it in the same PR.
-1. Look in `src/studio/ui/src/components/primitives/` (list below). If one fits, use it; if it nearly fits, extend it with a prop and a story.
-2. Two screens drawing the same thing is the signal to extract one primitive, with a `<Name>.stories.tsx` and a test, in the same PR. Do not copy markup between pages.
-3. Choose the primitive by what the control does or the value it holds: [Component selection](../../../docs/design/component-selection.md) has the decision table and the rules (`CS-…`) a reviewer cites.
-4. Read the primitive's table row in [the design system](../../../docs/design/design-system.md#primitive-components) and the mock for the page ([ui-spec-and-screenshots](../../rules/ui-spec-and-screenshots.md)).
+0. [The design system is the only source of UI](../../rules/product-rules.md): primitives and tokens only, in the app and in a mock-up; hand-rolled elements, ad-hoc styles and one-off variants are a **FAIL**.
+1. [One thing per job](../../rules/product-rules.md): search the primitives, `docs/ui/inventory.json` and the atlas first. A new control, or a mock-up of one, that does what an existing primitive does is a **FAIL** unless it replaces that primitive and deletes it in the same PR.
+2. Look in `src/studio/ui/src/components/primitives/` (list below). If one fits, use it; if it nearly fits, extend it with a prop and a story.
+3. Two screens drawing the same thing is the signal to extract one primitive, with a `<Name>.stories.tsx` and a test, in the same PR. Do not copy markup between pages.
+4. Choose the primitive by what the control does or the value it holds: [Component selection](../../../docs/design/component-selection.md) has the decision table and the rules (`CS-…`) a reviewer cites.
+5. Read the primitive's table row in [the design system](../../../docs/design/design-system.md#primitive-components) and the mock for the page ([ui-spec-and-screenshots](../../rules/ui-spec-and-screenshots.md)).
 
 ## Before writing text or logic a page already has
 

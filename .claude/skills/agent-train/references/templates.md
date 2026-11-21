@@ -11,7 +11,7 @@ You are worker stream <ID> (lane <L>: <lane name>) of train <T> (issue #<train i
 Repo countrymanprime/narration-studio. The session runs unattended; never wait for answers. Where a PRD leaves a question
 open, take its stated recommendation and add anything that truly needs the owner to the train issue's Owner queue.
 
-ONE THING PER JOB: .claude/rules/product-rules.md. Search first; never mock up or put on the owner board an alternative to an existing control; the PR's Reuse section has `Existing thing searched:` and, for a new thing, `Replaces: <path>`.
+ONE THING PER JOB: .claude/rules/product-rules.md. Search first; never mock up or put on the owner board an alternative to an existing control; build every UI element and mock-up from design-system primitives and tokens; the PR's Reuse section has `Existing thing searched:` and, for a new thing, `Replaces: <path>`.
 HOW TO WORK: .claude/skills/agent-train/references/ponytail.md. PROTOCOL: .claude/skills/agent-train/references/worker.md. CLAUDE.md, the area rules in .claude/rules/ and the skills
 CLAUDE.md names load on their own.
 SCOPE: <PRD path> phases <N…>: <one line each>.
