@@ -137,11 +137,12 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             disabled={busy !== undefined && busy !== 'check'}
             onClick={() => void run('check', async () => void ((await check()) && markChecked()))}
           />
-          <CheckedStamp at={checkedAt} reads={reads} />
+          {/* A failure shown beside the stamp would read as a good check followed by noise, so the stamp waits for the next good read. */}
+          <CheckedStamp at={error ? null : checkedAt} reads={reads} />
         </span>
       </div>
       {(problem ?? error) && (
-        <p role="alert" className="text-[var(--danger-text)]">
+        <p role="alert" className="[overflow-wrap:anywhere] text-[var(--danger-text)]">
           {problem ?? error}
         </p>
       )}

@@ -101,6 +101,19 @@ describe('AudacityLinkCard states', () => {
     expect(screen.queryByText(/^Checked /)).toBeNull();
   });
 
+  it('a failed read after a good one does not leave the old Checked time beside the failure', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'silent' } });
+    renderCard({}, api);
+    await card();
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByText(/^Checked \d/)).toBeTruthy());
+    api.audacityLinkCheck = () => Promise.reject(new Error('Audacity could not be read.'));
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('could not be read');
+    expect(screen.queryByText(/^Checked /)).toBeNull();
+  });
+
   it('says when it last asked even while Audacity is not running (the host answers that too)', async () => {
     const user = userEvent.setup();
     renderCard({ module: 'on' });
