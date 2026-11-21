@@ -130,11 +130,11 @@ func TestDawTracksChangedIsSentAgainForAnotherProjectsTracker(t *testing.T) {
 }
 
 // A heartbeat value type that cannot be compared (a slice field) and names a revision: the tick must not compare it with ==.
-type sliceBeat struct{ unused []int }
+type sliceBeat struct{ notes []string }
 
 func (sliceBeat) Reachable() bool                      { return true }
 func (sliceBeat) CurrentProject() (string, bool)       { return "C:/Projects/Alice/Alice.rpp", false }
-func (sliceBeat) Matches(string) bool                  { return true }
+func (b sliceBeat) Matches(string) bool                { return len(b.notes) == 0 }
 func (sliceBeat) ChangeCount() (int, bool)             { return 1, true }
 func (sliceBeat) Transport() (dawport.Transport, bool) { return dawport.Transport{}, false }
 func (sliceBeat) TracksRevision() (string, bool)       { return "aaaaaaaaaaaaaaaa", true }
