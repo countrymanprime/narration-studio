@@ -8,7 +8,7 @@ test('a mock build with a rate below 1 injects the script first in <head>', () =
   const [plugin] = slowClock('mock', '0.7');
   assert.equal(plugin.name, 'slow-clock');
   const out = plugin.transformIndexHtml(html);
-  assert.match(out, /<head><script>\(function\(\)\{var r=Date\.now\.bind\(Date\)/);
+  assert.match(out, /<head><script>\(function\(\)\{if\(Date\.__slowClock\)return;/);
   assert.match(out, /\*0\.7;/);
 });
 
@@ -25,6 +25,25 @@ test('the injected clock runs at the rate of real time', () => {
     assert.equal(Date.now() - start, 1000);
   } finally {
     Date.now = realNow;
+    delete Date.__slowClock;
+  }
+});
+
+test('the clock is slowed once, by whichever script runs first', () => {
+  const [plugin] = slowClock('mock', '0.5');
+  const script = /<script>(.*)<\/script>/.exec(plugin.transformIndexHtml(html))[1];
+  const realNow = Date.now;
+  let t = 1_000_000;
+  Date.now = () => t;
+  try {
+    new Function(script)();
+    new Function(script)();
+    const start = Date.now();
+    t += 2000;
+    assert.equal(Date.now() - start, 1000, 'a second run did not slow it to a quarter');
+  } finally {
+    Date.now = realNow;
+    delete Date.__slowClock;
   }
 });
 
