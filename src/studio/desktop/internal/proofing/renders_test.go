@@ -231,33 +231,49 @@ func TestSniffFormat(t *testing.T) {
 	}
 }
 
-// The render's state is asked on every stage read: the second ask reads no file, and choosing the render reads each again.
-func TestEvaluateRenderAsksTheIdentityCacheAndAttestReadsAgain(t *testing.T) {
+// Choosing the render writes its identity and its takes' down, so each choice reads every file whatever the cache holds.
+func TestAttestReadsTheRenderAndItsTakesOnEveryChoice(t *testing.T) {
 	f := newRenderFixture(t)
-	old := time.Now().Add(-time.Hour)
 	for _, path := range []string{f.render, f.audioA, f.audioB} {
-		if err := os.Chtimes(path, old, old); err != nil {
-			t.Fatal(err)
-		}
+		ageAudio(t, path)
 	}
 	view := f.savedView()
 	view.Identities = &evidence.IdentityCache{}
-	if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
-		t.Fatal(err)
-	}
-	for range 2 {
-		if status, err := EvaluateRender(f.store, proofingChapter(), view); err != nil || status.State != RenderCurrent {
-			t.Fatalf("EvaluateRender() = %+v, %v", status, err)
+	for _, want := range []int64{3, 6} {
+		if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
+			t.Fatal(err)
+		}
+		if got := view.Identities.Reads(); got != want {
+			t.Fatalf("%d reads in all, want %d (the render and two takes on each choice)", got, want)
 		}
 	}
-	if got := view.Identities.Reads(); got != 3 {
-		t.Fatalf("choosing the render and asking twice read %d files, want 3 (the render and two takes, once each)", got)
-	}
-	if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
-		t.Fatal(err)
-	}
-	if got := view.Identities.Reads(); got != 6 {
-		t.Fatalf("choosing the render again made %d reads in all, want 6 (it writes the answer down, so it reads)", got)
+}
+
+// The render's state is read from the files as they are: a render or a take rewritten with its size and modification time kept is
+// sampled on the next read, and the render is stale.
+func TestEvaluateRenderOfARenderRewrittenKeepingSizeAndTime(t *testing.T) {
+	for name, rewritten := range map[string]func(f *renderFixture) string{
+		"the render": func(f *renderFixture) string { return f.render },
+		"a take":     func(f *renderFixture) string { return f.audioA },
+	} {
+		t.Run(name, func(t *testing.T) {
+			f := newRenderFixture(t)
+			for _, path := range []string{f.render, f.audioA, f.audioB} {
+				ageAudio(t, path)
+			}
+			view := f.savedView()
+			view.Identities = &evidence.IdentityCache{}
+			if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
+				t.Fatal(err)
+			}
+			if status, err := EvaluateRender(f.store, proofingChapter(), view); err != nil || status.State != RenderCurrent {
+				t.Fatalf("EvaluateRender() = %+v, %v, want current", status, err)
+			}
+			rewriteKeepingSizeAndTime(t, rewritten(f))
+			if status, err := EvaluateRender(f.store, proofingChapter(), view); err != nil || status.State != RenderStale {
+				t.Fatalf("EvaluateRender() = %+v, %v, want stale", status, err)
+			}
+		})
 	}
 }
 

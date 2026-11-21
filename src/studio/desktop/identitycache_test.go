@@ -9,10 +9,12 @@ import (
 	"time"
 )
 
-// A source file is identified through the open project's IdentityCache (Refresh to write the identity down, Identify to compare), so the
-// services agree on what a file is and a repeat ask reads nothing. The package-level evidence.Identify bypasses it.
-func TestOnlyTheEvidencePackageIdentifiesAFileWithoutTheCache(t *testing.T) {
+// A source file is identified through the open project's IdentityCache, so the services agree on what a file is; the package-level
+// evidence.Identify bypasses it. Outside the recording check's whole-book sweep (internal/coverage), a read asks Refresh: the owner does
+// not accept an unchanged size and modification time as proof that a file is unchanged.
+func TestAFileIsIdentifiedThroughTheCacheAndSampledOutsideTheRecordingCheck(t *testing.T) {
 	direct := regexp.MustCompile(`\bevidence\.Identify\b`)
+	remembered := regexp.MustCompile(`\.Identify\b`)
 	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -31,8 +33,11 @@ func TestOnlyTheEvidencePackageIdentifiesAFileWithoutTheCache(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if direct.Match(text) {
-			t.Errorf("%s uses evidence.Identify: identify the file through the project's evidence.IdentityCache (Refresh when the identity is written down, Identify otherwise)", slash)
+		switch {
+		case direct.Match(text):
+			t.Errorf("%s uses evidence.Identify: identify the file through the project's evidence.IdentityCache (Refresh)", slash)
+		case !strings.HasPrefix(slash, "internal/coverage/") && remembered.Match(text):
+			t.Errorf("%s calls an IdentityCache's Identify: a read about one chapter or file checks the content sample every time, so call Refresh", slash)
 		}
 		return nil
 	})

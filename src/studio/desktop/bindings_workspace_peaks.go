@@ -97,7 +97,7 @@ func newPeaksSources(ctx context.Context, store *evidence.CacheStore, cache *evi
 func (s *peaksSources) identify(file string) *evidence.SourceIdentity {
 	identity, ok := s.identities[file]
 	if !ok {
-		if read, err := s.cache.Identify(file, s.projectFolder); err == nil {
+		if read, err := s.cache.Refresh(file, s.projectFolder); err == nil {
 			identity = &read
 		}
 		s.identities[file] = identity

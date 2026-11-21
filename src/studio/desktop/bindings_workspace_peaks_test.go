@@ -143,24 +143,28 @@ func TestWorkspacePeaksCachesAcrossCalls(t *testing.T) {
 	}
 }
 
-// The waveform of a chapter is asked on every visit: the take is identified through the project's cache, so the second visit reads none,
-// and another project starts with a cache of its own.
-func TestWorkspacePeaksSharesTheProjectsIdentityCacheAcrossCalls(t *testing.T) {
+// Each call samples the take again through the project's cache, so a take rewritten with its size and modification time kept is seen;
+// another project starts with a cache of its own.
+func TestWorkspacePeaksReadsTheTakeOnEveryCallThroughTheProjectsIdentityCache(t *testing.T) {
 	project := workspacePeaksProject(t)
 	host := coverageHost(t, project, true, fakeAlignedCoverageSidecar())
 	if _, err := host.CoverageStart("c-0001", nil); err != nil {
 		t.Fatal(err)
 	}
 	host.services().coverage.Wait()
-	// A new time: the first call has to read the take, and can only have done so through the cache counted here.
+	// Old enough for the cache to remember the take, and asked once so it does: the reads counted below are the waveform's own, not the
+	// recording check's, which answers from the cache.
 	old := time.Now().Add(-time.Hour)
 	if err := os.Chtimes(filepath.Join(project, "media", "take.wav"), old, old); err != nil {
 		t.Fatal(err)
 	}
 	identities := host.services().identities
+	if _, err := host.WorkspacePeaks("c-0001"); err != nil {
+		t.Fatal(err)
+	}
 	before := identities.Reads()
 
-	for call, want := range []int64{1, 1} {
+	for call, want := range []int64{1, 2} {
 		got := bindingAnswer[WorkspacePeaksView](t)(host.WorkspacePeaks("c-0001"))
 		if got.Items[0].Peaks == nil || identities.Reads()-before != want {
 			t.Fatalf("call %d: item %+v after %d reads of the take, want peaks and %d", call+1, got.Items[0], identities.Reads()-before, want)

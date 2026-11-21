@@ -105,7 +105,7 @@ func (s *Service) scanItem(ctx context.Context, in ItemScopeInput, source Source
 		return ItemScan{}, false, err
 	}
 	if staleness.State == evidence.StateCurrent {
-		identity, err := s.config.Identities.Identify(source.File, s.config.Project)
+		identity, err := s.config.Identities.Refresh(source.File, s.config.Project)
 		if err == nil {
 			key := CacheKey(identity, scanCacheVersion, paramHash, source.PlayedRange)
 			if scan, ok := ReadScan(s.cache, key); ok {
@@ -135,7 +135,7 @@ var classRecords = []struct{ analyzerID, version, count, class string }{
 }
 
 func (s *Service) writeSuccess(in ItemScopeInput, projectFile evidence.LedgerProjectFile, paramHash string, scan ItemScan) {
-	identity, err := s.config.Identities.Identify(in.Item.Active().SourceFile, s.config.Project)
+	identity, err := s.config.Identities.Refresh(in.Item.Active().SourceFile, s.config.Project)
 	if err != nil {
 		return
 	}

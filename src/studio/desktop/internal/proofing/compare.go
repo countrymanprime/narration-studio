@@ -104,7 +104,7 @@ type ComparisonRecorder struct {
 	Lookup        ChapterResolver
 	DocumentID    func() string
 	ProjectFolder string
-	// Identities is the open project's source identity cache; nil reads every file.
+	// Identities is the open project's source identity cache; nil identifies each file without one.
 	Identities *evidence.IdentityCache
 	// ProjectFile is the saved project the narrator chose, with its modified
 	// time now (at completion).
@@ -294,7 +294,7 @@ func matchPlayed(played []tracks.Item, compared []ComparedItem, view stages.Evid
 	used := make([]bool, len(compared))
 	for _, item := range played {
 		take := item.Active()
-		identity, err := view.Identities.Identify(take.SourceFile, view.ProjectFolder)
+		identity, err := view.Identities.Refresh(take.SourceFile, view.ProjectFolder)
 		if err != nil {
 			unreadable++
 			continue

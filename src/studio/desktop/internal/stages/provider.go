@@ -25,7 +25,7 @@ type EvidenceView struct {
 	ProjectErr    error
 	Ledger        *evidence.LedgerStore
 	Mapping       *evidence.MappingStore
-	// Identities is the open project's source identity cache; nil reads every file.
+	// Identities is the open project's source identity cache; nil identifies each file without one.
 	Identities *evidence.IdentityCache
 }
 

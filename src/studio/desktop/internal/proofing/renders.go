@@ -260,7 +260,7 @@ func EvaluateRender(store *RenderStore, chapter stages.ChapterContext, view stag
 		return RenderStatus{State: RenderNone, Cause: stages.CauseNeverAnalyzed, Reason: "Choose the rendered file for this chapter."}, nil
 	}
 	status := RenderStatus{Association: &association, Fingerprint: association.Render.Key + "|" + association.ItemsFingerprint}
-	render, err := fingerprintRender(association.Path, view.ProjectFolder, view.Identities.Identify)
+	render, err := fingerprintRender(association.Path, view.ProjectFolder, view.Identities.Refresh)
 	if err != nil {
 		status.State, status.Cause, status.Reason = RenderMissing, stages.CauseMeasurementUnavailable, fmt.Sprintf("The rendered file %s could not be read. Choose the rendered file again.", filepath.Base(association.Path))
 		return status, nil
@@ -274,7 +274,7 @@ func EvaluateRender(store *RenderStore, chapter stages.ChapterContext, view stag
 		status.State, status.Cause, status.Reason = RenderStale, problem.Cause, problem.Reason
 		return status, nil
 	}
-	if track.GUID != association.TrackGUID || itemsFingerprint(track.Items, view.ProjectFolder, view.Identities.Identify) != association.ItemsFingerprint {
+	if track.GUID != association.TrackGUID || itemsFingerprint(track.Items, view.ProjectFolder, view.Identities.Refresh) != association.ItemsFingerprint {
 		status.State, status.Cause, status.Reason = RenderStale, stages.CauseStale, "The chapter's audio changed in the saved project since you chose the rendered file. Render the chapter again and choose the new file."
 		return status, nil
 	}
@@ -372,7 +372,7 @@ func decodeRenderMeasurement(record evidence.LedgerRecord) (RenderMeasurementPay
 	return payload, true
 }
 
-// identifyFunc reads a file's identity: an IdentityCache's Refresh where the caller writes the answer down, its Identify where it only compares.
+// identifyFunc reads a file's identity: an IdentityCache's Refresh, so the file's content is sampled on every ask.
 type identifyFunc func(path, projectFolder string) (evidence.SourceIdentity, error)
 
 func fingerprintRender(path, projectFolder string, identify identifyFunc) (RenderFingerprint, error) {
