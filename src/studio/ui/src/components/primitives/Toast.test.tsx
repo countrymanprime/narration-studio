@@ -27,6 +27,40 @@ afterEach(() => {
 const info = (id: number, text = `Message ${id}`): ToastMessage => ({ id, text, tone: 'info' });
 const failure = (id: number, text = `Failure ${id}`): ToastMessage => ({ id, text, tone: 'error' });
 
+describe('a toast with an action in a window of 24 rem or less (#3322)', () => {
+  it('puts the action row under the text, and takes that row from the text cap so the toast stays inside a short window', () => {
+    const action = { label: 'Check again', onAction: vi.fn() };
+    render(<ToastRegion messages={[{ ...failure(1, 'Long refusal'), action }]} dismiss={vi.fn()} />);
+    const withAction = screen.getByText('Long refusal').closest('[data-tone]') as HTMLElement;
+    expect(withAction.className).toContain('max-[24rem]:flex-wrap');
+    expect(withAction.className).toContain('max-[24rem]:[--toast-action-row:2.75rem]');
+    // The cap subtracts the row (zero where the action sits beside the text).
+    expect(screen.getByText('Long refusal').className).toContain('var(--toast-action-row,0rem)');
+    // The text is capped at what the glyph leaves of the row, not forced to it: a short text stays beside the buttons, a long one fills the row and sends them under it.
+    expect(screen.getByText('Long refusal').className).toContain('max-[24rem]:max-w-[calc(100%-1.75rem)]');
+    expect(screen.getByText('Long refusal').className).not.toContain('basis');
+  });
+});
+
+describe('a stack of toasts keeps every action beside its text (#3322)', () => {
+  it('only a toast that is alone puts its action row under the text: rows under each of several would not fit a short window', () => {
+    const action = { label: 'Retry', onAction: vi.fn() };
+    render(
+      <ToastRegion
+        messages={[
+          { ...failure(1, 'First'), action },
+          { ...failure(2, 'Second'), action },
+        ]}
+        dismiss={vi.fn()}
+      />,
+    );
+    for (const word of ['First', 'Second']) {
+      expect(screen.getByText(word).closest('[data-tone]')!.className).not.toContain('flex-wrap');
+      expect(screen.getByText(word).className).not.toContain('max-[24rem]:max-w');
+    }
+  });
+});
+
 describe('ToastRegion', () => {
   it('is drawn in <body>, outside the isolated #root, so it stacks above a dialog or slide-over raised from the page', () => {
     const { container } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);

@@ -391,7 +391,7 @@ func sortByID(findings []Finding) {
 // that does not exist yet (no findings saved for this project) is not an
 // error: it means an empty store.
 func (s *Store) scopeFiles() ([]string, error) {
-	entries, err := os.ReadDir(s.dir())
+	entries, err := persist.ReadDir(s.dir())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -404,7 +404,7 @@ func (s *Store) scopeFiles() ([]string, error) {
 			continue // review.json and anything else at the top level is not a scope file
 		}
 		analyzerDir := filepath.Join(s.dir(), entry.Name())
-		files, err := os.ReadDir(analyzerDir)
+		files, err := persist.ReadDir(analyzerDir)
 		if err != nil {
 			return nil, fmt.Errorf("could not read findings for %s: %w", entry.Name(), err)
 		}

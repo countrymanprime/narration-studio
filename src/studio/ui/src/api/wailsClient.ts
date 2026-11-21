@@ -488,6 +488,7 @@ export const wailsClient: NarrationApi = {
   voiceTracksSetLayout: (layout) => decode(voiceTracksStateSchema, 'VoiceTracksSetLayout', host.VoiceTracksSetLayout(layout)),
   voiceTracksSetCharacters: (track, characterIds) =>
     decode(voiceTracksStateSchema, 'VoiceTracksSetCharacters', host.VoiceTracksSetCharacters(track, characterIds)),
+  voiceTracksSetNotAVoice: (guid, notAVoice) => decode(voiceTracksStateSchema, 'VoiceTracksSetNotAVoice', host.VoiceTracksSetNotAVoice(guid, notAVoice)),
   voiceTracksSetNarrator: (characterId) => decode(voiceTracksStateSchema, 'VoiceTracksSetNarrator', host.VoiceTracksSetNarrator(characterId)),
   boothVoiceSet: (chapterId, trackGuid) => decode(boothVoiceSchema, 'BoothVoiceSet', host.BoothVoiceSet(chapterId, trackGuid)),
   boothVoiceGet: (chapterId) => decode(boothVoiceSchema, 'BoothVoiceGet', host.BoothVoiceGet(chapterId)),
