@@ -289,6 +289,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/production/useChapterTools.tsx#5': no(BT),
   'src/components/production/useChapterTools.tsx#6': no(DS),
   'src/components/production/useChapterTools.tsx#7': no(ED),
+  'src/components/proof/proofOptions/ProofOptions.tsx#1': no(
+    'The refused save was of a value typed in an options dialog that has since closed: the value in force stays, and a Retry would send again a value the narrator can no longer see. Opening the options again shows what is in force.',
+  ),
   'src/components/proof/CompareRun.tsx#1': no(DS),
   'src/components/proof/CompareRun.tsx#2': yes('The saved vocabulary hints read changes nothing; Retry reads them again.'),
   'src/components/proof/CompareRun.tsx#3': no(AU),

@@ -2360,7 +2360,8 @@
         "Arrow Keys Step",
         "Empty Is Not Set",
         "Emptied Reports Null",
-        "Settle Reports On Enter"
+        "Settle Reports On Enter",
+        "Arrow Lands On The Next Step"
       ],
       "consumers": [
         "src/components/booth/frame/LevelsMenu.tsx",

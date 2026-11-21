@@ -1,5 +1,5 @@
 import { wholeNumberRange } from '../numberSetting';
-import { ROWS } from './rows';
+import { rowOfField } from './rows';
 import type { ChoiceControl } from './types';
 
 /**
@@ -42,8 +42,7 @@ const GROUP_MAX = 5;
  * neither names is a `select`, which shows any list; `choiceControls.test.ts` keeps that from being reached by a field the app draws.
  */
 export function choiceControlFor(tool: string | undefined, key: string): ChoiceControl {
-  const row = ROWS.find((candidate) => candidate.field?.tool === tool && candidate.field?.key === key);
-  return row?.control ?? PAGE_FIELD_CONTROLS[`${tool}.${key}`] ?? PAGE_FIELD_CONTROLS[`${tool}.*`] ?? 'select';
+  return rowOfField(tool, key)?.control ?? PAGE_FIELD_CONTROLS[`${tool}.${key}`] ?? PAGE_FIELD_CONTROLS[`${tool}.*`] ?? 'select';
 }
 
 const words = (label: string): number => label.trim().split(/\s+/).length;

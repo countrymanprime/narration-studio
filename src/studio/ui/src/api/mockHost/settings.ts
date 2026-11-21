@@ -15,6 +15,36 @@ export const READ_ONLY_SETTINGS = 'The settings file is read-only.';
 /** The host's sentence for a colour that is not six hex digits. */
 export const notAColour = (key: string): string => `setting ${key} must be a six-digit color`;
 const SIX_HEX_DIGITS = /^[0-9a-fA-F]{6}$/;
+/** The host's sentence for a choice that is not one of the field's choices. */
+export const notAChoice = (key: string): string => `unsupported value for ${key}`;
+
+const PLAIN_NUMBER = /^-?(\d+(\.\d*)?|\.\d+)$/;
+const STEP_TOLERANCE = 1e-9;
+const withUnit = (text: string, unit: string): string => (unit ? `${text} ${unit}` : text);
+
+/** The host's sentence for a number its range refuses (`validateNumberSetting` in src/studio/desktop/settings_number.go), or undefined for one it keeps. */
+export function numberRefusal(key: string, range: NonNullable<ScopedSettingField['number']>, value: string): string | undefined {
+  const number = Number(value);
+  if (!PLAIN_NUMBER.test(value) || !Number.isFinite(number)) return `setting ${key} must be a number, like -3 or 0.5`;
+  const { min, max, step, unit } = range;
+  if ((min !== null && number < min) || (max !== null && number > max)) {
+    if (min !== null && max !== null) return `setting ${key} must be ${withUnit(`between ${min} and ${max}`, unit)}`;
+    return `setting ${key} must be ${min !== null ? withUnit(`at least ${min}`, unit) : withUnit(`at most ${max}`, unit)}`;
+  }
+  if (step !== null && step > 0) {
+    const steps = (number - (min ?? 0)) / step;
+    if (Math.abs(steps - Math.round(steps)) > STEP_TOLERANCE * Math.max(1, Math.abs(steps))) return `setting ${key} must go in steps of ${step}`;
+  }
+  return undefined;
+}
+
+/** Why the host refuses `value` for `field`, by the field's kind (`validateSettingValue` in src/studio/desktop/app.go), or undefined when it keeps it. */
+function refusal(field: ScopedSettingField, value: string): string | undefined {
+  if (field.kind === 'color') return SIX_HEX_DIGITS.test(value) ? undefined : notAColour(field.key);
+  if (field.kind === 'choice') return field.choices.includes(value) ? undefined : notAChoice(field.key);
+  if (field.kind === 'number' && field.number) return numberRefusal(field.key, field.number, value);
+  return undefined;
+}
 
 /** The settings bindings. Saving answers with a fresh bootstrap, as the host does. */
 export function createSettingsMock(
@@ -53,10 +83,12 @@ export function createSettingsMock(
     saveSettings: async (tool, scope, values) => {
       if (seed === 'save-fails') throw new Error(READ_ONLY_SETTINGS);
       // The host checks each value against its field's kind before it writes any (`validateSettingValue` in src/studio/desktop/app.go). The
-      // mock holds the colour rule, the one a page can break by sending text as typed; a cleared field (null) is not a value to check.
+      // mock holds the rules a page can break by what it sends: a colour as typed, a choice the field does not offer (an emptied box sent
+      // as ''), a number out of range or between steps. A cleared field (null) is not a value to check.
       for (const field of settings[scope][tool] || []) {
         const value = values[field.key];
-        if (field.kind === 'color' && typeof value === 'string' && !SIX_HEX_DIGITS.test(value)) throw new Error(notAColour(field.key));
+        const why = typeof value === 'string' ? refusal(field, value) : undefined;
+        if (why) throw new Error(why);
       }
       settings[scope][tool] = (settings[scope][tool] || []).map((field) =>
         field.key in values

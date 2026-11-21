@@ -5,6 +5,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { wholeNumberRange } from '../numberSetting';
 import type { ChoiceControl } from '../registry/types';
 import { SettingNumber } from './SettingNumber';
+import { useValueInFlight } from './useValueInFlight';
 
 type ChoiceOption = { value: string; label: string };
 
@@ -36,13 +37,6 @@ type DrawProps = Omit<SettingChoiceProps, 'control' | 'staleLabel'>;
 // A box as wide as every other number box in Settings, so they line up down the page.
 const NUMBER_WIDTH = 'w-40';
 
-/** Reports a press on another option; a press on the chosen one changes nothing, so it saves nothing. */
-const choose =
-  ({ value, onChange }: Pick<DrawProps, 'value' | 'onChange'>) =>
-  (next: string): void => {
-    if (next !== value) void onChange(next);
-  };
-
 function SelectChoice({ label, value, options, onChange, id, describedBy, disabled, selectClassName }: DrawProps): ReactElement {
   return (
     <Select
@@ -67,16 +61,19 @@ function SegmentedChoice({ label, value, options, onChange, describedBy, disable
       options={options}
       disabled={disabled}
       describedBy={describedBy}
-      onChange={choose({ value, onChange })}
+      onChange={(next) => void onChange(next)}
     />
   );
 }
 
 function RadioChoice({ label, value, options, onChange, describedBy, disabled }: DrawProps): ReactElement {
-  return <RadioGroup label={label} value={value} options={options} disabled={disabled} describedBy={describedBy} onChange={choose({ value, onChange })} />;
+  return <RadioGroup label={label} value={value} options={options} disabled={disabled} describedBy={describedBy} onChange={(next) => void onChange(next)} />;
 }
 
-/** A choice of consecutive whole numbers as a number box. A stored value that is not one of them cannot be shown in the box, so it is a select until one is chosen. */
+/**
+ * A choice of consecutive whole numbers as a number box. A stored value that is not one of them cannot be shown in the box, so it is a select until
+ * one is chosen. The box cannot be emptied: "not set" is not one of the choices, and the host refuses it.
+ */
 function NumberChoice(props: DrawProps): ReactElement {
   const { label, value, options, unit, onChange, id, describedBy, disabled } = props;
   const range = wholeNumberRange(
@@ -106,17 +103,36 @@ const DRAW: Record<ChoiceControl, (props: DrawProps) => ReactElement> = {
   number: NumberChoice,
 };
 
+/**
+ * Where a Reset `IconButton` sits beside a choice: beside a radio stack it is level with the first option (a 20 px line under the 36 px button, so
+ * the button gives up 8 px above and below), not centred against the whole stack, where it reads as belonging to the middle option. `line` goes
+ * on the flex line that holds the control and the button, `button` on the button.
+ */
+export const resetBeside = (control: ChoiceControl | undefined): { line: string; button: string } =>
+  control === 'radio' ? { line: 'items-start', button: '-my-2' } : { line: 'items-center', button: '' };
+
 /** A control that is a group of options, which has no one element a `<label>` can point at. */
 export const isGroupControl = (control: ChoiceControl | undefined): boolean => control === 'segmented' || control === 'radio';
 
 /**
  * One host `choice` setting, drawn by the control it declares (component-selection CS-E6): the Settings rows, the "Set on a page" panels and the
  * pages' options dialogs all draw a choice with this. A stored value the host no longer offers is shown first and chosen, in every control, so
- * the control never claims a choice that is not the real one (CS-E4).
+ * the control never claims a choice that is not the real one (CS-E4). A group the host offers one option for, with that option stored, is the
+ * option's words and no control (CS-B7): there is nothing to choose. While a save is out the value on its way is the chosen one, so choosing it
+ * again sends nothing and going back to the stored value is sent.
  */
 export function SettingChoice({ control, staleLabel, ...rest }: SettingChoiceProps): ReactElement {
-  const { value, options } = rest;
-  const shown = options.some((option) => option.value === value) ? options : [{ value, label: staleLabel?.(value) ?? value }, ...options];
+  const { options, id } = rest;
+  const { shown: value, send } = useValueInFlight(rest.value, rest.onChange);
+  const isOffered = options.some((option) => option.value === value);
+  if (isGroupControl(control) && options.length === 1 && isOffered) {
+    return (
+      <span id={id} data-only-choice className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
+        {options[0].label}
+      </span>
+    );
+  }
+  const shown = isOffered ? options : [{ value, label: staleLabel?.(value) ?? value }, ...options];
   const Draw = DRAW[control];
-  return <Draw {...rest} options={shown} />;
+  return <Draw {...rest} value={value} options={shown} onChange={send} />;
 }

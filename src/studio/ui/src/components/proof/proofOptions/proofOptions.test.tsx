@@ -1,15 +1,20 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { providedCommands } from '../../../input/commandProviders';
+import { overlay } from '../../../overlay/overlayService';
 import type { ScopedSettingField } from '../../../types';
 import type { NarrationApi } from '../../../types';
 import { ProofOptions } from './ProofOptions';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const number = (key: string, label: string, value: string, isSet = false): ScopedSettingField => ({
   key,
@@ -79,6 +84,8 @@ function mount(over: Partial<NarrationApi> = {}) {
   };
 }
 
+/** The dialog's Close action, not the cross in its title bar. */
+const closeButton = () => screen.getAllByRole('button', { name: 'Close' }).at(-1)!;
 const preset = (name: string) => within(screen.getByRole('group', { name: 'Preset' })).getByRole('button', { name });
 
 describe('Proof options', () => {
@@ -205,5 +212,87 @@ describe('Proof options', () => {
     fireEvent.click(preset('Spot check'));
     expect((await screen.findByRole('alert')).textContent).toContain('read-only');
     expect(preset('Sample').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('says a number’s range under its box, as the Settings panel does, and ties it to the box', async () => {
+    const { open } = mount();
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    const note = screen.getByText('From 60 to 3600 s');
+    expect(box.getAttribute('aria-describedby')).toBe(note.id);
+  });
+
+  // A label and its control are one grid row, and the control and its Reset one line inside it, so in a narrow window the label is above and
+  // Reset stays beside the control (component-selection CS-S5; the drawn widths are measured in tests/visual/proof-options-fit.spec.ts).
+  it('keeps Reset on the line of its control, apart from the label', async () => {
+    const { open } = mount();
+    await open();
+    const reset = await screen.findByRole('button', { name: 'Reset Tint' });
+    const line = reset.closest('[data-control-line]')!;
+    expect(within(line as HTMLElement).getByRole('textbox', { name: 'Tint hex' })).toBeTruthy();
+    expect(within(line as HTMLElement).queryByText('Tint')).toBeNull();
+    expect(within(line.closest('[data-option-row]') as HTMLElement).getByText('Tint')).toBeTruthy();
+  });
+
+  // qa-breaker B2 on #3681: the press outside takes the box away with no blur, and what was typed was dropped without a word.
+  it('a number typed and then dismissed by an outside press is saved', async () => {
+    const { save, open } = mount();
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    fireEvent.change(box, { target: { value: '200' } });
+    expect(save).not.toHaveBeenCalled();
+    // A press right after the dialog opens is read as the second click of the double click that opened it.
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + 60_000);
+    await userEvent.setup().click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(save).toHaveBeenCalledExactlyOnceWith('Preview', 'project', { target: '200' });
+  });
+
+  it('a number typed and then dropped with Escape is not saved', async () => {
+    const { save, open } = mount();
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    const user = userEvent.setup();
+    await user.clear(box);
+    await user.type(box, '200');
+    await user.keyboard('{Escape}{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  // qa-breaker B3 on #3681: the save goes out as the dialog closes, and its refusal had nowhere to show.
+  it('a save refused after the dialog closed is reported', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    let refuse: () => void = () => undefined;
+    const save = vi.fn(() => new Promise<never>((_, reject) => (refuse = () => reject(new Error('The settings file is read-only.')))));
+    const { open } = mount({ saveSettings: save } as Partial<NarrationApi>);
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    const user = userEvent.setup();
+    await user.clear(box);
+    await user.type(box, '200');
+    await user.click(closeButton());
+    expect(save).toHaveBeenCalledExactlyOnceWith('Preview', 'project', { target: '200' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(toast).not.toHaveBeenCalled();
+    await act(async () => refuse());
+    expect(toast).toHaveBeenCalledExactlyOnceWith('The settings file is read-only.', expect.objectContaining({ tone: 'error' }));
+  });
+
+  it('a refusal the dialog already showed is not said again as a toast when it closes', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const { open } = mount({
+      saveSettings: async () => {
+        throw new Error('The settings file is read-only.');
+      },
+    } as Partial<NarrationApi>);
+    await open();
+    await screen.findByRole('group', { name: 'Preset' });
+    fireEvent.click(preset('Spot check'));
+    await screen.findByRole('alert');
+    fireEvent.click(closeButton());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(toast).not.toHaveBeenCalled();
   });
 });

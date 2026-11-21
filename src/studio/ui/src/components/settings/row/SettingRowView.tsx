@@ -7,7 +7,8 @@ import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useSettingsStore } from '../data/SettingsStore';
 import { useBrowserSettingsVersion } from '../../../browserSettings';
-import { choiceLabel, computerValue, isAnyChanged, isBrowserChanged, isChanged, overrideValue, projectValue } from '../data/values';
+import { computerValue, isAnyChanged, isBrowserChanged, isChanged, overrideValue, projectValue } from '../data/values';
+import { choiceLabel } from '../registry/choiceLabels';
 import { PAGE_LABEL, PAGE_PATH, type Scope, type SettingMeta } from '../registry/types';
 import { rowOf } from '../registry/rows';
 import { needsProject, NEEDS_PROJECT_REASON } from '../registry/projectNeeds';
@@ -17,7 +18,7 @@ import { OpenLogFolderButton } from './OpenLogFolderButton';
 import { useRowReset } from './RowResetContext';
 import { useSettingsHost } from './SettingsHost';
 import { useSettingsNav } from './SettingsNav';
-import { isGroupControl } from '../value/SettingChoice';
+import { isGroupControl, resetBeside } from '../value/SettingChoice';
 import { ValueControl } from './ValueControl';
 import { WorkerPlanNote } from './WorkerPlanNote';
 
@@ -132,6 +133,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
     return commit(value, scope);
   };
   const defaultLabel = global?.kind === 'choice' ? choiceLabel(row, row.def) : row.def || 'empty';
+  const beside = resetBeside(global?.kind === 'choice' ? row.control : undefined);
   const kindOf = (rowId: string): string => {
     const other = rowOf(rowId);
     return other ? computerValue(other, store.fieldsOf(other).global) : '';
@@ -210,7 +212,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
           <>
             {/* The row of the control and its Reset takes the column's width, so the control's own `w-full` has a width to resolve against.
                 Saved shows beside Reset, where the change was made (XSE1-22). */}
-            <div data-control-line className="flex w-full min-w-0 flex-nowrap items-center gap-1.5">
+            <div data-control-line className={`flex w-full min-w-0 flex-nowrap gap-1.5 ${beside.line}`}>
               {row.fact ? (
                 <span id={controlId} data-fact={row.id} className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
                   {choiceLabel(row, comp)}
@@ -233,7 +235,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                 <IconButton
                   action="undo"
                   label={`Reset ${row.label} to ${defaultLabel}`}
-                  className="border-transparent"
+                  className={`border-transparent ${beside.button}`}
                   pending={resetting}
                   onClick={() => {
                     setResetting(true);

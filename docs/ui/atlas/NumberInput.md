@@ -16,6 +16,7 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 - Empty Is Not Set
 - Emptied Reports Null
 - Settle Reports On Enter
+- Arrow Lands On The Next Step
 
 ## Used by
 

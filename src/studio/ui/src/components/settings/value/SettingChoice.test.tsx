@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChoiceControl } from '../registry/types';
@@ -143,6 +143,97 @@ describe('SettingChoice as a number box', () => {
   it('is off when disabled', () => {
     draw('number', { value: '2', options: TONE, disabled: true });
     expect(box().disabled).toBe(true);
+  });
+
+  // "Not set" is not one of the choices and the host refuses '' for a choice (qa-breaker B1 on #3681).
+  it('a number choice that is emptied reports nothing and shows the stored value again', () => {
+    const onChange = draw('number', { value: '7', options: TONE });
+    fireEvent.change(box(), { target: { value: '' } });
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(box().value).toBe('7');
+    fireEvent.change(box(), { target: { value: '' } });
+    fireEvent.blur(box());
+    expect(onChange).not.toHaveBeenCalled();
+    expect(box().value).toBe('7');
+  });
+});
+
+describe('SettingChoice while a save is out', () => {
+  /** A choice whose saves stay out until the test ends them; the stored value stays "60" throughout. */
+  function slow(control: ChoiceControl) {
+    const ends: ((kept: boolean) => void)[] = [];
+    const onChange = vi.fn((_: string) => new Promise<boolean>((resolve) => ends.push(resolve)));
+    render(<SettingChoice control={control} label="Chunk length" value="60" options={CHUNKS} onChange={onChange} />);
+    return { onChange, ends };
+  }
+  const option = (control: ChoiceControl, name: string) => screen.getByRole(control === 'radio' ? 'radio' : 'button', { name });
+  const isChosen = (control: ChoiceControl, name: string) =>
+    option(control, name).getAttribute(control === 'radio' ? 'aria-checked' : 'aria-pressed') === 'true';
+
+  // qa-breaker B4 on #3681: the press on the stored value was compared with the stored value and dropped, so the last value sent stayed.
+  it.each(['radio', 'segmented'] as const)('%s: the stored value chosen again while a save is out is sent after it', async (control) => {
+    const { onChange, ends } = slow(control);
+    fireEvent.click(option(control, '30 s'));
+    fireEvent.click(option(control, '300 s'));
+    fireEvent.click(option(control, '60 s'));
+    expect(onChange.mock.calls).toEqual([['30'], ['300'], ['60']]);
+    // An earlier save ending does not move the choice off the last one made.
+    await act(async () => ends[0](true));
+    expect(isChosen(control, '60 s')).toBe(true);
+  });
+
+  // qa-breaker B5 on #3681: a held Enter or a double click sent one save per press.
+  it.each(['radio', 'segmented'] as const)('%s: a second press of the option being saved sends nothing', (control) => {
+    const { onChange } = slow(control);
+    fireEvent.click(option(control, '300 s'));
+    fireEvent.click(option(control, '300 s'));
+    fireEvent.click(option(control, '300 s'));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('300');
+  });
+
+  it.each(['radio', 'segmented'] as const)('%s: the option being saved is shown as chosen until the save ends', async (control) => {
+    const { ends } = slow(control);
+    fireEvent.click(option(control, '300 s'));
+    expect(isChosen(control, '300 s')).toBe(true);
+    expect(isChosen(control, '60 s')).toBe(false);
+    // Refused: the choice in force is the chosen one again.
+    await act(async () => ends[0](false));
+    expect(isChosen(control, '60 s')).toBe(true);
+  });
+
+  it('select: the stored value picked again while a save is out is sent after it', () => {
+    const { onChange } = slow('select');
+    fireEvent.change(select(), { target: { value: '300' } });
+    expect(select().value).toBe('300');
+    fireEvent.change(select(), { target: { value: '60' } });
+    expect(onChange.mock.calls).toEqual([['300'], ['60']]);
+  });
+});
+
+// The host offers Whisper alone as the live engine off Windows (qa-breaker B12 on #3681; component-selection CS-B7).
+describe('SettingChoice with one option', () => {
+  const ONLY = [{ value: 'whisper', label: 'Whisper' }];
+
+  it.each(['radio', 'segmented'] as const)('%s: a choice the host offers one option for is not drawn as a group', (control) => {
+    draw(control, { value: 'whisper', options: ONLY, id: 'set-row' });
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+    expect(screen.queryByRole('group')).toBeNull();
+    expect(screen.queryByRole('radio')).toBeNull();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByText('Whisper').id).toBe('set-row');
+  });
+
+  it('a stored value the one option is not is still a group, with the stored value first and chosen', () => {
+    draw('radio', { value: 'moonshine', options: ONLY, staleLabel: () => 'Moonshine (Windows)' });
+    const all = within(radios()).getAllByRole('radio');
+    expect(all).toHaveLength(2);
+    expect(all[0].getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('a select of one option stays a select', () => {
+    draw('select', { value: 'whisper', options: ONLY });
+    expect(select().value).toBe('whisper');
   });
 });
 

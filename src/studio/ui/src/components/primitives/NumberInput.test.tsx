@@ -254,5 +254,97 @@ describe('NumberInput', () => {
       expect(box().value).toBe('3');
       expect(onChange).not.toHaveBeenCalled();
     });
+
+    // A dialog dismissed by a press outside takes the box away with no blur (qa-breaker B2 on #3681).
+    it('a settle box that unmounts with a draft reports it', () => {
+      const onChange = vi.fn();
+      const { unmount } = render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '99' } });
+      unmount();
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenLastCalledWith(12);
+    });
+
+    it('a settle box that unmounts after Escape, after Enter or untouched reports nothing more', () => {
+      const onChange = vi.fn();
+      const escaped = render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '7' } });
+      fireEvent.keyDown(box(), { key: 'Escape' });
+      escaped.unmount();
+      expect(onChange).not.toHaveBeenCalled();
+      const entered = render(<Settled onChange={onChange} />);
+      fireEvent.change(box(), { target: { value: '7' } });
+      fireEvent.keyDown(box(), { key: 'Enter' });
+      entered.unmount();
+      expect(onChange).toHaveBeenCalledTimes(1);
+      render(<Settled onChange={onChange} />).unmount();
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('an input box that unmounts with a draft out of range reports nothing', () => {
+    const onChange = vi.fn();
+    const { unmount } = render(<Controlled onChange={onChange} />);
+    fireEvent.change(box(), { target: { value: '99' } });
+    unmount();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  // `Number()` reads these as 16, 3 and 100; nobody typing them means that, and the host calls them not a number (qa-breaker B8 on #3681).
+  it.each(['0x10', '0b11', '1e2', '+5', 'Infinity', '1,000'])('%s is junk and reverts', (text) => {
+    const onChange = vi.fn();
+    render(<Controlled onChange={onChange} />);
+    fireEvent.change(box(), { target: { value: text } });
+    fireEvent.blur(box());
+    expect(box().value).toBe('3');
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('takes a number with spaces around it and one that starts or ends with the point', () => {
+    const onChange = vi.fn();
+    render(<Controlled onChange={onChange} />);
+    fireEvent.change(box(), { target: { value: ' 7 ' } });
+    expect(onChange).toHaveBeenLastCalledWith(7);
+    fireEvent.change(box(), { target: { value: '8.' } });
+    expect(onChange).toHaveBeenLastCalledWith(8);
+  });
+
+  describe('stepFrom', () => {
+    function Stepped({ start, step, from, onChange }: { start: number; step: number; from: number; onChange: (value: number) => void }) {
+      const [value, setValue] = useState(start);
+      return (
+        <NumberInput
+          label="Count"
+          step={step}
+          stepFrom={from}
+          value={value}
+          onValueChange={(next) => {
+            setValue(next);
+            onChange(next);
+          }}
+        />
+      );
+    }
+
+    it('an arrow from a value between steps lands on the next step, up or down', () => {
+      const onChange = vi.fn();
+      render(<Stepped start={0.15} step={0.1} from={0} onChange={onChange} />);
+      fireEvent.keyDown(box(), { key: 'ArrowUp' });
+      expect(onChange).toHaveBeenLastCalledWith(0.2);
+      cleanup();
+      render(<Stepped start={50.5} step={1} from={1} onChange={onChange} />);
+      fireEvent.keyDown(box(), { key: 'ArrowDown' });
+      expect(onChange).toHaveBeenLastCalledWith(50);
+    });
+
+    it('an arrow from a value on a step moves one step, counted from the origin', () => {
+      const onChange = vi.fn();
+      render(<Stepped start={0.3} step={0.1} from={0.1} onChange={onChange} />);
+      fireEvent.keyDown(box(), { key: 'ArrowUp' });
+      expect(onChange).toHaveBeenLastCalledWith(0.4);
+      fireEvent.keyDown(box(), { key: 'ArrowDown' });
+      fireEvent.keyDown(box(), { key: 'ArrowDown' });
+      expect(onChange).toHaveBeenLastCalledWith(0.2);
+    });
   });
 });

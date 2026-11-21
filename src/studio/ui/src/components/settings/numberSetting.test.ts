@@ -1,5 +1,7 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { describeNumberRange, numberProblem, snapToStep, wholeNumberRange } from './numberSetting';
+import { wireSettings } from '../../api/mockFixtures';
+import { acceptedNumberText, describeNumberRange, numberProblem, snapToStep, wholeNumberRange } from './numberSetting';
 
 const PEAK = { min: -60, max: 0, step: 0.1, unit: 'dBTP' };
 const COUNT = { min: 0, max: null, step: 1, unit: 'words' };
@@ -77,6 +79,58 @@ describe('snapToStep', () => {
       }
     }
   });
+});
+
+describe('acceptedNumberText', () => {
+  it('is the snapped number as the host reads it', () => {
+    expect(acceptedNumberText(COUNT, 2.4)).toBe('2');
+    expect(acceptedNumberText({ min: 0, max: null, step: 0.1, unit: 's' }, 0.15)).toBe('0.2');
+  });
+
+  // From 1e21 JavaScript writes a number with an exponent, which the host's plain-number rule refuses (qa-breaker B7 on #3681).
+  it('never gives text the host check refuses, however large the number', () => {
+    const ranges = [
+      { min: 0, max: null, step: 0.1, unit: 's' },
+      { min: null, max: null, step: null, unit: '' },
+      { min: 0.1, max: null, step: 0.1, unit: 'dB' },
+      { min: null, max: null, step: 1, unit: '' },
+    ];
+    fc.assert(
+      fc.property(fc.constantFrom(...ranges), fc.double({ min: -1e300, max: 1e300, noNaN: true }), (range, n) => {
+        const text = acceptedNumberText(range, n);
+        return text === undefined || numberProblem(range, text) === undefined;
+      }),
+    );
+    for (const n of [1e21, 1.2345678901234568e29, 1e300]) expect(acceptedNumberText(ranges[0], n), String(n)).toBeUndefined();
+    expect(acceptedNumberText(ranges[1], -1e21)).toBeUndefined();
+    expect(acceptedNumberText(ranges[0], 123456789012)).toBe('123456789012');
+  });
+});
+
+// The ranges the mock host sends are the host's (settings_number.go). A default the range's steps skip could not be typed back, and a whole
+// number near it was moved to a fraction (the cleanup dB thresholds, 12 and 30 on a 0.5 step counted from 0.1: qa-breaker B6 on #3681).
+describe('the number settings the host sends', () => {
+  const fields = Object.entries(wireSettings()).flatMap(([tool, list]) =>
+    list.filter((field) => field.kind === 'number' && field.number).map((field) => ({ name: `${tool}.${field.key}`, field, range: field.number! })),
+  );
+
+  it('there are some to check', () => {
+    expect(fields.length).toBeGreaterThan(10);
+  });
+
+  it.each(fields.filter(({ field }) => field.effectiveValue !== ''))('$name: the default can be typed back', ({ field, range }) => {
+    expect(numberProblem(range, field.effectiveValue)).toBeUndefined();
+    expect(acceptedNumberText(range, Number(field.effectiveValue))).toBe(String(Number(field.effectiveValue)));
+  });
+
+  it.each(fields.filter(({ field }) => /^-?\d+$/.test(field.effectiveValue)))(
+    '$name: a whole number typed into a field whose default is whole stays whole',
+    ({ field, range }) => {
+      const base = Number(field.effectiveValue);
+      const inRange = (n: number) => (range.min === null || n >= range.min) && (range.max === null || n <= range.max);
+      for (const n of [base - 2, base - 1, base, base + 1, base + 3].filter(inRange)) expect(snapToStep(range, n), `${n}`).toBe(n);
+    },
+  );
 });
 
 describe('wholeNumberRange', () => {

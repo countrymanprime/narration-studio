@@ -5,10 +5,10 @@ import { Switch } from '../primitives/Switch';
 import { TagInput } from '../primitives/TagInput';
 import { TextField } from '../primitives/TextField';
 import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
-import { proofingChoiceLabel } from '../proof/options';
 import { describeNumberRange } from './numberSetting';
 import { choiceControlFor } from './registry/choiceControls';
-import { SettingChoice } from './value/SettingChoice';
+import { fieldChoiceLabel } from './registry/choiceLabels';
+import { resetBeside, SettingChoice } from './value/SettingChoice';
 import { SettingNumber } from './value/SettingNumber';
 import { IconButton } from '../primitives/IconButton';
 import { ColourField } from '../primitives/ColourField';
@@ -84,10 +84,10 @@ const TOOLTIP: Record<string, string> = {
   breath_below_speech_db: 'How far below the read’s own speech level a quiet stretch must sit to be considered a breath.',
   click_above_silence_db: 'How far above the silence around it a short burst’s peak must stand to be read as a click.',
 };
-const optionTip = (field: ScopedSettingField, value: string) =>
+const optionTip = (field: ScopedSettingField, tool: string | undefined, value: string) =>
   field.key.includes('color')
     ? `Use ${value} as the saved base color.`
-    : `${proofingChoiceLabel(field.key, value)} is the selected ${field.label.toLowerCase()} option.`;
+    : `${fieldChoiceLabel(tool, field.key, value)} is the selected ${field.label.toLowerCase()} option.`;
 
 // One setting: the label above its control below `md`, the label beside it from `md` (Tailwind's 48rem, the app's own layout
 // breakpoint). The two-column template does not apply below `md`: a grid gives a fixed-range track (the label's
@@ -173,6 +173,7 @@ function NumberSetting({
           value={value}
           range={range}
           commit="input"
+          allowEmpty
           className="w-40 min-w-0"
           placeholder={numberPlaceholder(field, scope)}
           describedBy={hint ? hintId : undefined}
@@ -189,9 +190,6 @@ function NumberSetting({
   );
 }
 
-/** The words for a choice in a panel; an empty value the host does not offer is "Not set". */
-const panelChoiceLabel = (key: string, value: string): string => (value === '' ? 'Not set' : proofingChoiceLabel(key, value));
-
 function ChoiceSetting({ field, tool, value, change }: { field: ScopedSettingField; tool?: string; value: string; change: (value: string) => void }) {
   const control = choiceControlFor(tool, field.key);
   const choice = (
@@ -199,8 +197,8 @@ function ChoiceSetting({ field, tool, value, change }: { field: ScopedSettingFie
       control={control}
       label={field.label}
       value={value}
-      options={field.choices.map((choice) => ({ value: choice, label: proofingChoiceLabel(field.key, choice) }))}
-      staleLabel={(stale) => panelChoiceLabel(field.key, stale)}
+      options={field.choices.map((choice) => ({ value: choice, label: fieldChoiceLabel(tool, field.key, choice) }))}
+      staleLabel={(stale) => fieldChoiceLabel(tool, field.key, stale)}
       selectClassName="w-full"
       onChange={change}
     />
@@ -208,7 +206,7 @@ function ChoiceSetting({ field, tool, value, change }: { field: ScopedSettingFie
   // A closed select shows one option, so its hint names it. A group shows them all, and a hint around it would cover every option.
   if (control !== 'select') return choice;
   return (
-    <TooltipTarget text={optionTip(field, value)} className={GROWING_CONTROL_CLASSES}>
+    <TooltipTarget text={optionTip(field, tool, value)} className={GROWING_CONTROL_CLASSES}>
       {choice}
     </TooltipTarget>
   );
@@ -232,8 +230,12 @@ export function ScopedSetting({
 }) {
   // Spaces alone are no value in a text box: they would save as "  ", read "Not set" and still be marked Changed (#3231).
   const effective = value || field.effectiveValue;
+  const beside = resetBeside(field.kind === 'choice' ? choiceControlFor(tool, field.key) : undefined);
+  // The wrapper takes the line's free width, so every Reset of a panel ends at the same x; the button's own wrapper (its hint) takes no layout class.
   const resetButton = scope === 'project' && field.isSet && (
-    <IconButton action="undo" label={`Reset ${field.label}`} className="ml-auto flex-none border-transparent" onClick={onClearOverride} />
+    <span data-reset className={`ml-auto flex flex-none ${beside.line === 'items-start' ? 'self-start' : ''}`}>
+      <IconButton action="undo" label={`Reset ${field.label}`} className={`border-transparent ${beside.button}`} onClick={onClearOverride} />
+    </span>
   );
   if (field.kind === 'number' && field.number) {
     return <NumberSetting field={field} tool={tool} range={field.number} scope={scope} value={value} change={change} resetButton={resetButton} />;

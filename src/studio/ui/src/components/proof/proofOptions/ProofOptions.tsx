@@ -1,4 +1,5 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useId, useState, type ReactNode } from 'react';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
 import { ColourField } from '../../primitives/ColourField';
@@ -6,14 +7,19 @@ import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
 import { Switch } from '../../primitives/Switch';
 import { choiceControlFor } from '../../settings/registry/choiceControls';
-import { SettingChoice } from '../../settings/value/SettingChoice';
+import { fieldChoiceLabel } from '../../settings/registry/choiceLabels';
+import { describeNumberRange } from '../../settings/numberSetting';
+import { resetBeside, SettingChoice } from '../../settings/value/SettingChoice';
 import { SettingNumber } from '../../settings/value/SettingNumber';
 import type { ScopedSettingField } from '../../../types';
-import { proofingChoiceLabel } from '../options';
 import { useProjectOptions } from './useProjectOptions';
 
 function Row({ field, tool, onSet }: { field: ScopedSettingField; tool: string; onSet: (key: string, value: string | null) => Promise<boolean> }) {
+  const noteId = useId();
   const range = field.number;
+  const note = field.kind === 'number' && range ? describeNumberRange(range) : '';
+  const choiceControl = field.kind === 'choice' ? choiceControlFor(tool, field.key) : undefined;
+  const beside = resetBeside(choiceControl);
   const control =
     field.kind === 'number' && range ? (
       // Saved when the narrator settles on it, never per key; an emptied box hands the setting back, as Reset does.
@@ -23,24 +29,26 @@ function Row({ field, tool, onSet }: { field: ScopedSettingField; tool: string; 
         value={field.effectiveValue}
         range={range}
         commit="settle"
+        allowEmpty
+        describedBy={note ? noteId : undefined}
         onChange={(value) => onSet(field.key, value === '' ? null : value)}
       />
-    ) : field.kind === 'choice' ? (
+    ) : choiceControl ? (
       <SettingChoice
-        control={choiceControlFor(tool, field.key)}
+        control={choiceControl}
         label={field.label}
         // A select is as wide as a colour row's swatch and hex box, so the controls down the dialog share a right edge (alignment audit XPC-10).
         selectClassName="w-[10.75rem]"
         value={field.effectiveValue}
-        options={field.choices.map((c) => ({ value: c, label: proofingChoiceLabel(field.key, c) }))}
-        staleLabel={(stale) => proofingChoiceLabel(field.key, stale)}
+        options={field.choices.map((c) => ({ value: c, label: fieldChoiceLabel(tool, field.key, c) }))}
+        staleLabel={(stale) => fieldChoiceLabel(tool, field.key, stale)}
         onChange={(value) => onSet(field.key, value)}
       />
     ) : field.kind === 'color' ? (
       <ColourField mode="free" label={field.label} value={field.effectiveValue} hexClassName="max-w-[8rem]" onChange={(hex) => onSet(field.key, hex)} />
     ) : null;
   const reset = field.isSet ? (
-    <IconButton action="undo" label={`Reset ${field.label}`} className="border-transparent" onClick={() => void onSet(field.key, null)} />
+    <IconButton action="undo" label={`Reset ${field.label}`} className={`border-transparent ${beside.button}`} onClick={() => void onSet(field.key, null)} />
   ) : null;
   // A switch is its own label, so its row has no label column. Only the stored text "true" is on, as in Settings.
   if (field.kind === 'bool')
@@ -53,11 +61,25 @@ function Row({ field, tool, onSet }: { field: ScopedSettingField; tool: string; 
       </div>
     );
   if (!control) return null;
+  // The label is above its control in a narrow window and beside it from `sm` (component-selection CS-S5). The control and its Reset are one
+  // line of their own either way, so Reset never wraps away from a control that happened to fit beside the label.
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-      <span className="w-56 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{field.label}</span>
-      {control}
-      {reset}
+    <div
+      data-option-row
+      className={`grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-[14rem_minmax(0,1fr)] ${choiceControl === 'radio' ? 'sm:items-start' : 'sm:items-center'}`}
+    >
+      <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{field.label}</span>
+      <div className="flex min-w-0 flex-col gap-1">
+        <div data-control-line className={`flex min-w-0 gap-x-3 ${beside.line}`}>
+          {control}
+          {reset}
+        </div>
+        {note && (
+          <span id={noteId} className="text-xs text-[var(--text-muted)]">
+            {note}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -86,7 +108,13 @@ export function ProofOptions({
   note?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const { fields, error, set } = useProjectOptions(tool, keys, { enabled: open, onSaved });
+  const { fields, error, set, forgetError } = useProjectOptions(tool, keys, { enabled: open, onSaved });
+  // A save can end after the dialog has gone (a number typed, then Close or a press outside): its refusal has no dialog to show in, so it is a toast.
+  useErrorToast(open ? undefined : error);
+  const close = () => {
+    forgetError();
+    setOpen(false);
+  };
   useCommandProvider(
     useCallback(
       () => [{ id: `options.open.${tool}.${keys.join('.')}`, group, label: `Open ${title}`, hint: 'This project', run: () => setOpen(true) }],
@@ -99,9 +127,9 @@ export function ProofOptions({
       title={title}
       description="Saved at once for this project. Settings sets the same values for every project."
       dismissOnOutsidePress={true}
-      onClose={() => setOpen(false)}
+      onClose={close}
       actions={
-        <Button variant="secondary" onClick={() => setOpen(false)}>
+        <Button variant="secondary" onClick={close}>
           Close
         </Button>
       }

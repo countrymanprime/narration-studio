@@ -15,11 +15,13 @@ function Kept({
   start,
   range = GAP,
   commit = 'settle',
+  allowEmpty = true,
   onChange,
 }: {
   start: string;
   range?: NumberSettingRange;
   commit?: 'input' | 'settle';
+  allowEmpty?: boolean;
   onChange: (value: string) => void;
 }) {
   const [value, setValue] = useState(start);
@@ -29,6 +31,7 @@ function Kept({
       value={value}
       range={range}
       commit={commit}
+      allowEmpty={allowEmpty}
       onChange={(next) => {
         onChange(next);
         setValue(next);
@@ -161,5 +164,113 @@ describe('SettingNumber', () => {
     expect(box().getAttribute('aria-describedby')).toBe('hint');
     expect(box().disabled).toBe(true);
     expect(box().getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('without allowEmpty an emptied box reports nothing and shows the stored value again', () => {
+    const onChange = vi.fn();
+    render(<Kept start="7" range={CAP} allowEmpty={false} onChange={onChange} />);
+    type('');
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(box().value).toBe('7');
+    type('');
+    fireEvent.blur(box());
+    expect(onChange).not.toHaveBeenCalled();
+    expect(box().value).toBe('7');
+  });
+
+  /** A box whose saves stay out until the test ends them, over a stored value that follows the last save kept. */
+  function slowHost(start: string, range: NumberSettingRange = CAP) {
+    const ends: ((kept: boolean) => void)[] = [];
+    const onChange = vi.fn((_: string) => new Promise<boolean>((resolve) => ends.push(resolve)));
+    render(<SettingNumber label="Gap" value={start} range={range} commit="settle" onChange={onChange} />);
+    return { onChange, ends };
+  }
+
+  // qa-breaker B4 on #3681: the box compared with the stored value, so the way back was dropped and the value on its way was kept.
+  it('a value typed back to the stored one while a save is out is sent after it', async () => {
+    const { onChange, ends } = slowHost('10');
+    type('20');
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    type('10');
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    expect(onChange.mock.calls).toEqual([['20'], ['10']]);
+    expect(box().value).toBe('10');
+    // The first save ending does not take the second value off the box.
+    await act(async () => ends[0](true));
+    expect(box().value).toBe('10');
+    await act(async () => ends[1](true));
+    expect(box().value).toBe('10');
+  });
+
+  it('the value on its way typed again sends nothing', () => {
+    const { onChange } = slowHost('10');
+    type('20');
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    type('20');
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('20');
+  });
+
+  // qa-breaker B7 on #3681: "1e+21" went to the host, which refuses an exponent.
+  it.each(['1e21', '123456789012345678901234567890'])('a number too large to write plainly (%s) is not sent', (text) => {
+    const onChange = vi.fn();
+    render(<Kept start="2" onChange={onChange} />);
+    type(text);
+    fireEvent.keyDown(box(), { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(box().value).toBe('2');
+  });
+
+  // qa-breaker B9 on #3681: a hand-edited value the range refuses read as if it were fine.
+  it.each([
+    ['past the maximum', '500', CAP],
+    ['under the minimum', '-3', GAP],
+    ['between steps', '0.15', GAP],
+  ])('a stored number the range refuses is marked invalid: %s', (_, value, range) => {
+    render(<SettingNumber label="Gap" value={value} range={range} commit="settle" onChange={vi.fn()} />);
+    expect(box().value).toBe(value);
+    expect(box().getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('a stored number the range accepts is not marked, nor is an unset one', () => {
+    const { rerender } = render(<SettingNumber label="Gap" value="50" range={CAP} commit="settle" onChange={vi.fn()} />);
+    expect(box().getAttribute('aria-invalid')).toBeNull();
+    rerender(<SettingNumber label="Gap" value="" range={CAP} commit="settle" onChange={vi.fn()} />);
+    expect(box().getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('a stored 0x10 is text that is not a number, never 16', () => {
+    render(<SettingNumber label="Gap" value="0x10" range={GAP} commit="settle" onChange={vi.fn()} />);
+    expect(box().value).toBe('');
+    expect(box().placeholder).toBe('0x10');
+    expect(box().getAttribute('aria-invalid')).toBe('true');
+  });
+
+  // qa-breaker B10 on #3681: 0.15 on a 0.1 step went to 0.3, 50.5 on a step of 1 to 52.
+  it('an arrow from a value between steps lands on the next step', () => {
+    const onChange = vi.fn();
+    render(<Kept start="0.15" onChange={onChange} />);
+    fireEvent.keyDown(box(), { key: 'ArrowUp' });
+    expect(onChange).toHaveBeenLastCalledWith('0.2');
+    cleanup();
+    render(<Kept start="50.5" range={CAP} onChange={onChange} />);
+    fireEvent.keyDown(box(), { key: 'ArrowUp' });
+    expect(onChange).toHaveBeenLastCalledWith('51');
+    cleanup();
+    render(<Kept start="50.5" range={CAP} onChange={onChange} />);
+    fireEvent.keyDown(box(), { key: 'ArrowDown' });
+    expect(onChange).toHaveBeenLastCalledWith('50');
+  });
+
+  it('a unit with no range to note is what describes the box; with a range, the caller’s note is', () => {
+    const { rerender } = render(
+      <SettingNumber label="Gap" value="2" range={{ min: null, max: null, step: 1, unit: 'words' }} commit="settle" describedBy="about" onChange={vi.fn()} />,
+    );
+    const [about, unit] = (box().getAttribute('aria-describedby') ?? '').split(' ');
+    expect(about).toBe('about');
+    expect(document.getElementById(unit)?.textContent).toBe('words');
+    rerender(<SettingNumber label="Gap" value="2" range={CAP} commit="settle" describedBy="about note" onChange={vi.fn()} />);
+    expect(box().getAttribute('aria-describedby')).toBe('about note');
   });
 });

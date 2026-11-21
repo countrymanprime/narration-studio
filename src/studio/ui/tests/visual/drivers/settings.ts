@@ -253,7 +253,8 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'speech-costly-confirm': async (page) => {
     await openSettings(page, 'Speech to text');
-    await page.getByLabel('Transcription model (all projects)', { exact: true }).selectOption({ index: 1 });
+    // A model other than the one in force (Small): choosing the same one again is no change, and asks nothing.
+    await page.getByLabel('Transcription model (all projects)', { exact: true }).selectOption('medium');
     await confirmDialog(page, 'Change the transcription model?').waitFor();
   },
   'speech-advanced': async (page) => {

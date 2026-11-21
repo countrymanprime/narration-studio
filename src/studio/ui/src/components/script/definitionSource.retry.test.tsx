@@ -20,7 +20,8 @@ describe('a failed save of the definition source', () => {
     const { result } = renderHook(() => useDefinitionSource(), { wrapper });
     await waitFor(() => expect(result.current[0]).toBeTruthy());
     const before = result.current[0];
-    const next = before === 'web' ? 'builtin' : 'web';
+    // A source the host offers: it refuses any other, and so does the mock.
+    const next = before === 'web' ? 'local' : 'web';
     act(() => result.current[1](next as typeof before));
     await waitFor(() => expect(toast).toHaveBeenCalled());
     const [text, options] = toast.mock.calls[0];

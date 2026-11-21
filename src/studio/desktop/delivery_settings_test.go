@@ -82,6 +82,35 @@ func TestEveryNumberFieldHasARangeAndEveryRangeAField(t *testing.T) {
 	}
 }
 
+// A default is a value the narrator can type back: every number field's default passes the check a save of it gets.
+// The two cleanup dB thresholds once could not (a 0.5 step counted from 0.1 refused their defaults 12 and 30).
+func TestEveryNumberFieldsDefaultPassesItsOwnRange(t *testing.T) {
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	result, err := host.settingsForScope("global")
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	for tool, specs := range numberSpecs {
+		fields, _ := result[tool].([]map[string]any)
+		for _, field := range fields {
+			key, _ := field["key"].(string)
+			spec, isNumber := specs[key]
+			value, _ := field["effectiveValue"].(string)
+			if !isNumber || value == "" {
+				continue
+			}
+			checked++
+			if err := validateNumberSetting(key, spec, value); err != nil {
+				t.Errorf("%s.%s default %q is refused by its own range: %v", tool, key, value, err)
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no number field with a default was checked")
+	}
+}
+
 // The old Delivery limits (src/studio/desktop/settings_number.go) left the settings page when delivery profiles replaced them:
 // the keys stay in the settings files, read once to move them into a profile, and no field offers them.
 func TestTheOldDeliveryLimitsAreNoLongerSettings(t *testing.T) {

@@ -356,11 +356,38 @@ describe('ScopedSetting controls', () => {
     });
   });
 
-  it('shows the update channel in words, not as the stored names', () => {
-    renderSetting({ ...FIELD, key: 'channel', label: 'Update channel', choices: ['candidates', 'stable'], effectiveValue: 'candidates' });
-    const select = screen.getByRole('combobox', { name: 'Update channel' }) as HTMLSelectElement;
-    expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['Candidates and stable', 'Stable only']);
-    expect(Array.from(select.options).map((option) => option.value)).toEqual(['candidates', 'stable']);
+  // component-selection CS-E10 (#3681): the panel once showed the stored names ("tiny", "large-v3-turbo") where the Settings row said "Tiny".
+  it('words a choice as its Settings row does, not as the stored names', () => {
+    render(
+      <TooltipProvider>
+        <ScopedSetting
+          tool="RecordingCoverage"
+          field={{ ...FIELD, key: 'cascade_first_pass_model', label: 'First-pass model', choices: ['tiny', 'large-v3-turbo'], effectiveValue: 'tiny' }}
+          scope="global"
+          value=""
+          change={vi.fn()}
+          onClearOverride={() => undefined}
+        />
+      </TooltipProvider>,
+    );
+    const select = screen.getByRole('combobox', { name: 'First-pass model' }) as HTMLSelectElement;
+    expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['Tiny', 'Large v3 turbo']);
+    expect(Array.from(select.options).map((option) => option.value)).toEqual(['tiny', 'large-v3-turbo']);
+  });
+
+  // alignment: the layout class once went to the button inside its hint wrapper, where `ml-auto` moves nothing (ux-review 3 on #3681).
+  it('puts Reset in a wrapper that takes the free width of its line, so every Reset of a panel ends at one x', () => {
+    renderSetting({ ...FIELD, isSet: true });
+    expect(screen.queryByRole('button', { name: /^Reset/ })).toBeNull();
+    cleanup();
+    render(
+      <TooltipProvider>
+        <ScopedSetting field={{ ...FIELD, isSet: true }} scope="project" value="base" change={vi.fn()} onClearOverride={() => undefined} />
+      </TooltipProvider>,
+    );
+    const wrapper = screen.getByRole('button', { name: 'Reset Model size' }).closest('[data-reset]')!;
+    expect(wrapper.className).toContain('ml-auto');
+    expect(wrapper.parentElement!.className).toContain('flex');
   });
 });
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -65,8 +65,8 @@ it('names the two chunk_seconds fields for what each one chunks, whatever the ho
     within(compare)
       .getAllByRole('radio')
       .map((option) => option.getAttribute('aria-label') ?? option.closest('label')?.textContent),
-  ).toEqual(['30s', '1m', '5m', '10m']);
-  expect(within(compare).getByRole('radio', { name: '1m' }).getAttribute('aria-checked')).toBe('true');
+  ).toEqual(['30 s', '60 s', '300 s', '600 s']);
+  expect(within(compare).getByRole('radio', { name: '60 s' }).getAttribute('aria-checked')).toBe('true');
   cleanup();
   draw('RecordingCoverage');
   const coverage = await screen.findByRole('combobox', { name: 'Coverage chunk length (0 = each item whole)' });
@@ -357,4 +357,25 @@ it("an emptied colour under This project clears the project's own colour", async
   expect(saved).toHaveBeenCalledExactlyOnceWith('TranscriptCompare', 'project', { color_misread: null });
   expect((await misread()).value).toBe(inherited);
   expect(screen.queryByText('Unsaved changes')).toBeNull();
+});
+
+// intent-review on #3681: a number past its range is the form's value only once the box settles (Enter or leaving it). Enter is the one way to
+// submit with the box still focused, and it settles first, so the form never sends the host a number it refuses, nor drops what was typed.
+it('Enter in a number box holding a number past its range saves the nearest allowed one', async () => {
+  const api = createMockApi();
+  const saved = vi.spyOn(api, 'saveSettings');
+  render(
+    <ApiProvider api={api}>
+      <SettingsFormsProvider notify={vi.fn()} onDirtyChange={vi.fn()} registerActions={vi.fn()}>
+        <ScopedFieldsPanel id="preview" title="Preview" tool="Preview" scopes={['global', 'project']} notify={vi.fn()} />
+      </SettingsFormsProvider>
+    </ApiProvider>,
+  );
+  const target = () => screen.findByRole<HTMLInputElement>('textbox', { name: /^Target length/ });
+  fireEvent.change(await target(), { target: { value: '99999' } });
+  expect(screen.queryByText('Unsaved changes')).toBeNull();
+  pressEnter(await target());
+  await act(async () => undefined);
+  expect(saved).toHaveBeenCalledExactlyOnceWith('Preview', 'global', { target_seconds: '3600' });
+  await waitFor(async () => expect((await target()).value).toBe('3600'));
 });

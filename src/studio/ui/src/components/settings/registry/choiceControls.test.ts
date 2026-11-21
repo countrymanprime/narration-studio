@@ -2,9 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { wireSettings } from '../../../api/mockFixtures';
 import type { ScopedSettingField } from '../../../types';
-import { proofingChoiceLabel } from '../../proof/options';
 import { CUSTOM } from '../controls/registry';
-import { choiceLabel } from '../data/values';
+import { choiceLabel, fieldChoiceLabel } from './choiceLabels';
 import { checkChoiceControl, choiceControlFor, GROWS, PAGE_FIELD_CONTROLS, SEGMENT_COST, SEGMENTED_LABEL_BUDGET } from './choiceControls';
 import { ROWS } from './rows';
 import type { ChoiceControl, SettingMeta } from './types';
@@ -17,7 +16,7 @@ const drawnAsChoice = (row: SettingMeta): boolean =>
   Boolean(row.field) && !row.fact && !(row.id in CUSTOM) && hostField(row.field!.tool, row.field!.key)?.kind === 'choice';
 
 // The settings tools a "Set on a page" panel or a page's options dialog draws field by field (`PageSettingPanel`, and each `<ProofOptions tool=…>`),
-// with the fields its filter leaves out. A choice of one of these with no registry row is drawn in the caller's words (`proofingChoiceLabel`).
+// with the fields its filter leaves out. A choice of one of these is worded by `fieldChoiceLabel`, as its Settings row is when it has one.
 const PANEL_TOOLS: Record<string, (key: string) => boolean> = {
   RecordingCoverage: () => true,
   Cleanup: () => true,
@@ -47,7 +46,7 @@ const panelChoices: Declared[] = Object.entries(PANEL_TOOLS).flatMap(([tool, dra
       name: `${tool}.${field.key} in a panel or an options dialog`,
       control: choiceControlFor(tool, field.key),
       values: field.choices,
-      labels: field.choices.map((value) => proofingChoiceLabel(field.key, value)),
+      labels: field.choices.map((value) => fieldChoiceLabel(tool, field.key, value)),
       grows: GROWS.has(`${tool}.${field.key}`),
     })),
 );

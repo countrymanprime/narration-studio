@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMockApi } from '../mockApi';
-import { notAColour, READ_ONLY_SETTINGS, UNREADABLE_SETTINGS } from './settings';
+import { notAChoice, notAColour, numberRefusal, READ_ONLY_SETTINGS, UNREADABLE_SETTINGS } from './settings';
 
 // `?mockSettings=` (main.tsx) lets the visual suite photograph Settings while its file is still being read, cannot be read, or cannot be written.
 describe('createMockApi settings seed', () => {
@@ -91,5 +91,54 @@ describe('createMockApi assetsList seed', () => {
   it('fails to read the list of downloads', async () => {
     const api = createMockApi({}, { assetsList: 'fails' });
     await expect(api.assetsList()).rejects.toThrow('could not be read');
+  });
+});
+
+// qa-breaker B1 on #3681: the mock kept '' as the room tone, a choice of "0" to "10", so a page that sent it read "saved" here and would be
+// refused by the host. The mock now holds the host's rule for a choice and for a number, so any page that sends one the host refuses fails.
+describe('createMockApi saveSettings, choices and numbers', () => {
+  const read = async (api: ReturnType<typeof createMockApi>, tool: string, key: string) =>
+    (await api.settingsForScope('global'))[tool]?.find((field) => field.key === key)?.value;
+
+  it.each(['', '11', '2.5', 'abc', ' 3'])('refuses a choice the field does not offer: %j', async (text) => {
+    const api = createMockApi();
+    const before = await read(api, 'General', 'credits_room_tone_seconds');
+    await expect(api.saveSettings('General', 'global', { credits_room_tone_seconds: text })).rejects.toThrow(notAChoice('credits_room_tone_seconds'));
+    expect(await read(api, 'General', 'credits_room_tone_seconds')).toBe(before);
+  });
+
+  it('keeps a choice the field offers, and a cleared one', async () => {
+    const api = createMockApi();
+    await api.saveSettings('General', 'global', { credits_room_tone_seconds: '7' });
+    expect(await read(api, 'General', 'credits_room_tone_seconds')).toBe('7');
+    await expect(api.saveSettings('General', 'global', { credits_room_tone_seconds: null })).resolves.toBeDefined();
+  });
+
+  it.each([
+    ['500', 'setting fx_cap_pct must be between 1 and 100 %'],
+    ['0', 'setting fx_cap_pct must be between 1 and 100 %'],
+    ['10.5', 'setting fx_cap_pct must go in steps of 1'],
+    ['1e1', 'setting fx_cap_pct must be a number, like -3 or 0.5'],
+    ['0x10', 'setting fx_cap_pct must be a number, like -3 or 0.5'],
+    ['', 'setting fx_cap_pct must be a number, like -3 or 0.5'],
+  ])('refuses a number the range refuses, in the host’s words: %j', async (text, sentence) => {
+    const api = createMockApi();
+    const before = await read(api, 'Editing', 'fx_cap_pct');
+    await expect(api.saveSettings('Editing', 'global', { fx_cap_pct: text })).rejects.toThrow(sentence);
+    expect(await read(api, 'Editing', 'fx_cap_pct')).toBe(before);
+  });
+
+  it('keeps a number in range and on step, and a cleared one', async () => {
+    const api = createMockApi();
+    await api.saveSettings('Editing', 'global', { fx_cap_pct: '20' });
+    expect(await read(api, 'Editing', 'fx_cap_pct')).toBe('20');
+    await expect(api.saveSettings('Editing', 'global', { fx_cap_pct: null })).resolves.toBeDefined();
+  });
+
+  it('numberRefusal words a one-sided range as the host does', () => {
+    expect(numberRefusal('gap', { min: 0, max: null, step: 0.1, unit: 's' }, '-1')).toBe('setting gap must be at least 0 s');
+    expect(numberRefusal('gain', { min: null, max: 0, step: null, unit: '' }, '1')).toBe('setting gain must be at most 0');
+    expect(numberRefusal('gap', { min: 0, max: null, step: 0.1, unit: 's' }, '0.15')).toBe('setting gap must go in steps of 0.1');
+    expect(numberRefusal('gap', { min: 0, max: null, step: 0.1, unit: 's' }, '0.3')).toBeUndefined();
   });
 });

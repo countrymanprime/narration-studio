@@ -354,7 +354,7 @@ Large model doesn't support Auto).
 ![Proof chapter view - a different model, chunk length, and worker count selected](../../images/ui/proof-chapter-compare-setup-alt.webp)
 
 **Jump to or run** (Ctrl+K) has **Open Compare options**, a dialog with this project's defaults for a run: the **chunk length** a run starts
-with (four options) and the colours of the three kinds of marker a comparison exports to REAPER (**misread**, **skipped** and **extra**,
+with (four options, in seconds as in Settings: **30 s**, **60 s**, **300 s**, **600 s**) and the colours of the three kinds of marker a comparison exports to REAPER (**misread**, **skipped** and **extra**,
 each a colour picker and a box of six hex digits). A colour you type is saved when you press Enter or leave the box, and text
 that is not six hex digits stays in the box with a red edge and is not saved; a hint on the box says what it takes. A change is saved at once for this project; a reset button (the undo icon, named **Reset** and the setting) appears on one this project
 changes and hands it back to the computer-wide value or the built-in default. Settings under **Set on a page** has the same
@@ -412,7 +412,7 @@ manuscript it offers **Open Production** to import one, and a failed read offers
 in the manuscript reader, or copy its range and length to paste elsewhere; neither changes anything — a
 suggestion is recomputed fresh every time you visit the page, never applied, exported or stored.
 
-**Jump to or run** (Ctrl+K) has **Open Preview options**, which sets how the suggestions are made for this project: the target length, the tolerance around it, the preset (a **Sample** / **Spot check** switch) and how much of each chapter's ending to leave out. A choice is saved at once and a number when you press Enter or leave its box (one outside its range becomes the nearest allowed value; an emptied box hands the number back, as its reset button does), and the suggestions are computed again; the reset button on a line (the undo icon) hands that setting back to the computer-wide value or the default.
+**Jump to or run** (Ctrl+K) has **Open Preview options**, which sets how the suggestions are made for this project: the target length, the tolerance around it, the preset (a **Sample** / **Spot check** switch) and how much of each chapter's ending to leave out. A choice is saved at once and a number when you press Enter or leave its box (its range is written under the box, and one outside it becomes the nearest allowed value; an emptied box hands the number back, as its reset button does; a number typed and not yet saved is saved when the dialog is closed with **Close** or by a press outside it, and dropped by Esc), and the suggestions are computed again; a save the settings file refuses after the dialog has closed is said in a notice; the reset button on a line (the undo icon) hands that setting back to the computer-wide value or the default.
 
 ![Proof chapter view - the Preview panel suggesting three candidate excerpts from the manuscript](../../images/ui/proof-chapter-preview.webp)
 

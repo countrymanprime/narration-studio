@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from './categories';
 import { PAGE_SETTINGS } from './pageSettings';
-import { choiceLabel } from '../data/values';
+import { choiceLabel } from './choiceLabels';
 import { reaperPathProblem, ROWS } from './rows';
 import { search } from './search';
 

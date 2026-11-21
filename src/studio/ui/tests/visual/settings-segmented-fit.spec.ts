@@ -110,3 +110,67 @@ for (const size of [
     });
   }
 }
+
+// A Reset beside a radio stack is level with the first option; centred against the stack it read as the middle option's (qa-breaker B13 on
+// #3681). In a "Set on a page" panel every Reset ends at the same x, whatever control it is beside (ux-review 3 on #3681: the layout class had
+// landed on the button inside its hint wrapper, where it moved nothing).
+const centreY = (box: Box): number => box.y + box.height / 2;
+const RADIO_ROWS = ROWS.filter((row) => row.control === 'radio');
+
+test('there is a radio Settings row to measure', () => {
+  expect(RADIO_ROWS.length).toBeGreaterThan(0);
+});
+
+for (const size of [
+  { name: 'narrow-desktop', width: 960, height: 640 },
+  { name: 'tablet', width: 768, height: 1024 },
+]) {
+  for (const meta of RADIO_ROWS) {
+    test(`Settings / Reset lines up with the first option of the radio row ${meta.id} / ${size.name} ${size.width}x${size.height}`, async ({ page }) => {
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await page.goto('/');
+      await settlePage(page);
+      await openSettings(page, categoryOf(meta.cat));
+      if (meta.advanced) await openAdvanced(page);
+      const row = await showSettingsRow(page, meta.id);
+      const radios = row.getByRole('radiogroup').first().getByRole('radio');
+      await radios.and(row.locator('[aria-checked="false"]')).last().click();
+      const reset = row.getByRole('button', { name: /^Reset / });
+      await reset.waitFor();
+      const first: Box = (await radios.first().boundingBox())!;
+      const last: Box = (await radios.last().boundingBox())!;
+      const button: Box = (await reset.boundingBox())!;
+      expect(Math.abs(centreY(button) - centreY(first)), 'Reset is level with the first option').toBeLessThanOrEqual(2);
+      expect(centreY(last) - centreY(first), 'the options are a stack, so level with the first is not level with the last').toBeGreaterThan(20);
+      expect(button.x, 'Reset is beside the options, not over them').toBeGreaterThanOrEqual(first.x + first.width);
+    });
+  }
+
+  test(`Settings / every Reset of the Compare defaults panel ends at one x, level with the first option beside radios / ${size.name} ${size.width}x${size.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await page.goto('/');
+    await settlePage(page);
+    await openSettings(page, 'Set on a page');
+    const entry = page.locator('[data-page-setting="ps.compare"]');
+    await entry.getByRole('button', { name: 'Change it here for now' }).click();
+    await entry.getByRole('button', { name: 'This project', exact: true }).click();
+    const form = entry.locator('form');
+    const radios = form.getByRole('radiogroup').first().getByRole('radio');
+    await radios.and(form.locator('[aria-checked="false"]')).last().click();
+    const hex = form.getByRole('textbox', { name: /hex$/ }).first();
+    await hex.fill('AA0001');
+    await hex.press('Tab');
+    await entry.getByRole('button', { name: 'Save', exact: true }).click();
+    const resets = form.getByRole('button', { name: /^Reset / });
+    await expect(resets).toHaveCount(2);
+    const boxes: Box[] = [];
+    for (const reset of await resets.all()) boxes.push((await reset.boundingBox())!);
+    expect(Math.abs(boxes[0].x - boxes[1].x), 'both Resets start at the same x').toBeLessThanOrEqual(1);
+    const first: Box = (await radios.first().boundingBox())!;
+    expect(Math.abs(centreY(boxes[0]) - centreY(first)), 'the Reset beside the radios is level with the first option').toBeLessThanOrEqual(2);
+    const card: Box = (await entry.boundingBox())!;
+    for (const box of boxes) expect(box.x + box.width, 'Reset ends inside the card').toBeLessThanOrEqual(card.x + card.width);
+  });
+}

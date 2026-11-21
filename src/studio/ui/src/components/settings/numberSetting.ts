@@ -53,6 +53,15 @@ export function snapToStep(range: NumberSettingRange, n: number): number {
 }
 
 /**
+ * `n` as the text the host is sent for `range`: snapped as `snapToStep` does, or undefined when that number cannot be written as the plain
+ * decimal the host reads (from 1e21 JavaScript writes an exponent, which the host refuses).
+ */
+export function acceptedNumberText(range: NumberSettingRange, n: number): string | undefined {
+  const text = String(snapToStep(range, n));
+  return numberProblem(range, text) === undefined ? text : undefined;
+}
+
+/**
  * The range a list of choices spans when they are consecutive whole numbers ("0" to "10"), so the choice can be drawn as a number box; undefined
  * for any other list.
  */

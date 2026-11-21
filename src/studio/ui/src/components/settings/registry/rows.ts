@@ -1067,3 +1067,7 @@ export const ROWS: readonly SettingMeta[] = [
 ];
 
 export const rowOf = (id: string): SettingMeta | undefined => ROWS.find((row) => row.id === id);
+
+/** The row that edits the host field `tool`.`key`, or undefined for a field no row edits. */
+export const rowOfField = (tool: string | undefined, key: string): SettingMeta | undefined =>
+  ROWS.find((row) => row.field?.tool === tool && row.field?.key === key);

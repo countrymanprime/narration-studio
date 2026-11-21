@@ -289,5 +289,58 @@ describe('ValueControl, a choice drawn by the control its row declares', () => {
       expect(select.options[0].textContent).toBe('abc (invalid)');
       expect(select.options).toHaveLength(12);
     });
+
+    // qa-breaker B1 on #3681: '' went to the host, which refuses it for a choice.
+    it('an emptied box sends nothing and shows the stored value again', () => {
+      const onChange = draw(toneRow, { field: tone, value: '7' });
+      fireEvent.change(box(), { target: { value: '' } });
+      fireEvent.keyDown(box(), { key: 'Enter' });
+      expect(onChange).not.toHaveBeenCalled();
+      expect(box().value).toBe('7');
+    });
+
+    it('the range note is part of the number box’s description, after the row’s own', () => {
+      draw(toneRow, { field: tone, value: '0' });
+      expect(box().getAttribute('aria-describedby')).toBe(`about ${screen.getByText('From 0 to 10 s').id}`);
+    });
+  });
+
+  // The host offers Whisper alone as the live engine off Windows (qa-breaker B12 on #3681).
+  it('a choice the host offers one option for is not drawn as a group: it is the option’s words', () => {
+    const engine = field({ kind: 'choice', choices: ['whisper'], value: 'whisper' });
+    const meta = choiceRow({ label: 'Live engine', unit: undefined, control: 'radio', options: { whisper: { label: 'Whisper' } } });
+    draw(meta, { field: engine, value: 'whisper' });
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+    expect(screen.queryByRole('radio')).toBeNull();
+    expect(screen.getByText('Whisper').id).toBe('control');
+  });
+});
+
+// qa-breaker B14 on #3681: the range and the unit were plain text beside the box, which a screen reader did not say with it.
+describe('ValueControl, what describes a number box', () => {
+  const numberRow = (unit?: string) => ({ id: 'row.id', label: 'Parallel processes', unit }) as SettingMeta;
+  const box = () => screen.getByRole('textbox', { name: 'Parallel processes' }) as HTMLInputElement;
+  const described = () => (box().getAttribute('aria-describedby') ?? '').split(' ').map((id) => document.getElementById(id)?.textContent ?? `#${id}`);
+  const draw = (number: NonNullable<ScopedSettingField['number']>, unit?: string) =>
+    render(
+      <>
+        <p id="about">How many at once.</p>
+        <ValueControl row={numberRow(unit)} field={field({ kind: 'number', number })} value="4" id="control" describedBy="about" onChange={vi.fn()} />
+      </>,
+    );
+
+  it('the range note is part of the number box’s description', () => {
+    draw({ min: 0, max: 32, step: 1, unit: 'processes' });
+    expect(described()).toEqual(['How many at once.', 'From 0 to 32 processes']);
+  });
+
+  it('with no range to note, the unit is', () => {
+    draw({ min: null, max: null, step: 1, unit: 'words' });
+    expect(described()).toEqual(['How many at once.', 'words']);
+  });
+
+  it('with neither, the row’s description alone', () => {
+    draw({ min: null, max: null, step: 1, unit: '' });
+    expect(described()).toEqual(['How many at once.']);
   });
 });

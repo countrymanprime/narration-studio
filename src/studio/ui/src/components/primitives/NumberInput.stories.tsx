@@ -92,3 +92,16 @@ export const SettleReportsOnEnter: Story = {
     await expect(args.onValueChange).toHaveBeenCalledTimes(1);
   },
 };
+
+// `stepFrom`: the steps are counted from it, so an arrow from a value between two steps lands on the next step, not one step past the value.
+export const ArrowLandsOnTheNextStep: Story = {
+  args: { value: 2.5, min: 0, max: 12, step: 1, stepFrom: 0 },
+  play: async ({ args, canvasElement }) => {
+    const field = within(canvasElement).getByRole('textbox', { name: 'Count' });
+    await userEvent.click(field);
+    await userEvent.keyboard('{ArrowUp}');
+    await expect(args.onValueChange).toHaveBeenLastCalledWith(3);
+    await userEvent.keyboard('{ArrowUp}');
+    await expect(args.onValueChange).toHaveBeenLastCalledWith(4);
+  },
+};

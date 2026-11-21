@@ -1162,7 +1162,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(await screen.findByRole('button', { name: /Remove filter Needs review/ })).toBeTruthy();
   });
 
-  /** A length of the Compare chunk length radios, by its label in the panel: 30s, 1m (60, the default), 5m or 10m (600). */
+  /** A length of the Compare chunk length radios, by its label in the panel: 30 s, 60 s (the default), 300 s or 600 s. */
   const compareChunk = async (panel: HTMLElement, length: string) =>
     within(await within(panel).findByRole('radiogroup', { name: 'Compare chunk length' })).getByRole('radio', { name: length });
 
@@ -1176,7 +1176,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     // host rejects an empty choice or colour ("unsupported value for chunk_seconds"), so only the edited field may go.
     fireEvent.click(within(compare).getByRole('button', { name: 'This project' }));
     await waitFor(() => expect(within(compare).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    fireEvent.click(await compareChunk(compare, '10m'));
+    fireEvent.click(await compareChunk(compare, '600 s'));
     fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(saveSettings).toHaveBeenCalledTimes(1));
@@ -1204,8 +1204,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
     const compare = await openKeptPanel('ps.compare', 'Compare defaults');
 
-    fireEvent.click(await compareChunk(compare, '10m'));
-    fireEvent.click(await compareChunk(compare, '1m'));
+    fireEvent.click(await compareChunk(compare, '600 s'));
+    fireEvent.click(await compareChunk(compare, '60 s'));
     expect(within(compare).getByText('Unsaved changes')).toBeTruthy();
     fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));
 
@@ -1223,8 +1223,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     // not pin that value in the project, or a later change to the Global default would no longer reach it.
     fireEvent.click(within(compare).getByRole('button', { name: 'This project' }));
     await waitFor(() => expect(within(compare).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    fireEvent.click(await compareChunk(compare, '10m'));
-    fireEvent.click(await compareChunk(compare, '1m'));
+    fireEvent.click(await compareChunk(compare, '600 s'));
+    fireEvent.click(await compareChunk(compare, '60 s'));
     fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(screen.queryByText('Unsaved changes')).toBeNull());

@@ -1,10 +1,11 @@
+import { useId } from 'react';
 import type { ScopedSettingField } from '../../../types';
 import { ColourField } from '../../primitives/ColourField';
 import { useSettledDraft } from '../../primitives/settledDraft';
 import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
 import { describeNumberRange, wholeNumberRange } from '../numberSetting';
-import { choiceLabel } from '../data/values';
+import { choiceLabel } from '../registry/choiceLabels';
 import type { SettingMeta } from '../registry/types';
 import { SettingChoice } from '../value/SettingChoice';
 import { SettingNumber } from '../value/SettingNumber';
@@ -80,6 +81,9 @@ function SettledBox({
 /** The control for one value of a plain setting, by the kind the host reports. */
 export function ValueControl({ row, field, value, which, id, describedBy, invalid, disabled, onChange }: ValueControlProps) {
   const name = row.label + (which ? ` (${which})` : '');
+  // A number box's range note is part of what describes the box, after the row's own description.
+  const noteId = useId();
+  const withNote = [describedBy, noteId].filter(Boolean).join(' ');
   if (field.kind === 'bool') {
     const on = value === 'true';
     return (
@@ -91,6 +95,8 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
   }
   if (field.kind === 'choice') {
     const control = row.control ?? 'select';
+    // A number box says its range under it, as a `number` field's does; a stored value outside the choices is drawn as a select, which lists them.
+    const range = control === 'number' && field.choices.includes(value) ? wholeNumberRange(field.choices, row.unit) : undefined;
     const choice = (
       <SettingChoice
         control={control}
@@ -101,18 +107,18 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
         staleLabel={(stale) => choiceLabel(row, stale)}
         unit={row.unit}
         disabled={disabled}
-        describedBy={describedBy}
+        describedBy={range ? withNote : describedBy}
         selectClassName={FIELD_WIDTH}
         onChange={onChange}
       />
     );
-    // A number box says its range under it, as a `number` field's does; a stored value outside the choices is drawn as a select, which lists them.
-    const range = control === 'number' && field.choices.includes(value) ? wholeNumberRange(field.choices, row.unit) : undefined;
     if (!range) return choice;
     return (
       <span className="flex flex-col gap-1">
         {choice}
-        <span className={`${NOTE} text-[var(--text-muted)]`}>{describeNumberRange(range)}</span>
+        <span id={noteId} className={`${NOTE} text-[var(--text-muted)]`}>
+          {describeNumberRange(range)}
+        </span>
       </span>
     );
   }
@@ -127,13 +133,18 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
           range={field.number}
           unit={row.unit}
           commit="settle"
+          allowEmpty
           disabled={disabled}
           invalid={invalid}
-          describedBy={describedBy}
+          describedBy={range ? withNote : describedBy}
           className={NUMBER_WIDTH}
           onChange={onChange}
         />
-        {range && <span className={`${NOTE} text-[var(--text-muted)]`}>{range}</span>}
+        {range && (
+          <span id={noteId} className={`${NOTE} text-[var(--text-muted)]`}>
+            {range}
+          </span>
+        )}
       </span>
     );
   }
