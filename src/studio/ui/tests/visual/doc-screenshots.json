@@ -78,6 +78,13 @@
   },
   {
     "page": "script",
+    "state": "cue-read-failed",
+    "viewport": "desktop",
+    "docName": "script-cue-read-failed",
+    "caption": "Script - the dialogue cues could not be read: the text without speaker chips, and a message that says why, with Retry"
+  },
+  {
+    "page": "script",
     "state": "reader",
     "viewport": "desktop",
     "docName": "script-reader",
