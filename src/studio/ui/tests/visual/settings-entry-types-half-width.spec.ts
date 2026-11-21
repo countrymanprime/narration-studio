@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { settingsDrivers } from './drivers/settings';
 import { settlePage } from './helpers/settle';
 
-const WIDTHS = [825, 880, 900, 960, 1100];
+const WIDTHS = [825, 880, 900, 960, 1100, 1440];
 const THEMES = ['light', 'dark'] as const;
 
 async function openEntryTypes(page: Page, width: number, theme: (typeof THEMES)[number]): Promise<void> {
@@ -35,7 +35,9 @@ for (const width of WIDTHS) {
         return { row: rect.width, labelLeft: label.left, listLeft: list.left, listWidth: list.width, types, colourWidth: colour?.width ?? 0 };
       });
       expect.soft(Math.abs(measured.listLeft - measured.labelLeft), 'the list starts at the label’s left edge').toBeLessThan(24);
-      expect.soft(measured.listWidth, 'the list takes the row’s width').toBeGreaterThan(measured.row * 0.85);
+      // The list takes the row's width up to a 42rem cap: wider, the colour, Can speak, the count and Remove would sit a screen away from their name.
+      expect.soft(measured.listWidth, 'the list takes the row’s width, up to its cap').toBeGreaterThan(Math.min(measured.row * 0.85, 600));
+      expect.soft(measured.listWidth, 'the list is not wider than its cap').toBeLessThanOrEqual(42 * 16 + 1);
       for (const [index, type] of measured.types.entries()) expect.soft(type.height, `type ${index + 1} is one line`).toBeLessThan(44);
       expect.soft(measured.colourWidth, 'the colour box is wide enough to show the colour’s name').toBeGreaterThanOrEqual(100);
     });

@@ -25,6 +25,9 @@ const COLOUR_CHOICES: readonly ColourChoice<GuideTypeColour>[] = GUIDE_TYPE_COLO
 }));
 const NEW_NAME = 'Give the type a new name.';
 
+/** A removal pressed again this soon is the same press twice: the row below has moved up under the pointer. */
+const REMOVE_AGAIN_MS = 600;
+
 export type StoryBibleTypesViewProps = {
   /** The host's types, in order; absent while they are read. */
   types?: readonly GuideType[];
@@ -82,6 +85,7 @@ function TypeRow({
         <TextField
           label={`Type name: ${type.name}`}
           value={value}
+          dir="auto"
           className="min-w-[8rem] flex-1 @[28.5rem]:max-w-[16rem] @[28.5rem]:min-w-[6.75rem]"
           disabled={busy}
           onChange={setValue}
@@ -195,7 +199,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
     <>
       <div className="@container flex w-full min-w-0 flex-col gap-3">
         {types ? (
-          <ul className="m-0 flex list-none flex-col gap-5 p-0 @[28.5rem]:gap-2">
+          <ul className="m-0 flex list-none flex-col gap-5 p-0 @[28.5rem]:max-w-[42rem] @[28.5rem]:gap-2">
             {types.map((type) => (
               <TypeRow
                 key={rowKey.of(type.name)}
@@ -283,24 +287,39 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
   }, [read]);
 
   // A second press before the first answer would land on whatever row moved under the pointer, so one change is in flight at a time.
-  const inFlight = useRef(false);
-  const change = async (call: () => Promise<void>): Promise<boolean> => {
-    if (inFlight.current) return false;
-    inFlight.current = true;
-    setBusy(true);
-    try {
-      await call();
-      await read();
-      projectDataChanged();
-      setError(undefined);
-      return true;
-    } catch (failure) {
-      setError(apiErrorMessage(failure));
-      return false;
-    } finally {
-      inFlight.current = false;
-      setBusy(false);
-    }
+  const inFlight = useRef<string | undefined>(undefined);
+  const settled = useRef<Promise<boolean>>(Promise.resolve(true));
+  // A removal's answer comes back and the next row moves up under the pointer: a second press of the same spot just after it is the same
+  // double press, not a second choice (#3674, found by the qa-breaker).
+  const removedAt = useRef(0);
+  const change = (kind: string, call: () => Promise<void>): Promise<boolean> => {
+    if (inFlight.current) return Promise.resolve(false);
+    inFlight.current = kind;
+    // A rename is committed by leaving its box, often by pressing another control: that control must stay live to receive the press (it waits, in `remove`).
+    if (kind !== 'rename') setBusy(true);
+    const done = (async () => {
+      try {
+        await call();
+        await read();
+        projectDataChanged();
+        setError(undefined);
+        return true;
+      } catch (failure) {
+        setError(apiErrorMessage(failure));
+        return false;
+      } finally {
+        inFlight.current = undefined;
+        setBusy(false);
+      }
+    })();
+    settled.current = done;
+    return done;
+  };
+  const remove = async (name: string) => {
+    // The press that took the focus out of a name box starts that rename first; it is one press, so the removal waits for it and goes ahead.
+    if (inFlight.current === 'rename') await settled.current;
+    if (Date.now() - removedAt.current < REMOVE_AGAIN_MS) return;
+    if (await change('remove', () => port.guideTypeRemove(name))) removedAt.current = Date.now();
   };
 
   return {
@@ -308,11 +327,11 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
     counts,
     busy,
     error,
-    onRename: (name, to) => change(() => port.guideTypeRename(name, to)),
-    onColour: (name, colour) => void change(() => port.guideTypeSetColour(name, colour)),
-    onSpeaks: (name, speaks) => void change(() => port.guideTypeSetSpeaks(name, speaks)),
-    onRemove: (name) => void change(() => port.guideTypeRemove(name)),
-    onAdd: (name) => change(() => port.guideTypeAdd(name)),
+    onRename: (name, to) => change('rename', () => port.guideTypeRename(name, to)),
+    onColour: (name, colour) => void change('colour', () => port.guideTypeSetColour(name, colour)),
+    onSpeaks: (name, speaks) => void change('speaks', () => port.guideTypeSetSpeaks(name, speaks)),
+    onRemove: (name) => void remove(name),
+    onAdd: (name) => change('add', () => port.guideTypeAdd(name)),
     onRefuse: setError,
   };
 }

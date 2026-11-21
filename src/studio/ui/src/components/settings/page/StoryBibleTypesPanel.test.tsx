@@ -173,6 +173,45 @@ describe('Story Bible types panel (SN-M53)', () => {
     expect(within(panel()).getByRole('textbox', { name: 'Type name: Organization' })).toBeTruthy();
   });
 
+  // The qa-breaker's B-N1 on #3902: the first removal had been answered, the next row had moved up, and a second press of the same spot removed it too.
+  it('a second press on the spot of a removal just after the host answered removes nothing more', async () => {
+    const api = await renderPanel();
+    const remove = vi.spyOn(api, 'guideTypeRemove');
+    fireEvent.click(removeButton('Lore'));
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Lore' })).toBeNull());
+    fireEvent.click(removeButton('Item'));
+    await act(async () => undefined);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(within(panel()).getByRole('textbox', { name: 'Type name: Item' })).toBeTruthy();
+  });
+
+  // B-N4: the press on Remove took the focus out of another type's name box, the rename started, and the removal was dropped without a word.
+  it('Remove pressed while another type is being renamed removes the type once the rename is done', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRename.bind(api);
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeRename').mockImplementation(
+      (name, to) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name, to).then(resolve);
+        }),
+    );
+    const remove = vi.spyOn(api, 'guideTypeRemove');
+    fireEvent.change(nameField('Lore'), { target: { value: 'Lore renamed' } });
+    fireEvent.blur(nameField('Lore'));
+    fireEvent.click(removeButton('Item'));
+    expect(remove).not.toHaveBeenCalled();
+    await act(async () => finish());
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('Item'));
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Item' })).toBeNull());
+  });
+
+  // B-N3: a right-to-left name in a cut box showed its last words and hid its first.
+  it("a type's name box takes the name's own direction", async () => {
+    await renderPanel();
+    expect(nameField('Character').getAttribute('dir')).toBe('auto');
+  });
+
   it('remove is disabled on the last type', async () => {
     const api = createMockApi();
     api.guideTypes = async () => [{ name: 'Character', colour: 'green', speaks: true }];
