@@ -282,10 +282,16 @@ export function MasteringApprovalDialog({
       )}
       {/* The pointer to a chain that is out of view floats over the bottom edge of the body and takes no room: as a third button it wrapped the action row onto a second
           line the moment it appeared, and the body lost 42 px (#3605 item 4). A zero-height sticky row, last in the body, so it rides the body's bottom edge. */}
-      {chainBelow && (
-        <div data-chain-pointer className="pointer-events-none sticky bottom-2 z-10 flex h-0 items-end justify-center">
+      {/* While the approval is being sent the pointer is not drawn: a dimmed chip over the list let the row under it show through its label. */}
+      {chainBelow && !pending && (
+        // 8 px above the body's bottom edge wherever the body is scrolled, as the mock drew it: at the scroll's end the row's own place is above the body's bottom padding
+        // (1 rem; 0.5 rem at 400 px of height or less), so there it is moved down by the difference, with the opposite margin under it so the content's height is unchanged.
+        <div
+          data-chain-pointer
+          className="pointer-events-none sticky bottom-2 z-10 mt-2 -mb-2 flex h-0 items-end justify-center [@media(max-height:400px)]:my-0"
+        >
           <span className="pointer-events-auto">
-            <Pill look="filter" action raised icon="showAbove" label={above} title={aboveHint} active={false} disabled={pending} onClick={showChain} />
+            <Pill look="filter" action raised icon="showAbove" label={above} title={aboveHint} active={false} onClick={showChain} />
           </span>
         </div>
       )}
