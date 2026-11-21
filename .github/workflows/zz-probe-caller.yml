@@ -1,0 +1,40 @@
+name: Probe cancel semantics (temporary, #3845)
+# Temporary, on a scratch branch only: what a caller sees when a job of a called workflow is cancelled at its time limit.
+on:
+  push:
+    branches: ['scratch/probe-cancel-semantics']
+permissions: {}
+jobs:
+  ci:
+    uses: ./.github/workflows/zz-probe-inner.yml
+  old-condition:
+    needs: ci
+    if: always() && needs.ci.result == 'failure'
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "old condition ran"
+  new-condition:
+    needs: ci
+    if: always() && (needs.ci.result == 'failure' || (needs.ci.result == 'cancelled' && !cancelled()))
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "new condition ran; result=$RESULT"
+        env:
+          RESULT: ${{ needs.ci.result }}
+  report:
+    needs: ci
+    if: always()
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "needs.ci.result=$RESULT"
+        env:
+          RESULT: ${{ needs.ci.result }}
+      - name: cancelled() is true in a step
+        if: cancelled()
+        run: echo yes
+      - name: cancelled() is false in a step
+        if: always() && !cancelled()
+        run: echo yes
