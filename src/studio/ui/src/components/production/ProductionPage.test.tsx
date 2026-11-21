@@ -815,4 +815,55 @@ describe('the board follows a link changed elsewhere', () => {
     act(() => seen.current!.applyMappings(result.mappings));
     await waitFor(() => expect(overview.mock.calls.length).toBeGreaterThan(before));
   });
+
+  // #3869 (delta intent F1): audio under one second is no audio on the whole page. One chapter, host absent or at 0: the tile, the stage bar and the row all say nothing is recorded;
+  // at one second the tile and the row say "<0h 01m" and 1%.
+  describe('audio under one second on the whole page', () => {
+    const zero = { paragraphId: 'p1', paragraph: 1, word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
+    const boardWith = async (recordedSeconds: number, host: typeof zero | undefined) => {
+      const base = createMockApi();
+      const overview = await base.productionOverview();
+      const row = {
+        ...overview.chapters.find((c) => /^Chapter 1\b/.test(c.title))!,
+        status: 'recording' as const,
+        recordedSeconds,
+        recordedThrough: host,
+      };
+      await renderPage({ overrides: { productionOverview: async () => ({ ...overview, chapters: [row] }) } });
+      const kpis = await screen.findByRole('list', { name: 'Production figures' });
+      const table = await pipeline();
+      return {
+        tile: within(kpis).getByRole('button', { name: /Recorded audio/ }).textContent!,
+        table: table.textContent!,
+        segment: document.querySelector('[title^="Recorded:"]'),
+        chartY: document.querySelector('circle[data-marker="today"]')?.getAttribute('cy') ?? null,
+      };
+    };
+    for (const host of [undefined, zero]) {
+      for (const seconds of [0.5, 0.99]) {
+        it(`${seconds} s, ${host ? 'host 0' : 'no host percent'}: the tile, the stage bar and the row say nothing is recorded`, async () => {
+          const { tile, table, segment } = await boardWith(seconds, host);
+          expect(tile).toMatch(/^Recorded audio0h 00m/);
+          expect(segment).toBeNull();
+          expect(table).toContain('None yet');
+          expect(table).toContain('0%');
+        });
+      }
+    }
+    it('puts the plan chart’s today point of 0.5 s and 0.99 s where 0 s puts it, and one second above it', async () => {
+      const zero = (await boardWith(0, undefined)).chartY;
+      expect(zero).not.toBeNull();
+      cleanup();
+      expect((await boardWith(0.5, undefined)).chartY).toBe(zero);
+      cleanup();
+      expect((await boardWith(0.99, undefined)).chartY).toBe(zero);
+      cleanup();
+      expect((await boardWith(1, undefined)).chartY).not.toBe(zero);
+    });
+    it('1 s: the tile and the row say <0h 01m and 1%', async () => {
+      const { tile, table } = await boardWith(1, undefined);
+      expect(tile).toMatch(/^Recorded audio<0h 01m/);
+      expect(table).toContain('1%');
+    });
+  });
 });
