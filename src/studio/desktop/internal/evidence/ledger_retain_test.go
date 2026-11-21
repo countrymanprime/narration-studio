@@ -380,22 +380,49 @@ func TestRetainDeletesNothingThroughALedgerFolderLinkedOutOfTheProject(t *testin
 	}
 }
 
-// The same link to a folder inside the project is followed: the files are the project's own.
-func TestRetainFollowsALedgerFolderLinkedInsideTheProject(t *testing.T) {
-	project := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(project, "moved"), 0o755); err != nil {
-		t.Fatal(err)
+// A ledger folder that is a link to another folder of the project, or is below such a link, is refused as well: a
+// delete by name there would take that folder's files.
+func TestRetainDeletesNothingThroughALedgerFolderLinkedInsideTheProject(t *testing.T) {
+	for name, linked := range map[string]string{
+		"the ledger folder":   ledgerFolder,
+		"the folder above it": filepath.Dir(ledgerFolder),
+		"the app's folder":    filepath.Dir(filepath.Dir(ledgerFolder)),
+	} {
+		t.Run(name, func(t *testing.T) {
+			project := t.TempDir()
+			link := filepath.Join(project, linked)
+			if err := os.MkdirAll(filepath.Dir(link), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Mkdir(filepath.Join(project, "moved"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			target, err := filepath.Rel(filepath.Dir(link), filepath.Join(project, "moved"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(target, link); err != nil {
+				t.Skipf("this platform or account cannot make a symlink: %v", err)
+			}
+			ledger := &retainLedger{t: t, store: NewLedgerStore(project), clock: newRetainClock(), project: project}
+			ledger.write("old-1", LedgerComplete)
+			ledger.write("old-2", LedgerComplete)
+			ledger.write("new", LedgerComplete)
+			called := false
+			dropped, err := ledger.store.Retain(rcKeys, nil, func(LedgerRecord) error { called = true; return nil })
+			if err == nil || len(dropped) != 0 || called {
+				t.Fatalf("Retain = %v, %v, beforeDelete called %v; want an error, nothing dropped and no call", droppedIDs(dropped), err, called)
+			}
+			// The folder is refused once, before any record is tried, not once for each record.
+			if _, perRecord := err.(interface{ Unwrap() []error }); perRecord {
+				t.Fatalf("Retain's error is one for each record (%v); want the folder's alone", err)
+			}
+			ledger.want(nil, nil, []string{"new", "old-1", "old-2"})
+			if _, err := ledger.store.RecordFileIDs(); err == nil || errors.Is(err, fs.ErrNotExist) {
+				t.Fatalf("RecordFileIDs through the link = %v; want an error that is not a missing folder's", err)
+			}
+		})
 	}
-	if err := os.MkdirAll(filepath.Dir(LedgerDir(project)), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(filepath.Join("..", "..", "moved"), LedgerDir(project)); err != nil {
-		t.Skipf("this platform or account cannot make a symlink: %v", err)
-	}
-	ledger := &retainLedger{t: t, store: NewLedgerStore(project), clock: newRetainClock(), project: project}
-	ledger.write("old", LedgerComplete)
-	ledger.write("new", LedgerComplete)
-	ledger.want(ledger.retain(rcKeys), []string{"old"}, []string{"new"})
 }
 
 // --- where the project is ---
@@ -509,25 +536,218 @@ func TestRetainCallsBeforeDeleteWhileTheRecordIsStillThere(t *testing.T) {
 	}
 }
 
-// A step that fails keeps its record and stops the pass; the next pass drops what is left.
-func TestRetainKeepsARecordWhoseStepFailed(t *testing.T) {
+// A step that fails keeps its record, and the pass goes on: one record that cannot go does not keep the others.
+func TestRetainKeepsARecordWhoseStepFailedAndGoesOn(t *testing.T) {
 	ledger := newRetainLedger(t)
-	ledger.write("old-1", LedgerComplete)
-	ledger.write("old-2", LedgerComplete)
-	ledger.write("old-3", LedgerComplete)
+	for _, id := range []string{"old-1", "old-2", "old-3", "old-4", "old-5"} {
+		ledger.write(id, LedgerComplete)
+	}
 	ledger.write("new", LedgerComplete)
-	refused := errors.New("the result is in use")
+	refused, alsoRefused := errors.New("the result is in use"), errors.New("the disk is full")
+	var asked []string
 	dropped, err := ledger.store.Retain(rcKeys, nil, func(record LedgerRecord) error {
-		if record.ID == "old-2" {
+		asked = append(asked, record.ID)
+		switch record.ID {
+		case "old-2":
 			return refused
+		case "old-4":
+			return alsoRefused
 		}
 		return nil
 	})
-	if !errors.Is(err, refused) || !reflect.DeepEqual(droppedIDs(dropped), []string{"old-1"}) {
-		t.Fatalf("Retain = %v, %v; want old-1 dropped and the step's error", droppedIDs(dropped), err)
+	if !errors.Is(err, refused) || !errors.Is(err, alsoRefused) || !reflect.DeepEqual(droppedIDs(dropped), []string{"old-1", "old-3", "old-5"}) {
+		t.Fatalf("Retain = %v, %v; want old-1, old-3 and old-5 dropped and both steps' errors", droppedIDs(dropped), err)
 	}
-	ledger.want(nil, nil, []string{"new", "old-2", "old-3"})
-	ledger.want(ledger.retain(rcKeys), []string{"old-2", "old-3"}, []string{"new"})
+	if len(asked) != 5 {
+		t.Fatalf("beforeDelete was asked for %v, want all five", asked)
+	}
+	for _, id := range []string{"old-2", "old-4"} {
+		if !strings.Contains(err.Error(), id) {
+			t.Fatalf("the error %q does not name %s", err, id)
+		}
+	}
+	ledger.want(nil, nil, []string{"new", "old-2", "old-4"})
+	ledger.want(ledger.retain(rcKeys), []string{"old-2", "old-4"}, []string{"new"})
+}
+
+// A record whose own file cannot be deleted stays, with an error of its own, and so does every later one that cannot
+// go: here the ledger folder becomes a link while the second record's step runs, which refuses that record's delete
+// and the check of each record after it. It needs no folder mode, so it holds for root too.
+func TestRetainKeepsARecordWhoseFileCannotBeDeletedAndGoesOn(t *testing.T) {
+	ledger := newRetainLedger(t)
+	for _, id := range []string{"old-1", "old-2", "old-3", "old-4"} {
+		ledger.write(id, LedgerComplete)
+	}
+	ledger.write("new", LedgerComplete)
+	folder := LedgerDir(ledger.project)
+	aside := filepath.Join(ledger.project, "aside")
+	var asked []string
+	dropped, err := ledger.store.Retain(rcKeys, nil, func(record LedgerRecord) error {
+		asked = append(asked, record.ID)
+		if record.ID != "old-2" {
+			return nil
+		}
+		if err := os.Rename(folder, aside); err != nil {
+			t.Skipf("this platform does not rename the folder: %v", err)
+		}
+		if err := os.Symlink(aside, folder); err != nil {
+			t.Skipf("this platform or account cannot make a symlink: %v", err)
+		}
+		return nil
+	})
+	if !reflect.DeepEqual(droppedIDs(dropped), []string{"old-1"}) || !reflect.DeepEqual(asked, []string{"old-1", "old-2"}) {
+		t.Fatalf("Retain dropped %v after asking for %v; want old-1 dropped, and no step for a record behind the link", droppedIDs(dropped), asked)
+	}
+	joined, ok := err.(interface{ Unwrap() []error })
+	if !ok || len(joined.Unwrap()) != 3 {
+		t.Fatalf("Retain's error is %v; want one error for each of old-2, old-3 and old-4", err)
+	}
+	for _, id := range []string{"old-2", "old-3", "old-4"} {
+		if !strings.Contains(err.Error(), id) {
+			t.Fatalf("the error %q does not name %s", err, id)
+		}
+	}
+	ledger.want(nil, nil, []string{"new", "old-2", "old-3", "old-4"})
+}
+
+// A link or a folder that stands where a record's file was by the time its turn comes is left, and beforeDelete is not
+// called for it: what is stored beside a record goes only when the record's own file can go after it.
+func TestRetainCallsNoStepForARecordWhoseFileIsALinkOrAFolder(t *testing.T) {
+	ledger := newRetainLedger(t)
+	outside := t.TempDir()
+	linked := baseLedgerRecord("rc", "c-0001", ledger.clock.next(), LedgerComplete)
+	linked.ID = "linked"
+	if _, err := NewLedgerStore(outside).Write(linked); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(LedgerDir(outside), "linked.json")
+	ledger.write("old-1", LedgerComplete)
+	ledger.write("becomes-a-folder", LedgerComplete)
+	if err := os.Symlink(target, ledger.file("linked.json")); err != nil {
+		t.Skipf("this platform or account cannot make a symlink: %v", err)
+	}
+	ledger.write("new", LedgerComplete)
+
+	var asked []string
+	dropped, err := ledger.store.Retain(rcKeys, nil, func(record LedgerRecord) error {
+		asked = append(asked, record.ID)
+		if record.ID == "old-1" {
+			if err := os.Remove(ledger.file("becomes-a-folder.json")); err != nil {
+				return err
+			}
+			return os.Mkdir(ledger.file("becomes-a-folder.json"), 0o755)
+		}
+		return nil
+	})
+	if err != nil || !reflect.DeepEqual(asked, []string{"old-1"}) || !reflect.DeepEqual(droppedIDs(dropped), []string{"old-1"}) {
+		t.Fatalf("Retain = %v, %v after asking for %v; want old-1 alone asked for and dropped", droppedIDs(dropped), err, asked)
+	}
+	mustExist(t, ledger.file("linked.json"))
+	mustExist(t, ledger.file("becomes-a-folder.json"))
+	mustExist(t, target)
+}
+
+// A key or a step that panics ends the pass there: the panic reaches the caller, the store's lock is released, and no
+// record is gone but the ones whose turn had passed.
+func TestAPanicInRetainLeavesTheStoreUsableAndLosesNoRecord(t *testing.T) {
+	ledger := newRetainLedger(t)
+	ledger.write("old-1", LedgerComplete)
+	ledger.write("old-2", LedgerComplete)
+	ledger.write("new", LedgerComplete)
+	// panicking runs a pass that panics and returns what it panicked with, once a Write through the store has returned:
+	// a lock the pass left held would stop that Write.
+	panicking := func(keys map[string]RetentionKey, beforeDelete func(LedgerRecord) error) (recovered any) {
+		t.Helper()
+		func() {
+			defer func() { recovered = recover() }()
+			_, _ = ledger.store.Retain(keys, nil, beforeDelete)
+		}()
+		written := make(chan error, 1)
+		go func() {
+			_, err := ledger.store.Write(baseLedgerRecord("another", "c-0009", time.Now(), LedgerPartial))
+			written <- err
+		}()
+		select {
+		case err := <-written:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-time.After(10 * time.Second):
+			t.Fatalf("a Write after the panic %v did not return: the store's lock was not released", recovered)
+		}
+		return recovered
+	}
+	others := func() []string {
+		t.Helper()
+		left, err := ledger.store.List("rc", "c-0001")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids := droppedIDs(left)
+		sort.Strings(ids)
+		return ids
+	}
+
+	panicsAtEveryRecord := map[string]RetentionKey{"rc": func(LedgerRecord) (string, bool) { panic("a key that panics") }}
+	if recovered := panicking(panicsAtEveryRecord, nil); recovered != "a key that panics" {
+		t.Fatalf("Retain recovered %v; want the key's panic to reach the caller", recovered)
+	}
+	if left := others(); !reflect.DeepEqual(left, []string{"new", "old-1", "old-2"}) {
+		t.Fatalf("after the key's panic the ledger holds %v, want every record", left)
+	}
+
+	if recovered := panicking(rcKeys, func(record LedgerRecord) error {
+		if record.ID == "old-2" {
+			panic("a step that panics")
+		}
+		return nil
+	}); recovered != "a step that panics" {
+		t.Fatalf("Retain recovered %v; want the step's panic to reach the caller", recovered)
+	}
+	if left := others(); !reflect.DeepEqual(left, []string{"new", "old-2"}) {
+		t.Fatalf("after the step's panic the ledger holds %v, want only old-1 gone", left)
+	}
+
+	if dropped, err := ledger.store.Retain(rcKeys, nil, nil); err != nil || !reflect.DeepEqual(droppedIDs(dropped), []string{"old-2"}) {
+		t.Fatalf("the next pass = %v, %v; want old-2 dropped", droppedIDs(dropped), err)
+	}
+}
+
+// The store's lock is held for the whole pass: a Write through the same store waits until the pass has ended.
+func TestRetainHoldsTheStoresLockAcrossThePass(t *testing.T) {
+	ledger := newRetainLedger(t)
+	ledger.write("old", LedgerComplete)
+	ledger.write("new", LedgerComplete)
+	arriving := baseLedgerRecord("rc", "c-0001", ledger.clock.next(), LedgerComplete)
+	arriving.ID = "arriving"
+	written := make(chan error, 1)
+	writing := make(chan struct{})
+	dropped, err := ledger.store.Retain(rcKeys, nil, func(LedgerRecord) error {
+		go func() {
+			close(writing)
+			_, err := ledger.store.Write(arriving)
+			written <- err
+		}()
+		<-writing
+		select {
+		case err := <-written:
+			t.Errorf("a Write returned (%v) while the pass was still running", err)
+		case <-time.After(100 * time.Millisecond):
+		}
+		return nil
+	})
+	if err != nil || !reflect.DeepEqual(droppedIDs(dropped), []string{"old"}) {
+		t.Fatalf("Retain = %v, %v; want old dropped", droppedIDs(dropped), err)
+	}
+	select {
+	case err := <-written:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the Write did not return after the pass ended")
+	}
+	ledger.want(nil, nil, []string{"arriving", "new"})
 }
 
 // A record that is gone by the time its turn comes (another pass, a manuscript replace) is not reported as dropped.

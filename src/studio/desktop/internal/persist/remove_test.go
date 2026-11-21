@@ -133,27 +133,129 @@ func TestRemoveRegularLeavesALinkAndItsTarget(t *testing.T) {
 	stillThere(t, insideFile)
 }
 
-// A folder on the way that is a link is followed while it stays under the root, and refused when it leads out of it.
-func TestRemoveRegularFollowsALinkedFolderOnlyInsideTheRoot(t *testing.T) {
+// A folder on the way that is a link is refused wherever it leads: out of the root, or to another folder inside it, whose
+// files a delete by name would otherwise take.
+func TestRemoveRegularRefusesALinkedFolderOnTheWay(t *testing.T) {
 	base := t.TempDir()
 	root := filepath.Join(base, "project")
 	outside := writeIn(t, filepath.Join(base, "outside", "a.json"))
 	inside := writeIn(t, filepath.Join(root, "real", "a.json"))
+	deep := writeIn(t, filepath.Join(root, "real", "deeper", "a.json"))
+	rootFile := writeIn(t, filepath.Join(root, "a.json"))
 	if err := os.Symlink(filepath.Dir(outside), filepath.Join(root, "escapes")); err != nil {
 		t.Skipf("this platform or account cannot make a symlink: %v", err)
 	}
-	if err := os.Symlink("real", filepath.Join(root, "stays")); err != nil {
+	for link, target := range map[string]string{"stays": "real", "to-root": ".", "dangling": "nowhere"} {
+		if err := os.Symlink(target, filepath.Join(root, link)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink("deeper", filepath.Join(root, "real", "below")); err != nil {
 		t.Fatal(err)
 	}
-	if removed, err := RemoveRegular(root, filepath.Join("escapes", "a.json")); removed || err == nil {
-		t.Fatalf("RemoveRegular through a link out of the root = %v, %v; want false and an error", removed, err)
+	for name, rel := range map[string]string{
+		"out of the root":         filepath.Join("escapes", "a.json"),
+		"to a folder in the root": filepath.Join("stays", "a.json"),
+		"to the root":             filepath.Join("to-root", "a.json"),
+		"to nothing":              filepath.Join("dangling", "a.json"),
+		"below a real folder":     filepath.Join("real", "below", "a.json"),
+		"above a real folder":     filepath.Join("stays", "deeper", "a.json"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			if removed, err := RemoveRegular(root, rel); removed || err == nil {
+				t.Fatalf("RemoveRegular(%q) = %v, %v; want false and an error", rel, removed, err)
+			}
+			if regular, err := IsRegular(root, rel); regular || err == nil {
+				t.Fatalf("IsRegular(%q) = %v, %v; want false and an error", rel, regular, err)
+			}
+			for _, path := range []string{outside, inside, deep, rootFile} {
+				stillThere(t, path)
+			}
+		})
 	}
-	stillThere(t, outside)
-	if removed, err := RemoveRegular(root, filepath.Join("stays", "a.json")); !removed || err != nil {
-		t.Fatalf("RemoveRegular through a link inside the root = %v, %v; want true, nil", removed, err)
+}
+
+// A file where a folder of the path would be is refused as a link is: the path is not what the caller named.
+func TestRemoveRegularRefusesAFileWhereAFolderWouldBe(t *testing.T) {
+	root := t.TempDir()
+	file := writeIn(t, filepath.Join(root, "data"))
+	if removed, err := RemoveRegular(root, filepath.Join("data", "a.json")); removed || err == nil {
+		t.Fatalf("RemoveRegular = %v, %v; want false and an error", removed, err)
 	}
-	if _, err := os.Lstat(inside); !os.IsNotExist(err) {
-		t.Fatalf("the file behind the inside link is still there: %v", err)
+	stillThere(t, file)
+}
+
+// The delete acts on the folder the checks were made in: a root replaced at the same path in between is not touched.
+func TestRemoveRegularDeletesInTheRootItChecked(t *testing.T) {
+	base := t.TempDir()
+	root := filepath.Join(base, "project")
+	writeIn(t, filepath.Join(root, "data", "a.json"))
+	moved := filepath.Join(base, "moved")
+	previous := beforeAct
+	t.Cleanup(func() { beforeAct = previous })
+	swapped := false
+	beforeAct = func() {
+		if err := os.Rename(root, moved); err != nil {
+			return // Windows does not rename a folder that is open
+		}
+		swapped = true
+		writeIn(t, filepath.Join(root, "data", "a.json"))
+	}
+	removed, err := RemoveRegular(root, filepath.Join("data", "a.json"))
+	if !swapped {
+		t.Skip("this platform does not rename an open folder, so no other folder can take its path")
+	}
+	if !removed || err != nil {
+		t.Fatalf("RemoveRegular = %v, %v; want true, nil", removed, err)
+	}
+	if _, err := os.Lstat(filepath.Join(moved, "data", "a.json")); !os.IsNotExist(err) {
+		t.Fatalf("the file that was checked is still there: %v", err)
+	}
+	stillThere(t, filepath.Join(root, "data", "a.json"))
+}
+
+func TestRealFolderAnswersForAFolderReachedThroughFoldersOnly(t *testing.T) {
+	base := t.TempDir()
+	root := filepath.Join(base, "project")
+	file := writeIn(t, filepath.Join(root, "real", "deeper", "a.json"))
+	writeIn(t, filepath.Join(base, "outside", "a.json"))
+	links := map[string]string{"stays": "real", "to-root": ".", "escapes": filepath.Join(base, "outside"), "dangling": "nowhere"}
+	for link, target := range links {
+		if err := os.Symlink(target, filepath.Join(root, link)); err != nil {
+			t.Skipf("this platform or account cannot make a symlink: %v", err)
+		}
+	}
+	if err := os.Symlink(root, filepath.Join(base, "link")); err != nil {
+		t.Fatal(err)
+	}
+	for name, c := range map[string]struct {
+		root, rel string
+		real      bool
+		refused   bool
+	}{
+		"a folder":                      {root: root, rel: "real", real: true},
+		"a folder below a folder":       {root: root, rel: filepath.Join("real", "deeper"), real: true},
+		"the root":                      {root: root, rel: ".", real: true},
+		"a root reached through a link": {root: filepath.Join(base, "link"), rel: filepath.Join("real", "deeper"), real: true},
+		"nothing":                       {root: root, rel: "missing"},
+		"nothing below nothing":         {root: root, rel: filepath.Join("missing", "deeper")},
+		"no root":                       {root: filepath.Join(base, "nowhere"), rel: "real"},
+		"a root that is a file":         {root: file, rel: "real", refused: true},
+		"a file":                        {root: root, rel: filepath.Join("real", "deeper", "a.json"), refused: true},
+		"a link to a folder":            {root: root, rel: "stays", refused: true},
+		"a link to the root":            {root: root, rel: "to-root", refused: true},
+		"a link out of the root":        {root: root, rel: "escapes", refused: true},
+		"a link to nothing":             {root: root, rel: "dangling", refused: true},
+		"below a link":                  {root: root, rel: filepath.Join("stays", "deeper"), refused: true},
+		"out of the root":               {root: root, rel: filepath.Join("..", "outside"), refused: true},
+		"an absolute path":              {root: root, rel: filepath.Join(root, "real"), refused: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			real, err := RealFolder(c.root, c.rel)
+			if real != c.real || (err != nil) != c.refused {
+				t.Fatalf("RealFolder(%q) = %v, %v; want %v, refused %v", c.rel, real, err, c.real, c.refused)
+			}
+		})
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"desktop/internal/evidence"
+	"desktop/internal/persist"
 )
 
 // retentionKeys is the keys of this package's analyzer.
@@ -626,7 +627,174 @@ func TestTheSweepReportsAFolderItCannotList(t *testing.T) {
 	}
 }
 
-func TestTheSweepStopsAtAnOrphanItCannotRemove(t *testing.T) {
+// --- what the sweep refuses, and what it leaves ---
+
+// entries is the names in dir, sorted, for comparing a folder before and after a sweep.
+func entries(t *testing.T, dir string) []string {
+	t.Helper()
+	listed, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := []string{}
+	for _, entry := range listed {
+		names = append(names, entry.Name())
+	}
+	return names
+}
+
+// linkTo replaces the folder at link (kept aside when it is there) with a relative link to target.
+func linkTo(t *testing.T, link, target string) {
+	t.Helper()
+	if exists(link) {
+		if err := os.Rename(link, filepath.Join(t.TempDir(), "aside")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	relative, err := filepath.Rel(filepath.Dir(link), target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(relative, link); err != nil {
+		t.Skipf("this platform or account cannot make a symlink: %v", err)
+	}
+}
+
+// storedResultFile and storedSummaryFile are a result and a summary as this package stores them for record id.
+func storedResultFile(id string) []byte {
+	return []byte(fmt.Sprintf(`{"schemaVersion":1,"recordId":%q,"report":{}}`, id))
+}
+
+func storedSummaryFile(id string) []byte {
+	return []byte(fmt.Sprintf(`{"schemaVersion":1,"resultVersion":1,"recordId":%q}`, id))
+}
+
+// The sweep deletes by a file's name in two folders, so it must be in those two folders and the file must be what this
+// package stored there. A results or summaries folder that is a link, or is below one, leads to another folder (the
+// project's own, in the worst case), whose files have names too: the sweep refuses it and deletes nothing. In the real
+// folders, a file that is no stored result or summary of the record its name carries is left and not reported.
+func TestTheSweepDeletesOnlyStoredResultsInItsOwnFolders(t *testing.T) {
+	// The narrator's own folder in the project: files named like any other, and a copy of a stored result and summary.
+	narratorFiles := map[string][]byte{
+		"notes.json": []byte(`{"mine":true}`), "settings.json": []byte(`{"mine":true}`), "reader-state.json": []byte(`{}`),
+		"kept-result.json": storedResultFile("kept-result"), "kept-summary.json": storedSummaryFile("kept-summary"),
+	}
+	links := map[string]struct {
+		link   func(project string) string
+		target func(project string) string
+	}{
+		"results linked to the project folder":        {resultsDir, func(project string) string { return project }},
+		"summaries linked to the project folder":      {summariesDir, func(project string) string { return project }},
+		"results linked to a folder of the project":   {resultsDir, func(project string) string { return filepath.Join(project, "narrator") }},
+		"summaries linked to a folder of the project": {summariesDir, func(project string) string { return filepath.Join(project, "narrator") }},
+		"results linked to an empty folder":           {resultsDir, func(project string) string { return filepath.Join(project, "empty") }},
+		"the coverage folder linked":                  {Dir, func(project string) string { return filepath.Join(project, "narrator") }},
+		"the folder above the coverage folder linked": {func(project string) string { return filepath.Dir(Dir(project)) }, func(project string) string { return filepath.Join(project, "narrator") }},
+	}
+	for name, c := range links {
+		t.Run(name, func(t *testing.T) {
+			f, _, _, _ := checkedTwiceThenFailed(t)
+			writeStored(t, f.service, "orphan")
+			writeBytes(t, filepath.Join(f.dir, "project.json"), []byte(`{"dawProjectFile":"book.rpp"}`))
+			writeBytes(t, filepath.Join(f.dir, "kept-result.json"), storedResultFile("kept-result"))
+			writeBytes(t, filepath.Join(f.dir, "kept-summary.json"), storedSummaryFile("kept-summary"))
+			if err := os.Mkdir(filepath.Join(f.dir, "narrator"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			for file, content := range narratorFiles {
+				writeBytes(t, filepath.Join(f.dir, "narrator", file), content)
+			}
+			if err := os.Mkdir(filepath.Join(f.dir, "empty"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			linkTo(t, c.link(f.dir), c.target(f.dir))
+			project, narrator := entries(t, f.dir), entries(t, filepath.Join(f.dir, "narrator"))
+
+			swept, err := f.service.SweepOrphanResults()
+			if err == nil || len(swept) != 0 {
+				t.Fatalf("SweepOrphanResults = %v, %v; want an error and nothing removed", swept, err)
+			}
+			if after := entries(t, f.dir); !reflect.DeepEqual(after, project) {
+				t.Fatalf("the project folder holds %v after the sweep, held %v", after, project)
+			}
+			if after := entries(t, filepath.Join(f.dir, "narrator")); !reflect.DeepEqual(after, narrator) {
+				t.Fatalf("the narrator's folder holds %v after the sweep, held %v", after, narrator)
+			}
+			for _, dir := range []string{resultsDir(f.dir), summariesDir(f.dir)} {
+				if real, err := os.Lstat(dir); err == nil && real.IsDir() && !exists(filepath.Join(dir, "orphan.json")) {
+					t.Fatalf("the sweep removed the orphan in %s though it refused the pass", dir)
+				}
+			}
+			for _, id := range []string{"kept-result", "kept-summary"} {
+				if err := f.service.RemoveStoredResult(id); err == nil {
+					t.Fatalf("RemoveStoredResult(%q) through the link = nil, want an error", id)
+				}
+			}
+			if after := entries(t, filepath.Join(f.dir, "narrator")); !reflect.DeepEqual(after, narrator) {
+				t.Fatalf("the narrator's folder holds %v after RemoveStoredResult, held %v", after, narrator)
+			}
+		})
+	}
+
+	t.Run("files in the real folders that this package did not store", func(t *testing.T) {
+		f, _, _, _ := checkedTwiceThenFailed(t)
+		writeStored(t, f.service, "orphan")
+		foreign := map[string][]byte{
+			"README.json":        []byte("not a result"),
+			"another-shape.json": []byte(`{"name":"another-shape","items":[1,2,3]}`),
+			"a-list.json":        []byte(`[]`),
+			"empty.json":         nil,
+			"no-version.json":    []byte(`{"recordId":"no-version"}`),
+			"renamed.json":       storedResultFile("another-record"),
+			"renamed-too.json":   storedSummaryFile("another-record"),
+		}
+		for _, dir := range []string{resultsDir(f.dir), summariesDir(f.dir)} {
+			for file, content := range foreign {
+				writeBytes(t, filepath.Join(dir, file), content)
+			}
+		}
+		// A result is no summary: one left in the summaries folder is not the summary store's file.
+		writeBytes(t, filepath.Join(summariesDir(f.dir), "a-result.json"), storedResultFile("a-result"))
+
+		swept, err := f.service.SweepOrphanResults()
+		if err != nil || !reflect.DeepEqual(swept, []string{"orphan"}) {
+			t.Fatalf("SweepOrphanResults = %v, %v; want the orphan alone", swept, err)
+		}
+		if got := f.stored("orphan"); got != "- - -" {
+			t.Fatalf("the orphan has %q left", got)
+		}
+		for _, dir := range []string{resultsDir(f.dir), summariesDir(f.dir)} {
+			for file := range foreign {
+				if !exists(filepath.Join(dir, file)) {
+					t.Fatalf("the sweep removed %s from %s", file, dir)
+				}
+			}
+		}
+		if !exists(filepath.Join(summariesDir(f.dir), "a-result.json")) {
+			t.Fatal("the sweep removed a result from the summaries folder")
+		}
+	})
+}
+
+// The refusal does not wait for a file to remove: a linked folder with nothing in it is an error all the same.
+func TestTheSweepRefusesALinkedFolderWithNothingToRemove(t *testing.T) {
+	for name, folder := range map[string]func(project string) string{"results": resultsDir, "summaries": summariesDir} {
+		t.Run(name, func(t *testing.T) {
+			p, _, _, _ := summaryFixture(t)
+			empty := filepath.Join(p.dir, "empty")
+			if err := os.Mkdir(empty, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			linkTo(t, folder(p.dir), empty)
+			if swept, err := p.service(&fakeSidecar{}).SweepOrphanResults(); err == nil || len(swept) != 0 {
+				t.Fatalf("SweepOrphanResults = %v, %v; want an error", swept, err)
+			}
+		})
+	}
+}
+
+// A results or summaries folder linked out of the project is refused before anything is removed, here or there.
+func TestTheSweepRemovesNothingThroughAFolderLinkedOutOfTheProject(t *testing.T) {
 	p, _, _, _ := summaryFixture(t)
 	service := p.service(&fakeSidecar{})
 	writeStored(t, service, "orphan-1")
@@ -640,10 +808,232 @@ func TestTheSweepStopsAtAnOrphanItCannotRemove(t *testing.T) {
 	}
 	swept, err := service.SweepOrphanResults()
 	if err == nil || len(swept) != 0 {
-		t.Fatalf("SweepOrphanResults = %v, %v; want an error at the first orphan", swept, err)
+		t.Fatalf("SweepOrphanResults = %v, %v; want an error and nothing removed", swept, err)
 	}
-	if !exists(filepath.Join(outside, "orphan-1.json")) || !exists(filepath.Join(resultsDir(p.dir), "orphan-2.json")) {
-		t.Fatal("the sweep went on past the orphan it could not remove")
+	for _, path := range []string{
+		filepath.Join(outside, "orphan-1.json"), filepath.Join(outside, "orphan-2.json"),
+		filepath.Join(resultsDir(p.dir), "orphan-1.json"), filepath.Join(resultsDir(p.dir), "orphan-2.json"),
+	} {
+		if !exists(path) {
+			t.Fatalf("the sweep removed %s", path)
+		}
+	}
+}
+
+// A ledger folder that is there but holds no record file says nothing of which records exist (a folder being synced or
+// moved back, a link to an empty folder): nothing is an orphan, and when the records are back every result still reads.
+func TestTheSweepRemovesNothingWhenTheLedgerFolderIsEmpty(t *testing.T) {
+	ledgers := map[string]struct {
+		make    func(t *testing.T, ledger string)
+		refused bool
+	}{
+		"an empty folder": {make: func(t *testing.T, ledger string) {
+			if err := os.Mkdir(ledger, 0o755); err != nil {
+				t.Fatal(err)
+			}
+		}},
+		"a folder with no record file": {make: func(t *testing.T, ledger string) {
+			if err := os.Mkdir(ledger, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			writeBytes(t, filepath.Join(ledger, "notes.txt"), []byte("no record"))
+		}},
+		"a link to an empty folder outside the project": {refused: true, make: func(t *testing.T, ledger string) {
+			if err := os.Symlink(t.TempDir(), ledger); err != nil {
+				t.Skipf("this platform or account cannot make a symlink: %v", err)
+			}
+		}},
+		"a link to an empty folder of the project": {refused: true, make: func(t *testing.T, ledger string) {
+			empty := filepath.Join(filepath.Dir(ledger), "empty")
+			if err := os.Mkdir(empty, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			linkTo(t, ledger, empty)
+		}},
+		"a link to nothing": {refused: true, make: func(t *testing.T, ledger string) {
+			if err := os.Symlink(filepath.Join(t.TempDir(), "nowhere"), ledger); err != nil {
+				t.Skipf("this platform or account cannot make a symlink: %v", err)
+			}
+		}},
+	}
+	for name, c := range ledgers {
+		t.Run(name, func(t *testing.T) {
+			f, first, second, failed := checkedTwiceThenFailed(t)
+			before := f.read(t)
+			ledger := evidence.LedgerDir(f.dir)
+			aside := filepath.Join(t.TempDir(), "ledger")
+			if err := os.Rename(ledger, aside); err != nil {
+				t.Fatal(err)
+			}
+			c.make(t, ledger)
+
+			swept, err := f.service.SweepOrphanResults()
+			if len(swept) != 0 || (err != nil) != c.refused {
+				t.Fatalf("SweepOrphanResults = %v, %v; want nothing removed and refused %v", swept, err, c.refused)
+			}
+
+			// The records come back.
+			if err := os.RemoveAll(ledger); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Rename(aside, ledger); err != nil {
+				t.Fatal(err)
+			}
+			for id, want := range map[string]string{first: "result summary record", second: "result summary record", failed: "- - record"} {
+				if got := f.stored(id); got != want {
+					t.Fatalf("record %s has %q, want %q", id, got, want)
+				}
+			}
+			if after := f.read(t); !reflect.DeepEqual(after, before) {
+				t.Fatalf("with the ledger back the readers answer\n%+v\nwas\n%+v", after, before)
+			}
+		})
+	}
+}
+
+// The sweep lists the stored files before the ledger. A check that finishes between the two listings (its record, then
+// its result) is then in the ledger listing, so its result is no orphan; listed the other way round, it would be one.
+func TestTheSweepKeepsACheckThatFinishedWhileItListed(t *testing.T) {
+	f, _, second, _ := checkedTwiceThenFailed(t)
+	seed, ok := f.service.ledger.Get(second)
+	if !ok {
+		t.Fatal("the second check's record is not readable")
+	}
+	writeStored(t, f.service, "orphan")
+	f.service.sweepListed = func() {
+		arrived := seed
+		arrived.ID = "arrived"
+		arrived.StartedAt = seed.StartedAt.Add(time.Hour)
+		if _, err := f.service.ledger.Write(arrived); err != nil {
+			t.Error(err)
+		}
+		writeStored(t, f.service, arrived.ID)
+	}
+	swept, err := f.service.SweepOrphanResults()
+	if err != nil || !reflect.DeepEqual(swept, []string{"orphan"}) {
+		t.Fatalf("SweepOrphanResults = %v, %v; want the orphan alone", swept, err)
+	}
+	if got := f.stored("arrived"); got != "result summary record" {
+		t.Fatalf("the check that finished during the sweep has %q", got)
+	}
+	f.service.sweepListed = nil
+	if again, err := f.service.SweepOrphanResults(); err != nil || len(again) != 0 {
+		t.Fatalf("the next sweep = %v, %v; want nothing", again, err)
+	}
+}
+
+// Only a file with no record is read to see what it is: a sweep that finds no orphan decodes nothing, however many
+// results are stored, and one that finds an orphan reads that record's two files.
+func TestTheSweepReadsOnlyTheFilesOfRecordsThatAreGone(t *testing.T) {
+	f, _, _, _ := checkedTwiceThenFailed(t)
+	decoded := func() int64 {
+		files, _ := persist.Work()
+		return files + f.service.ResultsDecoded()
+	}
+	before := decoded()
+	if swept, err := f.service.SweepOrphanResults(); err != nil || len(swept) != 0 {
+		t.Fatalf("SweepOrphanResults = %v, %v; want nothing", swept, err)
+	}
+	if read := decoded() - before; read != 0 {
+		t.Fatalf("a sweep with no orphan decoded %d files, want none", read)
+	}
+	writeStored(t, f.service, "orphan")
+	before = decoded()
+	if swept, err := f.service.SweepOrphanResults(); err != nil || !reflect.DeepEqual(swept, []string{"orphan"}) {
+		t.Fatalf("SweepOrphanResults = %v, %v; want the orphan", swept, err)
+	}
+	if read := decoded() - before; read != 2 {
+		t.Fatalf("a sweep of one orphan decoded %d files, want its result and its summary", read)
+	}
+}
+
+// --- a read across a Retain pass ---
+
+// A read picks a chapter's record and then reads that record's stored result. A new check and a Retain pass in between
+// delete the picked record with its result; the read then asks the ledger again and answers from the record that is
+// there now, never "result missing" for a record that is gone. The pass's snapshot is the pick made before.
+func TestAReadAcrossARetainPassNeverAnswersResultMissing(t *testing.T) {
+	f, first, second, failed := checkedTwiceThenFailed(t)
+	project, projectFile, err := f.service.savedProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	picked := f.service.Pass()
+	if records, _ := picked.read.ledger.List(AnalyzerID, testChapter); len(records) != 3 {
+		t.Fatalf("the read picked from %d records, want the three checks", len(records))
+	}
+
+	run(t, f.testProject.service(&fakeSidecar{present: 9}), testRequest())
+	newest := latestRecord(t, f.testProject).ID
+	dropped, err := f.retain(t, f.service, removeStoredOf(f.service))
+	if err != nil || !reflect.DeepEqual(dropped, []string{first, second, failed}) {
+		t.Fatalf("Retain dropped %v, %v; want the three older checks", dropped, err)
+	}
+
+	listings, _ := f.service.LedgerReads()
+	result, err := picked.ResultIn(project, projectFile, testChapter, DefaultAlignmentParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.State != evidence.StateCurrent || result.Record == nil || result.Record.ID != newest || result.Result == nil || result.Result.RecordID != newest {
+		t.Fatalf("the read across the pass answers %s %v of record %+v; want the newest check, current, with its result", result.State, result.Reasons, result.Record)
+	}
+	if after, _ := f.service.LedgerReads(); after == listings {
+		t.Fatal("the read did not ask the ledger again")
+	}
+	state, summary, err := picked.Summary(project, projectFile, testChapter, DefaultAlignmentParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.State != evidence.StateCurrent || state.Record == nil || state.Record.ID != newest || summary == nil || summary.RecordID != newest {
+		t.Fatalf("the summary read across the pass answers %s %v, summary %+v; want the newest check's", state.State, state.Reasons, summary)
+	}
+
+	// A read whose record is still there asks the ledger no more than it did: the result is found at once.
+	fresh := f.service.Pass()
+	listings, _ = f.service.LedgerReads()
+	if result, err := fresh.ResultIn(project, projectFile, testChapter, DefaultAlignmentParams); err != nil || result.Result == nil {
+		t.Fatalf("a read after the pass = %+v, %v", result, err)
+	}
+	if after, _ := f.service.LedgerReads(); after != listings {
+		t.Fatalf("a read that found its result listed the ledger %d more times", after-listings)
+	}
+}
+
+// A result that is missing with its record still there is still answered as missing, after one more look at the ledger;
+// and when that look finds no record at all, the chapter reads as never checked.
+func TestAReadWhoseResultIsMissingAsksTheLedgerOnceMore(t *testing.T) {
+	p, recordID, resultPath, _ := summaryFixture(t)
+	service := p.service(&fakeSidecar{})
+	project, projectFile, err := service.savedProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	picked := service.Pass()
+	if err := os.Remove(resultPath); err != nil {
+		t.Fatal(err)
+	}
+	listings, _ := service.LedgerReads()
+	result, err := picked.ResultIn(project, projectFile, testChapter, DefaultAlignmentParams)
+	if err != nil || result.State != evidence.StateNever || !reflect.DeepEqual(result.Reasons, []string{string(ReasonResultMissing)}) || result.Record == nil || result.Record.ID != recordID {
+		t.Fatalf("a read of a record without its result = %+v, %v; want never checked, result missing", result, err)
+	}
+	if after, _ := service.LedgerReads(); after != listings+1 {
+		t.Fatalf("the read listed the ledger %d times after the miss, want once", after-listings)
+	}
+	if state, summary, err := picked.Summary(project, projectFile, testChapter, DefaultAlignmentParams); err != nil || summary != nil || !reflect.DeepEqual(state.Reasons, []string{string(ReasonResultMissing)}) {
+		t.Fatalf("a summary read of a record without its result = %+v, %+v, %v; want result missing", state, summary, err)
+	}
+
+	if err := os.Remove(filepath.Join(evidence.LedgerDir(p.dir), recordID+".json")); err != nil {
+		t.Fatal(err)
+	}
+	result, err = picked.ResultIn(project, projectFile, testChapter, DefaultAlignmentParams)
+	if err != nil || result.State != evidence.StateNever || result.Record != nil || len(result.Reasons) != 0 && result.Reasons[0] == string(ReasonResultMissing) {
+		t.Fatalf("a read whose record is gone too = %+v, %v; want never checked, with no record", result, err)
+	}
+	if state, summary, err := picked.Summary(project, projectFile, testChapter, DefaultAlignmentParams); err != nil || summary != nil || state.Record != nil {
+		t.Fatalf("a summary read whose record is gone too = %+v, %+v, %v; want no record", state, summary, err)
 	}
 }
 

@@ -287,42 +287,47 @@ func (s resultStore) decode(path, recordID string) (StoredResult, persist.Outcom
 // first because a summary whose result is there is rebuilt by a read (Service.summary); a read that was already
 // rebuilding it may store the summary again afterwards, and SweepOrphanResults finds that file once the record is
 // gone. A step that fails leaves the later ones undone, and the record with them, so the next pass starts again here.
-// Each delete is persist.RemoveRegular rooted at the project folder: a file that is not there is done already, and a
-// link or folder in its place is left alone.
+// Each delete is persist.RemoveRegular rooted at the project folder: a file that is not there is done already, a
+// link or folder in its place is left alone, and a results or summaries folder that is a link, or is below one, is an
+// error with nothing deleted through it.
 func (s *Service) RemoveStoredResult(recordID string) error {
-	_, err := s.removeStored(recordID)
-	return err
-}
-
-// removeStored is RemoveStoredResult, reporting whether it deleted a file.
-func (s *Service) removeStored(recordID string) (bool, error) {
 	name, ok := evidence.RecordFileName(recordID)
 	if !ok {
-		return false, fmt.Errorf("%q is not a ledger record id", recordID)
+		return fmt.Errorf("%q is not a ledger record id", recordID)
 	}
-	result, err := persist.RemoveRegular(s.config.Project, filepath.Join(resultsFolder, name))
-	if err != nil {
-		return false, fmt.Errorf("could not remove the coverage result of record %s: %w", recordID, err)
+	if _, err := persist.RemoveRegular(s.config.Project, filepath.Join(resultsFolder, name)); err != nil {
+		return fmt.Errorf("could not remove the coverage result of record %s: %w", recordID, err)
 	}
 	s.results.cache.drop(recordID)
 	s.summaries.forget(recordID)
-	summary, err := persist.RemoveRegular(s.config.Project, filepath.Join(summariesFolder, name))
-	if err != nil {
-		return result, fmt.Errorf("could not remove the coverage result summary of record %s: %w", recordID, err)
+	if _, err := persist.RemoveRegular(s.config.Project, filepath.Join(summariesFolder, name)); err != nil {
+		return fmt.Errorf("could not remove the coverage result summary of record %s: %w", recordID, err)
 	}
-	return result || summary, nil
+	return nil
 }
 
 // SweepOrphanResults deletes every stored result and summary whose record has no file in the ledger folder, and returns
 // the record ids it deleted for. It finishes what a pass of evidence.LedgerStore.Retain left when it stopped between
-// a record's steps or a read stored a summary behind it. A record file that is there protects its result whether or
-// not it can be read (evidence.LedgerStore.RecordFileIDs), and a ledger folder that is missing or cannot be listed
-// protects everything. The stored files are listed before the ledger: a run writes its record before its result, so
-// the record of every result listed is in the later ledger listing unless it has been deleted.
+// a record's steps or a read stored a summary behind it.
+//
+// A record file that is there protects its result whether or not it can be read (evidence.LedgerStore.RecordFileIDs).
+// A ledger folder that is missing, that holds no record file at all, or that cannot be listed protects everything: a
+// ledger that is away for a moment (a folder being synced or moved) must not cost every result. The stored files are
+// listed before the ledger: a run writes its record before its result, so the record of every result listed is in the
+// later ledger listing unless it has been deleted.
+//
+// It deletes only what this package stored: a regular file in the results or the summaries folder, named by a record
+// id, that decodes as a stored result (or summary) of that record. Any other file there is left and not reported. Only
+// a file with no record is read for this, so a sweep that finds no orphan decodes nothing. A results, summaries or
+// ledger folder that is a link, or is below one, is an error before anything is deleted (persist.RealFolder): it would
+// list another folder's files.
 func (s *Service) SweepOrphanResults() ([]string, error) {
 	stored := map[string]bool{}
-	for _, dir := range []string{s.results.dir, s.summaries.dir} {
-		entries, err := persist.ReadDir(dir)
+	for _, folder := range []string{resultsFolder, summariesFolder} {
+		if _, err := persist.RealFolder(s.config.Project, folder); err != nil {
+			return nil, fmt.Errorf("could not list the stored coverage results: %w", err)
+		}
+		entries, err := persist.ReadDir(filepath.Join(s.config.Project, folder))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("could not list the stored coverage results: %w", err)
 		}
@@ -332,6 +337,9 @@ func (s *Service) SweepOrphanResults() ([]string, error) {
 			}
 		}
 	}
+	if s.sweepListed != nil {
+		s.sweepListed()
+	}
 	recorded, err := s.ledger.RecordFileIDs()
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
@@ -339,20 +347,63 @@ func (s *Service) SweepOrphanResults() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(recorded) == 0 {
+		return nil, nil
+	}
 	var removed []string
 	for _, id := range slices.Sorted(maps.Keys(stored)) {
 		if _, isRecordID := evidence.RecordFileName(id); !isRecordID || recorded[id] {
 			continue
 		}
-		deleted, err := s.removeStored(id)
+		result, err := s.removeOrphan(resultsFolder, id, isStoredResult)
 		if err != nil {
-			return removed, err
+			return removed, fmt.Errorf("could not remove the coverage result of record %s: %w", id, err)
 		}
-		if deleted {
+		s.results.cache.drop(id)
+		s.summaries.forget(id)
+		summary, err := s.removeOrphan(summariesFolder, id, isStoredSummary)
+		if err != nil {
+			return removed, fmt.Errorf("could not remove the coverage result summary of record %s: %w", id, err)
+		}
+		if result || summary {
 			removed = append(removed, id)
 		}
 	}
 	return removed, nil
+}
+
+// removeOrphan deletes the file kept for record id in one of the two stores' folders when it is a regular file that
+// stored says is that store's own, and reports whether it deleted one. The file is opened only once it is known to be
+// a regular file in real folders, so nothing that is not one (a named pipe, a link) is read.
+func (s *Service) removeOrphan(folder, id string, stored func(raw []byte, id string) bool) (bool, error) {
+	file := filepath.Join(folder, id+".json")
+	regular, err := persist.IsRegular(s.config.Project, file)
+	if err != nil || !regular {
+		return false, err
+	}
+	own := false
+	// No reporter: a file that is not this package's is left as it is found, and is nothing to write to the log.
+	(*persist.Reporter)(nil).ReadJSON(filepath.Join(s.config.Project, file), "stored coverage file", persist.Disposable, func(raw []byte) error {
+		own = stored(raw, id)
+		return nil
+	})
+	if !own {
+		return false, nil
+	}
+	return persist.RemoveRegular(s.config.Project, file)
+}
+
+// isStoredResult reports whether raw is a result this package stored for record id: a StoredResult that names the
+// record and carries the version every write stamps (any version, so a result an older build stored is one too).
+func isStoredResult(raw []byte, id string) bool {
+	var result StoredResult
+	return json.Unmarshal(raw, &result) == nil && result.RecordID == id && result.SchemaVersion > 0
+}
+
+// isStoredSummary is isStoredResult for a ResultSummary, which also carries the version of the result it was made from.
+func isStoredSummary(raw []byte, id string) bool {
+	var summary ResultSummary
+	return json.Unmarshal(raw, &summary) == nil && summary.RecordID == id && summary.SchemaVersion > 0 && summary.ResultVersion > 0
 }
 
 // ChapterResult is what the result reader answers for a chapter: whether the

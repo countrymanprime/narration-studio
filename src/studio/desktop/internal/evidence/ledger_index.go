@@ -36,6 +36,11 @@ type indexedRecord struct {
 	readable bool
 }
 
+// unreadableKinds are the kinds of entry a read would wait on and never finish: a named pipe with no writer, a socket, a
+// device. One named like a record is passed over before it is opened, so it stops neither a read nor a Retain pass,
+// which holds the store's lock while it lists.
+const unreadableKinds = os.ModeNamedPipe | os.ModeSocket | os.ModeDevice
+
 // refresh lists dir and returns its readable records, decoding with read only the files that are new or changed since the
 // last call. The lock is held across the listing and the decoding, so reads that arrive together decode each file once and
 // an older listing never drops what a newer one found. A file that could not be read at all (locked, or gone since the
@@ -64,7 +69,7 @@ func (index *ledgerIndex) refresh(dir string, read func(id string) (LedgerRecord
 			// The listing describes the link; the record is the file it points to.
 			info, err = os.Stat(filepath.Join(dir, entry.Name()))
 		}
-		if err != nil {
+		if err != nil || info.Mode()&unreadableKinds != 0 {
 			continue
 		}
 		held, found := index.records[id]

@@ -30,6 +30,7 @@ import (
 	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -341,18 +342,23 @@ type RetentionKey func(record LedgerRecord) (group string, ok bool)
 // analyzer with no key and a record whose key answers false. A record whose id is in referenced is kept wherever it
 // stands (the basis of a confirmation or a dismissal).
 //
-// beforeDelete, when set, is called with each record just before its file is deleted, and a record whose call fails
-// stays, with the error returned. It is where data stored beside a record under its id is removed, so the record goes
-// last: a pass that stops halfway leaves the record, and the next pass finds it and what is left of its data. It runs
-// with the store's lock held, so it does not write to this store.
+// beforeDelete, when set, is called with each record just before its file is deleted. It is where data stored beside a
+// record under its id is removed, so the record goes last: a pass that stops halfway leaves the record, and the next
+// pass finds it and what is left of its data. It runs with the store's lock held, so it does not write to this store.
+//
+// A record whose beforeDelete fails, or whose file cannot be deleted, stays, and the pass goes on to the next one: the
+// records returned are the ones that went, and the error joins (errors.Join) one error for each record that stayed. A
+// panic in a key or in beforeDelete is not caught: it ends the pass where it is, with the lock released and every
+// record not yet deleted still there.
 //
 // Retain reads the records the way a reader does (All), so a file no reader can decode (corrupt, a newer schema, a
 // temporary file of a write, locked) is never deleted and never counts as the complete record that would let older
 // ones go; seeing fewer records only ever deletes fewer. Of the records it would drop, it deletes only a regular file
-// whose name RecordFileName accepts, through persist.RemoveRegular rooted at the project folder: a link, a folder, or
-// a ledger folder that leads outside the project is left alone, the last with an error. The store's lock keeps a Write
-// through this store out meanwhile; a record another store writes in between is newer than every record chosen, so it
-// could not have kept one of them.
+// whose name RecordFileName accepts, through persist.RemoveRegular rooted at the project folder: a link or a folder in
+// a record's place is left alone, with no call of beforeDelete. A ledger folder that is a link, or is below one, is
+// read by the readers but nothing is deleted through it: that is an error before any record is tried
+// (persist.RealFolder). The store's lock keeps a Write through this store out meanwhile; a record another store writes
+// in between is newer than every record chosen, so it could not have kept one of them.
 func (s *LedgerStore) Retain(keys map[string]RetentionKey, referenced map[string]bool, beforeDelete func(LedgerRecord) error) ([]LedgerRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -362,33 +368,50 @@ func (s *LedgerStore) Retain(keys map[string]RetentionKey, referenced map[string
 	if err != nil {
 		return nil, err
 	}
+	drop := superseded(records, keys, referenced)
+	if len(drop) == 0 {
+		return nil, nil
+	}
+	if _, err := persist.RealFolder(s.project, ledgerFolder); err != nil {
+		return nil, fmt.Errorf("could not prune the analysis ledger: %w", err)
+	}
 	var dropped []LedgerRecord
-	for _, record := range superseded(records, keys, referenced) {
-		project, file, ok := s.deletable(record.ID)
-		if !ok {
-			continue
-		}
-		regular, err := persist.IsRegular(project, file)
+	var kept []error
+	for _, record := range drop {
+		removed, err := s.drop(record, beforeDelete)
 		if err != nil {
-			return dropped, fmt.Errorf("could not prune analysis ledger record %s: %w", record.ID, err)
-		}
-		if !regular {
-			continue
-		}
-		if beforeDelete != nil {
-			if err := beforeDelete(record); err != nil {
-				return dropped, fmt.Errorf("could not prune what is stored for analysis ledger record %s: %w", record.ID, err)
-			}
-		}
-		removed, err := persist.RemoveRegular(project, file)
-		if err != nil {
-			return dropped, fmt.Errorf("could not prune analysis ledger record %s: %w", record.ID, err)
+			kept = append(kept, err)
 		}
 		if removed {
 			dropped = append(dropped, record)
 		}
 	}
-	return dropped, nil
+	return dropped, errors.Join(kept...)
+}
+
+// drop is Retain for one record: beforeDelete, then the record's file. It reports whether the file went.
+func (s *LedgerStore) drop(record LedgerRecord, beforeDelete func(LedgerRecord) error) (bool, error) {
+	project, file, ok := s.deletable(record.ID)
+	if !ok {
+		return false, nil
+	}
+	regular, err := persist.IsRegular(project, file)
+	if err != nil {
+		return false, fmt.Errorf("could not prune analysis ledger record %s: %w", record.ID, err)
+	}
+	if !regular {
+		return false, nil
+	}
+	if beforeDelete != nil {
+		if err := beforeDelete(record); err != nil {
+			return false, fmt.Errorf("could not prune what is stored for analysis ledger record %s: %w", record.ID, err)
+		}
+	}
+	removed, err := persist.RemoveRegular(project, file)
+	if err != nil {
+		return false, fmt.Errorf("could not prune analysis ledger record %s: %w", record.ID, err)
+	}
+	return removed, nil
 }
 
 // deletable is where a delete of the record's file goes: the project folder to root it at and the file's path below
@@ -456,8 +479,12 @@ func newestCompleteStart(records []LedgerRecord) (time.Time, bool) {
 // RecordFileIDs is the id of every entry in the ledger folder that is a record's file or carries a record's file name
 // before a further suffix (a write's temporary file), whatever it is and whether or not it can be read. It is for
 // deciding that data stored under an id has no record left: an id listed here still has one, readable or not. A ledger
-// folder that is not there is an error that is fs.ErrNotExist.
+// folder that is not there is an error that is fs.ErrNotExist, and one that is a link, or is below one, is an error
+// too (persist.RealFolder): what it lists is another folder's files, which say nothing of this project's records.
 func (s *LedgerStore) RecordFileIDs() (map[string]bool, error) {
+	if _, err := persist.RealFolder(s.project, ledgerFolder); err != nil {
+		return nil, fmt.Errorf("could not list the analysis ledger: %w", err)
+	}
 	entries, err := persist.ReadDir(s.dir)
 	if err != nil {
 		return nil, fmt.Errorf("could not list the analysis ledger: %w", err)

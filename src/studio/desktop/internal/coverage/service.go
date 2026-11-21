@@ -228,6 +228,8 @@ type Service struct {
 	// identities remembers each take file's identity, so a lookup that asks again (the Booth's Start from here, on every press) stats the
 	// takes and does not open and read each one (#3221).
 	identities *evidence.IdentityCache
+	// sweepListed, set by a test only, runs between SweepOrphanResults' listing of the stored files and its listing of the ledger.
+	sweepListed func()
 
 	mu sync.Mutex
 	// jobs are the runs in progress by run id. A job's own state is read and written with mu held.
