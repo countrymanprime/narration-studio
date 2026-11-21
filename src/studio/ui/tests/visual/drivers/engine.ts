@@ -96,6 +96,8 @@ export const engineDrivers: Record<string, Driver> = {
     await table.scrollIntoViewIfNeeded();
     await table.getByRole('switch', { name: 'Extras counts as a voice' }).click();
     await table.getByText('Not a voice').waitFor();
+    // The notice the press gives covers the row's switch and edit button for its few seconds; the state is the row without it.
+    await page.getByText('is turned off as a voice').waitFor({ state: 'hidden', timeout: 15_000 });
   },
   'voice-folders-picker': async (page) => {
     await page.goto('/?mockVoiceFolders=1');
