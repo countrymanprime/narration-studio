@@ -315,6 +315,20 @@ describe('the Voices card', () => {
     expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', false, expect.any(String));
   });
 
+  // #3828 finding 7: nothing at the control said what it does.
+  it('the Voice column, the Not a voice badge and the disabled edit button each say what they mean on hover', async () => {
+    draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['queen'], tracks: [] });
+    const user = userEvent.setup();
+    await user.hover(within(screen.getByRole('table')).getByText('Not a voice'));
+    expect(await screen.findByText(/Turned off as a voice: no key, no character/)).toBeTruthy();
+    await user.unhover(within(screen.getByRole('table')).getByText('Not a voice'));
+    await user.hover(screen.getByRole('button', { name: 'Choose who the Queen track records' }));
+    expect(await screen.findByText('Not a voice: it records no character. Turn it back on to choose one.')).toBeTruthy();
+    await user.unhover(screen.getByRole('button', { name: 'Choose who the Queen track records' }));
+    await user.hover(within(screen.getByRole('table')).getByRole('button', { name: 'About the Voice column' }));
+    expect(await screen.findByText('Counts as a voice. Turn off for a track that is not one (a music bed).')).toBeTruthy();
+  });
+
   it('a marked Narrator has no key 0', () => {
     draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['nar'], tracks: [] });
     const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
