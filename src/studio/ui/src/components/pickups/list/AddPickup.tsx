@@ -42,7 +42,7 @@ export function AddPickup({
     if (!line.trim()) return refuse('line', 'Type the line first.');
     if ([...line.trim()].length > PICKUP_LINE_MAX) return refuse('line', `A line can be at most ${PICKUP_LINE_MAX} characters.`);
     const seconds = parseClock(time);
-    if (seconds === null) return refuse('time', 'Type the time like 05:12.0.');
+    if (seconds === null) return refuse('time', 'Type the time like 00:05:12.000.');
     setProblem(null);
     sending.current = true;
     setBusy(true);
@@ -87,9 +87,9 @@ export function AddPickup({
           setTime(value);
           if (problem?.field === 'time') setProblem(null);
         }}
-        /* The format, not a time: a sample such as 05:12.0 in the box's muted text reads as a value already typed. */
-        placeholder="mm:ss.s"
-        /* A time such as 5:12 is shown as the form it is kept in (05:12.0), so the rewrite is seen and not silent. */
+        /* The format, not a time: a sample such as 00:05:12.000 in the box's muted text reads as a value already typed. */
+        placeholder="hh:mm:ss.fff"
+        /* A time such as 5:12 is shown as the form it is kept in (00:05:12.000), so the rewrite is seen and not silent. */
         onBlur={() => {
           const seconds = parseClock(time);
           if (seconds !== null) setTime(clock(seconds));

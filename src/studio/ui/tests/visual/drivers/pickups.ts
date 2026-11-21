@@ -14,7 +14,7 @@ async function openPickups(page: Page): Promise<void> {
 // Adds a line by hand ("Pickup by hand") to the first chapter in the list's popover and waits for it to be listed.
 async function addByHand(page: Page): Promise<void> {
   await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
-  await page.getByRole('textbox', { name: 'Time in the recording' }).fill('01:00.0');
+  await page.getByRole('textbox', { name: 'Time in the recording' }).fill('00:01:00.000');
   await page.getByRole('textbox', { name: 'Line to re-record' }).fill('Pickup by hand');
   await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
   await page.getByRole('button', { name: /^Open 4 in Booth$/ }).waitFor();
@@ -28,8 +28,8 @@ export const pickupsDrivers: Record<string, Driver> = {
   },
   'show-where': async (page) => {
     await openPickups(page);
-    await list(page).locator('tr[data-pk]').filter({ hasText: '07:30.9' }).getByRole('cell').nth(1).click();
-    const where = list(page).getByRole('region', { name: 'Where 07:30.9 is' });
+    await list(page).locator('tr[data-pk]').filter({ hasText: '00:07:30.900' }).getByRole('cell').nth(1).click();
+    const where = list(page).getByRole('region', { name: 'Where 00:07:30.900 is' });
     await where.getByRole('button', { name: 'Fine, not a pickup' }).waitFor();
     await where.getByRole('region', { name: 'In the script' }).waitFor();
   },
@@ -62,7 +62,7 @@ export const pickupsDrivers: Record<string, Driver> = {
   'add-popover-too-long': async (page) => {
     await openPickups(page);
     await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
-    await page.getByRole('textbox', { name: 'Time in the recording' }).fill('05:12.0');
+    await page.getByRole('textbox', { name: 'Time in the recording' }).fill('00:05:12.000');
     await page.getByRole('textbox', { name: 'Line to re-record' }).fill('word '.repeat(101));
     await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
     await page.getByText('A line can be at most 500 characters.').waitFor();

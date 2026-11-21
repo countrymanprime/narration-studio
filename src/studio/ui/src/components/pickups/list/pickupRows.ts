@@ -3,7 +3,7 @@
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
 import type { KindId } from '../../../kinds/kindMap';
-import { clockTenths } from '../../../clock';
+import { clock as clockOf } from '../../../clock';
 
 /** A chapter in the Pickups scope. The credits are listed like any chapter but never hold a pickup: the host's list skips them (a pickup is a line of text to re-read). */
 export type ChapterRef = { id: string; name: string; credits?: true };
@@ -92,19 +92,19 @@ export const sessionPickups = (pickups: readonly PickupItem[]): PickupItem[] => 
 /** The most characters the host keeps in a hand-added line. */
 export const PICKUP_LINE_MAX = 500;
 
-/** Seconds into the recording as "05:12.0"; "—" when the source gave no time. */
+/** Seconds into the recording as "00:05:12.000", the form Proof writes a note's position in; "—" when the source gave no time. */
 export function clock(seconds: number | null): string {
   if (seconds === null || !Number.isFinite(seconds)) return '—';
-  return clockTenths(seconds, { minuteDigits: 2 });
+  return clockOf(seconds, { full: true });
 }
 
-/** "5:12", "05:12", "05:12.5" or, from an hour, "1:02:05.5" (what `clock` writes) to seconds; null for anything else, including minutes or seconds past 59 ("5:99"). */
+/** "5:12", "05:12", "05:12.5" or "00:05:12.500" (what `clock` writes), to the millisecond, to seconds; null for anything else, including minutes or seconds past 59 ("5:99"). */
 export function parseClock(text: string): number | null {
-  const match = /^(\d{1,5})(?::([0-5]\d))?:([0-5]\d)(?:\.(\d))?$/.exec(text.trim());
+  const match = /^(\d{1,5})(?::([0-5]\d))?:([0-5]\d)(?:\.(\d{1,3}))?$/.exec(text.trim());
   if (!match) return null;
-  const [, first, minutes, seconds, tenth] = match;
+  const [, first, minutes, seconds, fraction] = match;
   const whole = minutes === undefined ? Number(first) * 60 + Number(seconds) : Number(first) * 3600 + Number(minutes) * 60 + Number(seconds);
-  return whole + (tenth ? Number(tenth) / 10 : 0);
+  return whole + (fraction ? Number(`0.${fraction}`) : 0);
 }
 
 /** A host reason as a sentence a narrator can read: no "Error: " prefix, a capital, and a full stop. */

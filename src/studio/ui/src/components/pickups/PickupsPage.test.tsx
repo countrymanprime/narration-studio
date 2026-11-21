@@ -142,7 +142,7 @@ describe('fine-not-a-pickup-and-show-where', () => {
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
     renderPage(api, undefined, journal);
     const user = userEvent.setup();
-    const cell = await screen.findByText(line === fromNote ? '00:12.0' : '00:30.0', { selector: 'td' });
+    const cell = await screen.findByText(line === fromNote ? '00:00:12.000' : '00:00:30.000', { selector: 'td' });
     await user.click(cell);
     return { api, review, remove, user, note, journal };
   }
@@ -169,7 +169,7 @@ describe('fine-not-a-pickup-and-show-where', () => {
     await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));
     await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
     const entries = await journal.entries();
-    expect(entries.at(-1)?.label).toBe('Fine, not a pickup at 00:12.0');
+    expect(entries.at(-1)?.label).toBe('Fine, not a pickup at 00:00:12.000');
     await act(async () => void (await journal.undo(entries.at(-1)!.id)));
     await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
   });
@@ -182,7 +182,7 @@ describe('fine-not-a-pickup-and-show-where', () => {
     await waitFor(() => expect(remove).toHaveBeenCalledWith('you:1'));
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
     const [row] = await journal.entries();
-    expect(row).toMatchObject({ label: 'Removed 00:30.0 from pickups', touches: ['pickups'], undoable: true });
+    expect(row).toMatchObject({ label: 'Removed 00:00:30.000 from pickups', touches: ['pickups'], undoable: true });
     expect((await journal.undoLast()).ok).toBe(true);
     expect(add).toHaveBeenCalledWith('c1', 30, 'my line');
   });
@@ -406,7 +406,7 @@ describe('narrator-walkthrough-fixes', () => {
     renderPage(createMockApi({ pickupsList: () => Promise.resolve({ pickups: [typed, early], leftOut: [] }) }));
     expect(await screen.findByText('<b>x</b> and <i>y</i>')).toBeTruthy();
     const times = [...document.querySelectorAll('tr[data-pk] td:nth-child(2)')].map((cell) => cell.textContent);
-    expect(times).toEqual(['00:01.0', '00:05.0']);
+    expect(times).toEqual(['00:00:01.000', '00:00:05.000']);
   });
 });
 

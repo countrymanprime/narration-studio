@@ -1,3 +1,4 @@
+import { clock as clockOf } from '../../../clock';
 import { describe, expect, it } from 'vitest';
 import { AUDIO, BY_HAND, CHAPTERS, DONE, EXTRA, MIXED, NO_SCORE, PROOF, SPEECH, pickup } from './pickupFixtures';
 import {
@@ -67,12 +68,12 @@ describe('pickupRows', () => {
   });
 
   it('clock and parseClock round-trip, and a missing time is a dash', () => {
-    expect(clock(312)).toBe('05:12.0');
-    expect(clock(340.5)).toBe('05:40.5');
+    expect(clock(312)).toBe('00:05:12.000');
+    expect(clock(340.5)).toBe('00:05:40.500');
     expect(clock(null)).toBe('—');
     expect(parseClock('5:12')).toBe(312);
-    expect(parseClock('05:12.5')).toBe(312.5);
-    expect(parseClock('1:39:00.0')).toBe(5940);
+    expect(parseClock('00:05:12.500')).toBe(312.5);
+    expect(parseClock('01:39:00.000')).toBe(5940);
     expect(parseClock(clock(5940))).toBe(5940);
     expect(parseClock('1:60:00')).toBeNull();
     expect(parseClock('soon')).toBeNull();
@@ -81,7 +82,7 @@ describe('pickupRows', () => {
 
   it('pickupScript is one "<chapter> · <time>: <line>" per pickup, without tags', () => {
     expect(pickupScript([SPEECH, PROOF], CHAPTERS)).toBe(
-      'Chapter 1 · The Orchard · 05:12.0: She walked past the orchard wall.\nChapter 3 · Salt · 00:12.0: Say Aoife as EE-fa.',
+      'Chapter 1 · The Orchard · 00:05:12.000: She walked past the orchard wall.\nChapter 3 · Salt · 00:00:12.000: Say Aoife as EE-fa.',
     );
     expect(pickupScript([], CHAPTERS)).toBe('');
   });
@@ -118,9 +119,22 @@ describe('the copied script', () => {
       pickup({ id: '3', chapterId: 'a', time: 2, script: 'the <b>word</b>' }),
     ];
     expect(pickupScript(lines, chapters).split('\n')).toEqual([
-      'Chapter A · 00:02.0: the word',
-      'Chapter A · 00:09.0: <b>raw</b>',
-      'Chapter B · 00:01.0: Later chapter',
+      'Chapter A · 00:00:02.000: the word',
+      'Chapter A · 00:00:09.000: <b>raw</b>',
+      'Chapter B · 00:00:01.000: Later chapter',
     ]);
+  });
+});
+
+// #3590: a pickup's time is the position Proof shows for its note, so the two are one text, and what the form writes the form reads back.
+describe('a pickup time is written in the form Proof writes a position in', () => {
+  it.each([0, 0.4, 12.4, 95.2, 312.5, 340.123, 5940, 3600.999])('%s s reads the same on both pages and parses back', (seconds) => {
+    expect(clock(seconds)).toBe(clockOf(seconds, { full: true }));
+    expect(parseClock(clock(seconds))).toBeCloseTo(seconds, 3);
+  });
+  it('keeps the milliseconds a note had', () => {
+    expect(clock(340.123)).toBe('00:05:40.123');
+    expect(parseClock('00:05:40.123')).toBeCloseTo(340.123, 3);
+    expect(parseClock('05:12.5555')).toBeNull();
   });
 });
