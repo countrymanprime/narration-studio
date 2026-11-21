@@ -135,14 +135,14 @@ func TestACorrectionSurvivesOnlyOnItsOwnCue(t *testing.T) {
 	fresh := extracted(t, cueRows([3]string{"c1", "p1", `"Wait," Someone said.`}), speakerIndex("Ada"), false)
 	corrected := newPyObject("id", fresh[0].values["id"], "speaker_entity_id", ada, "speaker_source", "correction", "corrected", true)
 	stale := newPyObject("id", "cue-stale", "speaker_entity_id", ada, "speaker_source", "correction", "corrected", true)
-	merged, err := mergeDialogueCues(fresh, []any{stale, corrected})
+	merged, err := mergeDialogueCues(fresh, []any{stale, corrected}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if merged[0].values["speaker_entity_id"] != ada || merged[0].values["corrected"] != true || fresh[0].values["corrected"] != false {
 		t.Fatalf("merged %v", merged[0].values)
 	}
-	if merged, _ := mergeDialogueCues(fresh, []any{stale}); merged[0].values["speaker_entity_id"] != nil {
+	if merged, _ := mergeDialogueCues(fresh, []any{stale}, nil); merged[0].values["speaker_entity_id"] != nil {
 		t.Fatal("a stale correction was carried onto another quote")
 	}
 }

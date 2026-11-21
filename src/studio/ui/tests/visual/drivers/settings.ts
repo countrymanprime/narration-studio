@@ -453,6 +453,23 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText(/^Imported .* words$/).waitFor();
     await page.getByRole('button', { name: 'Replace manuscript…' }).waitFor();
   },
+  // The local model for unknown speakers, turned on: the three rows of its section at the top of the page area.
+  'project-unknown-speakers': async (page) => {
+    await openSettings(page, 'Project');
+    const row = await showSettingsRow(page, 'project.speakerFallback');
+    const toggle = row.getByRole('switch', { name: /Ask a local model about unknown speakers/ });
+    await expect(toggle).toBeEnabled();
+    await toggle.click();
+    await expect(toggle).toBeChecked();
+    await page.locator('[data-row="project.speakerFallbackLines"]').waitFor();
+  },
+  // No local model is installed, as in the app today: the switch and the two rows it governs are off, each with the host's reason.
+  'project-unknown-speakers-no-model': async (page) => {
+    await openSettings(page, 'Project', '?mockLocalModel=none');
+    const row = await showSettingsRow(page, 'project.speakerFallback');
+    await expect(row.getByRole('switch', { name: 'Ask a local model about unknown speakers:' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByText('No local model is installed.')).toHaveCount(3);
+  },
   // Entry types with the colour box of Place opened: its swatches in a popover over the row.
   'project-type-colour': async (page) => {
     await openSettings(page, 'Project');

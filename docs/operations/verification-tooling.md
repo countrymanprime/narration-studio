@@ -16,7 +16,7 @@ What `pnpm check` and CI verify beyond "it lints and the example tests pass", ho
 | UI import rules: dependency-cruiser (primitives are leaves, wailsjs and the Wails runtime only in `src/api`, Base UI only in primitives, Zod only in `src/api`) and the `<mark>` scan | `ui:architecture`, and two Vitest files   | `pnpm --dir src/studio/ui architecture`                                                            |
 | Markdown links (lychee, offline) and PRD paths cited in source: see [the docs link check](ci-and-releases.md#the-docs-link-check)                                                     | the `Links (offline)` step of `Docs / Docs checks`; `repo-scripts:test-node`        | `lychee --config .lychee.toml --offline .`; `node --test scripts/ci/prd-references.test.mjs` |
 | Mermaid diagrams parse (Mermaid's own parser under jsdom, no browser)                                                                                                                 | `repo-scripts:test-node`                                  | `node --test scripts/ci/mermaid-diagrams.test.mjs`                                           |
-| Playwright traces on a failing visual test (`trace: 'retain-on-failure'`, uploaded when a `Test (Linux)` visual step fails)                                                                     | `Test (Linux)`                                            | see [CI and releases](ci-and-releases.md)                                                    |
+| Playwright traces of the failed visual tests (run again with `--last-failed --trace on` after a red `visual` step, then uploaded)                                                                | `Test (Linux)`                                            | see [CI and releases](ci-and-releases.md)                                                    |
 | Axe on every app state, with a declared, capped debt list                                                                                                                             | `ui-visual` (the visual suite)                            | `pnpm --dir src/studio/ui screenshots`, or `UI_AXE=1` to measure                                   |
 | Aria snapshots: the role trees of the dialogs, the slide-over and the navigation                                                                                                      | `ui-visual`, after the screenshots                        | `pnpm --dir src/studio/ui run aria`                                                                |
 | Dead-control guard: every control of every page, and of the menus and dialogs it opens, acts visibly when pressed, shows it is the current choice, or is off with a reason a keyboard reaches | `ui-visual` (the visual suite) | `pnpm --dir src/studio/ui exec playwright test tests/visual/deadControls.spec.ts` |
@@ -109,13 +109,14 @@ pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts -g "
 
 ## Slow DAW link suite
 
-`src/studio/ui/tests/visual/daw-slow-link.spec.ts` holds the rule that the narrator does not notice a slow DAW (#3752). It puts the mock's DAW link on six profiles (0 ms, 300 ms, 1 s, 3 s, 10 s, and a stall of 8 s that recovers; [A slow link on demand](../architecture/reaper-bridge.md#a-slow-link-on-demand)) and runs five scenarios on each:
+`src/studio/ui/tests/visual/daw-slow-link.spec.ts` holds the rule that the narrator does not notice a slow DAW (#3752). It puts the mock's DAW link on six profiles (0 ms, 300 ms, 1 s, 3 s, 10 s, and a stall of 8 s that recovers; [A slow link on demand](../architecture/reaper-bridge.md#a-slow-link-on-demand)) and runs six scenarios on each:
 
 | Scenario | Fails when |
 | --- | --- |
 | The Booth opens with its voice at once | The voice or Record is not on screen within 1.5 s |
 | Opening the Booth raises no error | An error toast appears while the page's reads and its arm come back |
 | A lane key shows its lane at once and its take starts | The lane is not shown within 1.5 s of the key, the lane is lost, the take does not start, or an error toast is raised |
+| Stop ends the take and never says the DAW is not answering | The take is still recording after the stop has reached the DAW, or the page says the DAW is not answering or did not confirm |
 | The engine panel lists the tracks | The tracks are not on screen within 2.5 s, the saved-project fallback is shown for a REAPER that is only slow, or the panel does not close at once |
 | Check recordings opens | The dialog is not usable within 1.5 s, or it reports the links unread or REAPER not answering |
 

@@ -166,3 +166,27 @@ describe('Listbox', () => {
     });
   });
 });
+
+describe('listbox-brings-the-active-row-into-view', () => {
+  const options = ['a', 'b', 'c'].map((id) => ({ id, label: id.toUpperCase() }));
+  it('scrolls the row the arrows moved to into view, and not on open or when nothing moved', () => {
+    const scrolled: string[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element, arg?: boolean | ScrollIntoViewOptions) {
+      scrolled.push(`${this.id}:${typeof arg === 'object' ? arg.block : arg}`);
+    };
+    try {
+      const view = render(<Listbox id="l" label="Letters" options={options} activeIndex={0} onPick={() => {}} />);
+      expect(scrolled).toEqual([]);
+      view.rerender(<Listbox id="l" label="Letters" options={options} activeIndex={2} onPick={() => {}} />);
+      expect(scrolled).toEqual(['l-option-c:nearest']);
+      view.rerender(<Listbox id="l" label="Letters" options={options} activeIndex={2} onPick={() => {}} />);
+      expect(scrolled).toHaveLength(1);
+      view.rerender(<Listbox id="l" label="Letters" options={options} activeIndex={undefined} onPick={() => {}} />);
+      expect(scrolled).toHaveLength(1);
+      view.unmount();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+});

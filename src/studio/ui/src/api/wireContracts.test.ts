@@ -1145,6 +1145,81 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.guideCorrectCue('not-a-real-cue', 'alice')).rejects.toThrow();
   });
 
+  it('with the local model turned on in Settings, a run fills the lines the rules leave unknown as suggestions with a reason, and undo takes them back', async () => {
+    const api = createMockApi();
+    const unknownBefore = (await api.guideDialogueCues()).filter((cue) => cue.speaker_entity_id === null).map((cue) => cue.id);
+    expect(unknownBefore.length).toBeGreaterThan(0);
+    const off = await api.guideAttributeSpeakers();
+    expect(off).toMatchObject({ modelFilled: 0, modelNote: '' });
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    const on = await api.guideAttributeSpeakers();
+    expectMatches(speakerAttributionSchema, on, 'mock attribution with the local model');
+    expect(on.modelFilled).toBeGreaterThan(0);
+    expect(on.filled).toBeGreaterThanOrEqual(on.modelFilled);
+    const cues = await api.guideDialogueCues();
+    expectMatches(guideDialogueCuesSchema, cues, 'mock dialogue cues with a model suggestion');
+    const suggested = cues.filter((cue) => cue.speaker_source === 'local-model');
+    expect(suggested).toHaveLength(on.modelFilled);
+    expect(suggested.every((cue) => unknownBefore.includes(cue.id) && !cue.corrected && cue.speaker_entity_id && cue.evidence.reason)).toBe(true);
+    expect(on.previous.filter((row) => suggested.some((cue) => cue.id === row.cueId))).toHaveLength(on.modelFilled);
+    await api.guideRestoreSpeakers(on.previous);
+    const undone = await api.guideDialogueCues();
+    expect(undone.filter((cue) => cue.speaker_source === 'local-model')).toEqual([]);
+    expect(undone.every((cue) => cue.evidence.reason === undefined)).toBe(true);
+    // A line the narrator confirmed is never asked about.
+    const first = unknownBefore[0]!;
+    await api.guideCorrectCue(first, '');
+    await api.guideAttributeSpeakers();
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === first)).toMatchObject({
+      speaker_entity_id: null,
+      speaker_source: 'correction',
+      corrected: true,
+    });
+  });
+
+  it('the mock agrees with the host on a re-run, the switch turned off, a confirm and the project scope', async () => {
+    const api = createMockApi();
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    const on = await api.guideAttributeSpeakers();
+    expect(on.modelFilled).toBeGreaterThan(0);
+    const suggested = (await api.guideDialogueCues()).filter((cue) => cue.speaker_source === 'local-model');
+    // A second run with nothing new changes nothing, and the suggestion outlives the switch being turned off.
+    expect(await api.guideAttributeSpeakers()).toMatchObject({ filled: 0, changed: 0, modelFilled: 0, previous: [] });
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'false' });
+    expect(await api.guideAttributeSpeakers()).toMatchObject({ filled: 0, changed: 0, modelFilled: 0, previous: [] });
+    expect((await api.guideDialogueCues()).filter((cue) => cue.speaker_source === 'local-model')).toEqual(suggested);
+    // Confirming a suggested line drops the model's reason.
+    const line = suggested[0]!;
+    await api.guideCorrectCue(line.id, line.speaker_entity_id!);
+    const confirmed = (await api.guideDialogueCues()).find((cue) => cue.id === line.id);
+    expect(confirmed).toMatchObject({ speaker_source: 'correction', corrected: true });
+    expect(confirmed?.evidence.reason).toBeUndefined();
+    // The three settings are this computer's: a project cannot hold them.
+    await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback: 'true' })).rejects.toThrow(/global/);
+    await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback_max_quotes: '200' })).rejects.toThrow(/global/);
+    // A suggestion whose entry is deleted goes back to unknown at the next run, reason gone.
+    const other = createMockApi();
+    await other.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    await other.guideAttributeSpeakers();
+    const filled = (await other.guideDialogueCues()).find((cue) => cue.speaker_source === 'local-model')!;
+    await other.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'false' });
+    await other.guideDelete(filled.speaker_entity_id!);
+    await other.guideAttributeSpeakers();
+    const orphan = (await other.guideDialogueCues()).find((cue) => cue.id === filled.id);
+    expect(orphan).toMatchObject({ speaker_entity_id: null, speaker_source: 'unknown' });
+    expect(orphan?.evidence.reason).toBeUndefined();
+    // The local model is never started from a scan.
+    expect((await api.extractionSources()).find((source) => source.id === 'local-model')).toMatchObject({ runs: false, available: true });
+  });
+
+  it("undo never restores a local model's suggestion: the reason is not kept, so the line goes back to unknown, as the host does", async () => {
+    const api = createMockApi();
+    await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: 'alice', speakerSource: 'local-model' }]);
+    const cue = (await api.guideDialogueCues()).find((row) => row.id === 'cue-1');
+    expect(cue).toMatchObject({ speaker_entity_id: null, speaker_source: 'unknown' });
+    expect(cue?.evidence.reason).toBeUndefined();
+  });
+
   it("the dialogue cues of some chapters are the whole book's cues, filtered", async () => {
     const api = createMockApi();
     const all = await api.guideDialogueCues();

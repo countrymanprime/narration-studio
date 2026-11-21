@@ -6,6 +6,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { WIRE_CHAPTERS } from '../../../api/mockFixtures';
 import { VoiceSetupProvider } from '../../engine/voiceLayout';
 import { destinationFor } from '../../engine/destination';
+import { LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
 import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
 import { useBoothVoices, type BoothVoices } from './useBoothVoices';
 
@@ -602,25 +603,31 @@ describe("the Booth's voices", () => {
   });
 
   // A read that never answers must not hold every later read back: after the limit it fails with a toast, and the next poll reads again.
-  // (It waits the real limit, 10 s.)
+  // (A fake clock passes the limit, 10 s.)
   it('tells the narrator when a read never answers, and reads again after it', async () => {
-    const api = createMockApi({}, { voiceFolders: true });
-    const real = api.tracksLive.bind(api);
-    let calls = 0;
-    api.tracksLive = async () => {
-      calls += 1;
-      if (calls === 1) return new Promise(() => {});
-      return real();
-    };
-    const { notify, hook } = await mount({}, false, api);
-    await act(async () => new Promise((r) => setTimeout(r, 10500)));
-    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
-    act(() => {
-      window.dispatchEvent(new Event('focus'));
-    });
-    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
-    expect(calls).toBeGreaterThan(1);
-  }, 20_000);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const api = createMockApi({}, { voiceFolders: true });
+      const real = api.tracksLive.bind(api);
+      let calls = 0;
+      api.tracksLive = async () => {
+        calls += 1;
+        if (calls === 1) return new Promise(() => {});
+        return real();
+      };
+      const { notify, hook } = await mount({}, false, api);
+      expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(0);
+      await act(() => vi.advanceTimersByTimeAsync(LIVE_TRACKS_TIMEOUT_MS + 500));
+      expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+      expect(calls).toBeGreaterThan(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   // A run where both reads fail reports one failure, not two toasts.
   it('reports one failure for a run where both reads fail', async () => {
