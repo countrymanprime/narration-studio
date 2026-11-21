@@ -243,7 +243,7 @@ func (s *Service) scanOptions() ScanOptions {
 // (maximum gap, head or tail limit), so changing policy never invalidates a
 // cache entry or ledger record ("policy change costs no decode").
 func scanParamHash(opts ScanOptions) string {
-	return hashParts(
+	return evidence.HashParts(
 		formatFloat(opts.Silence.SilenceFloordBFS), formatFloat(opts.Silence.MinSilenceSeconds),
 		formatFloat(opts.Cleanup.PadSeconds), formatFloat(opts.Cleanup.MinBreathSeconds), formatFloat(opts.Cleanup.MaxBreathSeconds),
 		formatFloat(opts.Cleanup.BreathBelowSpeechDB), formatFloat(opts.Cleanup.ClickAboveSilenceDB),

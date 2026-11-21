@@ -355,6 +355,29 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     expect(daw.result.current.endUnconfirmed()).toBe(true);
   });
 
+  // #3840: a quiet DAW whose play state still read recording was taken as holding a take and then not, in turn, and each turn asked the DAW again, for as long
+  // as it stayed quiet. The stop and what follows run inside act, where no batching ends the turns by chance (the order that hung the test above on a busy
+  // machine). A DAW asked more than the budget stops answering, so that loop fails here on the count, not as a test that never ends.
+  it('a quiet DAW whose play state still reads recording is not asked again and again', async () => {
+    const { daw, transport } = await running();
+    const budget = 20;
+    let asked = 0;
+    daw.client.projectState = async () => {
+      asked += 1;
+      if (asked > budget) throw new Error('asked again and again');
+      return { savedAt: null, unsavedChanges: false, playState: 'recording', playPosition: 3 };
+    };
+    daw.set(refused('not_running'));
+    transport({ playing: false, recording: false });
+    await act(() => daw.result.current.endConfirmed());
+    expect(asked).toBeLessThan(budget);
+    // Nor is the play state kept from before the quiet shown as a take the DAW holds.
+    expect(daw.result.current.facts.dawRecording).toBeUndefined();
+    const settled = asked;
+    await act(async () => {});
+    expect(asked).toBe(settled);
+  });
+
   // QA B-E: the DAW went quiet and came back with nothing recording; the end was never read as answering, but nothing is left to stop.
   it('endUnconfirmed clears when a later picture says the DAW answers and no take runs', async () => {
     const { daw, transport } = await running();

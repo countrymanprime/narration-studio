@@ -143,7 +143,7 @@ func planItem(item tracks.Item, index int, identify evidence.SourceIdentifier) (
 // file (the sidecar transcribes it once), and the name is always a plain file
 // name the sidecar accepts ([A-Za-z0-9][A-Za-z0-9._-]*), never a path.
 func wordsFileName(identity evidence.SourceIdentity, played evidence.PlayedRange) string {
-	sum := sha256.Sum256([]byte(hashParts(identity.Path, fmt.Sprint(identity.Size), identity.PartialHash,
+	sum := sha256.Sum256([]byte(evidence.HashParts(identity.Path, fmt.Sprint(identity.Size), identity.PartialHash,
 		fmt.Sprintf("%.6f", played.Start), fmt.Sprintf("%.6f", played.End))))
 	return "w-" + hex.EncodeToString(sum[:16]) + ".json"
 }
