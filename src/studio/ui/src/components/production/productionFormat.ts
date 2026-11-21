@@ -7,7 +7,7 @@ import { hm } from '../schedule/dates';
 
 const DASH = '—';
 
-/** Hours or seconds as hours and minutes ("5h 40m"), to the nearest minute, through the one hours formatter (`hm`). */
+/** Hours or seconds as hours and minutes ("5h 40m"), floored to the whole minute, through the one hours formatter (`hm`). */
 export function formatClock(amount: number, unit: 'hours' | 'seconds'): string {
   return hm(unit === 'hours' ? amount : amount / 3600);
 }
@@ -27,3 +27,6 @@ export function stageHoursHint(hoursByStage: Partial<Record<ChapterStatus, numbe
     return hours === undefined || hours <= 0 ? [] : [`${STAGE_WORD[stage]} ${formatClock(hours, 'hours')}`];
   }).join(' · ');
 }
+
+/** "about 1h 20m" for an estimate, but "<0h 01m" alone: "about" before "<" reads as nonsense. */
+export const aboutHours = (figure: string): string => (figure.startsWith('<') ? figure : `about ${figure}`);
