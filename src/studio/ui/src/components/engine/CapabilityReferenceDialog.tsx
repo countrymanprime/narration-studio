@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilitySupport } from '../../api/contracts/daw';
 import { recorderName } from '../../studio/dawNames';
@@ -77,15 +77,41 @@ export function availableCount(report: DawCapabilities | undefined): { available
  * the four tools does it, and what the linked tool reports now. Props only, so the story and the tests show every state. Nothing here
  * switches a capability on or off. The levels are the adapters' own declarations (`capabilityMatrix.ts`); Now is the host's.
  */
-export function CapabilityReference({ report, loadError, onRetry }: { report: DawCapabilities | undefined; loadError: string; onRetry: () => void }) {
+export function CapabilityReference({
+  report,
+  loadError,
+  onRetry,
+}: {
+  report: DawCapabilities | undefined;
+  loadError: string;
+  onRetry: () => void | Promise<void>;
+}) {
   const keys = useMemo(() => keysOf(report), [report]);
   const narrow = useLayoutClass().narrow;
+  // Retry reads again: it shows busy until the read is back, and a second press while it runs does nothing (#3740).
+  const [retrying, setRetrying] = useState(false);
+  const live = useRef(true);
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
+  }, []);
+  const retry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await onRetry();
+    } finally {
+      if (live.current) setRetrying(false);
+    }
+  };
   return (
     <div className="flex w-full flex-col gap-3">
       {loadError && !report && (
         <div className="flex flex-wrap items-center gap-3 text-[0.8125rem] text-[var(--danger-text)]" role="alert">
           <span>The recording tool’s capabilities could not be read: {loadError.replace(/^Error: /, '').replace(/\.+$/, '')}.</span>
-          <IconButton action="retry" ref={keepFocusOnRemoval} size="sm" onClick={onRetry} />
+          <IconButton action="retry" ref={keepFocusOnRemoval} size="sm" pending={retrying} onClick={() => void retry()} />
         </div>
       )}
       <Table label="What the recording tools can do" columns={narrow ? NARROW_COLUMNS : COLUMNS}>
