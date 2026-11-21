@@ -263,10 +263,6 @@ jobs:
           UI_VISUAL_SHARDED: '1'
           PLAYWRIGHT_JSON_OUTPUT_NAME: ${{ runner.temp }}/timings.json
         run: pnpm --dir src/studio/ui run screenshots --test-list "$RUNNER_TEMP/shard.txt" --reporter=list,json
-      - name: aria
-        id: aria
-        if: ${{ !cancelled() && steps.split.outputs.aria == 'true' }}
-        run: pnpm --dir src/studio/ui run aria
       # The manifest goes in the records directory, so it is uploaded with them. `mkdir`: a shard that failed before its first test has none.
       - if: ${{ !cancelled() && steps.split.outcome == 'success' }}
         env:
@@ -301,6 +297,12 @@ jobs:
         env:
           UI_VISUAL_SHARDED: '1'
         run: pnpm --dir src/studio/ui run screenshots --last-failed --trace on --reporter=list
+      # After the step above, which empties `test-results` as every Playwright run empties its output folder: aria writes to
+      # `test-results/aria` and the atlas to `test-results/atlas`, so the upload at the end finds the traces of all three.
+      - name: aria
+        id: aria
+        if: ${{ !cancelled() && steps.split.outputs.aria == 'true' }}
+        run: pnpm --dir src/studio/ui run aria
       - name: atlas
         id: atlas
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
