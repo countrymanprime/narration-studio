@@ -264,11 +264,14 @@ func TestSavingAnOutOfRangePreviewTargetIsRejected(t *testing.T) {
 }
 
 // previewBook is coverageProject with four more narration chapters, none of them linked to a track.
-func previewBook(t *testing.T) string {
+func previewBook(t *testing.T) string { return previewBookOf(t, 5) }
+
+// previewBookOf is previewBook at any number of chapters.
+func previewBookOf(t *testing.T, count int) string {
 	t.Helper()
 	project := coverageProject(t)
 	chapters, paragraphs := []string{}, []string{}
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= count; i++ {
 		chapters = append(chapters, fmt.Sprintf(`{"id":"c-%04d","title":"Chapter %d","contentKind":"narration"}`, i, i))
 		paragraphs = append(paragraphs, fmt.Sprintf(`{"id":"p-%06d","chapterId":"c-%04d","index":0,"text":"Alice."}`, i, i))
 	}
@@ -301,7 +304,11 @@ func TestPreviewAudioEvidenceAnswersEachChapterFromTheOneRead(t *testing.T) {
 	checkRecording(t, host)
 	svc := host.services()
 	chapters := []preview.Chapter{{ID: "c-0001"}, {ID: "c-0002"}, {ID: "c-0005"}}
-	got := previewAudioEvidence(svc, chapters, svc.manuscript)
+	book, err := svc.manuscript.Book()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := previewAudioEvidence(svc, chapters, book)
 	settings := coverageSettings(svc.settings)
 	for _, chapter := range chapters {
 		result, err := svc.coverage.Result(chapter.ID, settings.Alignment)

@@ -125,7 +125,7 @@ func TestPathGuardImportAndLoad(t *testing.T) {
 func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 	pathfixtures.Run(t, func(t *testing.T, p pathfixtures.Place) {
 		if p.Dir == "" {
-			if _, err := commit("", p.Manuscript, importer.Draft{}, nil, nil); err == nil {
+			if _, _, err := commit("", p.Manuscript, importer.Draft{}, nil, nil); err == nil {
 				t.Fatal("committed into the working directory for an empty project folder")
 			}
 			if _, err := os.Stat(brand.ProjectFolder); err == nil {
@@ -135,7 +135,7 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 		}
 		// The source is this place's manuscript path: a real file commits; anything else is refused before any storage is made.
 		scratch := t.TempDir()
-		_, err := commit(scratch, p.Manuscript, importer.Draft{}, nil, nil)
+		_, _, err := commit(scratch, p.Manuscript, importer.Draft{}, nil, nil)
 		if !p.Usable {
 			if err == nil {
 				t.Errorf("committed from %q, which is not a manuscript file", p.Manuscript)
@@ -147,7 +147,7 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 			t.Errorf("commit from %q: %v", p.Manuscript, err)
 		}
 		// The project is this place's folder; the source is not there.
-		if _, err = commit(p.Dir, filepath.Join(scratch, "no-such-manuscript.md"), importer.Draft{}, nil, nil); err == nil {
+		if _, _, err = commit(p.Dir, filepath.Join(scratch, "no-such-manuscript.md"), importer.Draft{}, nil, nil); err == nil {
 			t.Errorf("committed from a source that is not there")
 		}
 		if p.Usable && !p.DirReadOnly {

@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -67,7 +66,7 @@ type Service struct {
 	jobs          map[string]*ImportJob
 	persist       atomic.Pointer[persist.Reporter]
 	onEnd         atomic.Pointer[func(ImportJob)]
-	manCache      atomic.Pointer[manuscriptCache]
+	book          atomic.Pointer[Book]
 	recorded      atomic.Pointer[RecordedFractions]
 	lengths       atomic.Pointer[RecordedLengths]
 	through       atomic.Pointer[RecordedThroughs]
@@ -162,31 +161,6 @@ func (s *Service) measured(chapterIDs []string, lengths map[string]RecordedLengt
 	}
 	return through, fractions
 }
-
-// The parsed manuscript, kept only as long as the file's own mtime and size say it is still the
-// file that produced it. Search, Chapters, Paragraphs, Reader and SetChapterStatus all call Load()
-// and only ever read the returned map, so sharing one parse across calls is safe: a search fires
-// per keystroke (debounced client-side, but still repeat reads of an 88,000-word file), and
-// re-parsing it every time was measurable (interaction-latency-baseline.md). A write (re-import, a
-// repair) changes the file's mtime, which invalidates the cache on the next Load().
-type manuscriptCache struct {
-	path    string
-	modTime time.Time
-	size    int64
-	data    map[string]any
-	// titles is each narration chapter's title by id, built once with the parse (front matter is not a chapter), so a title
-	// lookup builds no chapter payload.
-	titles map[string]string
-	// refs is the same chapters in manuscript order, with their kind and subtitle.
-	refs []ChapterRef
-	// paragraphs is each chapter's paragraphs in file order, grouped once with the parse, so asking for one chapter's lines walks only those
-	// (a loop over every chapter used to walk every paragraph for each, #3560).
-	paragraphs map[string][]map[string]any
-}
-
-// ChapterRef is what the host needs to name and match a chapter: no status, word count or paragraph ids, so listing them builds no
-// chapter payload.
-type ChapterRef struct{ ID, Title, Subtitle, ContentKind string }
 
 func New(project string) *Service            { return &Service{project: project, jobs: map[string]*ImportJob{}} }
 func (s *Service) SetProject(project string) { s.mu.Lock(); defer s.mu.Unlock(); s.project = project }
@@ -460,11 +434,12 @@ func (s *Service) runCommit(job *ImportJob, confirmedReset bool, choices Choices
 		}
 	}
 	report := func(percent int, message string) { s.report(job, percent, message) }
-	canonical, err := commit(project, job.Source, draft, choices.SectionKinds, report)
+	canonical, encoded, err := commit(project, job.Source, draft, choices.SectionKinds, report)
 	if err != nil {
 		s.fail(job, err)
 		return
 	}
+	s.put(encoded)
 	if documentID, _ := canonical["documentId"].(string); documentID != "" {
 		// Losing the carry only means linking again by hand, so it never fails the import.
 		_ = evidence.NewMappingStore(project).Carry(documentID, carry)
@@ -496,137 +471,72 @@ func (s *Service) Cancel(id string) error {
 	return nil
 }
 
-func (s *Service) Load() (map[string]any, error) {
-	cached, err := s.loadCache()
-	if err != nil {
-		return nil, err
-	}
-	return cached.data, nil
-}
-
-// loadCache is Load's parse with its indexes: the entry it returns is the one it checked or built, so a caller that reads an index never
-// sees another entry stored in between (a kind change drops the cache).
-func (s *Service) loadCache() (*manuscriptCache, error) {
-	s.mu.Lock()
-	project := s.project
-	s.mu.Unlock()
-	if project == "" {
-		return nil, fmt.Errorf("save the REAPER project and import a manuscript first")
-	}
-	path := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, fmt.Errorf("import a manuscript first")
-	}
-	if cached := s.manCache.Load(); cached != nil && cached.path == path && cached.modTime.Equal(info.ModTime()) && cached.size == info.Size() {
-		return cached, nil
-	}
-	bytes, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("import a manuscript first")
-	}
-	var data map[string]any
-	if err := json.Unmarshal(bytes, &data); err != nil {
-		return nil, fmt.Errorf("the canonical manuscript data could not be read")
-	}
-	if data["schemaVersion"] != float64(1) {
-		return nil, fmt.Errorf("this manuscript data uses an unsupported schema version")
-	}
-	titles := map[string]string{}
-	var refs []ChapterRef
-	byChapter := map[string][]map[string]any{}
-	for _, paragraph := range objects(data["paragraphs"]) {
-		id := text(paragraph, "chapterId")
-		byChapter[id] = append(byChapter[id], paragraph)
-	}
-	for _, chapter := range objects(data["chapters"]) {
-		if !isFrontMatter(chapter) {
-			titles[text(chapter, "id")] = text(chapter, "title")
-			refs = append(refs, ChapterRef{ID: text(chapter, "id"), Title: text(chapter, "title"), Subtitle: text(chapter, "subtitle"), ContentKind: text(chapter, "contentKind")})
-		}
-	}
-	entry := &manuscriptCache{path: path, modTime: info.ModTime(), size: info.Size(), data: data, titles: titles, refs: refs, paragraphs: byChapter}
-	s.manCache.Store(entry)
-	return entry, nil
-}
-
-// ChapterTitle is the title of the manuscript's chapter id, and false when the manuscript has no such chapter (front matter and
-// the credits are not manuscript chapters). It reads one entry of an index built once per parse of manuscript.json: no chapter
-// payload is built, where Chapters and ChaptersUnmeasured build one for every chapter of the book (#3272).
-func (s *Service) ChapterTitle(id string) (string, bool, error) {
-	cached, err := s.loadCache()
-	if err != nil {
-		return "", false, err
-	}
-	title, ok := cached.titles[id]
-	return title, ok, nil
-}
-
 // commit writes the draft as the narrator corrected it (runCommit has applied the subtitle choices), each section as the kind chosen.
-func commit(project, source string, draft importer.Draft, kinds map[string]string, report func(percent int, message string)) (map[string]any, error) {
+// It returns the canonical manuscript and the bytes of manuscript.json it wrote.
+func commit(project, source string, draft importer.Draft, kinds map[string]string, report func(percent int, message string)) (map[string]any, []byte, error) {
 	if report == nil {
 		report = func(int, string) {}
 	}
 	if project == "" {
-		return nil, fmt.Errorf("no project folder to store the manuscript in")
+		return nil, nil, fmt.Errorf("no project folder to store the manuscript in")
 	}
 	name := filepath.Base(source)
 	info, err := os.Stat(source)
 	if err != nil {
-		return nil, fmt.Errorf("could not open the selected manuscript: %w", err)
+		return nil, nil, fmt.Errorf("could not open the selected manuscript: %w", err)
 	}
 	if info.IsDir() {
-		return nil, fmt.Errorf("the selected manuscript %s is a folder, not a file", name)
+		return nil, nil, fmt.Errorf("the selected manuscript %s is a folder, not a file", name)
 	}
 	input, err := os.Open(source)
 	if err != nil {
-		return nil, fmt.Errorf("could not open the selected manuscript: %w", err)
+		return nil, nil, fmt.Errorf("could not open the selected manuscript: %w", err)
 	}
 	defer func() { _ = input.Close() }() // read-only source
 	report(15, fmt.Sprintf("Copying %s (%d KB) into the project and computing its checksum", name, info.Size()/1024))
 	sourceDir := filepath.Join(project, brand.ProjectFolder, "manuscript", "sources", newID())
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
-		return nil, fmt.Errorf("could not create manuscript storage: %w", err)
+		return nil, nil, fmt.Errorf("could not create manuscript storage: %w", err)
 	}
 	stored := filepath.Join(sourceDir, name)
 	output, err := os.OpenFile(stored, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		_ = os.Remove(sourceDir) // nothing was stored; do not leave the empty folder
-		return nil, fmt.Errorf("could not store the selected manuscript: %w", err)
+		return nil, nil, fmt.Errorf("could not store the selected manuscript: %w", err)
 	}
 	digest := sha256.New()
 	if _, err = io.Copy(io.MultiWriter(output, digest), input); err != nil {
 		_ = output.Close() // the copy already failed; report that error
 		_ = os.RemoveAll(sourceDir)
-		return nil, fmt.Errorf("could not store the selected manuscript: %w", err)
+		return nil, nil, fmt.Errorf("could not store the selected manuscript: %w", err)
 	}
 	if err = output.Close(); err != nil {
-		return nil, fmt.Errorf("could not store the selected manuscript: %w", err)
+		return nil, nil, fmt.Errorf("could not store the selected manuscript: %w", err)
 	}
 	relative, err := filepath.Rel(project, stored)
 	if err != nil {
-		return nil, fmt.Errorf("could not locate project-owned manuscript storage: %w", err)
+		return nil, nil, fmt.Errorf("could not locate project-owned manuscript storage: %w", err)
 	}
 	checksum := hex.EncodeToString(digest.Sum(nil))
 	report(40, fmt.Sprintf("Stored the original file (sha256 %s…)", checksum[:12]))
 	report(50, fmt.Sprintf("Building the canonical manuscript: %d paragraphs", len(draft.Paragraphs)))
 	canonical, err := canonicalize(draft, name, filepath.ToSlash(relative), checksum, kinds)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	report(70, "Writing manuscript.json")
 	target := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	encoded, err := json.MarshalIndent(canonical, "", "  ")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := persist.WriteFile(target, encoded, 0o600); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return canonical, nil
+	return canonical, encoded, nil
 }
 
 func canonicalize(draft importer.Draft, name, storedPath, sha string, kinds map[string]string) (map[string]any, error) {
@@ -781,14 +691,4 @@ func (s *Service) Clear() error {
 		return fmt.Errorf("could not clear project data: %w", err)
 	}
 	return os.RemoveAll(filepath.Join(project, brand.ProjectFolder, "manuscript"))
-}
-
-// ChapterRefs is the manuscript's own chapters (front matter and the credits are not among them) in order, from the parse the
-// service already keeps: no chapter payload is built.
-func (s *Service) ChapterRefs() ([]ChapterRef, error) {
-	cached, err := s.loadCache()
-	if err != nil {
-		return nil, err
-	}
-	return slices.Clone(cached.refs), nil
 }
