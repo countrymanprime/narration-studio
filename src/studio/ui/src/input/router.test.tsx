@@ -61,15 +61,7 @@ function keymapFor(...commands: CommandDescriptor[]): Keymap {
   return keymap;
 }
 
-function Registrar({
-  id,
-  onFire,
-  enabled = true,
-}: {
-  id: string;
-  onFire: (event: { target: EventTarget | null; shift?: boolean }) => void;
-  enabled?: boolean;
-}) {
+function Registrar({ id, onFire, enabled = true }: { id: string; onFire: (event: { target: EventTarget | null }) => void; enabled?: boolean }) {
   useCommand(id, onFire, enabled);
   return null;
 }
@@ -456,24 +448,6 @@ describe('CommandRouter', () => {
 describe('CommandScope', () => {
   it('throws when used outside a CommandRouter', () => {
     expect(() => render(<CommandScope kind="page">child</CommandScope>)).toThrow('<CommandScope> used outside a <CommandRouter>.');
-  });
-});
-
-describe('a command bound with and without Shift', () => {
-  it('runs one handler for both and tells it whether Shift was held (Shift+Num 1 adds ten to Num 1, #3970)', () => {
-    const source = fakeSource();
-    const onFire = vi.fn();
-    const both: Keymap = { 'test.booth': [gesture('keyboard', 'Numpad1'), gesture('keyboard', 'Numpad1', ['Shift'])] };
-    render(
-      <CommandRouter source={source} catalog={[BOOTH_COMMAND]} keymap={both}>
-        <CommandScope kind="booth">
-          <Registrar id="test.booth" onFire={onFire} />
-        </CommandScope>
-      </CommandRouter>,
-    );
-    act(() => source.emit({ gesture: gesture('keyboard', 'Numpad1') }));
-    act(() => source.emit({ gesture: gesture('keyboard', 'Numpad1', ['Shift']) }));
-    expect(onFire.mock.calls.map(([event]) => event.shift)).toEqual([false, true]);
   });
 });
 

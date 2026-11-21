@@ -621,16 +621,26 @@ function BoothSession({
           addWhy: control.recording ? whileRecording : undefined,
         }
       : undefined;
-  useCommand('booth.voice.0', (event) => voices.byKey(0 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.1', (event) => voices.byKey(1 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.2', (event) => voices.byKey(2 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.3', (event) => voices.byKey(3 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.4', (event) => voices.byKey(4 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.5', (event) => voices.byKey(5 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.6', (event) => voices.byKey(6 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.7', (event) => voices.byKey(7 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.8', (event) => voices.byKey(8 + (event.shift ? 10 : 0)));
-  useCommand('booth.voice.9', (event) => voices.byKey(9 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.0', () => voices.byKey(0));
+  useCommand('booth.voice.1', () => voices.byKey(1));
+  useCommand('booth.voice.2', () => voices.byKey(2));
+  useCommand('booth.voice.3', () => voices.byKey(3));
+  useCommand('booth.voice.4', () => voices.byKey(4));
+  useCommand('booth.voice.5', () => voices.byKey(5));
+  useCommand('booth.voice.6', () => voices.byKey(6));
+  useCommand('booth.voice.7', () => voices.byKey(7));
+  useCommand('booth.voice.8', () => voices.byKey(8));
+  useCommand('booth.voice.9', () => voices.byKey(9));
+  useCommand('booth.voice.10', () => voices.byKey(10));
+  useCommand('booth.voice.11', () => voices.byKey(11));
+  useCommand('booth.voice.12', () => voices.byKey(12));
+  useCommand('booth.voice.13', () => voices.byKey(13));
+  useCommand('booth.voice.14', () => voices.byKey(14));
+  useCommand('booth.voice.15', () => voices.byKey(15));
+  useCommand('booth.voice.16', () => voices.byKey(16));
+  useCommand('booth.voice.17', () => voices.byKey(17));
+  useCommand('booth.voice.18', () => voices.byKey(18));
+  useCommand('booth.voice.19', () => voices.byKey(19));
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
@@ -1041,7 +1051,9 @@ function BoothSession({
                 }}
                 noTrack={cast.noTrack}
                 cast={cast}
-                onAddLane={(name) => askWho({ kind: 'key', key: voices.voices.filter((voice) => !voice.narrator).length + 1, name })}
+                onAddLane={
+                  control.recording ? undefined : (name) => askWho({ kind: 'key', key: voices.voices.filter((voice) => !voice.narrator).length + 1, name })
+                }
                 // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
                 onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : askWho({ kind: 'character', character }))}
                 standIn={voices.standIn}

@@ -210,5 +210,7 @@ describe('Who records a character with no track?', () => {
   it('a track added from a search that found nothing starts named by what was typed (#3970)', () => {
     show({ kind: 'key', key: 5, name: ' Duchess ' });
     expect((screen.getByLabelText('Track name') as HTMLInputElement).value).toBe('Duchess');
+    // No one is ticked for it: the chapter's speakers with no track are not the Duchess.
+    expect(screen.queryAllByRole('checkbox', { checked: true })).toHaveLength(0);
   });
 });

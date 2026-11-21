@@ -93,7 +93,9 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const others = voices.filter((voice) => !voice.narrator);
   const asked = ask.kind === 'character' ? ask.character : undefined;
   const [choice, setChoice] = useState<WhoChoice>(ask.kind === 'character' ? (ask.choice ?? 'new') : 'new');
-  const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(asked ? [asked.id] : cast.noTrack.map((character) => character.id)));
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(
+    () => new Set(asked ? [asked.id] : ask.kind === 'key' && ask.name?.trim() ? [] : cast.noTrack.map((character) => character.id)),
+  );
   const everyone = useMemo(() => [...cast.inChapter, ...cast.elsewhere, ...(asked ? [asked] : [])], [cast, asked]);
   const tickedCharacters = everyone.filter((character, at) => ticked.has(character.id) && everyone.findIndex((each) => each.id === character.id) === at);
   // The name follows the ticks until the narrator types one.
