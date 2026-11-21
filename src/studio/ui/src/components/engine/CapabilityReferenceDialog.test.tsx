@@ -94,6 +94,27 @@ describe('CapabilityReference: Retry', () => {
     await waitFor(() => expect(onRetry).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(retry.getAttribute('aria-busy')).not.toBe('true'));
   });
+
+  it('a retry that fails again still answers with the time it finished (found by the ux review)', async () => {
+    const onRetry = vi.fn(() => Promise.reject(new Error('still unreadable')));
+    render(<CapabilityReference report={undefined} loadError="bridge unreadable" onRetry={onRetry} />);
+    expect(screen.queryByText(/^Checked /)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText(/^Checked \d/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText(/\(2\)$/)).toBeTruthy();
+  });
+
+  it('two presses in one tick start one read', async () => {
+    let finish = () => {};
+    const onRetry = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    render(<CapabilityReference report={undefined} loadError="bridge unreadable" onRetry={onRetry} />);
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    fireEvent.click(retry);
+    fireEvent.click(retry);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    await act(async () => finish());
+  });
 });
 
 describe('CapabilityReference: hostile reports', () => {

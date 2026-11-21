@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilitySupport } from '../../api/contracts/daw';
 import { recorderName } from '../../studio/dawNames';
 import { CAPABILITY_GUIDE, placeLabel } from '../../daw/capabilityGuide';
 import { CAPABILITY_MATRIX, MATRIX_TOOLS, type MatrixCell } from '../../daw/capabilityMatrix';
+import { usePendingAction } from '../../hooks/usePendingAction';
+import { CheckedStamp, useCheckedAt } from '../primitives/CheckedStamp';
 import { IconButton } from '../primitives/IconButton';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
@@ -88,32 +90,26 @@ export function CapabilityReference({
 }) {
   const keys = useMemo(() => keysOf(report), [report]);
   const narrow = useLayoutClass().narrow;
-  // Retry reads again: it shows busy until the read is back, and a second press while it runs does nothing (#3740).
-  const [retrying, setRetrying] = useState(false);
-  const live = useRef(true);
-  useEffect(() => {
-    live.current = true;
-    return () => {
-      live.current = false;
-    };
-  }, []);
-  const retry = async () => {
-    if (retrying) return;
-    setRetrying(true);
-    try {
-      await onRetry();
-    } catch {
-      // The caller shows why a read failed (loadError); the button only has to come back.
-    } finally {
-      if (live.current) setRetrying(false);
-    }
-  };
+  // Retry reads again: it shows busy until the read is back, a second press while it runs does nothing (#3740), and a read that fails again
+  // still answers with the time it finished, so the press never looks dead.
+  const pending = usePendingAction();
+  const [checkedAt, markChecked, reads] = useCheckedAt();
+  const retry = () =>
+    pending.run('retry', async () => {
+      try {
+        await onRetry();
+      } catch {
+        // The caller shows why a read failed (loadError); the button only has to come back.
+      }
+      markChecked();
+    });
   return (
     <div className="flex w-full flex-col gap-3">
       {loadError && !report && (
         <div className="flex flex-wrap items-center gap-3 text-[0.8125rem] text-[var(--danger-text)]" role="alert">
           <span>The recording tool’s capabilities could not be read: {loadError.replace(/^Error: /, '').replace(/\.+$/, '')}.</span>
-          <IconButton action="retry" ref={keepFocusOnRemoval} size="sm" pending={retrying} onClick={() => void retry()} />
+          <IconButton action="retry" ref={keepFocusOnRemoval} size="sm" pending={pending.isPending('retry')} onClick={() => void retry()} />
+          <CheckedStamp at={checkedAt} reads={reads} />
         </div>
       )}
       <Table label="What the recording tools can do" columns={narrow ? NARROW_COLUMNS : COLUMNS}>
