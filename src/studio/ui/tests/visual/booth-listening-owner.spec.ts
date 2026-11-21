@@ -12,18 +12,20 @@ type Calls = { stops: number; listeningStops: number; listeningStarts: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 // What a failed wait on the Record button found: the host's stop count, the main button's label and state, and every notice and dialog on the page.
 const whatThePageShows = async (page: Page): Promise<string> => {
-  const seen = await page
-    .evaluate(() => {
-      const main = document.getElementById('brec');
-      return {
-        stops: (window as unknown as { __calls: Calls }).__calls.stops,
-        button: main ? `"${main.textContent?.trim()}" aria-disabled=${main.getAttribute('aria-disabled')}` : 'no #brec button',
-        notices: [...document.querySelectorAll('[role="alert"], [role="status"], [role="alertdialog"], [role="dialog"], #brec-why')]
-          .map((node) => node.textContent?.trim())
-          .filter(Boolean),
-      };
-    })
-    .catch((error: Error) => ({ stops: -1, button: `unreadable: ${error.message}`, notices: [] as string[] }));
+  const read = page.evaluate(() => {
+    const main = document.getElementById('brec');
+    return {
+      stops: (window as unknown as { __calls: Calls }).__calls.stops,
+      button: main ? `"${main.textContent?.trim()}" aria-disabled=${main.getAttribute('aria-disabled')}` : 'no #brec button',
+      notices: [...document.querySelectorAll('[role="alert"], [role="status"], [role="alertdialog"], [role="dialog"], #brec-why')]
+        .map((node) => node.textContent?.trim())
+        .filter(Boolean),
+    };
+  });
+  // A page that no longer answers must not swallow the failure this describes: give up after 3 s.
+  const gaveUp = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+  const seen = await Promise.race([read, gaveUp]).catch(() => null);
+  if (!seen) return 'The page did not answer when asked what it showed.';
   return `The page showed: host stops=${seen.stops}; main button ${seen.button}; notices ${JSON.stringify(seen.notices)}`;
 };
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
