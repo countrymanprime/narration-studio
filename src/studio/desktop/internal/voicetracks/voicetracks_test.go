@@ -1,11 +1,12 @@
 package voicetracks
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -406,23 +407,35 @@ func TestATrackIsMarkedAsNotAVoiceByGUIDAndUnmarked(t *testing.T) {
 }
 
 func TestAMarkNeedsAValidGUIDAndIsBounded(t *testing.T) {
-	service, _ := newService(t)
+	service, project := newService(t)
 	for _, bad := range []string{"", "   ", "a\nb", strings.Repeat("x", MaxGUID+1)} {
 		if _, err := service.SetNotVoice(bad, true); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("%q: err = %v, want ErrInvalid", bad, err)
 		}
 	}
-	for i := 0; i < MaxGUIDs; i++ {
-		if _, err := service.SetNotVoice("{g-"+strings.Repeat("0", 4)+"-"+itoa(i)+"}", true); err != nil {
-			t.Fatalf("mark %d: %v", i, err)
-		}
+	// One short of the bound is written as the file a project with that many marks has: marking them one by one rewrites the file 2,000 times.
+	marks := make([]string, MaxGUIDs-1)
+	for i := range marks {
+		marks[i] = fmt.Sprintf("{g-0000-%04d}", i)
+	}
+	stored, err := json.Marshal(map[string]any{"schemaVersion": 1, "layout": "flat", "narratorCharacter": "", "tracks": map[string]any{}, "notVoices": marks})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(File(project)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(File(project), stored, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := service.SetNotVoice("{the-last-one}", true)
+	if err != nil || len(got.NotVoiceGUIDs) != MaxGUIDs {
+		t.Fatalf("the mark that reaches the bound: %d marks, err = %v; want %d and no error", len(got.NotVoiceGUIDs), err, MaxGUIDs)
 	}
 	if _, err := service.SetNotVoice("{one-too-many}", true); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("past the limit: err = %v, want ErrInvalid", err)
 	}
 }
-
-func itoa(n int) string { return strconv.Itoa(n) }
 
 func TestAFileWithABadNotVoiceGUIDIsCorruptAndAnOlderFileHasNone(t *testing.T) {
 	service, project := newService(t)

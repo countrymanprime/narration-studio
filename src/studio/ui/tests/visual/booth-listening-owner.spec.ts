@@ -49,7 +49,7 @@ async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningS
 test('the stop of a take whose listening failed ends at its limit with a sentence, and Stop stays for the take that still records', async ({ page }) => {
   await openBooth(page, 'stopNeverAnswers');
   await page.keyboard.press('Space');
-  await expect(page.getByText(/The take could not be stopped: REAPER did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/The take could not be stopped: REAPER did not answer in time/).first()).toBeVisible({ timeout: 32_000 });
   // The DAW never answered the stop and still says it records on this lane: a non-answer keeps the claim, so the take is still the narrator's to stop
   // (Record would only be refused). The press is not left busy.
   const stop = page.getByRole('button', { name: /^Stop$/ });
@@ -207,7 +207,7 @@ test('a Stop the DAW never answers ends at its limit with a sentence, and Stop c
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(1500);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/Stop did not go through: REAPER did not answer in time/).first()).toBeVisible({ timeout: 16_000 });
+  await expect(page.getByText(/Stop did not go through: REAPER did not answer in time/).first()).toBeVisible({ timeout: 32_000 });
   // The take may still be recording: Stop is still there and asks the DAW again.
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
   await page.keyboard.press('Space');

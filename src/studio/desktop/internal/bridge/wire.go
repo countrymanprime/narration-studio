@@ -114,8 +114,9 @@ var eventSpecs = map[string]eventSpec{
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later
 	// optional for the same reason; the script also sends a heartbeat at once when playState changes. timing is 1 while the
 	// bridge timing diagnostic is switched on in REAPER (the host then writes its record-press timeline, internal/presstimeline),
-	// and absent otherwise.
-	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition"), count("timing")}},
+	// and empty or absent otherwise. tracksRevision is the script's one value for the track list (#3859), any text: the host only compares it
+	// with the one TRACKS_READ carried, and a script from before it sends none.
+	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition"), count("timing"), text("tracksRevision")}},
 	// src/studio/integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
 	// action-list name REAPER matched (so the narrator sees what opened).
 	"CLEANUP_LAUNCHED": {required: []fieldSpec{text("run"), text("tool"), text("action")}},
@@ -169,7 +170,7 @@ var eventSpecs = map[string]eventSpec{
 	"FOLDERS_STALE":    {required: []fieldSpec{text("run")}},
 	// tracks_read (narration_tracks_read.lua): the open project's track list as REAPER has it now, saved or not, read-only. rpp is empty
 	// for a project never saved; one TRACKS_ROW per track (folderDelta is I_FOLDERDEPTH), then TRACKS_READ_END (listed, and the total).
-	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}},
+	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}, optional: []fieldSpec{text("tracksRevision")}},
 	"TRACKS_ROW":      {required: []fieldSpec{text("run"), count("index"), text("guid"), text("name"), count("folderDelta")}},
 	"TRACKS_READ_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	// arm_only, arm_lane, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor

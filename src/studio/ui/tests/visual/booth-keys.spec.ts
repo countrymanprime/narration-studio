@@ -14,8 +14,12 @@ const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 async function openBooth(page: Page, query = '', recordReady = true): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);
-  await goToPage(page, 'Booth');
-  await boothChapterReady(page);
+  // `booth?chapter=…` opens the Booth itself, on that chapter.
+  if (query.startsWith('booth')) await page.getByRole('button', { name: /^Chapter: .*Change chapter/ }).waitFor();
+  else {
+    await goToPage(page, 'Booth');
+    await boothChapterReady(page);
+  }
   if (recordReady) await expect(record(page)).toBeEnabled();
 }
 
@@ -147,8 +151,11 @@ const OVERLAYS: Overlay[] = [
   {
     name: 'speaker popover (an unassigned speaker)',
     typesSpace: true,
+    // The demo book's one line with no speaker ("Have some wine") is at the tea-party.
+    query: 'booth?chapter=chapter-7',
     open: async (page) => {
       const opener = page.getByRole('button', { name: /^Speaker \?\. Change speaker/ });
+      await showChapterTop(page, opener);
       await opener.click();
       return { popup: page.locator('[data-popover-popup]').last(), opener };
     },
