@@ -1,4 +1,4 @@
-// A DAW that cannot punch in (`?mockEngine=builtin`: the roll plan is refused) treats Start from here's lookup as one press, as a DAW that can punch
+// A DAW that cannot punch in (`?mockEngine=builtin`: the roll plan is refused) treats the lookup that Record makes from a marked start as one press, as a DAW that can punch
 // does (#3329): Space while the lookup is out joins it instead of recording from the end at once, a lookup that never answers ends once at the limit
 // with one host call and one sentence, and a phrase nobody recorded asks the host once. Mock app and fake recorder, not a real DAW.
 import { expect, test, type Page } from '@playwright/test';
@@ -9,7 +9,7 @@ import { chooseMicrophone, goToPage } from './drivers/shared';
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const HELD_MS = 3000;
-const FROM_THE_END = /The take starts from the end of what is already there, not from ¶ 1/;
+const FROM_THE_END = /Recording from the end of what is already there instead/;
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const lookups = (page: Page) => page.evaluate(() => (window as unknown as { __lookups: number }).__lookups);
@@ -40,9 +40,10 @@ async function open(page: Page, ms: number, answer: Record<string, unknown>): Pr
 async function startFromHere(page: Page): Promise<void> {
   await page.locator('[data-booth-text] [data-word]').nth(5).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
 }
 
 test('Space during Start from here lookup joins it: no take at once, one host call, then one take from the end and one sentence', async ({ page }) => {
@@ -61,13 +62,22 @@ test('Space during Start from here lookup joins it: no take at once, one host ca
   expect(await lookups(page)).toBe(1);
 });
 
-test('Start from here alone on a recorded phrase says the next take starts from the end and records nothing', async ({ page }) => {
+test('Mark the start here alone on a recorded phrase looks nothing up and records nothing: the lookup waits for Record (#3319)', async ({ page }) => {
   test.setTimeout(60_000);
   await open(page, 300, { outcome: 'found', start: 12, end: 20 });
-  await startFromHere(page);
-  await expect(page.getByText(/The next take starts from the end of what is already there, not from ¶ 1/)).toBeVisible({ timeout: 6000 });
+  await page.locator('[data-booth-text] [data-word]').nth(5).click({ button: 'right' });
+  await page
+    .getByRole('menuitem', { name: /Mark the start here/ })
+    .first()
+    .click();
+  await expect(page.getByText(/Next roll starts from ¶/).first()).toBeVisible();
+  await page.waitForTimeout(800);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   await expect(stop(page)).toHaveCount(0);
+  expect(await lookups(page)).toBe(0);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(FROM_THE_END)).toHaveCount(1, { timeout: 6000 });
+  await expect(stop(page)).toBeVisible({ timeout: 6000 });
   expect(await lookups(page)).toBe(1);
 });
 

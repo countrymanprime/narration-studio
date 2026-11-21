@@ -18,9 +18,9 @@ import { LiveTracksLine } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
-import { folderChildren, folderLinkLabel } from './voices';
+import { folderChildren, folderLinkLabel, wordsCount } from './voices';
 import { destinationFor } from './destination';
-import { useVoiceLayout } from './voiceLayout';
+import { useVoiceLayout, useVoiceSetup } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
@@ -204,6 +204,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const layout = useVoiceLayout();
   const voiceFolders = layout === 'folders';
+  const { setup } = useVoiceSetup();
   const { noun, pickerLabel } = destinationFor(layout);
   const trackOptions = [
     { value: '', label: linkStateLabel('unlinked', voiceFolders) },
@@ -212,7 +213,9 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
       return {
         value: track.guid,
-        label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length, voiceFolders ? 'voice' : 'track') : name,
+        label: track.isFolder
+          ? folderLinkLabel(name, wordsCount(folderChildren(tracks, track.guid), setup.notVoiceGuids, voiceFolders), voiceFolders ? 'voice' : 'track')
+          : name,
       };
     }),
   ];

@@ -312,7 +312,7 @@ message says why. Nothing is added either when the chapter is already linked to 
 name the new one would get: link that one with the track picker instead. While one track is being added, the other rows' buttons are off.
 If the project's last folder was left open in REAPER, that folder is closed on its last track first, so the new track is never inside
 it. With [Voice folders](#voice-folders) the button is **Create a folder for this chapter**: REAPER adds a folder named
-after the chapter with one track inside it, **Narrator**, and the chapter is linked to the folder. The Booth's and Editing's link dialog
+after the chapter with its tracks inside it, the **Narrator** and then the voices and **Extras** you last chose (the Booth's create dialog and the **New chapter folder** row in [Settings](settings.md) set that choice; every known voice and Extras until you choose otherwise), and the chapter is linked to the folder. The Booth's and Editing's link dialog
 says **Create a new folder** in a Voice folders project and makes the same folder.
 
 ![Chapter links after Create a track for this chapter: the first chapter linked to its new track, and a message saying it was made](../../images/ui/engine-panel-chapter-track-created.webp)
@@ -381,7 +381,7 @@ With Voice folders, Chapter links' last column is **Folder**: a chapter links to
 
 ![A chapter's folder picker: the Chapter 1 folder can be chosen, its voice tracks can't](../../images/ui/engine-panel-voices-folder-picker.webp)
 
-![Chapter links after Create a folder for this chapter: the chapter linked to its new folder with one voice, and a message naming the folder and its Narrator track](../../images/ui/engine-panel-chapter-folder-created.webp)
+![Chapter links after Create a folder for this chapter: the chapter linked to its new folder with its Narrator and Extras voices, and a message naming the folder and its Narrator track](../../images/ui/engine-panel-chapter-folder-created.webp)
 
 The **Voices** card, below Chapter links, lists the folder's tracks for the chapter picked in its header, in REAPER's order. The first
 track named **Narrator** gets number-pad key 0 and the others 1 to 9; a track past the ninth gets no key. Each row shows the characters
@@ -392,9 +392,17 @@ Narrator row the list picks the one character the narrator also voices, for a bo
 and holds for every chapter folder with a track of that name. A track with no name, or a name over 120 characters, can't be given
 characters until it is renamed in REAPER.
 
+The card lists the folder's tracks in either layout: in Flat too, when a chapter is linked to a folder with tracks of its own (a track another chapter is linked to is left out), since the Booth records on one of them. Every track in the folder is a voice unless you say it is not. The **Voice** switch on a row is on for each; turn it off for a track that
+is not a voice, such as a music bed or room tone. The row stays in the list, dimmed and marked **Not a voice**, with no key and no
+characters to choose, and the Booth does not offer it: Record never arms it, and a folder whose tracks are all marked records on the
+folder itself (in Voice folders, Record says the folder has no voices). Turn the switch back on and it is a voice again. The mark follows
+the track if you rename it in REAPER, and it holds for every chapter folder that track is in. In a window 30 rem (480 px) wide or less the Key column goes, a track's characters sit under its name, and the switch sits beside the edit button. While a take is recording the Voice switches are disabled (a tooltip says why): stop the take first.
+
 ![The Voices card for a Voice folders project: Chapter 1's tracks with their keys and characters](../../images/ui/engine-panel-voices.webp)
 
 ![A track's character list open on the Voices card](../../images/ui/engine-panel-voices-picker.webp)
+
+![The Voices card with the Extras track turned off: it has no key and says Not a voice](../../images/ui/engine-panel-voices-marked.webp)
 
 An Audacity project has no folders, so the card is not shown for it.
 

@@ -158,8 +158,9 @@ flowchart LR
   chapter's paragraphs and no tokens, extras or items, so the Editing page can show the script before any check has run.
   Every run writes one ledger record
   (`complete`, `partial` on cancel, or `failed`). A complete run's report is stored under
-  `<app>/analysis/coverage/results/` with a hash of the chapter's text. The host applies the thresholds when
-  it reads a report, so a threshold change never transcribes or aligns again.
+  `<app>/analysis/coverage/results/` with a hash of the chapter's text, and its counts, paragraph lines and
+  gaps again under `<app>/analysis/coverage/summaries/`, which is what the chapter list reads. The host applies
+  the thresholds when it reads a report, so a threshold change never transcribes or aligns again.
 - **Progress is real and a check runs only on a press.** Progress is the seconds transcribed over the seconds to
   transcribe. Cancel keeps the finished items. One check runs at a time, and a run ends with one `job:ended` event
   ([bindings_coverage.go](../../src/studio/desktop/bindings_coverage.go),

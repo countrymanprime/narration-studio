@@ -220,6 +220,32 @@ const reportSchema = z.object({
   recheck: optionalFromNull(recheckSchema),
 }) satisfies z.ZodType<CoverageReport>;
 
+/** The file `analysis/coverage/summaries/<recordId>.json` (`ResultSummary`, `src/studio/desktop/internal/coverage/summary.go`): the part
+ * of a stored recording-check result the host reads for every chapter. Only the host reads it; the schema is here so its golden has one. */
+export const coverageResultSummaryFileSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  resultVersion: z.literal(1),
+  recordId: z.string().min(1),
+  documentId: z.string(),
+  chapterId: z.string(),
+  manuscriptHash: z.string(),
+  summary: z.strictObject({
+    schemaVersion: z.number().int(),
+    chapterId: z.string(),
+    bodyTokens: z.number().int(),
+    presentTokens: z.number().int(),
+    missingTokens: z.number().int(),
+    extraTokens: z.number().int(),
+    longestMissingRun: z.number().int(),
+    alignment: z.strictObject({ maxMisreadRun: z.number(), minAnchorRun: z.number() }),
+    items: z.strictObject({ analyzed: z.number(), muted: z.number(), playedSeconds: z.number(), transcribed: z.number(), reused: z.number() }),
+    analysis: z.strictObject({ model: z.string(), language: z.string().nullable(), equivalencesHash: z.string().nullable() }),
+  }),
+  paragraphs: z.array(z.strictObject({ id: z.string(), tokens: z.number(), present: z.number(), longestMissingRun: z.number() })),
+  gaps: z.array(gapSchema),
+  unfinished: z.strictObject({ start: z.number().int().nonnegative(), end: z.number().int().nonnegative() }),
+});
+
 export const coverageResultSchema = z.object({
   chapterId: z.string(),
   state: z.enum(['current', 'stale', 'never']),

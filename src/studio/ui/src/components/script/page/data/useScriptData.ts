@@ -95,7 +95,24 @@ const NO_MARKS: Mark[] = [];
 const NO_PREP: ScriptPrepChapter[] = [];
 const NO_ENTRIES: GuideEntity[] = [];
 const NO_GUIDE_TYPES: GuideType[] = [];
-const NO_CUES: GuideDialogueCue[] = [];
+
+/** The cues of every chapter read so far as one read: failed when a chapter's read failed, loading while one runs. */
+function allCues(byChapter: ScriptDataState['cues']): Loadable<GuideDialogueCue[]> {
+  const held = Object.values(byChapter);
+  const value = held.flatMap((chapter) => chapter.value ?? []);
+  const failed = held.find((chapter) => chapter.status === 'error');
+  if (failed?.status === 'error') return { status: 'error', message: failed.message, value };
+  return { status: held.some((chapter) => chapter.status === 'loading') ? 'loading' : 'ready', value };
+}
+
+/** A chapter's dialogue cues, asked for in one call with the other chapters wanted in the same tick. */
+export function useChapterCues(chapterId: string): ReadView<GuideDialogueCue[]> {
+  const { data } = useScriptHost();
+  const loaded = useData(data, (state) => state.cues[chapterId]);
+  useEffect(() => data.ensureCues(chapterId), [data, chapterId]);
+  const retry = useCallback(() => void data.loadCues([chapterId]), [data, chapterId]);
+  return useMemo(() => view(loaded, retry), [loaded, retry]);
+}
 
 export type MarksView = ReadView<Marks> & {
   types: MarkType[];
@@ -192,7 +209,7 @@ export function useEntries(): EntriesView {
 }
 
 export type SpeakersView = ReadView<GuideDialogueCue[]> & {
-  /** Every cue the Story Bible found, for a page that draws the quotes itself. */
+  /** The cues read so far (those of the chapters the reader has drawn), for a page that draws the quotes itself. */
   cues: GuideDialogueCue[];
   phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.Phrase[];
   unattributed: (chapterId: string) => number;
@@ -200,15 +217,15 @@ export type SpeakersView = ReadView<GuideDialogueCue[]> & {
   candidates: GuideEntity[];
 };
 
-/** Quoted phrases and their speakers, from the Story Bible's dialogue cues and entries. */
+/** Quoted phrases and their speakers, from the Story Bible's entries and the dialogue cues of the chapters read so far (`useChapterCues` reads them). */
 export function useSpeakers(): SpeakersView {
   const { data } = useScriptHost();
-  const cues = useData(data, (state) => state.cues);
+  const byChapter = useData(data, (state) => state.cues);
+  const cues = useMemo(() => allCues(byChapter), [byChapter]);
   const entries = useEntries();
-  useEffect(() => data.ensure('cues'), [data]);
-  const retry = useCallback(() => void data.load('cues'), [data]);
+  const retry = useCallback(() => void data.loadCues(), [data]);
   return useMemo(() => {
-    const list = cues?.value ?? NO_CUES;
+    const list = cues.value ?? [];
     const candidates = select.speakerCandidates(entries.entries, entries.types);
     const named = cueSpeakerEntries(entries.entries, entries.types);
     return {

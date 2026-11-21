@@ -57,15 +57,22 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/controls/SyncEnabledBody.tsx#1': no(BT),
   'src/components/settings/controls/DiagnosticsSection.tsx#1': no(BT),
   'src/components/settings/controls/DiagnosticsSection.tsx#2': no(BT),
+  'src/components/settings/controls/NewChapterTracksBody.tsx#1': no(
+    'The list is read when the row opens and again when voice assignments change; the narrator is in Settings and opens the row again when it matters.',
+  ),
+  'src/components/settings/controls/NewChapterTracksBody.tsx#2': no(BT),
   'src/components/settings/controls/VoicesBody.tsx#1': no(
     'The chapter list is read when the row opens; the narrator is in Settings and opens the row again when it matters.',
   ),
   'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
     'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',
   ),
-  'src/components/connection/ChapterLinkDialog.tsx#1': no(ED),
-  'src/components/connection/ChapterLinkDialog.tsx#2': no(RF),
-  'src/components/connection/ChapterLinkDialog.tsx#3': no(ED),
+  'src/components/connection/ChapterLinkDialog.tsx#1': no(
+    'The list is read again by Check again and on every window focus, and Create works without it (with the last choice the host remembers), so a button here would have nothing more to retry.',
+  ),
+  'src/components/connection/ChapterLinkDialog.tsx#2': no(ED),
+  'src/components/connection/ChapterLinkDialog.tsx#3': no(RF),
+  'src/components/connection/ChapterLinkDialog.tsx#4': no(ED),
   'src/components/mapping/ChapterTrackLinkFix.tsx#1': no(ED),
   'src/components/chapterTracks/ChapterTrackState.tsx#2': yes(
     'The links read of the check on a link the chapter already has changes nothing; Retry reads the tracks and the links again.',
@@ -104,38 +111,41 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/page/BoothNextPage.tsx#5': no(
     "Says that the DAW would not arm the chapter's voice on entry or put its monitoring back on leaving: the voice list's own press arms again and the setup notice's Check again reads the DAW afresh, so a retry here would repeat a call the narrator has already moved past (#3428).",
   ),
-  'src/components/booth/page/useBoothPage.ts#1': no(RC),
+  'src/components/booth/page/useBoothPage.ts#1': no(
+    'Ends a press that started no take (a refusal, a lookup that failed or ran out) or a roll the DAW refused during a take: repeating asks the same question, and Record on the page (R during a take) is the control for the next try, so a Retry on the toast would be a second one.',
+  ),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
-  'src/components/booth/page/useBoothPage.ts#3': no(RF),
-  'src/components/booth/page/useBoothPage.ts#4': no(
+  'src/components/booth/page/useBoothPage.ts#3': no(RC),
+  'src/components/booth/page/useBoothPage.ts#4': no(RF),
+  'src/components/booth/page/useBoothPage.ts#5': no(
     'Says that a take the narrator stopped while listening was still starting was kept without the text following it: nothing was lost and repeating changes nothing; Record is the control for the next take (#3321).',
   ),
-  'src/components/booth/page/useBoothPage.ts#5': yes(
+  'src/components/booth/page/useBoothPage.ts#6': yes(
     'Recording did not start because the text could not follow the voice and nothing was kept: Retry takes the same start again once the narrator has fixed the microphone or the model (there before this change).',
   ),
-  'src/components/booth/page/useBoothPage.ts#6': na(
+  'src/components/booth/page/useBoothPage.ts#7': na(
     'A status sentence, not a failed call: a roll the Booth stopped waiting for has landed and the narrator checks and stops the DAW there; the app does nothing to the DAW itself (#3409).',
   ),
-  'src/components/booth/page/useBoothPage.ts#7': no(
+  'src/components/booth/page/useBoothPage.ts#8': no(
     'A roll that lands after its limit and was refused (#3409): a roll is a DAW edit that applies to the take as it is now, and R on the page is the control for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#8': no(
+  'src/components/booth/page/useBoothPage.ts#9': no(
     'Ends a roll the DAW never answered (#3409): the take may still be recording, and R on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
-  'src/components/booth/page/useBoothPage.ts#9': no(
+  'src/components/booth/page/useBoothPage.ts#10': no(
     'Ends a press whose host call never answered (#3321): nothing was started, and Record on the page is the control for the next try, so a Retry on the toast would be a second one.',
   ),
-  'src/components/booth/page/useBoothPage.ts#10': no(
+  'src/components/booth/page/useBoothPage.ts#11': no(
     'Ends a cold read whose listening never answered (#3321): the cold read toggle stays on the page for the next try.',
   ),
-  'src/components/booth/page/useBoothPage.ts#11': no(RC),
+  'src/components/booth/page/useBoothPage.ts#12': no(RC),
   'src/components/booth/listening/useStopFailedSentence.ts#1': no(
     'Says the microphone may still be open after the Booth was left with the stop refused (#3409): nothing on the page the narrator is on can stop that session, and a Retry from there could end a newer one; the sentence says to quit and reopen the app.',
   ),
   'src/components/booth/listening/useStopFailedSentence.ts#2': yes(
     'Stopping the listening session again is safe because the Retry is checked against its session first: it sends nothing unless that session is still the one running, with no start or take since and the Booth still there; the toast carries Retry (#3409).',
   ),
-  'src/components/booth/page/useBoothPage.ts#12': no(
+  'src/components/booth/page/useBoothPage.ts#13': no(
     "Says that a take left recording on purpose (Leave anyway) is not followed by the text (#3409): the take is the narrator's to end, Stop on the page is the control, and Record is the next try, so a Retry on the toast would be a second one.",
   ),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),

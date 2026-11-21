@@ -19,11 +19,15 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - Huge Word
 - Two Huge Words
 - Five Long Messages
+- Long Refusal With Action
 - Long Action Label
 - Two Toasts Above The Booth Bars
+- Four Toasts Above The Booth Bars
 - Huge Word In Tiny Window
 - Two Huge Words In Tiny Window
 - Five Long Messages In Tiny Window
+- Long Refusal With Action In Tiny Window
+- Four Toasts Above The Booth Bars In Tiny Window
 - Long Action Label In Tiny Window
 - Two Toasts Above The Booth Bars In Tiny Window
 

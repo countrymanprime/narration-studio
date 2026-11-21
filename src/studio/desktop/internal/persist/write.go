@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 )
 
@@ -31,6 +32,7 @@ func swapRename(replacement func(from, to string) error) (restore func()) {
 // handle has open without FILE_SHARE_DELETE fails with "Access is denied" (a reader in the same process, a file watcher, antivirus),
 // so a rename that fails that way is retried for a moment before the error is returned.
 func WriteFile(path string, data []byte, perm os.FileMode) error {
+	defer Advance()
 	temporary, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
 	if err != nil {
 		return err
@@ -65,7 +67,20 @@ func flushTemporary(file *os.File, data []byte, perm os.FileMode) error {
 // Rename is os.Rename that, on Windows, retries for a moment when another handle on the destination (or on a folder being moved) makes
 // it fail with "Access is denied" or a sharing violation. Use it for every rename of a file or folder the host owns; WriteFile
 // uses it for the final step of a save.
-func Rename(from, to string) error { return renameWithRetry(from, to) }
+func Rename(from, to string) error {
+	defer Advance()
+	return renameWithRetry(from, to)
+}
+
+// generation counts the changes the host made to its own files in this process.
+var generation atomic.Uint64
+
+// Generation is the number of file changes the host has finished so far: every WriteFile and Rename, and every Advance. The
+// host keys a read it shares between callers on it, so a read sent after a write never gets an answer computed before it.
+func Generation() uint64 { return generation.Load() }
+
+// Advance records a change WriteFile and Rename do not see: call it after removing a file or folder that a read answers from.
+func Advance() { generation.Add(1) }
 
 func renameWithRetry(from, to string) error {
 	var err error

@@ -124,7 +124,9 @@ type chapterSyncPreview struct {
 type chapterSyncRuns struct{ mu sync.Mutex }
 
 // ChapterSyncState reads the consent, whether to ask, and the last sync. It only reads.
-func (h *Host) ChapterSyncState() (string, error) { return encodeBinding(h.chapterSyncState()) }
+func (h *Host) ChapterSyncState() (string, error) {
+	return h.sharedRead("ChapterSyncState", func() (string, error) { return encodeBinding(h.chapterSyncState()) })
+}
 
 // ChapterSyncPreview plans a sync without writing anything: the consent dialog's preview.
 func (h *Host) ChapterSyncPreview() (string, error) { return encodeBinding(h.chapterSyncPreview()) }
@@ -331,7 +333,8 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 		}
 		if check != nil {
 			row.Checking = check.Checking(chapter.ID)
-			if result, err := pass.ResultIn(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
+			// The row reads the check's state, reasons and time, none of which is in the stored result: none is decoded.
+			if result, _, err := pass.Summary(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
 				row.Freshness = string(result.State)
 				if result.Reasons != nil {
 					row.Reasons = result.Reasons

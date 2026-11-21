@@ -14,6 +14,7 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 ## Used by
 
 - `src/components/booth/voices/WhoIsInDialog.tsx`
+- `src/components/chapterTracks/NewChapterTracks.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/profile/FormatRows.tsx`
 - `src/components/delivery/profile/ProfileCard.tsx`

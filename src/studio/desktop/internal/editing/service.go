@@ -127,6 +127,9 @@ type Config struct {
 	Reporter    *persist.Reporter
 	// Identities is the open project's source identity cache; nil identifies each file without one.
 	Identities *evidence.IdentityCache
+	// Ledger is the project's analysis ledger, shared with the project's other services (coverage.Config.Ledger); nil makes
+	// a store of the service's own.
+	Ledger *evidence.LedgerStore
 	// ProjectReader reads the saved .rpp ProjectFile resolves (see readProject); nil falls back to tracks.Parse
 	// directly.
 	ProjectReader dawport.ProjectReader
@@ -163,8 +166,11 @@ type Service struct {
 // New builds the service for one project. changed, when not nil, hears
 // every state change.
 func New(config Config, changed func(State)) *Service {
-	ledger := evidence.NewLedgerStore(config.Project)
-	ledger.Reporter = config.Reporter
+	ledger := config.Ledger
+	if ledger == nil {
+		ledger = evidence.NewLedgerStore(config.Project)
+		ledger.Reporter = config.Reporter
+	}
 	cache := evidence.NewCacheStore(config.Project)
 	cache.Reporter = config.Reporter
 	mapping := evidence.NewMappingStore(config.Project)

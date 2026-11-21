@@ -196,7 +196,7 @@ func (s *Service) renderSignals(chapter stages.ChapterContext, view stages.Evide
 	scanState := RenderScanNever
 	if status.Association != nil {
 		renderKey := status.Association.Render.Key
-		_, _, ok, err := CurrentRenderRecord(s.ledger, chapter.DocumentID, chapter.ChapterID, renderKey)
+		_, _, ok, err := CurrentRenderRecord(s.ledgerOf(view), chapter.DocumentID, chapter.ChapterID, renderKey)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +204,7 @@ func (s *Service) renderSignals(chapter stages.ChapterContext, view stages.Evide
 		case ok:
 			scanState = RenderScanCurrent
 		default:
-			anyRecords, err := s.ledger.List(AnalyzerEditingRender, chapter.ChapterID)
+			anyRecords, err := s.ledgerOf(view).List(AnalyzerEditingRender, chapter.ChapterID)
 			if err != nil {
 				return nil, err
 			}

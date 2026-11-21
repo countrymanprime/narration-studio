@@ -43,4 +43,20 @@ func TestPickupListContract(t *testing.T) {
 		t.Fatalf("merged = %v", merged)
 	}
 	contractfile.Check(t, "pickups-list-merged", merged)
+
+	// pickups-open-count.json: the number the navigation shows, the merged list's pickups that are not done.
+	open := 0
+	for _, pickup := range pickupsOf(t, merged) {
+		if done, _ := pickup["done"].(bool); !done {
+			open++
+		}
+	}
+	count := decodeAnswer(t)(f.host.PickupsOpenCount())
+	if got, _ := count["open"].(float64); int(got) != open || open == 0 {
+		t.Fatalf("open count = %v, the list has %d open", count, open)
+	}
+	contractfile.Check(t, "pickups-open-count", count)
+	if none := decodeAnswer(t)(empty.PickupsOpenCount()); none["open"] != float64(0) {
+		t.Fatalf("open count of an empty list = %v", none)
+	}
 }

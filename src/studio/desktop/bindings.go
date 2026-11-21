@@ -262,6 +262,7 @@ func (h *Host) ProjectSwitch(path, name string) (string, error) {
 	}
 	if attached {
 		h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
+		h.goBackground(h.warmProject)                                      // the new project's read caches (warm.go)
 	}
 	return reportAttach(ctx, attached, reason)
 }
@@ -518,7 +519,7 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	return encodeBinding(nil, err)
 }
 func (h *Host) ManuscriptChapters() (string, error) {
-	return encodeBinding(h.services().manuscript.Chapters())
+	return h.sharedRead("ManuscriptChapters", func() (string, error) { return encodeBinding(h.services().manuscript.Chapters()) })
 }
 func (h *Host) ManuscriptParagraphs(chapter string) (string, error) {
 	return encodeBinding(h.services().manuscript.Paragraphs(chapter))
@@ -922,13 +923,41 @@ func (h *Host) ChapterTrackLinks() (string, error) { return encodeBinding(h.chap
 // of the DAW project's track list and links the chapter to it
 // (chaptertrackcreate.go). Outcome "created" carries ChapterTrackSet's
 // payload and the new track; "refused" says why nothing was added. A
-// chapter the manuscript does not have is an error.
-func (h *Host) ChapterTrackCreate(chapterID string) (string, error) {
+// chapter the manuscript does not have is an error. In a Voice folders project the folder is made with its Narrator and the voices and Extras
+// named in choice, a JSON chapterCreateChoice ("" is the remembered pick, #3748); a flat project ignores it.
+func (h *Host) ChapterTrackCreate(chapterID string, choice string) (string, error) {
 	svc := h.services()
+	picked, err := parseCreateChoice(choice)
+	if err != nil {
+		return encodeBinding(nil, err)
+	}
 	creator, support := trackCreatorFrom(svc)
-	created, err := chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID)
+	created, err := chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID, picked)
 	h.linksChanged(err)
 	return encodeBinding(created, err)
+}
+
+// ChapterCreateOptions lists what a new chapter folder can be made with (chaptercreateoptions.go): the Narrator, the known voices and Extras,
+// each ticked unless the remembered choice left it out, in the order the folder gets them. A project with no folders answers Folders false.
+func (h *Host) ChapterCreateOptions() (string, error) {
+	svc := h.services()
+	creator, _ := trackCreatorFrom(svc)
+	return encodeBinding(chapterCreateOptionsIn(svc, creator))
+}
+
+// ChapterCreateDefaultSet keeps what a new chapter folder is made with from now on, a JSON chapterCreateChoice, as the Settings row sets it
+// (#3748); it answers the options as they now read. A project with no folders answers Folders false but keeps the choice for when it has them.
+func (h *Host) ChapterCreateDefaultSet(choice string) (string, error) {
+	svc := h.services()
+	picked, err := parseCreateChoice(choice)
+	if err != nil || picked == nil {
+		return encodeBinding(nil, fmt.Errorf("choose the tracks a new chapter folder is made with"))
+	}
+	if note := rememberCreateChoice(svc, picked); note != "" {
+		return encodeBinding(nil, fmt.Errorf("%s", note))
+	}
+	creator, _ := trackCreatorFrom(svc)
+	return encodeBinding(chapterCreateOptionsIn(svc, creator))
 }
 
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits

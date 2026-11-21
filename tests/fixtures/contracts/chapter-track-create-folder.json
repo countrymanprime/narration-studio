@@ -1,4 +1,18 @@
 {
+  "children": [
+    {
+      "guid": "{00000004-0000-4000-8000-000000000004}",
+      "index": 4,
+      "name": "Narrator",
+      "notVoice": false
+    },
+    {
+      "guid": "{00000007-0000-4000-8000-000000000007}",
+      "index": 5,
+      "name": "Extras",
+      "notVoice": true
+    }
+  ],
   "displaced": null,
   "documentId": "id-1",
   "link": {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Track } from '../../api/contracts/tracks';
 import type { GuideEntity } from '../../api/contracts/storyBible';
-import { folderChildren, folderVoices } from './voices';
+import { folderChildren, folderVoices, wordsCount } from './voices';
 
 const track = (guid: string, name: string, depth: number, isFolder = false): Track => ({
   guid,
@@ -149,5 +149,16 @@ describe('the voices of a chapter folder', () => {
       ['Extras', '1', false],
       ['narrator', '2', false],
     ]);
+  });
+});
+
+describe('wordsCount', () => {
+  const kids = [{ guid: '{A}' }, { guid: '{B}' }, { guid: '{C}' }];
+  it('leaves a child marked as not a voice out of the voices of a Voice folders project, without case', () => {
+    expect(wordsCount(kids, ['{b}'], true)).toBe(2);
+    expect(wordsCount(kids, [], true)).toBe(3);
+  });
+  it('counts every child as a track in any other project', () => {
+    expect(wordsCount(kids, ['{b}'], false)).toBe(3);
   });
 });

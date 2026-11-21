@@ -122,6 +122,10 @@ type RecordedLengths func() map[string]RecordedLength
 // SetRecordedLengths says where recorded lengths come from; nil means none are known.
 func (s *Service) SetRecordedLengths(fn RecordedLengths) { s.lengths.Store(&fn) }
 
+// RecordedLengths is each chapter's recorded length as the chapter list carries it (recordedSeconds or the reason there
+// is none), for a reader that needs the lengths without the rest of the measured list.
+func (s *Service) RecordedLengths() map[string]RecordedLength { return s.recordedLengths() }
+
 // recordedLengths asks the provider once for a whole payload. Without one it is empty.
 func (s *Service) recordedLengths() map[string]RecordedLength {
 	if fn := s.lengths.Load(); fn != nil && *fn != nil {
@@ -736,6 +740,7 @@ func sourceMetadataFields(metadata *importer.SourceMetadata) map[string]any {
 }
 
 func resetDerived(project string) error {
+	defer persist.Advance()
 	// Findings are anchored to manuscript chapter and paragraph ids, so a
 	// replace or Clear that invalidates those ids clears findings too.
 	paths := []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, brand.ProjectFolder, "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), editlog.ReplacementsFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project), scriptprep.BackupFile(project)}
@@ -760,6 +765,7 @@ func (s *Service) Clear() error {
 	if err := resetDerived(project); err != nil {
 		return err
 	}
+	defer persist.Advance()
 	// Voice samples are the narrator's own audio and survive a manuscript replace, so resetDerived leaves them; Clear project data
 	// is the one action that removes them (docs/reference/data-files.md, Retention terms: Cleared on Clear).
 	if err := os.RemoveAll(voicesample.Dir(project)); err != nil {

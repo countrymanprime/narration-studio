@@ -203,6 +203,31 @@ func (s *Service) List() (List, error) {
 	return s.finish(file, list, nil), nil
 }
 
+// OpenCount is how many pickups of the list are not done: List's answer counted, without finishing the done states that
+// wait for the DAW, so it writes nothing to the DAW or the list file.
+func (s *Service) OpenCount() (int, error) {
+	if s.config.Project == "" {
+		return 0, nil
+	}
+	unlock := lockFile(File(s.config.Project))
+	defer unlock()
+	file, err := s.read()
+	if err != nil {
+		return 0, err
+	}
+	list, err := s.build(file)
+	if err != nil {
+		return 0, err
+	}
+	open := 0
+	for _, pickup := range s.finish(file, list, nil).Pickups {
+		if !pickup.Done {
+			open++
+		}
+	}
+	return open, nil
+}
+
 // Add stores a line the narrator typed, in a chapter at a time in its recording, and answers the list. The line is
 // text only, never opened; the same line in the same chapter is one pickup, and adding a removed one shows it again.
 func (s *Service) Add(chapterID string, at float64, line string) (List, error) {

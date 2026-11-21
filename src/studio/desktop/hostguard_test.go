@@ -32,6 +32,7 @@ var swappableHostFields = map[string]bool{
 	"transcript":       true,
 	"coverage":         true,
 	"identities":       true,
+	"ledger":           true,
 	"stages":           true,
 	"production":       true,
 	"editing":          true,

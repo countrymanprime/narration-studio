@@ -167,7 +167,7 @@ func (p plan) itemGUIDs() []string {
 // confirmedTrack is the chapter's one narrator-confirmed track (D5). No link
 // is unmapped and two or more is a multi-track chapter: both are unknown, and
 // an unconfirmed suggestion is never used.
-func confirmedTrack(mapping *evidence.MappingStore, documentID, chapterID string) (string, error) {
+func confirmedTrack(mapping evidence.MappingReader, documentID, chapterID string) (string, error) {
 	links, err := mapping.List(documentID)
 	if err != nil {
 		return "", err

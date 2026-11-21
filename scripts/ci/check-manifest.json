@@ -121,7 +121,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "test-linux",
+      "job": "test-linux-quick",
       "step": [
         "targets: test-node",
         "projects: repo-scripts"
@@ -132,7 +132,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "test-linux",
+      "job": "test-linux-quick",
       "step": [
         "targets: test",
         "projects: docs-site"
@@ -155,7 +155,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "test-linux",
+      "job": "test-linux-quick",
       "step": [
         "targets: test",
         "projects: tag:toolchain:python,fixtures"
@@ -178,7 +178,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "test-linux",
+      "job": "test-linux-quick",
       "step": [
         "targets: test",
         "projects: reaper",
@@ -194,7 +194,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "post-merge",
       "workflow": "_quality.yml",
-      "job": "test-linux",
+      "job": "test-linux-quick",
       "step": [
         "targets: test",
         "projects: reaper",
@@ -237,7 +237,7 @@
       "was": "quality / rename rehearsal",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "test-linux",
+      "job": "test-linux-quick",
       "step": [
         "node scripts/brand/rehearse-rename.mjs"
       ]

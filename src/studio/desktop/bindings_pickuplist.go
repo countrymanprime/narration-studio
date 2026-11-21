@@ -19,7 +19,14 @@ import (
 
 // PickupsList answers the merged list and the chapters whose recording check added nothing, and why.
 func (h *Host) PickupsList() (string, error) {
-	return encodeBinding(h.pickupList().List())
+	return h.sharedRead("PickupsList", func() (string, error) { return encodeBinding(h.pickupList().List()) })
+}
+
+// PickupsOpenCount answers how many pickups of the list are still open, for a reader that shows the number only (the
+// navigation's badge): the list is built as PickupsList builds it, but not sent, and nothing is written to the DAW.
+func (h *Host) PickupsOpenCount() (string, error) {
+	open, err := h.pickupList().OpenCount()
+	return encodeBinding(map[string]int{"open": open}, err)
 }
 
 // PickupsAdd adds a line by hand to a chapter, at a time in seconds into the chapter's recording. The paragraph whose
@@ -62,7 +69,7 @@ func (h *Host) pickupList() *pickuplist.Service {
 		view := sync.OnceValue(func() stages.EvidenceView {
 			return svc.coverage.EvidenceView(context.Background(), manuscriptDocumentID(svc.manuscript))
 		})
-		// One listing of the ledger answers every chapter of a build.
+		// One pass answers every chapter of a build: one listing of the ledger, and each check's gaps from its result's summary.
 		pass := sync.OnceValue(svc.coverage.Pass)
 		config.Speech = func(chapterID string) pickuplist.Speech {
 			current := view()
@@ -73,11 +80,11 @@ func (h *Host) pickupList() *pickuplist.Service {
 				}
 				return pickuplist.Speech{State: string(evidence.StateNever), Reasons: []string{string(reason)}}
 			}
-			result, err := pass().ResultIn(current.Project, current.ProjectFile, chapterID, alignment)
+			result, summary, err := pass().Summary(current.Project, current.ProjectFile, chapterID, alignment)
 			if err != nil {
 				return pickuplist.Speech{State: "unreadable", Reasons: []string{err.Error()}}
 			}
-			return pickupSpeech(result)
+			return pickupSpeech(result, summary)
 		}
 		config.Locate = func(_ string, position coverage.RegionPosition) (float64, bool) {
 			return locateInProject(view(), position)
@@ -87,15 +94,15 @@ func (h *Host) pickupList() *pickuplist.Service {
 }
 
 // pickupSpeech is a chapter's check as the list reads it: gaps only from a current result.
-func pickupSpeech(result coverage.ChapterResult) pickuplist.Speech {
+func pickupSpeech(result coverage.ChapterResult, summary *coverage.ResultSummary) pickuplist.Speech {
 	speech := pickuplist.Speech{State: string(result.State), Reasons: result.Reasons}
-	if !result.Current() {
+	if result.State != evidence.StateCurrent || summary == nil {
 		if result.State == evidence.StateCurrent {
 			speech.State = string(evidence.StateStale)
 		}
 		return speech
 	}
-	speech.Gaps, _ = coverage.ClassifyGaps(result.Result.Report)
+	speech.Gaps = summary.Gaps
 	if result.Record != nil {
 		speech.RecordID = result.Record.ID
 	}
@@ -133,10 +140,13 @@ func pickupChapters(service *manuscript.Service) func() ([]pickuplist.Chapter, e
 		if service == nil {
 			return nil, nil
 		}
-		rows, err := service.Chapters()
+		// The list needs each chapter's id and recorded length, not its recorded fraction: the measured chapter list would
+		// evaluate every chapter's check once more than the build's own pass does (issue 3804).
+		rows, err := service.ChaptersUnmeasured()
 		if err != nil {
 			return nil, nil
 		}
+		lengths := service.RecordedLengths()
 		paragraphs := manuscriptLines(service)
 		chapters := make([]pickuplist.Chapter, 0, len(rows))
 		for _, row := range rows {
@@ -145,7 +155,8 @@ func pickupChapters(service *manuscript.Service) func() ([]pickuplist.Chapter, e
 				continue // a pickup is a line of text to re-read; a credits file has none
 			}
 			chapter := pickuplist.Chapter{ID: id}
-			if seconds, ok := row["recordedSeconds"].(float64); ok {
+			if length, known := lengths[id]; known && length.Unavailable == "" {
+				seconds := length.Seconds
 				chapter.Seconds = &seconds
 			}
 			lines, err := paragraphs(id)

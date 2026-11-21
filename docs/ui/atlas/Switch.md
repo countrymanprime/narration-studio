@@ -14,6 +14,7 @@ Storybook title: `Primitives/Switch`. Source: `src/components/primitives/Switch.
 
 ## Used by
 
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/proof/proofOptions/ProofOptions.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`

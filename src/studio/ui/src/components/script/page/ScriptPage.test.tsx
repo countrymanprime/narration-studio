@@ -92,6 +92,24 @@ function selectIn(pid: string, from: number, to: number): void {
   window.getSelection()!.addRange(range);
 }
 
+describe('reads-the-cues-of-the-chapters-drawn-only', () => {
+  it('asks once, for no chapter the reader has not drawn, and never for the whole book', async () => {
+    const api = createMockApi();
+    const some = vi.spyOn(api, 'guideDialogueCuesIn');
+    const all = vi.spyOn(api, 'guideDialogueCues');
+    mount({ api });
+    await firstHeading();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /^Speaker: / }).length).toBeGreaterThan(0));
+    const pending = [...document.querySelectorAll('[data-pending-chapter]')].map((block) => block.getAttribute('data-pending-chapter'));
+    expect(pending.length).toBeGreaterThan(0);
+    const asked = some.mock.calls.flatMap(([chapterIds]) => [...chapterIds]);
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.filter((chapterId) => pending.includes(chapterId))).toEqual([]);
+    expect(some).toHaveBeenCalledTimes(1);
+    expect(all).not.toHaveBeenCalled();
+  });
+});
+
 describe('three-columns-from-1440-and-drawers-below', () => {
   it('Alt+Down goes to the next chapter and leaves focus on its heading (#2902)', async () => {
     mount();
@@ -430,6 +448,31 @@ describe('credits-cards-and-banner-stay', () => {
     mount({ at: '/script#credits-closing' });
     await screen.findByRole('heading', { name: 'Closing credits' });
     await waitFor(() => expect(scrolled).toContain(4992));
+  });
+
+  // #3821, the owner's steps: go to the closing credits from the chapter list, leave the page, come back.
+  it('opens on the closing credits again after the narrator went to them and left the page', async () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.ch === 'credits:closing' && this.hasAttribute('data-bound') ? 5000 : 0;
+    });
+    const at = new WeakMap<Element, number>();
+    vi.spyOn(Element.prototype, 'scrollTop', 'get').mockImplementation(function (this: Element) {
+      return at.get(this) ?? 0;
+    });
+    vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (this: Element, value: number) {
+      at.set(this, value);
+    });
+    const reader = () => screen.getByRole('region', { name: /Script reader/ });
+    const first = mount();
+    await firstHeading();
+    fireEvent.click(await within(panel('chapters')).findByRole('button', { name: /Closing credits/ }));
+    await waitFor(() => expect(at.get(reader())).toBe(4992));
+    fireEvent.scroll(reader());
+    await waitFor(() => expect(window.localStorage.getItem('narration.script.reader.position')).toContain('credits:closing'));
+    first.unmount();
+    mount();
+    await firstHeading();
+    expect(at.get(reader())).toBe(4992);
   });
 
   it('shows the banner above the cards; its Fill in opens the setup dialog and the banner steps aside; Save closes it', async () => {

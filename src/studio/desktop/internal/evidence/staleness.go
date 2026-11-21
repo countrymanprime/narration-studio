@@ -385,7 +385,7 @@ func BuildBasis(projectFile LedgerProjectFile, newestRecordTime, newestSourceMod
 // req.ChapterID), and returns the EvaluatorResult plus the EvaluationBasis
 // every result states. It reads the ledger and mapping stores; it never writes
 // to either.
-func EvaluateChapter(ledger LedgerReader, mapping *MappingStore, req ChapterEvaluationRequest) (EvaluatorResult, EvaluationBasis, error) {
+func EvaluateChapter(ledger LedgerReader, mapping MappingReader, req ChapterEvaluationRequest) (EvaluatorResult, EvaluationBasis, error) {
 	recordTime, err := newestRecordTime(ledger, req.ChapterID)
 	if err != nil {
 		return EvaluatorResult{}, EvaluationBasis{}, err

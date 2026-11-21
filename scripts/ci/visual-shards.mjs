@@ -102,7 +102,7 @@ export function loaderLines(items) {
 }
 
 export function assign(items, shards, ariaSeconds = ARIA_SECONDS, reserveFirst = 0) {
-  // `reserveFirst`: test-seconds shard 1 already carries (its job runs the quick Linux tests too), so it is given that much less.
+  // `reserveFirst`: test-seconds kept off shard 1, which is given that much less (its size and reason are at _quality.yml's `split` step).
   const loads = Array.from({ length: shards }, (_, index) => ({ seconds: index === 0 ? reserveFirst : 0, tests: [], aria: false }));
   const ordered = [{ aria: true, estimate: ariaSeconds, line: '' }, ...items].sort((a, b) => b.estimate - a.estimate || a.line.localeCompare(b.line));
   for (const item of ordered) {

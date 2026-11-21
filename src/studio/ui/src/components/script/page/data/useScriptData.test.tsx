@@ -14,6 +14,7 @@ import { StudioProvider, useJournal } from '../../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../../types';
 import { PREP_LABELS } from './scriptCommands';
 import {
+  useChapterCues,
   useChapterFacts,
   useChapters,
   useDictionary,
@@ -58,6 +59,8 @@ function setup() {
       prep: useScriptPrep(),
       entries: useEntries(),
       speakers: useSpeakers(),
+      // The cues are read for the chapters the reader draws: these two stand for it.
+      cues: [useChapterCues('chapter-1'), useChapterCues('chapter-6')],
       facts: useChapterFacts(),
       commands: useScriptCommands(),
       journal: useJournal(),
@@ -336,6 +339,64 @@ describe('confirm-a-speaker', () => {
   });
 });
 
+describe('speaker-changes-read-the-held-cues-again', () => {
+  const line = { id: 'p-3', chapterId: 'chapter-1' };
+  const speakerOf = (hook: Hook) => hook.result.current.speakers.phrasesOf(line)[0]?.speaker?.id;
+
+  it('confirming a speaker and its undo ask for the held chapters again and show the new speaker, never reading the whole book', async () => {
+    const some = vi.spyOn(api, 'guideDialogueCuesIn');
+    const all = vi.spyOn(api, 'guideDialogueCues');
+    const hook = setup();
+    await ready(hook);
+    expect(some).toHaveBeenCalledTimes(1);
+    expect([...some.mock.calls[0]![0]].sort()).toEqual(['chapter-1', 'chapter-6']);
+    const { cueId, speaker } = hook.result.current.speakers.phrasesOf(line)[0]!;
+    const other = hook.result.current.speakers.candidates.find((entry) => entry.id !== speaker?.id)!;
+
+    await act(async () => void (await hook.result.current.commands.confirmSpeaker(cueId, other.id)));
+    expect(some).toHaveBeenCalledTimes(2);
+    expect(speakerOf(hook)).toBe(other.id);
+    await undoLast(hook);
+    expect(some).toHaveBeenCalledTimes(3);
+    expect(speakerOf(hook)).toBe(speaker!.id);
+
+    // A run fills only a line with no confirmed speaker: the undo above left this one confirmed, so the run and its undo are shown on a fresh page below.
+    for (const [chapterIds] of some.mock.calls) expect([...chapterIds].sort()).toEqual(['chapter-1', 'chapter-6']);
+    expect(all).not.toHaveBeenCalled();
+  });
+
+  it('an attribution run and its undo ask for the held chapters again and show what moved', async () => {
+    await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }]);
+    const some = vi.spyOn(api, 'guideDialogueCuesIn');
+    const all = vi.spyOn(api, 'guideDialogueCues');
+    const hook = setup();
+    await ready(hook);
+    expect(speakerOf(hook)).toBeUndefined();
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    expect(some).toHaveBeenCalledTimes(2);
+    expect(speakerOf(hook)).toBe('mad-hatter');
+    await undoLast(hook);
+    expect(some).toHaveBeenCalledTimes(3);
+    expect(speakerOf(hook)).toBeUndefined();
+    expect(all).not.toHaveBeenCalled();
+  });
+
+  it('a failed read is the error view with the host sentence, and Retry asks for the held chapters again', async () => {
+    const hook = setup();
+    await ready(hook);
+    const some = vi.spyOn(api, 'guideDialogueCuesIn').mockRejectedValueOnce(new Error('The Story Bible could not be read.'));
+    await act(async () => hook.result.current.speakers.retry());
+    await waitFor(() => expect(hook.result.current.speakers.status).toBe('error'));
+    expect(hook.result.current.speakers.message).toBe('The Story Bible could not be read.');
+    // The cues read before the failure stay on show.
+    expect(speakerOf(hook)).toBeDefined();
+    await act(async () => hook.result.current.speakers.retry());
+    await waitFor(() => expect(hook.result.current.speakers.status).toBe('ready'));
+    expect(some).toHaveBeenCalledTimes(2);
+    expect([...some.mock.calls[1]![0]].sort()).toEqual(['chapter-1', 'chapter-6']);
+  });
+});
+
 describe('attribute-speakers', () => {
   const blankFirstSuggestion = () => api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' }]);
 
@@ -430,7 +491,7 @@ describe('entities-and-mentions', () => {
 describe('contract-kit', () => {
   it('every read refusing leaves an error state per list, never a throw', async () => {
     const no = refusing('The project folder could not be read.');
-    api = host({ manuscriptChapters: no, manuscriptParagraphs: no, marksList: no, scriptPrepList: no, guideEntities: no, guideDialogueCues: no });
+    api = host({ manuscriptChapters: no, manuscriptParagraphs: no, marksList: no, scriptPrepList: no, guideEntities: no, guideDialogueCuesIn: no });
     const hook = setup();
     await waitFor(() => {
       const r = hook.result.current;

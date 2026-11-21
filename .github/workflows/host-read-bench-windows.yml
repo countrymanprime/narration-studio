@@ -1,0 +1,58 @@
+name: Host read benchmark (Windows, manual)
+# A measurement run, never a gate: seeds a book with a recording check on its chapters, findings, a Story Bible, marks and a pickup
+# list on a Windows runner and prints what every read binding a page calls costs the host (scripts/dev/host-read-bench.mjs,
+# docs/operations/real-app-driver.md). Start it by hand (Actions > Host read benchmark (Windows, manual) > Run workflow). The tables are
+# printed in the job log and uploaded as the `host-read-bench-windows` artifact; results go in a dated note under docs/research/.
+on:
+  workflow_dispatch:
+    inputs:
+      size:
+        description: Book size (1h is 3 chapters, 17h is 44, 40h is 103, 300 is 300 short chapters)
+        type: choice
+        options: [17h, 1h, 40h, '300']
+        default: 17h
+      runs:
+        description: Tables to print, each from a new process
+        default: '3'
+permissions: { contents: read }
+concurrency:
+  group: host-read-bench-windows-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  measure:
+    name: Measure (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-pnpm: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+      - name: Machine
+        shell: pwsh
+        run: |
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version | Format-List
+          Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores | Format-List
+          try { Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, AntivirusEnabled, AMServiceEnabled | Format-List } catch { Write-Host "Defender status unavailable: $_" }
+      - name: Seed the book
+        shell: bash
+        env:
+          SIZE: ${{ inputs.size || '17h' }}
+        run: |
+          mkdir -p host-read-bench
+          node scripts/dev/host-read-bench.mjs seed "$RUNNER_TEMP/book" --size "$SIZE" | tee host-read-bench/seed.txt
+      - name: Time the reads
+        shell: bash
+        env:
+          RUNS: ${{ inputs.runs || '3' }}
+        run: node scripts/dev/host-read-bench.mjs reads "$RUNNER_TEMP/book" --runs "$RUNS" | tee host-read-bench/reads.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: host-read-bench-windows
+          path: host-read-bench/
