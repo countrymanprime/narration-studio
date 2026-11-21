@@ -329,7 +329,7 @@ describe('the-footer-hints-come-from-the-catalogue', () => {
   it('draws the catalogue hints with the right-click extra, and the timer', () => {
     footer(api(), { seconds: 402 });
     const keys = screen.getByRole('note', { name: 'Keyboard shortcuts' });
-    for (const label of ['Record / stop', 'Roll again', 'Phrase', 'Word', 'Full screen', 'Exit']) expect(keys.textContent).toContain(label);
+    for (const label of ['Record / stop', 'Phrase', 'Word', 'Full screen', 'Exit']) expect(keys.textContent).toContain(label);
     expect(keys.textContent).not.toContain('Next pickup');
     expect(document.getElementById('btimer')?.textContent).toBe('06:42');
   });
@@ -460,14 +460,14 @@ describe('the record bar is voice, then one split button', () => {
 });
 
 describe('roll-again-hint', () => {
-  it('strikes the R hint through until a take runs, with the reason', () => {
+  it('lists the R hint only while a take runs', () => {
     const { container, rerender } = footer(api());
-    expect(container.innerHTML).toContain('R starts a take until one is running');
+    expect(container.textContent).not.toContain('Roll again');
     rerender(
       <ApiProvider api={api().value}>
         <BoothFooter record={<button>Record</button>} seconds={0} recording mic={mic} roomTone="Room tone −58 dBFS" keymap={defaultKeymap()} />
       </ApiProvider>,
     );
-    expect(container.innerHTML).not.toContain('R starts a take until one is running');
+    expect(container.textContent).toContain('Roll again');
   });
 });
