@@ -94,7 +94,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   });
   useEffect(() => () => keepOnLeave.current(), []);
 
-  const { recorded: recordedThrough, reading: readingRecorded } = useRecordedThrough(source.chapter.id, session.active);
+  const { recorded: recordedThrough, recordedSeconds, reading: readingRecorded } = useRecordedThrough(source.chapter.id, session.active);
   const recorded = useMemo(
     () => (chapter ? recordedStart({ chapter, paragraphs, spans: session.session.script?.spans, recorded: recordedThrough }) : null),
     [chapter, paragraphs, session.session.script, recordedThrough],
@@ -116,7 +116,16 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   return (
     // Booth scope: `reading.toggle` (Space) resolves here ahead of `global`.
     <CommandScope kind="booth">
-      <CompanionShell session={session} follow={follow} chapterTitle={chapterTitle} chapterId={chapterId} marks={marks} header={header} onFullApp={onFullApp} />
+      <CompanionShell
+        session={session}
+        follow={follow}
+        chapterTitle={chapterTitle}
+        chapterId={chapterId}
+        recordedSeconds={recordedSeconds}
+        marks={marks}
+        header={header}
+        onFullApp={onFullApp}
+      />
     </CommandScope>
   );
 }
