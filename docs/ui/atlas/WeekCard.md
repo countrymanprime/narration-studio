@@ -8,6 +8,7 @@ Storybook title: `Production/WeekCard`. Source: `src/components/production/overv
 
 - With Take Log
 - Nothing Measured
+- Under A Minute
 
 ## Used by
 

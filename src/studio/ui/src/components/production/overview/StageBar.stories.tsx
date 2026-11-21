@@ -14,3 +14,6 @@ type Story = StoryObj<typeof meta>;
 export const MidWay: Story = {};
 export const Finished: Story = { args: { segments: overviewFor(FINISHED).segments } };
 export const NothingRecorded: Story = { args: { segments: overviewFor(NOTHING_RECORDED).segments } };
+
+// #3443: stages of a few seconds each read "<0h 01m" in the legend, and say "less than a minute" to a screen reader.
+export const UnderAMinute: Story = { args: { segments: overviewFor(MID_BOOK).segments.map((segment) => ({ ...segment, hours: 0.004 })) } };
