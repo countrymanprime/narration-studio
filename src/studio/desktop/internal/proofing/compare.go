@@ -351,6 +351,22 @@ func latestAmbiguous(ledger evidence.LedgerReader, chapter stages.ChapterContext
 	return nil, nil
 }
 
+// ComparisonRetentionKey is the evidence.RetentionKey of a Transcript Compare record (AnalyzerTranscriptCompare). A
+// record with a chapter id is read by ComparisonJudge, which takes the chapter's newest record and its newest complete
+// one whatever the payload holds, so every record of a chapter is one group. A record with no chapter id is read by
+// latestAmbiguous, which takes the newest whose payload is ambiguous and carries the chapter's title: its group is the
+// payload's resolution and title, and one whose payload does not decode has no group.
+func ComparisonRetentionKey(record evidence.LedgerRecord) (string, bool) {
+	if record.Scope.ChapterID != "" {
+		return "", true
+	}
+	payload, ok := decodeComparison(record)
+	if !ok {
+		return "", false
+	}
+	return payload.Resolution + "\x00" + payload.ChapterTitle, true
+}
+
 func decodeComparison(record evidence.LedgerRecord) (ComparisonPayload, bool) {
 	var payload ComparisonPayload
 	if len(record.Payload) == 0 || json.Unmarshal(record.Payload, &payload) != nil {

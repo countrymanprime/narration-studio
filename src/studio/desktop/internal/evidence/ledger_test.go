@@ -220,20 +220,34 @@ func TestARecordWrittenByANewerSchemaReadsAsAbsent(t *testing.T) {
 	}
 }
 
-// --- Retain / pruning (latest per analyzer+chapter, plus anything referenced) ---
+// --- Retain: the first tests of the rule; ledger_retain_test.go holds the rest ---
 
-func TestRetainKeepsOnlyTheLatestPerAnalyzerAndChapterByDefault(t *testing.T) {
+// wholeChapter is the RetentionKey of an analyzer whose readers match on the chapter alone.
+func wholeChapter(LedgerRecord) (string, bool) { return "", true }
+
+// rcKeys is the keys of a ledger whose one analyzer, "rc", is read by chapter.
+var rcKeys = map[string]RetentionKey{"rc": wholeChapter}
+
+func droppedIDs(records []LedgerRecord) []string {
+	ids := make([]string, 0, len(records))
+	for _, record := range records {
+		ids = append(ids, record.ID)
+	}
+	return ids
+}
+
+func TestRetainDropsACompleteRecordOlderThanTheNewestCompleteOne(t *testing.T) {
 	store := NewLedgerStore(t.TempDir())
 	now := time.Now()
 	older, _ := store.Write(baseLedgerRecord("rc", "c-0001", now.Add(-time.Hour), LedgerComplete))
 	newer, _ := store.Write(baseLedgerRecord("rc", "c-0001", now, LedgerComplete))
 
-	deleted, err := store.Retain(nil)
+	dropped, err := store.Retain(rcKeys, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(deleted) != 1 || deleted[0] != older.ID {
-		t.Fatalf("Retain deleted %#v, want [%s]", deleted, older.ID)
+	if len(dropped) != 1 || dropped[0].ID != older.ID {
+		t.Fatalf("Retain dropped %#v, want [%s]", droppedIDs(dropped), older.ID)
 	}
 	if _, ok := store.Get(newer.ID); !ok {
 		t.Fatal("Retain deleted the latest record")
@@ -249,12 +263,12 @@ func TestRetainNeverPrunesAReferencedRecordEvenWhenSuperseded(t *testing.T) {
 	referenced, _ := store.Write(baseLedgerRecord("rc", "c-0001", now.Add(-time.Hour), LedgerComplete))
 	newer, _ := store.Write(baseLedgerRecord("rc", "c-0001", now, LedgerComplete))
 
-	deleted, err := store.Retain([]string{referenced.ID})
+	dropped, err := store.Retain(rcKeys, map[string]bool{referenced.ID: true, "nothing-here": true}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(deleted) != 0 {
-		t.Fatalf("Retain deleted %#v, want nothing (referenced record must survive)", deleted)
+	if len(dropped) != 0 {
+		t.Fatalf("Retain dropped %#v, want nothing (referenced record must survive)", droppedIDs(dropped))
 	}
 	if _, ok := store.Get(referenced.ID); !ok {
 		t.Fatal("Retain pruned a record its caller referenced")
@@ -271,12 +285,12 @@ func TestRetainKeepsTheLatestPerChapterIndependently(t *testing.T) {
 	chapterOneNew, _ := store.Write(baseLedgerRecord("rc", "c-0001", now, LedgerComplete))
 	chapterTwo, _ := store.Write(baseLedgerRecord("rc", "c-0002", now, LedgerComplete))
 
-	deleted, err := store.Retain(nil)
+	dropped, err := store.Retain(rcKeys, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(deleted) != 1 || deleted[0] != chapterOneOld.ID {
-		t.Fatalf("Retain deleted %#v, want [%s]", deleted, chapterOneOld.ID)
+	if len(dropped) != 1 || dropped[0].ID != chapterOneOld.ID {
+		t.Fatalf("Retain dropped %#v, want [%s]", droppedIDs(dropped), chapterOneOld.ID)
 	}
 	for _, id := range []string{chapterOneNew.ID, chapterTwo.ID} {
 		if _, ok := store.Get(id); !ok {
@@ -287,12 +301,12 @@ func TestRetainKeepsTheLatestPerChapterIndependently(t *testing.T) {
 
 func TestRetainOnAnEmptyStoreDeletesNothing(t *testing.T) {
 	store := NewLedgerStore(t.TempDir())
-	deleted, err := store.Retain([]string{"nothing-here"})
+	dropped, err := store.Retain(rcKeys, map[string]bool{"nothing-here": true}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(deleted) != 0 {
-		t.Fatalf("Retain on an empty store deleted %#v", deleted)
+	if len(dropped) != 0 {
+		t.Fatalf("Retain on an empty store dropped %#v", droppedIDs(dropped))
 	}
 }
 
@@ -308,7 +322,7 @@ func TestRetainIgnoresStrayTmpFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := store.Retain(nil); err != nil {
+	if _, err := store.Retain(rcKeys, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := store.Get(kept.ID); !ok {

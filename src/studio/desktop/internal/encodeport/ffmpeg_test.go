@@ -46,6 +46,7 @@ func TestMain(m *testing.M) {
 	// The registered row runs the fake unless a test says otherwise, so the conformance suite runs its real code path.
 	_ = os.Setenv(fakeFFmpegEnv, "1")
 	encodeport.UseFFmpeg(func() (string, error) { return exe, nil }, nil)
+	_ = os.Setenv("GORACE", "atexit_sleep_ms=0 "+os.Getenv("GORACE")) // a fake program run from here skips the race runtime's second of sleep at exit
 	os.Exit(m.Run())
 }
 
