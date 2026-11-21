@@ -1,5 +1,7 @@
 import { Toggle } from '@base-ui/react/toggle';
 import { useId } from 'react';
+import type { IconName } from '../../icons.catalog';
+import { Icon } from './Icon';
 import { TooltipTarget } from './Tooltip';
 
 /** `filter` is a list filter: 28 px, a round pill in sentence case, the ink fill when pressed (the mock's `.chip`). `chip` is a standalone toggle (the Whisper model, chunk length): 32 px, its own border, the label in capitals. `segmented`
@@ -28,6 +30,9 @@ export function Pill({
   title,
   disabledReason,
   look = 'chip',
+  icon,
+  action = false,
+  raised = false,
   onClick,
 }: {
   label: string;
@@ -37,20 +42,44 @@ export function Pill({
   /** Off, with the reason: the chip stays focusable and hoverable (a native `disabled` takes neither), a press does nothing, and the reason is its hint and its description. */
   disabledReason?: string;
   look?: PillLook;
+  /** A glyph before the label, asked for by action name. */
+  icon?: IconName;
+  /** A chip that does something when pressed and holds no state (the approval's "2 effects above"): a plain button, with no `aria-pressed`. */
+  action?: boolean;
+  /** Floats over other content (a pointer over a scrolling body): the overlay shadow, so it reads as above what it covers. */
+  raised?: boolean;
   onClick?: () => void;
 }) {
   const reasonId = useId();
   const gated = Boolean(disabledReason);
-  const button = (
+  const className = `inline-flex items-center justify-center whitespace-nowrap ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} ${gated ? 'cursor-not-allowed opacity-75' : 'disabled:opacity-40'} ${LOOK_CLASS[look](active)} ${icon ? 'gap-1.5' : ''} ${raised ? 'shadow-[var(--shadow-lg)]' : ''}`;
+  const content = (
+    <>
+      {icon && <Icon name={icon} />}
+      {label}
+    </>
+  );
+  const button = action ? (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-disabled={gated || undefined}
+      aria-describedby={gated ? reasonId : undefined}
+      onClick={() => (gated ? undefined : onClick?.())}
+      className={className}
+    >
+      {content}
+    </button>
+  ) : (
     <Toggle
       pressed={active}
       disabled={disabled}
       aria-disabled={gated || undefined}
       aria-describedby={gated ? reasonId : undefined}
       onPressedChange={() => (gated ? undefined : onClick?.())}
-      className={`inline-flex items-center justify-center whitespace-nowrap ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} ${gated ? 'cursor-not-allowed opacity-75' : 'disabled:opacity-40'} ${LOOK_CLASS[look](active)}`}
+      className={className}
     >
-      {label}
+      {content}
     </Toggle>
   );
   if (gated)

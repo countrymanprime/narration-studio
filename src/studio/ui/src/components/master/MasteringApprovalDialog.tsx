@@ -4,6 +4,7 @@ import type { ExportPlan } from '../../types';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
 import { Panel } from '../primitives/Panel';
+import { Pill } from '../primitives/Pill';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
@@ -176,12 +177,12 @@ export function MasteringApprovalDialog({
 }) {
   const [macro, setMacro] = useState(plan.needsMacro ? lastMacro : '');
   const [problem, setProblem] = useState<string>();
-  // Whether the chain's first row is out of view: then a pointer beside Approve names it and brings it into view.
+  // Whether the chain's first row is out of view: then a chip over the body's bottom edge names it and brings it into view.
   const [chainBelow, setChainBelow] = useState(false);
   const chainRef = useRef<HTMLDivElement>(null);
   const effects = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).length, 0);
   const off = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).filter((fx) => !fx.enabled).length, 0);
-  // The pointer beside Approve: how many effects are above, and how many of them are off (round 3 walkthrough), or that there are
+  // The pointer: how many effects are above, and how many of them are off (round 3 walkthrough), or that there are
   // none (round 4, N5). Pressing it brings the first effect itself into view, not the chain's top, which at a short body would show
   // only the count (round 4, N2), and puts the keyboard on the chain's list, which stays when the pointer goes.
   const chainList = () => chainRef.current?.querySelector<HTMLElement>('[role="group"]');
@@ -199,13 +200,10 @@ export function MasteringApprovalDialog({
     const active = document.activeElement;
     if (went && dialog && (active === null || !active.isConnected || !dialog.contains(active))) chainList()?.focus({ preventScroll: true });
   }, [chainBelow]);
-  const pointer: { secondary: () => void; secondaryLabel: string } | { secondary?: undefined; secondaryLabel?: undefined } = chainBelow
-    ? {
-        secondaryLabel:
-          effects === 0 ? 'See the chain above: no effects' : `See the ${plural(effects, 'effect')} above${off > 0 ? `, ${off} switched off` : ''}`,
-        secondary: showChain,
-      }
-    : {};
+  // What the chip over the body says, and its hint: the whole sentence the pointer used to carry as a third button.
+  const above = effects === 0 ? 'Chain above: no effects' : `${plural(effects, 'effect')} above${off > 0 ? `, ${off} off` : ''}`;
+  const aboveHint = effects === 0 ? 'See the chain above: no effects' : `See the ${plural(effects, 'effect')} above${off > 0 ? `, ${off} switched off` : ''}`;
+
   const regions = plan.items.some((item) => item.region !== '');
   const count = plural(plan.items.length, 'file');
   const listLabel = regions ? 'Files and the regions they render' : 'Files to master';
@@ -232,7 +230,6 @@ export function MasteringApprovalDialog({
       confirm={approve}
       cancel={onCancel}
       pending={pending}
-      {...pointer}
       focusCancel
       returnFocus={returnFocus}
     >
@@ -281,6 +278,15 @@ export function MasteringApprovalDialog({
             hint={problem ? undefined : `Its name as Audacity's Macro Manager lists it: ${MACRO_NAME_CHARACTERS}.`}
             error={problem}
           />
+        </div>
+      )}
+      {/* The pointer to a chain that is out of view floats over the bottom edge of the body and takes no room: as a third button it wrapped the action row onto a second
+          line the moment it appeared, and the body lost 42 px (#3605 item 4). A zero-height sticky row, last in the body, so it rides the body's bottom edge. */}
+      {chainBelow && (
+        <div data-chain-pointer className="pointer-events-none sticky bottom-2 z-10 flex h-0 items-end justify-center">
+          <span className="pointer-events-auto">
+            <Pill look="filter" action raised icon="showAbove" label={above} title={aboveHint} active={false} disabled={pending} onClick={showChain} />
+          </span>
         </div>
       )}
     </ConfirmDialog>

@@ -549,7 +549,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       const { exportStart } = await mount('daw');
       await openDialog();
       expect(watched.at(-1)?.tagName).toBe('TR');
-      const pointer = await within(dialog()).findByRole('button', { name: 'See the 2 effects above' });
+      const pointer = await within(dialog()).findByRole('button', { name: '2 effects above' });
       expect(within(dialog()).getByRole('button', { name: 'Approve and master' })).toHaveProperty('disabled', false);
       await userEvent.click(pointer);
       expect(scrollIntoView).toHaveBeenCalled();
@@ -566,7 +566,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     try {
       await mount('daw', { chain: 'long' });
       await openDialog();
-      expect(await within(dialog()).findByRole('button', { name: 'See the 23 effects above, 1 switched off' })).toBeTruthy();
+      expect(await within(dialog()).findByRole('button', { name: '23 effects above, 1 off' })).toBeTruthy();
     } finally {
       vi.unstubAllGlobals();
     }
@@ -609,7 +609,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       });
     return { emit, live };
   };
-  const pointerOf = () => within(dialog()).queryByRole('button', { name: /^See the / });
+  const pointerOf = () => within(dialog()).queryByRole('button', { name: /^(\d+ effects? above|Chain above)/ });
 
   it('the pointer follows the window: shown when the window shrinks with the dialog open, gone when it grows (round 4, N3)', async () => {
     const { emit, live } = observeLive();
@@ -619,7 +619,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       await emit(39);
       expect(pointerOf()).toBeNull();
       await emit(0);
-      expect(pointerOf()?.textContent).toBe('See the 23 effects above, 1 switched off');
+      expect(pointerOf()?.textContent).toBe('23 effects above, 1 off');
       await emit(39);
       expect(pointerOf()).toBeNull();
       expect(live.disconnected).toBe(false);
@@ -704,7 +704,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     try {
       await mount('daw', { chain: 'empty' });
       await openDialog();
-      expect((await within(dialog()).findByRole('button', { name: /^See the chain above/ })).textContent).toBe('See the chain above: no effects');
+      expect((await within(dialog()).findByRole('button', { name: /^Chain above/ })).textContent).toBe('Chain above: no effects');
     } finally {
       vi.unstubAllGlobals();
     }
@@ -716,7 +716,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       await mount('daw');
       await openDialog();
       await act(async () => undefined);
-      expect(within(dialog()).queryByRole('button', { name: /^See the \d+ effects? above/ })).toBeNull();
+      expect(within(dialog()).queryByRole('button', { name: /^\d+ effects? above/ })).toBeNull();
     } finally {
       vi.unstubAllGlobals();
     }
