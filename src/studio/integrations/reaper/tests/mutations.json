@@ -440,20 +440,68 @@
   {
     "name": "the heartbeat drops the edit counter",
     "file": "narration_ui_bridge.lua",
-    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)",
-    "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', '', play_state, play_position)"
+    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '', revision)",
+    "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', '', play_state, play_position, timing and '1' or '', revision)"
   },
   {
     "name": "the heartbeat drops the transport",
     "file": "narration_ui_bridge.lua",
-    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)",
+    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '', revision)",
     "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count)"
+  },
+  {
+    "name": "the heartbeat drops the track list revision",
+    "file": "narration_ui_bridge.lua",
+    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '', revision)",
+    "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '')"
+  },
+  {
+    "name": "a track list change waits out the heartbeat interval",
+    "file": "narration_ui_bridge.lua",
+    "find": "if not due and revision == last_revision then",
+    "replace": "if not due then"
+  },
+  {
+    "name": "the revision is read on every tick, not only when the edit counter moved",
+    "file": "narration_ui_bridge.lua",
+    "find": "(due or change_count ~= last_change_count) then",
+    "replace": "true then"
+  },
+  {
+    "name": "tracks_read drops the track list revision",
+    "file": "narration_tracks_read.lua",
+    "find": "reaper.GetProjectStateChangeCount(0), revision())",
+    "replace": "reaper.GetProjectStateChangeCount(0))"
+  },
+  {
+    "name": "the revision leaves out the track names",
+    "file": "narration_tracks_read.lua",
+    "find": "    mix(name or '')\n",
+    "replace": ""
+  },
+  {
+    "name": "the revision leaves out the folder depths",
+    "file": "narration_tracks_read.lua",
+    "find": "    mix(tostring(math.floor(depth)))\n",
+    "replace": ""
+  },
+  {
+    "name": "the revision leaves out the track GUIDs",
+    "file": "narration_tracks_read.lua",
+    "find": "    mix(normalize_guid(reaper.GetTrackGUID(track)))\n",
+    "replace": ""
+  },
+  {
+    "name": "the revision has no separator between its fields",
+    "file": "narration_tracks_read.lua",
+    "find": "    hash = (hash ~ 0xff) * 0x100000001b3\n",
+    "replace": ""
   },
   {
     "name": "a transport change waits out the heartbeat interval",
     "file": "narration_ui_bridge.lua",
-    "find": " and play_state == last_play_state then",
-    "replace": " then"
+    "find": " or play_state ~= last_play_state",
+    "replace": ""
   },
   {
     "name": "a moving play position breaks the heartbeat throttle",
@@ -3210,8 +3258,8 @@
   {
     "name": "the heartbeat never says the timing diagnostic is on",
     "file": "narration_ui_bridge.lua",
-    "find": "    if timing then\n      ctx.event('PROJECT_STATUS'",
-    "replace": "    if false then\n      ctx.event('PROJECT_STATUS'"
+    "find": "play_position, timing and '1' or '', revision)",
+    "replace": "play_position, '', revision)"
   },
   {
     "name": "an unknown track read option is read as the one-track read",

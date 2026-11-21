@@ -11,16 +11,23 @@ local function only_event(s)
   return events[1]
 end
 
+-- The heartbeat less its last two fields: the timing switch (empty while off) and the track list's revision, which the tests at the end cover.
+local function status(event)
+  H.eq(event[8], '', 'the timing field is empty while the diagnostic is off')
+  H.eq(event[9]:match('^%x+$') ~= nil and #event[9] == 16, true, 'the track list revision is 16 hex digits, got ' .. tostring(event[9]))
+  return { event[1], event[2], event[3], event[4], event[5], event[6], event[7] }
+end
+
 H.test('the first tick sends a heartbeat naming the saved project, unsaved flag 0', function()
   local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
   s:tick()
-  H.eq(only_event(s), { 'PROJECT_STATUS', '', 'C:\\Projects\\Book\\Book.rpp', '0', '0', '0', '0.000000' })
+  H.eq(status(only_event(s)), { 'PROJECT_STATUS', '', 'C:\\Projects\\Book\\Book.rpp', '0', '0', '0', '0.000000' })
 end)
 
 H.test('an unsaved project heartbeats with an empty path and unsaved flag 1', function()
   local s = H.session({ project_path = '' })
   s:tick()
-  H.eq(only_event(s), { 'PROJECT_STATUS', '', '', '1', '0', '0', '0.000000' })
+  H.eq(status(only_event(s)), { 'PROJECT_STATUS', '', '', '1', '0', '0', '0.000000' })
 end)
 
 H.test('the heartbeat run field is always empty, the broadcast shape events.go delivers to every subscriber', function()
@@ -74,7 +81,7 @@ H.test('the heartbeat sends an empty edit counter on a REAPER without the call, 
   local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
   s.fake:remove_api('GetProjectStateChangeCount')
   s:tick()
-  H.eq(only_event(s), { 'PROJECT_STATUS', '', 'C:\\Projects\\Book\\Book.rpp', '0', '', '0', '0.000000' })
+  H.eq(status(only_event(s)), { 'PROJECT_STATUS', '', 'C:\\Projects\\Book\\Book.rpp', '0', '', '0', '0.000000' })
 end)
 
 -- docs/architecture/reaper-bridge.md: the heartbeat also carries the transport, so the host knows REAPER is playing or recording without asking
@@ -155,4 +162,112 @@ H.test('a bridge that starts again after REAPER restarted sends its heartbeat on
     s:tick()
     H.eq(only_event(s)[1], 'PROJECT_STATUS', 'the host must hear a restarted REAPER at once, not after one interval')
   end
+end)
+
+-- #3859: the heartbeat carries the track list's revision, and a change to the list sends a heartbeat at once, so the host reads the list again
+-- when it changed and at no other time.
+local function revision_after_tick(s)
+  s:tick()
+  local events = s:all_events()
+  return events[#events] and events[#events][9], #events
+end
+
+H.test('the track list revision is the same from one heartbeat to the next while the list is the same', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  local first = revision_after_tick(s)
+  s:tick() -- throttled
+  local third = revision_after_tick(s)
+  H.eq(third, first)
+end)
+
+H.test('a track added, renamed, moved, put in a folder or removed changes the revision and sends a heartbeat at once', function()
+  local changes = {
+    added = function(fake)
+      fake:add_track('Chapter 3')
+    end,
+    renamed = function(fake)
+      fake.tracks[2].name = 'Chapter Two'
+    end,
+    moved = function(fake)
+      fake.tracks[1], fake.tracks[2] = fake.tracks[2], fake.tracks[1]
+    end,
+    ['put in a folder'] = function(fake)
+      fake.tracks[1].folder_depth, fake.tracks[2].folder_depth = 1, -1
+    end,
+    removed = function(fake)
+      table.remove(fake.tracks, 2)
+    end,
+  }
+  for name, change in pairs(changes) do
+    local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+    s.fake:add_track('Chapter 1')
+    s.fake:add_track('Chapter 2')
+    local before = revision_after_tick(s)
+    change(s.fake)
+    s.fake.change_count = s.fake.change_count + 1
+    -- One unit after the last heartbeat: the interval has not passed, so only the change sends this one.
+    local after, sent = revision_after_tick(s)
+    H.eq(sent, 1, name .. ': a heartbeat is sent on the tick the list changed')
+    H.eq(after ~= before, true, name .. ': the revision changed')
+  end
+end)
+
+H.test('an edit that leaves the track list alone raises the counter and sends no heartbeat before its time', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  s:tick()
+  s:all_events()
+  s.fake.change_count = s.fake.change_count + 1
+  s:tick()
+  H.eq(#s:all_events(), 0, 'the list is the same, so the heartbeat waits for its interval')
+end)
+
+H.test('a track list change the edit counter does not count is in the next heartbeat', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  local before = revision_after_tick(s)
+  s.fake.tracks[1].name = 'Prologue' -- no change_count: a script's edit outside an undo block
+  s:tick() -- throttled, and the counter has not moved: nothing is read
+  H.eq(#s:all_events(), 0)
+  local after = revision_after_tick(s)
+  H.eq(after ~= before, true)
+end)
+
+H.test('the revision the heartbeat carries is the one tracks_read answers for the same list', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  s.fake:add_track('Ch 2 | "The Sea"\nהים 🌊')
+  local beat = revision_after_tick(s)
+  s:send('tracks_read', 'r1')
+  H.eq(s:events()[1][6], beat)
+end)
+
+H.test('two lists that differ only in where a name ends and its folder depth begins have different revisions', function()
+  local function of(name, depth)
+    local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+    local track = s.fake:add_track(name)
+    track.guid, track.folder_depth = '{A}', depth
+    return (revision_after_tick(s))
+  end
+  H.eq(of('Take 1', 0) ~= of('Take ', 10), true)
+end)
+
+H.test('a track replaced by another of the same name in the same place changes the revision', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  local before = revision_after_tick(s)
+  s.fake.tracks[1] = s.fake:new_track('Chapter 1')
+  s:tick() -- throttled
+  local after = revision_after_tick(s)
+  H.eq(after ~= before, true, 'the chapter link is to a GUID, so another track under the same name is another list')
+end)
+
+H.test('a REAPER that cannot list its tracks sends an empty revision and its heartbeat as before', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:remove_api('GetTrackGUID')
+  s:tick()
+  local event = only_event(s)
+  H.eq(event[9], '')
+  H.eq(event[1], 'PROJECT_STATUS')
 end)
