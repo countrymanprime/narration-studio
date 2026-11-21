@@ -1,11 +1,14 @@
 package persist
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"testing/iotest"
 
 	"desktop/internal/filetest"
 )
@@ -159,5 +162,21 @@ func TestReadFileOfALargeFileAllocatesOneBufferOfItsSize(t *testing.T) {
 	allocated := after.TotalAlloc - before.TotalAlloc
 	if allocated > 3<<19 {
 		t.Fatalf("one read of a 1 MiB file allocated %d bytes, want about its size", allocated)
+	}
+}
+
+// A file that grew after it was opened holds more than the size its buffer was made for: all of it is still read.
+func TestReadSizedReadsPastTheSizeItWasGiven(t *testing.T) {
+	content := bytes.Repeat([]byte("grown "), 1000)
+	got, err := readSized(bytes.NewReader(content), 10)
+	if err != nil || !bytes.Equal(got, content) {
+		t.Fatalf("readSized = %d bytes, %v; want all %d", len(got), err, len(content))
+	}
+}
+
+func TestReadSizedAnswersTheReadersError(t *testing.T) {
+	broken := errors.New("the disk went away")
+	if got, err := readSized(iotest.ErrReader(broken), 10); !errors.Is(err, broken) || got != nil {
+		t.Fatalf("readSized = %v, %v; want nothing and the reader's error", got, err)
 	}
 }
