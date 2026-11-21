@@ -175,6 +175,7 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
           message: 'REAPER is not answering, so these are the tracks as of the last save.',
           readAt: new Date().toISOString(),
           project: await api.tracksList(),
+          revision: '',
         }),
       },
     ],
@@ -288,6 +289,7 @@ export const DAW_EVENTS: ReadonlySet<string> = new Set([
   'subscribeDawTransport',
   'subscribeDawPosition',
   'subscribeDawProjectEdited',
+  'subscribeTracksChanged',
   'subscribeDawRecordEnded',
 ]);
 

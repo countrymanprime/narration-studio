@@ -52,6 +52,10 @@ type tracksLive struct {
 	Message string         `json:"message"`
 	ReadAt  string         `json:"readAt"`
 	Project tracks.Project `json:"project"`
+	// Revision is the heartbeat's track-list revision when a live list was answered, the value daw_tracks_changed carries
+	// (bindings_daw_trackschanged.go); "" for the saved file's tracks and for a bridge that sends none. A page holding a non-empty one
+	// waits for the event instead of reading on a timer.
+	Revision string `json:"revision"`
 }
 
 func (h *Host) tracksLive() (tracksLive, error) {
@@ -99,6 +103,8 @@ func tracksLiveIn(ctx context.Context, svc hostServices, lister dawport.TrackLis
 			return tracksLive{}, savedErr
 		}
 		answer.Source, answer.Reason, answer.Message = tracksSourceSaved, reason, message
+	} else {
+		answer.Revision, _ = tracksRevisionOf(svc.reachability)
 	}
 	answer.Project = project
 	rememberVoiceTracks(svc, project)

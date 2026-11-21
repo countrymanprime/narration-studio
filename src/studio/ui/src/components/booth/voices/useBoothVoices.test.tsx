@@ -208,6 +208,7 @@ describe("the Booth's voices", () => {
         reason: '' as const,
         message: '',
         readAt: '2026-11-10T00:00:00Z',
+        revision: '',
         project: {
           path: 'a.rpp',
           tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),

@@ -231,7 +231,12 @@ func (l cachedTrackLister) vouched(c *liveTracksCache) (vouched, byRevision bool
 
 // revision is the track list's revision in the last heartbeat, or not known for a heartbeat that carries none.
 func (l cachedTrackLister) revision() (string, bool) {
-	if h, ok := l.heartbeat.(interface{ TracksRevision() (string, bool) }); ok {
+	return tracksRevisionOf(l.heartbeat)
+}
+
+// tracksRevisionOf is the track list's revision in heartbeat's last beat, or not known: no heartbeat, a stale one, or one that carries none.
+func tracksRevisionOf(heartbeat dawport.Heartbeat) (string, bool) {
+	if h, ok := heartbeat.(interface{ TracksRevision() (string, bool) }); ok {
 		return h.TracksRevision()
 	}
 	return "", false

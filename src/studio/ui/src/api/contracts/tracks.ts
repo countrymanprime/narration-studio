@@ -54,7 +54,14 @@ export type TracksLive = {
   /** When the host read them (RFC 3339). */
   readAt: string;
   project: TracksProject;
+  /** REAPER's track-list revision when a live list was answered, the value `daw_tracks_changed` carries; '' for the saved file's tracks and for a
+   * bridge script that sends none. While it is not '', the list changes only with an event. */
+  revision: string;
 };
+
+/** daw_tracks_changed (src/studio/desktop/bindings_daw_trackschanged.go): REAPER's track-list revision changed (a track added, removed, renamed
+ * or moved), or became known or not known ('': REAPER stopped answering, or its bridge script sends none). */
+export type TracksChanged = { revision: string };
 
 /** `selected` is empty when more than one .rpp file was found and none has been chosen yet. */
 export type TracksDiscovery = {
@@ -68,6 +75,8 @@ export interface TracksApi {
   tracksList(): Promise<TracksProject>;
   /** The tracks REAPER has now, saved or not, when it has the linked project open; otherwise the saved file's, with why. Changes nothing. */
   tracksLive(): Promise<TracksLive>;
+  /** Each change of REAPER's track-list revision (daw_tracks_changed). Returns the unsubscribe. */
+  subscribeTracksChanged(onUpdate: (change: TracksChanged) => void): () => void;
   /** Builds a playable URL for a resolved track item source file; synchronous, not a request. */
   mediaUrl(sourceFile: string): string;
 }
