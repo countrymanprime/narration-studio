@@ -18,6 +18,38 @@ async function showFindSteps(page: Page, term: string): Promise<void> {
   await page.getByRole('option', { name: /^Clear the search/ }).waitFor();
 }
 
+/** The speaker chip of the mock book's one attributed phrase, and the picker a press on it (or the phrase's menu item) opens. */
+export const speakerChip = (page: Page): Locator => page.locator('button[data-chip]').first();
+export const speakerPicker = (page: Page): Locator => page.getByRole('dialog', { name: 'Who says this' });
+
+/**
+ * Turns the wheel over the reader until the speaker chip is against the reader's top or bottom edge or at its middle, and fails when it is not there
+ * afterwards: a case that says where the chip is has proved it. The wheel, because the reader keeps the place it first drew until the narrator
+ * scrolls (Reader.tsx `held`), so a scripted `scrollIntoView` can be undone a moment later.
+ */
+export async function wheelSpeakerChipTo(page: Page, where: 'top' | 'middle' | 'bottom'): Promise<void> {
+  const measure = () =>
+    speakerChip(page).evaluate((chip, to) => {
+      let reader = chip.parentElement;
+      while (reader && !(reader.scrollHeight > reader.clientHeight + 1 && ['auto', 'scroll'].includes(getComputedStyle(reader).overflowY)))
+        reader = reader.parentElement;
+      if (!reader) throw new Error('the speaker chip is in nothing that scrolls');
+      const box = chip.getBoundingClientRect();
+      const frame = reader.getBoundingClientRect();
+      const off = to === 'top' ? box.top - frame.top : to === 'bottom' ? box.bottom - frame.bottom : (box.top + box.bottom - frame.top - frame.bottom) / 2;
+      return { off, x: frame.left + frame.width / 2, y: frame.top + frame.height / 2 };
+    }, where);
+  // More than one turn: text drawn on the way (the chapters between a far place and the chip) moves the chip after the first.
+  for (let turn = 0; turn < 6; turn += 1) {
+    const { off, x, y } = await measure();
+    if (Math.abs(off) <= 2) break;
+    await page.mouse.move(x, y);
+    await page.mouse.wheel(0, off);
+    await page.waitForTimeout(100);
+  }
+  await expect.poll(async () => Math.abs((await measure()).off), { message: `the speaker chip is at the ${where} of the reader` }).toBeLessThanOrEqual(2);
+}
+
 export const scriptDrivers: Record<string, Driver> = {
   // The chapters never answer, so `goToPage` (which waits for the reader) is not used.
   loading: async (page) => {

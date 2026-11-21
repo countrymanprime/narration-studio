@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { GuideEntity } from '../../../../api/contracts/storyBible';
+import { Button } from '../../../primitives/Button';
+import { Popover } from '../../../primitives/Popover';
+import { SpeakerPicker } from '../tools/speaker/SpeakerPicker';
+import { speakerChoices } from '../tools/speaker/speakerChoices';
 import { SpeakerLayer } from './SpeakerLayer';
+
+const hatter = { id: 'hatter', canonical_name: 'Hatter', aliases: [], category: 'Character' } as unknown as GuideEntity;
+const choices = speakerChoices([hatter], [{ name: 'Character', colour: 'green', speaks: true }]);
 
 // The speaker picker opened off the bottom of the window (#3823): it was placed under the chip with no look at the room there. jsdom lays nothing
 // out, so the window and the picker are given sizes here; the overlay guard (tests/visual/overlays/script.ts) proves the same in a browser.
@@ -70,22 +79,76 @@ describe('SpeakerLayer placement (#3823)', () => {
   });
 });
 
+// The page's own wiring (ScriptPage.tsx): one layer for every chip, taken away the moment the picker closes itself or the popover asks to close.
+function Reader({ onChoose }: { onChoose: (entryId: string) => void }) {
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  return (
+    <>
+      <Popover trigger={<Button>Text settings</Button>} label="Text settings">
+        <button type="button">Larger</button>
+      </Popover>
+      <p>Alice was beginning to get very tired.</p>
+      <button type="button" onClick={(event) => setAnchor(event.currentTarget.getBoundingClientRect())}>
+        Hatter chip
+      </button>
+      {anchor && (
+        <SpeakerLayer anchor={anchor} onClose={() => setAnchor(null)}>
+          <SpeakerPicker
+            phrase={{ speaker: hatter, state: 'suggested' }}
+            inChapter={choices}
+            everyone={choices}
+            onChoose={(entryId) => {
+              onChoose(entryId);
+              setAnchor(null);
+            }}
+            onClose={() => setAnchor(null)}
+          />
+        </SpeakerLayer>
+      )}
+    </>
+  );
+}
+
+// Focus went to "Open navigation" in a narrow window (#3823): with no trigger of its own, the popover handed focus to the last control another
+// popup had remembered (there, the button of the navigation drawer the narrator came through). Here the text settings popover is that other popup.
 describe('SpeakerLayer focus', () => {
-  it('gives focus back to the chip that opened it when it closes', async () => {
+  const openPicker = async (onChoose: (entryId: string) => void = () => {}) => {
     const user = userEvent.setup();
-    const chip = document.createElement('button');
-    document.body.append(chip);
-    chip.focus();
-    const { unmount } = render(
-      <SpeakerLayer anchor={new DOMRect(10, 10, 50, 23)} onClose={() => {}}>
-        <button type="button">Hatter</button>
-      </SpeakerLayer>,
-    );
-    const inside = await screen.findByRole('button', { name: 'Hatter' });
-    await waitFor(() => expect(document.activeElement).toBe(inside));
-    await user.keyboard('{Tab}');
-    unmount();
-    expect(document.activeElement).toBe(chip);
-    chip.remove();
+    render(<Reader onChoose={onChoose} />);
+    await user.click(screen.getByRole('button', { name: 'Text settings' }));
+    await screen.findByRole('dialog', { name: 'Text settings' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Text settings' })).toBeNull());
+    const chip = screen.getByRole('button', { name: 'Hatter chip' });
+    await user.click(chip);
+    const search = await screen.findByRole('combobox', { name: 'Search speakers' });
+    await waitFor(() => expect(document.activeElement).toBe(search));
+    return { user, chip };
+  };
+  const closedWithFocusOn = async (element: HTMLElement) => {
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Who says this' })).toBeNull());
+    // The popover hands focus back a tick after it goes; a hand-back to the wrong control would land in that tick too.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.activeElement).toBe(element);
+  };
+
+  it('gives focus back to the chip when Escape closes the picker', async () => {
+    const { user, chip } = await openPicker();
+    await user.keyboard('{Escape}');
+    await closedWithFocusOn(chip);
+  });
+
+  it('gives focus back to the chip when a speaker is chosen', async () => {
+    const chosen: string[] = [];
+    const { user, chip } = await openPicker((entryId) => chosen.push(entryId));
+    await user.keyboard('{Enter}');
+    await closedWithFocusOn(chip);
+    expect(chosen).toEqual(['hatter']);
+  });
+
+  it('closes on a press elsewhere and leaves focus where the press put it', async () => {
+    const { user } = await openPicker();
+    await user.click(screen.getByText('Alice was beginning to get very tired.'));
+    await closedWithFocusOn(document.body);
   });
 });

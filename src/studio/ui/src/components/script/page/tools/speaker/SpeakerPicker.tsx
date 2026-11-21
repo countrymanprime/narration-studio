@@ -63,7 +63,9 @@ export function SpeakerPicker({
   const choose = (row: Row | undefined) => row && onChoose(row.entryId);
 
   return (
-    <div className="flex w-[280px] max-w-full flex-col gap-1.5">
+    // In a popover the window has cut short, the picker is as tall as the room inside it (the popover's height less its padding and border), so the
+    // list below scrolls and the popover does not: one scroller, and the search box stays in view (#3258).
+    <div className="flex max-h-[calc(var(--available-height)_-_2rem_-_2px)] w-[280px] max-w-full flex-col gap-1.5">
       <TextField
         ref={field}
         label="Search speakers"

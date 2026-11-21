@@ -110,5 +110,6 @@ export const OpensAtAnAnchor: Story = {
     await waitFor(() => expect(popup.contains(document.activeElement)).toBe(true));
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Who says this' })).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(chip));
   },
 };

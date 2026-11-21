@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Button } from './Button';
 import { Popover, POPOVER_POPUP_ATTRIBUTE, popupBottomReserve, useWindowHeight } from './Popover';
@@ -41,6 +42,45 @@ describe('Popover focus on close', () => {
   it('hands focus to <main> (not its first button) when focusPageOnClose answers true', async () => {
     await pickInPopover(() => true);
     await waitFor(() => expect(document.activeElement).toBe(document.querySelector('main')));
+  });
+});
+
+describe('Popover at an anchor', () => {
+  // One popover for many controls, as the Script reader keeps for its speaker chips. Its content takes focus as it mounts (`autoFocus`), which is
+  // when Base UI reads "what had focus before": it then finds its own content, and falls back to the last control another popup remembered.
+  function Chips() {
+    const [anchor, setAnchor] = useState<DOMRect | null>(null);
+    return (
+      <>
+        <Popover trigger={<Button>Voice</Button>} label="Voice">
+          <button type="button">Pick</button>
+        </Popover>
+        <button type="button" onClick={(event) => setAnchor(event.currentTarget.getBoundingClientRect())}>
+          Chip
+        </button>
+        <Popover anchor={anchor ?? new DOMRect()} label="Who says this" open={anchor !== null} onOpenChange={(open) => !open && setAnchor(null)}>
+          <input aria-label="Search" autoFocus />
+        </Popover>
+      </>
+    );
+  }
+
+  it('gives focus back to the control that had it when it opened, not to the trigger of a popover used before', async () => {
+    const user = userEvent.setup();
+    render(<Chips />);
+    await user.click(screen.getByRole('button', { name: 'Voice' }));
+    await screen.findByRole('dialog', { name: 'Voice' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Voice' })).toBeNull());
+    for (let round = 0; round < 2; round += 1) {
+      const chip = screen.getByRole('button', { name: 'Chip' });
+      await user.click(chip);
+      await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search' })));
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Who says this' })).toBeNull());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(document.activeElement).toBe(chip);
+    }
   });
 });
 
