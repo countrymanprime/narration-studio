@@ -863,7 +863,7 @@ func (h *Host) configureLocked(next config) {
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
 	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist))
-	h.startRetentionLocked()
+	h.startRetentionLocked(h.coverage)
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
 	h.stages = stagesService(h.config.projectFolder, h.manuscript, h.coverage, h.editing, settingsStore, h.coverageUnavailable(h.config.comparePython, settingsStore), h.persist,

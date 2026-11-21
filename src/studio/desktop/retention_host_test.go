@@ -120,7 +120,7 @@ func TestAProjectSwitchDoesNotWaitForARetentionPassUnderTheHostLock(t *testing.T
 	switched := make(chan struct{})
 	go func() {
 		host.mu.Lock()
-		host.startRetentionLocked() // cancels the slow runner under the lock
+		host.startRetentionLocked(host.coverage) // cancels the slow runner under the lock
 		host.mu.Unlock()
 		close(switched)
 	}()

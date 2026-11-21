@@ -14,9 +14,9 @@ import (
 // holds, in the host log, and deletes nothing; the stores' own deletes are wired one at a time behind it.
 
 // startRetentionLocked replaces the project's retention runner with one over the stores of the project just configured, and
-// kicks it. The previous runner is stopped first, so a pass never outlives its project. Call it with h.mu held.
+// kicks it. checks is the coverage service of the project just configured (passed in, so this reads no swappable service field). The previous runner is stopped first, so a pass never outlives its project. Call it with h.mu held.
 // +checklocksignore: called only from configureLocked, whose callers hold h.mu.
-func (h *Host) startRetentionLocked() {
+func (h *Host) startRetentionLocked(checks *coverage.Service) {
 	if h.retentionOff {
 		return
 	}
@@ -36,7 +36,6 @@ func (h *Host) startRetentionLocked() {
 		retention.DirStep("coverage summaries", coverage.SummariesDir(project)),
 		retention.DirStep("analysis cache", evidence.CacheDir(project)),
 	}
-	checks := h.coverage
 	h.retention = retention.New(steps, checks.Busy, h.logRetention)
 	h.retention.Kick("open")
 }
