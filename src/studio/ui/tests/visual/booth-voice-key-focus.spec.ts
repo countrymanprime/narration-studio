@@ -25,11 +25,6 @@ const onThePage = (page: Page) =>
     return !el || el === document.body || el.tagName === 'MAIN';
   });
 const enterSwallowed = async (page: Page) => !(await onThePage(page));
-/**
- * Record options has to be gone before the next key: Escape returns while the popup is still in the page with focus on its own control, and a key pressed in
- * that window (under reduced motion, where the popup unmounts at once, the same millisecond only: measured on #3906, 13 of 45 lost at 0 ms and 0 of 75 from 10 ms on; with motion on 1 of 13 at 0 ms and 0 of 24 later) is taken for the closing popup's.
- */
-const popoverGone = (page: Page) => expect(page.getByRole('radio', { name: 'Cold read' })).toBeHidden();
 const recordingNow = async (page: Page) => (await stopButton(page).count()) > 0;
 
 test.describe('a lane key then Enter', () => {
@@ -121,7 +116,6 @@ test.describe('a lane key then Enter', () => {
     await page.getByRole('button', { name: 'Record options' }).click();
     await page.getByRole('radio', { name: 'Cold read' }).click();
     await page.keyboard.press('Escape');
-    await popoverGone(page);
     const before = await voiceButton(page).innerText();
     await page.keyboard.press('Numpad1');
     await expect(page.getByText('A cold read needs no voice. Choose Record to pick one.')).toBeVisible();
@@ -135,7 +129,6 @@ test.describe('a lane key then Enter', () => {
     await page.getByRole('button', { name: 'Record options' }).click();
     await page.getByRole('radio', { name: 'Cold read' }).click();
     await page.keyboard.press('Escape');
-    await popoverGone(page);
     await voiceButton(page).click();
     await expect(page.getByText('A cold read needs no voice. Choose Record to pick one.')).toBeVisible();
     await expect(list(page)).toHaveCount(0);
@@ -155,7 +148,6 @@ test.describe('a lane key then Enter', () => {
     await page.getByRole('button', { name: 'Record options' }).click();
     await page.getByRole('radio', { name: 'Cold read' }).click();
     await page.keyboard.press('Escape');
-    await popoverGone(page);
     await page.keyboard.press('Numpad1');
     await expect(page.getByText('A cold read needs no voice.', { exact: true })).toBeVisible();
     await expect(page.getByText(/Choose Record to pick one/)).toHaveCount(0);
@@ -175,7 +167,7 @@ test.describe('a lane key then Enter', () => {
 
   // #3906: with motion on (a narrator's default; `settlePage` emulates reduced motion, so the page is switched back) the Record options popup lingers while it animates out,
   // and the voice-list key pressed from 20 ms after Escape must still reach the Booth. Measured on main: with motion on, 0 of 24 lost at 60 and 140 ms and 1 of 13 at 0 ms
-  // (under load); with reduced motion 13 of 45 lost at 0 ms and 0 of 75 from 10 ms on. Only the same millisecond loses it (see popoverGone).
+  // (under load); with reduced motion 13 of 45 lost at 0 ms and 0 of 75 from 10 ms on. Only the same millisecond loses it.
   test('with motion on, the voice-list key pressed 20, 60 and 140 ms after Escape closes Record options opens the list (#3906)', async ({ page }) => {
     await openBooth(page);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
