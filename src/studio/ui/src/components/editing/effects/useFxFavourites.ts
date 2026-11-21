@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
+import { useQuietWindow } from '../../../quietWindow';
 import { joinFavourites, parseFavourites, toggledFavourites } from './favourites';
 
 const TOOL = 'DAW';
 const KEY = 'fx_favourites';
-/** A press this soon after another is a double press: the list moves a starred chain to the top, so the second would land on another chain. */
-const FAVOURITE_QUIET_MS = 400;
 
 export type FxFavourites = {
   /** The favourite names, in the order they were starred. */
@@ -28,7 +27,8 @@ export function useFxFavourites(): FxFavourites & { ready: boolean } {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
-  const lastPress = useRef(0);
+  // A starred chain moves to the top, so the second press of a double click would land on another chain.
+  const pressed = useQuietWindow();
 
   useEffect(() => {
     let live = true;
@@ -53,16 +53,15 @@ export function useFxFavourites(): FxFavourites & { ready: boolean } {
 
   const toggle = useCallback(
     (name: string) => {
-      const at = Date.now();
-      if (at - lastPress.current < FAVOURITE_QUIET_MS) return;
-      lastPress.current = at;
+      if (pressed.quiet()) return;
+      pressed.start();
       if (name.includes(',')) return setError(`“${name}” has a comma in its name, which the favourites list cannot keep.`);
       system.saveSettings(TOOL, 'global', { [KEY]: joinFavourites(toggledFavourites(names, name)) }).then(
         () => setVersion((v) => v + 1),
         (e) => setError(why(e)),
       );
     },
-    [system, names],
+    [system, names, pressed],
   );
 
   return { names, error, toggle, ready };

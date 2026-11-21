@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { CREATE_QUIET_MS } from './useChapterLinks';
+import { QUIET_MS } from '../../quietWindow';
 import { TRACKS_READ_TOPIC } from './useLiveTracks';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -83,7 +83,7 @@ describe('EnginePanel', () => {
     const cleared = () => within(table).queryByRole('button', { name: 'Clear the link for Chapter 1' }) === null;
     const settle = async (linked: boolean) => {
       await waitFor(() => expect(cleared()).toBe(!linked));
-      await new Promise((resolve) => setTimeout(resolve, CREATE_QUIET_MS + 50));
+      await new Promise((resolve) => setTimeout(resolve, QUIET_MS + 50));
     };
 
     const picker = within(row).getByRole('combobox') as HTMLSelectElement;
