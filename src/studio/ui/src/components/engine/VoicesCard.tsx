@@ -34,6 +34,9 @@ const DIMMED = 'text-[var(--text-muted)]';
 const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
 /** What the switch says it does, short: a hint wider or taller than this hides the switches of the rows above it. */
 const SWITCH_HINT = 'Counts as a voice. Turn off for a track that is not one (a music bed).';
+/** The explanation behind the card's help button: a shorter form of the Settings row's "?" text. */
+const SWITCH_HELP =
+  'Each switch says whether a track of the folder counts as a voice. Turn it off for a track that is not one, such as a music bed or room tone: it gets no number key, records no character, and the Booth does not list it. The voices after it each take the key before theirs.';
 /** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
 const NARROW = '(max-width: 30rem)';
 const subscribeNarrow = (notify: () => void) => {
@@ -42,6 +45,39 @@ const subscribeNarrow = (notify: () => void) => {
   return () => query?.removeEventListener('change', notify);
 };
 const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
+
+/** What turning a voice off or on did, worked out from the keys before and after (never from a track's name): the voice's own state, and where the keys stand
+ * now when any moved. Every press says something, so a notice never stays up under a row it no longer describes. */
+function switchConsequence(
+  voice: Voice,
+  before: readonly Voice[],
+  after: readonly Voice[],
+  counts: boolean,
+  placeOf: (guid: string) => number,
+  layout: VoiceTracksLayout,
+): string {
+  const name = bidiIsolated(shortName(trackName(voice.name, placeOf(voice.guid))));
+  const lead = counts ? `${name} is a voice again.` : `${name} is turned off as a voice.`;
+  if (!counts && layout === 'folders' && !after.some((other) => !other.notVoice))
+    return `${lead} No voice is left, so the Booth cannot record until you turn one back on.`;
+  const keyBefore = new Map(before.map((other) => [other.guid, other.key]));
+  const moved = after.some((other) => other.guid !== voice.guid && keyBefore.get(other.guid) !== other.key);
+  const ownKey = after.find((other) => other.guid === voice.guid)?.key ?? '';
+  // The voice's own key matters when it is key 0 (it gives up or takes the Narrator's key), whatever else moved.
+  const keyZero = (counts ? ownKey : keyBefore.get(voice.guid)) === '0';
+  if (!moved && !keyZero) return lead;
+  // Only the voices whose key changed are named (the toggled voice too, when it gains a key), so a long folder's notice stays short and every name in it moved.
+  const changed = after.filter((other) => other.key !== '' && keyBefore.get(other.guid) !== other.key);
+  if (changed.length === 0) return `${lead} Key 0 has no track now.`;
+  const shown = changed
+    .slice(0, 5)
+    .map((other) => `${other.key} ${bidiIsolated(shortName(trackName(other.name, placeOf(other.guid))))}`)
+    .join(', ');
+  return `${lead} Keys now: ${shown}${changed.length > 5 ? `, and ${changed.length - 5} more` : ''}.`;
+}
+
+/** A track's name inside a sentence of another direction: isolated, so a right-to-left name does not turn the sentence around. */
+const bidiIsolated = (name: string) => `\u2068${name}\u2069`;
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 
@@ -72,7 +108,7 @@ export function VoicesCard({
   onTrackCharacters: (track: string, ids: string[]) => void;
   onNarratorCharacter: (id: string) => void;
   /** Marks the child with this track GUID as not a voice (a music bed), or a voice again. */
-  onNotAVoice: (guid: string, notAVoice: boolean) => void;
+  onNotAVoice: (guid: string, notAVoice: boolean, consequence?: string) => void;
   /** True while Chapter sync is not drawing its Layout row, so this card carries the switch. */
   layoutInCard: boolean;
   /** Draws no card of its own (no frame, no title): inside a Settings row, whose label is the title. The chapter picker sits above the table. */
@@ -105,12 +141,25 @@ export function VoicesCard({
   const recording = useIsRecording();
   const voiceSwitch = (voice: Voice) => (
     <TooltipTarget text={recording ? RECORDING_REASON : SWITCH_HINT}>
-      <Switch checked={!voice.notVoice} disabled={recording} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
+      <Switch
+        checked={!voice.notVoice}
+        disabled={recording}
+        onChange={(counts) =>
+          onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace, setup.layout))
+        }
+      >
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>
     </TooltipTarget>
   );
-  const voices = current ? folderVoices(tracks, current.folder, characters, setup, setup.layout === 'folders' ? undefined : linkedTracks) : [];
+  const voicesWith = (notVoiceGuids: string[]) =>
+    current ? folderVoices(tracks, current.folder, characters, { ...setup, notVoiceGuids }, setup.layout === 'folders' ? undefined : linkedTracks) : [];
+  const voices = voicesWith(setup.notVoiceGuids);
+  /** The folder's voices as they would stand with `guid` marked (or, not marked), for the notice a press gives. */
+  const voicesAfter = (guid: string, marked: boolean) => {
+    const id = guid.toLowerCase();
+    return voicesWith(marked ? [...setup.notVoiceGuids.filter((other) => other !== id), id] : setup.notVoiceGuids.filter((other) => other !== id));
+  };
 
   // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
   const chapterPicker = links.length > 0 && (
@@ -206,6 +255,7 @@ export function VoicesCard({
         <div className="flex min-w-0 items-center gap-2">
           {chapterPicker}
           {layoutInCard && <LayoutToggle layout={setup.layout} onLayout={onLayout} />}
+          {links.length > 0 && <HelpButton label="What the Voice switch does">{SWITCH_HELP}</HelpButton>}
         </div>
       }
     >

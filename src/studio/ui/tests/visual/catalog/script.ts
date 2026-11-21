@@ -195,6 +195,12 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'cue-read-failed',
+    description:
+      'Script when the dialogue cues cannot be read (?mockCuesRead=fails): the reader with its text and no speaker chips, and an error toast with the reason ("The dialogue cues could not be read from this project.") and a Retry button that reads the cues again',
+  },
+  {
+    page: 'script',
     state: 'no-manuscript',
     description:
       'Script with no manuscript imported (?mockNoManuscript=1), opened by its address: the page asks for the manuscript, with Import manuscript, which opens the import on this page (it neither opens it by itself nor goes to Production)',

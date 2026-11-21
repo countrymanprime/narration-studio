@@ -115,6 +115,10 @@ func TestAFolderWithOnlyMarkedChildrenIsRefusedUnderVoiceFolders(t *testing.T) {
 	if result.Outcome != "refused" || result.Reason != boothVoiceNoVoices {
 		t.Fatalf("got %+v, want refused with no voices, as an empty folder is", result)
 	}
+	// The sentence names the fix that works here (turn one back on), not the one for an empty folder (finding 5 of #3828).
+	if !strings.Contains(result.Message, "turned off as not a voice") || !strings.Contains(result.Message, "Voices card") {
+		t.Fatalf("message %q does not say every track is marked and where to turn one back on", result.Message)
+	}
 }
 
 func TestUnmarkingMakesTheChildAVoiceAgain(t *testing.T) {

@@ -20,7 +20,7 @@ import { removeFromMyDictionary, saveToMyDictionary } from '../../../../studio/c
 import type { Result } from '../../../../studio/journal/createJournal';
 import * as commands from './scriptCommands';
 import type { LineRange, ScriptCommandEnv } from './scriptCommands';
-import { createScriptData, type Loadable, type ScriptData, type ScriptDataState } from './scriptData';
+import { createScriptData, failedRead, type Loadable, type ScriptData, type ScriptDataState } from './scriptData';
 import { createScriptView, type ScriptView, type ScriptViewState } from './scriptView';
 import * as select from './script.selectors';
 import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
@@ -236,6 +236,16 @@ export function useSpeakers(): SpeakersView {
       candidates,
     };
   }, [cues, retry, entries.entries, entries.types]);
+}
+
+/**
+ * Every read of the page's cache as one, for the page to say a failure of any of them: the host's sentence while a read stands failed
+ * (other reads still running do not hide it), and a Retry that reads again each read that failed.
+ */
+export function useFailedReads(): Pick<ReadView<unknown>, 'message' | 'retry'> {
+  const { data } = useScriptHost();
+  const message = useData(data, failedRead);
+  return useMemo(() => ({ message, retry: data.retryFailed }), [data, message]);
 }
 
 /** The chapter card's facts line, from the marks, the Story Bible's names and the phrases with no speaker. */

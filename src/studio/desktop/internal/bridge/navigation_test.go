@@ -17,6 +17,10 @@ import (
 // starved CI runner stalled the fake (3.35 s observed, with every command answered); a test of the no-answer path sets its own short one.
 const fakeAnswersWithin = 30 * time.Second
 
+// noLateAnswerWithin is the late wait (SetLateWait) for a test whose fake REAPER reads a command that may run long and never answers it:
+// the test is about what the request reports when that wait ends, so it does not sit out LateAnswerWait (20 s) to get there.
+const noLateAnswerWithin = 50 * time.Millisecond
+
 const (
 	testItem = "{AAAAAAAA-0000-4000-8000-000000000001}"
 	testTake = "{AAAAAAAA-0000-4000-8000-0000000000A1}"

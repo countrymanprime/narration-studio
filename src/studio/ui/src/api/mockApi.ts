@@ -387,6 +387,11 @@ export function createMockApi(
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
+  // `?mockCuesRead=fails`: the read of the dialogue cues of the chapters a reader draws fails, so Script says so and offers Retry.
+  if (initial.cuesRead === 'fails')
+    storyBible.bindings.guideDialogueCuesIn = async () => {
+      throw new Error('The dialogue cues could not be read from this project.');
+    };
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
   const { saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
