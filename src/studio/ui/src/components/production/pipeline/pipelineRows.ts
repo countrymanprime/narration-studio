@@ -1,5 +1,5 @@
 import { aboutHours } from '../productionFormat';
-import { recordedAtOf, recordedPercent, throughPercent } from '../../../recordedThrough';
+import { audibleSeconds, hasAudio, recordedAtOf, recordedPercent, throughPercent } from '../../../recordedThrough';
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../../api/contracts/production';
 import { chapterName, chapterParts } from '../../../chapterName';
@@ -160,9 +160,9 @@ function recordedFigure(name: string, chapter: ProductionChapter, estimate: stri
 }
 
 function measuredFigure(name: string, chapter: ProductionChapter, estimate: string, layout: VoiceTracksLayout): RecordedFigure {
-  const seconds = chapter.recordedSeconds;
+  const seconds = audibleSeconds(chapter.recordedSeconds);
   const of = estimate === DASH ? ', no estimate' : ` of ${aboutHours(estimate)} estimated`;
-  if (seconds !== null && seconds > 0) {
+  if (seconds !== null && hasAudio(seconds)) {
     const text = clockOf(seconds);
     return {
       kind: 'measured',
@@ -184,9 +184,10 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
   const status = check ? chapterCheckStatusText(chapterName(chapter), check, undefined, layout) : undefined;
   const checkLine = status ? `Recording check: ${status.label}${status.detail ? ` · ${status.detail}` : ''}` : '';
   const withCheck = (tip: string): string => (checkLine ? `${tip} · ${checkLine}` : tip);
-  const length = chapter.recordedSeconds !== null ? `${clockOf(chapter.recordedSeconds)} recorded` : '';
+  const seconds = audibleSeconds(chapter.recordedSeconds);
+  const length = seconds !== null ? `${clockOf(seconds)} recorded` : '';
   // The tick is the chapter's stage. With no track linked (a stage set by hand, or kept after the link was removed) nothing measures it.
-  const noTrack = chapter.recordedUnavailable === 'unlinked' && chapter.recordedSeconds === null;
+  const noTrack = chapter.recordedUnavailable === 'unlinked' && seconds === null;
   if (past(chapter.status, 'editing')) {
     return done(
       'record',
@@ -210,12 +211,12 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
     return cell('record', 'booth', 'progress', `${percent}%`, `${percent}% recorded`, withCheck(`${words.tip}${length ? ` · ${length}` : ''}${stageNote}`));
   }
   // Audio on the linked track means recording is under way, even while the chapter's stage still says not started.
-  const audio = chapter.recordedSeconds !== null && chapter.recordedSeconds > 0;
+  const audio = hasAudio(chapter.recordedSeconds);
   if (chapter.status === 'recording' || audio) {
     const stageNote = chapter.status === 'recording' ? '' : ' · The chapter’s stage is still Not started';
     const finished = (chapter.wordCount / wph) * 3600;
     // A percent only from a measured length against the chapter's finished length; never one made up.
-    if (chapter.recordedSeconds !== null && finished > 0) {
+    if (seconds !== null && finished > 0) {
       const percent = recordedPercent(chapter, wph) ?? 1;
       return cell(
         'record',

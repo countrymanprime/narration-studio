@@ -2,7 +2,9 @@ package persist
 
 import (
 	"bytes"
+	"errors"
 	"io"
+	"io/fs"
 	"math"
 	"os"
 	"sync/atomic"
@@ -10,6 +12,9 @@ import (
 
 // decodes and listings count the work ReadJSON, ReadHeld (a file it decoded, not one it only hashed) and ReadDir did in this process, for the tests that budget what a host read costs.
 var decodes, listings atomic.Int64
+
+// errNotAFile is why ReadFile refuses a named pipe, a socket or a device: a read of one waits for a writer that may never come.
+var errNotAFile = errors.New("not a regular file")
 
 // Work reports how many files ReadJSON has read and decoded and how many folders ReadDir has listed since the process started. A
 // test takes the difference across a read; nothing in the app depends on the numbers.
@@ -32,8 +37,13 @@ func ReadFile(name string) ([]byte, error) {
 	// One buffer of the file's size, as os.ReadFile makes: io.ReadAll grows and copies its buffer as it goes, which more
 	// than doubled the read of a megabyte file, and every held file is read whole on every ask (issue 3863).
 	size := 0
-	if info, err := file.Stat(); err == nil && info.Size() > 0 && info.Size() < math.MaxInt32 {
-		size = int(info.Size())
+	if info, err := file.Stat(); err == nil {
+		if info.Mode()&(os.ModeNamedPipe|os.ModeSocket|os.ModeDevice) != 0 {
+			return nil, &fs.PathError{Op: "read", Path: name, Err: errNotAFile}
+		}
+		if info.Size() > 0 && info.Size() < math.MaxInt32 {
+			size = int(info.Size())
+		}
 	}
 	return readSized(file, size)
 }

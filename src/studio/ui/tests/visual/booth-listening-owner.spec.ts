@@ -10,6 +10,40 @@ test.setTimeout(90_000);
 
 type Calls = { stops: number; listeningStops: number; listeningStarts: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
+// Records the text of everything added to the page from now on, with the time since this call: a toast a press raised and that has gone by the time a failed wait is read is still there.
+const watchAddedText = (page: Page): Promise<void> =>
+  page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __added: string[] }).__added = seen;
+    const from = Date.now();
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          const text = (node.textContent ?? '').trim();
+          if (text && seen.length < 40) seen.push(`+${Date.now() - from}ms ${text.slice(0, 160)}`);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+// What a failed wait on the Record button found: the host's stop count, the main button's label and state, and every notice and dialog on the page.
+const whatThePageShows = async (page: Page): Promise<string> => {
+  const read = page.evaluate(() => {
+    const main = document.getElementById('brec');
+    return {
+      stops: (window as unknown as { __calls: Calls }).__calls.stops,
+      added: (window as unknown as { __added?: string[] }).__added ?? [],
+      button: main ? `"${main.textContent?.trim()}" aria-disabled=${main.getAttribute('aria-disabled')}` : 'no #brec button',
+      notices: [...document.querySelectorAll('[role="alert"], [role="status"], [role="alertdialog"], [role="dialog"], #brec-why')]
+        .map((node) => node.textContent?.trim())
+        .filter(Boolean),
+    };
+  });
+  // A page that no longer answers must not swallow the failure this describes: give up after 3 s.
+  const gaveUp = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+  const seen = await Promise.race([read, gaveUp]).catch(() => null);
+  if (!seen) return 'The page did not answer when asked what it showed.';
+  return `The page showed: host stops=${seen.stops}; main button ${seen.button}; notices ${JSON.stringify(seen.notices)}; text added since the click ${JSON.stringify(seen.added)}`;
+};
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
 
 async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningStartLate' | 'listeningStartPastLimit'): Promise<void> {
@@ -287,7 +321,10 @@ const installHeldTake = () => {
     phases.forEach((listener) => listener(state()));
   };
   const state = () => ({ phase, message: '', engine: 'whisper', chapter: null, paused: false, coldRead, script: null, position: null });
-  const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
+  const push = () => {
+    (w as unknown as { __lastPush: boolean | null }).__lastPush = w.__recording;
+    w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
+  };
   w.__NARRATION_MOCK_OVERRIDES__ = {
     // The fake DAW's take is on the chapter's armed lane in the linked project, as the host answers it (the Booth follows only such a take).
     readAloudReaperState: async () => ({
@@ -343,6 +380,8 @@ const installHeldTake = () => {
       // The first stop (the leave question's) fails; the narrator's own Stop later goes through.
       if (w.__calls.stops <= ((w as unknown as { __failStops?: number }).__failStops ?? 1)) throw new Error('REAPER did not answer.');
       w.__recording = false;
+      // The host pushes the transport on a tick after a stop as after a start (api/dawMock.ts: "the host pushes the transport on a tick, never inside the call").
+      setTimeout(push, 20);
       return { outcome: 'stopped', message: '', undoPoints: 0 };
     },
   };
@@ -384,9 +423,25 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     // Nothing stopped the take behind the narrator; Stop is theirs and works.
     expect((await calls(page)).stops).toBe(1);
     await expect(stop).toBeVisible();
+    await watchAddedText(page);
+    const clicked = Date.now();
     await stop.click();
-    await expect(record(page)).toBeVisible({ timeout: 8000 });
-    expect((await calls(page)).stops).toBe(2);
+    // When Record does not come back, the failure says what the page showed: the press that never sent the stop (`stops` 1: a notice says why), the stop that
+    // went through and the take taken again (`stops` 2, Stop still showing), or something else (#3931).
+    try {
+      // The press must reach the host first, then Record returns: one 8 s limit from the click for both, as the one wait had.
+      await expect.poll(async () => (await calls(page)).stops, { message: "the narrator's Stop reached the host", timeout: 8000 }).toBe(2);
+      await expect(record(page), 'Record is back once the stop is answered').toBeVisible({ timeout: Math.max(1, 8000 - (Date.now() - clicked)) });
+    } catch (error) {
+      throw new Error(`${(error as Error).message}\n${await whatThePageShows(page)}`, { cause: error });
+    }
+    expect((await calls(page)).stops, 'nothing sent a third stop while Record came back').toBe(2);
+    // The fake DAW said it stopped, as the host does: the page never has to wait for its project poll to learn it.
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __lastPush: boolean | null }).__lastPush), {
+        message: 'the DAW pushed that it stopped recording',
+      })
+      .toBe(false);
     // The sentence goes with the take: it does not stay beside "Stopped. Recorded".
     await expect(sentence).toHaveCount(0);
   });

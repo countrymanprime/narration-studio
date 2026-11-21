@@ -10,6 +10,7 @@ interface IndexEntry {
   type: 'story' | 'docs';
   title: string;
   name: string;
+  importPath: string;
   tags?: string[];
 }
 interface Violation {
@@ -55,7 +56,16 @@ const index = JSON.parse(readFileSync('storybook-static/index.json', 'utf8')) as
 const allStories = Object.values(index.entries).filter((entry) => entry.type === 'story');
 // UI_ATLAS_FILTER=<page-or-component>[,...] runs only those stories (tests/atlasFilter.ts); unset runs all of them, as CI does.
 const filter = parseAtlasFilter(process.env.UI_ATLAS_FILTER);
-const stories = allStories.filter((entry) => storyMatches(entry.title, filter));
+// UI_ATLAS_STORY_FILES=<importPath>[,...] is the pull request scope scripts/atlas-scope.mjs sets in CI: the stories of those story files.
+const scopedFiles = process.env.UI_ATLAS_STORY_FILES?.split(',');
+const stories = allStories.filter((entry) => storyMatches(entry.title, filter) && (scopedFiles?.includes(entry.importPath) ?? true));
+// A scope that matches nothing is a path form that drifted from index.json, not "no story to draw": scripts/atlas-scope.mjs
+// starts no browser for a change that reaches no story, so a run that gets here with story files must draw something.
+if (scopedFiles && stories.length === 0) {
+  throw new Error(
+    `UI_ATLAS_STORY_FILES=${process.env.UI_ATLAS_STORY_FILES} matches no story file in storybook-static/index.json (importPath looks like "./src/studio/ui/src/...")`,
+  );
+}
 if (filter.length > 0 && stories.length === 0) {
   throw new Error(`UI_ATLAS_FILTER=${process.env.UI_ATLAS_FILTER} matches no story title; titles look like "Editing/Ribbon" (storybook-static/index.json)`);
 }
