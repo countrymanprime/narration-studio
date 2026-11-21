@@ -239,8 +239,8 @@ export function useSpeakers(): SpeakersView {
 }
 
 /**
- * Every read of the page's cache as one, for the page to say a failure of any of them: the host's sentence once nothing is being read, and
- * a Retry that reads again each read that failed.
+ * Every read of the page's cache as one, for the page to say a failure of any of them: the host's sentence while a read stands failed
+ * (other reads still running do not hide it), and a Retry that reads again each read that failed.
  */
 export function useFailedReads(): Pick<ReadView<unknown>, 'message' | 'retry'> {
   const { data } = useScriptHost();
