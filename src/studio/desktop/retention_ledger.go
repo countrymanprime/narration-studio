@@ -67,18 +67,21 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	// is removed for it (the loop through the rest is quick), and it stays.
 	halted, stopped := false, false // halted: no more removals; stopped: because a check started or the pass was cancelled
 	beforeDelete := func(record evidence.LedgerRecord) error {
-		if halted || stop() || ctx.Err() != nil {
+		if halted {
+			return errPassStopped
+		}
+		if stop() || ctx.Err() != nil {
 			halted, stopped = true, true
 			return errPassStopped
 		}
 		// A decision may have been made since the ids were read (an editing scan or a comparison is not held off by a check): the ids are
 		// read again before each record goes, and a record a decision now names stays. The file is small.
-		referenced, err := l.referenced()
+		now, err := l.referenced()
 		if err != nil {
 			halted = true // nothing more is removed without the ids; the error stays in the report
 			return fmt.Errorf("the decisions could not be read again: %w", err)
 		}
-		if referenced[record.ID] {
+		if now[record.ID] {
 			return errPassStopped
 		}
 		if record.AnalyzerID != coverage.AnalyzerID {

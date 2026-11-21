@@ -296,11 +296,22 @@ func TestTheLedgerStepKeepsARecordADecisionNamesAfterTheIdsWereRead(t *testing.T
 	}
 }
 
-// If the decisions cannot be read again mid-pass, the removals stop and the error is reported.
+// If the decisions cannot be read again mid-pass, the removals stop and the error is reported, not "stopped": no check ran.
 func TestTheLedgerStepStopsWhenTheDecisionsCannotBeReadAgain(t *testing.T) {
 	rig := newStepRig(t)
-	rig.write("c0", coverage.AnalyzerID, evidence.LedgerComplete)
-	rig.write("c1", coverage.AnalyzerID, evidence.LedgerComplete)
+	for i := range 2 {
+		chapter := fmt.Sprintf("c-%04d", i+1)
+		for _, id := range []string{"old", "new"} {
+			rig.clock = rig.clock.Add(time.Minute)
+			record := evidence.LedgerRecord{
+				ID: chapter + id, AnalyzerID: coverage.AnalyzerID, AnalyzerVersion: "1", Scope: evidence.LedgerScope{DocumentID: "d", ChapterID: chapter},
+				StartedAt: rig.clock, CompletedAt: rig.clock.Add(time.Second), Outcome: evidence.LedgerComplete,
+			}
+			if _, err := rig.ledger.Write(record); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 	reads := 0
 	rig.referenced = func() (map[string]bool, error) {
 		reads++
@@ -310,8 +321,8 @@ func TestTheLedgerStepStopsWhenTheDecisionsCannotBeReadAgain(t *testing.T) {
 		return nil, errors.New("the decisions file is being rewritten")
 	}
 	report := rig.run(never)
-	if report.Err == nil || report.Removed != 0 || report.Stopped || !slices.Equal(rig.left(), []string{"c0", "c1"}) {
-		t.Fatalf("report = %+v, ledger holds %v; want an error, nothing removed and no \"stopped\" (no check stopped it)", report, rig.left())
+	if report.Err == nil || report.Removed != 0 || report.Stopped || len(rig.left()) != 4 || reads != 2 {
+		t.Fatalf("report = %+v, ledger holds %v, reads = %d; want an error, nothing removed, not stopped, four records and no read after the failure", report, rig.left(), reads)
 	}
 }
 
