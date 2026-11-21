@@ -147,3 +147,50 @@ test('Production / copying a tile gives the drawn figure, not its spoken copy / 
   expect(copied).toMatch(/\d+h \d{2}m/);
   expect(copied, 'the spoken copy is not copied').not.toMatch(/hours?|minutes?/);
 });
+
+// #3443: "<0h 01m" is 7 characters, about 55 px, and a figure cell is 64 px (Est.) or 72 px (Rec.) wide. At every size, in the default mock (Opening credits' Est.
+// is under a minute) and in the linked one (Rec. says "Several tracks" and "Track missing" in words), each Rec. and Est. figure is whole inside its cell, centred
+// under its header, and clear of the next column.
+for (const query of ['?mockProduction=on-pace', '?mockProduction=linked']) {
+  for (const size of [
+    { width: 1440, height: 900 },
+    { width: 1100, height: 800 },
+    { width: 1024, height: 768 },
+    { width: 320, height: 300 },
+  ] as const) {
+    test(`Production / the pipeline's Rec. and Est. figures stay inside their cells (${query.slice(1)}, ${size.width}x${size.height})`, async ({ page }) => {
+      await page.setViewportSize(size);
+      await openProduction(page, query);
+      const table = page.getByRole('table', { name: 'Chapter pipeline' });
+      await table.scrollIntoViewIfNeeded();
+      const result = await table.evaluate((el) => {
+        const found: string[] = [];
+        let figures = 0;
+        for (const row of el.querySelectorAll('tbody tr')) {
+          const cells = [...row.children] as HTMLElement[];
+          for (const index of [1, 2]) {
+            const cell = cells[index];
+            const content = cell?.firstElementChild as HTMLElement | null;
+            if (!cell || !content) continue;
+            const text = (content.textContent ?? '').trim();
+            const range = document.createRange();
+            // The drawn figure: a hidden spoken copy (`sr-only`, absolutely positioned) is not what is measured.
+            range.selectNodeContents(content.querySelector('[aria-hidden="true"]') ?? content);
+            const box = range.getBoundingClientRect();
+            const edge = cell.getBoundingClientRect();
+            figures += 1;
+            if (box.left < edge.left - 0.5 || box.right > edge.right + 0.5)
+              found.push(
+                `"${text}" (${index === 1 ? 'Rec.' : 'Est.'}) is past its cell: ${Math.round(box.left - edge.left)} px left, ${Math.round(edge.right - box.right)} px right`,
+              );
+            if (/\d+h \d\dm|<0h 01m/.test(text) && Math.abs(box.left - edge.left - (edge.right - box.right)) > 2)
+              found.push(`"${text}" is not centred in its cell`);
+          }
+        }
+        return { found, figures };
+      });
+      expect(result.figures, 'the figure cells are drawn').toBeGreaterThan(10);
+      expect(result.found).toEqual([]);
+    });
+  }
+}

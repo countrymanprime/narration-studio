@@ -4,9 +4,9 @@ import { hm } from '../schedule/dates';
 import { clock, spokenMarked } from '../../clock';
 
 describe('production figures', () => {
-  it('writes hours and seconds as h:mm, rounding to the minute', () => {
+  it('writes hours and seconds as hours and minutes, floored to the minute', () => {
     expect(formatClock(11 + 20 / 60, 'hours')).toBe('11h 20m');
-    expect(formatClock(0.999, 'hours')).toBe('1h 00m');
+    expect(formatClock(0.999, 'hours')).toBe('0h 59m');
     expect(formatClock(6720, 'seconds')).toBe('1h 52m');
     expect(formatClock(0, 'seconds')).toBe('0h 00m');
     expect(clock(708.4)).toBe('11:48');
@@ -31,9 +31,9 @@ describe('hours and minutes, marked', () => {
   it.each([
     [0, '0h 00m'],
     [10 / 60, '0h 10m'],
-    [59.6 / 3600, '0h 01m'],
+    [59.6 / 3600, '<0h 01m'],
     [5 + 40 / 60, '5h 40m'],
-    [11.999, '12h 00m'],
+    [11.999, '11h 59m'],
     [100.5, '100h 30m'],
     [-3, '0h 00m'],
   ])('%s hours reads %s', (hours, text) => expect(hm(hours)).toBe(text));
@@ -44,19 +44,21 @@ describe('hours and minutes, marked', () => {
   });
 });
 
-// #3443: `hm` is the one hours formatter (Production and Schedule). It rounds to the nearest minute, as the Production figures always did, and reads zero for a value that is not a number.
+// #3443: `hm` is the one hours formatter (Production and Schedule). It floors to the whole minute (under a minute reads "<0h 01m"), and reads zero for a value that is not a number.
 describe('hm, the one hours formatter', () => {
   it('writes the Schedule figures with units too ("4h 35m", "0h 11m"), so a figure of hours is not read as minutes and seconds', () => {
     expect(hm(4 + 35 / 60)).toBe('4h 35m');
     expect(hm(11 / 60)).toBe('0h 11m');
   });
-  it('rounds to the nearest minute: 59.6 s, 61 s and 89 s read 0h 01m, 90 s reads 0h 02m', () => {
+  it('floors to the whole minute: 61 s, 89 s, 90 s and 119 s read 0h 01m, 120 s reads 0h 02m, and under a minute reads <0h 01m', () => {
     for (const [seconds, text] of [
-      [59.6, '0h 01m'],
+      [59.6, '<0h 01m'],
+      [29, '<0h 01m'],
       [61, '0h 01m'],
       [89, '0h 01m'],
-      [90, '0h 02m'],
-      [29, '0h 00m'],
+      [90, '0h 01m'],
+      [119, '0h 01m'],
+      [120, '0h 02m'],
     ] as const)
       expect(hm(seconds / 3600), `${seconds} s`).toBe(text);
   });
