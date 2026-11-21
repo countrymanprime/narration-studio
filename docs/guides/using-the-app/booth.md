@@ -244,8 +244,8 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
 - **REAPER has a different project open.** REAPER answers, but the project it has open is not the one linked here, so a take
   would not land where the book expects it. The dialog opens by itself, and again when you press Record. **Link the open
   project** opens the project picker (choose the file REAPER has open); or open the linked project in REAPER and press **Check
-  again**. **DAW settings** shows which file is linked. The setup chip on the top bar reads **REAPER · other project**. The Booth also asks again every few seconds while the chip is up, and by itself every 15 seconds otherwise, because
-  REAPER sends no message when another project is opened. The dialog says what it waits for and when the app last looked.
+  again**. **DAW settings** shows which file is linked. The setup chip on the top bar reads **REAPER · other project**. The Booth also asks again every few seconds while the chip is up. Otherwise it hears another project opened at once when REAPER's script reports its track list, and asks by itself once a minute; with an older script it asks every 15 seconds, because
+  REAPER then sends no message when another project is opened. The dialog says what it waits for and when the app last looked.
 
   **Link the open project** is the same action as the link button in the audio engine panel and in Settings: only one file picker is open at a time, so pressing it while another is open does nothing.
 

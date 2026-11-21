@@ -35,6 +35,8 @@ export type LiveTracks = {
   busy: boolean;
   /** A read the narrator asked for (Refresh) is in flight; the timer's and focus's reads are not shown as busy. */
   refreshing: boolean;
+  /** The last read carried REAPER's track-list revision, so a change arrives as `daw_tracks_changed` and a page that polls for the DAW's state may poll less. */
+  following: boolean;
   /** The last read failed after a good one: the tracks shown are from `readAt` and may not be what REAPER has now. */
   stale: boolean;
   /** Why the last read failed; empty when it did not. */
@@ -88,6 +90,7 @@ export function useLiveTracks({
     readAt: null,
     stale: false,
     error: '',
+    following: false,
   });
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,6 +151,7 @@ export function useLiveTracks({
             readAt: Date.now(),
             stale: false,
             error: '',
+            following: answer.revision !== '',
           });
           return { project: answer.project, source: answer.source, failed: false };
         })
@@ -172,7 +176,7 @@ export function useLiveTracks({
             skipTicks.current = ticks - 1;
           }
           // The toast above keeps describeApiError's wording; the line a panel draws is the bare message, without the "Error: " prefix.
-          setState((previous) => ({ ...previous, stale: hasProject.current, error: apiErrorMessage(reason) }));
+          setState((previous) => ({ ...previous, stale: hasProject.current, error: apiErrorMessage(reason), following: false }));
           return { failed: true };
         })
         .finally(() => {
@@ -238,6 +242,11 @@ export function useLiveTracks({
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [enabled, read, tracks]);
+
+  // Switched off (the last watcher left): nothing hears the event any more, so the list does not claim to follow it when it is switched on again.
+  useEffect(() => {
+    if (!enabled) setState((previous) => (previous.following ? { ...previous, following: false } : previous));
+  }, [enabled]);
 
   const refresh = useCallback(() => void read(true, true), [read]);
   refreshRef.current = refresh;

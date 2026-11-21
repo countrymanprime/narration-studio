@@ -613,6 +613,32 @@ describe('reading the live track list', () => {
       expect(pending).toHaveLength(3);
     });
 
+    // #3880 slice 2: the Booth slows its own idle read while the list follows REAPER's revision.
+    it('`following` is true while the last read carried a revision, and false for none and after a failed read', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const held = eventHost(A);
+      const withRevision = mount(held.api);
+      await settle();
+      expect(withRevision.hook.current.following).toBe(true);
+      vi.mocked(held.api.tracksLive).mockRejectedValueOnce(new Error('REAPER did not answer in time.'));
+      await held.send(B);
+      expect(withRevision.hook.current.following).toBe(false);
+      cleanup();
+      const older = mount(eventHost('').api);
+      await settle();
+      expect(older.hook.current.following).toBe(false);
+    });
+
+    it('`following` is not claimed again when the live read is switched on again, before it has answered', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { api } = eventHost(A);
+      const view = mount(api);
+      await settle();
+      expect(view.hook.current.following).toBe(true);
+      await act(async () => view.rerender({ enabled: false }));
+      expect(view.hook.current.following).toBe(false);
+    });
+
     it('a failed read forgets the revision, so the timer reads again', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const { api, send, reads } = eventHost(A);
