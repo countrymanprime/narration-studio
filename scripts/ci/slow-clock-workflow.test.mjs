@@ -33,3 +33,7 @@ test('the issue jobs act only for main, and a job cancelled at its limit counts 
   const green = /\n {2}green:\n([\s\S]*)$/.exec(workflow)?.[1] ?? '';
   assert.match(green, /if: needs\.booth\.result == 'success' && github\.ref == 'refs\/heads\/main'/);
 });
+
+test('it leaves out exactly the five specs the header names, by the title Playwright greps (describe and test joined by a space)', () => {
+  assert.match(workflow, /--grep-invert "the top bar record-connect at\|a roll that answers while Stop is still pending"/);
+});

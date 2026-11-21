@@ -50,7 +50,7 @@ jobs:
           UI_VISUAL_SHARDED: '1'
         run: >-
           pnpm --dir src/studio/ui exec playwright test tests/visual/booth-
-          --grep-invert "the top bar › record-connect at|a roll that answers while Stop is still pending"
+          --grep-invert "the top bar record-connect at|a roll that answers while Stop is still pending"
           --reporter=list
   red:
     name: Open the slow-clock-red issue when the run is red
