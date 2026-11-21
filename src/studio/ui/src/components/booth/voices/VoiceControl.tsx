@@ -186,12 +186,15 @@ export function VoiceControl({
   // A pick hands focus to the page, not back to this button: Enter or Space after a pick is Record's key, and on this button it would open the list again.
   const pick = (guid: string) => {
     if (guid === ADD_LANE) {
+      // The dialog it opens takes focus, so the list does not hand it back to this button (Enter there would reopen the list over the dialog).
+      picked.current = true;
       changeOpen(false);
       onAddLane?.(query.trim());
       return;
     }
     if (guid.startsWith(CHARACTER)) {
       const character = [...noTrack, ...(cast?.inChapter ?? []), ...(cast?.elsewhere ?? [])].find((each) => `${CHARACTER}${each.id}` === guid);
+      picked.current = true;
       changeOpen(false);
       // A character a track already records is chosen by that track; the others are asked who records them.
       const own = character && voices.find((voice) => voice.characters.some((each) => each.id === character.id));

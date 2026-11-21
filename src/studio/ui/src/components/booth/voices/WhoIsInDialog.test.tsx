@@ -213,4 +213,9 @@ describe('Who records a character with no track?', () => {
     // No one is ticked for it: the chapter's speakers with no track are not the Duchess.
     expect(screen.queryAllByRole('checkbox', { checked: true })).toHaveLength(0);
   });
+
+  it('a number past nine has no key to name: the dialog asks about the new track', () => {
+    show({ kind: 'key', key: 11 });
+    expect(screen.getByRole('dialog', { name: 'Who is in the new track?' })).toBeTruthy();
+  });
 });

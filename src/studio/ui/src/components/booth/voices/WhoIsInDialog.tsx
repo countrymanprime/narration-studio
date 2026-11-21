@@ -115,7 +115,11 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const newKey = keyForNewTrack(voices, name);
   const target = others.find((voice) => voice.guid === existing);
   const blocked = choice === 'new' ? Boolean(nameProblem) : choice === 'existing' ? !target : !narrator;
-  const title = asked ? `Who records ${asked.name}?` : `Who is in ${keyName(String(ask.kind === 'key' ? ask.key : ''))}?`;
+  const title = asked
+    ? `Who records ${asked.name}?`
+    : ask.kind === 'key' && ask.key > 9
+      ? 'Who is in the new track?'
+      : `Who is in ${keyName(String(ask.kind === 'key' ? ask.key : ''))}?`;
   const action = choice === 'new' ? 'Add track' : choice === 'existing' ? 'Use this track' : 'Arm';
 
   const options: RadioOption<WhoChoice>[] = [
