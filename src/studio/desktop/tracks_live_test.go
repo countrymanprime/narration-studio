@@ -302,6 +302,19 @@ func TestContractTracksLive(t *testing.T) {
 	}
 	pin("tracks-live-live", live)
 	pin("tracks-live-saved", saved)
+
+	// A script from before the revision (a heartbeat with none), or no heartbeat at all: the list is live but carries no revision, so the page
+	// keeps its timer. A TRACKS_READ that names one cannot stop it when nothing will send the event.
+	old := daw.NewReachability(nil)
+	old.Record(tracksBeat(""))
+	host.reachability = old
+	if got := readLive(t, host, lister, dawport.Support{Available: true}); got.Source != "live" || got.Revision != "" {
+		t.Fatalf("a heartbeat with no revision: source %q revision %q; want a live list with none", got.Source, got.Revision)
+	}
+	host.reachability = nil
+	if got := readLive(t, host, lister, dawport.Support{Available: true}); got.Source != "live" || got.Revision != "" {
+		t.Fatalf("no heartbeat: source %q revision %q; want a live list with none", got.Source, got.Revision)
+	}
 }
 
 func TestTracksLiveBindingAnswersJSON(t *testing.T) {

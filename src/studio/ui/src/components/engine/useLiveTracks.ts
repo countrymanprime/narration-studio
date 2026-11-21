@@ -6,8 +6,10 @@ import { usePort } from '../../ports/usePort';
 import { retryAction, type Notify } from '../primitives/Toast';
 
 /** How often the panel reads REAPER's tracks again while the window is visible and REAPER reports no track-list revision (an older bridge
- * script, REAPER not answering, the saved file's tracks). With a revision the list changes only with `daw_tracks_changed`, and the timer reads nothing. */
+ * script, REAPER not answering, the saved file's tracks). With a revision the track list changes only with `daw_tracks_changed`, and the timer reads every LIVE_TRACKS_SAVED_POLL_MS. */
 export const LIVE_TRACKS_POLL_MS = 5_000;
+/** While REAPER reports a revision the timer reads only this often: a save in REAPER changes what the list shows from the .rpp (items, colour, mute, solo) and sends no event. */
+export const LIVE_TRACKS_SAVED_POLL_MS = 30_000;
 /** The longest the timer waits between reads while REAPER does not answer: each failed automatic read doubles the wait (5 s, 10 s, 20 s, 40 s, then this), a good read ends it.
  * The wait is counted in timer ticks, so a clock set back or forward changes nothing, and it is about this long from the failure: the read's own time (up to
  * LIVE_TRACKS_TIMEOUT_MS) and the tick's phase come on top. */
@@ -62,7 +64,7 @@ function withinLimit(read: Promise<TracksLive>): Promise<TracksLive> {
  * The engine panel's one reader of the project's tracks (#2840): REAPER's track list now when REAPER has the linked project open, else the
  * saved .rpp with why (`TracksLive`). It reads when the panel opens and when `readKey` changes (the linked file, Check again), on window
  * focus, on `refresh`, and when REAPER's track list changes: on `daw_tracks_changed` while the last read carried a revision, else every
- * LIVE_TRACKS_POLL_MS while the window is visible. A newer read always wins: an older one that answers late is
+ * LIVE_TRACKS_POLL_MS while the window is visible (every LIVE_TRACKS_SAVED_POLL_MS with a revision, for a save in REAPER). A newer read always wins: an older one that answers late is
  * dropped, and an automatic read waits while one is in flight. A read unanswered after LIVE_TRACKS_TIMEOUT_MS counts as failed, so the poll
  * goes on, less often while REAPER keeps not answering (LIVE_TRACKS_BACKOFF_MAX_MS). A failure is a toast with Retry: once for a run of automatic failures, and again on each press. After a good read the tracks are
  * kept and marked stale. Disabled (an Audacity project, whose tracks come from its snapshot), it never reads.
@@ -109,6 +111,8 @@ export function useLiveTracks({
   // the timer reads. `heard` is that an event arrived during a read: the read may have left before the change, so one more follows it.
   const revision = useRef('');
   const heard = useRef(false);
+  // Timer ticks since the last read while a revision is held (LIVE_TRACKS_SAVED_POLL_MS).
+  const quiet = useRef(0);
   const readRef = useRef<() => void>(() => {});
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
@@ -135,6 +139,7 @@ export function useLiveTracks({
           skipTicks.current = 0;
           hasProject.current = true;
           revision.current = answer.revision;
+          quiet.current = 0;
           setState({
             project: answer.project,
             source: answer.source,
@@ -206,7 +211,11 @@ export function useLiveTracks({
     };
     // The timer keeps the backoff; coming back to the window (focus, visibility) is the narrator, and reads at once.
     const onTimer = () => {
-      if (revision.current !== '') return;
+      if (revision.current !== '') {
+        quiet.current += 1;
+        if (quiet.current < LIVE_TRACKS_SAVED_POLL_MS / LIVE_TRACKS_POLL_MS) return;
+      }
+      quiet.current = 0;
       if (skipTicks.current > 0) skipTicks.current -= 1;
       else onVisible();
     };

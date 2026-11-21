@@ -36,7 +36,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { Track, TracksLive } from '../../api/contracts/tracks';
-import { LIVE_TRACKS_BACKOFF_MAX_MS, LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS, TRACKS_READ_TOPIC, useLiveTracks, type LiveTracks } from './useLiveTracks';
+import {
+  LIVE_TRACKS_BACKOFF_MAX_MS,
+  LIVE_TRACKS_POLL_MS,
+  LIVE_TRACKS_SAVED_POLL_MS,
+  LIVE_TRACKS_TIMEOUT_MS,
+  TRACKS_READ_TOPIC,
+  useLiveTracks,
+  type LiveTracks,
+} from './useLiveTracks';
 
 afterEach(() => {
   cleanup();
@@ -513,19 +521,32 @@ describe('reading the live track list', () => {
       expect(hook.current.project?.tracks.at(-1)?.name).toBe('Chapter 9 – הים 🌊');
     });
 
-    it('with a revision the timer reads nothing, and an event with a new revision reads at once', async () => {
+    it('with a revision the timer reads nothing for 25 s, and an event with a new revision reads at once', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const { api, revision, send, reads } = eventHost(A);
       mount(api);
       await settle();
       expect(reads()).toBe(1);
-      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 6));
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 5));
       expect(reads()).toBe(1);
       revision.now = B;
       await send(B);
       expect(reads()).toBe(2);
-      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 6));
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 5));
       expect(reads()).toBe(2);
+    });
+
+    // A save in REAPER changes the items, colour, mute and solo the list shows (read from the .rpp) and sends no daw_tracks_changed.
+    it('with a revision the timer still reads every 30 s, so a save in REAPER shows without focus or Refresh', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { api, reads } = eventHost(A);
+      mount(api);
+      await settle();
+      expect(reads()).toBe(1);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_SAVED_POLL_MS));
+      expect(reads()).toBe(2);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_SAVED_POLL_MS));
+      expect(reads()).toBe(3);
     });
 
     it('an event carrying the revision already shown still reads: REAPER may have another project with the same list', async () => {

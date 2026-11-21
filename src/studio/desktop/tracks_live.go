@@ -109,7 +109,8 @@ func tracksLiveIn(ctx context.Context, svc hostServices, lister dawport.TrackLis
 			return tracksLive{}, savedErr
 		}
 		answer.Source, answer.Reason, answer.Message = tracksSourceSaved, reason, message
-	} else {
+	} else if _, known := tracksRevisionOf(svc.reachability); known {
+		// Only with a heartbeat that names a revision: the page stops its timer on one, and with no heartbeat nothing sends it the next event.
 		answer.Revision = read.revision
 	}
 	answer.Project = project
