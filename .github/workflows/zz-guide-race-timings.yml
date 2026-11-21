@@ -1,0 +1,60 @@
+name: Guide race timings (throwaway)
+# One-off measurement for #3860, never merged: where `internal/guide` spends its 497 s under -race on Windows (run 44927109376, `go test (rest)`).
+# It runs on the pull request that adds this file, and only when this file changes, so it is one Windows job per push and nothing else.
+# Same runner image and setup as Test (Windows 2/2); the package is run with and without the race detector, with the flags CI uses
+# (`-cover`, `-count=1`), and the slowest tests of each are printed to the job summary.
+on:
+  pull_request:
+    paths: ['.github/workflows/zz-guide-race-timings.yml']
+permissions: { contents: read }
+concurrency:
+  group: zz-guide-race-timings-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  measure:
+    name: Measure (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-pnpm: 'false'
+          need-python: 'false'
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+      - name: Machine
+        shell: pwsh
+        run: |
+          Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors | Format-List
+          go version
+      - name: go test -race (as CI runs it)
+        shell: bash
+        working-directory: src/studio/desktop
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          go test -cover -race -count=1 -json ./internal/guide/ > "$RUNNER_TEMP/out/race.json" || true
+      - name: go test without -race
+        shell: bash
+        working-directory: src/studio/desktop
+        run: go test -cover -count=1 -json ./internal/guide/ > "$RUNNER_TEMP/out/plain.json" || true
+      - name: Slowest tests
+        shell: bash
+        run: |
+          for run in race plain; do
+            {
+              echo "### internal/guide, $run: package time and the 25 slowest tests (seconds)"
+              jq -r 'select(.Action=="pass" or .Action=="fail") | select(.Test==null) | "package \(.Package): \(.Elapsed) s (\(.Action))"' "$RUNNER_TEMP/out/$run.json"
+              echo "tests: $(jq -s '[.[] | select((.Action=="pass" or .Action=="fail") and .Test!=null)] | length' "$RUNNER_TEMP/out/$run.json"), sum of their seconds (subtests counted inside their parents): $(jq -s '[.[] | select((.Action=="pass" or .Action=="fail") and .Test!=null and (.Test|contains("/")|not)) | .Elapsed] | add' "$RUNNER_TEMP/out/$run.json")"
+              echo '```'
+              jq -r 'select((.Action=="pass" or .Action=="fail") and .Test!=null) | "\(.Elapsed)\t\(.Test)"' "$RUNNER_TEMP/out/$run.json" | sort -rn | head -25
+              echo '```'
+            } | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: guide-race-timings
+          path: ${{ runner.temp }}/out/
