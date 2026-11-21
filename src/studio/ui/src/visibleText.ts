@@ -20,4 +20,10 @@ const NOT_DRAWN = /[\p{Cf}\p{Cc}\p{Default_Ignorable_Code_Point}]/gu;
 export const visibleKey = (text: string): string => text.replace(NOT_DRAWN, '').replace(FILLERS, '');
 
 /** The text with each character that draws nothing (controls, format and bidi marks, zero-width characters, fillers) turned into a space, for text someone else wrote. */
-export const spaceOutInvisible = (text: string): string => text.replace(NOT_DRAWN, ' ').replace(FILLERS, ' ');
+// Narrower than NOT_DRAWN: a variation selector, a joiner or a tag character belongs to an emoji, keycap, flag or ideograph that draws.
+const CONTROL_OR_FORMAT = /^[\p{Cf}\p{Cc}]$/u;
+const KEPT_FORMAT = (code: number) => code === 0x200c || code === 0x200d || (code >= 0xe0000 && code <= 0xe007f);
+export const spaceOutInvisible = (text: string): string =>
+  Array.from(text, (ch) => (CONTROL_OR_FORMAT.test(ch) && !KEPT_FORMAT(ch.codePointAt(0) ?? 0) ? ' ' : ch))
+    .join('')
+    .replace(FILLERS, ' ');
