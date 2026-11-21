@@ -18,6 +18,8 @@ import { isHexColour } from '../../primitives/colourHex';
 const LABELS: Record<string, string> = {
   'TranscriptCompare.chunk_seconds': 'Compare chunk length',
   'RecordingCoverage.chunk_seconds': 'Coverage chunk length (0 = each item whole)',
+  // The host's label is 51 characters: at 390 px it wraps to two lines while its four siblings stay on one, and the alignment audit (A5) fails the page.
+  'Cleanup.click_above_silence_db': 'How far above silence a click stands',
 };
 
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', project: 'This project' };

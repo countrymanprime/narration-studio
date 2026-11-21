@@ -157,7 +157,7 @@ export const masterDrivers: Record<string, Driver> = {
       .getByRole('option', { name: /^Open Silence cleanup options/ })
       .first()
       .click();
-    await page.getByRole('textbox', { name: 'How far above the silence around it a click stands' }).waitFor();
+    await page.getByRole('textbox', { name: 'How far above silence a click stands' }).waitFor();
   },
   'diagnostics-cancelled': async (page) => {
     await checkOnDiagnostics(page, '?mockDiagnostics=running');
