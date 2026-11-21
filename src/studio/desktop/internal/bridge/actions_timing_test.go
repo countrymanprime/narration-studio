@@ -133,20 +133,36 @@ func TestATimedOutCommandIsTakenBackEvenWhenTheObserverPanics(t *testing.T) {
 	}
 }
 
-// A commands folder that vanishes (a dropped share, a session folder removed) is not REAPER reading the command.
+// A commands folder that vanishes in one step (a dropped share, a session folder moved away) is not REAPER reading the command. Nothing reads
+// the command here (there is no fake REAPER), the folder goes in a rename, and the take-back waits for it to be gone: the order is the same on
+// any runner. A folder deleted file by file is not this case: while the file is gone and the folder still stands, the host cannot tell
+// that from REAPER reading the command (takenWatch.retracted says so), and no test claims it can.
 func TestACommandFolderThatVanishesIsNotREAPERReadingTheCommand(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	timings := observeTimings(actions)
-	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
-	fake.stall(600 * time.Millisecond)
 	actions.SetTimeout(150 * time.Millisecond)
 	actions.SetLateWait(noLateAnswerWithin)
+	commands := filepath.Join(dir, "commands")
+	vanished := make(chan struct{})
+	vanish := sync.OnceFunc(func() { close(vanished) })
+	t.Cleanup(vanish)
+	client.remove = func(path string) error {
+		<-vanished
+		return os.Remove(path)
+	}
+	done := make(chan struct{})
 	go func() {
-		time.Sleep(30 * time.Millisecond)
-		_ = os.RemoveAll(filepath.Join(dir, "commands"))
+		defer close(done)
+		_, _ = actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack)
 	}()
+	waitFor(t, func() bool {
+		sent, _ := filepath.Glob(filepath.Join(commands, "*.cmd"))
+		return len(sent) == 1
+	})
+	waitFor(t, func() bool { return os.Rename(commands, commands+".gone") == nil })
+	vanish()
+	<-done
 
-	_, _ = actions.request(context.Background(), "arm_only", []string{"ARMED"}, testTrack)
 	got := timings()
 	if len(got) != 1 || got[0].Taken || got[0].Queue != got[0].Elapsed {
 		t.Fatalf("timings = %+v, want not taken, the whole wait as queue", got)
