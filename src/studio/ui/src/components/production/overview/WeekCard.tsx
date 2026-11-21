@@ -33,7 +33,7 @@ export function WeekCard({ figures }: { figures: WeekFigures }) {
             )}
           </span>
         </div>
-        {share !== null && <ProgressBar label="Recorded this week" value={Math.round(share)} size="thin" />}
+        {share !== null && <ProgressBar label="Recorded this week" value={Math.floor(share)} size="thin" />}
         <div className="flex items-baseline justify-between gap-3 text-[0.875rem]">
           <span>Voice rest (last 24 h)</span>
           <span className={MONO} data-rest>

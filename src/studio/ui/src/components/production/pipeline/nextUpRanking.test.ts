@@ -12,7 +12,7 @@ describe('next-up-ranks-by-risk-then-group-then-stage', () => {
 
   it('ranks a big pickup list above a nearly finished recording', () => {
     const kinds = rankNextUp({
-      recording: { chapterId: 'c1', stage: 'recording', name: 'Chapter 1', words: WPH, share: 0.99 },
+      recording: { chapterId: 'c1', stage: 'recording', name: 'Chapter 1', words: WPH, share: 0.99, percent: 99 },
       pickups: { lines: 60, chapters: ['Chapter 2'] },
       failing: null,
     }).map((i) => i.kind);
