@@ -108,13 +108,14 @@ export class LinkClock {
 }
 
 /** One REAPER command a host call sends and waits for: how long the host waits, and what it answers when that passes (thrown: the call rejects). With no `fail` the host falls back to what it has saved and carries on. */
-type Step = { limit: number; fail?: Fail };
+type Step = { limit: number | ((args: readonly unknown[]) => number); fail?: Fail };
 type Fail = (args: readonly unknown[], api: NarrationApi) => unknown;
 /** A host call as the commands it waits on, in order; `deadline` is the call's own limit across them, answered with `overrun`. */
 type HostCall = { steps: Step[]; deadline?: number; overrun?: Fail };
 
-// The host's waits (src/studio/desktop/internal/bridge): 3 s for an answer, and 20 s more for a command REAPER has read that may run long
-// (`mayRunLong`: the track list, a create, an arm). A held command reads as one REAPER has read, as on the host's own slow link.
+// The host's waits (src/studio/desktop/internal/bridge): 3 s for an answer, and 20 s more for a command REAPER has read that changes
+// something in it (`waitsLate`: every write, and the track list). A read keeps the 3 s. A held command reads as one REAPER has read, as on
+// the host's own slow link.
 const ANSWER_MS = 3_000;
 const LONG_MS = ANSWER_MS + 20_000;
 const TRACKS_LIVE_MS = 7_000;
@@ -150,7 +151,16 @@ const laneCommand = (fail: Fail): HostCall => ({ steps: [LANE_TRACKS, { limit: L
 const one = (fail: Fail, limit = ANSWER_MS): HostCall => ({ steps: [{ limit, fail }] });
 const afterTracks = (fail: Fail, limit = ANSWER_MS): HostCall => ({ steps: [TRACKS, { limit, fail }] });
 const SHORT_REFUSAL = one(answer(refused(NOT_ANSWERING)));
-const NOT_RUNNING = one(outcome('not_running', NOT_ANSWERING));
+/** A write the host waits the long wait for: past it REAPER has the command and has not confirmed it, which is never "not answering". */
+const LATE_REFUSAL = one(answer(refused(TOOK_NOT_CONFIRMED)), LONG_MS);
+/** A write with one short read before it (the track's state, the chain list, the play position): the read keeps the 3 s. */
+const READ_THEN_WRITE: HostCall = {
+  steps: [
+    { limit: ANSWER_MS, fail: answer(refused(NOT_ANSWERING)) },
+    { limit: LONG_MS, fail: answer(refused(TOOK_NOT_CONFIRMED)) },
+  ],
+};
+const LATE_FAILED = one(outcome('failed', TOOK_NOT_CONFIRMED), LONG_MS);
 const RECORD_START: HostCall = {
   steps: [TRACKS, { limit: LONG_MS, fail: outcome('timeout', TOOK_NOT_CONFIRMED) }, { limit: ANSWER_MS, fail: outcome('not_running', NOT_ANSWERING) }],
   deadline: 10_000,
@@ -161,7 +171,7 @@ const CREATE = afterTracks(outcome('failed', NOT_CONFIRMED_TRACK), LONG_MS);
 /**
  * The host calls that send REAPER a command and wait for its answer, each with what the real host answers when REAPER does not answer in time (traced from the
  * bindings in src/studio/desktop for #3752). A call that is not here is not slowed: it reads files or the heartbeat, starts a job whose answer is an event, or its
- * answer on a silent REAPER depends on state this layer cannot see (`dawReleaseBoothMonitor`: only when a monitoring is owed; the voice-sample and teleprompter
+ * answer on a silent REAPER depends on state this layer cannot see (`dawReleaseBoothMonitor` and `dawSoloRestore`: only when a monitoring or a solo is owed; the voice-sample and teleprompter
  * follow calls). `chapterTrackLinks`, `chapterTrackMatch` and `boothVoiceGet` answer from the saved project after 7 s; the mock has one project, so here they answer as usual, late.
  */
 export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
@@ -186,7 +196,7 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   readAloudReaperState: afterTracks(answer({ status: 'unavailable', reason: 'not_running', message: NOT_ANSWERING, playing: false, recording: false })),
   readAloudRecordStart: RECORD_START,
   readAloudRecordStartAt: RECORD_START,
-  readAloudRecordStop: NOT_RUNNING,
+  readAloudRecordStop: one(outcome('timeout', TOOK_NOT_CONFIRMED), LONG_MS),
   boothVoiceSet: laneCommand((args) => ({
     outcome: 'selected',
     trackGuid: args[1],
@@ -197,8 +207,17 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   chapterTrackCreate: CREATE,
   dawArmBoothVoice: laneCommand(answer(refused(TOOK_NOT_CONFIRMED))),
   dawPlace: one(answer({ ok: false, message: WITHIN_3S, chapterId: '', selected: 0, cursor: 0 })),
-  dawGoToChapter: one(answer(refused(WITHIN_3S))),
-  dawTransportSync: one(answer(refused(WITHIN_3S))),
+  dawGoToChapter: LATE_REFUSAL,
+  dawSoloChapter: LATE_REFUSAL,
+  // A play, a stop or a cursor move is waited for; the watch is a lease renewed every few seconds and keeps the 3 s.
+  dawTransportSync: {
+    steps: [
+      {
+        limit: (args) => (args[0] === 'watch' ? ANSWER_MS : LONG_MS),
+        fail: (args) => refused(args[0] === 'watch' ? WITHIN_3S : TOOK_NOT_CONFIRMED),
+      },
+    ],
+  },
   workspaceWordTimes: afterTracks(answer({ available: false, version: '', changeCount: 0, items: [], words: [] }), 5_000),
   dawMeters: one(
     answer({
@@ -214,9 +233,7 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   dawMonitorLevel: one(
     answer({ ok: false, level: 0, message: 'REAPER did not answer the monitor level within 3 seconds. Check the level before trying again.' }),
   ),
-  dawSetMonitorLevel: one(
-    answer({ ok: false, level: 0, message: 'REAPER did not answer the monitor level within 3 seconds. Check the level before trying again.' }),
-  ),
+  dawSetMonitorLevel: one(answer({ ok: false, level: 0, message: TOOK_NOT_CONFIRMED }), LONG_MS),
   dawPunchPreroll: one(
     answer({
       ok: false,
@@ -233,54 +250,55 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
       expected: [],
     }),
   ),
-  chapterFoldersRepair: one(
-    outcome('not_running', 'REAPER is not answering, so its folders cannot be checked. Check that REAPER is open, then check again.', {
-      moves: [],
-      expected: [],
-    }),
-  ),
-  trackSelectInReaper: one(outcome('failed', `REAPER could not do that: ${NO_ANSWER}.`)),
-  findingsGoTo: NOT_RUNNING,
-  findingsLoop: NOT_RUNNING,
-  findingsStopLoop: NOT_RUNNING,
-  findingsAddMarker: NOT_RUNNING,
-  workspaceGoTo: NOT_RUNNING,
-  workspaceUseTake: NOT_RUNNING,
+  chapterFoldersRepair: one(outcome('failed', TOOK_NOT_CONFIRMED, { moves: [], expected: [] }), LONG_MS),
+  trackSelectInReaper: LATE_FAILED,
+  findingsGoTo: LATE_FAILED,
+  findingsLoop: LATE_FAILED,
+  findingsStopLoop: LATE_FAILED,
+  findingsAddMarker: LATE_FAILED,
+  workspaceGoTo: LATE_FAILED,
+  workspaceUseTake: LATE_FAILED,
   teleprompterReaperInput: one(answer({ status: 'unavailable', reason: 'not_running', message: NOT_ANSWERING, candidates: [] })),
   boothPunchTarget: afterTracks(
     outcome('no_daw', 'The audio engine is not answering, so where this passage was recorded cannot be read. Check that it is open, then try again.'),
     5_000,
   ),
-  chapterRegionsCreate: one(reject(`could not create the regions in REAPER: ${NO_ANSWER}`)),
+  chapterRegionsCreate: one(reject(TOOK_NOT_CONFIRMED), LONG_MS),
   workspaceListFXChains: one(reject(NO_ANSWER)),
   workspaceProjectFx: one(reject(NO_ANSWER)),
-  levelMatchApply: one(reject(NO_ANSWER)),
-  dawUndoLast: SHORT_REFUSAL,
-  dawSaveProject: SHORT_REFUSAL,
-  dawDeleteRange: afterTracks(answer(refused(NOT_ANSWERING))),
-  dawTrimRange: SHORT_REFUSAL,
-  dawSplitTake: SHORT_REFUSAL,
-  dawStackTakes: SHORT_REFUSAL,
-  dawUnstackTakes: SHORT_REFUSAL,
-  dawRoll: SHORT_REFUSAL,
-  dawApplyFxToRange: SHORT_REFUSAL,
-  dawRemoveFxFromRange: SHORT_REFUSAL,
+  levelMatchApply: one(reject(TOOK_NOT_CONFIRMED), LONG_MS),
+  dawUndoLast: LATE_REFUSAL,
+  dawSaveProject: LATE_REFUSAL,
+  dawDeleteRange: afterTracks(answer(refused(TOOK_NOT_CONFIRMED)), LONG_MS),
+  dawTrimRange: LATE_REFUSAL,
+  dawSplitTake: LATE_REFUSAL,
+  dawStackTakes: READ_THEN_WRITE,
+  dawUnstackTakes: READ_THEN_WRITE,
+  // The roll keeps its 5 s (`rollTimeout`): past it a roll REAPER has read is said as taken, not waited for. A play-position read that fails
+  // refuses nothing: the roll is sent all the same and answers for itself.
+  dawRoll: {
+    steps: [{ limit: ANSWER_MS }, { limit: LONG_MS, fail: answer(refused(TOOK_NOT_CONFIRMED)) }],
+    deadline: 5_000,
+    overrun: answer(refused(TOOK_NOT_CONFIRMED)),
+  },
+  dawApplyFxToRange: READ_THEN_WRITE,
+  dawRemoveFxFromRange: LATE_REFUSAL,
   dawFxRangeParams: SHORT_REFUSAL,
-  dawSetFxRangeParam: SHORT_REFUSAL,
-  dawBypassFxRange: SHORT_REFUSAL,
-  dawCompareFxRange: SHORT_REFUSAL,
-  dawStopFxCompare: SHORT_REFUSAL,
-  dawChooseFxForRange: SHORT_REFUSAL,
+  dawSetFxRangeParam: LATE_REFUSAL,
+  dawBypassFxRange: LATE_REFUSAL,
+  dawCompareFxRange: LATE_REFUSAL,
+  dawStopFxCompare: LATE_REFUSAL,
+  dawChooseFxForRange: LATE_REFUSAL,
   dawChosenFxForRange: SHORT_REFUSAL,
-  dawReduceRangeGain: SHORT_REFUSAL,
-  dawRepairClick: SHORT_REFUSAL,
-  dawReplaceRange: SHORT_REFUSAL,
-  dawRestoreReplacement: SHORT_REFUSAL,
-  workspaceHideTakes: SHORT_REFUSAL,
-  masterPlayQuietest: SHORT_REFUSAL,
-  workspacePreviewTake: SHORT_REFUSAL,
-  dawStopFilePreview: SHORT_REFUSAL,
-  masterOpenInDaw: SHORT_REFUSAL,
+  dawReduceRangeGain: LATE_REFUSAL,
+  dawRepairClick: LATE_REFUSAL,
+  dawReplaceRange: LATE_REFUSAL,
+  dawRestoreReplacement: LATE_REFUSAL,
+  workspaceHideTakes: LATE_REFUSAL,
+  masterPlayQuietest: LATE_REFUSAL,
+  workspacePreviewTake: LATE_REFUSAL,
+  dawStopFilePreview: LATE_REFUSAL,
+  masterOpenInDaw: LATE_REFUSAL,
 };
 
 /** The events REAPER is the source of (its heartbeat, its transport, its own Stop): a stalled REAPER sends none, and they arrive when the stall ends. */
@@ -348,14 +366,15 @@ export function withDawLatency(api: NarrationApi, initial: DawLatency): Narratio
       const release = clock.release(name, performance.now());
       const hold = release - performance.now();
       const left = call.deadline === undefined ? Infinity : began + call.deadline - performance.now();
-      const limit = Math.min(step.limit, left);
+      const stepLimit = typeof step.limit === 'function' ? step.limit(args) : step.limit;
+      const limit = Math.min(stepLimit, left);
       if (hold <= limit) {
         if (hold > 0) await sleep(hold);
         if (step === TRACKS || step === LANE_TRACKS) tracksReadAt = performance.now();
         continue;
       }
       await sleep(limit);
-      const fail = limit < step.limit ? (call.overrun ?? step.fail) : step.fail;
+      const fail = limit < stepLimit ? (call.overrun ?? step.fail) : step.fail;
       if (!fail) continue;
       // The call's own command (its last) is on its way: it reaches the DAW when the link releases it, after the host has answered.
       if (index === call.steps.length - 1 && Number.isFinite(release)) {

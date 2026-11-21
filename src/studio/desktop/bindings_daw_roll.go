@@ -12,7 +12,9 @@ import (
 )
 
 // rollTimeout bounds one roll: the stop, the cursor move and REAPER reporting that it records again (narration_roll.lua
-// waits about a second for that), plus the play-position read before it.
+// waits about a second for that), plus the play-position read before it. It is not raised to cover the bridge's late wait: a roll is
+// pressed in a take, where an answer 20 s on is of no use, so a roll the DAW has read and not confirmed by then is said as that
+// (bridge.ErrAnswerLate) and the narrator looks.
 const rollTimeout = 5 * time.Second
 
 const (
@@ -98,6 +100,8 @@ func rollRefusal(name string, err error) dawport.Result {
 		return refused
 	}
 	switch {
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return dawport.Refused(lateAnswerSentence(name))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperNotRunning).Message)
 	case errors.Is(err, bridge.ErrUnavailable):
