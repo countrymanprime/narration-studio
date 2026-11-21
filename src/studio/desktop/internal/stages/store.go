@@ -228,6 +228,11 @@ func (s *DecisionStore) writeLocked(file decisionsFile) error {
 func (s *DecisionStore) ReferencedRecordIDs() (map[string]bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// A decisions file the stages service moved aside as corrupt (its reads do) leaves a missing file and the decisions it held in a
+	// kept-aside copy the narrator may restore: the records they name must not go while one is there.
+	if aside, _ := filepath.Glob(s.path + ".corrupt-*"); len(aside) > 0 {
+		return nil, fmt.Errorf("your %s file was kept aside as unreadable (%s); restore or remove it before records are cleaned up", decisionsWhat, filepath.Base(aside[0]))
+	}
 	raw, err := persist.ReadFile(s.path)
 	if errors.Is(err, os.ErrNotExist) {
 		return map[string]bool{}, nil

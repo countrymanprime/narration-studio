@@ -329,11 +329,17 @@ func TestTheSweepRemovesWhatARemovedRecordLeftBehind(t *testing.T) {
 				t.Fatalf("with the leftovers the readers answer\n%+v\nwas\n%+v", after, before)
 			}
 
-			swept, err := f.service.SweepOrphanResults()
-			if err != nil || !reflect.DeepEqual(swept, []string{first}) {
-				t.Fatalf("SweepOrphanResults = %v, %v; want the first check's files", swept, err)
+			// Only a summary whose result is gone is removed; a result with no record is left, since it cannot be told from one whose
+			// record has not arrived yet, and a summary stays with its result.
+			wantSwept, wantFirst := []string(nil), leave
+			if leave == "- summary -" {
+				wantSwept, wantFirst = []string{first}, "- - -"
 			}
-			for id, want := range map[string]string{first: "- - -", second: "result summary record", failed: "- - record"} {
+			swept, err := f.service.SweepOrphanResults()
+			if err != nil || !reflect.DeepEqual(swept, wantSwept) {
+				t.Fatalf("SweepOrphanResults = %v, %v; want %v", swept, err, wantSwept)
+			}
+			for id, want := range map[string]string{first: wantFirst, second: "result summary record", failed: "- - record"} {
 				if got := f.stored(id); got != want {
 					t.Fatalf("after the sweep record %s has %q, want %q", id, got, want)
 				}
@@ -533,6 +539,14 @@ func writeStored(t *testing.T, service *Service, id string) {
 	}
 }
 
+// writeStoredSummary stores a summary alone, as one left behind by a read that rebuilt it after its result was removed.
+func writeStoredSummary(t *testing.T, service *Service, id string) {
+	t.Helper()
+	if err := service.summaries.write(ResultSummary{RecordID: id}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // A record file that is there protects its stored result, readable or not; only an id with no file in the ledger
 // folder is an orphan.
 func TestTheSweepKeepsTheResultOfEveryRecordFileThatIsThere(t *testing.T) {
@@ -555,11 +569,8 @@ func TestTheSweepKeepsTheResultOfEveryRecordFileThatIsThere(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeStored(t, service, "folder")
-	writeStored(t, service, "orphan-1")
-	writeStored(t, service, "orphan-2")
-	if err := os.Remove(filepath.Join(resultsDir(p.dir), "orphan-2.json")); err != nil {
-		t.Fatal(err)
-	}
+	writeStoredSummary(t, service, "orphan-1")
+	writeStoredSummary(t, service, "orphan-2")
 	// Files in the stored folders that are no record's: a hand-named copy, a write's temporary file, a folder.
 	strays := []string{
 		filepath.Join(resultsDir(p.dir), "my copy.json"), filepath.Join(resultsDir(p.dir), "orphan-3.json.tmp"),
@@ -743,7 +754,7 @@ func TestTheSweepDeletesOnlyStoredResultsInItsOwnFolders(t *testing.T) {
 
 	t.Run("files in the real folders that this package did not store", func(t *testing.T) {
 		f, _, _, _ := checkedTwiceThenFailed(t)
-		writeStored(t, f.service, "orphan")
+		writeStoredSummary(t, f.service, "orphan")
 		foreign := map[string][]byte{
 			"README.json":        []byte("not a result"),
 			"another-shape.json": []byte(`{"name":"another-shape","items":[1,2,3]}`),
@@ -904,7 +915,7 @@ func TestTheSweepKeepsACheckThatFinishedWhileItListed(t *testing.T) {
 	if !ok {
 		t.Fatal("the second check's record is not readable")
 	}
-	writeStored(t, f.service, "orphan")
+	writeStoredSummary(t, f.service, "orphan")
 	f.service.sweepListed = func() {
 		arrived := seed
 		arrived.ID = "arrived"
@@ -928,7 +939,7 @@ func TestTheSweepKeepsACheckThatFinishedWhileItListed(t *testing.T) {
 }
 
 // Only a file with no record is read to see what it is: a sweep that finds no orphan decodes nothing, however many
-// results are stored, and one that finds an orphan reads that record's two files.
+// results are stored, and one that finds an orphan summary reads that one file.
 func TestTheSweepReadsOnlyTheFilesOfRecordsThatAreGone(t *testing.T) {
 	f, _, _, _ := checkedTwiceThenFailed(t)
 	decoded := func() int64 {
@@ -942,13 +953,13 @@ func TestTheSweepReadsOnlyTheFilesOfRecordsThatAreGone(t *testing.T) {
 	if read := decoded() - before; read != 0 {
 		t.Fatalf("a sweep with no orphan decoded %d files, want none", read)
 	}
-	writeStored(t, f.service, "orphan")
+	writeStoredSummary(t, f.service, "orphan")
 	before = decoded()
 	if swept, err := f.service.SweepOrphanResults(); err != nil || !reflect.DeepEqual(swept, []string{"orphan"}) {
 		t.Fatalf("SweepOrphanResults = %v, %v; want the orphan", swept, err)
 	}
-	if read := decoded() - before; read != 2 {
-		t.Fatalf("a sweep of one orphan decoded %d files, want its result and its summary", read)
+	if read := decoded() - before; read != 1 {
+		t.Fatalf("a sweep of one orphan decoded %d files, want its summary", read)
 	}
 }
 
@@ -1131,24 +1142,32 @@ func TestTheSweepRefusesALedgerOfAnotherProject(t *testing.T) {
 	}
 }
 
-// A result whose record has not arrived (a project being synced or restored) is not an orphan: only a result a newer complete check of
-// its chapter has superseded is. Deleting the first costs a whole re-check when the record lands.
-func TestTheSweepKeepsAResultWhoseChapterHasNoCompleteCheckInTheLedger(t *testing.T) {
-	f, _, _, _ := checkedTwiceThenFailed(t)
-	// Chapter c-0002 has no record in the ledger at all; its result and summary are there.
+// A result with no record is never swept: it cannot be told from one whose record has not arrived yet (a project being synced or
+// restored), and deleting that costs a whole re-check. Its summary stays with it.
+func TestTheSweepLeavesAResultWithNoRecordWhateverTheLedgerHolds(t *testing.T) {
+	f, first, second, _ := checkedTwiceThenFailed(t)
+	// The newest check's record has not arrived beside an older complete one.
+	if err := os.Remove(f.recordPath(second)); err != nil {
+		t.Fatal(err)
+	}
+	// A result of a chapter with no check in the ledger at all.
 	if err := f.service.results.write(StoredResult{RecordID: "late", DocumentID: "other-document", ChapterID: "c-0002"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := f.service.summaries.write(ResultSummary{RecordID: "late"}); err != nil {
 		t.Fatal(err)
 	}
-	// One whose chapter does have a complete check is superseded.
-	writeStored(t, f.service, "stale")
 	swept, err := f.service.SweepOrphanResults()
-	if err != nil || !reflect.DeepEqual(swept, []string{"stale"}) {
-		t.Fatalf("SweepOrphanResults = %v, %v; want the superseded result alone", swept, err)
+	if err != nil || len(swept) != 0 {
+		t.Fatalf("SweepOrphanResults = %v, %v; want nothing swept", swept, err)
+	}
+	if got := f.stored(second); got != "result summary -" {
+		t.Fatalf("the newest check has %q, want its result and summary kept", got)
 	}
 	if got := f.stored("late"); got != "result summary -" {
 		t.Fatalf("the result of a record that has not arrived has %q, want its result and summary kept", got)
+	}
+	if got := f.stored(first); got != "result summary record" {
+		t.Fatalf("the older check has %q", got)
 	}
 }

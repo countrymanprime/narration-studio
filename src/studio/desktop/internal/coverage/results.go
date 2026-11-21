@@ -375,41 +375,19 @@ func (s *Service) SweepOrphanResults() ([]string, error) {
 		if _, isRecordID := evidence.RecordFileName(id); !isRecordID || recorded[id] {
 			continue
 		}
-		result, err := s.removeOrphan(resultsFolder, id, s.supersededResult)
-		if err != nil {
-			return removed, fmt.Errorf("could not remove the coverage result of record %s: %w", id, err)
-		}
-		s.results.cache.drop(id)
-		s.summaries.forget(id)
+		// A result with no record is left where it is: it cannot be told from one whose record has not arrived yet (a project being
+		// synced or restored), and deleting that costs a whole re-check. Retain removes a superseded record's result with it, so an
+		// orphan result is rare. A summary is another matter: it is answered only while its result is there and is rebuilt from it.
 		summary, err := s.removeOrphan(summariesFolder, id, s.orphanSummary)
 		if err != nil {
 			return removed, fmt.Errorf("could not remove the coverage result summary of record %s: %w", id, err)
 		}
-		if result || summary {
+		if summary {
+			s.summaries.forget(id)
 			removed = append(removed, id)
 		}
 	}
 	return removed, nil
-}
-
-// supersededResult reports whether raw is a result this package stored for record id whose chapter has a complete check in the ledger
-// now. The record of a result that has no file is gone because a newer check replaced it, or because it has not arrived yet (a project
-// that is being synced or restored): only the first is an orphan, and the second costs a whole re-check if it is deleted.
-func (s *Service) supersededResult(raw []byte, id string) bool {
-	var result StoredResult
-	if json.Unmarshal(raw, &result) != nil || result.RecordID != id || result.SchemaVersion <= 0 {
-		return false
-	}
-	records, err := s.ledger.List(AnalyzerID, result.ChapterID)
-	if err != nil {
-		return false
-	}
-	for _, record := range records {
-		if record.Scope.DocumentID == result.DocumentID && record.Outcome == evidence.LedgerComplete {
-			return true
-		}
-	}
-	return false
 }
 
 // orphanSummary reports whether raw is a summary this package stored for record id whose result is not there any more: a summary is

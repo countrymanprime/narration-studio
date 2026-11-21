@@ -47,6 +47,7 @@ func (l ledgerRetention) Name() string { return "ledger" }
 func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Report {
 	report := l.measure(stop)
 	report.Kind = l.Name()
+	measureErr := report.Err
 	if stop() || ctx.Err() != nil {
 		report.Stopped = true
 		return report
@@ -88,8 +89,9 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	} else {
 		report.Stopped = true
 	}
+	errs = append(errs, measureErr)
 	report.Err = errors.Join(errs...)
-	after := l.measure(func() bool { return false })
+	after := l.measure(stop)
 	report.BytesAfter, report.FilesAfter = after.BytesBefore, after.FilesBefore
 	return report
 }

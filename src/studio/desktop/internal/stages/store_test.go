@@ -289,3 +289,17 @@ func TestReferencedRecordIDsDoesNotMoveACorruptFileAside(t *testing.T) {
 		t.Fatalf("the file after two reads = %q, %v; want it untouched", raw, err)
 	}
 }
+
+// The stages service's own read moves a corrupt decisions file aside; the file then looks missing, but the decisions are in the
+// kept-aside copy, so no record may be removed on an empty set while it is there.
+func TestReferencedRecordIDsStillStopsAfterTheStagesServiceMovedTheFileAside(t *testing.T) {
+	project := t.TempDir()
+	writeRaw(t, project, `{"schemaVersion":1,"documentId":"d","decisions":[{"basis":[{"ledgerRecordIds":["rec-1"]}]}]`)
+	_, _ = NewDecisionStore(project, nil).List("d") // the service's read quarantines the file
+	if _, err := os.Stat(DecisionsFile(project)); err == nil {
+		t.Skip("the read did not move the file aside here")
+	}
+	if got, err := NewDecisionStore(project, nil).ReferencedRecordIDs(); err == nil || got != nil {
+		t.Fatalf("ReferencedRecordIDs = %v, %v; want an error while the kept-aside copy is there", got, err)
+	}
+}
