@@ -79,6 +79,67 @@ describe('a name typed in "Add a name"', () => {
     expect((screen.getByRole('textbox', { name: 'Add a name' }) as HTMLInputElement).value).toBe('Mad H');
   });
 
+  it('Enter on an empty box says what to do and adds nothing (#3382 f)', async () => {
+    const { api } = mount();
+    const guideEdit = vi.spyOn(api, 'guideEdit');
+    const box = screen.getByRole('textbox', { name: 'Add a name' });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect((await screen.findByRole('status')).textContent).toContain('Type a name to add first.');
+    expect(guideEdit).not.toHaveBeenCalled();
+    fireEvent.change(box, { target: { value: 'M' } });
+    expect(screen.queryByText('Type a name to add first.')).toBeNull();
+  });
+
+  it.each(['\u200B', '\u200D\u200B', ' \u2060 ', '\u3164', '\uFEFF'])(
+    'a name that draws nothing (%j) is refused like a blank one, with the button off and Enter answering (#3382 f)',
+    async (invisible) => {
+      const { api } = mount();
+      const guideEdit = vi.spyOn(api, 'guideEdit');
+      const box = screen.getByRole('textbox', { name: 'Add a name' });
+      fireEvent.change(box, { target: { value: invisible } });
+      expect(screen.getByRole('button', { name: 'Add name' }).getAttribute('aria-disabled')).toBe('true');
+      fireEvent.keyDown(box, { key: 'Enter' });
+      expect((await screen.findByRole('status')).textContent).toContain('Type a name to add first.');
+      expect(guideEdit).not.toHaveBeenCalled();
+      expect(registry.heldNow()).toEqual([]);
+    },
+  );
+
+  it('a second Enter right after an add is the same press, not a blank name (#3382 f)', async () => {
+    mount();
+    const box = screen.getByRole('textbox', { name: 'Add a name' }) as HTMLInputElement;
+    fireEvent.change(box, { target: { value: 'Hatta' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    await waitFor(() => expect(box.value).toBe(''));
+    expect(screen.queryByText('Type a name to add first.')).toBeNull();
+    // Typing and deleting again is a new decision: a blank Enter answers once more.
+    fireEvent.change(box, { target: { value: 'x' } });
+    fireEvent.change(box, { target: { value: '' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect((await screen.findByRole('status')).textContent).toContain('Type a name to add first.');
+  });
+
+  it('a name that looks like one the entry has, apart from characters that draw nothing, is refused as taken (#3382 f)', async () => {
+    const { api } = mount();
+    const guideEdit = vi.spyOn(api, 'guideEdit');
+    const box = screen.getByRole('textbox', { name: 'Add a name' });
+    fireEvent.change(box, { target: { value: `${hatter.canonical_name}${String.fromCodePoint(0x200b)}` } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect((await screen.findByRole('status')).textContent).toContain('already a name');
+    expect(guideEdit).not.toHaveBeenCalled();
+  });
+
+  it('Escape on a box holding only invisible characters clears it without the discard question (#3382 f)', async () => {
+    const confirm = vi.spyOn(overlay, 'confirm');
+    mount();
+    const box = screen.getByRole('textbox', { name: 'Add a name' }) as HTMLInputElement;
+    fireEvent.change(box, { target: { value: String.fromCodePoint(0x200b) } });
+    fireEvent.keyDown(box, { key: 'Escape' });
+    await waitFor(() => expect(box.value).toBe(''));
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it("a relationship row half filled refuses the entry's Save in its own words (#3457)", async () => {
     const { notify } = mount();
     fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));

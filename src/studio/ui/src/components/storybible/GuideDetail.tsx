@@ -71,6 +71,7 @@ import {
 import { Relationships, type RelationRow } from './Relationships';
 import type { Notify } from '../primitives/Toast';
 import { useErrorToast } from '../../hooks/useErrorToast';
+import { hasVisibleText, visibleKey } from '../../visibleText';
 
 // What the form holds while an entry is being edited: the entry's own values, until the narrator changes them.
 // The says, does and knows properties of an entry whose type can speak are fields of their own (`talk`), so `properties` holds the rest.
@@ -119,7 +120,9 @@ function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; 
   return { types, failed, checkAgain: () => setNonce((n) => n + 1) };
 }
 
-const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+/** Why Add name is off, and what Enter says on a box with nothing in it to add. */
+const ADD_NAME_FIRST = 'Type a name to add first.';
+const sameName = (a: string, b: string) => visibleKey(a).trim().toLowerCase() === visibleKey(b).trim().toLowerCase();
 const hasName = (entry: GuideEntity, text: string) => sameName(entry.canonical_name, text) || entry.aliases.some((alias) => sameName(alias.text, text));
 /** The other entry that already has `text` as its name or one of its names, ignoring case; a draft is not an entry yet. */
 const nameOwner = (entries: readonly GuideEntity[], text: string, exceptId: string) =>
@@ -267,7 +270,9 @@ export function GuideDetail({
   const [editing, setEditing] = useState(false);
   const [aliasQuery, setAliasQuery] = useState('');
   // A name the narrator asked to add that the entry or another entry already has: the Names box says so, and for another entry's offers to merge it in.
-  const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string }>();
+  /** True from an add until the box is typed in again: the Enter that follows is the same press, not an empty name (#3382 f). */
+  const justAdded = useRef(false);
+  const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string; blank?: boolean }>();
   const [nameError, setNameError] = useState<string>();
   useErrorToast(nameError);
   const [confirmation, setConfirmation] = useState<'delete'>();
@@ -384,7 +389,7 @@ export function GuideDetail({
   const drafts = useUnsavedDrafts();
   // A name typed in "Add a name" and not added is held text, and nothing can add it from the question: it offers to keep editing or discard it (#3457).
   useUnsavedDraft('story-bible-alias-query', {
-    dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && aliasQuery.trim() !== ''),
+    dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && hasVisibleText(aliasQuery)),
     label: `the name “${shortName(aliasQuery, 18)}” you are adding`,
     brief: 'a name you are adding',
     needs: 'you to press Add name',
@@ -409,7 +414,7 @@ export function GuideDetail({
 
   // A new entry has no record until a category is chosen, so its typed name has nothing to save: the question offers to keep editing or discard it.
   useUnsavedDraft('story-bible-new-entry', {
-    dirty: Boolean(entity && isNewDraft && draft.name.trim() !== '' && draft.name !== entity.canonical_name),
+    dirty: Boolean(entity && isNewDraft && hasVisibleText(draft.name) && draft.name !== entity.canonical_name),
     label: `the new entry “${shortName(draft.name, 18)}”`,
     brief: 'a new entry',
     needs: 'a category chosen',
@@ -469,13 +474,16 @@ export function GuideDetail({
     const sent = JSON.stringify(draft);
     const done = await save('save', values, 'Entry saved.');
     // Text typed while the request was in flight was not in it: the editor stays open with it, as an edit still to save, rather than closing over it (#3457).
-    if (done && JSON.stringify(draftNow.current) === sent) setEditing(false);
+    if (done && JSON.stringify(draftNow.current) === sent) {
+      setEditing(false);
+      setNameNote(undefined);
+    }
     return done;
   };
   saveEntryRef.current = saveEntry;
   // An entry cannot be saved with no name or with one another entry has (the mock's renameEntry).
   const nameProblem = (name: string) => {
-    if (!name.trim()) return 'Give this entry a name.';
+    if (!hasVisibleText(name)) return 'Give this entry a name.';
     const owner = nameOwner(entities, name, entity.id);
     return owner ? `“${name.trim()}” is already a name of ${owner.canonical_name}.` : undefined;
   };
@@ -500,7 +508,7 @@ export function GuideDetail({
   // The text in the Names box is a name this entry or another entry already has (ignoring case): adding it would make a copy.
   const typedOwner = () => {
     const value = aliasQuery.trim();
-    if (!value) return undefined;
+    if (!hasVisibleText(value)) return undefined;
     if (hasName(entity, value)) return { text: value };
     const owner = nameOwner(entities, value, entity.id);
     return owner ? { text: value, ownerId: owner.id } : undefined;
@@ -508,13 +516,20 @@ export function GuideDetail({
   const addAliasFromQuery = () => {
     const value = aliasQuery.trim();
     // Another action is running: keep what was typed instead of clearing it and adding nothing.
-    if (!value || mutation.isBusy) return;
+    if (mutation.isBusy) return;
+    // Enter on nothing, or on a name that draws nothing, says so (the button is off with the same reason). A second Enter straight after an
+    // add finds the box it just emptied: that is the same press twice, not a blank name.
+    if (!hasVisibleText(value)) {
+      if (!justAdded.current) setNameNote({ text: '', blank: true });
+      return;
+    }
     const taken = typedOwner();
     if (taken) {
       setNameNote(taken);
       return;
     }
     clearAliasMatch();
+    justAdded.current = true;
     void setAliasTexts([...entity.aliases.map((alias) => alias.text), value]);
   };
   const closeVoicePrompt = () => {
@@ -755,7 +770,7 @@ export function GuideDetail({
     if (event.key === 'Escape') {
       event.preventDefault();
       // Escape is a way out, not a decision to drop what was typed: with a name typed it asks (#3457).
-      if (aliasQuery.trim() === '') clearAliasMatch();
+      if (!hasVisibleText(aliasQuery)) clearAliasMatch();
       else void confirmDiscard('the name you are adding').then((discard) => discard && clearAliasMatch());
       return;
     }
@@ -1050,6 +1065,7 @@ export function GuideDetail({
                   onChange={(value) => {
                     setAliasQuery(value);
                     setNameNote(undefined);
+                    justAdded.current = false;
                   }}
                   onKeyDown={onAliasKeyDown}
                   placeholder="Add a name"
@@ -1058,7 +1074,7 @@ export function GuideDetail({
               <Button
                 variant="secondary"
                 // Off with its reason (a tooltip a keyboard reaches), not just dimmed (#3339).
-                disabledReason={aliasQuery.trim() === '' ? 'Type a name to add first.' : busyReason('alias')}
+                disabledReason={!hasVisibleText(aliasQuery) ? ADD_NAME_FIRST : busyReason('alias')}
                 pending={mutation.isPending('alias')}
                 onClick={addAliasFromQuery}
               >
@@ -1067,9 +1083,11 @@ export function GuideDetail({
               {nameNote && (
                 <>
                   <span role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {nameNote.ownerId
-                      ? `“${nameNote.text}” is already a name of the entry ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
-                      : `“${nameNote.text}” is already a name of this entry.`}
+                    {nameNote.blank
+                      ? ADD_NAME_FIRST
+                      : nameNote.ownerId
+                        ? `“${nameNote.text}” is already a name of the entry ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
+                        : `“${nameNote.text}” is already a name of this entry.`}
                   </span>
                   {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
                 </>
