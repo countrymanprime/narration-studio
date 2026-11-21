@@ -18,7 +18,7 @@
  *
  * Race scope (M6 of docs/research/test-speed-plan-2026-11.md, #3860). On a pull request `-race` applies to the raced packages the change
  * touches (touchedPackages: a changed file in the package's own folder); the other raced packages still run every test, without the
- * detector. Every other run (main-health on each push to `main` and every three hours, a push, `pnpm check`) races all of them, and a red
+ * detector. A package that imports a touched one is not touched: a race a change causes in its importers' tests is found on `main`. Every other run (main-health on each push to `main` and every three hours, a push, `pnpm check`) races all of them, and a red
  * main-health run ticks HOLD on every open train issue. A change the rule cannot place (go.mod, this script, a workflow)
  * races everything.
  *
@@ -40,7 +40,7 @@
  * Any other directory below its floor is printed as a warning. Every other run (main-health, a push, `pnpm check`) is strict as
  * before, so a floor missed on `main` turns main-health red. A directory with no coverage data always fails: that is a rename, not a drift.
  */
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -116,11 +116,29 @@ export function touchedPackages(dirs, changed) {
     if (RACE_EVERYTHING.some((pattern) => pattern.test(file))) return null;
     let nearest = null;
     for (const dir of Object.keys(dirs)) {
-      if (file.startsWith(`${dir}/`) && (nearest === null || dir.length > nearest.length)) nearest = dir;
+      if ((dir === '' || file.startsWith(`${dir}/`)) && (nearest === null || dir.length > nearest.length)) nearest = dir;
     }
     if (nearest !== null) touched.add(dirs[nearest]);
   }
   return touched;
+}
+
+/**
+ * Which of the `wanted` groups' packages run under the detector and which without: `raced` are the concurrent ones `touched` holds
+ * (all of them when it is null), `later` the concurrent ones it does not, which this run tests without the detector and a run on
+ * `main` races, and `plain` the ones with no concurrency.
+ */
+export function raceScope(byGroup, wanted, touched) {
+  const concurrent = wanted.filter((name) => name !== 'plain').flatMap((name) => byGroup[name]);
+  const raced = touched === null ? concurrent : concurrent.filter((pkg) => touched.has(pkg));
+  return { raced, later: concurrent.filter((pkg) => !raced.includes(pkg)), plain: wanted.includes('plain') ? byGroup.plain : [] };
+}
+
+/** A package's folder from the repository root, spelled from its import path: the changed files are repository-relative, with forward slashes. */
+export function packageFolder(projectRoot, modulePath, pkg) {
+  const root = slash(projectRoot).replace(/^\.\//, '').replace(/\/+$/, '');
+  const inside = pkg.slice(modulePath.length + 1);
+  return root === '' || root === '.' ? inside : [root, inside].filter(Boolean).join('/');
 }
 
 const GROUPS = ['root', 'race', 'plain'];
@@ -319,15 +337,18 @@ function goTestRuns(projectRoot, modulePath, extra, groups, changed = changedFil
   const all = [...split.race, ...split.plain];
   const byGroup = groupPackages(split, modulePath);
   const wanted = groups ?? GROUPS;
-  const concurrent = wanted.filter((name) => name !== 'plain').flatMap((name) => byGroup[name]);
-  // A package's folder is spelled from its import path, not from its path on disk: the changed files are repository-relative.
-  const folder = (pkg) => slash(projectRoot).replace(/\/+$/, '') + pkg.slice(modulePath.length);
-  const touched = touchedPackages(Object.fromEntries(all.map((pkg) => [folder(pkg), pkg])), changed);
-  const raced = touched === null ? concurrent : concurrent.filter((pkg) => touched.has(pkg));
-  const later = concurrent.filter((pkg) => !raced.includes(pkg));
-  const plain = [...(wanted.includes('plain') ? byGroup.plain : []), ...later];
+  const folders = Object.fromEntries(all.map((pkg) => [packageFolder(projectRoot, modulePath, pkg), pkg]));
+  let touched = touchedPackages(folders, changed);
+  // The rule reads folders as the changed files spell them. If the module is not where the spelling says, nothing would match and
+  // nothing would be raced, so race everything and say so.
+  if (touched !== null && !existsSync(join(packageFolder(projectRoot, modulePath, modulePath) || '.', 'go.mod'))) {
+    console.log(`::warning::coverage: no go.mod at ${packageFolder(projectRoot, modulePath, modulePath) || '.'} from ${process.cwd()}; racing every package`);
+    touched = null;
+  }
+  const { raced, later, plain: quiet } = raceScope(byGroup, wanted, touched);
+  const plain = [...quiet, ...later];
   if (later.length) console.log(`coverage: ${later.length} packages with concurrency that this pull request does not touch run without -race here and with it on main: ${later.join(', ')}`);
-  if (plain.length > later.length) console.log(`coverage: ${plain.length - later.length} packages with no concurrency run without -race: ${plain.slice(0, plain.length - later.length).join(', ')}`);
+  if (quiet.length) console.log(`coverage: ${quiet.length} packages with no concurrency run without -race: ${quiet.join(', ')}`);
   if (groups) console.log(`coverage: group ${groups.join(',')}: ${raced.length} packages with -race, ${plain.length} without; the rest run in other jobs.`);
   return {
     runs: [

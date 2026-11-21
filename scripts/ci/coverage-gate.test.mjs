@@ -25,6 +25,8 @@ import {
   raiseFloors,
   RAISE_MARGIN,
   report,
+  packageFolder,
+  raceScope,
   splitRacePackages,
   touchedPackages,
   TARGET,
@@ -341,6 +343,35 @@ test('a change the rule cannot place, or a run that is not a pull request, touch
   for (const file of ['src/app/go.mod', 'src/app/go.sum', 'go.work', '.github/workflows/_quality.yml', '.github/actions/nx-run/action.yml', 'scripts/ci/coverage-gate.mjs', 'scripts/ci/pr-scope.mjs', 'scripts/toolchain.json', 'scripts/quality.mjs']) {
     assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', file]), null, file);
   }
+});
+
+test('a package folder is spelled from the project root and the import path, however the root is written', () => {
+  for (const root of ['src/app', './src/app', 'src/app/', 'src\\app']) {
+    assert.equal(packageFolder(root, MODULE, MODULE), 'src/app', root);
+    assert.equal(packageFolder(root, MODULE, `${MODULE}/internal/a`), 'src/app/internal/a', root);
+  }
+  assert.equal(packageFolder('.', MODULE, MODULE), '');
+  assert.equal(packageFolder('.', MODULE, `${MODULE}/internal/a`), 'internal/a');
+  assert.deepEqual([...touchedPackages({ '': MODULE, 'internal/a': `${MODULE}/internal/a` }, ['main.go', 'internal/a/a.go'])].sort(), [MODULE, `${MODULE}/internal/a`], 'a module at the repository root');
+});
+
+test('on a pull request only the touched concurrent packages are raced; the others run without the detector, none is dropped', () => {
+  const groups = groupPackages(layout, MODULE);
+  const everything = [...layout.race, ...layout.plain].sort();
+  const ran = (scope) => [...scope.raced, ...scope.later, ...scope.plain].sort();
+  const all = raceScope(groups, ['root', 'race', 'plain'], null);
+  assert.deepEqual(all, { raced: layout.race, later: [], plain: layout.plain }, 'not a pull request: every concurrent package is raced');
+  const one = raceScope(groups, ['root', 'race', 'plain'], new Set([`${MODULE}/internal/a`, `${MODULE}/internal/c`]));
+  assert.deepEqual(one.raced, [`${MODULE}/internal/a`]);
+  assert.deepEqual(one.later, [MODULE, `${MODULE}/internal/b`]);
+  assert.deepEqual(one.plain, layout.plain, 'a touched package with no concurrency stays unraced: the detector finds nothing in it');
+  assert.deepEqual(ran(one), everything);
+  const none = raceScope(groups, ['root', 'race', 'plain'], new Set());
+  assert.deepEqual(none.raced, []);
+  assert.deepEqual(ran(none), everything, 'a pull request that touches no Go package still runs every test');
+  assert.deepEqual(raceScope(groups, ['root'], new Set()), { raced: [], later: [MODULE], plain: [] }, 'the root job with the root untouched');
+  assert.deepEqual(raceScope(groups, ['root'], new Set([MODULE])), { raced: [MODULE], later: [], plain: [] });
+  assert.deepEqual(raceScope(groups, ['race', 'plain'], new Set([MODULE])).raced, [], 'the root is the other job\'s');
 });
 
 test('--group names the root, the other raced and the plain packages, once each', () => {

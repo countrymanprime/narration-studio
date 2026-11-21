@@ -335,7 +335,7 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "safety_net": "On a pull request the race detector runs on the raced packages the change touches (scripts/ci/coverage-gate.mjs, touchedPackages); the others run every test without it. Every run of ci.yml that is not a pull request races all of them: Main health on each push to main and every 3 hours when main moved, where a red run ticks HOLD on the train issue. A change to go.mod, go.sum, scripts/ci, scripts/toolchain.json, scripts/quality.mjs or .github races all of them on the pull request too."
+      "safety_net": "On a pull request the race detector runs on the raced packages the change touches (scripts/ci/coverage-gate.mjs, touchedPackages); the others run every test without it. Every run of ci.yml that is not a pull request races all of them: Main health on each push to main and every 3 hours when main moved, where a red run ticks HOLD on every open train issue. A change to go.mod, go.sum, scripts/ci, scripts/toolchain.json, scripts/quality.mjs or .github races all of them on the pull request too."
     },
     {
       "id": "go-test/rest",
@@ -367,7 +367,7 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "safety_net": "On a pull request the race detector runs on the raced packages the change touches (scripts/ci/coverage-gate.mjs, touchedPackages); the others run every test without it. Every run of ci.yml that is not a pull request races all of them: Main health on each push to main and every 3 hours when main moved, where a red run ticks HOLD on the train issue. A change to go.mod, go.sum, scripts/ci, scripts/toolchain.json, scripts/quality.mjs or .github races all of them on the pull request too."
+      "safety_net": "On a pull request the race detector runs on the raced packages the change touches (scripts/ci/coverage-gate.mjs, touchedPackages); the others run every test without it. Every run of ci.yml that is not a pull request races all of them: Main health on each push to main and every 3 hours when main moved, where a red run ticks HOLD on every open train issue. A change to go.mod, go.sum, scripts/ci, scripts/toolchain.json, scripts/quality.mjs or .github races all of them on the pull request too."
     },
     {
       "id": "go-test/schedules",
