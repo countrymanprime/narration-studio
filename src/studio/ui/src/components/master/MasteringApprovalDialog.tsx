@@ -4,6 +4,7 @@ import type { ExportPlan } from '../../types';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
 import { Panel } from '../primitives/Panel';
+import { Pill } from '../primitives/Pill';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
@@ -55,11 +56,32 @@ const VIEW_STEPS = Array.from({ length: 11 }, (_, i) => i / 10);
  * track with FX top to bottom and then the master, which carries a Master badge from its flag (a track the narrator named "Master"
  * is plain text). A bypassed plug-in has an Off badge. Capped to its own scroll; with no FX anywhere one row says so.
  */
-function ChainList({ chain, onView }: { chain: ExportPlan['chain'] | null | undefined; onView: (inView: boolean) => void }) {
+/** Which way the chain's first row lies from what the dialog shows of it: the middle of the row against the middle of the box every scrolling ancestor leaves it. */
+function sideOf(row: Element): 'above' | 'below' {
+  const at = row.getBoundingClientRect();
+  let top = 0;
+  let bottom = window.innerHeight;
+  for (let node = row.parentElement; node; node = node.parentElement) {
+    if (!/auto|scroll|hidden|clip/.test(getComputedStyle(node).overflowY)) continue;
+    const box = node.getBoundingClientRect();
+    top = Math.max(top, box.top);
+    bottom = Math.min(bottom, box.bottom);
+  }
+  return at.top + at.height / 2 > (top + bottom) / 2 ? 'below' : 'above';
+}
+
+function ChainList({
+  chain,
+  onView,
+}: {
+  chain: ExportPlan['chain'] | null | undefined;
+  /** Whether the first row is in view, and which way it lies when it is not. */
+  onView: (inView: boolean, side: 'above' | 'below') => void;
+}) {
   const tracks = chain ?? [];
   const rows = tracks.flatMap((track) => (track.fx ?? []).map((fx) => ({ master: track.master, track: track.name, fx })));
   // Whether the chain's first row is in view. At a small window (320x300, or 400% zoom) it is below the dialog's visible body while
-  // Approve is in view, so a pointer beside Approve says so (round 3 on #2932: Approve is never held, since at 400% zoom the body can
+  // Approve is in view, so a pointer over the body says so (round 3 on #2932: Approve is never held, since at 400% zoom the body can
   // be 0 px tall and a held Approve would be a dead end). It is watched for as long as the dialog is open, so the pointer follows a
   // resize (round 4, N3). The row counts as in view when half of it shows, or a few lines of a row taller than that (M5), never a
   // sliver (round 4, N4). Without IntersectionObserver (jsdom) nothing is reported.
@@ -69,20 +91,31 @@ function ChainList({ chain, onView }: { chain: ExportPlan['chain'] | null | unde
   useEffect(() => {
     const row = first.current?.closest('tr');
     if (!row || typeof IntersectionObserver === 'undefined') return;
+    let inView = true;
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries.at(-1);
-        if (entry) report.current(entry.isIntersecting && (entry.intersectionRatio >= 0.5 || (entry.intersectionRect?.height ?? 0) >= TALL_ROW_SHOWN));
+        if (!entry) return;
+        inView = entry.isIntersecting && (entry.intersectionRatio >= 0.5 || (entry.intersectionRect?.height ?? 0) >= TALL_ROW_SHOWN);
+        report.current(inView, sideOf(row));
       },
       { threshold: VIEW_STEPS },
     );
     observer.observe(row);
-    return () => observer.disconnect();
+    // The observer is silent while the row stays out of view, and a scroll or a resize can carry the row from below what shows to above it in one step: the side is read again.
+    const again = () => (inView ? undefined : report.current(false, sideOf(row)));
+    document.addEventListener('scroll', again, { capture: true, passive: true });
+    window.addEventListener('resize', again);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('scroll', again, { capture: true });
+      window.removeEventListener('resize', again);
+    };
   }, []);
   return (
     <div data-decision-critical="">
       {/* The "i" follows the count's last word, so it stays beside the text when the line wraps (round 3 ux). */}
-      <SectionLabel as="p" className="mt-2">
+      <SectionLabel as="p" className="mt-2 [&_button]:scroll-mb-11">
         {chainCount(tracks)}{' '}
         <span className="inline-flex align-middle normal-case">
           <Tooltip label="What this approval covers" text={CHAIN_SCOPE} />
@@ -176,12 +209,14 @@ export function MasteringApprovalDialog({
 }) {
   const [macro, setMacro] = useState(plan.needsMacro ? lastMacro : '');
   const [problem, setProblem] = useState<string>();
-  // Whether the chain's first row is out of view: then a pointer beside Approve names it and brings it into view.
+  // Whether the chain's first row is out of view: then a chip over the body's bottom edge names it and brings it into view.
   const [chainBelow, setChainBelow] = useState(false);
+  // Which way it lies then: below what shows when the dialog opens in a short window, above once the narrator has scrolled past it.
+  const [chainSide, setChainSide] = useState<'above' | 'below'>('above');
   const chainRef = useRef<HTMLDivElement>(null);
   const effects = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).length, 0);
   const off = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).filter((fx) => !fx.enabled).length, 0);
-  // The pointer beside Approve: how many effects are above, and how many of them are off (round 3 walkthrough), or that there are
+  // The pointer: how many effects are above, and how many of them are off (round 3 walkthrough), or that there are
   // none (round 4, N5). Pressing it brings the first effect itself into view, not the chain's top, which at a short body would show
   // only the count (round 4, N2), and puts the keyboard on the chain's list, which stays when the pointer goes.
   const chainList = () => chainRef.current?.querySelector<HTMLElement>('[role="group"]');
@@ -191,21 +226,21 @@ export function MasteringApprovalDialog({
   };
   // A pointer that goes while it has the keyboard (the window grew) takes the keyboard out of the dialog with it: it goes to the
   // chain's list, which the pointer named. Focus anywhere else in the dialog stays where it is (round 5, B2).
-  const wasBelow = useRef(chainBelow);
+  // The pointer is drawn while the first effect is out of view, and not while the approval is being sent.
+  const pointerShown = chainBelow && !pending;
+  const wasBelow = useRef(pointerShown);
   useEffect(() => {
-    const went = wasBelow.current && !chainBelow;
-    wasBelow.current = chainBelow;
+    const went = wasBelow.current && !pointerShown;
+    wasBelow.current = pointerShown;
     const dialog = chainRef.current?.closest('[role="alertdialog"]');
     const active = document.activeElement;
     if (went && dialog && (active === null || !active.isConnected || !dialog.contains(active))) chainList()?.focus({ preventScroll: true });
-  }, [chainBelow]);
-  const pointer: { secondary: () => void; secondaryLabel: string } | { secondary?: undefined; secondaryLabel?: undefined } = chainBelow
-    ? {
-        secondaryLabel:
-          effects === 0 ? 'See the chain above: no effects' : `See the ${plural(effects, 'effect')} above${off > 0 ? `, ${off} switched off` : ''}`,
-        secondary: showChain,
-      }
-    : {};
+  }, [pointerShown]);
+  // What the chip over the body says, and its hint: the whole sentence the pointer used to carry as a third button.
+  const where = effects === 0 ? `Chain ${chainSide}: no effects` : `${plural(effects, 'effect')} ${chainSide}${off > 0 ? `, ${off} off` : ''}`;
+  const whereHint =
+    effects === 0 ? `See the chain ${chainSide}: no effects` : `See the ${plural(effects, 'effect')} ${chainSide}${off > 0 ? `, ${off} switched off` : ''}`;
+
   const regions = plan.items.some((item) => item.region !== '');
   const count = plural(plan.items.length, 'file');
   const listLabel = regions ? 'Files and the regions they render' : 'Files to master';
@@ -232,14 +267,19 @@ export function MasteringApprovalDialog({
       confirm={approve}
       cancel={onCancel}
       pending={pending}
-      {...pointer}
       focusCancel
       returnFocus={returnFocus}
     >
       {/* The chain first: it is what the narrator approves, so it is in view under the question at 360x500 (qa on #2932, B1). */}
       {plan.provider === 'daw' && (
         <div ref={chainRef}>
-          <ChainList chain={plan.chain} onView={(inView) => setChainBelow(!inView)} />
+          <ChainList
+            chain={plan.chain}
+            onView={(inView, side) => {
+              setChainBelow(!inView);
+              setChainSide(side);
+            }}
+          />
         </div>
       )}
       <Panel flush scroll label={listLabel} className="mt-2 max-h-[14rem]">
@@ -281,6 +321,33 @@ export function MasteringApprovalDialog({
             hint={problem ? undefined : `Its name as Audacity's Macro Manager lists it: ${MACRO_NAME_CHARACTERS}.`}
             error={problem}
           />
+        </div>
+      )}
+      {/* Room under the last list for the pointer, always there so nothing moves when the pointer comes or goes: at the scroll's end the last file's row is whole above the chip
+          (without it the chip sat on that row's region at every scroll position, qa on #3870). */}
+      {plan.provider === 'daw' && <div aria-hidden="true" className="h-7" />}
+      {/* The pointer to a chain that is out of view floats over the bottom edge of the body and takes no room: as a third button it wrapped the action row onto a second
+          line the moment it appeared, and the body lost 42 px (#3605 item 4). A zero-height sticky row, last in the body, so it rides the body's bottom edge. */}
+      {/* While the approval is being sent the pointer is not drawn: a dimmed chip over the list let the row under it show through its label. */}
+      {pointerShown && (
+        // 8 px above the body's bottom edge wherever the body is scrolled, as the mock drew it: at the scroll's end the row's own place is above the body's bottom padding
+        // (1 rem; 0.5 rem at 400 px of height or less), so there it is moved down by the difference, with the opposite margin under it so the content's height is unchanged.
+        <div
+          data-chain-pointer
+          className="pointer-events-none sticky bottom-2 z-10 mt-2 -mb-2 flex h-0 items-end justify-center [@media(max-height:400px)]:my-0"
+        >
+          <span className="pointer-events-auto">
+            <Pill
+              look="filter"
+              action
+              raised
+              icon={chainSide === 'above' ? 'showAbove' : 'showBelow'}
+              label={where}
+              title={whereHint}
+              active={false}
+              onClick={showChain}
+            />
+          </span>
         </div>
       )}
     </ConfirmDialog>

@@ -11,11 +11,14 @@ import { spawnSync } from 'node:child_process';
 export function changedFiles(env = process.env, git = (args) => spawnSync('git', args, { encoding: 'utf8' })) {
   if (env.GITHUB_EVENT_NAME !== 'pull_request' || !env.GITHUB_BASE_REF) return null;
   const range = `origin/${env.GITHUB_BASE_REF}...HEAD`;
-  let run = git(['diff', '--name-only', range]);
+  // Paths as they are on disk (git quotes and escapes a non-ASCII name by default), and both names of a moved file: a gate that maps a
+  // path to a folder must see the folder a file left as well as the one it reached.
+  const diff = ['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', range];
+  let run = git(diff);
   if (run.status !== 0) {
     // Three dots need the merge base, so fetch enough history for it, as the full-history checkouts of the other jobs have.
     git(['fetch', '--no-tags', '--quiet', '--unshallow', 'origin', env.GITHUB_BASE_REF]);
-    run = git(['diff', '--name-only', range]);
+    run = git(diff);
   }
   if (run.status !== 0) {
     console.log(`::warning::pr-scope: cannot diff against origin/${env.GITHUB_BASE_REF} (${String(run.stderr).trim().split('\n')[0]}); gating every directory`);
