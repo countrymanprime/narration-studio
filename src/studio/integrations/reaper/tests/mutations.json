@@ -4532,5 +4532,11 @@
     "file": "narration_solo_chapter.lua",
     "find": "        state.wait = state.wait - 1",
     "replace": "        state.wait = state.wait"
+  },
+  {
+    "name": "track_create turns monitoring on over a value already set",
+    "file": "narration_track_create.lua",
+    "find": "  if reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0 then",
+    "replace": "  if true then"
   }
 ]
