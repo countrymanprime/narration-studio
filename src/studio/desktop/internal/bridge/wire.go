@@ -114,8 +114,9 @@ var eventSpecs = map[string]eventSpec{
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later
 	// optional for the same reason; the script also sends a heartbeat at once when playState changes. timing is 1 while the
 	// bridge timing diagnostic is switched on in REAPER (the host then writes its record-press timeline, internal/presstimeline),
-	// and empty or absent otherwise. tracksRevision is the script's one value for the track list (#3859), any text: the host only compares it
-	// with the one TRACKS_READ carried, and a script from before it sends none.
+	// and empty or absent otherwise. tracksRevision is the script's one value for the track list (#3859), any text here, but the host sends it on to the page
+	// (daw_tracks_changed, TracksLive) only as 16 lower-case hex digits (wireRevision) and compares it with the one TRACKS_READ carried;
+	// a script from before it sends none.
 	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition"), count("timing"), text("tracksRevision")}},
 	// src/studio/integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
 	// action-list name REAPER matched (so the narrator sees what opened).

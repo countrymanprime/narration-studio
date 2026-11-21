@@ -11,6 +11,7 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
+	"desktop/internal/daw"
 	"desktop/internal/dawport"
 	"desktop/internal/dawport/dawporttest"
 )
@@ -286,9 +287,74 @@ func TestContractTracksLive(t *testing.T) {
 		}
 		contractfile.Check(t, name, stable)
 	}
-	pin("tracks-live-live", readLive(t, host, listerFor(rpp, dawport.LiveTrack{Index: 3, GUID: liveAdded, Name: "Chapter III", FolderDelta: 1},
-		dawport.LiveTrack{Index: 4, GUID: liveVoice, Name: "Guard", FolderDelta: -1}), dawport.Support{Available: true}))
-	pin("tracks-live-saved", readLive(t, host, nil, dawport.Support{Reason: dawport.ReasonNotRunning}))
+	// The list REAPER answered carries its revision and the heartbeat is already one change ahead: the live answer repeats the list's own, so
+	// the page reads again on that change's event. The saved one never carries one.
+	reach := daw.NewReachability(nil)
+	reach.Record(tracksBeat("ffffffffffffffff"))
+	host.reachability = reach
+	lister := listerFor(rpp, dawport.LiveTrack{Index: 3, GUID: liveAdded, Name: "Chapter III", FolderDelta: 1},
+		dawport.LiveTrack{Index: 4, GUID: liveVoice, Name: "Guard", FolderDelta: -1})
+	lister.read.Revision = "00c3a1f29b7d4e58"
+	live := readLive(t, host, lister, dawport.Support{Available: true})
+	saved := readLive(t, host, nil, dawport.Support{Reason: dawport.ReasonNotRunning})
+	if live.Revision != "00c3a1f29b7d4e58" || saved.Revision != "" {
+		t.Fatalf("revision: live %q, saved %q; want the read list's own for REAPER's list and none for the saved file's", live.Revision, saved.Revision)
+	}
+	pin("tracks-live-live", live)
+	pin("tracks-live-saved", saved)
+
+	// A script from before the revision (a heartbeat with none), or no heartbeat at all: the list is live but carries no revision, so the page
+	// keeps its timer. A TRACKS_READ that names one cannot stop it when nothing will send the event.
+	old := daw.NewReachability(nil)
+	old.Record(tracksBeat(""))
+	host.reachability = old
+	if got := readLive(t, host, lister, dawport.Support{Available: true}); got.Source != "live" || got.Revision != "" {
+		t.Fatalf("a heartbeat with no revision: source %q revision %q; want a live list with none", got.Source, got.Revision)
+	}
+	host.reachability = nil
+	if got := readLive(t, host, lister, dawport.Support{Available: true}); got.Source != "live" || got.Revision != "" {
+		t.Fatalf("no heartbeat: source %q revision %q; want a live list with none", got.Source, got.Revision)
+	}
+
+	// A read that answers a revision in a form the page cannot read: none, though the heartbeat's is fine, or the page's schema refuses the whole list.
+	fine := daw.NewReachability(nil)
+	fine.Record(tracksBeat("ffffffffffffffff"))
+	host.reachability = fine
+	lister.read.Revision = "ABCDEF0123456789"
+	if got := readLive(t, host, lister, dawport.Support{Available: true}); got.Source != "live" || got.Revision != "" {
+		t.Fatalf("a read revision of another form: source %q revision %q; want a live list with none", got.Source, got.Revision)
+	}
+}
+
+// The binding's own clamp: a DAW whose heartbeat the engine does not report (Audacity) gets no revision though the read carries one, so the
+// page keeps its timer; REAPER with a fresh heartbeat gets the read list's own.
+func TestTracksLiveBindingHoldsTheRevisionToWhatTheTickWouldSend(t *testing.T) {
+	host, _ := newTestHostForChapterMatch(t)
+	rpp := filepath.Join(host.config.projectFolder, "Alice.rpp")
+	reach := daw.NewReachability(nil)
+	reach.Record(tracksBeat("ffffffffffffffff"))
+	client, err := bridge.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	host.bridge, host.reachability = client, reach
+	host.config.daw = "REAPER"
+	lister := listerFor(rpp, dawport.LiveTrack{Index: 3, GUID: liveAdded, Name: "Chapter III", FolderDelta: 0})
+	lister.read.Revision = "00c3a1f29b7d4e58"
+	ask := func() tracksLive {
+		got, err := host.tracksLiveWith(context.Background(), host.services(), lister, dawport.Support{Available: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	if got := ask(); got.Source != "live" || got.Revision != "00c3a1f29b7d4e58" {
+		t.Fatalf("REAPER with a heartbeat: source %q revision %q; want the read list's own", got.Source, got.Revision)
+	}
+	host.config.daw = "Audacity"
+	if got := ask(); got.Source != "live" || got.Revision != "" {
+		t.Fatalf("a DAW with no heartbeat: source %q revision %q; want a live list with none", got.Source, got.Revision)
+	}
 }
 
 func TestTracksLiveBindingAnswersJSON(t *testing.T) {

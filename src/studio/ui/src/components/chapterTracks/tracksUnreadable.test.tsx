@@ -146,6 +146,7 @@ describe('the one sentence for a first tracks read that failed', () => {
           reason: '' as const,
           message: '',
           readAt: '2026-11-11T00:00:00Z',
+          revision: '',
           project: {
             path: 'Book.rpp',
             tracks: [{ guid: 'T', index: 0, name: 'One', color: '', muted: false, soloed: false, items: [item], depth: 0, isFolder: false }],

@@ -10,6 +10,7 @@ import { useChapterLinkActions } from '../chapterTracks/useChapterLinkActions';
 import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
+import { createQuietWindow } from '../../quietWindow';
 
 /** A failed read of the chapter list on a job end or window focus keeps the list as it was; the mount read and the Refresh button say why they failed. */
 const recorded = (_failure: unknown): void => undefined;
@@ -35,23 +36,21 @@ export type ChapterLinks = {
   unlink: (chapterId: string) => void;
   /** Has the DAW add a track named after the chapter (a folder with a Narrator track in Voice folders) and link it (chapterTrackCreate), then
    * re-reads. Answers the host's result, or undefined when the press is ignored: another change or create is in flight (from this mount or
-   * another), or a create answered less than CREATE_QUIET_MS ago (a fast second click lands on the row that moved under the pointer). A failed
+   * another), or a create answered less than QUIET_MS ago (a fast second click lands on the row that moved under the pointer). A failed
    * call rejects. */
   create: (chapterId: string) => Promise<ChapterTrackCreateResult | undefined>;
 };
 
-/** How long after a create answers that a create press is ignored: the rows shift when one is linked, so a fast second click would land on
- * the next row's button (walkthrough F1, #2958). */
-export const CREATE_QUIET_MS = 600;
-
 /** The one create in flight, for every mount of this hook: the host serialises creates too (chapterTrackCreates), and a panel closed and
  * opened again while one runs must neither press again nor lose its busy state. */
-const createGuard: { pending: { chapterId: string; done: Promise<unknown> } | null; quietUntil: number } = { pending: null, quietUntil: 0 };
+const createGuard: { pending: { chapterId: string; done: Promise<unknown> } | null } = { pending: null };
+/** The rows shift when a create or an unlink answers, so a fast second click would land on the next row's button (walkthrough F1, #2958, #3272). */
+const createQuiet = createQuietWindow();
 
 /** Clears the create guard. Only for tests, where one test's create must not hold back the next test's press. */
 export function resetChapterTrackCreateGuard(): void {
   createGuard.pending = null;
-  createGuard.quietUntil = 0;
+  createQuiet.reset();
 }
 
 /** A track a create answered with, as the track list draws it, and when the answer came. */
@@ -168,7 +167,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
         inFlight.current = false;
         setBusyChapterId('');
         // An Unlink puts "Create a track" where Clear was, so a fast second click would press it: same quiet window as after a create (#3272).
-        if (quietAfter) createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
+        if (quietAfter) createQuiet.start();
       });
   };
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
@@ -212,7 +211,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   }, []);
 
   const create = async (chapterId: string): Promise<ChapterTrackCreateResult | undefined> => {
-    if (inFlight.current || createGuard.pending || Date.now() < createGuard.quietUntil) return undefined;
+    if (inFlight.current || createGuard.pending || createQuiet.quiet()) return undefined;
     inFlight.current = true;
     setBusyChapterId(chapterId);
     setCreatingChapterId(chapterId);
@@ -229,7 +228,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       return result;
     } finally {
       if (createGuard.pending?.done === request) createGuard.pending = null;
-      createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
+      createQuiet.start();
       inFlight.current = false;
       setBusyChapterId('');
       setCreatingChapterId('');

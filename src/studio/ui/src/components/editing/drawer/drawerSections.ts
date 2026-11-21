@@ -18,15 +18,30 @@ export interface DrawerSection {
 }
 
 const sections: DrawerSection[] = [];
+let version = 0;
+const listeners = new Set<() => void>();
+const changed = () => {
+  version += 1;
+  for (const on of listeners) on();
+};
+
+/** For the Drawer: it draws again when a section is added, replaced or removed, so a page that re-registers after its own render is not one render behind. */
+export function subscribeSections(on: () => void): () => void {
+  listeners.add(on);
+  return () => listeners.delete(on);
+}
+export const sectionsVersion = (): number => version;
 
 /** Adds a section to its tab of the Editing drawer and returns the function that removes it. */
 export function registerDrawerSection(section: DrawerSection): () => void {
   const entry: DrawerSection = { ...section };
   const at = sections.findIndex((s) => s.order > entry.order);
   sections.splice(at < 0 ? sections.length : at, 0, entry);
+  changed();
   return () => {
     const i = sections.indexOf(entry);
     if (i >= 0) sections.splice(i, 1);
+    changed();
   };
 }
 

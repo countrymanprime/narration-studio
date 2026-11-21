@@ -20,6 +20,14 @@
 //   answers late, after its limit              same test: its late answer never replaces the newer read's
 //   two readers at once (the dialog opening)   'joining while a read is in flight sends nothing more, and reads when none is'
 //   leave mid-action (unmount mid-read)        'an answer after the panel closed is dropped'
+//   REAPER reports a revision                  'with a revision the timer reads nothing, and an event with a new revision reads at once'
+//   repeats an event (other project, same list) 'an event carrying the revision already shown still reads: REAPER may have another project with the same list'
+//   loses an event                             'focus and Refresh still read while a revision is held' (and the host's next change sends its own event)
+//   revision no longer known (REAPER gone)     'an event with no revision reads at once and the timer takes over again'
+//   event during a read (answers out of order) 'an event during a read reads once more when it ends, hidden or not, and never after the panel is switched off'
+//   read fails while a revision is held        'a failed read forgets the revision, so the timer reads again'
+//   event while hidden                         'an event while the window is hidden reads nothing; coming back reads'
+//   leave (unmount)                            'the subscription ends with the panel'
 //   Audacity (disabled)                        'disabled, it never reads'
 //   long, RTL and emoji names                  not tested here: the hook passes names through untouched (tracks_read_test.lua and tracks_read_test.go send them)
 //   wrong project / wrong version / restart    the host's reasons (other_project, outdated, not_running): tracks_live_test.go; here they are one 'saved' answer
@@ -28,7 +36,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { Track, TracksLive } from '../../api/contracts/tracks';
-import { LIVE_TRACKS_BACKOFF_MAX_MS, LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS, TRACKS_READ_TOPIC, useLiveTracks, type LiveTracks } from './useLiveTracks';
+import {
+  LIVE_TRACKS_BACKOFF_MAX_MS,
+  LIVE_TRACKS_POLL_MS,
+  LIVE_TRACKS_SAVED_POLL_MS,
+  LIVE_TRACKS_TIMEOUT_MS,
+  TRACKS_READ_TOPIC,
+  useLiveTracks,
+  type LiveTracks,
+} from './useLiveTracks';
 
 afterEach(() => {
   cleanup();
@@ -53,6 +69,7 @@ const answer = (tracks: Track[], over: Partial<TracksLive> = {}): TracksLive => 
   reason: '',
   message: '',
   readAt: '2026-11-03T12:00:00Z',
+  revision: '',
   project: { path: 'C:/Projects/Alice/Alice.rpp', tracks },
   ...over,
 });
@@ -473,5 +490,159 @@ describe('reading the live track list', () => {
     await act(async () => hook.current.refresh());
     expect(api.tracksLive).not.toHaveBeenCalled();
     expect(hook.current.project).toBeUndefined();
+  });
+
+  // #3880: REAPER's heartbeat says when its track list changed, so a list read with a revision is read again on the event, not every 5 s.
+  describe('daw_tracks_changed', () => {
+    const A = 'aaaaaaaaaaaaaaaa';
+    const B = 'bbbbbbbbbbbbbbbb';
+    /** A host that answers `revision.now` and whose event the test sends. */
+    function eventHost(first: string) {
+      const api = createMockApi();
+      const revision = { now: first };
+      const subs = new Set<(change: { revision: string }) => void>();
+      api.tracksLive = vi.fn(async () => answer([track(0, 'Chapter 1')], { revision: revision.now }));
+      api.subscribeTracksChanged = (on) => {
+        subs.add(on);
+        return () => subs.delete(on);
+      };
+      const send = (next: string) => act(async () => subs.forEach((on) => on({ revision: next })));
+      const reads = () => vi.mocked(api.tracksLive).mock.calls.length;
+      return { api, revision, subs, send, reads };
+    }
+
+    it('the mock: a track added in REAPER (emoji and right-to-left in its name) shows without a timer, focus or Refresh', async () => {
+      const api = createMockApi();
+      const { hook } = mount(api);
+      await settle();
+      const before = hook.current.project?.tracks.length ?? 0;
+      await act(async () => window.__NARRATION_MOCK_DAW__?.addTrackInDaw('Chapter 9 – הים 🌊'));
+      expect(hook.current.project?.tracks).toHaveLength(before + 1);
+      expect(hook.current.project?.tracks.at(-1)?.name).toBe('Chapter 9 – הים 🌊');
+    });
+
+    it('with a revision the timer reads nothing for 25 s, and an event with a new revision reads at once', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { api, revision, send, reads } = eventHost(A);
+      mount(api);
+      await settle();
+      expect(reads()).toBe(1);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 5));
+      expect(reads()).toBe(1);
+      revision.now = B;
+      await send(B);
+      expect(reads()).toBe(2);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 5));
+      expect(reads()).toBe(2);
+    });
+
+    // A save in REAPER changes the items, colour, mute and solo the list shows (read from the .rpp) and sends no daw_tracks_changed.
+    it('with a revision the timer still reads every 30 s, so a save in REAPER shows without focus or Refresh', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { api, reads } = eventHost(A);
+      mount(api);
+      await settle();
+      expect(reads()).toBe(1);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_SAVED_POLL_MS));
+      expect(reads()).toBe(2);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_SAVED_POLL_MS));
+      expect(reads()).toBe(3);
+    });
+
+    it('an event carrying the revision already shown still reads: REAPER may have another project with the same list', async () => {
+      const { api, send, reads } = eventHost(A);
+      mount(api);
+      await settle();
+      await send(A);
+      expect(reads()).toBe(2);
+    });
+
+    it('focus and Refresh still read while a revision is held', async () => {
+      const { api, reads } = eventHost(A);
+      const { hook } = mount(api);
+      await settle();
+      await act(async () => window.dispatchEvent(new Event('focus')));
+      await act(async () => hook.current.refresh());
+      expect(reads()).toBe(3);
+    });
+
+    it('an event with no revision reads at once and the timer takes over again', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { api, revision, send, reads } = eventHost(A);
+      mount(api);
+      await settle();
+      revision.now = '';
+      await send('');
+      expect(reads()).toBe(2);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+      expect(reads()).toBe(3);
+      // The revision is back: one read for the event, then the timer is quiet again.
+      revision.now = B;
+      await send(B);
+      expect(reads()).toBe(4);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS * 3));
+      expect(reads()).toBe(4);
+    });
+
+    it('an event during a read reads once more when it ends, hidden or not, and never after the panel is switched off', async () => {
+      const { api, pending } = heldHost();
+      const subs = new Set<(change: { revision: string }) => void>();
+      api.subscribeTracksChanged = (on) => {
+        subs.add(on);
+        return () => subs.delete(on);
+      };
+      const send = (next: string) => act(async () => subs.forEach((on) => on({ revision: next })));
+      const { rerender } = mount(api);
+      await settle();
+      // The first read left before the change and answers the old list: read again.
+      await send(B);
+      await send(B);
+      expect(pending).toHaveLength(1);
+      await act(async () => pending[0].resolve(answer([], { revision: A })));
+      expect(pending).toHaveLength(2);
+      // The window is hidden and shown again inside one read: the event that arrived meanwhile is not lost.
+      await act(async () => setVisibility('hidden'));
+      await send(A);
+      await act(async () => setVisibility('visible'));
+      await act(async () => pending[1].resolve(answer([], { revision: B })));
+      expect(pending).toHaveLength(3);
+      // Switched off (an Audacity project) during a read that an event arrived in: nothing reads after it.
+      await send(B);
+      rerender({ enabled: false });
+      await act(async () => pending[2].resolve(answer([], { revision: B })));
+      expect(pending).toHaveLength(3);
+    });
+
+    it('a failed read forgets the revision, so the timer reads again', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { api, send, reads } = eventHost(A);
+      mount(api);
+      await settle();
+      vi.mocked(api.tracksLive).mockRejectedValueOnce(new Error('REAPER did not answer in time.'));
+      await send(B);
+      expect(reads()).toBe(2);
+      await act(async () => vi.advanceTimersByTime(LIVE_TRACKS_POLL_MS));
+      expect(reads()).toBe(3);
+    });
+
+    it('an event while the window is hidden reads nothing; coming back reads', async () => {
+      const { api, send, reads } = eventHost(A);
+      mount(api);
+      await settle();
+      await act(async () => setVisibility('hidden'));
+      await send(B);
+      expect(reads()).toBe(1);
+      await act(async () => setVisibility('visible'));
+      expect(reads()).toBe(2);
+    });
+
+    it('the subscription ends with the panel', async () => {
+      const { api, subs } = eventHost(A);
+      const { unmount } = mount(api);
+      await settle();
+      expect(subs.size).toBe(1);
+      unmount();
+      expect(subs.size).toBe(0);
+    });
   });
 });

@@ -1,6 +1,6 @@
 // The mock host (mockApi.ts): tracks, chapter links and chapter sync.
 import type { ChapterCreateOptions, ChapterFolderMove, ChapterFolders } from '../contracts/chapterTrackMap';
-import type { Track, TracksProject } from '../contracts/tracks';
+import type { Track, TracksChanged, TracksProject } from '../contracts/tracks';
 import type { VoiceTracksLayout } from '../contracts/voiceTracks';
 import type {
   ChapterSyncBackground,
@@ -79,6 +79,19 @@ export function createChapterTracksMock(
   // this session counts, not one seeded or written by chapter sync on its own.
   const startedAt = Date.now();
   const linkCounts = (link: TrackMapping) => initial.reaperState !== 'no_link' || (link.origin === 'manual' && Date.parse(link.confirmedAt) >= startedAt);
+  // REAPER's track-list revision and who hears it change (daw_tracks_changed): the mock's list changes only when ChapterTrackCreate adds to it.
+  const tracksRevision = () => added.length.toString(16).padStart(16, '0');
+  const tracksChangedSubs = new Set<(change: TracksChanged) => void>();
+  const publishTracksChanged = () => {
+    for (const on of tracksChangedSubs) on({ revision: tracksRevision() });
+  };
+  // A track the narrator added in REAPER itself (DawMockControl.addTrackInDaw).
+  const addTrackInDaw = (name: string) => {
+    s.createdTracks += 1;
+    const guid = `{c0ffee00-0000-4000-8000-${String(s.createdTracks).padStart(12, '0')}}`;
+    added.push({ guid, name, index: project.tracks.length + added.length, color: '', muted: false, soloed: false, items: [], depth: 0, isFolder: false });
+    publishTracksChanged();
+  };
   const liveProject = (): TracksProject => ({ ...project, tracks: [...project.tracks, ...added] });
   // A Voice folders project links Chapter 1 to its folder, in place of the default seed's link to its first track. A seed that made Chapter 1's
   // link several or missing (`?mockChapterLink=ambiguous|missing`) stays, so those states can be seen in a Voice folders project.
@@ -308,9 +321,16 @@ export function createChapterTracksMock(
           message: 'REAPER is not answering, so these are the tracks as of the last save.',
           readAt,
           project,
+          revision: '',
         });
       }
-      return wireClone({ source: 'live' as const, reason: '' as const, message: '', readAt, project: liveProject() });
+      // `failing` is a bridge script that sends no revision, so the page keeps reading on its timer and meets the refusals.
+      const revision = initial.liveTracks === 'failing' ? '' : tracksRevision();
+      return wireClone({ source: 'live' as const, reason: '' as const, message: '', readAt, project: liveProject(), revision });
+    },
+    subscribeTracksChanged: (onUpdate) => {
+      tracksChangedSubs.add(onUpdate);
+      return () => tracksChangedSubs.delete(onUpdate);
     },
     chapterTrackMapList: async () => ({ documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) }),
     chapterTrackSet: async (chapterId, trackGuid) => {
@@ -413,6 +433,7 @@ export function createChapterTracksMock(
         match: null,
       };
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId), link];
+      publishTracksChanged();
       publishLinksChanged();
       return wireClone({
         outcome: 'created' as const,
@@ -551,7 +572,7 @@ export function createChapterTracksMock(
       return wireClone(mockChapterTrackMatch(chapterId, chaptersWithCredits(), project, s.chapterTrackMappings));
     },
   } satisfies Partial<NarrationApi>;
-  return { bindings, publishChapterSync, publishLinksChanged, mockChapterSyncState, backgroundSettingsSaved };
+  return { bindings, addTrackInDaw, publishChapterSync, publishLinksChanged, mockChapterSyncState, backgroundSettingsSaved };
 }
 
 /** The activity seed's stored batches, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */
