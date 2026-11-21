@@ -41,12 +41,11 @@ The record path (the built-in recorder, the record gating in the DAW, the microp
 | 23 | Leave by the jump menu during a take | "Stop recording?"; Stop and leave stops the take and goes | Playwright | Pass | Pass |
 | 24 | R during a take on a DAW whose roll replaces audio | "Roll again from ¶ n?" first | Playwright | Pass | Pass |
 | 25 | R during a take on a DAW that keeps the take | Rolls without asking; Last punch logs it | Playwright | Pass (with the punch capability on) | Pass |
-| 26 | Resume at ¶ n | The reading position moves to where the recording ends | Playwright | Pass | Pass |
 | 27 | B | Bookmarks the word; a ribbon in the margin; the toast offers Undo | Playwright | Pass | Pass |
 | 28 | Step between bookmarks | Alt+[ and Alt+] move between them | Playwright | Pass (the mock binds [ and ] without Alt) | Pass: stepping works, and a step that goes round the book says so |
 | 29 | Key hints | The footer lists the Booth keys from the catalogue | Playwright | Pass | Pass |
 | 30 | F11 | Full screen on and off | Playwright, owner on Windows | Pass in Chromium | Pass: F11 asks the page for full screen (headless Chromium cannot show it, so the call is what is asserted) |
-| 31 | Right-click | Mark the start here, Bookmark here, phrase, roll, text size, Exit Booth | Playwright | Pass | Pass |
+| 31 | Right-click | Bookmark here, phrase, text size, Exit Booth (and Roll again during a take) | Playwright | Pass | Pass |
 | 32 | Escape with no take | Leaves the Booth | Playwright | Pass | Pass |
 | 33 | Chapter stepper | Changes the chapter and the text | Playwright | Pass | Pass: and Next pressed rapidly in one tick moves one chapter per press |
 | 34 | Pickup session (Pickups' Open in Booth at this line) | Pickups chip, the line marked, N Next pickup in the hints | Playwright | Pass | Pass |

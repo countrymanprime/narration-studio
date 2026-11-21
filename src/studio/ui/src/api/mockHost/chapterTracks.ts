@@ -572,7 +572,15 @@ export function createChapterTracksMock(
       return wireClone(mockChapterTrackMatch(chapterId, chaptersWithCredits(), project, s.chapterTrackMappings));
     },
   } satisfies Partial<NarrationApi>;
-  return { bindings, addTrackInDaw, publishChapterSync, publishLinksChanged, mockChapterSyncState, backgroundSettingsSaved };
+  return {
+    bindings,
+    addTrackInDaw,
+    announceTracksChanged: publishTracksChanged,
+    publishChapterSync,
+    publishLinksChanged,
+    mockChapterSyncState,
+    backgroundSettingsSaved,
+  };
 }
 
 /** The activity seed's stored batches, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */

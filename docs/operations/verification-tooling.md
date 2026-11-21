@@ -69,7 +69,7 @@ See [CI and releases](ci-and-releases.md#dead-code-check-knip). The short versio
 
 ## Atlas docs drift
 
-`docs/ui/atlas/*.md` and `docs/ui/inventory.json` are generated from the Storybook build by `src/studio/ui/scripts/atlas-docs.mjs`. The `ui:atlas-docs` target (`pnpm --dir src/studio/ui docs:atlas:check`, run by `ui-atlas` shard 1) builds Storybook, regenerates into a temp folder and fails naming each page or the inventory that differs from the committed copy. Images and the image line of a page are not compared, since they come from screenshots. Fix a failure with `pnpm --dir src/studio/ui atlas && pnpm --dir src/studio/ui docs:atlas`, then commit.
+`docs/ui/atlas/*.md` and `docs/ui/inventory.json` are generated from the Storybook build by `src/studio/ui/scripts/atlas-docs.mjs`. The `ui:atlas-docs` target (`pnpm --dir src/studio/ui docs:atlas:check`) builds Storybook, regenerates into a temp folder and fails naming each page or the inventory that differs from the committed copy. CI shard 1 runs it on the Storybook that `lint` built once for the run (`docs:atlas:verify`, which builds nothing), and the target itself when `lint` made none. Images and the image line of a page are not compared, since they come from screenshots. Fix a failure with `pnpm --dir src/studio/ui atlas && pnpm --dir src/studio/ui docs:atlas`, then commit.
 
 ## Aria snapshots
 

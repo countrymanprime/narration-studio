@@ -36,6 +36,10 @@ var perfReads = []perfRead{
 	{"GuideDialogueCues", (*Host).GuideDialogueCues},
 	{"MarksList", (*Host).MarksList},
 	{"Bootstrap", func(h *Host) (string, error) { return encodeBinding(h.Bootstrap(), nil) }},
+	// The Booth's idle read (#3880): these three and Bootstrap, as useRecordControl asks them. No DAW runs here, so the three that ask one answer that it is not running.
+	{"DawCapabilities", (*Host).DawCapabilities},
+	{"DawProjectState", (*Host).DawProjectState},
+	{"ReadAloudReaperState(c-0001)", func(h *Host) (string, error) { return h.ReadAloudReaperState(perfChapterID(0)) }},
 	{"ManuscriptParagraphs(c-0001)", func(h *Host) (string, error) { return h.ManuscriptParagraphs(perfChapterID(0)) }},
 	{"SystemSettingsForScope(project)", func(h *Host) (string, error) { return h.SystemSettingsForScope("project") }},
 }

@@ -72,6 +72,7 @@ function liveStub(): LiveTracks {
     readAt: Date.now(),
     busy: false,
     refreshing: false,
+    following: false,
     stale: false,
     error: '',
     refresh: vi.fn(),

@@ -53,6 +53,7 @@ const NO_LIVE: LiveTracks = {
   refreshing: false,
   stale: false,
   error: '',
+  following: false,
   refresh: () => {},
   recheck: async () => ({ failed: false }),
   reread: () => {},

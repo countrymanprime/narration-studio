@@ -505,7 +505,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     repeats: true,
     surfaces: ['help', 'settings'],
   },
-  { id: 'booth.roll', label: 'Punch and roll from here', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.roll', label: 'Roll again', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.down', label: 'Scroll the text down', scope: 'booth', defaults: [key('PageDown')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.up', label: 'Scroll the text up', scope: 'booth', defaults: [key('PageUp')], group: 'Booth', surfaces: ['help', 'settings'] },
   // Num + and Num − are the next and previous voice (docs/research/2026-10-30-booth-sub-track-recording.md, section 8, decision 4): the text size keeps = and −.

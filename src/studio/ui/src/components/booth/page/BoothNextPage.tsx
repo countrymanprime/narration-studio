@@ -56,8 +56,6 @@ import { PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
-import { ResumeOfferLine } from '../resume/ResumeOffer';
-import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord } from '../side/decorations';
@@ -453,7 +451,7 @@ function BoothSession({
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
     seek,
     blocked: page.moveBlocked,
-    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: { ...at, placeOnly: true } }),
+    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
   // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits chapters have no paragraphs and so none.
@@ -498,8 +496,8 @@ function BoothSession({
   const referenced = useBoothReference(recordId);
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
-  // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
+  // Opened at a chapter, the DAW goes there too: to the end of its track. A place the narrator chose is looked up by Record when the take starts.
+  const moveTarget = useMoveTarget({ units });
   const followChapterInDaw = useFollowChapterInDaw();
   // Until the DAW's transport has been read once (`project`), whether it records is not known: the move waits for it rather than guess.
   const dawRecording = useIsRecording() || control.recording || (control.project === null ? !control.projectFailed : control.project.playState === 'recording');
@@ -840,14 +838,7 @@ function BoothSession({
                 source.kind === 'credits' ? (
                   <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
                 ) : (
-                  <>
-                    {recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}
-                    <ResumeOfferLine
-                      state={offerAwayFrom(page.resume, page.position)}
-                      saved={saveNote(control.project, page.dawName)}
-                      onChoose={page.chooseResume}
-                    />
-                  </>
+                  <>{recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}</>
                 )
               }
               setup={
@@ -906,7 +897,6 @@ function BoothSession({
                   onSetSpeaker={setSpeaker}
                   decorations={textDecorations}
                   notes={decorated.notes}
-                  punchAt={page.punchAt}
                   pickupLines={pickups.bars}
                   size={page.text.size}
                   font={page.text.fontFamily}

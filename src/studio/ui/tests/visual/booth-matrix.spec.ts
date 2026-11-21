@@ -30,7 +30,7 @@ async function openBooth(page: Page, query = '', ready = true): Promise<void> {
   await settlePage(page);
   await goToPage(page, 'Booth');
   await page
-    .getByRole('button', { name: /^Resume at ¶|^Chapter:/ })
+    .getByRole('button', { name: /^Chapter:/ })
     .first()
     .waitFor();
   if (ready) await expect(record(page)).toBeEnabled();

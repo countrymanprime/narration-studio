@@ -50,9 +50,8 @@ type Props = {
   /** Story Bible tints and marked-word underlines, and the notes drawn under a paragraph. */
   decorations?: readonly WordDecoration[];
   notes?: readonly ParagraphNote[];
-  /** Paragraphs a suspected skip or restart points at, and the sentence a take starts from (punch). */
+  /** Paragraphs a suspected skip or restart points at. */
   pickupLines?: readonly PickupLine[];
-  punchAt?: number | null;
   /** Px; the page slice owns the preference. Clamped to 24 to 72 in steps of 4. */
   size: number;
   /** A CSS font-family for the text. */
@@ -82,7 +81,6 @@ type UnitProps = {
   ghost: number;
   words: UnitWords;
   paragraph: ReadingParagraph;
-  from: boolean;
   speakers: readonly string[];
   colour?: EntityColour;
   onSeek: (paragraphId: string, word: number) => void;
@@ -100,12 +98,6 @@ type Token = UnitWords['words'][number];
 // and a dashed vertical tick where the real cursor has a filled caret.
 const GHOST =
   'outline-dashed outline-[0.06em] outline-offset-[0.04em] outline-[var(--text-muted)] bg-[color-mix(in_srgb,var(--text-muted)_14%,transparent)] after:absolute after:top-[-0.34em] after:left-1/2 after:h-[0.22em] after:-translate-x-1/2 after:border-l-[0.07em] after:border-dashed after:border-[var(--text-muted)] after:content-[""]';
-
-// The chosen start's mark: an accent line under the sentence's first word, in a second channel (shape) besides the sentence's tint. It is a border on the
-// word's ::before, not a text decoration: an entity name and a narrator's underline mark set their own inline text-decoration, which would replace it.
-// ::before is the cursor's caret and ::after the cold read's tick, so it is drawn only when the cursor is not on the word (the cursor's fill marks it then).
-const START =
-  "before:absolute before:inset-x-0 before:bottom-[-0.1em] before:border-b-[0.14em] before:border-solid before:border-[var(--accent)] before:content-['']";
 
 // What a word is drawn with beyond its position: an entry's name as the registry's entity mark in the entry's colour, a narrator's mark in
 // the colour and line style its type chose (D8), a name under a mark both (the mark's own keys win). The word being read keeps its own
@@ -128,21 +120,7 @@ function wordLook(token: Token, now: boolean, said: boolean): CSSProperties | un
 }
 
 // One sentence. A click on a word seeks to it; a click between words seeks to the sentence's first word.
-const UnitView = memo(function UnitView({
-  unit,
-  index,
-  mode,
-  wcur,
-  ghost,
-  words,
-  paragraph,
-  from,
-  speakers,
-  colour,
-  onSeek,
-  onSetSpeaker,
-  seekWord,
-}: UnitProps) {
+const UnitView = memo(function UnitView({ unit, index, mode, wcur, ghost, words, paragraph, speakers, colour, onSeek, onSetSpeaker, seekWord }: UnitProps) {
   return (
     <>
       {unit.quoted && !unit.cont ? (
@@ -151,7 +129,7 @@ const UnitView = memo(function UnitView({
       <span
         data-unit={index}
         data-state={mode}
-        className={`cursor-pointer rounded-md motion-ok:transition-colors ${MODE_TONE[mode]} ${from ? 'bg-[var(--accent-soft)]' : ''}`}
+        className={`cursor-pointer rounded-md motion-ok:transition-colors ${MODE_TONE[mode]}`}
         onClick={(event) => {
           const word = (event.target as HTMLElement).closest<HTMLElement>('[data-word]');
           onSeek(paragraph.id, seekWord(unit, word ? Number(word.dataset.word) : 0));
@@ -164,9 +142,6 @@ const UnitView = memo(function UnitView({
           const said = mode === 'cur' && token.index < wcur;
           const read = mode === 'done' || said;
           const heard = token.index === ghost;
-          // The chosen start (Mark the start here) is the first word of its sentence, which is where the take really starts: marked on the word itself,
-          // so it shows with the side panel closed, in a small window, and during a take (when the cursor is the voice's and moved elsewhere).
-          const start = from && token.index === 0;
           const look = wordLook(token, now, said);
           return (
             <Fragment key={token.index}>
@@ -175,19 +150,16 @@ const UnitView = memo(function UnitView({
                 data-current={now ? '' : undefined}
                 data-read={read ? '' : undefined}
                 data-ghost={heard ? '' : undefined}
-                data-start={start ? '' : undefined}
                 data-find={token.find ? (token.find.kind === 'find' && token.find.current ? 'current' : 'match') : undefined}
                 aria-current={now ? 'true' : undefined}
-                aria-description={
-                  [now ? 'Current word' : heard ? 'Cold read: heard here' : '', start ? 'Next take starts here' : ''].filter(Boolean).join('. ') || undefined
-                }
+                aria-description={[now ? 'Current word' : heard ? 'Cold read: heard here' : ''].filter(Boolean).join('. ') || undefined}
                 title={token.mark?.title}
                 style={look}
                 className={`relative rounded-[0.12em] motion-ok:transition-colors ${
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''
-                } ${said ? 'text-[var(--text-muted)]' : ''} ${heard ? GHOST : ''} ${start && !now ? START : ''}`}
+                } ${said ? 'text-[var(--text-muted)]' : ''} ${heard ? GHOST : ''}`}
               >
                 {token.text}
               </span>
@@ -223,7 +195,6 @@ export function BoothText({
   decorations,
   notes = [],
   pickupLines = [],
-  punchAt = null,
   size,
   font,
   width = readerColumn(DEFAULT_TEXT_PREFS.width),
@@ -334,7 +305,6 @@ export function BoothText({
                     ghost={ghostAt && own === ghostAt.cur ? ghostAt.wcur : -1}
                     words={words[own]}
                     paragraph={paragraph}
-                    from={own === punchAt}
                     speakers={speakerList}
                     colour={speakerColour?.(unit.speaker)}
                     onSeek={seek}
