@@ -123,11 +123,11 @@ func (s *summaryStore) write(summary ResultSummary) error {
 	if err != nil {
 		return err
 	}
-	// A temporary file of its own name: a fill still running for a project that was closed and opened again writes
-	// through another store, which this store's lock does not cover.
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
 		return fmt.Errorf("could not store the coverage result summary: %w", err)
 	}
+	// persist.WriteFile writes through a temporary file of its own name: a fill still running for a project that was
+	// closed and opened again writes the same path through another store.
 	if err := persist.WriteFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("could not store the coverage result summary: %w", err)
 	}

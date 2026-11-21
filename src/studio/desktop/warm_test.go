@@ -3,10 +3,12 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
 	"desktop/internal/coverage"
+	"desktop/internal/hostlog"
 )
 
 // A chapter list read while the background fill runs, on a host that has read nothing yet and a book whose summaries
@@ -79,9 +81,15 @@ func TestABackgroundFillThatPanicsIsLoggedAndTheHostGoesOn(t *testing.T) {
 	checkRecording(t, host)
 	host.chapterSyncEmits.Wait()
 	host.mu.Lock()
+	host.log = hostlog.New(filepath.Join(t.TempDir(), "host.log"), 0)
 	host.settings = nil // warmProject reads the coverage settings through it: a nil store panics
 	host.mu.Unlock()
 	host.warmProject()
+	// The log line is also what shows the fill did panic: without it this test would pass on a fill that ran clean.
+	logged, _ := os.ReadFile(host.log.Path())
+	if !strings.Contains(string(logged), "project_warm_failed") {
+		t.Fatalf("the failed fill is not in the host log: %q", logged)
+	}
 	if _, err := host.ManuscriptChapters(); err != nil {
 		t.Fatalf("after a failed fill the chapter list answers %v", err)
 	}

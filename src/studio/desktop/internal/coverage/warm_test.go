@@ -3,6 +3,7 @@ package coverage
 import (
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -173,8 +174,8 @@ func TestAReaderWaitingOnARebuildThatPanicsRebuildsForItself(t *testing.T) {
 	}
 }
 
-// A panic while a chapter is evaluated ends the fill and comes out of Warm, on the caller's goroutine, after every
-// worker is done: the caller logs it, and nothing is left running or blocked.
+// A panic while a chapter is evaluated comes out of Warm, on the caller's goroutine, after every worker is done, with
+// the stack of the worker that hit it: the caller logs it, and nothing is left running or blocked.
 func TestAPanicInTheFillComesOutOfWarmOnceTheWorkersAreDone(t *testing.T) {
 	service, _ := warmFixture(t)
 	service.config.ChapterAudio = func(tracks.Project) tracks.Project { panic("a chapter could not be read") }
@@ -183,7 +184,15 @@ func TestAPanicInTheFillComesOutOfWarmOnceTheWorkersAreDone(t *testing.T) {
 		defer func() { failure = recover() }()
 		service.Warm(DefaultAlignmentParams, notClosed)
 	}()
-	if failure != "a chapter could not be read" {
+	raised, ok := failure.(WarmFailure)
+	if !ok || raised.Value != "a chapter could not be read" {
 		t.Fatalf("Warm raised %v, want the worker's panic", failure)
+	}
+	// The stack is the worker's and starts where it panicked: this test's own function, not the recover above it.
+	if !strings.Contains(strings.SplitN(raised.Stack, "\n", 2)[0], "TestAPanicInTheFillComesOutOfWarmOnceTheWorkersAreDone") {
+		t.Fatalf("the failure's stack does not start at the panic:\n%s", raised.Stack)
+	}
+	if !strings.Contains(raised.Stack, "evaluateSummary") || !strings.Contains(raised.String(), "a chapter could not be read at ") {
+		t.Fatalf("the failure does not say where the worker was:\n%s", raised.String())
 	}
 }
