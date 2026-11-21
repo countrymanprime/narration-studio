@@ -405,11 +405,17 @@ func fakeBuildSidecar(mode string, args []string) int {
 			fmt.Fprintln(os.Stderr, `{"level": "info", "msg": "ERROR: [E088] Text of length 1000001 exceeds maximum of 1000000.", "ts": "2026-10-25T12:00:00.000Z"}`)
 			return 1
 		case "build-spacy":
-			raw, _ := os.ReadFile(flagValue(args, "--manuscript"))
+			raw, err := os.ReadFile(flagValue(args, "--manuscript"))
 			var manuscript struct {
 				Paragraphs []struct{ ID, Text string } `json:"paragraphs"`
 			}
-			_ = json.Unmarshal(raw, &manuscript)
+			if err == nil {
+				err = json.Unmarshal(raw, &manuscript)
+			}
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "fake sidecar: could not read the manuscript:", err)
+				return 1
+			}
 			fmt.Println(`{"available": true}`)
 			for _, paragraph := range manuscript.Paragraphs {
 				text := []rune(paragraph.Text)
