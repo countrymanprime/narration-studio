@@ -423,6 +423,9 @@ describe('every-way-out-asks-while-recording', () => {
     const page = renderPage();
     await record(page);
     page.daw.recordStop.mockImplementation(() => new Promise(() => {}));
+    // The DAW goes on recording through the wait: the take's own read of the play state would otherwise end the take, and the Booth would leave.
+    const projectState = page.daw.projectState.bind(page.daw);
+    page.daw.projectState = async () => ({ ...(await projectState()), playState: 'recording' });
     await press('Escape');
     await act(async () => page.dialog()!.answer(true));
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));

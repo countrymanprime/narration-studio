@@ -969,7 +969,7 @@ describe('useBoothLeaveGuard', () => {
         });
         t.hook.unmount();
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(2 * LEAVE_WAIT_MS + 500);
+          await vi.advanceTimersByTimeAsync(Math.max(2 * LEAVE_WAIT_MS, LEAVE_STOP_WAIT_MS) + 500);
         });
         return t;
       };

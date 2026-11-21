@@ -109,13 +109,14 @@ pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts -g "
 
 ## Slow DAW link suite
 
-`src/studio/ui/tests/visual/daw-slow-link.spec.ts` holds the rule that the narrator does not notice a slow DAW (#3752). It puts the mock's DAW link on six profiles (0 ms, 300 ms, 1 s, 3 s, 10 s, and a stall of 8 s that recovers; [A slow link on demand](../architecture/reaper-bridge.md#a-slow-link-on-demand)) and runs five scenarios on each:
+`src/studio/ui/tests/visual/daw-slow-link.spec.ts` holds the rule that the narrator does not notice a slow DAW (#3752). It puts the mock's DAW link on six profiles (0 ms, 300 ms, 1 s, 3 s, 10 s, and a stall of 8 s that recovers; [A slow link on demand](../architecture/reaper-bridge.md#a-slow-link-on-demand)) and runs six scenarios on each:
 
 | Scenario | Fails when |
 | --- | --- |
 | The Booth opens with its voice at once | The voice or Record is not on screen within 1.5 s |
 | Opening the Booth raises no error | An error toast appears while the page's reads and its arm come back |
 | A lane key shows its lane at once and its take starts | The lane is not shown within 1.5 s of the key, the lane is lost, the take does not start, or an error toast is raised |
+| Stop ends the take and never says the DAW is not answering | The take is still recording after the stop has reached the DAW, or the page says the DAW is not answering or did not confirm |
 | The engine panel lists the tracks | The tracks are not on screen within 2.5 s, the saved-project fallback is shown for a REAPER that is only slow, or the panel does not close at once |
 | Check recordings opens | The dialog is not usable within 1.5 s, or it reports the links unread or REAPER not answering |
 

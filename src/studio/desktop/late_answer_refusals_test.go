@@ -58,7 +58,7 @@ func TestEveryWriteBindingsDeadlineCoversTheLateWait(t *testing.T) {
 		"writeCommandTimeout": writeCommandTimeout, "takeRequestTimeout": takeRequestTimeout, "deleteRangeTimeout": deleteRangeTimeout,
 		"stackTakesTimeout": stackTakesTimeout, "splitTakeTimeout": splitTakeTimeout, "undoLastTimeout": undoLastTimeout,
 		"fxRangeTimeout": fxRangeTimeout, "reduceRangeGainTimeout": reduceRangeGainTimeout, "repairClickTimeout": repairClickTimeout,
-		"hideTakesTimeout": hideTakesTimeout, "rollTimeout": rollTimeout, "fileActionTimeout": fileActionTimeout,
+		"hideTakesTimeout": hideTakesTimeout, "fileActionTimeout": fileActionTimeout,
 		"saveProjectTimeout": saveProjectTimeout, "chapterFoldersTimeout": chapterFoldersTimeout, "boothArmTimeout": boothArmTimeout,
 		"replaceTimeout": replaceTimeout, "laneCommandTimeout": laneCommandTimeout,
 	} {
