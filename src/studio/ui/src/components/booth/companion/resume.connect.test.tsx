@@ -13,7 +13,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import type { ManuscriptChapter, RecordedThrough } from '../../../api/contracts/manuscript';
 import { CommandRouter } from '../../../input/router';
 import { createOverlayService } from '../../../overlay/overlayService';
-import type { NarrationApi } from '../../../types';
+import type { NarrationApi, TeleprompterState } from '../../../types';
 import { BoothNextPage } from '../page/BoothNextPage';
 import { BoothHost, CHAPTERS, dawFor, newJournal, pageApi } from '../page/testPage';
 import { forgetAppTake } from '../record/useRecordControl';
@@ -91,5 +91,31 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     renderCompanion(api);
     await waitFor(() => expect(locate).toHaveBeenCalledTimes(1));
     expect(screen.queryByText(/Continuing at/)).toBeNull();
+  });
+
+  // T1 (qa delta): the resume notice's percent pairs the through with the audio of the SAME read. After a session ends the take leaves the host at 0% with 12 s on the track:
+  // the notice reads 1% as Production does, not 0% (the audio used to come from the chapter read once when the page opened).
+  it('after a session ends the resume notice reads 1% when the take left the host at 0% with audio on the track', async () => {
+    const subscribers = new Set<(state: TeleprompterState) => void>();
+    const host = { seconds: 0 };
+    const zero: RecordedThrough = { ...through, percent: 0 };
+    const api = pageApi({
+      subscribeTeleprompterState: (on: (state: TeleprompterState) => void) => {
+        subscribers.add(on);
+        return () => subscribers.delete(on);
+      },
+      manuscriptChapters: async () =>
+        CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: host.seconds } : chapter)),
+    } as Partial<NarrationApi>);
+    renderCompanion(api);
+    const notice = await screen.findByRole('region', { name: 'Where you stopped' });
+    await waitFor(() => expect(notice.textContent).toContain('recorded 0% through'));
+    const push = (state: Partial<TeleprompterState>) =>
+      act(() => subscribers.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state })));
+    await waitFor(() => expect(subscribers.size).toBeGreaterThan(0));
+    await push({});
+    host.seconds = 12;
+    await push({ phase: 'stopped' });
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 1% through'));
   });
 });
