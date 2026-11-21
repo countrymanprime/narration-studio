@@ -44,7 +44,7 @@ const claimOf = (session: BoothLeaveSession): Claim => (!(session.startedByApp ?
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
 
-/** How long the end check and the passage map's run are each given after the narrator said yes; the press still out (a start, or a Stop already pressed) and the stop have `LEAVE_STOP_WAIT_MS`. */
+/** How long the wait for a start, the end check and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order); a Stop already pressed and the stop have `LEAVE_STOP_WAIT_MS`. */
 export const LEAVE_WAIT_MS = 8000;
 /**
  * How long the stop itself is given: just above the page's own stop limit (`PRESS_LIMITS_MS.recordStop`), so the page's limit ends a stop that never answers first, with its
@@ -218,14 +218,15 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             return true;
           }
           // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS (the stop's within LEAVE_STOP_WAIT_MS), in the refusal question when it does not.
-          // Up for the whole of the waits (three: the press still out and the stop at most LEAVE_STOP_WAIT_MS each, the run at most LEAVE_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
+          // Up for the whole of the waits (three: a Stop still out and the stop at most LEAVE_STOP_WAIT_MS each, the run at most LEAVE_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
           waiting.current = true;
           sayStopping();
           let sentence: string;
           try {
             // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop. A stop the page
             // already sent is out here too, and a slow DAW that has taken it is waited for as long as the stop itself (LEAVE_STOP_WAIT_MS).
-            const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), LEAVE_STOP_WAIT_MS) : { value: true };
+            const settleWait = now.startPending ? LEAVE_WAIT_MS : LEAVE_STOP_WAIT_MS;
+            const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), settleWait) : { value: true };
             if (gone.current) return false;
             if (!landed) sentence = noAnswerSentence(now.daw.name);
             // `landed.value` false is "no take is running now": for a start that was pending that is nothing to stop. For a take that was running when the
