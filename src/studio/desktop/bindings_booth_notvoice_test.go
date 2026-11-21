@@ -69,10 +69,26 @@ func armedOn(t *testing.T, host *Host, chapterID string) string {
 }
 
 // The reproduction: a folder that holds only a music bed recorded on the music bed under Flat, because voiceFor falls back to voices[0].
-func TestAFolderHoldingOnlyAMarkedMusicBedRecordsOnTheFolder(t *testing.T) {
+func TestAFlatFolderWhoseEveryChildIsMarkedIsRefusedNotRecordedOnTheFolder(t *testing.T) {
 	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
-	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
-		t.Fatalf("armed %q, want the folder %q: the marked music bed is not a voice", got, voiceFolderTrack)
+	fake := &fakeRecorder{}
+	result := recordStartWithVoice(t, host, fake, ids[0])
+	if result.Outcome != "refused" || result.Reason != boothVoiceNoVoices || len(fake.calls) != 0 {
+		t.Fatalf("got %+v, calls %v, want refused with nothing armed (#3828: the owner chose a refusal over recording on the folder)", result, fake.calls)
+	}
+	if !strings.Contains(result.Message, "turned off as not a voice") || !strings.Contains(result.Message, "Voices card") || !strings.Contains(result.Message, "link the chapter to a track of its own") {
+		t.Fatalf("message %q does not name the switch and the Flat fix", result.Message)
+	}
+	// The voice list says the same, so the Booth hides the control for a reason it can show.
+	if got := boothVoiceGet(t, host, ids[0]); got.Outcome != "refused" || got.Reason != boothVoiceNoVoices {
+		t.Fatalf("BoothVoiceGet gave %+v, want refused with no voices", got)
+	}
+}
+
+func TestAFlatFolderWithAnUnmarkedChildStillRecordsOnIt(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}, [2]string{voiceQueenTrack, "Queen"}), voicetracks.LayoutFlat, musicBedTrack)
+	if got := armedOn(t, host, ids[0]); got != voiceQueenTrack {
+		t.Fatalf("armed %q, want the unmarked child %q", got, voiceQueenTrack)
 	}
 }
 
@@ -123,8 +139,9 @@ func TestAFolderWithOnlyMarkedChildrenIsRefusedUnderVoiceFolders(t *testing.T) {
 
 func TestUnmarkingMakesTheChildAVoiceAgain(t *testing.T) {
 	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
-	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
-		t.Fatalf("marked: armed %q, want the folder", got)
+	// Every child marked: Record is refused and nothing is armed (#3828; it used to record on the folder).
+	if got := armedOn(t, host, ids[0]); got != "" {
+		t.Fatalf("marked: armed %q, want nothing armed", got)
 	}
 	if _, err := voicetracks.New(voicetracks.Config{Project: host.config.projectFolder}).SetNotVoice(musicBedTrack, false); err != nil {
 		t.Fatal(err)
@@ -226,8 +243,8 @@ func TestTheBindingMarksAndUnmarksAChildAndRefusesABadGUID(t *testing.T) {
 	if err := json.Unmarshal([]byte(payload), &state); err != nil || len(state.NotVoiceGUIDs) != 1 {
 		t.Fatalf("marked answer = %s (%v), want the one GUID", payload, err)
 	}
-	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
-		t.Fatalf("after marking: armed %q, want the folder", got)
+	if got := armedOn(t, host, ids[0]); got != "" {
+		t.Fatalf("after marking: armed %q, want nothing armed (every child is marked, so Record is refused)", got)
 	}
 	if _, err := host.VoiceTracksSetNotAVoice(musicBedTrack, false); err != nil {
 		t.Fatal(err)

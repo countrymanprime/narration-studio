@@ -38,9 +38,11 @@ function childrenOf(tracks: readonly Track[], guid: string): Track[] | null {
 }
 
 /** The refusal for a folder with no voice tracks, naming the fix that works: turn one back on when every track is marked, else add a track. */
-const noVoicesMessage = (allMarked: boolean) =>
+const noVoicesMessage = (allMarked: boolean, flat = false) =>
   allMarked
-    ? 'This chapter is linked to a folder with no voice tracks in it. Every track in it is turned off as not a voice. Turn one back on in the Voices card, or add a track inside the folder in REAPER, and save.'
+    ? `This chapter is linked to a folder with no voice tracks in it. Every track in it is turned off as not a voice. Turn one back on in the Voices card, or ${
+        flat ? 'link the chapter to a track of its own.' : 'add a track inside the folder in REAPER, and save.'
+      }`
     : 'This chapter is linked to a folder with no voice tracks in it. Add a track inside the folder in REAPER, and save.';
 
 function voiceFor(voices: readonly Track[], chosen: string): string {
@@ -72,9 +74,12 @@ export function createBoothVoiceMock(api: Deps) {
     );
     const children = own ?? null;
     // As the host says it (markedChildren): the folder has children and every one is marked, so the fix is to turn one back on.
-    const folderChildren = (links.length === 1 ? childrenOf(project.tracks, links[0]) : null) ?? [];
+    const folderChildren = ((links.length === 1 ? childrenOf(project.tracks, links[0]) : null) ?? []).filter(
+      (child) => !map.mappings.some((mapping) => mapping.trackGuid.toLowerCase() === child.guid.toLowerCase()),
+    );
     const allMarked = folderChildren.length > 0 && folderChildren.every((child) => setup.notVoiceGuids.includes(child.guid.toLowerCase()));
-    const saved = children && (children.length > 0 || setup.layout === 'folders') ? children : null;
+    // A Flat folder whose every child is marked is refused like a Voice folders one, not recorded on itself (#3828, the owner's answer).
+    const saved = children && (children.length > 0 || setup.layout === 'folders' || allMarked) ? children : null;
     const unsaved = saved ? (added.get(links[0].toUpperCase()) ?? []).filter((voice) => !project.tracks.some((track) => track.guid === voice.guid)) : [];
     const folder = saved ? project.tracks.find((track) => track.guid === links[0]) : undefined;
     const extra: Track[] = unsaved.map((voice, at) => ({
@@ -92,17 +97,17 @@ export function createBoothVoiceMock(api: Deps) {
     // A link to a track the project does not hold (deleted in the DAW), unless this session made it: the host's `track_missing`.
     const gone =
       links.length === 1 && !project.tracks.some((track) => track.guid.toLowerCase() === links[0].toLowerCase()) && !added.has(links[0].toUpperCase());
-    return { links, voices, unsaved, gone, allMarked };
+    return { links, voices, unsaved, gone, allMarked, flat: setup.layout !== 'folders' };
   };
   const chosenFor = (chapterId: string) => chosen.get(chapterId) ?? '';
 
   const startedOn = async (chapterId: string, start: () => ReturnType<Deps['readAloudRecordStart']>) => {
-    const { voices, allMarked } = await voicesOf(chapterId);
+    const { voices, allMarked, flat } = await voicesOf(chapterId);
     if (voices?.length === 0)
       return {
         outcome: 'refused' as const,
         reason: 'no_voices' as const,
-        message: noVoicesMessage(allMarked),
+        message: noVoicesMessage(allMarked, flat),
       };
     const result = await start();
     if (result.outcome !== 'started') return result;
@@ -125,12 +130,12 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'never_recorded' };
     },
     async boothVoiceGet(chapterId: string): Promise<BoothVoice> {
-      const { links, voices, gone, allMarked } = await voicesOf(chapterId);
+      const { links, voices, gone, allMarked, flat } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
       if (notOne) return notOne;
       if (gone) return refused('track_missing', LINK_GONE);
       if (!voices) return refused('flat', 'This chapter records on one track.');
-      if (voices.length === 0) return refused('no_voices', noVoicesMessage(allMarked));
+      if (voices.length === 0) return refused('no_voices', noVoicesMessage(allMarked, flat));
       const { unsaved } = await voicesOf(chapterId);
       return { outcome: 'selected', trackGuid: voiceFor(voices, chosenFor(chapterId)), ...(unsaved.length ? { added: unsaved } : {}) };
     },

@@ -121,12 +121,16 @@ func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]
 	voices = withoutLinkedElsewhere(svc, voices)
 	// A track the narrator marked as not a voice (a music bed, room tone) is never a voice either, so voiceFor cannot fall back to it and the
 	// Booth does not list it (#3331). The same State answers the chapter row's members (chapterMember.NotAVoice).
+	candidates := voices
 	voices = withoutNotVoices(setup, voices)
 	// The folder's own structure decides, not the layout toggle: a chapter linked to a folder that holds tracks records on them whatever
 	// the toggle says (#3269: the Engine page listed two voices and the Booth called the chapter single-track). A folder with none is a
 	// voice folder only when the narrator switched Voice folders on, so a flat project's empty folder still records on itself.
 	if len(voices) == 0 && setup.Layout != voicetracks.LayoutFolders {
-		return nil, false, nil
+		// A folder whose every child the narrator turned off is refused, as Voice folders refuses it: a take would otherwise start on the folder
+		// itself with no voice named (#3828, the owner's answer on blocker 1). A folder with no children, or only children another chapter owns,
+		// still records on itself.
+		return nil, len(candidates) > 0, nil
 	}
 	return voices, true, nil
 }
@@ -223,6 +227,8 @@ func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Pr
 	if !folder {
 		return link, nil, nil
 	}
+	// A setup that cannot be read leaves the Narrator to be found by name, as before.
+	setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	if len(voices) == 0 {
 		title, _, err := chapterLinksFor(svc, chapterID)
 		if err != nil {
@@ -231,17 +237,19 @@ func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Pr
 		fix := fmt.Sprintf("Add a track inside the folder in %s, and save.", readAloudAdapterName(svc))
 		if markedChildren(svc, link, project) {
 			fix = "Every track in it is turned off as not a voice. Turn one back on in the Voices card, or add a track inside the folder in " + readAloudAdapterName(svc) + ", and save."
+			if setup.Layout != voicetracks.LayoutFolders {
+				fix = "Every track in it is turned off as not a voice. Turn one back on in the Voices card, or link the chapter to a track of its own."
+			}
 		}
 		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. %s", title, fix))
 		return "", &refused, nil
 	}
-	// A setup that cannot be read leaves the Narrator to be found by name, as before.
-	setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	return voiceFor(voices, svc.boothVoices.For(chapterID), setup), nil, nil
 }
 
-// markedChildren is whether the folder link names has a direct child and every one of them is marked as not a voice, so the fix for a folder with
-// no voices is to turn one back on, not to add a track. False when the folder or the setup cannot be read.
+// markedChildren is whether the folder link names has a direct child and every one of them (leaving out the tracks another chapter is linked to)
+// is marked as not a voice, so the fix for a folder with no voices is to turn one back on, not to add a track. False when the folder or the setup
+// cannot be read.
 func markedChildren(svc hostServices, link string, project *tracks.Project) bool {
 	setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	if err != nil {
@@ -258,9 +266,10 @@ func markedChildren(svc hostServices, link string, project *tracks.Project) bool
 	if !ok || !members[0].IsFolder {
 		return false
 	}
+	linked := linkedTrackGUIDs(svc)
 	children := 0
 	for _, member := range members[1:] {
-		if member.Depth != members[0].Depth+1 {
+		if member.Depth != members[0].Depth+1 || linked[strings.ToLower(member.GUID)] {
 			continue
 		}
 		children++

@@ -511,6 +511,24 @@ describe("the Booth's voices", () => {
     expect(started.outcome === 'refused' && started.message).toContain('turned off as not a voice');
   });
 
+  // #3828 blocker 1 (the owner's answer): a Flat chapter whose folder has every child marked is refused, naming the switch, like Voice folders.
+  it('refuses a Flat chapter whose every child of the folder is marked, naming the switch', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.voiceTracksSetLayout('flat');
+    const first = await mount({}, false, api);
+    await waitFor(() => expect(first.hook.current.voices.length).toBeGreaterThan(1));
+    const everyone = first.hook.current.voices.map((voice) => voice.guid);
+    cleanup();
+    for (const guid of everyone) await api.voiceTracksSetNotAVoice(guid, true);
+    const refused = await api.readAloudRecordStart(chapterId);
+    expect(refused).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(refused.outcome === 'refused' && refused.message).toContain('link the chapter to a track of its own');
+    const { hook, notify } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.linkKind).toBe('marked'));
+    await act(async () => hook.current.byKey(1));
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('Turn one back on in the Voices card'), 'info');
+  });
+
   // A chapter with no one link has no folder, so it lists no voices and the control names no link. Whether the DAW is read at all belongs to
   // the shared state (a project with no linked DAW file is never read: ChapterTrackStateProvider's `enabled`).
   it('lists no voices for a chapter that is not linked', async () => {

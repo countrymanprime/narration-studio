@@ -105,6 +105,16 @@ describe('destinationFor names where a chapter records from the project layout',
     expect(createdSentence(plain, 'Opening', 'REAPER')).toBe('Track “Opening” added in REAPER and linked to Opening. Save the REAPER project to keep it.');
   });
 
+  it('a folder whose every track is marked as not a voice names the switch in either layout, and in Flat the other fix (#3828)', () => {
+    const flat = destinationFor('flat').noVoiceKeys('marked');
+    const folders = destinationFor('folders').noVoiceKeys('marked');
+    expect(flat).toContain('Turn one back on in the Voices card');
+    expect(flat).toContain('link the chapter to a track of its own');
+    expect(flat).not.toMatch(/records on one track/);
+    expect(folders).toContain('Turn one back on in the Voices card');
+    expect(folders).not.toContain('link the chapter');
+  });
+
   it('a link to a track the project does not hold gets one sentence in either layout (#3269)', () => {
     expect(destinationFor('flat').noVoiceKeys('unknown')).toBe(destinationFor('folders').noVoiceKeys('unknown'));
     expect(destinationFor('flat').noVoiceKeys('unknown')).not.toMatch(/records on one track/);
