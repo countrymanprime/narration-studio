@@ -45,6 +45,8 @@ export function ownsKeysByRole(element: Element): boolean {
  */
 export function isGuardedTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
+  // Focus stays on the popup's own control (a radio in Record options) while the popup animates out; that control no longer owns the keys (#3906).
+  if (closing(target)) return false;
   if (target.closest(EDITABLE) || target.closest(SPACE_ACTIVATES)) return true;
   return ownsKeysByRole(target);
 }
@@ -57,21 +59,24 @@ const KEY_LAYER = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="
 
 /** Whether a popup that owns the keyboard is on screen (not hidden, inert or aria-hidden). */
 export function keyLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest('[hidden], [inert], [aria-hidden="true"]'));
+  return Array.from(root.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest(HIDDEN) && !closing(layer));
 }
 
 const HIDDEN = '[hidden], [inert], [aria-hidden="true"]';
+// A popup that has been closed stays in the DOM while it animates out, marked `data-ending-style`: it no longer owns the keyboard, so a key pressed in that
+// window (the voice-list key right after Escape closes Record options, #3906) reaches the page.
+const closing = (layer: Element): boolean => layer.closest('[data-ending-style]') !== null;
 const SOFT_LAYER = '[role="menu"], [data-popover-popup]';
 const MODAL_LAYER = '[role="alertdialog"], [role="dialog"]:not([data-popover-popup])';
 
 /** Whether a menu or popover (a popup the page behind stays usable under, closed by Escape) is on screen. */
 export function softLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(HIDDEN));
+  return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(HIDDEN) && !closing(layer));
 }
 
 /** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
 export function modalLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(HIDDEN));
+  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(HIDDEN) && !closing(layer));
 }
 
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);
