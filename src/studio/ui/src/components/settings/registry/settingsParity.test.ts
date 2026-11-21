@@ -61,6 +61,8 @@ const BINDINGS: Parity = {
     chapterSyncSetEnabled: 'daw.sync',
     voiceTracksSetNarrator: 'daw.voices',
     voiceTracksSetCharacters: 'daw.voices',
+    chapterCreateDefaultSet: 'daw.newChapter',
+    voiceTracksSetNotAVoice: 'daw.voices',
     windowSetZoom: 'look.zoom',
     dawChoose: 'daw.engine',
     pronunciationOnlineKeySet: 'voice.mwKey',

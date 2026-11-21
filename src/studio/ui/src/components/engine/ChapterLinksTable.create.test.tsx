@@ -190,10 +190,35 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await waitFor(() => chapterRow(table, headingName(WIRE_CHAPTERS[1])));
     const row = chapterRow(table, headingName(WIRE_CHAPTERS[1]));
     await user.click(within(row).getByRole('button', { name: `Create a folder for ${short(1)}` }));
-    await waitFor(() => expect(within(row).getByText(`${trackNameOf(1)} · 1 voice`)).toBeTruthy());
+    await waitFor(() => expect(within(row).getByText(`${trackNameOf(1)} · 2 voices`)).toBeTruthy());
+    // The mock project gives characters to a track called Extras, so the folder is made with the Narrator and then Extras (#3748).
     expect(notify).toHaveBeenCalledWith(
-      `Created the folder “${trackNameOf(1)}” with a Narrator track and linked ${short(1)} to it. Save the project to keep it.`,
+      `Created the folder “${trackNameOf(1)}” with Narrator and Extras tracks and linked ${short(1)} to it. Save the project to keep it.`,
       'info',
+    );
+  });
+
+  it('a partly done create says what is left in the same toast, and names every track the folder was made with (#3748)', async () => {
+    const user = userEvent.setup();
+    const base = createMockApi({}, { voiceFolders: true });
+    const message = 'REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.';
+    const api = {
+      ...base,
+      chapterTrackCreate: async (chapterId: string, choice?: Parameters<NarrationApi['chapterTrackCreate']>[1]) => {
+        const created = await base.chapterTrackCreate(chapterId, choice);
+        if (created.outcome !== 'created') return created;
+        return { ...created, children: created.children?.slice(0, 1), message };
+      },
+    } as NarrationApi;
+    const { notify } = renderTable({ api, layout: 'folders' });
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    await waitFor(() => chapterRow(table, headingName(WIRE_CHAPTERS[1])));
+    await user.click(within(chapterRow(table, headingName(WIRE_CHAPTERS[1]))).getByRole('button', { name: `Create a folder for ${short(1)}` }));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(
+        `Created the folder “${trackNameOf(1)}” with a Narrator track and linked ${short(1)} to it. Save the project to keep it. ${message}`,
+        'info',
+      ),
     );
   });
 

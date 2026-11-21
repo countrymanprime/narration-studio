@@ -3,6 +3,7 @@ package teleprompter
 import (
 	"desktop/internal/brand"
 	"desktop/internal/scripttrack"
+	"encoding/json"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -108,5 +109,25 @@ func TestAChapterScriptsHeadingIsTheTitleThenTheSubtitleAsTheTrackersIs(t *testi
 	verdict := Reconcile(&Located{Word: &word, Tokens: len(tracked.Tokens), Confident: true}, nil, script, ResumeTolerance)
 	if verdict.Kind != VerdictDAWOnly || verdict.DAW == nil || verdict.DAW.Sentence.Text != "Alice was beginning to get very tired." {
 		t.Fatalf("verdict = %+v, want daw_only quoting the first sentence", verdict)
+	}
+}
+
+// A book built from a manuscript already loaded gives the scripts and the script hashes the file's own read gives.
+func TestABookOfALoadedManuscriptIsTheBookTheFileGives(t *testing.T) {
+	project := t.TempDir()
+	writeManuscript(t, project, scriptManuscript)
+	fromFile, ok := LoadBook(project)
+	if !ok {
+		t.Fatal("the manuscript did not load")
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(scriptManuscript), &data); err != nil {
+		t.Fatal(err)
+	}
+	if loaded := BookOf(project, data); !reflect.DeepEqual(loaded, fromFile) {
+		t.Fatalf("from the loaded manuscript\n%+v\nfrom the file\n%+v", loaded, fromFile)
+	}
+	if empty := BookOf(project, nil); len(empty.doc.Chapters) != 0 || len(empty.doc.Paragraphs) != 0 {
+		t.Fatalf("a book of no manuscript = %+v", empty)
 	}
 }

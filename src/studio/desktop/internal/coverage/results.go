@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"desktop/internal/evidence"
@@ -16,11 +16,6 @@ import (
 
 // storedResultVersion is the version of a stored coverage result.
 const storedResultVersion = 1
-
-// recordIDPattern is what a ledger record id looks like (evidence.newLedgerID:
-// 32 hex digits, or "ledger-<nanoseconds>"): the stored result's file name, so
-// it is checked before it becomes part of a path.
-var recordIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,64}$`)
 
 // Dir is where coverage keeps its own data under a project: the stored results
 // and, while a run is going, its working folder. manuscript.resetDerived clears
@@ -31,6 +26,8 @@ func Dir(project string) string {
 }
 
 func resultsDir(project string) string { return filepath.Join(Dir(project), "results") }
+
+func summariesDir(project string) string { return filepath.Join(Dir(project), "summaries") }
 
 func runsDir(project string) string { return filepath.Join(Dir(project), "runs") }
 
@@ -85,6 +82,8 @@ type resultCache struct {
 	entries []resultCacheEntry
 	// +checklocks:mu
 	epoch uint64
+	// decoded counts the result files decoded, for the tests that guard what a read of every chapter costs.
+	decoded atomic.Int64
 }
 
 type resultCacheEntry struct {
@@ -181,10 +180,11 @@ func (r StoredResult) cloned() StoredResult {
 }
 
 func (s resultStore) path(recordID string) (string, error) {
-	if !recordIDPattern.MatchString(recordID) {
+	name, ok := evidence.RecordFileName(recordID)
+	if !ok {
 		return "", fmt.Errorf("%q is not a ledger record id", recordID)
 	}
-	return filepath.Join(s.dir, recordID+".json"), nil
+	return filepath.Join(s.dir, name), nil
 }
 
 func (s resultStore) write(result StoredResult) error {
@@ -204,6 +204,16 @@ func (s resultStore) write(result StoredResult) error {
 	return nil
 }
 
+// exists reports whether the record's result file is there, without reading it.
+func (s resultStore) exists(recordID string) bool {
+	path, err := s.path(recordID)
+	if err != nil {
+		return false
+	}
+	info, err := os.Stat(path)
+	return err == nil && info.Mode().IsRegular()
+}
+
 // read returns the stored result for a record, or false when it is missing,
 // unreadable, or of another version: derived data a new run replaces.
 func (s resultStore) read(recordID string) (StoredResult, bool) {
@@ -220,6 +230,27 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 	// The file is gone or is not the one cached: what was cached for the record is not served again, whatever the file now holds.
 	s.cache.drop(recordID)
 	epoch := s.cache.now()
+	result, outcome := s.decode(path, recordID)
+	if outcome == persist.Loaded && statErr == nil {
+		s.cache.put(recordID, info, result, epoch)
+	}
+	return result, outcome == persist.Loaded
+}
+
+// readUncached is read past the decoded-result cache, for a caller that reads many results once each (the summaries'
+// rebuild): it neither fills the cache nor pushes out the entries the Editing and Booth pages are reading, and several
+// may run at once, which the cache's epoch would turn into refused fills.
+func (s resultStore) readUncached(recordID string) (StoredResult, bool) {
+	path, err := s.path(recordID)
+	if err != nil {
+		return StoredResult{}, false
+	}
+	result, outcome := s.decode(path, recordID)
+	return result, outcome == persist.Loaded
+}
+
+// decode reads and checks one result file.
+func (s resultStore) decode(path, recordID string) (StoredResult, persist.Outcome) {
 	var result StoredResult
 	outcome := s.reporter.ReadJSON(path, "coverage result", persist.Disposable, func(raw []byte) error {
 		var decoded StoredResult
@@ -232,10 +263,10 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 		result = decoded
 		return nil
 	})
-	if outcome == persist.Loaded && statErr == nil {
-		s.cache.put(recordID, info, result, epoch)
+	if outcome == persist.Loaded && s.cache != nil {
+		s.cache.decoded.Add(1)
 	}
-	return result, outcome == persist.Loaded
+	return result, outcome
 }
 
 // ChapterResult is what the result reader answers for a chapter: whether the

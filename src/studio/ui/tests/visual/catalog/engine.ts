@@ -86,6 +86,13 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'voice-folders-marked',
+    description:
+      'The engine panel\'s Voices card (?mockVoiceFolders=1) with the Extras track turned off by its "Voice" switch: Extras is dimmed with the "Not a voice" badge at full strength, has no key, its edit button is disabled, and the switch stays on screen to turn it back on',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
     state: 'voice-folders-picker',
     description:
       "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked, each other character with the voice it is already on",
@@ -165,7 +172,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'chapter-folder-created',
     description:
-      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 1 voice", the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
+      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 2 voices" (the Narrator and Extras, which this project\'s voice setup gives characters, #3748), the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

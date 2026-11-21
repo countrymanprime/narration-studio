@@ -455,3 +455,61 @@ func TestLearnKeepsTheMarks(t *testing.T) {
 		t.Fatalf("Learn changed the marks: %v", got.NotVoiceGUIDs)
 	}
 }
+
+func TestTheNewChapterChoiceIsEveryVoiceAndExtrasUntilOneIsMadeAndThenKept(t *testing.T) {
+	service, _ := newService(t)
+	got, err := service.NewChapter()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, NewChapter{SkipVoices: []string{}}) {
+		t.Fatalf("default = %+v, want every voice and Extras", got)
+	}
+	if _, err := service.SetNewChapter([]string{" Mara ", "mara", "Éric"}, true); err != nil {
+		t.Fatal(err)
+	}
+	got, err = service.NewChapter()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, NewChapter{SkipVoices: []string{"Mara", "Éric"}, NoExtras: true}) {
+		t.Fatalf("kept = %+v, want the trimmed names once and no Extras", got)
+	}
+	// Every voice and Extras again is the default: the entry goes, and the rest of the file is as it was.
+	if _, err := service.SetNewChapter(nil, false); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = service.NewChapter()
+	if !reflect.DeepEqual(got, NewChapter{SkipVoices: []string{}}) {
+		t.Fatalf("reset = %+v", got)
+	}
+}
+
+func TestTheNewChapterChoiceRefusesABlankOrHugeNameAndWritesNothing(t *testing.T) {
+	service, project := newService(t)
+	for _, bad := range [][]string{{""}, {"  "}, {strings.Repeat("x", MaxSkipName+1)}} {
+		if _, err := service.SetNewChapter(bad, false); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%q: err = %v, want ErrInvalid", bad, err)
+		}
+	}
+	if _, err := os.Stat(File(project)); !os.IsNotExist(err) {
+		t.Fatalf("a refused choice wrote the file: %v", err)
+	}
+}
+
+func TestTheNewChapterChoiceKeepsEmojiAndRightToLeftNamesAndTheRestOfTheSetup(t *testing.T) {
+	service, _ := newService(t)
+	if _, err := service.SetLayout(LayoutFolders); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SetNewChapter([]string{"Dragon 🐉", "مرحبا"}, false); err != nil {
+		t.Fatal(err)
+	}
+	got, err := service.NewChapter()
+	if err != nil || !reflect.DeepEqual(got.SkipVoices, []string{"Dragon 🐉", "مرحبا"}) {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if state, _ := service.Get(); state.Layout != LayoutFolders {
+		t.Fatalf("the choice changed the layout: %+v", state)
+	}
+}

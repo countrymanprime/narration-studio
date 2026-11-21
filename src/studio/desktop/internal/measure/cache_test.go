@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -155,6 +156,47 @@ func TestCachedPeaksFileStopsWhenCancelled(t *testing.T) {
 	cancel()
 	if _, err := CachedPeaksFile(ctx, store, identityOf(t, path), path, nil, 50); !errors.Is(err, context.Canceled) {
 		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+}
+
+// SlicePeaks is the cut CachedPeaksFile makes, for a caller that read the whole source once.
+func TestSlicePeaksCutsARangeFromAWholeSourcesPeaksAsCachedPeaksFileDoes(t *testing.T) {
+	path := writeWAVFile(t, encodeWAV(t, 1, 8000, 16, false, sine(8000, 2, 220, -6, 0)))
+	store := evidence.NewCacheStore(t.TempDir())
+	rng := Range{StartSeconds: 0.51, LengthSeconds: 0.5}
+	want, err := CachedPeaksFile(context.Background(), store, identityOf(t, path), path, &rng, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	whole, err := CachedPeaksFile(context.Background(), store, identityOf(t, path), path, nil, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := SlicePeaks(whole, rng)
+
+	if err != nil || got.Buckets != want.Buckets || got.StartSeconds != want.StartSeconds || string(got.MinMax) != string(want.MinMax) || string(got.RMS) != string(want.RMS) {
+		t.Fatalf("got %d buckets from %v (err %v), want %d from %v with the same bytes", got.Buckets, got.StartSeconds, err, want.Buckets, want.StartSeconds)
+	}
+	// The cut is a copy: writing through it leaves the whole source's peaks as they were.
+	kept := whole.MinMax[2*25]
+	got.MinMax[0] ^= 0x7f
+	if whole.MinMax[2*25] != kept {
+		t.Fatal("the cut shares its bytes with the whole source's peaks")
+	}
+}
+
+func TestSlicePeaksAndValidateRefuseABadRange(t *testing.T) {
+	for _, rng := range []Range{{StartSeconds: -1, LengthSeconds: 1}, {StartSeconds: 0, LengthSeconds: 0}, {StartSeconds: math.NaN(), LengthSeconds: 1}} {
+		if rng.Validate() == nil {
+			t.Fatalf("Validate(%+v) = nil, want an error", rng)
+		}
+		if _, err := SlicePeaks(Peaks{BucketsPerSecond: 50}, rng); err == nil {
+			t.Fatalf("SlicePeaks(%+v) = nil error, want one", rng)
+		}
+	}
+	if err := (Range{StartSeconds: 0, LengthSeconds: 1}).Validate(); err != nil {
+		t.Fatalf("Validate of a good range = %v", err)
 	}
 }
 

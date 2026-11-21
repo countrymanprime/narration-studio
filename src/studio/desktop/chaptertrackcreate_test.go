@@ -43,7 +43,7 @@ func createAvailable() dawport.Support { return dawport.Support{Available: true}
 
 func createTrack(t *testing.T, host *Host, creator dawport.TrackCreator, support dawport.Support, chapterID string) map[string]any {
 	t.Helper()
-	answer, err := chapterTrackCreateIn(context.Background(), host.services(), creator, support, chapterID)
+	answer, err := chapterTrackCreateIn(context.Background(), host.services(), creator, support, chapterID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestChapterTrackCreateReplacesTheChaptersOldLink(t *testing.T) {
 func TestChapterTrackCreateForAChapterNotInTheManuscriptIsAnError(t *testing.T) {
 	host, _ := newTestHostForChapterMatch(t)
 	creator := &fakeCreator{}
-	if _, err := chapterTrackCreateIn(context.Background(), host.services(), creator, createAvailable(), "c-9999"); err == nil {
+	if _, err := chapterTrackCreateIn(context.Background(), host.services(), creator, createAvailable(), "c-9999", nil); err == nil {
 		t.Fatal("want an error for a chapter the manuscript does not have")
 	}
 	if len(creator.names) != 0 {
@@ -283,7 +283,7 @@ func TestChapterTrackCreateAnswerIsJSON(t *testing.T) {
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
 	host := newTestHost(t)
-	if _, err := host.ChapterTrackCreate("c-0001"); err == nil {
+	if _, err := host.ChapterTrackCreate("c-0001", ""); err == nil {
 		t.Fatal("a host with no project must answer an error, not a refusal")
 	}
 }
@@ -309,7 +309,7 @@ func TestContractChapterTrackCreate(t *testing.T) {
 	}
 	host, ids := newTestHostForChapterMatch(t)
 	folder := host.config.projectFolder
-	created, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{index: 3}, createAvailable(), ids[1])
+	created, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{index: 3}, createAvailable(), ids[1], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,20 +318,20 @@ func TestContractChapterTrackCreate(t *testing.T) {
 	// A Voice folders project: the chapter's new folder and its Narrator child (#2840).
 	folders, folderIDs := newTestHostForChapterMatch(t)
 	setLayout(t, folders, voicetracks.LayoutFolders)
-	createdFolder, err := chapterTrackCreateIn(context.Background(), folders.services(), &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}, createAvailable(), folderIDs[1])
+	createdFolder, err := chapterTrackCreateIn(context.Background(), folders.services(), &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}, createAvailable(), folderIDs[1], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pin(t, "chapter-track-create-folder", folders.config.projectFolder, createdFolder)
 
 	host.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{Adapter: dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))})
-	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[2])
+	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[2], nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	pin(t, "chapter-track-create-refused", folder, refused)
 	// ids[1] was linked by the create above: a second create is refused and names its track (#2958, B2).
-	already, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{}, createAvailable(), ids[1])
+	already, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{}, createAvailable(), ids[1], nil)
 	if err != nil {
 		t.Fatal(err)
 	}

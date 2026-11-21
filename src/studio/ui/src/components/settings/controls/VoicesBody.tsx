@@ -13,16 +13,20 @@ const NO_TRACKS: Track[] = [];
 
 /**
  * The body of "Voices": the Engine panel's Voices card (the Narrator's character and who each voice track records), on the same shared voice
- * setup, without its own card. It needs the project's tracks and chapter links, which it takes from the shared chapter-track state, as the Engine panel does. While the layout is Flat
- * there are no voice tracks and the row's body is empty.
+ * setup, without its own card. It needs the project's tracks and chapter links, which it takes from the shared chapter-track state, as the Engine panel does. While the layout is Flat and no chapter is
+ * linked to a folder of its own tracks, there are no voice tracks and the row's body is empty.
  */
 export function VoicesBody() {
   const { setup } = useVoiceSetup();
-  // A flat project has no voice tracks, so the row draws nothing; the row's ? says what turns them on.
-  return setup.layout === 'flat' ? null : <VoiceFolders />;
+  const trackState = useChapterTrackState();
+  // A Flat project with no chapter linked to a folder has no voice tracks, so the row draws nothing and reads neither the Story Bible nor the
+  // chapters; the row's ? says what turns them on.
+  const folders = new Set((trackState.project?.tracks ?? NO_TRACKS).filter((track) => track.isFolder).map((track) => track.guid));
+  const linkedFolder = trackState.mappings.some((mapping) => folders.has(mapping.trackGuid));
+  return setup.layout === 'flat' && !linkedFolder ? null : <VoiceFolders />;
 }
 
-/** Read only while the layout is Voice folders, so the Story Bible and the tracks are not read for a flat project. */
+/** The Voices card inside the row: Voice folders always, and Flat when a chapter is linked to a folder (its children are voices there too). */
 function VoiceFolders() {
   const { notify } = useSettingsHost();
   const voices = useVoiceTracks(notify);
@@ -53,6 +57,7 @@ function VoiceFolders() {
       onLayout={voices.setLayout}
       onTrackCharacters={voices.setTrackCharacters}
       onNarratorCharacter={voices.setNarratorCharacter}
+      onNotAVoice={voices.setNotAVoice}
       layoutInCard={false}
       bare
     />

@@ -68,7 +68,7 @@ func WriteRenderRecord(ledger *evidence.LedgerStore, documentID, chapterID, rend
 // not need to distinguish them, since there is no "same file, different
 // fingerprint" case to separate here: a key mismatch always means "not this
 // file's record" - or a decode error.
-func CurrentRenderRecord(ledger *evidence.LedgerStore, documentID, chapterID, currentRenderKey string) (evidence.LedgerRecord, RenderScanPayload, bool, error) {
+func CurrentRenderRecord(ledger evidence.LedgerReader, documentID, chapterID, currentRenderKey string) (evidence.LedgerRecord, RenderScanPayload, bool, error) {
 	records, err := ledger.List(AnalyzerEditingRender, chapterID)
 	if err != nil {
 		return evidence.LedgerRecord{}, RenderScanPayload{}, false, err

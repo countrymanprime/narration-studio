@@ -6,6 +6,7 @@ import {
   coverageGapReviewsSchema,
   coverageWorkerPlanSchema,
   coverageResultSchema,
+  coverageResultSummaryFileSchema,
   coverageStartResultSchema,
   coverageStateSchema,
 } from '../schemas/coverage';
@@ -29,6 +30,8 @@ export const coverageGoldens: Record<string, z.ZodType> = {
   'coverage-state-complete.json': coverageStateSchema,
   // A running check with the activity the sidecar reports (workers busy, chunks done, the larger model's passages).
   'coverage-state-running-activity.json': coverageStateSchema,
+  // Not a payload: the summary file the host keeps beside each stored result and reads for every chapter.
+  'coverage-result-summary.json': coverageResultSummaryFileSchema,
   // Not a payload: the reason words the host can send, which the schema's lists must equal (the test below).
   'coverage-reasons.json': z.object({ refusal: z.array(z.string()), evaluator: z.array(z.string()) }),
 };

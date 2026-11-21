@@ -22,7 +22,7 @@ describe('useNavCounts (rail badges, N-B61)', () => {
     const api: Api = {
       ...base,
       findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 3, total: 20, decided: 17, cleared: 6 }),
-      pickupsList: async () => ({ pickups: MIXED, leftOut: [] }),
+      pickupsOpenCount: async () => ({ open: openPickups(MIXED).length }),
     };
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
     // The Proof page draws "Open" as the notes still open (total less cleared) and "Pickups" as its own chip; the rail's badge is the first figure only,
@@ -38,7 +38,7 @@ describe('useNavCounts (rail badges, N-B61)', () => {
     const api: Api = {
       ...base,
       findingsSummary: async () => ({ ...(await base.findingsSummary()), unreviewed: 2, total: 5, decided: 3, cleared: 3 }),
-      pickupsList: async () => {
+      pickupsOpenCount: async () => {
         throw new Error('no reaper');
       },
     };

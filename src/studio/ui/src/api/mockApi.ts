@@ -195,12 +195,19 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     proofNotes: () => proofNotes.read(),
   });
+  const voiceMarks = { markNotVoice: (_guid: string) => {} };
+  const notVoiceMarks: { current: string[] } = { current: [] };
   const voiceTracks = createVoiceTracksMock(
     initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'], guids: [] }] } : undefined,
+    notVoiceMarks,
+    voiceMarks,
   );
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
     voiceLayout: async () => (await voiceTracks.voiceTracksGet()).layout,
+    markNotVoice: (guid) => voiceMarks.markNotVoice(guid),
+    knownVoices: async () => (await voiceTracks.voiceTracksGet()).tracks.map((assignment) => assignment.track),
+    notVoiceGuids: () => notVoiceMarks.current,
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),

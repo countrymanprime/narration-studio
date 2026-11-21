@@ -335,7 +335,7 @@ func coverage(payload ComparisonPayload) func(findings.Finding) bool {
 
 // latestAmbiguous is the newest record of a run whose title matched more than
 // one chapter, when that title is this chapter's.
-func latestAmbiguous(ledger *evidence.LedgerStore, chapter stages.ChapterContext) (*evidence.LedgerRecord, error) {
+func latestAmbiguous(ledger evidence.LedgerReader, chapter stages.ChapterContext) (*evidence.LedgerRecord, error) {
 	records, err := ledger.List(AnalyzerTranscriptCompare, "")
 	if err != nil {
 		return nil, err

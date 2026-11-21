@@ -102,6 +102,9 @@ export interface VoiceTracksApi {
   voiceTracksSetCharacters(track: string, characterIds: string[]): Promise<VoiceTracksState>;
   /** Sets the character the Narrator track also voices, or clears it with "". */
   voiceTracksSetNarrator(characterId: string): Promise<VoiceTracksState>;
+  /** Marks the track with `guid` as not a voice (a music bed), or makes it a voice again with false. A marked track is never the recording
+   * target and is not a voice in the Booth; it stays in its folder. */
+  voiceTracksSetNotAVoice(guid: string, notAVoice: boolean): Promise<VoiceTracksState>;
   /** Chooses the voice the Booth records the chapter on, by a voice track's GUID that must be a direct child of the chapter's linked
    * folder; during a take this app started it switches the take live. Sent only from a voice key or a press in the voice list. */
   boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice>;
