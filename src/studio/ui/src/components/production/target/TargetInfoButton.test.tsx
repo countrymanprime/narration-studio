@@ -82,6 +82,8 @@ describe('popover-shows-both-rates-and-the-breakdown', () => {
     expect(pop.querySelector('[data-basis="standard"]')?.textContent).toContain('Target 1h 10m');
     expect(pop.querySelector('[data-basis="yours"]')?.textContent).toContain('Target 0h 58m');
     expect(pop.textContent).toContain('Ch 1, Ch 2 and Ch 4 have a measured length: 6,851 words in 0h 37m.');
+    // The marked figure has a spoken form, as the Target figures beside it do ("0h 37m" is read letter by letter).
+    expect(pop.textContent).toContain('6,851 words in 37 minutes.');
     expect(within(pop).getByRole('button', { name: 'Standard' }).getAttribute('aria-pressed')).toBe('true');
   });
 

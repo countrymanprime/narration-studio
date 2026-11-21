@@ -6,6 +6,7 @@ import { WPH } from '../../schedule/estimates';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { OwnRate } from './pace.selectors';
 import { clock } from '../../../clock';
+import { plural, pluralWord } from '../../../plural';
 
 const DASH = '—';
 
@@ -56,9 +57,13 @@ export function TargetPopover({
         <Cell name="Yours" rate={own.ok ? num(own.value.wph) : DASH} target={hours.own === null ? DASH : hm(hours.own)} on={basis === 'own'} />
       </div>
       <p className="text-xs text-[var(--text-muted)]">
-        {own.ok
-          ? `${joinTags(own.value.chapters.map((c) => c.tag))} ${own.value.chapters.length === 1 ? 'has' : 'have'} a measured length: ${num(own.value.words)} words in ${clock(own.value.seconds, { marked: true })}.`
-          : `Your rate is not measured yet. ${own.reason}`}
+        <SpokenFigure
+          text={
+            own.ok
+              ? `${joinTags(own.value.chapters.map((c) => c.tag))} ${pluralWord(own.value.chapters.length, 'has', 'have')} a measured length: ${plural(own.value.words, 'word')} in ${clock(own.value.seconds, { marked: true })}.`
+              : `Your rate is not measured yet. ${own.reason}`
+          }
+        />
       </p>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Schedule basis</span>
