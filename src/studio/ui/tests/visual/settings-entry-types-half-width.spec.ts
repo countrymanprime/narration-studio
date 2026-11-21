@@ -41,3 +41,17 @@ for (const width of WIDTHS) {
     });
   }
 }
+
+// A sweep, because the rail appears at 860 px and takes width from the list: a width that is one line on both sides of it can still be two lines at it.
+test('Settings, Entry types: every window from 554 to 1300 px draws each type on one line', async ({ page }) => {
+  await openEntryTypes(page, 1300, 'light');
+  const wrapped: number[] = [];
+  for (let width = 554; width <= 1300; width += 3) {
+    await page.setViewportSize({ width, height: 900 });
+    const tall = await page
+      .locator('[data-row="project.types"] li')
+      .evaluateAll((items) => items.filter((item) => item.getBoundingClientRect().height >= 44).length);
+    if (tall > 0) wrapped.push(width);
+  }
+  expect(wrapped, 'widths where a type takes two lines').toEqual([]);
+});

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { GUIDE_TYPE_COLOURS, type GuideType, type GuideTypeColour } from '../../../types';
@@ -73,16 +73,16 @@ function TypeRow({
   };
   const blocked = count === undefined ? 'Reading the entries…' : count > 0 ? `${type.name} is in use` : last ? 'The last type stays' : undefined;
   return (
-    // From 480 px of the list's own width a type is one line. Narrower, the name takes the first line and the rest the second, indented to
+    // From 448 px of the list's own width a type is one line. Narrower, the name takes the first line and the rest the second, indented to
     // start under the name box, with less room inside a type than between two (alignment audit R3SE1-2, XSE2-10, XSE1-15). Under a 24 rem list
     // (the 390 px window) the indent goes: indented, the line was 16 px wider than the type and Remove hung past the name box (A4).
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 @[30rem]:flex-nowrap">
-      <span className="flex min-w-0 basis-full items-center gap-3 @[30rem]:flex-1 @[30rem]:basis-auto">
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 @[28rem]:flex-nowrap">
+      <span className="flex min-w-0 basis-full items-center gap-3 @[28rem]:flex-1 @[28rem]:basis-auto">
         <Swatch colour={kindSwatch([type], type.name)} />
         <TextField
           label={`Type name: ${type.name}`}
           value={value}
-          className="min-w-[8rem] flex-1 @[30rem]:max-w-[16rem] @[30rem]:min-w-[6rem]"
+          className="min-w-[8rem] flex-1 @[28rem]:max-w-[16rem] @[28rem]:min-w-[5rem]"
           disabled={busy}
           onChange={setValue}
           onBlur={commit}
@@ -91,12 +91,12 @@ function TypeRow({
           }}
         />
       </span>
-      <span className="flex w-full items-center gap-2 pl-6 @max-sm:pl-0 @[30rem]:w-auto @[30rem]:gap-3 @[30rem]:pl-0">
+      <span className="flex w-full items-center gap-2 pl-6 @max-sm:pl-0 @[28rem]:w-auto @[28rem]:gap-2 @[28rem]:pl-0">
         <ColourField
           mode="palette"
           form="popover"
           label={`Colour for ${type.name}`}
-          className="w-[100px] @[30rem]:w-[120px]"
+          className="w-[100px] @[28rem]:w-[120px]"
           choices={COLOUR_CHOICES}
           value={type.colour}
           pending={busy}
@@ -111,7 +111,7 @@ function TypeRow({
             </span>
           </Checkbox>
         </TooltipTarget>
-        <span data-type-count={type.name} className="ml-auto min-w-[60px] text-right text-sm whitespace-nowrap text-[var(--text-muted)] @[30rem]:ml-0">
+        <span data-type-count={type.name} className="ml-auto min-w-[60px] text-right text-sm whitespace-nowrap text-[var(--text-muted)] @[28rem]:ml-0">
           {count === undefined ? '' : `${plural(count, 'entry', 'entries')}`}
         </span>
         <IconButton
@@ -195,7 +195,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
     <>
       <div className="@container flex w-full min-w-0 flex-col gap-3">
         {types ? (
-          <ul className="m-0 flex list-none flex-col gap-5 p-0 @[30rem]:gap-3">
+          <ul className="m-0 flex list-none flex-col gap-5 p-0 @[28rem]:gap-2">
             {types.map((type) => (
               <TypeRow
                 key={rowKey.of(type.name)}
@@ -220,7 +220,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
               label="New type"
               placeholder="New type"
               value={name}
-              className="min-w-[8rem] flex-1 @[30rem]:max-w-[16rem] @[30rem]:min-w-[6rem]"
+              className="min-w-[8rem] flex-1 @[28rem]:max-w-[16rem] @[28rem]:min-w-[5rem]"
               disabled={busy}
               onChange={setName}
               onKeyDown={(event) => {
@@ -282,7 +282,11 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
     };
   }, [read]);
 
+  // A second press before the first answer would land on whatever row moved under the pointer, so one change is in flight at a time.
+  const inFlight = useRef(false);
   const change = async (call: () => Promise<void>): Promise<boolean> => {
+    if (inFlight.current) return false;
+    inFlight.current = true;
     setBusy(true);
     try {
       await call();
@@ -294,6 +298,7 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
       setError(apiErrorMessage(failure));
       return false;
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
