@@ -580,3 +580,25 @@ H.test('a voice added after record_stop keeps the take on its voice, in its own 
   H.eq(labels[#labels - 1], 'Recorded media')
   H.eq(s.fake.open_undo_blocks, 0)
 end)
+
+-- #3670, #3333: every track the narrator records on is created with input monitoring on, so arming it is all it needs (REAPER monitors only the armed track).
+H.test('track_create turns input monitoring on for the new track and leaves the other tracks as they were', function()
+  local s, first, pickups = new_session()
+  first.rec_mon = 2
+  s:send('track_create', 'c1', 'Chapter 2')
+  H.eq(s.fake.tracks[3].rec_mon, 1)
+  H.eq({ first.rec_mon, pickups.rec_mon }, { 2, nil })
+end)
+
+H.test('track_create with a parent turns input monitoring on for the new voice', function()
+  local s, t = folder_session()
+  s:send('track_create', 'c1', 'Veyra', t.folder.guid)
+  H.eq(s.fake.tracks[6].rec_mon, 1)
+  H.eq(t.narrator.rec_mon, nil)
+end)
+
+H.test('track_create of a folder turns input monitoring on for its child, not the folder', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator')
+  H.eq({ s.fake.tracks[3].rec_mon, s.fake.tracks[4].rec_mon }, { nil, 1 })
+end)

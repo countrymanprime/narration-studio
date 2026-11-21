@@ -23,10 +23,20 @@
 -- is never nested inside the chapter before it; that is the only change to a track that was there. It answers
 -- TRACK_CREATED|run|guid|index|name|childGuid|childIndex|childName. A parent and a child name together are refused.
 --
+-- Every track a narrator records on (the plain track, the voice inside a folder, the child of a new chapter folder) is created with its input monitoring
+-- on (I_RECMON 1) when it reads off, so the narrator hears themself the moment it is armed, from any page that creates it (#3670, #3333; the owner:
+-- REAPER monitors only the armed track either way). A value the narrator or REAPER's own template set (1 or 2) is left as it is.
+--
 -- Events: TRACK_CREATED|run|guid|index|name[|childGuid|childIndex|childName], TRACK_STALE|run|parentGuid, or ERROR|run|message.
 
 local core = ...
 local event = core.event
+
+local function monitor_on(track)
+  if reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0 then
+    reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', 1)
+  end
+end
 
 local UNDO_ADD_TRACK = core.brand.name .. ': add track'
 local RECORDING = 'REAPER is recording. Stop recording first.'
@@ -109,6 +119,7 @@ local function insert_child(plan)
   reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', plan.new_delta)
   reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(plan.source, 'I_RECINPUT'))
   reaper.SetMediaTrackInfo_Value(track, 'I_RECMODE', reaper.GetMediaTrackInfo_Value(plan.source, 'I_RECMODE'))
+  monitor_on(track)
   return plan.index
 end
 
@@ -122,6 +133,7 @@ local function append_folder(name, child_name)
   reaper.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)
   reaper.GetSetMediaTrackInfo_String(folder, 'P_NAME', name, true)
   reaper.GetSetMediaTrackInfo_String(child, 'P_NAME', child_name, true)
+  monitor_on(child)
   return folder, index, child, index + 1
 end
 
@@ -187,6 +199,7 @@ local function track_create(session_dir, run_id, name_text, parent_text, child_t
     _, index = core.append_track()
   end
   local track = reaper.GetTrack(0, index)
+  monitor_on(track)
   reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)
   reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)
   reaper.UpdateArrange()
