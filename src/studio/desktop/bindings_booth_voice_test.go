@@ -376,6 +376,10 @@ func TestAChapterFolderWithNoVoicesIsRefusedBeforeAnythingIsArmed(t *testing.T) 
 	if result.Outcome != "refused" || result.Reason != boothVoiceNoVoices || len(fake.calls) != 0 {
 		t.Fatalf("result %+v, calls %v", result, fake.calls)
 	}
+	// An empty folder is told to add a track; the turned-off sentence is for a folder whose tracks are all marked (#3828).
+	if strings.Contains(result.Message, "turned off") || !strings.Contains(result.Message, "Add a track inside the folder") {
+		t.Fatalf("message %q", result.Message)
+	}
 }
 
 func TestARecordStartInAVoiceFolderContinuesAfterTheWholeFolderNotTheVoice(t *testing.T) {

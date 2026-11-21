@@ -7,6 +7,9 @@ import { retryAction } from '../primitives/Toast';
 import { usePort } from '../../ports/usePort';
 import { useVoiceSetup } from './voiceLayout';
 
+/** One notice at a time for the Voice switches: a second press replaces the first rather than stacking over the card. */
+const VOICE_SWITCH_TOPIC = 'voice-switch';
+
 /** The project's voice setup (shared app-wide by VoiceSetupProvider) and the Story Bible's characters, read when the Engine panel opens;
  * each change saves at once and a refusal is a toast (frontend-primitives rule 7). */
 export function useVoiceTracks(notify: Notify, { characters: wantCharacters = true }: { characters?: boolean } = {}) {
@@ -84,10 +87,16 @@ export function useVoiceTracks(notify: Notify, { characters: wantCharacters = tr
         (current) => withTrackCharacters(current, track, ids),
         () => voiceTracks.voiceTracksSetCharacters(track, ids),
       ),
-    setNotAVoice: (guid: string, notAVoice: boolean) =>
+    /** `consequence` is what the change does beyond the row (the Booth's voice moves, the keys renumber): told once, as a notice, once the host has saved it
+     * (a refusal is the error toast alone), since nothing else on the page shows it. */
+    setNotAVoice: (guid: string, notAVoice: boolean, consequence?: string) =>
       save(
         (current) => withNotAVoice(current, guid, notAVoice),
-        () => voiceTracks.voiceTracksSetNotAVoice(guid, notAVoice),
+        () =>
+          voiceTracks.voiceTracksSetNotAVoice(guid, notAVoice).then((answer) => {
+            if (consequence) notify(consequence, 'info', undefined, undefined, undefined, VOICE_SWITCH_TOPIC);
+            return answer;
+          }),
       ),
     setNarratorCharacter: (id: string) =>
       save(
