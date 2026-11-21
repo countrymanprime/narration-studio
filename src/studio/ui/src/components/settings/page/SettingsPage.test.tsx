@@ -863,6 +863,15 @@ describe('Settings: search and filters', () => {
     expect(within(backups).getByText(/Also set in Editing/)).toBeTruthy();
   });
 
+  it('keeps the punch pre-roll in Settings with the built-in recorder, and says why Audacity backups have no control with a tool that keeps none', async () => {
+    const api = createMockApi({}, { dawChoice: { chosen: 'Built-in' }, daw: { daw: 'Built-in' }, recording: { engine: 'builtin' } });
+    await renderPage({ api });
+    // A computer-wide value: the Booth does not offer it with a recorder that does not punch, but Settings keeps it for every project.
+    expect(await waitForRow('daw.punchPreroll')).toBeTruthy();
+    const backups = await waitForRow('daw.backups');
+    await waitFor(() => expect(within(backups).getByText('Backups are kept only when the project records with Audacity.')).toBeTruthy());
+  });
+
   it('lists the favourite effects under Recording & DAW, beside the effects coverage cap', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');

@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactElement } from 'react';
 import type { ScopedSettingField } from '../../../types';
-import { BackupsSection } from '../BackupsSection';
+import { useDawCapabilityReport } from '../../../daw/useDawCapabilityReport';
+import { BackupsSection, hasBackups } from '../BackupsSection';
 import { RecordingCheckSummary } from '../RecordingCheckSummary';
 import { ScopedFieldsPanel } from '../page/ScopedFieldsPanel';
 import { NEEDS_PROJECT_FOR_PROJECT, NEEDS_PROJECT_REASON } from '../registry/projectNeeds';
@@ -107,7 +108,12 @@ export function StageSuggestionsBody() {
 }
 
 export function AudacityBackupsBody() {
-  return useHasProject() ? (
+  const { report } = useDawCapabilityReport();
+  const hasProject = useHasProject();
+  // Only Audacity keeps backups; the section draws nothing for another tool, so the row says why instead of showing a label and no control.
+  if (report && !hasBackups(report))
+    return <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">Backups are kept only when the project records with Audacity.</p>;
+  return hasProject ? (
     <div className="w-full min-w-0">
       <BackupsSection />
     </div>
