@@ -635,6 +635,20 @@ describe('withCoalescedReads: kept reads (#3658)', () => {
     }
   });
 
+  it('a read does not join a plain read that has been out longer than the revalidate age', async () => {
+    vi.useFakeTimers();
+    try {
+      const { api, calls } = gated();
+      const wrapped = withCoalescedReads(api);
+      void wrapped.manuscriptChapters(); // never answers
+      vi.setSystemTime(Date.now() + KEPT_REVALIDATE_MS + 1);
+      void wrapped.manuscriptChapters();
+      expect(calls).toEqual(['manuscriptChapters', 'manuscriptChapters']);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('starts another background re-read when the first has been out longer than the revalidate age', async () => {
     vi.useFakeTimers();
     try {
