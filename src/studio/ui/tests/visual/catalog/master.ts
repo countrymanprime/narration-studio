@@ -211,7 +211,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'to-spec-approve-chain-off',
     description:
-      "Master & QC, the approval dialog's long DAW chain scrolled to its bypassed plug-in (?mockMastering=daw&mockMasterChain=long, #2932) - the row numbered in signal order, its Off badge beside the name",
+      "Master & QC, the approval dialog's long DAW chain scrolled to its bypassed plug-in (?mockMastering=daw&mockMasterChain=long, #2932) - the row numbered in signal order, its Off badge beside the name, and, the first effect being out of view, the chip over the bottom of the body that names the effects above (#3605)",
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

@@ -48,8 +48,10 @@ with the file being measured (its row reads **Measuring**), and **Cancel** stops
 runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
 the page shows an error message, **Can't tell how the measurement is going**, with a **Retry** button, and keeps
 trying every couple of seconds (the message goes when the host answers); the check itself keeps running. Once files are checked its tooltip reads
-**Re-check 3 files** and it measures the same files again (after a new render, say); the **Choose other files…** icon button
-picks others.
+**Re-check 3 files** and it checks the same files again (after a new render, say); the **Choose other files…** icon button
+picks others. With a project open, a file whose content has not changed since it was last measured is not measured again, also after you
+close and reopen the app: the app reads the whole file to make sure it is the same audio, which takes a fraction of the time, and shows the
+measurement it kept. A file that changed in any way is measured again.
 
 ![A check in progress, with its real progress and Cancel](../../images/ui/master-running.webp)
 
@@ -166,9 +168,12 @@ The **i** beside the count says what your approval covers: each effect's name, w
 settings, and each track's mute, solo, volume, pan and routing (its sends and receives) and whether its effects are switched on,
 the master's too, and tracks with no effects as well. It also says what is not covered: automation (the app reads each setting's
 value as it is now, not an envelope that moves it during the render) and presets, or a file a plug-in has loaded, that the
-plug-in does not show as a setting. In a small window the effects can be below what the dialog shows; a button beside **Approve and
-master** then says how many are above and brings the first one into view (at the smallest window sizes, about 320x300,
-only a strip of it shows, #2998); it comes and goes as you resize the window. Under the effects, each file is listed with the region it renders
+plug-in does not show as a setting. In a small window, or once you have scrolled past them, the effects can be out of what the dialog shows; a small chip
+over the bottom of the dialog's contents then says how many there are and which way (**↓ 2 effects below** when the dialog opens in a
+short window, **↑ 2 effects above** once you have scrolled past them, with how many are off), and pressing it
+brings the first one into view (at the smallest window sizes, about 320x300, only a strip of it shows, #2998). The chip floats over
+whatever is at the bottom of the dialog's contents (it can cover part of the last line there until you press it or scroll) and takes
+no room, so the buttons and the lists stay where they are as it comes and goes with scrolling or resizing. Under the effects, each file is listed with the region it renders
 from (a chapter's title, **Opening credits** or **Closing credits**).
 
 If the app cannot read the chain from your DAW, or your DAW is not connected, the export is refused before the dialog opens,
@@ -203,6 +208,8 @@ is already listed adds no row, and a message says so.
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 
 ![Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders](../../images/ui/master-to-spec-approve.webp)
+
+![The approval with a long FX chain scrolled past its first effect: a chip over the list says 23 effects are above, 1 off](../../images/ui/master-to-spec-approve-pointer.webp)
 
 ![A cancelled export: each file Cancelled, and the files and Master & encode back to run it again](../../images/ui/master-to-spec-cancelled.webp)
 

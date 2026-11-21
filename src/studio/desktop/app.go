@@ -60,6 +60,7 @@ import (
 	"desktop/internal/recordingcoverage"
 	"desktop/internal/renderconfig"
 	"desktop/internal/retakelanes"
+	"desktop/internal/retention"
 	"desktop/internal/roomtone"
 	"desktop/internal/runlog"
 	"desktop/internal/settings"
@@ -203,6 +204,11 @@ type Host struct {
 	// write, so a record one of them writes is in the next read of the others and is decoded once (issue 3801). Swapped
 	// with coverage on every project switch.
 	ledger *evidence.LedgerStore
+	// retention keeps the project's derived files bounded in the background (retention_host.go); Closed and replaced on every project switch.
+	// +checklocks:mu
+	retention *retention.Runner
+	// retentionOff keeps the background pass from starting; tests that attach many projects set it, and the retention tests clear it.
+	retentionOff bool
 	// stages is the chapter stage recommendation service (bindings_stages.go, docs/architecture/stage-recommendations.md):
 	// the recording signal over coverage, the decision store and the manuscript's status path. Swapped with coverage on every
 	// project switch; it computes on read and stores no recommendation.
@@ -570,7 +576,11 @@ func (h *Host) goBackground(work func()) {
 
 // waitForBackground returns once every goBackground goroutine started so far has finished. Tests call it before the project folder goes;
 // the app never does.
-func (h *Host) waitForBackground() { h.background.Wait() }
+// waitForBackground also closes the retention runner for good, so a test that calls it and then expects a pass will not get one.
+func (h *Host) waitForBackground() {
+	h.background.Wait()
+	h.closeRetention()
+}
 
 func NewHost() *Host {
 	workingDirectory, _ := os.Getwd()
@@ -794,7 +804,7 @@ func (h *Host) configureLocked(next config) {
 	}
 	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
 	h.transcript.SetPersist(h.persist)
-	h.transcript.SetFindings(h.findings, h.manuscript)
+	h.transcript.SetFindings(h.findings, transcriptManuscript(h.manuscript))
 	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
 	h.ledger = evidence.NewLedgerStore(h.config.projectFolder)
 	h.ledger.Reporter = h.persist
@@ -853,6 +863,7 @@ func (h *Host) configureLocked(next config) {
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
 	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist))
+	h.startRetentionLocked(h.coverage)
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
 	h.stages = stagesService(h.config.projectFolder, h.manuscript, h.coverage, h.editing, settingsStore, h.coverageUnavailable(h.config.comparePython, settingsStore), h.persist,
@@ -1387,6 +1398,8 @@ func (h *Host) ServiceShutdown() error {
 	h.releaseBoothMonitorOnShutdown()
 	// The chapter soloed in the DAW for the Booth is put back (bindings_daw_solo.go); a DAW that cannot be reached has the ledger.
 	h.restoreSoloOnShutdown()
+	// A retention pass is stopped and joined before the app exits (retention_host.go).
+	h.closeRetention()
 	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
 	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,

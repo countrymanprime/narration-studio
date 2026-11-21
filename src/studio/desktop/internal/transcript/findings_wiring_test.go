@@ -28,7 +28,7 @@ func TestServiceSavesFindingsWhenCompareInspectedArrivesWithFindingsWired(t *tes
 	service, session := testService(t)
 	store := findings.NewStore(service.config.Project)
 	lookup := &fakeLookup{chapterID: "chapter-1", chapterOK: true, paragraphID: "para-3", paragraphOK: true}
-	service.SetFindings(store, lookup)
+	service.SetFindings(store, lookup.once)
 
 	manifestBytes, err := os.ReadFile(manifestFixture())
 	if err != nil {
@@ -59,6 +59,26 @@ func TestServiceSavesFindingsWhenCompareInspectedArrivesWithFindingsWired(t *tes
 	}
 }
 
+// A lookup that reads the manuscript reads the whole file, so a save takes it once for the run, however many findings the
+// run has (issue 3896).
+func TestASaveTakesItsManuscriptOnceHoweverManyFindingsTheRunHas(t *testing.T) {
+	taken := func(rows []map[string]any) int {
+		service, _ := testService(t)
+		lookup := &fakeLookup{chapterID: "chapter-1", chapterOK: true, paragraphID: "para-3", paragraphOK: true}
+		service.SetFindings(findings.NewStore(service.config.Project), lookup.once)
+		service.state = empty()
+		service.state["runId"], service.state["phase"], service.state["output"] = "run-1", "inspecting", resultsFixture()
+		for _, row := range rows {
+			service.Handle(compareMarkerEvent("run-1", row))
+		}
+		service.Handle([]string{"COMPARE_INSPECTED", "run-1", "discrepancies found.", strconv.Itoa(len(rows)), "0"})
+		return lookup.taken
+	}
+	if one, all := taken(fixtureRows()[:1]), taken(fixtureRows()); one != 1 || all != 1 {
+		t.Fatalf("the save took its manuscript %d times for 1 finding and %d for %d, want once each", one, all, len(fixtureRows()))
+	}
+}
+
 func TestServiceNeverSavesFindingsWhenFindingsIsNotWired(t *testing.T) {
 	service, _ := testService(t)
 	// No SetFindings call: existing callers (every other test in this
@@ -83,7 +103,7 @@ const (
 func TestServiceCarriesTheMarkerGUIDsIntoTheSavedFindings(t *testing.T) {
 	service, _ := testService(t)
 	store := findings.NewStore(service.config.Project)
-	service.SetFindings(store, &fakeLookup{chapterID: "chapter-1", chapterOK: true, paragraphID: "para-3", paragraphOK: true})
+	service.SetFindings(store, (&fakeLookup{chapterID: "chapter-1", chapterOK: true, paragraphID: "para-3", paragraphOK: true}).once)
 	service.state = empty()
 	service.state["runId"], service.state["phase"], service.state["output"] = "run-1", "inspecting", resultsFixture()
 	service.Handle(append(compareMarkerEvent("run-1", fixtureRows()[0]), markerItemGUID, markerTakeGUID, markerTrackGUID))

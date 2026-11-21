@@ -228,6 +228,8 @@ type Service struct {
 	// identities remembers each take file's identity, so a lookup that asks again (the Booth's Start from here, on every press) stats the
 	// takes and does not open and read each one (#3221).
 	identities *evidence.IdentityCache
+	// sweepListed, set by a test only, runs between SweepOrphanResults' listing of the stored files and its listing of the ledger.
+	sweepListed func()
 
 	mu sync.Mutex
 	// jobs are the runs in progress by run id. A job's own state is read and written with mu held.
@@ -435,19 +437,20 @@ func (s *Service) readProject(path string) (tracks.Project, error) {
 }
 
 func (s *Service) chapter(chapterID string) (ChapterBasis, error) {
-	basis, _, err := s.basisAndText(chapterID)
+	basis, _, err := s.basisAndText(s.config.LoadManuscript, chapterID)
 	return basis, err
 }
 
 // basisAndText resolves chapterID's basis, and, for a credits row, the rendered text a run measures against (Phase
 // 3): manuscriptPath (used only by a caller launching the sidecar) stays the real manuscript for a manuscript
 // chapter, and text is empty - the sidecar already reads that file itself. A credits id (CreditsKind) never reaches
-// LoadManuscript at all: credits are not manuscript chapters and must never be looked up as one.
-func (s *Service) basisAndText(chapterID string) (basis ChapterBasis, text string, err error) {
-	if s.config.LoadManuscript == nil {
+// the manuscript's chapters at all: credits are not manuscript chapters and must never be looked up as one. load is the
+// manuscript the caller's read holds, or the store's own (Config.LoadManuscript).
+func (s *Service) basisAndText(load func() (map[string]any, error), chapterID string) (basis ChapterBasis, text string, err error) {
+	if load == nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, "import a manuscript before checking a recording")
 	}
-	data, loadErr := s.config.LoadManuscript()
+	data, loadErr := load()
 	if loadErr != nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, loadErr.Error())
 	}
@@ -488,7 +491,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 	if s.config.Python == "" {
 		return nil, unknown(ReasonSidecarMissing, "configure the Transcript Compare executable before checking a recording")
 	}
-	basis, text, err := s.basisAndText(request.ChapterID)
+	basis, text, err := s.basisAndText(s.config.LoadManuscript, request.ChapterID)
 	if err != nil {
 		return nil, err
 	}

@@ -69,6 +69,8 @@ type reading struct {
 	mapping evidence.MappingReader
 	// manuscript is nil when each chapter loads the manuscript itself.
 	manuscript *manuscriptIndex
+	// load is the manuscript a stage evaluation's view loaded once; nil loads it from the store for each chapter.
+	load func() (map[string]any, error)
 }
 
 // asked is the reading of one chapter on its own: every question goes to the stores.
@@ -83,6 +85,7 @@ func (s *Service) viewed(view stages.EvidenceView) reading {
 	if view.Mapping != nil {
 		read.mapping = view.Mapping
 	}
+	read.load = view.Manuscript
 	return read
 }
 
@@ -111,7 +114,12 @@ func (s *Service) shared() reading {
 // goes the way a single read does.
 func (s *Service) basis(read reading, chapterID string) (ChapterBasis, error) {
 	if _, isCredits := creditsid.Kind(chapterID); isCredits || read.manuscript == nil {
-		return s.chapter(chapterID)
+		load := read.load
+		if load == nil {
+			load = s.config.LoadManuscript
+		}
+		basis, _, err := s.basisAndText(load, chapterID)
+		return basis, err
 	}
 	return read.manuscript.basis(chapterID)
 }
@@ -178,6 +186,11 @@ func newestRecord(ledger evidence.LedgerReader, chapterID string) (*evidence.Led
 	}
 	return &records[0], nil
 }
+
+// RetentionKey is the evidence.RetentionKey of a coverage record (AnalyzerID): the readers match on the chapter and
+// nothing more, so every record of a chapter is one group. It has to agree with evidence.EvaluateChapter (the chapter's
+// newest complete record), newestRecord (its newest of any outcome) and checkedChapters (whether it has a complete one).
+func RetentionKey(evidence.LedgerRecord) (string, bool) { return "", true }
 
 // Checking reports whether a check of chapterID is running now.
 func (s *Service) Checking(chapterID string) bool {
@@ -276,7 +289,16 @@ func (s *Service) evaluate(read reading, project tracks.Project, projectFile evi
 	}
 	stored, ok := s.results.read(answer.Record.ID)
 	if !ok {
-		return resultMissing(answer), nil
+		var repicked bool
+		if answer, repicked, err = s.repicked(read, project, projectFile, basis, alignment, answer); err != nil || answer.Record == nil {
+			return answer, err
+		}
+		if repicked {
+			stored, ok = s.results.read(answer.Record.ID)
+		}
+		if !ok {
+			return resultMissing(answer), nil
+		}
 	}
 	answer.Result = &stored
 	return manuscriptChecked(answer, basis, stored.DocumentID, stored.ManuscriptHash), nil
@@ -291,9 +313,34 @@ func (s *Service) evaluateSummary(read reading, project tracks.Project, projectF
 	}
 	summary, ok := s.summary(answer.Record.ID)
 	if !ok {
-		return resultMissing(answer), nil, nil
+		var repicked bool
+		if answer, repicked, err = s.repicked(read, project, projectFile, basis, alignment, answer); err != nil || answer.Record == nil {
+			return answer, nil, err
+		}
+		if repicked {
+			summary, ok = s.summary(answer.Record.ID)
+		}
+		if !ok {
+			return resultMissing(answer), nil, nil
+		}
 	}
 	return manuscriptChecked(answer, basis, summary.DocumentID, summary.ManuscriptHash), &summary, nil
+}
+
+// repicked asks the ledger itself once more after the stored result of answer's record was not found: a Retain pass that
+// ran since the record was picked deleted the record with its result, and the record the ledger picks now is the one
+// to answer from. It reports false, with the answer it was given, when the ledger still picks the same record. Only a
+// missing result brings a read here, and it lists the ledger once; a read that finds its result lists no more than before.
+func (s *Service) repicked(read reading, project tracks.Project, projectFile evidence.LedgerProjectFile, basis ChapterBasis, alignment AlignmentParams, answer ChapterResult) (ChapterResult, bool, error) {
+	read.ledger = s.ledger.SnapshotWhenAsked()
+	again, err := s.evaluateRecord(read, project, projectFile, basis, alignment)
+	if err != nil {
+		return ChapterResult{}, false, err
+	}
+	if again.Record != nil && again.Record.ID == answer.Record.ID {
+		return answer, false, nil
+	}
+	return again, true, nil
 }
 
 // resultMissing is the answer for a complete record whose stored result cannot be read: never checked.

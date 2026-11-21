@@ -644,6 +644,7 @@
         "Not Yet Checked"
       ],
       "consumers": [
+        "src/components/engine/AudacityLinkCard.tsx",
         "src/components/engine/CapabilityReferenceDialog.tsx",
         "src/components/settings/controls/MicBody.tsx",
         "src/components/storybible/voicesamples/VoiceSamplesBody.tsx"
@@ -1554,6 +1555,7 @@
         "src/components/primitives/ColourField.tsx",
         "src/components/primitives/ContextMenu.tsx",
         "src/components/primitives/IconButton.tsx",
+        "src/components/primitives/Pill.tsx",
         "src/components/primitives/SearchField.tsx",
         "src/components/primitives/SplitButton.tsx",
         "src/components/primitives/StatTile.tsx",
@@ -2637,9 +2639,11 @@
         "Click Selects",
         "Announces Its Pressed State",
         "Filter Inactive",
-        "Filter Active"
+        "Filter Active",
+        "Action Raised With Icon"
       ],
       "consumers": [
+        "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/primitives/ToggleGroup.tsx",
         "src/components/proof/checkcard/CheckCard.tsx",
         "src/components/proof/notes/NotesPanel.tsx"

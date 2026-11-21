@@ -62,3 +62,18 @@ test('the HOLD reason says whether a test failed or a job was cancelled', () => 
 test('the concurrency group still never cancels a run in progress, which is what makes a cancelled ci a timeout', () => {
   assert.match(workflow, /\nconcurrency:\n {2}group: main-health\n {2}cancel-in-progress: false\n/);
 });
+
+test('the main-red issue is opened after the HOLD step, for main only, and cannot change what the run reports', () => {
+  const hold = job('hold-on-red');
+  assert.ok(hold.indexOf('train-health.mjs hold') < hold.indexOf('train-health.mjs red'), 'the red step comes after the hold step');
+  assert.match(
+    hold,
+    /\n {6}- if: always\(\) && github\.ref == 'refs\/heads\/main'\n {8}continue-on-error: true\n {8}run: node scripts\/ci\/train-health\.mjs red\n/,
+  );
+});
+
+test('the main-red issue is closed only by a green run of main: not by a skipped or cancelled one, nor by another branch', () => {
+  const clear = job('clear-on-green');
+  assert.match(clear, /\n {4}if: needs\.ci\.result == 'success' && github\.ref == 'refs\/heads\/main'\n/);
+  assert.match(clear, /train-health\.mjs green\n {8}continue-on-error: true/);
+});

@@ -34,6 +34,8 @@ const DIMMED = 'text-[var(--text-muted)]';
 const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
 /** What the switch says it does, short: a hint wider or taller than this hides the switches of the rows above it. */
 const SWITCH_HINT = 'Counts as a voice. Turn off for a track that is not one (a music bed).';
+/** What the "Not a voice" badge says of its row. */
+const NOT_A_VOICE_HINT = 'Turned off as a voice: no key, no character, and the Booth does not list it. Turn its switch back on to use it.';
 /** The explanation behind the card's help button: a shorter form of the Settings row's "?" text. */
 const SWITCH_HELP =
   'Each switch says whether a track of the folder counts as a voice. Turn it off for a track that is not one, such as a music bed or room tone: it gets no number key, records no character, and the Booth does not list it. The voices after it each take the key before theirs.';
@@ -48,18 +50,10 @@ const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 
 /** What turning a voice off or on did, worked out from the keys before and after (never from a track's name): the voice's own state, and where the keys stand
  * now when any moved. Every press says something, so a notice never stays up under a row it no longer describes. */
-function switchConsequence(
-  voice: Voice,
-  before: readonly Voice[],
-  after: readonly Voice[],
-  counts: boolean,
-  placeOf: (guid: string) => number,
-  layout: VoiceTracksLayout,
-): string {
+function switchConsequence(voice: Voice, before: readonly Voice[], after: readonly Voice[], counts: boolean, placeOf: (guid: string) => number): string {
   const name = bidiIsolated(shortName(trackName(voice.name, placeOf(voice.guid))));
   const lead = counts ? `${name} is a voice again.` : `${name} is turned off as a voice.`;
-  if (!counts && layout === 'folders' && !after.some((other) => !other.notVoice))
-    return `${lead} No voice is left, so the Booth cannot record until you turn one back on.`;
+  if (!counts && !after.some((other) => !other.notVoice)) return `${lead} No voice is left, so the Booth cannot record until you turn one back on.`;
   const keyBefore = new Map(before.map((other) => [other.guid, other.key]));
   const moved = after.some((other) => other.guid !== voice.guid && keyBefore.get(other.guid) !== other.key);
   const ownKey = after.find((other) => other.guid === voice.guid)?.key ?? '';
@@ -144,9 +138,7 @@ export function VoicesCard({
       <Switch
         checked={!voice.notVoice}
         disabled={recording}
-        onChange={(counts) =>
-          onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace, setup.layout))
-        }
+        onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace))}
       >
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>
@@ -190,13 +182,13 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '7.25rem'] : ['2.75rem', 'auto', 'auto', '4.5rem', '3rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '7.25rem'] : ['2.75rem', 'auto', 'auto', '5rem', '3rem']}>
                 <TableHead sticky>
                   <TableRow>
                     {!narrow && <TableHeader>Key</TableHeader>}
                     <TableHeader>{narrow ? 'Track and characters' : 'Track'}</TableHeader>
                     {!narrow && <TableHeader>Characters</TableHeader>}
-                    {!narrow && <TableHeader>Voice</TableHeader>}
+                    {!narrow && <TableHeader info={SWITCH_HINT}>Voice</TableHeader>}
                     <TableHeader hiddenLabel={narrow ? 'Voice and actions' : 'Actions'} />
                   </TableRow>
                 </TableHead>
@@ -265,7 +257,12 @@ export function VoicesCard({
 }
 
 function VoiceCharacters({ voice }: { voice: Voice }) {
-  if (voice.notVoice) return <StatusBadge tone="neutral" label="Not a voice" />;
+  if (voice.notVoice)
+    return (
+      <TooltipTarget text={NOT_A_VOICE_HINT}>
+        <StatusBadge tone="neutral" label="Not a voice" />
+      </TooltipTarget>
+    );
   if (voice.characters.length === 0) return <span style={{ color: 'var(--text-muted)' }}>{voice.narrator ? 'Narration' : 'No character'}</span>;
   return (
     <span className="flex flex-wrap items-center gap-1">
@@ -335,6 +332,7 @@ function CharacterPicker({
   if (voice.notVoice) {
     const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
     const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
+    // IconButton shows its disabledReason as a tooltip itself.
     return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
   }
   const label = voice.narrator
