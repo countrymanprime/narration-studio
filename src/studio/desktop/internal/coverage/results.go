@@ -38,6 +38,12 @@ var (
 
 func resultsDir(project string) string { return filepath.Join(project, resultsFolder) }
 
+// ResultsDir and SummariesDir are the folders of the stored results and their summaries under a project.
+func ResultsDir(project string) string { return resultsDir(project) }
+
+// SummariesDir is ResultsDir's twin for the summaries.
+func SummariesDir(project string) string { return filepath.Join(project, summariesFolder) }
+
 func summariesDir(project string) string { return filepath.Join(project, summariesFolder) }
 
 func runsDir(project string) string { return filepath.Join(Dir(project), "runs") }

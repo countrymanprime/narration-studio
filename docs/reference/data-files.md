@@ -35,6 +35,8 @@ A hand edit of one of these files can change only the narrator's own data the ap
 | Cleared on Clear | Removed only by **Clear project data** (`Service.Clear`), not by a replace |
 | Kept | Nothing in the app deletes it |
 
+A pass in the background (`src/studio/desktop/internal/retention`) starts when a project is opened and when a recording check ends, one at a time and never while a check runs. So far it deletes nothing: it writes one `retention_pass` line to the host log with the number of files and bytes of the ledger, the stored results and summaries and the analysis cache. The deletes of each store are added behind it, and each row says when its own is wired.
+
 The Windows uninstaller removes the program only and leaves every per-user folder in place (`src/studio/desktop/build/windows/installer/project.nsi`).
 
 ## Columns
