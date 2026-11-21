@@ -19,6 +19,32 @@ import {
 
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
 
+// scrollToTop for a panel the page lays out while it is being scrolled to (the rest of the measured page - the consistency card,
+// the package aside - draws after the rule list does): a scroll taken before that has settled is clamped and can leave the page where
+// `measured` left it, a capture identical to `measured`'s (CI, #3930). Scrolls again until the page has moved and the panel is at
+// the top of its scroller, or the scroller has no more to give; it fails with what it saw, not with an identical capture.
+async function scrollToTopHeld(page: Page, panel: Locator): Promise<void> {
+  const where = () =>
+    panel.evaluate((element) => {
+      let scroller: HTMLElement | null = element.parentElement;
+      while (scroller && scroller.scrollHeight <= scroller.clientHeight) scroller = scroller.parentElement;
+      if (!scroller) return { moved: false, atTop: false, canMove: false };
+      const gap = element.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      const rest = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+      return { moved: scroller.scrollTop > 0, atTop: gap <= 4 || rest <= 1, canMove: true };
+    });
+  await expect
+    .poll(
+      async () => {
+        await scrollToTop(page, panel);
+        const seen = await where();
+        return seen.canMove && seen.moved && seen.atTop;
+      },
+      { message: 'the rule list scrolled to the top of the page, and the page moved off where `measured` leaves it', timeout: 10_000 },
+    )
+    .toBe(true);
+}
+
 // Removes one picked file from Master to spec by its Remove button.
 async function removeExportFile(page: Page, file: string): Promise<void> {
   await page
@@ -98,7 +124,7 @@ export const masterDrivers: Record<string, Driver> = {
     await measurementEnded(page, MEASURED);
     const detail = page.getByRole('table', { name: 'Chapter 01.wav, rule by rule' });
     await detail.waitFor();
-    await scrollToTop(page, panelTitled(page, 'Chapter 01.wav against ACX (September 2026)'));
+    await scrollToTopHeld(page, panelTitled(page, 'Chapter 01.wav against ACX (September 2026)'));
   },
   'book-spread': async (page) => {
     await openMaster(page, '?mockMeasure=spread');
