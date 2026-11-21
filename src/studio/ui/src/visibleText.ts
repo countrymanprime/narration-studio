@@ -16,4 +16,8 @@ export const hasVisibleText = (text: unknown): boolean => typeof text === 'strin
  * The text with everything that draws nothing taken out, for comparing two names: "Mad Hatter with a zero-width space after Mad" and "Mad Hatter" look alike, so they are the same name.
  * Not for storing or showing: a zero-width joiner inside an emoji or a Persian word is part of that text.
  */
-export const visibleKey = (text: string): string => text.replace(/[\p{Cf}\p{Cc}\p{Default_Ignorable_Code_Point}]/gu, '').replace(FILLERS, '');
+const NOT_DRAWN = /[\p{Cf}\p{Cc}\p{Default_Ignorable_Code_Point}]/gu;
+export const visibleKey = (text: string): string => text.replace(NOT_DRAWN, '').replace(FILLERS, '');
+
+/** The text with each character that draws nothing (controls, format and bidi marks, zero-width characters, fillers) turned into a space, for text someone else wrote. */
+export const spaceOutInvisible = (text: string): string => text.replace(NOT_DRAWN, ' ').replace(FILLERS, ' ');
