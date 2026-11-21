@@ -258,9 +258,20 @@ test('a spec is owed by every page its text names, not only by the page in its f
   const text = "await goToPage(page, 'Pickups');\nawait expect(page.getByText('Master & QC')).toBeVisible(); // the Story Bible is not opened";
   assert.deepEqual(pagesNamedIn(text), ['master', 'pickups', 'storybible']);
   assert.deepEqual(pagesNamedIn("await page.goto('/settings/connection');"), ['settings']);
-  assert.deepEqual(pagesNamedIn('const description = 1;'), []);
+  assert.deepEqual(pagesNamedIn('const depth = 1;'), []);
   const boothLeave = { file: 'booth-leave-take-saved.spec.ts', loadFile: 'booth-leave-take-saved.spec.ts', titlePath: ['x'], names: ['booth', 'pickups'] };
   assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/pickups/PickupsPage.tsx`])), true);
   assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/booth/x.tsx`])), true);
   assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/delivery/x.tsx`])), false);
+});
+
+test('a change to the landing page owes every behaviour spec: a spec can stand on it without naming it', () => {
+  const picker = { file: 'project-picker-back-focus.spec.ts', loadFile: 'project-picker-back-focus.spec.ts', titlePath: ['x'], names: ['project'] };
+  const scope = scopeOf([`${UI}src/components/production/pipeline/PipelineTable.tsx`]);
+  for (const spec of [picker, boothSpec, proofSpec, dialogSpec]) assert.equal(inScope(spec, scope), true, spec.file);
+  assert.equal(inScope(scriptOverlay, scope), false, 'overlay rows follow their own page');
+});
+
+test('a page word inside a longer name still names the page', () => {
+  assert.deepEqual(pagesNamedIn('await openSettings(page); mockProduction();'), ['production', 'settings']);
 });

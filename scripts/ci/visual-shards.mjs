@@ -136,6 +136,8 @@ const SPECS = `${UI_ROOT}tests/visual/`;
 /** The state matrix: every catalogued page and state at every viewport. It draws every page, so it runs on every pull request. */
 const MATRIX_SPEC = 'app.spec.ts';
 const OVERLAY_GUARD = 'helpers/overlayGuardFor.ts';
+/** The page at `/`. */
+const LANDING_PAGE = 'production';
 
 /**
  * A page: its folders under src/components, the first word of its behaviour specs' file names (`booth-keys.spec.ts`), and its name in
@@ -166,11 +168,12 @@ const NOT_THE_APP = /\.(test|stories)\.[cm]?[jt]sx?$/;
 /**
  * The pages a spec's text names, by any of a page's words (its spec word, its folders, its name in the overlay guard). A spec named for one
  * page often drives another (a Booth spec that opens Pickups or reads a Settings card), so a spec is owed by every page it names, not only
- * by the page in its file name. A word in a comment counts too: naming a page too often runs a spec more, never less.
+ * by the page in its file name. A word in a comment or inside a longer name (`openSettings`) counts too: naming a page too often runs a spec
+ * more, never less.
  */
 export function pagesNamedIn(text) {
   return PAGES.filter((page) =>
-    [page.spec, ...page.folders, page.overlay ?? page.spec].some((word) => new RegExp(`\\b${word.replace(/[^a-z]+/gi, '\\W*')}`, 'i').test(text)),
+    [page.spec, ...page.folders, page.overlay ?? page.spec].some((word) => new RegExp(word.replace(/[^a-z]+/gi, '\\W*'), 'i').test(text)),
   ).map((page) => page.spec);
 }
 
@@ -209,6 +212,8 @@ export function inScope(test, scope) {
     const page = PAGES.find((candidate) => candidate.overlay === test.titlePath[0]?.split(' / ')[0]);
     return scope.overlays || (page ? scope.pages.has(page.spec) : scope.shared);
   }
+  // Production is where the app opens (`/`), so a spec can stand on it without naming it: a change to it owes every behaviour spec.
+  if (scope.pages.has(LANDING_PAGE)) return true;
   const first = test.loadFile.split(/[-.]/)[0];
   // `names`: the pages the spec's text names (split reads the file); without it, the page in the file name.
   if ((test.names ?? []).some((name) => scope.pages.has(name))) return true;
