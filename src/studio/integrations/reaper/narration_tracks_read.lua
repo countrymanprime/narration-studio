@@ -6,8 +6,9 @@
 -- sets nothing. A track's name is P_NAME, empty for a track the narrator never named (the saved .rpp's NAME), never REAPER's
 -- "Track N" display name. folderDelta is I_FOLDERDEPTH: 1 opens a folder, 0 none, -N closes N levels.
 --
--- Events: TRACKS_READ|run|rpp|unsaved|changeCount, then TRACKS_ROW|run|index|guid|name|folderDelta per track (at most
--- TRACK_LIMIT), then TRACKS_READ_END|run|listed|total.
+-- Events: TRACKS_READ|run|rpp|unsaved|changeCount|tracksRevision, then TRACKS_ROW|run|index|guid|name|folderDelta per track (at most
+-- TRACK_LIMIT), then TRACKS_READ_END|run|listed|total. tracksRevision is one value for the whole list, which the heartbeat carries too
+-- (registry.tracks_revision): the host asks for the list again when the heartbeat's value is no longer this one (#3859).
 
 local core = ...
 local event = core.event
@@ -24,7 +25,7 @@ local function normalize_guid(guid)
 end
 
 -- revision is one value for the whole of what tracks_read answers: how many tracks there are and, for each listed one in order, its GUID,
--- name and folder depth (FNV-1a, 64 bits). The heartbeat carries it, so the host knows the list changed (a track added, removed, renamed,
+-- name and folder depth (a 64-bit multiply-and-add hash that wraps, with no bit operator: the bridge's Lua subset has none). The heartbeat carries it, so the host knows the list changed (a track added, removed, renamed,
 -- moved or put in a folder) without asking for it, and reads the list again only then. It is '' on a REAPER that cannot list its tracks.
 local function revision()
   if not (reaper.APIExists('CountTracks') and reaper.APIExists('GetTrack') and reaper.APIExists('GetTrackGUID')) then
@@ -33,10 +34,10 @@ local function revision()
   local hash = 0xcbf29ce484222325
   local function mix(text)
     for index = 1, #text do
-      hash = (hash ~ text:byte(index)) * 0x100000001b3
+      hash = hash * 0x100000001b3 + text:byte(index)
     end
-    -- A separator no field holds, so "ab" then "c" does not read as "a" then "bc".
-    hash = (hash ~ 0xff) * 0x100000001b3
+    -- A separator no byte equals, so "ab" then "c" does not read as "a" then "bc".
+    hash = hash * 0x100000001b3 + 256
   end
   local count = reaper.CountTracks(0)
   mix(tostring(count))

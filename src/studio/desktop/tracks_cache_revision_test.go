@@ -134,3 +134,64 @@ func TestAScriptThatSendsNoRevisionKeepsTheAgeRules(t *testing.T) {
 		t.Fatalf("%d requests past the max age with no revision, want 2", calls)
 	}
 }
+
+// A heartbeat that is lost changes nothing: the next one carries the same revision, and the list is kept.
+func TestALostHeartbeatDoesNotCostARead(t *testing.T) {
+	inner, b := &countedLister{answer: revisedTracks(9, "aaaa")}, newBeat(9)
+	b.setRevision(9, "aaaa")
+	cached, _ := cachedFor(inner, b)
+	read(t, cached)
+	b.advance(3 * time.Second) // two heartbeats never arrived; the last one is still fresh
+	read(t, cached)
+	b.setRevision(9, "aaaa")
+	read(t, cached)
+	if calls := inner.calls.Load(); calls != 1 {
+		t.Fatalf("%d requests, want 1", calls)
+	}
+}
+
+// The heartbeat and the read can be a tick apart: while one is newer than the other the list is not reused, and once they agree it is kept.
+func TestAListWhoseRevisionTheHeartbeatDoesNotCarryYetIsReadAgainUntilTheyAgree(t *testing.T) {
+	inner, b := &countedLister{answer: revisedTracks(10, "bbbb")}, newBeat(9)
+	b.setRevision(9, "aaaa") // the heartbeat is older than the answer about to be read
+	cached, _ := cachedFor(inner, b)
+	read(t, cached)
+	read(t, cached)
+	if calls := inner.calls.Load(); calls != 2 {
+		t.Fatalf("%d requests while the heartbeat is behind the list, want 2", calls)
+	}
+	b.beatFor(time.Second, 10, "bbbb")
+	read(t, cached)
+	read(t, cached)
+	if calls := inner.calls.Load(); calls != 2 {
+		t.Fatalf("%d requests once they agree, want 2 (the list last read is the one the heartbeat now carries, and it is kept)", calls)
+	}
+}
+
+// Only one side carrying a revision is not a match by revision: the list is judged by the edit counter and its age.
+func TestARevisionOnOneSideOnlyFallsBackToTheCounterAndTheAge(t *testing.T) {
+	for name, c := range map[string]struct {
+		answer dawport.LiveTracks
+		beat   func(b *beat, count int)
+	}{
+		"the heartbeat has one, the list none": {twoTracks(9), func(b *beat, count int) { b.setRevision(count, "aaaa") }},
+		"the list has one, the heartbeat none": {revisedTracks(9, "aaaa"), func(b *beat, count int) { b.set(count) }},
+	} {
+		inner, b := &countedLister{answer: c.answer}, newBeat(9)
+		c.beat(b, 9)
+		cached, _ := cachedFor(inner, b)
+		read(t, cached)
+		read(t, cached)
+		if calls := inner.calls.Load(); calls != 1 {
+			t.Errorf("%s: %d requests inside the max age with an equal counter, want 1", name, calls)
+		}
+		for elapsed := time.Duration(0); elapsed <= liveTracksMaxAge; elapsed += time.Second {
+			b.advance(time.Second)
+			c.beat(b, 9)
+		}
+		read(t, cached)
+		if calls := inner.calls.Load(); calls != 2 {
+			t.Errorf("%s: %d requests past the max age, want 2", name, calls)
+		}
+	}
+}

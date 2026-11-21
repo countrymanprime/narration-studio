@@ -9,6 +9,8 @@ alone. Numbers go to <out>/track_counter/rows.json for docs/research/reaper-brid
 from __future__ import annotations
 
 import json
+import re
+import time
 
 from scenario import Env, scenario
 
@@ -116,3 +118,59 @@ def list_edits_raise_the_count(env: Env) -> str:
     write(env, "rows", rows)
     assert not failed, f"edits that change the track list left REAPER's change count alone: {failed}; rows {rows}"
     return "; ".join(f"{r['edit']}: {r['before']} -> {r['after']}{'' if r['raised'] else ' (not raised)'}" for r in rows)
+
+
+def revision_read(env: Env) -> str:
+    """The revision `tracks_read` answers: the sixth field of TRACKS_READ, 16 hex digits."""
+    events = env.send("tracks_read", until={"TRACKS_READ_END", "ERROR"})
+    header = next(e for e in events if e[0] == "TRACKS_READ")
+    assert len(header) > 5 and re.fullmatch(r"[0-9a-f]{16}", header[5]), f"TRACKS_READ carried no revision: {header}"
+    return header[5]
+
+
+def heartbeat_carries(env: Env, revision: str, *, timeout: float) -> float:
+    """Waits for the newest heartbeat to carry `revision` (its ninth field) and answers how long that took, in seconds."""
+    started = time.monotonic()
+
+    def carried():
+        env.session.events()
+        beats = [e for e in env.session.seen if e[0] == "PROJECT_STATUS"]
+        return bool(beats) and len(beats[-1]) > 8 and beats[-1][8] == revision
+
+    env.wait_for(carried, timeout=timeout, what=f"a heartbeat carrying the revision {revision}")
+    return time.monotonic() - started
+
+
+@scenario(
+    "tracks_read",
+    "tracks_read",
+    "track list revision (#3859): every edit that changes the track list changes the revision tracks_read answers and the heartbeat carries the "
+    "new one within a second, sent at once and not at the 1.5 s interval; select, arm and mute leave it as it was; REAPER's own Lua computes it",
+)
+def list_edits_change_the_revision(env: Env) -> str:
+    rows = []
+    failed = []
+    for name, lists, body in ROWS:
+        env.lua(ARRANGE)
+        before = revision_read(env)
+        heartbeat_carries(env, before, timeout=5.0)
+        edit = body.replace("return {}", "")
+        env.lua(f"reaper.Undo_BeginBlock2(0) {edit} reaper.Undo_EndBlock2(0, 'revision row', -1) return true")
+        sent = time.monotonic()
+        after = revision_read(env)
+        row = {"edit": name, "changes_the_list": lists, "before": before, "after": after, "changed": after != before}
+        if lists:
+            # The read above took a round trip; the heartbeat with the new revision must already be there or arrive well inside the interval.
+            heartbeat_carries(env, after, timeout=5.0)
+            row["seconds_from_edit"] = round(time.monotonic() - sent, 3)
+            if after == before or row["seconds_from_edit"] > 1.0:
+                failed.append(name)
+        elif after != before:
+            failed.append(name)
+        rows.append(row)
+    write(env, "revision_rows", rows)
+    assert not failed, f"track list revision rows that did not hold: {failed}; rows {rows}"
+    return "; ".join(
+        f"{r['edit']}: {'changed' if r['changed'] else 'same'}" + (f", heartbeat {r['seconds_from_edit']} s after the edit" if "seconds_from_edit" in r else "")
+        for r in rows
+    )

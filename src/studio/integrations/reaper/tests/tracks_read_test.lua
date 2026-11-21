@@ -42,7 +42,7 @@ H.test('tracks_read answers the project, then every track in order with its GUID
   s:send('tracks_read', 'r1')
   local answered = s:events()
   -- The sixth field is the track list's revision (reachability_test.lua covers what changes it).
-  H.eq(#table.remove(answered[1]), 16)
+  H.eq(table.remove(answered[1]):match('^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x$') ~= nil, true, 'the revision is 16 hex digits')
   H.eq(answered, {
     { 'TRACKS_READ', 'r1', path, '0', '12' },
     { 'TRACKS_ROW', 'r1', '0', opening.guid, 'Opening Credits', '0' },
@@ -71,7 +71,7 @@ H.test('tracks_read answers an unsaved project with no path, and an empty projec
   local s = new_session('')
   s:send('tracks_read', 'r1')
   local answered = s:events()
-  H.eq(#table.remove(answered[1]), 16)
+  H.eq(table.remove(answered[1]):match('^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x$') ~= nil, true, 'the revision is 16 hex digits')
   H.eq(answered, { { 'TRACKS_READ', 'r1', '', '1', '0' }, { 'TRACKS_READ_END', 'r1', '0', '0' } })
 end)
 

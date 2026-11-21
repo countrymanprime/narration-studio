@@ -32,10 +32,11 @@ type Reachability struct {
 	// the last heartbeat did not carry one (an older script, or a REAPER without GetProjectStateChangeCount).
 	// +checklocks:mu
 	changeCount int
-	// tracksRevision is the track list's revision from the heartbeat's optional eighth field, "" when the script sent none.
-	tracksRevision string
 	// +checklocks:mu
 	hasChangeCount bool
+	// tracksRevision is the track list's revision from the heartbeat's optional eighth field, "" when the script sent none.
+	// +checklocks:mu
+	tracksRevision string
 	// transport is the heartbeat's optional fifth and sixth fields; hasTransport is false
 	// when the last heartbeat did not carry them (an older script).
 	// +checklocks:mu
@@ -84,7 +85,8 @@ func NewReachabilityWithClock(client *bridge.Client, now func() time.Time) *Reac
 // Record is the Subscription.Handle callback (exported so a test can deliver an event directly, without a real
 // bridge.Client): event.Fields is [tag, run, rpp, unsaved] once it has passed wire.go's table (CheckEvent), so
 // both trailing fields are always present, and a
-// fifth, the edit counter, may follow, then the transport's play state and play position.
+// fifth, the edit counter, may follow, then the transport's play state and play position, the timing switch (empty while off) and the
+// track list's revision.
 func (r *Reachability) Record(event bridge.Event) {
 	rpp, unsaved := "", false
 	if len(event.Fields) > 2 {

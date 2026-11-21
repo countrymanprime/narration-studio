@@ -90,6 +90,8 @@ end
 -- How often the reachability heartbeat (PROJECT_STATUS) is appended, in reaper.time_precise() seconds: frequent enough that the Go host's own poll (transcriptLoop, 150ms) notices REAPER closing
 -- quickly, rare enough not to grow events.log without bound over a long session.
 M.HEARTBEAT_INTERVAL_SECONDS = 1.5
+-- The least time between two reads of the track list revision that the edit counter asked for (the heartbeat function).
+M.REVISION_MIN_SECONDS = 0.1
 
 -- The bridge running in this REAPER publishes its session folder in a non-persistent ExtState, which every script in the same
 -- REAPER reads and which is gone when REAPER closes, so the launcher action reuses it instead of starting a second loop
@@ -196,7 +198,9 @@ function M.run(session_dir, registry)
   -- read again when a heartbeat is due and, between two, on a tick where the edit counter has moved: a track added, renamed, moved or removed
   -- sends a heartbeat at once, so the host reads the list again then and at no other time. The read every interval catches a change the
   -- counter does not count (an edit a script makes outside an undo block).
-  local last_revision, last_change_count = '', nil
+  -- A source that moves the counter on every tick must not make every tick read the list: between two heartbeats the revision is read at most
+  -- once every REVISION_MIN_SECONDS, and a counter move inside that wait is read when it ends.
+  local last_revision, last_change_count, revision_read_at = '', nil, nil
   local function heartbeat()
     local now = reaper.time_precise()
     last_now = now
@@ -204,10 +208,13 @@ function M.run(session_dir, registry)
     local change_count = reaper.APIExists('GetProjectStateChangeCount') and reaper.GetProjectStateChangeCount(0) or ''
     local due = not last_heartbeat_at or (now - last_heartbeat_at) >= M.HEARTBEAT_INTERVAL_SECONDS or play_state ~= last_play_state
     local revision = last_revision
-    if registry.tracks_revision and (due or change_count ~= last_change_count) then
-      revision = registry.tracks_revision()
+    local moved = change_count ~= last_change_count and (not revision_read_at or (now - revision_read_at) >= M.REVISION_MIN_SECONDS)
+    if registry.tracks_revision and (due or moved) then
+      -- A revision that cannot be read is sent empty, and the host then judges its list by age: the heartbeat itself must not stop for it.
+      local ok, value = pcall(registry.tracks_revision)
+      revision = ok and value or ''
+      last_change_count, revision_read_at = change_count, now
     end
-    last_change_count = change_count
     if not due and revision == last_revision then
       return
     end

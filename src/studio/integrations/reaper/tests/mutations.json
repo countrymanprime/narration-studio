@@ -464,8 +464,26 @@
   {
     "name": "the revision is read on every tick, not only when the edit counter moved",
     "file": "narration_ui_bridge.lua",
-    "find": "(due or change_count ~= last_change_count) then",
+    "find": "(due or moved) then",
     "replace": "true then"
+  },
+  {
+    "name": "the edit counter may ask for the revision on every tick",
+    "file": "narration_ui_bridge.lua",
+    "find": "(now - revision_read_at) >= M.REVISION_MIN_SECONDS)",
+    "replace": "(now - revision_read_at) >= 0)"
+  },
+  {
+    "name": "a revision that cannot be read stops the heartbeat",
+    "file": "narration_ui_bridge.lua",
+    "find": "local ok, value = pcall(registry.tracks_revision)",
+    "replace": "local ok, value = true, registry.tracks_revision()"
+  },
+  {
+    "name": "the revision leaves out how many tracks there are",
+    "file": "narration_tracks_read.lua",
+    "find": "  mix(tostring(count))\n",
+    "replace": ""
   },
   {
     "name": "tracks_read drops the track list revision",
@@ -494,7 +512,7 @@
   {
     "name": "the revision has no separator between its fields",
     "file": "narration_tracks_read.lua",
-    "find": "    hash = (hash ~ 0xff) * 0x100000001b3\n",
+    "find": "    hash = hash * 0x100000001b3 + 256\n",
     "replace": ""
   },
   {

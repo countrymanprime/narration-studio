@@ -271,3 +271,58 @@ H.test('a REAPER that cannot list its tracks sends an empty revision and its hea
   H.eq(event[9], '')
   H.eq(event[1], 'PROJECT_STATUS')
 end)
+
+H.test('a track added or removed past the listing limit still changes the revision', function()
+  local function of(count)
+    local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+    for index = 1, count do
+      s.fake:add_track('T').guid = '{' .. math.min(index, 2000) .. '}'
+    end
+    return (revision_after_tick(s))
+  end
+  H.eq(of(2001) ~= of(2002), true, 'the total is in the revision, as it is in TRACKS_READ_END')
+end)
+
+H.test('an edit counter that moves on every tick has the revision read at most once in a tenth of a second', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake.clock_step = 0.01
+  s.fake:add_track('Chapter 1')
+  local before = revision_after_tick(s)
+  local reads = 0
+  local real = reaper.CountTracks
+  reaper.CountTracks = function(...)
+    reads = reads + 1
+    return real(...)
+  end
+  s.fake.tracks[1].name = 'Prologue'
+  local sent = 0
+  for _ = 1, 30 do
+    s.fake.change_count = s.fake.change_count + 1
+    s:tick()
+    sent = sent + #s:all_events()
+  end
+  reaper.CountTracks = real
+  H.eq(reads <= 4, true, reads .. ' reads of the track list in 30 ticks of 0.01 s')
+  H.eq(sent, 1, 'the rename is still sent, once, when the wait ends')
+  local s2 = s
+  s2.fake.clock_step = 1
+  H.eq(revision_after_tick(s2) ~= before, true)
+end)
+
+H.test('a revision that cannot be read is sent empty and the heartbeat goes on', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  local real = reaper.GetTrackGUID
+  reaper.GetTrackGUID = function()
+    error('REAPER raised')
+  end
+  s:tick()
+  local event = only_event(s)
+  s:tick()
+  s:tick()
+  local later = #s:all_events()
+  reaper.GetTrackGUID = real
+  H.eq(event[1], 'PROJECT_STATUS')
+  H.eq(event[9], '')
+  H.eq(later, 1, 'the next heartbeat is sent too')
+end)
