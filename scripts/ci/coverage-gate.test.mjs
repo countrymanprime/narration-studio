@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -430,4 +430,50 @@ test('on a pull request a floor missed in a directory the change does not touch 
   assert.ok(!touches(other, ['src/studio/desktop/internal/c/c.go']));
   assert.equal(evaluate([mine], () => 80, 'linux', { mode: 'strict' }).failures.length, 1);
   assert.equal(evaluate([mine], () => null, 'linux', { mode: 'scoped', files: [] }).failures.length, 1, 'no data always fails');
+});
+
+test('narrowing the docs folders: only files no Go test reads are Go-free', () => {
+  const goFree = (file) => touchedPackages(FOLDERS, ['src/app/internal/a/a.go', file]) !== null;
+  for (const free of ['docs/architecture/threat-model.md', 'docs/architecture/diagrams/a.mmd', 'docs/reference/data-files.md', 'docs/reference/schemas/a.md']) {
+    assert.equal(goFree(free), true, `${free} is read by no Go test`);
+  }
+  for (const read of ['docs/architecture/provider-ports.md', 'docs/reference/storybible-import-format.md', 'docs/reference/daw/matrix.md', 'docs/reference/daw', 'docs/reference/daw/x/y.md']) {
+    assert.equal(goFree(read), false, `${read} is read by a Go test and races everything`);
+  }
+});
+
+// The list above is only as good as its upkeep: this finds the repository files the Go tests read through `docs/` and fails when one is
+// in a place the rule treats as Go-free, which is how a test that starts reading another doc gets noticed. It reads each line of the
+// tests as text, so it cannot see a path held in a variable or constant, a path on a line apart from its read, a raw string, or a read
+// through a command.
+test('no Go test reads a file under docs/ that the race scope treats as Go-free', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const goTests = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      if (entry.isDirectory()) walk(join(dir, entry.name));
+      else if (entry.name.endsWith('_test.go')) goTests.push(join(dir, entry.name));
+    }
+  };
+  walk(join(root, 'src/studio/desktop'));
+  assert.ok(goTests.length > 100, 'found the Go tests');
+  const reads = [];
+  for (const file of goTests) {
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      if (/^\s*\/\//.test(line)) continue;
+      for (const joined of line.matchAll(/"docs"((?:\s*,\s*"[^"]*")+)/g)) {
+        const parts = [...joined[1].matchAll(/"([^"]*)"/g)].map((part) => part[1]).filter((part) => part !== '..');
+        reads.push(['docs', ...parts].join('/'));
+      }
+      if (/ReadFile|ReadDir|Open|Glob|RepoFile|WalkDir|Stat/.test(line)) for (const literal of line.matchAll(/"(?:\.\.\/)*(docs\/[^"]+)"/g)) reads.push(literal[1]);
+    }
+  }
+  assert.ok(reads.length > 0, 'found the reads that exist today (dawportdoc, importer, extractionport)');
+  for (const read of reads) {
+    const isFolder = !/\.[a-z]+$/.test(read);
+    for (const probe of isFolder ? [read, `${read}/x.md`] : [read]) {
+      assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', probe]), null, `a Go test reads ${read}, which the race scope treats as Go-free: take it out of GO_FREE in coverage-gate.mjs`);
+    }
+  }
 });

@@ -59,6 +59,7 @@ jobs:
       # Test (Linux)'s shards: all six when the UI is affected, else shard 1 alone.
       test-shards: ${{ (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') && '[1,2,3,4,5,6]' || '[1]' }}
       ui-dist: ${{ steps.ui-dist.outcome == 'success' }}
+      storybook: ${{ steps.storybook-static.outcome == 'success' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -106,6 +107,21 @@ jobs:
         with:
           name: ui-dist
           path: src/studio/ui/dist
+          if-no-files-found: error
+          retention-days: 1
+      # Storybook, built once for the run (#3860): the six Test (Linux) shards download it for the atlas and `atlas docs` instead of building it
+      # six and seven times (35 s each). Full tier, when the UI is affected, as the atlas is. A missing download fails those steps
+      # (scripts/storybook-build.mjs), it does not make them build their own.
+      - name: Storybook
+        id: storybook
+        if: ${{ inputs.full && (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') }}
+        run: pnpm --dir src/studio/ui run build-storybook
+      - id: storybook-static
+        if: ${{ steps.storybook.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: storybook-static
+          path: src/studio/ui/storybook-static
           if-no-files-found: error
           retention-days: 1
       - name: ui static
@@ -171,7 +187,7 @@ jobs:
         if: always()
         env:
           OUTCOMES: >-
-            {"UI bundle": "${{ steps.ui-bundle.outcome }}", "ui static": "${{ steps.ui-static.outcome }}", "web static": "${{ steps.web-static.outcome }}",
+            {"UI bundle": "${{ steps.ui-bundle.outcome }}", "Storybook": "${{ steps.storybook.outcome }}", "ui static": "${{ steps.ui-static.outcome }}", "web static": "${{ steps.web-static.outcome }}",
             "knip": "${{ steps.knip.outcome }}", "python lint": "${{ steps.python-lint.outcome }}",
             "reaper lint": "${{ steps.reaper-lint.outcome }}", "docs-site lint": "${{ steps.docs-site-lint.outcome }}",
             "test ratchet": "${{ steps.test-ratchet.outcome }}"}
@@ -306,17 +322,27 @@ jobs:
         if: ${{ !cancelled() && steps.split.outputs.aria == 'true' }}
         run: pnpm --dir src/studio/ui run aria
       # On a pull request the atlas draws the stories the change reaches (the import graph, src/studio/ui/scripts/atlas-scope.mjs) and
-      # builds no Storybook when it reaches none; every other run draws all of them. `atlas docs` below always checks every page.
+      # starts no browser when it reaches none (lint built Storybook once for the run, above); every other run draws all of them. `atlas docs` below always checks every page.
+      - name: storybook download
+        id: storybook-download
+        if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' && needs.lint.outputs.storybook == 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: storybook-static
+          path: src/studio/ui/storybook-static
       - name: atlas
         id: atlas
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         env:
           SHARD: ${{ matrix.shard }}
+          UI_STORYBOOK_PREBUILT: ${{ needs.lint.outputs.storybook == 'true' && '1' || '' }}
         working-directory: src/studio/ui
         run: node scripts/atlas-scope.mjs --shard="$SHARD/6"
       - name: atlas docs
         id: atlas-docs
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' && matrix.shard == 1 }}
+        env:
+          UI_STORYBOOK_PREBUILT: ${{ needs.lint.outputs.storybook == 'true' && '1' || '' }}
         run: pnpm exec nx run ui:atlas-docs --skip-nx-cache
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -347,7 +373,7 @@ jobs:
           OUTCOMES: >-
             {"vitest": "${{ steps.vitest.outcome }}",
             "visual": "${{ steps.visual.outcome }}", "aria": "${{ steps.aria.outcome }}",
-            "atlas": "${{ steps.atlas.outcome }}", "atlas docs": "${{ steps.atlas-docs.outcome }}"}
+            "storybook download": "${{ steps.storybook-download.outcome }}", "atlas": "${{ steps.atlas.outcome }}", "atlas docs": "${{ steps.atlas-docs.outcome }}"}
         run: node scripts/ci/step-summary.mjs
 
   test-linux-quick:

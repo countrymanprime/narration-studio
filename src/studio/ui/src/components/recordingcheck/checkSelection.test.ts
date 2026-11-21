@@ -25,6 +25,13 @@ const report = (gaps: number, unfinished: { start: number; end: number }, paragr
   }) as unknown as CoverageResult;
 
 describe('recordedChapters', () => {
+  // #3869: under one second is no recording, so the check does not offer it; one second is offered.
+  it('does not offer audio under one second and offers one second', () => {
+    const list = [0, 0.001, 0.5, 0.99, 1, 12].map((seconds) => chapter(`s${seconds}`, { recordedSeconds: seconds }));
+    expect(recordedChapters(list).map((c) => c.id)).toEqual(['s1', 's12']);
+    expect(audioToCheck(list, new Set(list.map((c) => c.id))).seconds).toBe(13);
+  });
+
   it('keeps only chapters with a recording', () => {
     const list = [
       chapter('a', { recordedSeconds: 60 }),
