@@ -41,7 +41,7 @@ export function gestureKeys(gesture: Gesture): string[] {
 }
 
 /** A fact about the screen that decides whether a conditional hint shows. */
-type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldRead' | 'takeInDaw';
+type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldRead' | 'takeInDaw' | 'noTake';
 
 /**
  * One footer's hints: the command whose first gesture is drawn, any `with` commands whose caps follow it in one chord
@@ -73,6 +73,8 @@ export const COLD_READ_NO_VOICE_REASON = 'A cold read needs no voice';
 /** Why Space and R do nothing to a take the DAW started: the hints' tooltip. */
 const TAKE_IN_DAW_REASON = (dawName: string) => `This take was started in ${dawName}, so it stops and rolls there`;
 const TAKE_IN_DAW = { when: 'takeInDaw', reason: TAKE_IN_DAW_REASON } as const;
+/** R is Record until a take runs, so its Roll again hint is struck through then. */
+const NO_TAKE = { when: 'noTake', reason: 'R starts a take until one is running, then it rolls again' } as const;
 const COLD_READ = { when: 'coldRead', reason: COLD_READ_NO_VOICE_REASON } as const;
 /** Why the voice keys do nothing to a take the DAW started: the tooltip of their struck hints. */
 const VOICE_IN_DAW = { when: 'takeInDaw', reason: (dawName: string) => `This take was started in ${dawName}, so the voice is changed there` } as const;
@@ -80,7 +82,7 @@ const VOICE_IN_DAW = { when: 'takeInDaw', reason: (dawName: string) => `This tak
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
     { id: 'reading.toggle', label: 'Record / stop', off: [TAKE_IN_DAW] },
-    { id: 'booth.roll', label: 'Roll again (during a take)', off: [TAKE_IN_DAW] },
+    { id: 'booth.roll', label: 'Roll again', off: [TAKE_IN_DAW, NO_TAKE] },
     { id: 'booth.phrase.prev', with: ['booth.phrase.next'], label: 'Phrase' },
     { id: 'booth.word.prev', with: ['booth.word.next'], label: 'Word' },
     { id: 'bookmark.here', label: 'Bookmark' },

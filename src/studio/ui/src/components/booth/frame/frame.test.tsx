@@ -458,3 +458,16 @@ describe('the record bar is voice, then one split button', () => {
     expect(await screen.findByRole('dialog', { name: 'Record options' })).toBeTruthy();
   });
 });
+
+describe('roll-again-hint', () => {
+  it('strikes the R hint through until a take runs, with the reason', () => {
+    const { container, rerender } = footer(api());
+    expect(container.innerHTML).toContain('R starts a take until one is running');
+    rerender(
+      <ApiProvider api={api().value}>
+        <BoothFooter record={<button>Record</button>} seconds={0} recording mic={mic} roomTone="Room tone −58 dBFS" keymap={defaultKeymap()} />
+      </ApiProvider>,
+    );
+    expect(container.innerHTML).not.toContain('R starts a take until one is running');
+  });
+});

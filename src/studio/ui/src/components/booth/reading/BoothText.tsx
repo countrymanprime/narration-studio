@@ -50,7 +50,7 @@ type Props = {
   /** Story Bible tints and marked-word underlines, and the notes drawn under a paragraph. */
   decorations?: readonly WordDecoration[];
   notes?: readonly ParagraphNote[];
-  /** Paragraphs a suspected skip or restart points at, . */
+  /** Paragraphs a suspected skip or restart points at. */
   pickupLines?: readonly PickupLine[];
   /** Px; the page slice owns the preference. Clamped to 24 to 72 in steps of 4. */
   size: number;
