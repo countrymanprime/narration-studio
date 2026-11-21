@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
 )
 
 // hostLogHas reports whether the host log holds a retention_pass line for reason.
@@ -31,6 +34,15 @@ func waitForRetentionPass(t *testing.T, host *Host, reason string) {
 // Opening a project starts a pass, and it only reports: no file in the project is removed.
 func TestOpeningAProjectStartsARetentionPassThatRemovesNothing(t *testing.T) {
 	project := twoTakeCoverageProject(t)
+	// A project that already holds derived files of every kind the pass measures.
+	for _, dir := range []string{evidence.LedgerDir(project), coverage.ResultsDir(project), coverage.SummariesDir(project), evidence.CacheDir(project)} {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "0123456789abcdef.json"), []byte(`{"schemaVersion":1}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	before := listFiles(t, project)
 	host := coverageHost(t, project, true, fakeAlignedCoverageSidecarWithSkip())
 	waitForRetentionPass(t, host, "open")

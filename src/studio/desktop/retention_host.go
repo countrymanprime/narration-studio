@@ -45,7 +45,7 @@ func (h *Host) kickRetention(reason string) {
 func (h *Host) logRetention(reason string, reports []retention.Report) {
 	var lines []string
 	for _, report := range reports {
-		lines = append(lines, fmt.Sprintf("%s: %d files, %d bytes, removed %d", report.Kind, report.FilesAfter, report.BytesAfter, report.Removed))
+		lines = append(lines, fmt.Sprintf("%s: %d files %d bytes, then %d files %d bytes (removed %d)", report.Kind, report.FilesBefore, report.BytesBefore, report.FilesAfter, report.BytesAfter, report.Removed))
 	}
 	if len(lines) > 0 {
 		_ = h.log.Report("retention_pass", reason+" | "+strings.Join(lines, "; "))

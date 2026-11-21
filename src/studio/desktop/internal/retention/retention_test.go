@@ -2,6 +2,9 @@ package retention
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -127,4 +130,26 @@ func TestAPassAfterAnotherEndsRunsAgain(t *testing.T) {
 	runner.Kick("check-ended")
 	waitFor(t, "the second pass", func() bool { return passes.Load() == 2 })
 	runner.Close()
+}
+
+// The runner deletes nothing itself: a store's step does, through persist.RemoveRegular, and the host composes them (#3816).
+func TestThePackageCallsNoDelete(t *testing.T) {
+	files, err := filepath.Glob("*.go")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no source files: %v", err)
+	}
+	for _, file := range files {
+		if strings.HasSuffix(file, "_test.go") {
+			continue
+		}
+		raw, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, call := range []string{"os.Remove(", "os.RemoveAll(", ".Remove(", "RemoveRegular("} {
+			if strings.Contains(string(raw), call) {
+				t.Errorf("%s calls %s", file, call)
+			}
+		}
+	}
 }
