@@ -192,7 +192,7 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '7.25rem'] : ['2.75rem', 'auto', 'auto', '4.5rem', '3rem']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '7.25rem'] : ['2.75rem', 'auto', 'auto', '5rem', '3rem']}>
                 <TableHead sticky>
                   <TableRow>
                     {!narrow && <TableHeader>Key</TableHeader>}
@@ -342,11 +342,8 @@ function CharacterPicker({
   if (voice.notVoice) {
     const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
     const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
-    return (
-      <TooltipTarget text={reason}>
-        <IconButton label={name} action="edit" size="sm" disabledReason={reason} />
-      </TooltipTarget>
-    );
+    // IconButton shows its disabledReason as a tooltip itself.
+    return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
   }
   const label = voice.narrator
     ? 'Choose the character the Narrator track also voices'
