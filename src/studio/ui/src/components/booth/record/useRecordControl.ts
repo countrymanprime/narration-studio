@@ -469,7 +469,9 @@ export function useRecordControl({
   // when the linked project is the open one and the chapter's lane is the one armed (the host answers `recording_here`), as the reads above (`link`, `match`) say
   // once they have been made after the take was seen (`readSeq`); any other is "elsewhere". Nothing but this app starts a take of its own recorder.
   // A press in flight owns the transport events of its own start, so it is never taken for a take of the DAW's.
-  const heldInDaw = !recording && !adopt && !inApp && !starting && projectHeard && project?.playState === 'recording';
+  // Nor is the play state a quiet DAW left behind (`answering`): an answer about the transport is heard and, while the DAW is quiet, unheard again by the
+  // effect below, and without this each such answer read as a held take and then not, asked the DAW again, and that answer began the next turn (#3840).
+  const heldInDaw = !recording && !adopt && !inApp && !starting && answering && projectHeard && project?.playState === 'recording';
   const [startedInDaw, setStartedInDaw] = useState(false);
   const startedInDawRef = useRef(false);
   startedInDawRef.current = startedInDaw;
@@ -697,11 +699,6 @@ export function useRecordControl({
   const dawAnswersStopped = () => {
     if (!recordingRef.current && !busy.current && reachableRef.current === true) dropClaim();
   };
-  // An answer about the transport counts as heard only while the last picture says the DAW answers. Taken as heard from a quiet DAW, the effect below took it
-  // back at once: the play state kept from before read as a held take and then not, each turn asked the DAW again, and its answer began the next turn (#3840).
-  const hearProject = () => {
-    if (capabilitiesRef.current?.reachable !== false) setProjectHeard(true);
-  };
   // Where the DAW's take began, as its transport event said it: the play head a later read finds has moved on.
   const transportRecording = useRef(false);
   const seenStart = useRef<number | undefined>(undefined);
@@ -709,7 +706,7 @@ export function useRecordControl({
   useEffect(
     () =>
       daw.subscribeTransport?.((transport) => {
-        hearProject();
+        setProjectHeard(true);
         if (transport.recording && !transportRecording.current) seenStart.current = transport.position;
         if (!transport.recording) {
           seenStart.current = undefined;
@@ -742,7 +739,7 @@ export function useRecordControl({
         if (!current) return;
         setProject(state);
         setProjectFailed(false);
-        hearProject();
+        setProjectHeard(true);
         if (state.playState !== 'recording') dawAnswersStopped();
       })
       .catch(() => {
