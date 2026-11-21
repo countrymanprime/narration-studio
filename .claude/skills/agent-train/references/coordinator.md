@@ -178,6 +178,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)).;
    - the `test ratchet` step of `quality / lint` has run on the head (its result is in the lint job's summary), and the intent review judged its warnings ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net));
+   - no `main-red` issue is open (`list_issues` with the label), unless this PR is the fix or the revert that issue asks for ([Safety net](#safety-net)): a red `main` is closed to every other merge, `HOLD` or not;
    - for a UI PR, `ux-reviewer` returned `pass` after the last code commit; a later docs-only commit does not carry an earlier pass, so run it again;
    - `narrator-walkthrough` and `qa-breaker` ran on the head being merged, not on an earlier build;
    - a change that raises CI cost or runtime has its figure (job-minutes or wall time per run, before and after) in a comment to the owner before the merge, not after.

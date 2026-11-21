@@ -90,8 +90,10 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           # Which of the two it was: a timeout is fixed by making a job faster, not by reading a failed test.
           OUTCOME: ${{ needs.ci.result == 'cancelled' && 'had a job cancelled, most likely at its time limit' || 'failed' }}
-      # After the HOLD, and even if it failed: the issue is the part a person reads.
-      - if: always()
+      # After the HOLD, and even if it failed: the issue is the part a person reads. Only for `main`: a manual run of another branch says
+      # nothing about `main`. `continue-on-error`: a failure to write the issue must not change what this run reports.
+      - if: always() && github.ref == 'refs/heads/main'
+        continue-on-error: true
         run: node scripts/ci/train-health.mjs red
         env:
           GH_TOKEN: ${{ github.token }}
@@ -101,7 +103,9 @@ jobs:
   clear-on-green:
     name: Close the main-red issue when main is green
     needs: ci
-    if: needs.ci.result == 'success'
+    # No `always()`: a skipped or cancelled `ci` judged nothing and closes nothing. Only for `main`: a green manual run of another
+    # branch must not close the issue while `main` is red. scripts/ci/main-health-workflow.test.mjs holds both conditions.
+    if: needs.ci.result == 'success' && github.ref == 'refs/heads/main'
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
@@ -112,6 +116,7 @@ jobs:
         with:
           persist-credentials: false
       - run: node scripts/ci/train-health.mjs green
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

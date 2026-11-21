@@ -153,9 +153,10 @@ function attempt(read, fallback) {
 }
 
 function commitsSinceGreen(sha) {
+  // `event=push`: a scheduled run that skipped the full run (main had not moved) also ends in success, on a commit nothing judged green.
   const green = gh([
     'api',
-    'repos/{owner}/{repo}/actions/workflows/main-health.yml/runs?branch=main&status=success&per_page=1',
+    'repos/{owner}/{repo}/actions/workflows/main-health.yml/runs?branch=main&event=push&status=success&per_page=1',
     '--jq',
     '.workflow_runs[0].head_sha // ""',
   ]).trim();
