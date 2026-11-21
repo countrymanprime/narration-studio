@@ -24,6 +24,11 @@ func localModelSpeakerFallback(source localmodel.Source) guide.SpeakerFallback {
 		entity := make(map[string]string, len(characters))
 		for i, c := range characters {
 			listed[i] = localmodel.Character{Name: c.Name, Aliases: c.Aliases}
+			if _, twice := entity[c.Name]; twice {
+				// Two entries with one name: an answer cannot say which, even when it came by an alias only one has.
+				entity[c.Name] = ""
+				continue
+			}
 			entity[c.Name] = c.EntityID
 		}
 		questions := make([]localmodel.Question, len(cues))
@@ -46,8 +51,8 @@ func localModelSpeakerFallback(source localmodel.Source) guide.SpeakerFallback {
 		}
 		result := guide.FallbackResult{Asked: answers.Asked, Failed: answers.Failed, Note: note}
 		for _, a := range answers.Kept {
-			// The source answers only with a name exactly one character has, so the name finds its entry.
-			if id, ok := entity[a.Raw.Payload.Speaker]; ok && a.Question < len(cues) {
+			// The source answers with the entry's name; a name two entries share finds neither, so that line stays unknown.
+			if id := entity[a.Raw.Payload.Speaker]; id != "" && a.Question < len(cues) {
 				result.Suggestions = append(result.Suggestions, guide.CueSuggestion{CueID: cues[a.Question].CueID, EntityID: id, Reason: a.Raw.Note})
 			}
 		}

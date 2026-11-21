@@ -187,6 +187,37 @@ func TestTheLocalModelFallbackNeverPicksBetweenTwoEntriesWithOneName(t *testing.
 	}
 }
 
+// Two entries with one name, told apart only by an alias: an answer by that alias reaches one of them in the source, but its
+// name cannot say which entry it is, so the line stays unknown and never goes to the other twin.
+func TestAnAliasAnswerNeverGoesToTheOtherEntryWithTheSameName(t *testing.T) {
+	source := fakeLocalModel(10)
+	source.Ask = aliasAsker{}
+	fallback := localModelSpeakerFallback(source)
+	cue := guide.UnknownCue{CueID: "cue-1", ChapterID: "c1", ParagraphID: "p2", Quote: "Well?", Passage: []guide.FallbackParagraph{
+		{ID: "p1", ChapterID: "c1", Text: "Gaffer came into the kitchen and sat down."}, {ID: "p2", ChapterID: "c1", Text: `"Well?"`},
+	}}
+	for _, twins := range [][]guide.FallbackCharacter{
+		{{EntityID: "elder", Name: "Sam", Aliases: []string{"Gaffer"}}, {EntityID: "younger", Name: "Sam", Aliases: []string{"Sammy"}}},
+		{{EntityID: "younger", Name: "Sam", Aliases: []string{"Sammy"}}, {EntityID: "elder", Name: "Sam", Aliases: []string{"Gaffer"}}},
+	} {
+		if result, err := fallback(context.Background(), []guide.UnknownCue{cue}, twins); err != nil || len(result.Suggestions) != 0 || result.Asked != 1 {
+			t.Fatalf("result %+v, %v", result, err)
+		}
+	}
+	alone, err := fallback(context.Background(), []guide.UnknownCue{cue}, []guide.FallbackCharacter{{EntityID: "elder", Name: "Sam", Aliases: []string{"Gaffer"}}})
+	if err != nil || len(alone.Suggestions) != 1 || alone.Suggestions[0].EntityID != "elder" {
+		t.Fatalf("result %+v, %v", alone, err)
+	}
+}
+
+// aliasAsker names the speaker by the alias "Gaffer", as a model that read the passage would.
+type aliasAsker struct{}
+
+func (aliasAsker) Ask(context.Context, localmodel.Question) (localmodel.Answer, error) {
+	confidence := localmodeltest.Confidence
+	return localmodel.Answer{Speaker: "Gaffer", Confidence: &confidence, Reason: "Gaffer comes in just before.", Evidence: "Gaffer came into the kitchen and sat down."}, nil
+}
+
 // kitchenCue is a line the fake answers "Bo" for.
 func kitchenCue(id string) guide.UnknownCue {
 	return guide.UnknownCue{CueID: id, ChapterID: "c1", ParagraphID: "p2", Quote: "Well?", Passage: []guide.FallbackParagraph{
