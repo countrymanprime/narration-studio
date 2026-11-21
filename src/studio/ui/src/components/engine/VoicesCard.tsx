@@ -136,9 +136,7 @@ export function VoicesCard({
       <Switch
         checked={!voice.notVoice}
         disabled={recording}
-        onChange={(counts) =>
-          onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace, setup.layout))
-        }
+        onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace))}
       >
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>

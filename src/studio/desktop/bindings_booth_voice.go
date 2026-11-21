@@ -23,7 +23,7 @@ import (
 const (
 	boothVoiceFlat      = "flat"        // the project is flat, or the chapter is linked to a plain track
 	boothVoiceNotAVoice = "not_a_voice" // the GUID is not a direct child of the chapter's folder
-	boothVoiceNoVoices  = "no_voices"   // the chapter's folder has no tracks inside it
+	boothVoiceNoVoices  = "no_voices"   // the chapter's folder has no voice: no track inside it, or every one turned off as not a voice
 )
 
 // BoothVoice is what BoothVoiceSet did. Outcome is "selected" (the next take records on TrackGUID), "switched" (the take this
@@ -74,7 +74,8 @@ func boothVoiceRefused(reason, message string) BoothVoice {
 }
 
 // chapterVoices is the voices of the chapter linked to link: the direct children of the folder link names, in REAPER's order, when
-// link is a folder in the project as REAPER has it now (the saved one when REAPER is not answering); nil (record on link itself) otherwise.
+// link is a folder in the project as REAPER has it now (the saved one when REAPER is not answering); nil (record on link itself) otherwise,
+// except that under Flat a folder whose every child is marked as not a voice answers no voices with folder true, so Record is refused (#3828).
 func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) {
 	return chapterVoicesIn(svc, link, nil)
 }
@@ -213,7 +214,7 @@ func voiceFor(voices []tracks.Track, chosen string, setup voicetracks.State) str
 }
 
 // recordTarget is the track a record start for chapterID arms: its one linked track, or in a Voice folders chapter the Booth's voice
-// (svc.boothVoices) among the folder's children. A folder with no children is refused before anything is armed.
+// (svc.boothVoices) among the folder's children. A folder with no voices (no children, or every child marked) is refused before anything is armed.
 func recordTarget(svc hostServices, chapterID, link string) (string, *ReadAloudRecording, error) {
 	return recordTargetIn(svc, chapterID, link, nil)
 }
@@ -234,17 +235,24 @@ func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Pr
 		if err != nil {
 			return "", nil, err
 		}
-		fix := fmt.Sprintf("Add a track inside the folder in %s, and save.", readAloudAdapterName(svc))
-		if markedChildren(svc, link, project) {
-			fix = "Every track in it is turned off as not a voice. Turn one back on in the Voices card, or add a track inside the folder in " + readAloudAdapterName(svc) + ", and save."
-			if setup.Layout != voicetracks.LayoutFolders {
-				fix = "Every track in it is turned off as not a voice. Turn one back on in the Voices card, or link the chapter to a track of its own."
-			}
-		}
-		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. %s", title, fix))
+		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. %s", title, noVoicesFix(svc, link, project, setup.Layout)))
 		return "", &refused, nil
 	}
 	return voiceFor(voices, svc.boothVoices.For(chapterID), setup), nil, nil
+}
+
+// noVoicesFix is the second half of the refusal for a folder with no voices, naming the fix that works. Under Flat a folder with no voices is
+// one whose every child is marked (chapterVoicesIn refuses nothing else), so it needs no second look at the project; under Voice folders it is
+// that or an empty folder, which markedChildren tells apart.
+func noVoicesFix(svc hostServices, link string, project *tracks.Project, layout string) string {
+	const turnOn = "Every track in it is turned off as not a voice. Turn one back on in the Voices card, or "
+	if layout != voicetracks.LayoutFolders {
+		return turnOn + "link the chapter to a track of its own."
+	}
+	if markedChildren(svc, link, project) {
+		return turnOn + "add a track inside the folder in " + readAloudAdapterName(svc) + ", and save."
+	}
+	return fmt.Sprintf("Add a track inside the folder in %s, and save.", readAloudAdapterName(svc))
 }
 
 // markedChildren is whether the folder link names has a direct child and every one of them (leaving out the tracks another chapter is linked to)
