@@ -14,7 +14,7 @@ import { usePipelineSources } from './usePipelineSources';
 const finding = (chapterId: string | undefined, status: Finding['review']['status'], extra: Partial<Finding> = {}) =>
   ({ id: `${chapterId}-${status}-${Math.random()}`, manuscript: chapterId ? { chapter_id: chapterId } : undefined, review: { status }, ...extra }) as Finding;
 
-const chapter = (id: string, index: number, title: string) => ({ id, index, title }) as ManuscriptChapter;
+const chapter = (id: string, index: number, title: string) => ({ id, index, title, wordCount: 10, status: 'not_started' }) as ManuscriptChapter;
 const file = (name: string, status: 'met' | 'not_met' | 'not_measurable' | 'not_checked'): MeasureFileResult =>
   ({
     name,
@@ -135,5 +135,52 @@ describe('usePipelineSources under the store (#3658)', () => {
     await waitFor(() => expect(result.current.chapters.chapters).toBeDefined());
     await waitFor(() => expect(result.current.pipeline.prep).toBeDefined());
     expect(read).toHaveBeenCalledTimes(1);
+  });
+  // The qa-breaker's breaks on the first version of the hook: it read the measurement on a new refresh key but not the list.
+  function storeHook(chapters: () => Promise<ManuscriptChapter[]>, files: MeasureFileResult[]) {
+    const api = {
+      ...createMockApi(),
+      findingsList: () => Promise.resolve({ findings: [], total: 0 }),
+      measureState: () => Promise.resolve({ phase: 'success', files } as unknown as MeasureJob),
+      manuscriptChapters: vi.fn(chapters),
+      scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
+    } as unknown as NarrationApi & { manuscriptChapters: ReturnType<typeof vi.fn> };
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const view = renderHook(({ key }) => usePipelineSources(true, key), { wrapper, initialProps: { key: 'a' } });
+    return { api, view };
+  }
+
+  it('reads the chapter list again when the refresh key changes, with no job:ended', async () => {
+    let list = [chapter('c1', 0, 'Alpha')];
+    const { api, view } = storeHook(async () => list, [file('Alpha.wav', 'met'), file('Beta.wav', 'met')]);
+    await waitFor(() => expect(view.result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+    list = [chapter('c1', 0, 'Alpha'), chapter('c2', 1, 'Beta')];
+    view.rerender({ key: 'b' });
+    await waitFor(() => expect(view.result.current.master?.c2).toEqual({ mastered: true, qc: 'PASS' }));
+    expect(api.manuscriptChapters).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks for the chapter list again on a refresh after its first read failed', async () => {
+    let fail = true;
+    const { view } = storeHook(async () => (fail ? Promise.reject(new Error('down')) : [chapter('c1', 0, 'Alpha')]), [file('Alpha.wav', 'met')]);
+    await waitFor(() => expect(view.result.current.prep).toBeDefined());
+    expect(view.result.current.master).toBeUndefined();
+    fail = false;
+    view.rerender({ key: 'b' });
+    await waitFor(() => expect(view.result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+  });
+
+  it("leaves Master and Next up's failing chapter absent while the chapter list's last read failed", async () => {
+    let fail = false;
+    const { view } = storeHook(async () => (fail ? Promise.reject(new Error('down')) : [chapter('c1', 0, 'Alpha')]), [file('Alpha.wav', 'not_met')]);
+    await waitFor(() => expect(view.result.current.master).toBeDefined());
+    fail = true;
+    view.rerender({ key: 'b' });
+    await waitFor(() => expect(view.result.current.master).toBeUndefined());
+    expect(view.result.current.failing).toBeNull();
   });
 });

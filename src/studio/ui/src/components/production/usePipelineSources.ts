@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Finding } from '../../api/contracts/findings';
 import type { ManuscriptChapter, MeasureFileResult } from '../../types';
 import { usePort } from '../../ports/usePort';
@@ -58,8 +58,11 @@ export function usePipelineSources(
   const [proof, setProof] = useState<Proof>();
   const [job, setJob] = useState<Awaited<ReturnType<typeof measure.measureState>>>();
   const [prep, setPrep] = useState<Prep>();
-  // The chapter list is the store's, shared with every page: this hook does not read it again.
-  const { chapters } = useChapters(active);
+  // The chapter list is the store's, shared with every page: mounting does not read it again. A new `refreshKey` (an import, a project switch) asks the
+  // store for it now, as it re-reads the measurement, so a lost `job:ended` or a first failed read does not leave the list behind.
+  const refreshes = useRef({ key: refreshKey, count: 0 });
+  if (refreshes.current.key !== refreshKey) refreshes.current = { key: refreshKey, count: refreshes.current.count + 1 };
+  const { chapters, error: listError } = useChapters(active, refreshes.current.count);
 
   useEffect(() => {
     if (!active) return;
@@ -81,8 +84,10 @@ export function usePipelineSources(
     };
   }, [active, refreshKey, findings, measure, scriptPrep]);
 
-  const master = useMemo<Master | undefined>(() => (chapters && job?.files.length ? masterByChapter(chapters, job.files) : undefined), [chapters, job]);
-  const failing = useMemo<NextUpInputs['failing']>(() => (chapters && job ? failingChapter(chapters, job.files, job.profile ?? null) : null), [chapters, job]);
+  // A list whose last read failed may not match the measurement: no pairing then, never a stale fact.
+  const list = listError ? undefined : chapters;
+  const master = useMemo<Master | undefined>(() => (list && job?.files.length ? masterByChapter(list, job.files) : undefined), [list, job]);
+  const failing = useMemo<NextUpInputs['failing']>(() => (list && job ? failingChapter(list, job.files, job.profile ?? null) : null), [list, job]);
 
   return { proof, master, prep, failing };
 }
