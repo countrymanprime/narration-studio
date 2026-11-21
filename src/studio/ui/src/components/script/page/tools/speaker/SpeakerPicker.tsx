@@ -77,39 +77,41 @@ export function SpeakerPicker({
 
   return (
     // In a popover the window has cut short, the picker is as tall as the room inside it (the popover's height less its padding and border), so the
-    // list below scrolls and the popover does not: one scroller, and the search box stays in view (#3258). It is 280 to 360 px wide, or the
-    // popover's own width where a narrow window leaves less.
-    <div className="flex max-h-[calc(var(--available-height)_-_2rem_-_2px)] max-w-[min(360px,100%)] min-w-[min(280px,100%)] flex-col gap-1.5 [overflow-wrap:anywhere]">
-      <TextField
-        ref={field}
-        label="Search speakers"
-        placeholder="Search speakers"
-        role="combobox"
-        aria-expanded={rows.length > 0}
-        aria-controls={rows.length > 0 ? listId : undefined}
-        aria-activedescendant={rows[current] ? listboxOptionId(listId, rows[current].id) : undefined}
-        autoComplete="off"
-        value={search}
-        onChange={(next) => {
-          setSearch(next);
-          setActive(0);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault();
-            setActive(Math.max(0, Math.min(rows.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1))));
-          } else if (event.key === 'Enter') {
-            event.preventDefault();
-            choose(rows[current]);
-          } else if (event.key === 'Escape') {
-            event.preventDefault();
-            event.stopPropagation();
-            onClose();
-          }
-        }}
-      />
-      <div className="px-1 py-0.5 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">{term ? 'Matches' : 'In this chapter'}</div>
-      <div className="max-h-60 overflow-auto">
+    // list below scrolls and the popover does not: one scroller, and the search box stays in view (#3258). It is 280 px wide, or the
+    // popover's own width where a narrow window leaves less (a definite width: a min-width in a shrink-to-fit popup resolves to nothing).
+    <div className="flex max-h-[calc(var(--available-height)_-_2rem_-_2px)] w-[280px] max-w-full flex-col gap-1.5 [overflow-wrap:anywhere]">
+      <div className="shrink-0">
+        <TextField
+          ref={field}
+          label="Search speakers"
+          placeholder="Search speakers"
+          role="combobox"
+          aria-expanded={rows.length > 0}
+          aria-controls={rows.length > 0 ? listId : undefined}
+          aria-activedescendant={rows[current] ? listboxOptionId(listId, rows[current].id) : undefined}
+          autoComplete="off"
+          value={search}
+          onChange={(next) => {
+            setSearch(next);
+            setActive(0);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault();
+              setActive(Math.max(0, Math.min(rows.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1))));
+            } else if (event.key === 'Enter') {
+              event.preventDefault();
+              choose(rows[current]);
+            } else if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              onClose();
+            }
+          }}
+        />
+      </div>
+      <div className="shrink-0 px-1 py-0.5 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">{term ? 'Matches' : 'In this chapter'}</div>
+      <div className="max-h-60 min-h-0 overflow-auto">
         <Listbox
           id={listId}
           label={term ? 'Matching speakers' : 'Speakers in this chapter'}

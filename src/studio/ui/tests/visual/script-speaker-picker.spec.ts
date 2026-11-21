@@ -91,3 +91,22 @@ test('in a 360x500 window the speaker picker keeps its whole list height', async
   await openPicker(page);
   expect(await scrollers(page)).toEqual({ popupScrolls: false, listScrolls: true, listHeight: 240, fieldInView: true });
 });
+
+// The search box kept its height and the picker its width when the cap on its height and the popup's shrink-to-fit width met (ux review of #3847):
+// the box was squeezed to 20 px at 320x300 and the picker drew 195 px wide, with its min-width resolving to nothing.
+for (const [width, height, wide] of [
+  [1440, 900, 270],
+  [360, 500, 270],
+  [320, 300, 230],
+] as const) {
+  test(`the speaker picker's search box is a whole box and the picker is not narrow at ${width}x${height}`, async ({ page }) => {
+    await openScript(page, width, height);
+    await openPicker(page);
+    const { field, picker } = await speakerPicker(page).evaluate((popup) => ({
+      field: popup.querySelector('input')!.getBoundingClientRect().height,
+      picker: popup.firstElementChild!.getBoundingClientRect().width,
+    }));
+    expect(field).toBeGreaterThanOrEqual(36);
+    expect(picker).toBeGreaterThanOrEqual(wide);
+  });
+}
