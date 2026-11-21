@@ -138,3 +138,21 @@ func TestReadTracksThatNeverAnswersIsErrNoAnswer(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNoAnswer", err)
 	}
 }
+
+// #3859: the read carries the script's revision of the list, and a script from before it carries none.
+func TestReadTracksCarriesTheListsRevisionWhenTheScriptSendsOne(t *testing.T) {
+	for want, revised := range map[string]bool{"00c0ffee00c0ffee": true, "": false} {
+		actions, client, dir := newActionsSession(t, true)
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			answer := tracksReadAnswer(command)
+			if revised {
+				answer[0] = append(answer[0], "00c0ffee00c0ffee")
+			}
+			return answer
+		})
+		got, err := actions.ReadTracks(context.Background())
+		if err != nil || got.Revision != want || len(got.Tracks) != 3 {
+			t.Fatalf("revised %v: got revision %q, %d tracks, err %v", revised, got.Revision, len(got.Tracks), err)
+		}
+	}
+}
