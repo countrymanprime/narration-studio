@@ -1118,6 +1118,20 @@ describe('useBoothLeaveGuard', () => {
       expect(stopRecording).toHaveBeenCalledTimes(1);
       expect(go).toHaveBeenCalledWith('/proof');
     });
+
+    // #3846 A2: the start landed while the question was open, so a settle that says "no take" is a quiet DAW, not a start that never began.
+    it('a start that landed during the question is stopped even when the DAW then reads quiet', async () => {
+      const { stopRecording, go, hook, session, dialog } = setup({ startPending: true, settle: async () => false });
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.leave('/proof', go);
+      });
+      hook.rerender({ ...session, recording: true, startPending: false });
+      await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
+      act(() => dialog()!.answer(true));
+      await act(() => done);
+      expect(stopRecording).toHaveBeenCalledTimes(1);
+    });
   });
 });
 
