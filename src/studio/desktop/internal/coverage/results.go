@@ -322,21 +322,21 @@ func (s *Service) RemoveStoredResult(recordID string) error {
 	return nil
 }
 
-// SweepOrphanResults deletes every stored result and summary whose record has no file in the ledger folder, and returns
-// the record ids it deleted for. It finishes what a pass of evidence.LedgerStore.Retain left when it stopped between
-// a record's steps or a read stored a summary behind it.
+// SweepOrphanResults deletes every stored summary whose record has no file in the ledger folder and whose result is gone,
+// and returns the record ids it deleted for. A summary is answered only while its result is there and is rebuilt from it,
+// so one left behind (a read stored it again after RemoveStoredResult) is only clutter. It never deletes a result: a result
+// with no record file cannot be told from one whose record has not arrived yet (a project being synced or restored), and
+// deleting that costs a whole re-check. A superseded record's result goes with its record, in RemoveStoredResult.
 //
-// A record file that is there protects its result whether or not it can be read (evidence.LedgerStore.RecordFileIDs).
+// A record file that is there protects its summary whether or not it can be read (evidence.LedgerStore.RecordFileIDs).
 // A ledger folder that is missing, that holds no record file at all, or that cannot be listed protects everything: a
-// ledger that is away for a moment (a folder being synced or moved) must not cost every result. The stored files are
-// listed before the ledger: a run writes its record before its result, so the record of every result listed is in the
-// later ledger listing unless it has been deleted.
+// ledger that is away for a moment (a folder being synced or moved) must not cost anything. The stored files are
+// listed before the ledger, so a record written meanwhile is in the later listing.
 //
-// It deletes only what this package stored: a regular file in the results or the summaries folder, named by a record
-// id, that decodes as a stored result (or summary) of that record. Any other file there is left and not reported. Only
-// a file with no record is read for this, so a sweep that finds no orphan decodes nothing. A results, summaries or
-// ledger folder that is a link, or is below one, is an error before anything is deleted (persist.RealFolder): it would
-// list another folder's files.
+// It deletes only what this package stored: a regular file in the summaries folder, named by a record id, that decodes
+// as a stored summary of that record. Any other file there is left and not reported. Only a file with no record is read
+// for this, so a sweep that finds no orphan decodes nothing. A results, summaries or ledger folder that is a link, or is
+// below one, is an error before anything is deleted (persist.RealFolder): it would list another folder's files.
 func (s *Service) SweepOrphanResults() ([]string, error) {
 	// The ledger must be this project's: another project's ledger holds none of this project's records, so every result here would be an orphan.
 	if filepath.Clean(s.ledger.Project()) != filepath.Clean(s.config.Project) {

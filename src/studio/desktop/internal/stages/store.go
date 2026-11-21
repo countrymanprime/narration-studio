@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -228,17 +229,21 @@ func (s *DecisionStore) writeLocked(file decisionsFile) error {
 func (s *DecisionStore) ReferencedRecordIDs() (map[string]bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// A decisions file the stages service moved aside as corrupt (its reads do) leaves a missing file and the decisions it held in a
-	// kept-aside copy the narrator may restore: the records they name must not go while one is there.
-	if aside, _ := filepath.Glob(s.path + ".corrupt-*"); len(aside) > 0 {
-		return nil, fmt.Errorf("your %s file was kept aside as unreadable (%s); restore or remove it before records are cleaned up", decisionsWhat, filepath.Base(aside[0]))
+	raw, readErr := persist.ReadFile(s.path)
+	// A decisions file the stages service moved aside as corrupt (its reads do) leaves a missing file, and the decisions it held are in a
+	// kept-aside copy the narrator may restore: the records they name must not go while one is there. The copy is looked for after the read,
+	// so a file moved aside between the two is found by this look, and one moved before the read by the same look; the folder is listed,
+	// never matched as a pattern, because a project folder's name may hold pattern characters.
+	if aside, err := keptAside(s.path); err != nil {
+		return nil, fmt.Errorf("your %s file's folder could not be listed: %w", decisionsWhat, err)
+	} else if aside != "" {
+		return nil, fmt.Errorf("your %s file was kept aside as unreadable (%s); restore or remove it before records are cleaned up", decisionsWhat, aside)
 	}
-	raw, err := persist.ReadFile(s.path)
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(readErr, os.ErrNotExist) {
 		return map[string]bool{}, nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("your %s file could not be read: %w", decisionsWhat, err)
+	if readErr != nil {
+		return nil, fmt.Errorf("your %s file could not be read: %w", decisionsWhat, readErr)
 	}
 	var decoded decisionsFile
 	if err := json.Unmarshal(raw, &decoded); err != nil {
@@ -256,4 +261,23 @@ func (s *DecisionStore) ReferencedRecordIDs() (map[string]bool, error) {
 		}
 	}
 	return ids, nil
+}
+
+// keptAside is the name of a copy of the decisions file that was moved aside as unreadable ("<name>.corrupt-<stamp>"), or "" when
+// there is none. A folder that is not there holds none.
+func keptAside(path string) (string, error) {
+	entries, err := os.ReadDir(filepath.Dir(path))
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	prefix := filepath.Base(path) + ".corrupt-"
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), prefix) {
+			return entry.Name(), nil
+		}
+	}
+	return "", nil
 }

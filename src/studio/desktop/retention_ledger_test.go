@@ -277,3 +277,49 @@ func TestTheLedgerStepRefusesALedgerOfAnotherProject(t *testing.T) {
 		t.Fatalf("report = %+v, ledger holds %v, results removed %v; want an error and nothing removed", report, rig.left(), rig.removed)
 	}
 }
+
+// A decision made after the ids were read, and before the pass reaches its record, keeps that record.
+func TestTheLedgerStepKeepsARecordADecisionNamesAfterTheIdsWereRead(t *testing.T) {
+	rig := newStepRig(t)
+	rig.write("c0", coverage.AnalyzerID, evidence.LedgerComplete)
+	rig.write("c1", coverage.AnalyzerID, evidence.LedgerComplete)
+	reads := 0
+	rig.referenced = func() (map[string]bool, error) {
+		reads++
+		if reads == 1 {
+			return map[string]bool{}, nil // the first read: no decision yet
+		}
+		return map[string]bool{"c0": true}, nil // a decision named c0 since
+	}
+	report := rig.run(never)
+	if report.Removed != 0 || !slices.Equal(rig.left(), []string{"c0", "c1"}) || len(rig.removed) != 0 || report.Err != nil {
+		t.Fatalf("report = %+v, ledger holds %v, results removed %v; want c0 kept", report, rig.left(), rig.removed)
+	}
+}
+
+// If the decisions cannot be read again mid-pass, the removals stop and the error is reported.
+func TestTheLedgerStepStopsWhenTheDecisionsCannotBeReadAgain(t *testing.T) {
+	rig := newStepRig(t)
+	rig.write("c0", coverage.AnalyzerID, evidence.LedgerComplete)
+	rig.write("c1", coverage.AnalyzerID, evidence.LedgerComplete)
+	reads := 0
+	rig.referenced = func() (map[string]bool, error) {
+		reads++
+		if reads == 1 {
+			return map[string]bool{}, nil
+		}
+		return nil, errors.New("the decisions file is being rewritten")
+	}
+	report := rig.run(never)
+	if report.Err == nil || report.Removed != 0 || !slices.Equal(rig.left(), []string{"c0", "c1"}) {
+		t.Fatalf("report = %+v, ledger holds %v; want an error and nothing removed", report, rig.left())
+	}
+}
+
+// A step with no ledger answers an error, not a panic in the background.
+func TestTheLedgerStepWithNoLedgerIsAnError(t *testing.T) {
+	step := ledgerRetention{project: t.TempDir(), measure: measureDirs(nil)}
+	if report := step.Run(context.Background(), never); report.Err == nil || report.Removed != 0 {
+		t.Fatalf("report = %+v, want an error", report)
+	}
+}

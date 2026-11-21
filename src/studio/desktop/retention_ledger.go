@@ -26,8 +26,8 @@ var ledgerRetentionKeys = map[string]evidence.RetentionKey{
 }
 
 // ledgerRetention is the retention step of the analysis ledger and of the stored results and summaries that hang from its records
-// (#3816). It deletes the records no reader selects any more, each with its result and summary first, then the results and summaries
-// whose record has no file. The ledger and the stores are injected, so a test drives it with files in a temp folder.
+// (#3816). It deletes the records no reader selects any more, each with its result and summary first, then the summaries whose
+// result is gone. It never deletes a result because its record is missing. The ledger and the stores are injected, so a test drives it with files in a temp folder.
 type ledgerRetention struct {
 	// project is the project folder the step was built for; the ledger must be that project's.
 	project string
@@ -36,7 +36,7 @@ type ledgerRetention struct {
 	referenced func() (map[string]bool, error)
 	// removeResult removes what is stored beside a record of the coverage analyzer, before the record itself goes.
 	removeResult func(recordID string) error
-	// sweep removes the stored results and summaries whose record has no file, and answers the record ids it did that for.
+	// sweep removes the stored summaries whose record has no file and whose result is gone, and answers the record ids it did that for.
 	sweep func() ([]string, error)
 	// measure reports the files and bytes of the stores this step prunes.
 	measure func(stop func() bool) retention.Report
@@ -52,9 +52,9 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 		report.Stopped = true
 		return report
 	}
-	if filepath.Clean(l.ledger.Project()) != filepath.Clean(l.project) {
+	if l.ledger == nil || filepath.Clean(l.ledger.Project()) != filepath.Clean(l.project) {
 		// Retain would prune one project's ledger while the results of another are removed.
-		report.Err = fmt.Errorf("no ledger record was removed: the ledger belongs to %s, not to this project", l.ledger.Project())
+		report.Err = errors.New("no ledger record was removed: the ledger is missing or belongs to another project")
 		return report
 	}
 	referenced, err := l.referenced()
@@ -65,10 +65,24 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	}
 	// Retain cannot be interrupted, so a check that starts mid-pass is honoured here: every record after that is refused before anything
 	// is removed for it (the loop through the rest is quick), and it stays.
-	stopped := false
+	stopped, looked := false, 0
 	beforeDelete := func(record evidence.LedgerRecord) error {
 		if stopped || stop() || ctx.Err() != nil {
 			stopped = true
+			return errPassStopped
+		}
+		// A decision may have been made since the ids were read (an editing scan or a comparison is not held off by a check): the ids are
+		// read again every so often, and a record a decision now names stays.
+		if looked%rereadEvery == 0 {
+			again, err := l.referenced()
+			if err != nil {
+				stopped = true // nothing more is removed without the ids; the error stays in the report
+				return fmt.Errorf("the decisions could not be read again: %w", err)
+			}
+			referenced = again
+		}
+		looked++
+		if referenced[record.ID] {
 			return errPassStopped
 		}
 		if record.AnalyzerID != coverage.AnalyzerID {
@@ -95,6 +109,9 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	report.BytesAfter, report.FilesAfter = after.BytesBefore, after.FilesBefore
 	return report
 }
+
+// rereadEvery is how many records the pass removes between two reads of the decisions.
+const rereadEvery = 25
 
 // errPassStopped is what beforeDelete answers for a record the pass was stopped before.
 var errPassStopped = errors.New("the retention pass was stopped")
