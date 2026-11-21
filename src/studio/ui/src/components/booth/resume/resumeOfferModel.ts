@@ -7,7 +7,7 @@ import type { TeleprompterLocateResult, TeleprompterResumePlace, TeleprompterSpa
 type ResumeSource = 'live' | 'saved' | 'booth' | 'recording' | 'left';
 
 /** A place in the chapter by paragraph and word within it (the Booth's remembered stop has this shape, and `onChoose` returns it). */
-export type ResumeTarget = { paragraphId: string; word: number };
+type ResumeTarget = { paragraphId: string; word: number };
 
 /** The Booth's own record of where a take stopped; it wins over the DAW's answer. */
 export type KeptResume = ResumeTarget;
@@ -15,7 +15,7 @@ export type KeptResume = ResumeTarget;
 /** Where the Booth opened the chapter, and why: offered only when nothing else is (`resumeOfferFor`). */
 export type OpenedResume = ResumeTarget & { why: 'recording' | 'left' };
 
-export type ResumeOffer = ResumeTarget & {
+type ResumeOffer = ResumeTarget & {
   /** The paragraph's one-based position among the chapter's paragraphs, for the resume point. */
   paragraph: number;
   source: ResumeSource;
