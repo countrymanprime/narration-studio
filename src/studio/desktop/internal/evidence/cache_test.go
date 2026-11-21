@@ -671,3 +671,33 @@ func TestAnEntryWrittenBeforeDerivedKeyIsStillFoundByItsName(t *testing.T) {
 		})
 	}
 }
+
+// The envelope names the analyzer that wrote the entry, so an entry can be told apart by kind without its key; an
+// entry written before the field reads as it did.
+func TestTheEnvelopeNamesItsAnalyzer(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	key := baseCacheKey()
+	if err := store.Write(key, []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(CacheDir(project), key.hash()+".json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]any
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		t.Fatal(err)
+	}
+	if fields["analyzerId"] != "rc" || fields["schemaVersion"] != float64(1) {
+		t.Fatalf("envelope = %s", raw)
+	}
+
+	if err := os.WriteFile(path, []byte(`{"schemaVersion":1,"writtenAt":"2026-01-02T03:04:05Z","blob":"b2xk"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := store.Read(key); !ok || string(got) != "old" {
+		t.Fatalf("an entry without analyzerId read as %q, found %v", got, ok)
+	}
+}
