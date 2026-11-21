@@ -220,11 +220,11 @@ describe('useRoll', () => {
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
-  it('r-before-a-take-starts-one-at-the-word-in-the-same-press', async () => {
+  it('r-before-a-take-is-record: with no start chosen the take continues from where the recording ends (#3858)', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, phrase: 1 });
     await act(() => hook.result.current.punchAndRoll());
-    expect(actions.chooseStart).toHaveBeenCalledWith(1, true);
-    expect(actions.beginTake).toHaveBeenCalledWith(10);
+    expect(actions.chooseStart).not.toHaveBeenCalled();
+    expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
     expect(actions.roll).not.toHaveBeenCalled();
   });
 
@@ -421,11 +421,15 @@ describe('useRoll', () => {
     expect(actions.beginTake).toHaveBeenCalledWith();
   });
 
-  it('r-before-a-take-the-daw-cannot-punch-says-why-and-starts-nothing', async () => {
-    const { hook, actions } = setup(SETUPS.reaperOff, { recording: false, phrase: 1 });
-    await act(() => hook.result.current.punchAndRoll());
-    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining(SETUPS.reaperOff.capabilities.punch.message ?? ''));
-    expect(actions.beginTake).not.toHaveBeenCalled();
+  it('r-before-a-take-the-daw-cannot-punch: with no start chosen it is a plain press, and a chosen start says why it starts from the end', async () => {
+    const plain = setup(SETUPS.reaperOff, { recording: false, phrase: 1 });
+    await act(() => plain.hook.result.current.punchAndRoll());
+    expect(plain.actions.beginTake).toHaveBeenCalledExactlyOnceWith();
+    const chosen = setup(SETUPS.reaperOff, { recording: false, phrase: 1, punchAt: 1 });
+    await act(() => chosen.hook.result.current.punchAndRoll());
+    expect(
+      chosen.actions.notify.mock.calls.flat().some((arg) => typeof arg === 'string' && arg.includes(SETUPS.reaperOff.capabilities.punch.message ?? '')),
+    ).toBe(true);
   });
 
   it('r rolls from the phrase chosen with Start from here', async () => {
@@ -894,7 +898,8 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
       expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
       expect(punchTarget).not.toHaveBeenCalled();
       expect(h.actions.chooseStart).not.toHaveBeenCalled();
-      expect(h.actions.notify.mock.calls.filter((c) => c[0] === START_BUSY)).toHaveLength(2);
+      // R before a take is Record (#3858): pressed again while a plain press is under way it joins that press without a word, as Space does; only a phrase press is refused.
+      expect(h.actions.notify.mock.calls.filter((c) => c[0] === START_BUSY)).toHaveLength(1);
       expect(h.actions.notify.mock.calls.filter((c) => String(c[0]).startsWith('Starting from'))).toHaveLength(0);
       take.resolve({ outcome: 'never_recorded' });
       await act(() => pressed);
