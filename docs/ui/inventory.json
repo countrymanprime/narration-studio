@@ -1399,6 +1399,7 @@
         "Measured Header"
       ],
       "consumers": [
+        "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
         "src/components/booth/resume/ResumeOffer.tsx",
@@ -3744,8 +3745,7 @@
         "src/components/booth/reading/SpeakerChip.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
-        "src/components/booth/voices/VoiceControl.tsx",
-        "src/components/booth/voices/WhoIsInDialog.tsx",
+        "src/components/booth/voices/CharacterBadge.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
