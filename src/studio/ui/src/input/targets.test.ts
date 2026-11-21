@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { isGuardedTarget, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
+import { isGuardedTarget, keyContextOf, modalLayerOpen, softLayerOpen, takesTypedText, watchKeyContext } from './targets';
 
 function el(html: string): Element {
   const div = document.createElement('div');
@@ -95,5 +95,31 @@ describe('softLayerOpen and modalLayerOpen', () => {
   it('a hidden, inert or aria-hidden popup is not open', () => {
     for (const wrap of ['<div hidden>', '<div inert>', '<div aria-hidden="true">'])
       expect(softLayerOpen(mount(`${wrap}<div role="menu"></div></div>`))).toBe(false);
+  });
+});
+
+// #3906, #3931: a Base UI popup stays in the page, marked `data-ending-style`, until a frame after Escape. The key that closed it still belongs to it; a key
+// pressed after it began closing belongs to the page, though focus is still on a control inside the popup.
+describe('the context a keydown begins in', () => {
+  const press = (target: Element): KeyboardEvent => {
+    const event = new KeyboardEvent('keydown', { code: 'Numpad1', bubbles: true });
+    target.dispatchEvent(event);
+    return event;
+  };
+
+  it('is a layer for a key pressed while a popup is open, though the key closes it', () => {
+    watchKeyContext();
+    document.body.innerHTML = '<div role="dialog" data-popover-popup=""><span role="radio" id="pick" tabindex="0"></span></div>';
+    const pick = document.getElementById('pick')!;
+    const popup = pick.parentElement!;
+    // Whatever the key's own handlers do, here closing the popup, comes after the note.
+    document.addEventListener('keydown', () => popup.setAttribute('data-ending-style', ''), { once: true });
+    expect(keyContextOf(press(pick))).toEqual({ layerOpen: true, targetClosing: false });
+  });
+
+  it('is no layer, and a target inside the popup is no owner of the key, once the popup has begun closing', () => {
+    watchKeyContext();
+    document.body.innerHTML = '<div role="dialog" data-popover-popup="" data-ending-style=""><span role="radio" id="pick" tabindex="0"></span></div>';
+    expect(keyContextOf(press(document.getElementById('pick')!))).toEqual({ layerOpen: false, targetClosing: true });
   });
 });
