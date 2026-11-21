@@ -84,6 +84,11 @@ export function useVoiceTracks(notify: Notify, { characters: wantCharacters = tr
         (current) => withTrackCharacters(current, track, ids),
         () => voiceTracks.voiceTracksSetCharacters(track, ids),
       ),
+    setNotAVoice: (guid: string, notAVoice: boolean) =>
+      save(
+        (current) => withNotAVoice(current, guid, notAVoice),
+        () => voiceTracks.voiceTracksSetNotAVoice(guid, notAVoice),
+      ),
     setNarratorCharacter: (id: string) =>
       save(
         (current) => ({ ...current, narratorCharacter: id }),
@@ -102,4 +107,11 @@ function withTrackCharacters(current: VoiceTracksState, track: string, ids: stri
   const tracks = unique.length === 0 ? others : [...others, { track: name, characters: unique, guids }];
   tracks.sort((a, b) => (a.track < b.track ? -1 : a.track > b.track ? 1 : 0));
   return { ...current, tracks };
+}
+
+/** The host's SetNotVoice rule (internal/voicetracks), applied before it answers: the GUID lower case and trimmed, once, in order. */
+function withNotAVoice(current: VoiceTracksState, guid: string, notAVoice: boolean): VoiceTracksState {
+  const id = guid.trim().toLowerCase();
+  const others = current.notVoiceGuids.filter((other) => other !== id);
+  return { ...current, notVoiceGuids: notAVoice ? [...others, id].sort() : others };
 }

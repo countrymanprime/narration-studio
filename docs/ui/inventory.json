@@ -574,6 +574,7 @@
       ],
       "consumers": [
         "src/components/booth/voices/WhoIsInDialog.tsx",
+        "src/components/chapterTracks/NewChapterTracks.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/cleanup/CleanupList.tsx",
@@ -2304,6 +2305,21 @@
       "a11yDebt": false
     },
     {
+      "title": "Chapter tracks/New chapter tracks",
+      "name": "New chapter tracks",
+      "source": "src/components/chapterTracks/NewChapterTracks.stories.tsx",
+      "stories": [
+        "Voices And Extras",
+        "One Voice",
+        "Extras Only",
+        "Many Voices",
+        "Long Name",
+        "All Clears And Ticks"
+      ],
+      "consumers": [],
+      "a11yDebt": false
+    },
+    {
       "title": "Production/NextUp",
       "name": "NextUp",
       "source": "src/components/production/pipeline/NextUp.tsx",
@@ -3194,6 +3210,7 @@
       ],
       "consumers": [
         "src/components/booth/voices/WhoIsInDialog.tsx",
+        "src/components/chapterTracks/NewChapterTracks.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/profile/FormatRows.tsx",
         "src/components/delivery/profile/ProfileCard.tsx",
@@ -3747,6 +3764,7 @@
         "src/components/engine/LinkChaptersDialog.tsx",
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ToolResult.tsx",
+        "src/components/engine/VoicesCard.tsx",
         "src/components/engine/audacityLinkText.ts",
         "src/components/layout/EngineChip.tsx",
         "src/components/layout/HistoryPanel.tsx",
@@ -3910,6 +3928,7 @@
         "Space Toggles"
       ],
       "consumers": [
+        "src/components/engine/VoicesCard.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/proof/proofOptions/ProofOptions.tsx",
         "src/components/settings/DeliveryProfileEditor.tsx",

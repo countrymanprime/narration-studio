@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
@@ -530,5 +531,16 @@ func TestAnArmForAnotherChapterDuringAnAppTakeDoesNotDropAWaitingRelease(t *test
 	}
 	if !reflect.DeepEqual(fake.calls, []string{"ArmLane"}) {
 		t.Fatalf("calls %v, want the arm alone: the release that waits for the take is not this chapter's to drop", fake.calls)
+	}
+}
+
+// #3752: the Booth's arm outlasts a slow DAW. Its bound covers the track list read, the usual wait and the late wait for an arm REAPER has
+// read, so a link of a few seconds no longer ends the arm, and the toast with it, before REAPER answers.
+func TestTheBoothsArmWaitsAsLongAsALaneCommand(t *testing.T) {
+	ctx, cancel := boothArmContext()
+	defer cancel()
+	deadline, ok := ctx.Deadline()
+	if left := time.Until(deadline); !ok || left < tracksLiveTimeout+bridge.DefaultAnswerTimeout+bridge.LateAnswerWait-time.Second {
+		t.Fatalf("the arm is bounded at %v; want the track list read, the answer wait and the late wait", left)
 	}
 }

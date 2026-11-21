@@ -253,6 +253,22 @@ export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
 }
 
 /**
+ * ChapterCreateDefaultSet keeps what a new chapter folder is made with from now on, a JSON chapterCreateChoice, as the Settings row sets it
+ * (#3748); it answers the options as they now read. A project with no folders answers Folders false but keeps the choice for when it has them.
+ */
+export function ChapterCreateDefaultSet(choice: string): $CancellablePromise<string> {
+    return $Call.ByID(99651976, choice);
+}
+
+/**
+ * ChapterCreateOptions lists what a new chapter folder can be made with (chaptercreateoptions.go): the Narrator, the known voices and Extras,
+ * each ticked unless the remembered choice left it out, in the order the folder gets them. A project with no folders answers Folders false.
+ */
+export function ChapterCreateOptions(): $CancellablePromise<string> {
+    return $Call.ByID(579516027);
+}
+
+/**
  * ChapterFoldersCheck asks the DAW whether any linked chapter's track sits inside another linked chapter's folder, and which tracks a
  * repair would move. It writes nothing.
  */
@@ -339,10 +355,11 @@ export function ChapterTagsPreview(): $CancellablePromise<string> {
  * of the DAW project's track list and links the chapter to it
  * (chaptertrackcreate.go). Outcome "created" carries ChapterTrackSet's
  * payload and the new track; "refused" says why nothing was added. A
- * chapter the manuscript does not have is an error.
+ * chapter the manuscript does not have is an error. In a Voice folders project the folder is made with its Narrator and the voices and Extras
+ * named in choice, a JSON chapterCreateChoice ("" is the remembered pick, #3748); a flat project ignores it.
  */
-export function ChapterTrackCreate(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(626919906, chapterID);
+export function ChapterTrackCreate(chapterID: string, choice: string): $CancellablePromise<string> {
+    return $Call.ByID(626919906, chapterID, choice);
 }
 
 export function ChapterTrackLinks(): $CancellablePromise<string> {
@@ -2270,6 +2287,14 @@ export function PickupsListMarkers(): $CancellablePromise<string> {
 }
 
 /**
+ * PickupsOpenCount answers how many pickups of the list are still open, for a reader that shows the number only (the
+ * navigation's badge): the list is built as PickupsList builds it, but not sent, and nothing is written to the DAW.
+ */
+export function PickupsOpenCount(): $CancellablePromise<string> {
+    return $Call.ByID(319923862);
+}
+
+/**
  * PickupsRemove hides a pickup of any source from the list; a note or a check keeps its own record.
  */
 export function PickupsRemove(id: string): $CancellablePromise<string> {
@@ -3310,6 +3335,15 @@ export function VoiceTracksSetLayout(layout: string): $CancellablePromise<string
  */
 export function VoiceTracksSetNarrator(characterID: string): $CancellablePromise<string> {
     return $Call.ByID(4074868469, characterID);
+}
+
+/**
+ * VoiceTracksSetNotAVoice marks the track with guid as not a voice (a music bed, room tone), or makes it a voice again with false. A
+ * marked track is never the recording target and is not a voice in the Booth; it stays in the folder. The chapters' rows follow at once,
+ * so chaptersync:state is sent like after a link change.
+ */
+export function VoiceTracksSetNotAVoice(guid: string, notAVoice: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1820023934, guid, notAVoice);
 }
 
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {

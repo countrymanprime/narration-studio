@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type CSSProperties,
+  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
 } from 'react';
@@ -323,11 +324,11 @@ export function Reader(props: ReaderProps) {
 
   /* The spy: the last chapter heading at or above the top of the reader, and the paragraph at its top. */
   /* It answers with the last section that starts inside the reader: short chapters, or a tall window, put more than one in view. */
-  const measure = useCallback((): string | undefined => {
+  const measure = useCallback((): { above?: string; lastInView?: string } => {
     const root = scroller.current;
-    if (!root) return undefined;
+    if (!root) return {};
     const bounds = Array.from(root.querySelectorAll<HTMLElement>('[data-bound]'));
-    if (!bounds.length) return undefined;
+    if (!bounds.length) return {};
     let at = 0;
     let last = 0;
     bounds.forEach((bound, i) => {
@@ -346,17 +347,20 @@ export function Reader(props: ReaderProps) {
       if (row.offsetTop - root.scrollTop <= 80) n = i + 1;
     });
     spy.set({ chapterId, para: rows.length ? `¶ ${Math.max(1, n)} of ${rows.length}` : '' });
-    return bounds[Math.max(at, last)].dataset.ch;
+    // The section before the one at the top is in view, or a short scroll up from it, while that one starts less than a reader's height above the top.
+    const above = bounds[at].offsetTop - root.scrollTop > -root.clientHeight ? bounds[at - 1]?.dataset.ch : undefined;
+    return { above, lastInView: bounds[Math.max(at, last)].dataset.ch };
   }, [spy]);
   const lastReported = useRef<string | null>(null);
   const onSpy = useCallback(() => {
-    const lastInView = measure();
+    const { above, lastInView } = measure();
     const id = spy.get().chapterId;
     if (id && id !== lastReported.current) {
       lastReported.current = id;
       onChapterInView?.(id);
     }
-    const idx = id ? indexOf.get(id) : undefined;
+    // Under a section after a chapter (the closing credits), the chapter that ends above it is the one in view.
+    const idx = (id ? indexOf.get(id) : undefined) ?? (above ? indexOf.get(above) : undefined);
     const to = lastInView ? indexOf.get(lastInView) : undefined;
     if (idx !== undefined) reach(idx, to ?? idx);
     // Under a section that is not a chapter (the opening credits), the chapters in view start at the first.
@@ -382,13 +386,16 @@ export function Reader(props: ReaderProps) {
     scrollToChapter(chapterId);
     held.current = { chapterId, offset: -8 };
   };
-  /** Where the first draw put the reader, held until the narrator scrolls or a request scrolls it. */
-  const held = useRef<{ chapterId: string; offset: number } | null>(null);
+  /** Where the first draw, a jump or End put the reader, held until the narrator scrolls or a request scrolls it. */
+  const held = useRef<{ chapterId: string; offset: number } | 'end' | null>(null);
   const hold = (): void => {
     const root = scroller.current;
     const place = held.current;
-    const bound = place && root?.querySelector<HTMLElement>(`[data-bound][data-ch="${place.chapterId}"]`);
-    if (root && place && bound && root.scrollTop !== Math.max(0, bound.offsetTop + place.offset)) root.scrollTop = Math.max(0, bound.offsetTop + place.offset);
+    if (!root || !place) return;
+    const bound = place === 'end' ? null : root.querySelector<HTMLElement>(`[data-bound][data-ch="${place.chapterId}"]`);
+    if (place !== 'end' && !bound) return;
+    const top = Math.max(0, place === 'end' ? root.scrollHeight - root.clientHeight : bound!.offsetTop + place.offset);
+    if (root.scrollTop !== top) root.scrollTop = top;
   };
   const release = (): void => {
     held.current = null;
@@ -402,7 +409,9 @@ export function Reader(props: ReaderProps) {
     restored.current = true;
     const root = scroller.current;
     if (!root || pendingJump || pendingPid || pendingBm || !startChapter) return;
-    held.current = { chapterId: startChapter, offset: remembered && startChapter === remembered.chapterId ? remembered.offset : -8 };
+    // The remembered place can be a section that is not a chapter (the credits, #3821): any boundary drawn in the reader counts.
+    const known = remembered && Array.from(root.querySelectorAll<HTMLElement>('[data-bound]')).some((bound) => bound.dataset.ch === remembered.chapterId);
+    held.current = known ? remembered : { chapterId: startChapter, offset: -8 };
     hold();
     // The first draw only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -411,6 +420,16 @@ export function Reader(props: ReaderProps) {
   /* A section drawn above that place after the first draw (the credits, read after the chapters) does not push it down: the reader
      stays there until the narrator moves it or a request scrolls it. */
   useLayoutEffect(hold);
+  /* The same when a size changes with no draw of the reader: the header grows a line and the reader loses that height, or a card fills in. */
+  useEffect(() => {
+    const root = scroller.current;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(hold);
+    observer.observe(root);
+    if (root.firstElementChild) observer.observe(root.firstElementChild);
+    return () => observer.disconnect();
+    // `hold` reads refs only, so the first one serves.
+  }, []);
 
   /* Later: honour each request to scroll once. A target outside the drawn text is drawn first and the request waits for it. */
   useLayoutEffect(() => {
@@ -484,17 +503,48 @@ export function Reader(props: ReaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [findState.currentPid, findState.currentLocal, findState.request, drawn, paragraphsOf]);
 
-  useEffect(() => () => clearTimeout(saveTimer.current), []);
+  /** Saves where the reader is. A scroll asks for it after a pause; leaving the page before the pause is over saves at once. */
+  const savePlace = (): void => {
+    clearTimeout(saveTimer.current);
+    saveTimer.current = undefined;
+    const root = scroller.current;
+    const id = spy.get().chapterId;
+    const bound = id ? root?.querySelector<HTMLElement>(`[data-bound][data-ch="${id}"]`) : null;
+    if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, positionKey);
+  };
+  const savePlaceNow = useRef(savePlace);
+  savePlaceNow.current = savePlace;
+  /* A place not saved yet is saved when the reader goes away (another page) or the window does (a reload, the app closing): the narrator
+     who leaves within the pause after a scroll came back to the place before it. A layout effect, so the reader is still in the page. */
+  useLayoutEffect(() => {
+    const flush = (): void => {
+      if (saveTimer.current !== undefined) savePlaceNow.current();
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, []);
 
   const onScroll = (): void => {
     onSpy();
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      const root = scroller.current;
-      const id = spy.get().chapterId;
-      const bound = id ? root?.querySelector<HTMLElement>(`[data-bound][data-ch="${id}"]`) : null;
-      if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, positionKey);
-    }, SAVE_DELAY_MS);
+    saveTimer.current = setTimeout(savePlace, SAVE_DELAY_MS);
+  };
+
+  /* Home and End go to the true ends at once. The browser's own scroll aims at the end as it was when the key went down, and the far
+     chapters it passes are drawn at their real height on the way, so it stopped short of the closing credits (#3822). */
+  const onHomeEnd = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const root = scroller.current;
+    // A control inside the reader that uses the key itself (a text box, a menu) keeps it.
+    if (!root || event.defaultPrevented || (event.target as Element).closest('input, textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    if (event.key === 'Home') root.scrollTop = 0;
+    else {
+      held.current = 'end';
+      hold();
+    }
   };
 
   const onClick = (event: MouseEvent<HTMLDivElement>): void => {
@@ -524,6 +574,8 @@ export function Reader(props: ReaderProps) {
         onTouchStart={release}
         onKeyDownCapture={release}
         onKeyDown={(event) => {
+          // With Shift the key extends a selection of the text, and with Alt or the Meta key it is the browser's or the system's: those are left alone.
+          if ((event.key === 'Home' || event.key === 'End') && !event.shiftKey && !event.altKey && !event.metaKey) return onHomeEnd(event);
           if (event.target !== event.currentTarget || (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')) return;
           const id = spy.get().chapterId ?? chapters[0]?.id;
           if (!id) return;

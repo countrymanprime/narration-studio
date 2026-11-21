@@ -122,6 +122,10 @@ type RecordedLengths func() map[string]RecordedLength
 // SetRecordedLengths says where recorded lengths come from; nil means none are known.
 func (s *Service) SetRecordedLengths(fn RecordedLengths) { s.lengths.Store(&fn) }
 
+// RecordedLengths is each chapter's recorded length as the chapter list carries it (recordedSeconds or the reason there
+// is none), for a reader that needs the lengths without the rest of the measured list.
+func (s *Service) RecordedLengths() map[string]RecordedLength { return s.recordedLengths() }
+
 // recordedLengths asks the provider once for a whole payload. Without one it is empty.
 func (s *Service) recordedLengths() map[string]RecordedLength {
 	if fn := s.lengths.Load(); fn != nil && *fn != nil {

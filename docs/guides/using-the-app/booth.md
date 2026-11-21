@@ -196,9 +196,18 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
     creating it reminds you.
 
   In a project whose layout is **Voice folders** ([Settings](settings.md)) the same messages say folder: **Not linked to a folder**,
-  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with a Narrator track in it), the chip
+  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with its tracks in it, below), the chip
   **REAPER · no folder**, and a message after creating it that names the folder and its Narrator ("Folder “Chapter 1” with a Narrator track added
   in REAPER and linked to Chapter 1"). Record then records on that Narrator, and the voice control lists it, before you save the REAPER project.
+
+  Above **Create a new folder** the dialog lists what the folder is made with, in this order: the **Narrator**, which is always made, the
+  project's known voices, and **Extras**, a track for sound that is not a voice (a crowd, a door, music). Untick any voice or Extras to leave it out;
+  with two or more voices **All N voices** ticks or clears them together, and a long list scrolls inside its own box so the buttons stay in view. What
+  you leave out is remembered for the next chapter, and a voice that appears later starts ticked; the same list is a row in [Settings](settings.md).
+  Extras is not a voice: the Booth never arms it and the chapter's record progress does not ask for a take on it (a project that already gives characters to a track named Extras keeps it as a voice, so nothing already set up changes). The list holds up to 60 voices, and a line under it says how many more are not listed. What you tick in this dialog is remembered when you press **Create a new folder**; closing the dialog without creating leaves the last remembered choice (the Settings row keeps a tick as you make it). The list is read again when you press **Check again** or return to the window, and keeps your ticks. (The Engine panel's **Create a folder
+  for this chapter** button makes the folder with the choice you made last).
+
+  ![Booth - the Chapter 1 is not linked to a folder dialog in a Voice folders project, with the list of what the new folder is made with above Create a new folder](../../images/ui/booth-record-unlinked-folders.webp)
 
   Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording or not connected), the dialog says
   why and links nothing. Audacity 3 adds the track too; Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
@@ -388,7 +397,7 @@ In a project set to **Voice folders** ([the audio engine panel](navigation.md#vo
 that holds only tracks of its own (none another chapter is linked to), the chapter records on one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
 voice a take records on, to the left of **Record**: its number-pad key (the number alone, "2") and the track's name, with a red ring when REAPER reports that track
 armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
-named **Narrator**. A track another chapter is linked to is never one of the voices, in either layout, so Record never arms another chapter's track. When you choose a voice while nothing is recording, REAPER arms that voice's track at once and disarms the others, so the Booth and REAPER agree. If REAPER refuses (it is recording something else, or the track is gone), the Booth still records on the voice you chose and a message says REAPER's armed track did not change. The other way works too, with REAPER (not yet checked by hand in REAPER): arm another of the chapter's voice tracks there, with or without disarming the current one, and within a few seconds the Booth's voice becomes that one. It does not during a take, in a cold read (which needs no voice) or when two other tracks are armed at once (it would be guessing which you meant).
+named **Narrator**. A track another chapter is linked to is never one of the voices, in either layout, so Record never arms another chapter's track. Nor is a track you turned off with its **Voice** switch on the [Voices card](navigation.md#voice-folders) (a music bed): it is not listed and Record never arms it. When you choose a voice while nothing is recording, REAPER arms that voice's track at once and disarms the others, so the Booth and REAPER agree. If REAPER refuses (it is recording something else, or the track is gone), the Booth still records on the voice you chose and a message says REAPER's armed track did not change. The other way works too, with REAPER (not yet checked by hand in REAPER): arm another of the chapter's voice tracks there, with or without disarming the current one, and within a few seconds the Booth's voice becomes that one. It does not during a take, in a cold read (which needs no voice) or when two other tracks are armed at once (it would be guessing which you meant).
 
 Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
 narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { Track } from '../../api/contracts/tracks';
 import type { TrackMapping } from '../../api/contracts/chapterTrackMap';
@@ -11,11 +11,14 @@ import { KeyCap } from '../primitives/KeyCap';
 import { Panel } from '../primitives/Panel';
 import { Popover } from '../primitives/Popover';
 import { Select } from '../primitives/Select';
+import { StatusBadge } from '../primitives/StatusBadge';
+import { Switch } from '../primitives/Switch';
 import { SpeakerTag } from '../primitives/SpeakerTag';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
-import { assignmentOf, folderVoices, type Voice } from './voices';
+import { useIsRecording } from '../../daw/useIsRecording';
+import { assignmentOf, folderChildren, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 import { chapterLink } from '../chapterTracks/chapterLink';
 
@@ -23,6 +26,22 @@ const LAYOUTS = [
   { value: 'flat', label: 'Flat' },
   { value: 'folders', label: 'Voice folders' },
 ] as const;
+
+/** A marked child's name, muted (a token that holds contrast in both themes, not an opacity): the row is still there, and so are the badge and the switch that turns it back on, at full strength. */
+const DIMMED = 'text-[var(--text-muted)]';
+
+/** Why the Voice switches are off while the DAW records. */
+const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
+/** What the switch says it does, short: a hint wider or taller than this hides the switches of the rows above it. */
+const SWITCH_HINT = 'Counts as a voice. Turn off for a track that is not one (a music bed).';
+/** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
+const NARROW = '(max-width: 30rem)';
+const subscribeNarrow = (notify: () => void) => {
+  const query = window.matchMedia?.(NARROW);
+  query?.addEventListener('change', notify);
+  return () => query?.removeEventListener('change', notify);
+};
+const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 
@@ -40,6 +59,7 @@ export function VoicesCard({
   onLayout,
   onTrackCharacters,
   onNarratorCharacter,
+  onNotAVoice,
   layoutInCard,
   bare = false,
 }: {
@@ -51,6 +71,8 @@ export function VoicesCard({
   onLayout: (layout: VoiceTracksLayout) => void;
   onTrackCharacters: (track: string, ids: string[]) => void;
   onNarratorCharacter: (id: string) => void;
+  /** Marks the child with this track GUID as not a voice (a music bed), or a voice again. */
+  onNotAVoice: (guid: string, notAVoice: boolean) => void;
   /** True while Chapter sync is not drawing its Layout row, so this card carries the switch. */
   layoutInCard: boolean;
   /** Draws no card of its own (no frame, no title): inside a Settings row, whose label is the title. The chapter picker sits above the table. */
@@ -63,34 +85,53 @@ export function VoicesCard({
       return link ? [{ chapter, folder: link.trackGuid }] : [];
     });
   }, [tracks, chapters, mappings]);
+  const linkedTracks = useMemo(() => new Set(mappings.map((mapping) => mapping.trackGuid)), [mappings]);
+  // In a Voice folders project every linked folder is a chapter's folder of voices. In a Flat one the host still records a chapter linked to a
+  // folder on one of the folder's tracks that no chapter is linked to, so those children are the voices a narrator can mark (a Part folder with
+  // one chapter's track and a music bed lists the music bed).
+  const links = useMemo(
+    () =>
+      setup.layout === 'folders'
+        ? folderLinks
+        : folderLinks.filter((link) => folderChildren(tracks, link.folder).some((child) => !linkedTracks.has(child.guid))),
+    [setup.layout, folderLinks, tracks, linkedTracks],
+  );
   const [picked, setPicked] = useState('');
-  const current = folderLinks.find((link) => link.chapter.id === picked) ?? folderLinks[0];
-  const voices = current ? folderVoices(tracks, current.folder, characters, setup) : [];
+  const current = links.find((link) => link.chapter.id === picked) ?? links[0];
+  // A blank-named track is named by its place in the project, as Chapter links names it, not by its place in the folder.
+  const narrow = useSyncExternalStore(subscribeNarrow, narrowNow, () => false);
+  const projectPlace = (guid: string) => tracks.findIndex((track) => track.guid === guid);
+  // A take records on the Booth's voice: turning a track off under it would change where the take goes mid-take, so the switches wait for the stop.
+  const recording = useIsRecording();
+  const voiceSwitch = (voice: Voice) => (
+    <TooltipTarget text={recording ? RECORDING_REASON : SWITCH_HINT}>
+      <Switch checked={!voice.notVoice} disabled={recording} onChange={(counts) => onNotAVoice(voice.guid, !counts)}>
+        <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
+      </Switch>
+    </TooltipTarget>
+  );
+  const voices = current ? folderVoices(tracks, current.folder, characters, setup, setup.layout === 'folders' ? undefined : linkedTracks) : [];
 
   // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
-  const chapterPicker = setup.layout === 'folders' && folderLinks.length > 0 && (
+  const chapterPicker = links.length > 0 && (
     <div className={bare ? 'w-full max-w-[18.75rem] min-w-0' : 'max-w-[18.75rem] min-w-0 flex-[0_1_18.75rem]'}>
       <Select
         label="Chapter"
         value={current?.chapter.id ?? ''}
         onChange={setPicked}
-        options={folderLinks.map((link) => ({ value: link.chapter.id, label: link.chapter.title }))}
+        options={links.map((link) => ({ value: link.chapter.id, label: link.chapter.title }))}
         fullWidth
       />
     </div>
   );
   // The layout switch is Chapter sync's Layout row (the mock); while that card is not drawn, this card carries it so it is never lost.
-  if (!layoutInCard && setup.layout === 'flat') return null;
+  if (!layoutInCard && setup.layout === 'flat' && links.length === 0) return null;
 
   const content = (
     <>
-      {setup.layout === 'flat' ? (
+      {links.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Each chapter records on one track.
-        </p>
-      ) : folderLinks.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No chapter is linked to a folder yet.
+          {setup.layout === 'flat' ? 'Each chapter records on one track.' : 'No chapter is linked to a folder yet.'}
         </p>
       ) : (
         <div className="space-y-3">
@@ -100,28 +141,39 @@ export function VoicesCard({
             </p>
           ) : (
             <div className="max-h-[min(60vh,26rem)] overflow-auto">
-              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={['Key', 'Track', 'Characters', 'Actions']}>
+              <Table label={`Voices of ${current?.chapter.title ?? ''}`} columns={narrow ? ['auto', '7.25rem'] : ['2.75rem', 'auto', 'auto', '4.5rem', '3rem']}>
                 <TableHead sticky>
                   <TableRow>
-                    <TableHeader>Key</TableHeader>
-                    <TableHeader>Track</TableHeader>
-                    <TableHeader>Characters</TableHeader>
-                    <TableHeader hiddenLabel="Actions" />
+                    {!narrow && <TableHeader>Key</TableHeader>}
+                    <TableHeader>{narrow ? 'Track and characters' : 'Track'}</TableHeader>
+                    {!narrow && <TableHeader>Characters</TableHeader>}
+                    {!narrow && <TableHeader>Voice</TableHeader>}
+                    <TableHeader hiddenLabel={narrow ? 'Voice and actions' : 'Actions'} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {voices.map((voice) => (
                     <TableRow key={voice.guid}>
-                      <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>
-                      <TableCell className="[overflow-wrap:anywhere]">
-                        <bdi>{trackName(voice.name)}</bdi>
+                      {!narrow && <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>}
+                      <TableCell className={`[overflow-wrap:anywhere] ${voice.notVoice ? DIMMED : ''}`}>
+                        <bdi>{trackName(voice.name, projectPlace(voice.guid))}</bdi>
+                        {narrow && (
+                          <div className="mt-1 font-normal text-[var(--text)]">
+                            <VoiceCharacters voice={voice} />
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <VoiceCharacters voice={voice} />
-                      </TableCell>
+                      {!narrow && (
+                        <TableCell>
+                          <VoiceCharacters voice={voice} />
+                        </TableCell>
+                      )}
+                      {!narrow && <TableCell align="center">{voiceSwitch(voice)}</TableCell>}
                       <TableCell align="right">
+                        {narrow && <span className="mr-1 inline-flex align-middle">{voiceSwitch(voice)}</span>}
                         <CharacterPicker
                           voice={voice}
+                          placeName={trackName(voice.name, projectPlace(voice.guid))}
                           voices={voices}
                           characters={characters}
                           setup={setup}
@@ -163,6 +215,7 @@ export function VoicesCard({
 }
 
 function VoiceCharacters({ voice }: { voice: Voice }) {
+  if (voice.notVoice) return <StatusBadge tone="neutral" label="Not a voice" />;
   if (voice.characters.length === 0) return <span style={{ color: 'var(--text-muted)' }}>{voice.narrator ? 'Narration' : 'No character'}</span>;
   return (
     <span className="flex flex-wrap items-center gap-1">
@@ -212,6 +265,7 @@ const shortName = (name: string) => ([...name].length > 40 ? `${[...name].slice(
 
 function CharacterPicker({
   voice,
+  placeName,
   voices,
   characters,
   setup,
@@ -219,6 +273,8 @@ function CharacterPicker({
   onNarratorCharacter,
 }: {
   voice: Voice;
+  /** What the row calls the track: its name, or "Track n" by its place in the project when it has none. */
+  placeName: string;
   /** Every voice of the folder, to say which other track already records a character. */
   voices: readonly Voice[];
   characters: readonly GuideEntity[];
@@ -226,7 +282,16 @@ function CharacterPicker({
   onTrackCharacters: (track: string, ids: string[]) => void;
   onNarratorCharacter: (id: string) => void;
 }) {
-  const label = voice.narrator ? 'Choose the character the Narrator track also voices' : `Choose who the ${shortName(voice.name.trim())} track records`;
+  if (voice.notVoice) {
+    const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
+    const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
+    return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
+  }
+  const label = voice.narrator
+    ? 'Choose the character the Narrator track also voices'
+    : voice.name.trim() === ''
+      ? `Choose who ${placeName} records`
+      : `Choose who the ${shortName(voice.name.trim())} track records`;
   if (!voice.narrator && !savable(voice.name)) {
     const reason =
       voice.name.trim() === ''
