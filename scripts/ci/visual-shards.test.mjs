@@ -7,6 +7,7 @@ import {
   describeScope,
   describeTest,
   groupKey,
+  importersOf,
   inScope,
   loaderLines,
   pagesNamedIn,
@@ -157,7 +158,7 @@ test('a run that is not a pull request owes the whole suite', () => {
 });
 
 test('the state matrix runs on every pull request, whatever it changed', () => {
-  for (const changed of [[], ['docs/x.md'], [`${UI}src/components/booth/page/BoothNextPage.tsx`], [`${UI}src/styles.css`]]) {
+  for (const changed of [[], ['docs/x.md'], [`${UI}src/components/booth/page/BoothNextPage.tsx`], [`${UI}src/hooks/useThing.ts`]]) {
     assert.ok(owed(changed).includes(matrix), JSON.stringify(changed));
   }
 });
@@ -183,7 +184,7 @@ test('a spec named for no page may drive one under another name, so a change ins
 });
 
 test('a change to shared code owes the specs named for no page, and leaves the page specs to main', () => {
-  assert.deepEqual(owed([`${UI}src/styles.css`]), [matrix, dialogSpec]);
+  assert.deepEqual(owed([`${UI}src/hooks/useThing.ts`]), [matrix, dialogSpec]);
   assert.deepEqual(owed([`${UI}src/components/primitives/Button.tsx`]), [matrix, dialogSpec]);
   assert.deepEqual(owed([`${UI}src/components/tracks/TrackRow.tsx`]), [matrix, dialogSpec]);
 });
@@ -216,6 +217,9 @@ test('anything else owes the whole suite: the suite’s own machinery, a config,
     `${UI}playwright.config.ts`,
     `${UI}package.json`,
     `${UI}index.html`,
+    `${UI}src/styles.css`,
+    `${UI}src/components/booth/booth.css`,
+    `${UI}src/fixtures/book.json`,
     'pnpm-lock.yaml',
     '.github/workflows/_quality.yml',
     'scripts/ci/visual-shards.mjs',
@@ -274,4 +278,30 @@ test('a change to the landing page owes every behaviour spec: a spec can stand o
 
 test('a page word inside a longer name still names the page', () => {
   assert.deepEqual(pagesNamedIn('await openSettings(page); mockProduction();'), ['production', 'settings']);
+});
+
+test('a page that draws another page’s code is touched by a change to it, however far down the imports', () => {
+  const C = `${UI}src/components/`;
+  const sources = new Map([
+    [`${C}script/page/tools/text/readerText.ts`, 'export const READER_FONTS = [];'],
+    [`${C}script/page/tools/text/index.ts`, "export * from './readerText';"],
+    [`${C}booth/page/useTextChoices.ts`, "import { READER_FONTS } from '../../script/page/tools/text';"],
+    [`${C}booth/frame/BoothTop.tsx`, "import { useTextChoices } from '../page/useTextChoices';"],
+    [`${C}primitives/Popover.tsx`, "const lazy = import('../booth/frame/BoothTop');"],
+    [`${C}delivery/Page.tsx`, "import { Button } from '../primitives/Button';"],
+  ]);
+  const changed = [`${C}script/page/tools/text/readerText.ts`];
+  assert.deepEqual([...importersOf(changed, sources)].sort(), [
+    `${C}booth/frame/BoothTop.tsx`,
+    `${C}booth/page/useTextChoices.ts`,
+    `${C}primitives/Popover.tsx`,
+    `${C}script/page/tools/text/index.ts`,
+    `${C}script/page/tools/text/readerText.ts`,
+  ]);
+  const scope = scopeOf(changed, sources);
+  assert.deepEqual([...scope.pages].sort(), ['booth', 'script']);
+  assert.equal(scope.overlays, true, 'an overlay primitive that imports the change owes every overlay row');
+  assert.equal(inScope(boothSpec, scope), true);
+  assert.equal(inScope(proofSpec, scope), false);
+  assert.deepEqual([...scopeOf(changed).pages], ['script'], 'without the sources only the changed folder counts');
 });

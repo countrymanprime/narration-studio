@@ -24,8 +24,8 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { appendFileSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, posix } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { changedFiles } from './pr-scope.mjs';
@@ -180,15 +180,46 @@ export function pagesNamedIn(text) {
 const pageOfFolder = (file) => PAGES.find((page) => page.folders.some((folder) => file.startsWith(`${COMPONENTS}${folder}/`)));
 const isDoc = (file) => file.startsWith('docs/') || file.endsWith('.md');
 
+const IMPORT = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
+
+/**
+ * Every source file that imports one of `changed`, directly or through other files, with the changed files themselves. `sources` maps a
+ * repository path to its text. A page folder is not a boundary: the Booth draws the Script page's reader fonts and bookmark editor, so a
+ * change inside `components/script/` reaches Booth files, and the Booth's specs are owed. Imports here are relative paths.
+ */
+export function importersOf(changed, sources) {
+  const importers = new Map();
+  for (const [file, text] of sources) {
+    for (const [, specifier] of text.matchAll(IMPORT)) {
+      const base = posix.join(posix.dirname(file), specifier);
+      const target = [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`].find((path) => sources.has(path));
+      if (target) importers.set(target, (importers.get(target) ?? new Set()).add(file));
+    }
+  }
+  const reached = new Set(changed);
+  const queue = [...changed];
+  while (queue.length > 0) {
+    for (const importer of importers.get(queue.pop()) ?? []) {
+      if (!reached.has(importer)) {
+        reached.add(importer);
+        queue.push(importer);
+      }
+    }
+  }
+  return reached;
+}
+
 /**
  * What a change reaches in the visual suite. `changed` is the pull request's files (pr-scope.mjs), or null when the run is not a pull
  * request or its base cannot be read: then, and whenever a file could change the suite itself or the build (anything that is not app
  * source, one spec file or a doc), the answer is everything. That is the strict direction: a file this does not recognise runs the
- * whole suite.
+ * whole suite. With `sources` (the app's source files and their text), a page is also touched when one of its files imports a changed
+ * file, however far down: without it only the changed files' own folders count.
  */
-export function scopeOf(changed) {
+export function scopeOf(changed, sources) {
   if (changed === null) return { everything: true, reason: 'not a pull request, or its base cannot be read' };
   const scope = { everything: false, pages: new Set(), specs: new Set(), shared: false, overlays: false };
+  const app = [];
   for (const file of changed) {
     if (isDoc(file)) continue;
     if (file.startsWith(SPECS) && file.endsWith('.spec.ts') && !file.slice(SPECS.length).includes('/')) {
@@ -197,10 +228,15 @@ export function scopeOf(changed) {
     }
     if (!file.startsWith(`${UI_ROOT}src/`)) return { everything: true, reason: `${file} is outside the app's source` };
     if (NOT_THE_APP.test(file)) continue;
+    // A stylesheet, a font or a data file reaches pages through no import this can follow.
+    if (!/\.tsx?$/.test(file)) return { everything: true, reason: `${file} is not a module whose importers can be followed` };
+    app.push(file);
+    if (!pageOfFolder(file)) scope.shared = true;
+  }
+  for (const file of sources ? importersOf(app, sources) : app) {
     if (OVERLAY_CODE.test(file)) scope.overlays = true;
     const page = pageOfFolder(file);
     if (page) scope.pages.add(page.spec);
-    else scope.shared = true;
   }
   return scope;
 }
@@ -274,6 +310,19 @@ function listSuite() {
   return JSON.parse(out);
 }
 
+/** The app's source files (no tests, no stories) by repository path, with their text. */
+function appSources() {
+  const sources = new Map();
+  const walk = (dir, path) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(join(dir, entry.name), `${path}${entry.name}/`);
+      else if (/\.tsx?$/.test(entry.name) && !NOT_THE_APP.test(entry.name)) sources.set(`${path}${entry.name}`, readFileSync(join(dir, entry.name), 'utf8'));
+    }
+  };
+  walk(join(UI, 'src'), `${UI_ROOT}src/`);
+  return sources;
+}
+
 function option(argv, name) {
   const at = argv.indexOf(name);
   return at >= 0 ? argv[at + 1] : undefined;
@@ -286,7 +335,7 @@ function split(argv) {
   const weights = JSON.parse(readFileSync(WEIGHTS_FILE, 'utf8'));
   const listed = planTests(testsOfReport(listSuite()), weights);
   if (listed.length === 0) throw new Error('Playwright listed no tests');
-  const scope = scopeOf(changedFiles());
+  const scope = scopeOf(changedFiles(), appSources());
   const namesOf = new Map();
   for (const file of new Set(listed.map((test) => test.loadFile))) namesOf.set(file, pagesNamedIn(readFileSync(join(UI, 'tests', 'visual', file), 'utf8')));
   const items = listed.filter((test) => inScope({ ...test, names: namesOf.get(test.loadFile) }, scope));
