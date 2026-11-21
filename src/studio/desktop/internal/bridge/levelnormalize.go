@@ -48,6 +48,8 @@ type LevelMatchClient struct {
 	// +checklocks:mu
 	timeout time.Duration
 	// +checklocks:mu
+	lateWait time.Duration
+	// +checklocks:mu
 	pending map[string]*levelMatchRun
 	// +checklocks:mu
 	next uint64
@@ -70,7 +72,7 @@ type levelMatchAnswer struct {
 // NewLevelMatchClient subscribes to the gain-change answers on client. With a nil client every request is
 // ErrUnavailable.
 func NewLevelMatchClient(client *Client) *LevelMatchClient {
-	c := &LevelMatchClient{client: client, timeout: DefaultAnswerTimeout, pending: map[string]*levelMatchRun{}}
+	c := &LevelMatchClient{client: client, timeout: DefaultAnswerTimeout, lateWait: LateAnswerWait, pending: map[string]*levelMatchRun{}}
 	if client != nil {
 		client.Subscribe(Subscription{
 			Tags:    []string{"GAIN_STALE", "GAIN_ITEM", "GAIN_APPLIED", "ERROR"},
@@ -80,6 +82,13 @@ func NewLevelMatchClient(client *Client) *LevelMatchClient {
 		})
 	}
 	return c
+}
+
+// SetLateWait changes how long a command is waited for after REAPER has read it.
+func (c *LevelMatchClient) SetLateWait(wait time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.lateWait = wait
 }
 
 // SetTimeout changes how long a request waits for its answer.
@@ -98,7 +107,7 @@ func (c *LevelMatchClient) Apply(ctx context.Context, candidates []GainCandidate
 	if len(candidates) == 0 {
 		return ApplyGainResult{}, errors.New("no gain candidates were given")
 	}
-	runID, run, timeout := c.open()
+	runID, run, timeout, lateWait := c.open()
 	defer c.close(runID)
 	path, err := c.writePayload(runID, candidates)
 	if err != nil {
@@ -111,19 +120,27 @@ func (c *LevelMatchClient) Apply(ctx context.Context, candidates []GainCandidate
 	}
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
+	var got levelMatchAnswer
 	select {
-	case got := <-run.done:
-		if got.err != nil {
-			return ApplyGainResult{}, got.err
-		}
-		return ApplyGainResult{Changed: got.changed, Stale: got.stale}, nil
+	case got = <-run.done:
 	case <-timer.C:
-		c.client.Retract(target)
-		return ApplyGainResult{}, ErrNoAnswer
+		if c.client.Retract(target) {
+			return ApplyGainResult{}, ErrNoAnswer
+		}
+		// REAPER read the command, so the gain change is about to land: wait for its answer, as Actions does.
+		if got, err = awaitLate(ctx, run.done, lateWait); err != nil {
+			return ApplyGainResult{}, err
+		}
 	case <-ctx.Done():
-		c.client.Retract(target)
-		return ApplyGainResult{}, ctx.Err()
+		if c.client.Retract(target) {
+			return ApplyGainResult{}, ctx.Err()
+		}
+		return ApplyGainResult{}, fmt.Errorf("%w: %w", ErrAnswerLate, ctx.Err())
 	}
+	if got.err != nil {
+		return ApplyGainResult{}, got.err
+	}
+	return ApplyGainResult{Changed: got.changed, Stale: got.stale}, nil
 }
 
 // writePayload writes one `item_guid|delta_db|finding_id` row per candidate, refusing a candidate with no identity
@@ -148,14 +165,14 @@ func (c *LevelMatchClient) writePayload(runID string, candidates []GainCandidate
 	return path, nil
 }
 
-func (c *LevelMatchClient) open() (string, *levelMatchRun, time.Duration) {
+func (c *LevelMatchClient) open() (string, *levelMatchRun, time.Duration, time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.next++
 	runID := fmt.Sprintf("gan%d-%d", time.Now().UnixNano(), c.next)
 	run := &levelMatchRun{done: make(chan levelMatchAnswer, 1)}
 	c.pending[runID] = run
-	return runID, run, c.timeout
+	return runID, run, c.timeout, c.lateWait
 }
 
 func (c *LevelMatchClient) close(runID string) {
