@@ -229,13 +229,12 @@ test('a Back while the Search question is open, then Cancel, leaves the box empt
   await expect(search).toHaveValue('');
 });
 
-// A page setting edited in its panel under "Set on a page" and not saved yet: another category or the search would unmount the panel and drop the edit (#3446 qa-breaker).
+// A setting edited in its panel (Recording check rules) and not saved yet: another category or the search would unmount the panel and drop the edit (#3446 qa-breaker).
 test('switching Settings category or searching with an unsaved page-setting edit asks first', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: /Change it here for now/ }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   const box = entry.getByRole('region', { name: 'Recording check' }).getByRole('textbox', { name: 'Longest run of missing words allowed' });
   await box.fill('7');
   await page

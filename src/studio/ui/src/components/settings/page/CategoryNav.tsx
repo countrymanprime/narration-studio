@@ -1,16 +1,15 @@
 import { Icon } from '../../primitives/Icon';
 import { StatusBadge } from '../../primitives/StatusBadge';
-import { CATEGORIES, GROUPS, PAGES_CATEGORY } from '../registry/categories';
+import { CATEGORIES, GROUPS, categoryLabel } from '../registry/categories';
 import type { CategoryId } from '../registry/types';
-import { plural } from '../../../plural';
 
 // A group label sits 4 px over its own items and 12 px more under the group above, so it reads as the head of its group; the first group
-// gets no extra room, Elsewhere the same as the others.
+// gets no extra room.
 const GROUP = 'mt-3 first:mt-0';
 const GROUP_LABEL = "px-2.5 pt-1 pb-1 font-['Barlow_Condensed',sans-serif] text-[0.6875rem] font-semibold tracking-[0.18em] text-[var(--text-muted)] uppercase";
 
 /**
- * The category list: three labelled groups and, apart, Set on a page. Wide, it sits beside the pane; narrower than the page's container query
+ * The category list: three labelled groups. Wide, it sits beside the pane; narrower than the page's container query
  * (760 px), the list folds into one Category button that names the current category and opens the list.
  */
 export function CategoryNav({
@@ -20,7 +19,6 @@ export function CategoryNav({
   onToggle,
   onPick,
   changedIn,
-  pageSettingCount,
 }: {
   current: CategoryId;
   /** Search or a filter is showing results: no category is the current page. */
@@ -29,10 +27,9 @@ export function CategoryNav({
   onToggle: () => void;
   onPick: (id: CategoryId) => void;
   changedIn: (id: CategoryId) => number;
-  pageSettingCount: number;
 }) {
   // While search or a filter shows results, no category is showing, so the folded button does not name one.
-  const currentLabel = browsing ? 'Search results' : (CATEGORIES.find((category) => category.id === current)?.label ?? PAGES_CATEGORY.label);
+  const currentLabel = browsing ? 'Search results' : categoryLabel(current);
   const item = (id: CategoryId, label: string, icon: Parameters<typeof Icon>[0]['name'], count: number, countLabel: string) => (
     // native-control-ok: a navigation entry (icon, label, count) in a full-width list; Button's uppercase centred chrome does not draw it
     <button
@@ -82,10 +79,6 @@ export function CategoryNav({
             )}
           </div>
         ))}
-        <div role="group" aria-label="Elsewhere" className={GROUP}>
-          <div className={GROUP_LABEL}>Elsewhere</div>
-          {item('pages', PAGES_CATEGORY.label, PAGES_CATEGORY.icon, pageSettingCount, `${plural(pageSettingCount, 'setting')}`)}
-        </div>
       </div>
     </nav>
   );

@@ -100,12 +100,11 @@ async function openCreditsEditor(page: Page, query = ''): Promise<void> {
   await page.getByRole('combobox', { name: 'Template' }).waitFor();
 }
 
-/** Set on a page with the first entry's "Change it here for now" opened: the Recording check rules. */
-async function openFirstPagePanel(page: Page): Promise<void> {
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
-  await entry.getByRole('button', { name: 'Change it here for now' }).and(page.locator('[aria-expanded="true"]')).waitFor();
+/** Speech to text with the Recording check rules row on screen: its panel is drawn in the row. */
+async function openRulesPanel(page: Page): Promise<void> {
+  await openSettings(page, 'Speech to text');
+  await showSettingsRow(page, 'stt.rules');
+  await page.locator('[data-row="stt.rules"]').getByRole('region', { name: 'Recording check' }).waitFor();
 }
 
 export const settingsDrivers: Record<string, Driver> = {
@@ -705,19 +704,14 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('Could not reach GitHub to check for updates.').waitFor();
   },
 
-  // ---- Set on a page
-  pages: async (page) => {
-    await openSettings(page, 'Set on a page');
-    await page.locator('[data-page-setting="ps.coverage"]').waitFor();
-  },
-  'pages-panel-open': async (page) => {
-    await openFirstPagePanel(page);
-    await page.locator('[data-page-setting="ps.coverage"]').scrollIntoViewIfNeeded();
+  // ---- Settings only one page reads, in their categories
+  'speech-rules': async (page) => {
+    await openRulesPanel(page);
   },
 
-  'pages-navigate-away-confirm': async (page) => {
-    // A panel kept behind Set on a page still edits with Save, so leaving with a change in it asks first.
-    await openFirstPagePanel(page);
+  'speech-rules-navigate-away-confirm': async (page) => {
+    // A panel of the settings one page reads still edits with Save, so leaving with a change in it asks first.
+    await openRulesPanel(page);
     await page.getByLabel('Share of each paragraph that must be read', { exact: false }).first().fill('0.7');
     // Leaving with unsaved changes asks first, so this click does not arrive at Production: it opens the confirm dialog.
     await clickNav(page, 'Production');

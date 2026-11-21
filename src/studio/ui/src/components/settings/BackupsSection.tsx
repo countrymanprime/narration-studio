@@ -19,7 +19,7 @@ const KEYS = [WINDOW_KEY, RETENTION_KEY];
 export type BackupsRow = { field: ScopedSettingField; scope: Scope };
 
 /** Whether the DAW has backups at all: a built `backups` row. REAPER's Not yet available and the built-in recorder's Unsupported have none. */
-function hasBackups(caps: DawCapabilities | undefined): boolean {
+export function hasBackups(caps: DawCapabilities | undefined): boolean {
   const level = caps?.capabilities['backups']?.level;
   return level === 'supported' || level === 'experimental';
 }

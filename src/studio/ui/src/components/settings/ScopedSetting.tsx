@@ -92,7 +92,7 @@ const optionTip = (field: ScopedSettingField, value: string) =>
 // minmax(12rem,16rem)) its full maximum before a flexible one gets any, which left the control column 45 px at a 390 px window.
 // Between `md` and `lg` the label takes its 12rem minimum and the control the rest; from `lg` the label may grow to 16rem again.
 const ROW_CLASSES =
-  'grid grid-cols-1 gap-2 border-b border-[var(--border)] py-4 md:grid-cols-[12rem_minmax(0,1fr)] md:items-start md:gap-5 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
+  'grid grid-cols-1 gap-2 border-b border-[var(--border)] py-4 md:grid-cols-[var(--scoped-label,12rem)_minmax(0,1fr)] md:items-start md:gap-5 lg:grid-cols-[minmax(var(--scoped-label,12rem),var(--scoped-label-max,16rem))_minmax(0,1fr)]';
 // The controls (a select, or a swatch and a hex box) and the Reset link. The row may wrap so Reset drops under the control only
 // when there is no room beside it, and a control stops growing at 28rem so every select is the same width from md up.
 const CONTROLS_CLASSES = 'flex min-w-0 max-w-md flex-wrap items-center gap-[0.6rem]';

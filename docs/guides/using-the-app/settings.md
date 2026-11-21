@@ -4,8 +4,7 @@
 
 Settings is a page of eight categories, one shown at a time. The list sits at the left in three groups: **Shared
 tools** (Recording & DAW, Speech to text, Voice & pronunciation, Models & downloads, Delivery), **This project**
-(Project) and **This computer** (Appearance & keys, App & updates). **Set on a page** stands apart under
-**Elsewhere**. In a narrow window the list folds into one **Category** button that names the current category and opens the
+(Project) and **This computer** (Appearance & keys, App & updates). In a narrow window the list folds into one **Category** button that names the current category and opens the
 list. **Settings** is the page's one title; the category you are in is named by a smaller title above its sections.
 
 ![Settings - Recording & DAW, with the category list at the left and the search and filters above](../../images/ui/settings-recording.webp)
@@ -54,7 +53,7 @@ the picker.
 - A **This project** row (Record with, the chapter layout, the project's manuscript and credits, its delivery profile) stays in
   its place, described as "a project's", and says **Open a project to change this.** It shows no value, since there is no project to hold one. A **Used by** list names the pages without
   links, **Also set in** is left out, and the **In this project** filter is off.
-- A **Set on a page** entry that has a computer value and a project value edits the computer's, and says **Open a project to
+- A panel row (such as **Recording check rules**) that has a computer value and a project value edits the computer's, and says **Open a project to
   set these for a project.** Audacity's backups belong to the project alone and say **Open a project to change this.**
 
 ## Every setting says whose it is and who uses it
@@ -202,7 +201,7 @@ the last 5 seconds, and the card says whether its open project matches the linke
   REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off, the app writes nothing into
   REAPER and REAPER does not connect.
 
-The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
+**Favourite effects** (beside the effects coverage cap), **Audacity backups**, **Silence cleanup thresholds** (under Editing checks) and **Punch pre-roll** (under Take cues) are rows here too; [Editing](editing.md), the Booth and Master & QC have a shortcut to the same settings.
 
 **Editing checks** are three limits the [Editing](editing.md) page measures a chapter against: **Longest empty gap** (silence between words), **Longest leading silence** and **Longest trailing silence**, each in seconds. They are empty until you choose them, and an empty limit is not checked. Each is for this computer, and a project may use its own.
 
@@ -224,6 +223,10 @@ speech model in memory. 0 is Automatic: half this computer's processors, fewer w
 line under the box says what the value shown runs on this computer and what set it, for example "Automatic: 4 transcriptions at once, using 8 of
 8 processors for the small model. Set by the processors: half of them, so each transcription has 2 processors." A number you type is kept up to
 the processors and the memory, and the line says when it was cut down. The same number is how many chapters a Story Bible scan with GLiNER reads at once; BookNLP always reads the whole book, and when it runs beside GLiNER the scan keeps a quarter of the processors and BookNLP's memory for GLiNER's workers (on 4 processors GLiNER then reads whole).
+
+**Recording check rules** (in the same section) holds the values only the recording check reads: **Share of each paragraph that must be read**, **Longest run of missing words allowed** and the others the host sends that no row above draws. The grey box above them says the values are proposed and not yet calibrated, and its **?** says why. It is the same store as Production's **Open Recording check rules**, with a **Global** / **This project** switch and **Save** and **Discard**. **Compare marker colours** (under Transcription) are the colours a Proof compare run marks a misread, skipped or extra word with, set the same way.
+
+![Settings - Speech to text, Recording check rules: the row and its panel](../../images/ui/settings-speech-rules.webp)
 
 **Background checks** holds **Check recordings in the background**, the **Model for background checks** (`tiny`) and the
 **Double-check model for background checks** (`small`, or **None (one model)**), and under Advanced the **Processors for background
@@ -289,6 +292,7 @@ The reset button next to **Change location…** moves the downloads back to the 
 
 - **Delivery profile** picks the profile this project is judged against, on [Master & QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu, with the limits of the chosen profile listed under it.
 - **Render length tolerance** (under **Checks**) is how many seconds a chapter's rendered file may differ in length from the chapter before [Proof](proof.md)'s render length check is not met. It is empty until you choose it, and then that check is not required; a project may use its own.
+- **Preview suggestion** (under **Checks**) holds how Proof's sample preview of a chapter is chosen (the sample length, its tolerance and how a spot check is picked), with a **Global** / **This project** switch and **Save**.
 - **Default profile for new projects** is what a project that has not chosen its own is judged against (ACX until you change it).
 - **Custom profiles** (Advanced) lists your profiles and the built-in ones to copy. **Duplicate** makes a custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and **Delete** work on a custom profile; a project that chose a deleted profile goes back to the default. Escape and the close button ask **Discard your profile edit?** once the name or a number was changed (**Keep editing** or **Discard**); the footer button reads **Close** while nothing is changed and **Discard changes** once something is, and that button is you dropping the edit. While a save runs every way out is off; a save the host does not answer within 15 seconds gives the editor back with **The save did not finish. What you typed is still here.** and the numbers you typed, and pressing Save again then waits for the first save instead of sending a second; what you type while a save runs stays in the editor as an edit still to save.
 
@@ -299,6 +303,7 @@ The reset button next to **Change location…** moves the downloads back to the 
 ![Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator](../../images/ui/settings-project.webp)
 
 - **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
+- **Stage suggestions** (under **Production board**) holds the readiness signals Production requires or ignores before it suggests a chapter's next stage, with a **Global** / **This project** switch and **Save**; Production's **Open Stage suggestion options** edits the same values for this project.
 - **Words per page** (kept for every project on this computer, 250 by default, 50 to 1000) is where the [Booth](booth.md) marks a page break: at the end of the paragraph in which a page reaches that many words, counted from the start of each chapter, so a page never breaks inside a paragraph.
 - **Schedule basis** (this project, **Standard** until you choose) is which pace the hours on [Production](production.md) and [Schedule](schedule.md) use: the standard words per finished hour, or **Your pace**, which takes effect once enough chapters have a measured length (until then the standard is used). It is the same choice as the Schedule basis toggle in Production's target popover, so a change in either shows in the other. If the schedule cannot be read, the row says so and its choices stay off.
 - **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them. **Build the Story Bible after import** (on by default) builds the Story Bible when a manuscript import ends and the Story Bible has no entries yet ([Built after an import](story-bible.md#built-after-an-import)).
@@ -454,12 +459,6 @@ Releases are not yet signed, so Windows SmartScreen or your antivirus may ask ab
 
 If the app will not start after an update and the program file is missing from its folder, rename
 <!-- brand:identity.executable -->narration-studio<!-- /brand -->.exe.old back to <!-- brand:identity.executable -->narration-studio<!-- /brand -->.exe.
-
-## Set on a page
-
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production; the grey box above them says the values are proposed and not yet calibrated, and its **?** says why), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs (Proof's Preview and Compare options are in **Jump to or run** once a chapter is open on Proof) and, on the line of **Change it here for now**, an icon for that page (the one the navigation rail draws for it; hold the pointer on it for **Open** and the page's name). Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes** (closing the group does not drop what you typed: it is still there when you open it again), and leaving Settings with unsaved changes there, by the navigation, Back or **Switch project**, asks whether to save or discard them. **Save & continue** leaves only when every field saved: if one does not, you stay on Settings with what you typed, and if a save does not answer within 15 seconds a message says saving is taking too long and **Cancel** and **Discard & continue** work again. Five pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Production's **Jump to or run** has **Open Stage suggestion options** and **Open Recording check rules**, the same for the open project only; Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
-
-![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 
 ## When something is wrong
 

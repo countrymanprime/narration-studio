@@ -12,7 +12,7 @@ export const ANCHOR_TARGETS: Record<string, { cat: CategoryId; row: string | nul
   Recording: { cat: 'recording', row: 'daw.engine' },
   Credits: { cat: 'project', row: 'project.credits' },
   Delivery: { cat: 'delivery', row: 'delivery.profile' },
-  Cleanup: { cat: 'pages', row: 'ps.cleanup' },
+  Cleanup: { cat: 'recording', row: 'editing.cleanup' },
   Teleprompter: { cat: 'recording', row: 'daw.mic' },
   // The jump menu's "Settings: <category>": `/settings#category-<id>` opens the category with no row to light up.
   ...Object.fromEntries(CATEGORIES.map((category) => [categoryAnchorKey(category.id), { cat: category.id, row: null }])),

@@ -2,14 +2,12 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PAGE_SETTINGS } from './pageSettings';
 import { ROWS } from './rows';
 
 /**
  * The class guard for the settings parity rule (issue 2815, docs/research/2026-11-settings-parity-audit.md): everything a page lets the narrator
  * configure has an equivalent row on the Settings page. Three places a persisted setting enters the UI are scanned: host bindings that set or
- * choose something, window-kept (localStorage) keys, and files that write a host settings field. Each hit must be COVERED (a registry row or a
- * page-setting entry that edits the same value) or EXEMPT (the audit's stated reason). The exempt lists are shrink-only: a new setting control
+ * choose something, window-kept (localStorage) keys, and files that write a host settings field. Each hit must be COVERED (a registry row that edits the same value) or EXEMPT (the audit's stated reason). The exempt lists are shrink-only: a new setting control
  * needs a row, not an entry. A cap per list fails the run if one grows; lower the cap when an entry leaves.
  */
 const SRC = join(__dirname, '../../..');
@@ -25,7 +23,7 @@ const ALL = sources(SRC);
 const text = (path: string) => readFileSync(path, 'utf8');
 const rel = (path: string) => path.slice(SRC.length + 1);
 
-const rowIds = new Set([...ROWS.map((row) => row.id), ...PAGE_SETTINGS.map((entry) => entry.id)]);
+const rowIds = new Set(ROWS.map((row) => row.id));
 
 type Parity = { covered: Record<string, string>; exempt: Record<string, string>; cap: number };
 
@@ -139,10 +137,10 @@ const WRITERS: Parity = {
     'components/script/scriptPageHost.ts': 'voice.dict',
     'components/booth/useTeleprompterSession.ts': 'daw.mic',
     'components/connection/startDaw.ts': 'daw.autoLauncher',
-    'components/booth/frame/usePunchPreroll.ts': 'ps.punch',
-    'components/editing/backups/useBackupSettings.ts': 'ps.backups',
-    'components/editing/effects/useFxFavourites.ts': 'ps.fx',
-    'components/proof/proofOptions/useProjectOptions.ts': 'ps.preview',
+    'components/booth/frame/usePunchPreroll.ts': 'daw.punchPreroll',
+    'components/editing/backups/useBackupSettings.ts': 'daw.backups',
+    'components/editing/effects/useFxFavourites.ts': 'daw.fxFavourites',
+    'components/proof/proofOptions/useProjectOptions.ts': 'proofing.preview',
     'components/editing/effects/useFxCap.ts': 'daw.fxCap',
     'tips/tipsStore.ts': 'app.tips',
   },

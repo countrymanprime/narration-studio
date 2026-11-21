@@ -2,8 +2,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { wireSettings } from '../../../api/mockFixtures';
+import { CUSTOM, WIDE_BODIES } from '../controls/registry';
+import { changedIsCovered } from '../data/customChanged';
+import { RESETTABLE_ROWS } from '../data/rowResets';
 import { CATEGORIES } from './categories';
-import { PAGE_SETTINGS } from './pageSettings';
+import { PANEL_ROWS } from './panelFields';
 import { choiceLabel } from '../data/values';
 import { reaperPathProblem, ROWS } from './rows';
 import { search } from './search';
@@ -58,7 +62,7 @@ describe('the settings registry', () => {
 describe('the removed Sync activity row (#3671)', () => {
   it('is not in Settings or its search: the chapter sync log is kept in the project folder for diagnostics only', () => {
     expect(ROWS.some((candidate) => candidate.id === 'daw.syncActivity')).toBe(false);
-    expect(search('chapter sync log').some((hit) => hit.row?.id === 'daw.syncActivity')).toBe(false);
+    expect(search('chapter sync log').some((hit) => hit.row.id === 'daw.syncActivity')).toBe(false);
   });
 });
 
@@ -71,8 +75,7 @@ describe('the Parallel processes row (#2251)', () => {
       expect(row.more).toContain(words);
   });
   it('is found by the words a narrator uses', () => {
-    for (const query of ['transcriptions at once', 'workers', 'ram', 'automatic'])
-      expect(search(query).some((hit) => hit.row?.id === 'stt.workers')).toBe(true);
+    for (const query of ['transcriptions at once', 'workers', 'ram', 'automatic']) expect(search(query).some((hit) => hit.row.id === 'stt.workers')).toBe(true);
   });
 });
 
@@ -109,11 +112,11 @@ describe('the two chunk length rows (#2980)', () => {
     expect(compare.more).not.toBe(coverage.more);
   });
   it('are found by their own words', () => {
-    expect(search('compare chunk').map((hit) => hit.row?.id)).toContain('stt.compareChunk');
-    expect(search('compare chunk').map((hit) => hit.row?.id)).not.toContain('stt.chunk');
-    expect(search('coverage chunk').map((hit) => hit.row?.id)).toContain('stt.chunk');
-    expect(search('coverage chunk').map((hit) => hit.row?.id)).not.toContain('stt.compareChunk');
-    expect(search('whole file').map((hit) => hit.row?.id)).toContain('stt.chunk');
+    expect(search('compare chunk').map((hit) => hit.row.id)).toContain('stt.compareChunk');
+    expect(search('compare chunk').map((hit) => hit.row.id)).not.toContain('stt.chunk');
+    expect(search('coverage chunk').map((hit) => hit.row.id)).toContain('stt.chunk');
+    expect(search('coverage chunk').map((hit) => hit.row.id)).not.toContain('stt.compareChunk');
+    expect(search('whole file').map((hit) => hit.row.id)).toContain('stt.chunk');
   });
 });
 
@@ -126,7 +129,7 @@ describe('the Preview voice engine row (#2980)', () => {
     expect(row.more).toBeTruthy();
     for (const query of ['piper', 'preview voices', 'text to speech engine'])
       expect(
-        search(query).map((hit) => hit.row?.id),
+        search(query).map((hit) => hit.row.id),
         query,
       ).toContain(row.id);
   });
@@ -136,7 +139,7 @@ describe('app.debug', () => {
   it('is found by the words a narrator uses for the log and its folder (#2730)', () => {
     for (const query of ['logs', 'log folder', 'file manager', 'run.jsonl', 'explorer'])
       expect(
-        search(query).some((hit) => hit.row?.id === 'app.debug'),
+        search(query).some((hit) => hit.row.id === 'app.debug'),
         query,
       ).toBe(true);
   });
@@ -144,17 +147,17 @@ describe('app.debug', () => {
 
 describe('search', () => {
   it('finds a setting by a word that is not in its name', () => {
-    expect(search('whisper').some((hit) => hit.row?.id === 'stt.model')).toBe(true);
+    expect(search('whisper').some((hit) => hit.row.id === 'stt.model')).toBe(true);
   });
   it('needs every word to match', () => {
     expect(search('whisper nothingelse')).toEqual([]);
   });
-  it('finds a setting that moved to a page', () => {
-    expect(search('breath').some((hit) => hit.page?.id === 'ps.cleanup')).toBe(true);
-    expect(PAGE_SETTINGS.length).toBeGreaterThan(0);
+  it('finds a setting only one page reads under the topic it belongs to', () => {
+    const hit = search('breath').find((candidate) => candidate.row.id === 'editing.cleanup');
+    expect(hit?.cat).toBe('Recording & DAW');
   });
   it('leaves out a row the caller hides', () => {
-    expect(search('reaper', (row) => !row.needs).some((hit) => hit.row?.needs)).toBe(false);
+    expect(search('reaper', (row) => !row.needs).some((hit) => hit.row.needs)).toBe(false);
   });
 });
 
@@ -211,5 +214,43 @@ describe('the background check rows (#2251)', () => {
 describe('the Models folder row is found by the words a narrator uses for moving it', () => {
   it.each(['move', 'keep', 'bigger drive', 'location', 'download location', 'drive', 'change location'])('"%s" lists it first', (words) => {
     expect(search(words)[0]?.row?.id).toBe('models.folder');
+  });
+});
+
+describe('settings a page reads are filed under their topic (#3673)', () => {
+  const panelRows = Object.keys(PANEL_ROWS);
+
+  it('has no category that groups settings by where else they are set', () => {
+    expect(CATEGORIES.map((category) => category.id)).not.toContain('pages');
+    expect(ROWS.every((row) => CATEGORIES.some((category) => category.id === row.cat))).toBe(true);
+  });
+
+  it('gives each panel row a body, a place in Changed and in Reset, and a category of its own', () => {
+    for (const id of panelRows) {
+      const row = ROWS.find((candidate) => candidate.id === id);
+      expect(row, `${id} is a row`).toBeTruthy();
+      expect(row!.field, `${id} draws a panel, not one field`).toBeUndefined();
+      expect(CUSTOM[id], `${id} has a body`).toBeTruthy();
+      expect(WIDE_BODIES.has(id), `${id} is drawn under its label`).toBe(true);
+      expect(changedIsCovered(row!), `${id} is read by Changed`).toBe(true);
+      expect((RESETTABLE_ROWS as readonly string[]).includes(id), `${id} is reset by the header`).toBe(true);
+    }
+  });
+
+  it('draws no host key twice: a key a row of its own edits is never also in a panel', () => {
+    const rowKeys = new Set(ROWS.flatMap((row) => (row.field ? [`${row.field.tool}.${row.field.key}`] : [])));
+    for (const id of panelRows) {
+      const { tool, wanted } = PANEL_ROWS[id]!;
+      for (const { key } of wireSettings()[tool] ?? []) {
+        if (wanted(key)) expect(rowKeys.has(`${tool}.${key}`), `${tool}.${key} is drawn by ${id} and by a row`).toBe(false);
+      }
+    }
+  });
+});
+
+describe('panel rows are found by the words the panels themselves use', () => {
+  it('finds the favourite effects by "favorite" and the compare marker colours by "color"', () => {
+    expect(search('favorite').some((hit) => hit.row.id === 'daw.fxFavourites')).toBe(true);
+    expect(search('misread color').some((hit) => hit.row.id === 'stt.compareColours')).toBe(true);
   });
 });

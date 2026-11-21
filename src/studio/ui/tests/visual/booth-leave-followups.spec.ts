@@ -45,9 +45,8 @@ async function runFromPalette(page: Page, command: string, press = 'Enter'): Pro
 async function dirtySettings(page: Page): Promise<void> {
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   await entry.getByLabel('Share of each paragraph that must be read', { exact: false }).first().fill('0.7');
 }
 
