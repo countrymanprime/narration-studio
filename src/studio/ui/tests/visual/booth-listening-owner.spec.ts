@@ -10,12 +10,28 @@ test.setTimeout(90_000);
 
 type Calls = { stops: number; listeningStops: number; listeningStarts: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
+// Records the text of everything added to the page from now on, with the time since this call: a toast a press raised and that has gone by the time a failed wait is read is still there.
+const watchAddedText = (page: Page): Promise<void> =>
+  page.evaluate(() => {
+    const seen: string[] = [];
+    (window as unknown as { __added: string[] }).__added = seen;
+    const from = Date.now();
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          const text = (node.textContent ?? '').trim();
+          if (text && seen.length < 40) seen.push(`+${Date.now() - from}ms ${text.slice(0, 160)}`);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
 // What a failed wait on the Record button found: the host's stop count, the main button's label and state, and every notice and dialog on the page.
 const whatThePageShows = async (page: Page): Promise<string> => {
   const read = page.evaluate(() => {
     const main = document.getElementById('brec');
     return {
       stops: (window as unknown as { __calls: Calls }).__calls.stops,
+      added: (window as unknown as { __added?: string[] }).__added ?? [],
       button: main ? `"${main.textContent?.trim()}" aria-disabled=${main.getAttribute('aria-disabled')}` : 'no #brec button',
       notices: [...document.querySelectorAll('[role="alert"], [role="status"], [role="alertdialog"], [role="dialog"], #brec-why')]
         .map((node) => node.textContent?.trim())
@@ -26,7 +42,7 @@ const whatThePageShows = async (page: Page): Promise<string> => {
   const gaveUp = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
   const seen = await Promise.race([read, gaveUp]).catch(() => null);
   if (!seen) return 'The page did not answer when asked what it showed.';
-  return `The page showed: host stops=${seen.stops}; main button ${seen.button}; notices ${JSON.stringify(seen.notices)}`;
+  return `The page showed: host stops=${seen.stops}; main button ${seen.button}; notices ${JSON.stringify(seen.notices)}; text added since the click ${JSON.stringify(seen.added)}`;
 };
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
 
@@ -404,6 +420,7 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     // Nothing stopped the take behind the narrator; Stop is theirs and works.
     expect((await calls(page)).stops).toBe(1);
     await expect(stop).toBeVisible();
+    await watchAddedText(page);
     const clicked = Date.now();
     await stop.click();
     // When Record does not come back, the failure says what the page showed: the press that never sent the stop (`stops` 1: a notice says why), the stop that
