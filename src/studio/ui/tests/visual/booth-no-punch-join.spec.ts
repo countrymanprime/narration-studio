@@ -38,15 +38,11 @@ async function open(page: Page, ms: number, answer: Record<string, unknown>): Pr
 }
 
 async function startFromHere(page: Page): Promise<void> {
-  await page.locator('[data-booth-text] [data-word]').nth(5).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
+  await page.locator('[data-booth-text] [data-word]').nth(5).click();
   await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
 }
 
-test('Space during Start from here lookup joins it: no take at once, one host call, then one take from the end and one sentence', async ({ page }) => {
+test('Space during the lookup of a start joins it: no take at once, one host call, then one take from the end and one sentence', async ({ page }) => {
   test.setTimeout(60_000);
   await open(page, HELD_MS, { outcome: 'found', start: 12, end: 20 });
   await startFromHere(page);
@@ -62,15 +58,10 @@ test('Space during Start from here lookup joins it: no take at once, one host ca
   expect(await lookups(page)).toBe(1);
 });
 
-test('Mark the start here alone on a recorded phrase looks nothing up and records nothing: the lookup waits for Record (#3319)', async ({ page }) => {
+test('a click alone on a recorded phrase looks nothing up and records nothing: the lookup waits for Record (#3858)', async ({ page }) => {
   test.setTimeout(60_000);
   await open(page, 300, { outcome: 'found', start: 12, end: 20 });
-  await page.locator('[data-booth-text] [data-word]').nth(5).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
-  await expect(page.getByText(/Next roll starts from ¶/).first()).toBeVisible();
+  await page.locator('[data-booth-text] [data-word]').nth(5).click();
   await page.waitForTimeout(800);
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   await expect(stop(page)).toHaveCount(0);

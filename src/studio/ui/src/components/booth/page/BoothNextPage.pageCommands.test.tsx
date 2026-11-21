@@ -114,13 +114,13 @@ describe('Booth page commands', () => {
     await waitFor(() => expect(item('chapter.c2').hint).toBe('Open now'));
   });
 
-  it('offers-the-transport-and-the-roll-before-a-take-runs', async () => {
+  it('offers-the-transport-before-a-take-runs, and the roll only once one does (#3858)', async () => {
     renderPage();
     await ready();
     const record = item('transport.record');
     expect(record).toMatchObject({ label: 'Record', group: 'Transport', icon: 'record' });
     expect(record.disabledReason).toBeUndefined();
-    expect(item('transport.roll').disabledReason).toBeUndefined();
+    expect(items().some((i) => i.id === 'transport.roll')).toBe(false);
     expect(item('transport.next').disabledReason).toBeUndefined();
     expect(item('transport.prev').disabledReason).toBeUndefined();
   });
