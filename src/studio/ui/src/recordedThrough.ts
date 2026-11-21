@@ -74,7 +74,8 @@ export function recordedThroughLabel(at: RecordedAt | undefined, paragraphs: rea
  * else the measured length against the chapter's finished length at `wph` words an hour, else null.
  */
 export function recordedShare(chapter: { recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number }, wph: number): number | null {
-  if (chapter.recordedThrough) return chapter.recordedThrough.complete ? 1 : chapter.recordedThrough.percent / 100;
+  // The share is the percent the row prints: a host 0 with a second or more on the track is 1%, so the tile and the stage bar count it too.
+  if (chapter.recordedThrough) return throughPercent({ through: chapter.recordedThrough, audio: hasAudio(chapter.recordedSeconds) }) / 100;
   if (chapter.recordedSeconds === null || chapter.wordCount <= 0) return null;
   return Math.min(1, (audibleSeconds(chapter.recordedSeconds) ?? 0) / ((chapter.wordCount / wph) * 3600));
 }

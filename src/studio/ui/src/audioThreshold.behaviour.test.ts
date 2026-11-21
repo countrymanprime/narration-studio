@@ -119,4 +119,26 @@ describe('every figure of a chapter under a second equals its figure at 0 s', ()
     const zero = await ownFor(0);
     for (const seconds of SUB) expect(await ownFor(seconds), `${seconds} s`).toEqual(zero);
   });
+
+  // The other half of the rule: from one second there IS audio, so no figure reads none, for every host value (a host 0% included).
+  it('from one second no figure reads none', () => {
+    for (const layout of ['flat', 'folders'] as const) {
+      for (const status of STAGES) {
+        for (const host of HOSTS) {
+          for (const seconds of [1, 12, 59.9]) {
+            const got = figures(status, host, seconds, 9000, layout);
+            const where = `${layout}, ${status}, host ${JSON.stringify(host)}, ${seconds} s`;
+            expect(got.row.recorded.kind, where).toBe('measured');
+            expect(got.share, where).toBeGreaterThan(0);
+            expect(got.book.recordedHours, where).toBeGreaterThan(0);
+            expect(got.planHours, where).toBeGreaterThan(0);
+            expect(got.proof[0], where).toBe(true);
+            expect(got.offered[0], where).toBe(1);
+            if (got.percent !== null) expect(got.percent, where).toBeGreaterThanOrEqual(1);
+            if (status === 'not_started' || status === 'recording') expect(got.next.length, where).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
+  });
 });

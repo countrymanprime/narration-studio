@@ -199,3 +199,16 @@ describe('recordedShare is 0 under one second', () => {
     expect(recordedShare(row(null), 9300)).toBeNull();
   });
 });
+
+// #3869 (delta qa N6): above one second the share the book totals are made of agrees with the percent the row prints, host 0 included.
+describe('recordedShare is above 0 when the host says 0% and a second or more is on the track', () => {
+  const row = (recordedSeconds: number, percent: number) => ({ recordedSeconds, wordCount: 9300, recordedThrough: through({ percent }) });
+  it('is the row’s percent over 100 from one second, and 0 under it', () => {
+    for (const seconds of [1, 12, 59.9]) {
+      expect(recordedShare(row(seconds, 0), 9300), `${seconds} s`).toBe(0.01);
+      expect(recordedShare(row(seconds, 0), 9300)).toBe(recordedPercent(row(seconds, 0), 9300)! / 100);
+    }
+    expect(recordedShare(row(0.5, 0), 9300)).toBe(0);
+    expect(recordedShare(row(12, 50), 9300)).toBe(0.5);
+  });
+});
