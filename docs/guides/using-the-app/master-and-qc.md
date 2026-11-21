@@ -167,7 +167,8 @@ settings, and each track's mute, solo, volume, pan and routing (its sends and re
 the master's too, and tracks with no effects as well. It also says what is not covered: automation (the app reads each setting's
 value as it is now, not an envelope that moves it during the render) and presets, or a file a plug-in has loaded, that the
 plug-in does not show as a setting. In a small window, or once you have scrolled past them, the effects can be out of what the dialog shows; a small chip
-over the bottom of the dialog's contents (**↑ 2 effects above**, with how many are off) then says how many are above, and pressing it
+over the bottom of the dialog's contents then says how many there are and which way (**↓ 2 effects below** when the dialog opens in a
+short window, **↑ 2 effects above** once you have scrolled past them, with how many are off), and pressing it
 brings the first one into view (at the smallest window sizes, about 320x300, only a strip of it shows, #2998). The chip floats over
 whatever is at the bottom of the dialog's contents (it can cover part of the last line there until you press it or scroll) and takes
 no room, so the buttons and the lists stay where they are as it comes and goes with scrolling or resizing. Under the effects, each file is listed with the region it renders

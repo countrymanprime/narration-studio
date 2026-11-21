@@ -203,6 +203,44 @@ for (const [width, height, driver] of [
   });
 }
 
+// The pointer says which way the effects are (ux on #3870): when the dialog opens in a short window the chain is below what shows, and once the narrator has scrolled past it,
+// above. The word and the arrow follow the first effect's row, also when one scroll carries it from below to above without it ever being in view.
+for (const [width, height, driver] of [
+  [320, 300, 'to-spec-approve-daw'],
+  [320, 300, 'to-spec-approve-long-chain'],
+  [275, 300, 'to-spec-approve-no-fx'],
+  [400, 418, 'to-spec-approve-daw'],
+  [1280, 320, 'to-spec-approve-daw'],
+] as const) {
+  test(`Master / the approval's chain pointer says which way the effects are / ${driver} ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await settlePage(page);
+    await masterDrivers[driver]!(page);
+    /** The side the pointer names, the side its arrow points to, and the side the first effect's row is really on. */
+    const sides = () =>
+      page.evaluate(() => {
+        const popup = document.querySelector('[role="alertdialog"]')!;
+        const pointer = popup.querySelector('[data-chain-pointer] button')!;
+        const row = popup.querySelector('[data-decision-critical] tbody tr')!.getBoundingClientRect();
+        const at = pointer.getBoundingClientRect();
+        return {
+          says: /below/.test(pointer.textContent ?? '') ? 'below' : 'above',
+          arrow: pointer.querySelector('svg')!.getAttribute('data-icon') === 'arrow-down' ? 'below' : 'above',
+          really: row.top + row.height / 2 > at.top + at.height / 2 ? 'below' : 'above',
+        };
+      });
+    await scrollChain(page, 'top');
+    await expect(chip(page)).toBeVisible();
+    await frames(page);
+    expect(await sides(), 'as the dialog opens').toEqual({ says: 'below', arrow: 'below', really: 'below' });
+    await scrollChain(page, 'end');
+    await frames(page);
+    await expect(chip(page)).toBeVisible();
+    await expect.poll(sides, 'scrolled past the chain in one step').toEqual({ says: 'above', arrow: 'above', really: 'above' });
+  });
+}
+
 // The step itself: as the window gets shorter one pixel at a time the action row keeps its height on each side of the 400 px chrome change, and the body never jumps.
 for (const width of [275, 320, 360, 400, 480, 640]) {
   test(`Master / the approval's action row and body do not step as the window shrinks / ${width} wide`, async ({ page }) => {

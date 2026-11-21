@@ -56,7 +56,28 @@ const VIEW_STEPS = Array.from({ length: 11 }, (_, i) => i / 10);
  * track with FX top to bottom and then the master, which carries a Master badge from its flag (a track the narrator named "Master"
  * is plain text). A bypassed plug-in has an Off badge. Capped to its own scroll; with no FX anywhere one row says so.
  */
-function ChainList({ chain, onView }: { chain: ExportPlan['chain'] | null | undefined; onView: (inView: boolean) => void }) {
+/** Which way the chain's first row lies from what the dialog shows of it: the middle of the row against the middle of the box every scrolling ancestor leaves it. */
+function sideOf(row: Element): 'above' | 'below' {
+  const at = row.getBoundingClientRect();
+  let top = 0;
+  let bottom = window.innerHeight;
+  for (let node = row.parentElement; node; node = node.parentElement) {
+    if (!/auto|scroll|hidden|clip/.test(getComputedStyle(node).overflowY)) continue;
+    const box = node.getBoundingClientRect();
+    top = Math.max(top, box.top);
+    bottom = Math.min(bottom, box.bottom);
+  }
+  return at.top + at.height / 2 > (top + bottom) / 2 ? 'below' : 'above';
+}
+
+function ChainList({
+  chain,
+  onView,
+}: {
+  chain: ExportPlan['chain'] | null | undefined;
+  /** Whether the first row is in view, and which way it lies when it is not. */
+  onView: (inView: boolean, side: 'above' | 'below') => void;
+}) {
   const tracks = chain ?? [];
   const rows = tracks.flatMap((track) => (track.fx ?? []).map((fx) => ({ master: track.master, track: track.name, fx })));
   // Whether the chain's first row is in view. At a small window (320x300, or 400% zoom) it is below the dialog's visible body while
@@ -70,15 +91,26 @@ function ChainList({ chain, onView }: { chain: ExportPlan['chain'] | null | unde
   useEffect(() => {
     const row = first.current?.closest('tr');
     if (!row || typeof IntersectionObserver === 'undefined') return;
+    let inView = true;
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries.at(-1);
-        if (entry) report.current(entry.isIntersecting && (entry.intersectionRatio >= 0.5 || (entry.intersectionRect?.height ?? 0) >= TALL_ROW_SHOWN));
+        if (!entry) return;
+        inView = entry.isIntersecting && (entry.intersectionRatio >= 0.5 || (entry.intersectionRect?.height ?? 0) >= TALL_ROW_SHOWN);
+        report.current(inView, sideOf(row));
       },
       { threshold: VIEW_STEPS },
     );
     observer.observe(row);
-    return () => observer.disconnect();
+    // The observer is silent while the row stays out of view, and a scroll or a resize can carry the row from below what shows to above it in one step: the side is read again.
+    const again = () => (inView ? undefined : report.current(false, sideOf(row)));
+    document.addEventListener('scroll', again, { capture: true, passive: true });
+    window.addEventListener('resize', again);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('scroll', again, { capture: true });
+      window.removeEventListener('resize', again);
+    };
   }, []);
   return (
     <div data-decision-critical="">
@@ -179,6 +211,8 @@ export function MasteringApprovalDialog({
   const [problem, setProblem] = useState<string>();
   // Whether the chain's first row is out of view: then a chip over the body's bottom edge names it and brings it into view.
   const [chainBelow, setChainBelow] = useState(false);
+  // Which way it lies then: below what shows when the dialog opens in a short window, above once the narrator has scrolled past it.
+  const [chainSide, setChainSide] = useState<'above' | 'below'>('above');
   const chainRef = useRef<HTMLDivElement>(null);
   const effects = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).length, 0);
   const off = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).filter((fx) => !fx.enabled).length, 0);
@@ -203,8 +237,9 @@ export function MasteringApprovalDialog({
     if (went && dialog && (active === null || !active.isConnected || !dialog.contains(active))) chainList()?.focus({ preventScroll: true });
   }, [pointerShown]);
   // What the chip over the body says, and its hint: the whole sentence the pointer used to carry as a third button.
-  const above = effects === 0 ? 'Chain above: no effects' : `${plural(effects, 'effect')} above${off > 0 ? `, ${off} off` : ''}`;
-  const aboveHint = effects === 0 ? 'See the chain above: no effects' : `See the ${plural(effects, 'effect')} above${off > 0 ? `, ${off} switched off` : ''}`;
+  const where = effects === 0 ? `Chain ${chainSide}: no effects` : `${plural(effects, 'effect')} ${chainSide}${off > 0 ? `, ${off} off` : ''}`;
+  const whereHint =
+    effects === 0 ? `See the chain ${chainSide}: no effects` : `See the ${plural(effects, 'effect')} ${chainSide}${off > 0 ? `, ${off} switched off` : ''}`;
 
   const regions = plan.items.some((item) => item.region !== '');
   const count = plural(plan.items.length, 'file');
@@ -238,7 +273,13 @@ export function MasteringApprovalDialog({
       {/* The chain first: it is what the narrator approves, so it is in view under the question at 360x500 (qa on #2932, B1). */}
       {plan.provider === 'daw' && (
         <div ref={chainRef}>
-          <ChainList chain={plan.chain} onView={(inView) => setChainBelow(!inView)} />
+          <ChainList
+            chain={plan.chain}
+            onView={(inView, side) => {
+              setChainBelow(!inView);
+              setChainSide(side);
+            }}
+          />
         </div>
       )}
       <Panel flush scroll label={listLabel} className="mt-2 max-h-[14rem]">
@@ -296,7 +337,16 @@ export function MasteringApprovalDialog({
           className="pointer-events-none sticky bottom-2 z-10 mt-2 -mb-2 flex h-0 items-end justify-center [@media(max-height:400px)]:my-0"
         >
           <span className="pointer-events-auto">
-            <Pill look="filter" action raised icon="showAbove" label={above} title={aboveHint} active={false} onClick={showChain} />
+            <Pill
+              look="filter"
+              action
+              raised
+              icon={chainSide === 'above' ? 'showAbove' : 'showBelow'}
+              label={where}
+              title={whereHint}
+              active={false}
+              onClick={showChain}
+            />
           </span>
         </div>
       )}

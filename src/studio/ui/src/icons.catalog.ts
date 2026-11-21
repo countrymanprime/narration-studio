@@ -11,6 +11,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
   faArrowUp,
+  faArrowDown,
   faKeyboard,
   faTableList,
   faArrowsRotate,
@@ -248,6 +249,7 @@ export const CATALOG = {
   jumpTo: action(faMagnifyingGlass, 'find', 'Jump to a page or run a command', 'Ctrl+K'),
   locate: action(faLocationCrosshairs, 'locate in text', 'Show in text'),
   showAbove: action(faArrowUp, 'show what is above', 'Show what is above'),
+  showBelow: action(faArrowDown, 'show what is below', 'Show what is below'),
   previous: action(faChevronUp, 'previous item', 'Go to the previous item'),
   next: action(faChevronDown, 'next item', 'Go to the next item'),
   previousChapter: action(faBackwardStep, 'previous chapter', 'Go to the previous chapter', 'Alt+Up'),
