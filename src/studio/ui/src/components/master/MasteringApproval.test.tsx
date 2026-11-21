@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -539,9 +539,9 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     return watched;
   };
 
-  // Round 3 decision (option B): Approve is never held. When the chain is not in view as the dialog opens (a small window), a button
-  // beside Approve says how many effects the chain holds and scrolls to it; it watches the first row, not the number in it (M5).
-  it('when the chain is out of view on open, a pointer beside Approve says so and scrolls to it, and Approve stays usable', async () => {
+  // Round 3 decision (option B): Approve is never held. When the chain is not in view as the dialog opens (a small window), a chip
+  // over the body says how many effects the chain holds and scrolls to it (a button beside Approve until #3605); it watches the first row, not the number in it (M5).
+  it('when the chain is out of view on open, a pointer over the body says so and scrolls to it, and Approve stays usable', async () => {
     const watched = observeAs(false);
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
@@ -549,7 +549,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       const { exportStart } = await mount('daw');
       await openDialog();
       expect(watched.at(-1)?.tagName).toBe('TR');
-      const pointer = await within(dialog()).findByRole('button', { name: 'See the 2 effects above' });
+      const pointer = await within(dialog()).findByRole('button', { name: '2 effects above' });
       expect(within(dialog()).getByRole('button', { name: 'Approve and master' })).toHaveProperty('disabled', false);
       await userEvent.click(pointer);
       expect(scrollIntoView).toHaveBeenCalled();
@@ -561,12 +561,53 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     }
   });
 
+  // The pointer is not drawn while the approval is sent. If it had the keyboard, the keyboard stays in the dialog, on the chain's list (qa on #3870).
+  it('keeps the keyboard in the dialog when the pointer goes as the approval is sent', async () => {
+    observeAs(false);
+    Element.prototype.scrollIntoView = vi.fn();
+    try {
+      let answer: (() => void) | undefined;
+      const { exportStart } = await mount('daw');
+      exportStart.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            answer = () =>
+              resolve({
+                id: 'x',
+                kind: 'render_export',
+                phase: 'running',
+                message: 'Preparing 4 files.',
+                percent: 0,
+                master: true,
+                provider: 'daw',
+                format: 'mp3',
+                logs: [],
+                elapsed: 0,
+                files: [],
+              });
+          }),
+      );
+      await openDialog();
+      const pointer = await within(dialog()).findByRole('button', { name: '2 effects above' });
+      pointer.focus();
+      // Not a pointer press, which would move focus to Approve first.
+      fireEvent.click(within(dialog()).getByRole('button', { name: 'Approve and master' }));
+      await waitFor(() => expect(within(dialog()).queryByRole('button', { name: '2 effects above' })).toBeNull());
+      expect(dialog().contains(document.activeElement)).toBe(true);
+      expect(document.activeElement?.getAttribute('aria-label')).toBe('FX chain this render runs');
+      await act(async () => answer?.());
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('the pointer counts the switched-off effects above too (round 3 walkthrough)', async () => {
     observeAs(false);
     try {
       await mount('daw', { chain: 'long' });
       await openDialog();
-      expect(await within(dialog()).findByRole('button', { name: 'See the 23 effects above, 1 switched off' })).toBeTruthy();
+      expect(await within(dialog()).findByRole('button', { name: '23 effects above, 1 off' })).toBeTruthy();
     } finally {
       vi.unstubAllGlobals();
     }
@@ -609,7 +650,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       });
     return { emit, live };
   };
-  const pointerOf = () => within(dialog()).queryByRole('button', { name: /^See the / });
+  const pointerOf = () => within(dialog()).queryByRole('button', { name: /^(\d+ effects? above|Chain above)/ });
 
   it('the pointer follows the window: shown when the window shrinks with the dialog open, gone when it grows (round 4, N3)', async () => {
     const { emit, live } = observeLive();
@@ -619,7 +660,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       await emit(39);
       expect(pointerOf()).toBeNull();
       await emit(0);
-      expect(pointerOf()?.textContent).toBe('See the 23 effects above, 1 switched off');
+      expect(pointerOf()?.textContent).toBe('23 effects above, 1 off');
       await emit(39);
       expect(pointerOf()).toBeNull();
       expect(live.disconnected).toBe(false);
@@ -704,7 +745,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     try {
       await mount('daw', { chain: 'empty' });
       await openDialog();
-      expect((await within(dialog()).findByRole('button', { name: /^See the chain above/ })).textContent).toBe('See the chain above: no effects');
+      expect((await within(dialog()).findByRole('button', { name: /^Chain above/ })).textContent).toBe('Chain above: no effects');
     } finally {
       vi.unstubAllGlobals();
     }
@@ -716,7 +757,7 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       await mount('daw');
       await openDialog();
       await act(async () => undefined);
-      expect(within(dialog()).queryByRole('button', { name: /^See the \d+ effects? above/ })).toBeNull();
+      expect(within(dialog()).queryByRole('button', { name: /^\d+ effects? above/ })).toBeNull();
     } finally {
       vi.unstubAllGlobals();
     }

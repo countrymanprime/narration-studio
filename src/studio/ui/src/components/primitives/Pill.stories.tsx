@@ -59,3 +59,6 @@ export const AnnouncesItsPressedState: Story = {
 // The list filter: 28 px, a round pill in sentence case, the ink fill when pressed.
 export const FilterInactive: Story = { args: { look: 'filter', label: 'To review 5' } };
 export const FilterActive: Story = { args: { look: 'filter', label: 'All 14', active: true } };
+
+// A chip that acts and holds no state, floating over other content: the render approval's pointer to effects that are out of view (#3605).
+export const ActionRaisedWithIcon: Story = { args: { look: 'filter', action: true, raised: true, icon: 'showAbove', label: '2 effects above' } };

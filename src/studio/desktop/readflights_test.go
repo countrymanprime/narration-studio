@@ -162,7 +162,7 @@ func TestAReadAfterAChangeDoesNotJoinAnOlderComputation(t *testing.T) {
 			}
 		},
 		"ledger prune": func(t *testing.T, host *Host) {
-			if _, err := evidence.NewLedgerStore(host.services().config.projectFolder).Retain(nil); err != nil {
+			if _, err := evidence.NewLedgerStore(host.services().config.projectFolder).Retain(nil, nil, nil); err != nil {
 				t.Fatal(err)
 			}
 		},
