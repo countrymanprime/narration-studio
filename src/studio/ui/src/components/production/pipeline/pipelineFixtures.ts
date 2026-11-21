@@ -80,7 +80,7 @@ export function calcFor(chapters: readonly ProductionChapter[], due: Date | null
 }
 
 export const NEXT_UP_BUSY: NextUpInputs = {
-  recording: { chapterId: 'c4', stage: 'recording', name: nameOf('c4'), words: WPH, share: 0.5 },
+  recording: { chapterId: 'c4', stage: 'recording', name: nameOf('c4'), words: WPH, share: 0.5, percent: 50 },
   pickups: { lines: 4, chapters: [nameOf('c2'), nameOf('c3')] },
   failing: { chapterId: 'c2', tag: nameOf('c2'), fails: ['RMS -24 dB (limit -23 to -18 dB)'] },
 };
