@@ -23,6 +23,8 @@ async function setMode(page: Page, mode: 'Record' | 'Cold read'): Promise<void> 
   await page.getByRole('button', { name: 'Record options' }).click();
   await page.getByRole('radio', { name: mode }).click();
   await page.keyboard.press('Escape');
+  // The popover has to be gone before the next key: a voice key pressed while it is still closing did not reach the Booth in 3 of 40 runs.
+  await expect(page.getByRole('radio', { name: mode })).toBeHidden();
 }
 
 const box = (page: Page) => hints(page).evaluate((el) => ({ height: el.getBoundingClientRect().height, width: el.getBoundingClientRect().width }));

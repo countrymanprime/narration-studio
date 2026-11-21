@@ -31,10 +31,12 @@ export default defineConfig({
   use: {
     baseURL: ORIGIN,
     launchOptions: LAUNCH,
-    // Nothing is kept for a passing test. A failing one leaves test-results/<test>/trace.zip (DOM snapshots,
-    // network and console for every action), which CI uploads with the run: `pnpm exec playwright show-trace <zip>`.
-    // `retain-on-failure` records every test but keeps the trace only on failure, so it needs no retry (docs/design/design-system.md#what-the-suites-do-not-prove: no retries).
-    trace: 'retain-on-failure',
+    // No trace on the first pass: recording one for every test, to keep it for the few that fail, took 19% of the suite's test time
+    // (99 tests: 534 s with `retain-on-failure`, 431 s without; docs/research/test-speed-plan-2026-11.md). For the trace of a failing
+    // test (DOM snapshots, network and console for every action) run it again with `--last-failed --trace on`, which leaves
+    // test-results/<test>/trace.zip: `pnpm exec playwright show-trace <zip>`. CI does that in the step after a red `visual` step
+    // and uploads the result. That second run only records: the first pass alone decides the step (no retries, docs/design/design-system.md#what-the-suites-do-not-prove).
+    trace: 'off',
     video: 'off',
     screenshot: 'off',
   },

@@ -19,7 +19,7 @@ async function arrowDown(page: Page, times: number): Promise<void> {
   for (let i = 0; i < times; i++) await page.keyboard.press('ArrowDown');
 }
 
-test('repro A: a refused take keeps its start, the arrow keys replace it and Space starts from the cursor', async ({ page }) => {
+test('repro A: a refused take keeps its start, the arrow keys move it to the reading and Space starts there (#3858)', async ({ page }) => {
   await page.goto('/?mockCallLog=1');
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -37,16 +37,16 @@ test('repro A: a refused take keeps its start, the arrow keys replace it and Spa
   const chosen = await reading(page);
   await arrowDown(page, 4);
   expect(await reading(page)).not.toBe(chosen);
+  // A move is the narrator's choice of start: the cursor is the only mark, and Record looks exactly that spot up once.
   await expect(nextRoll(page)).toHaveCount(0);
   const before = await lookups(page);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
   expect(await dawRecording(page)).toBe(true);
-  expect(await lookups(page)).toBe(before);
-  await expect(page.getByText(/Recording over ¶/)).toHaveCount(0);
+  expect(await lookups(page)).toBe(before + 1);
 });
 
-test('repro B: Record from here on the Script, the arrow keys replace the start and Space starts from the cursor', async ({ page }) => {
+test('repro B: Record from here on the Script, the arrow keys move the start to the reading and Space starts there (#3858)', async ({ page }) => {
   await page.goto('/?mockCallLog=1');
   await settlePage(page);
   await goToPage(page, 'Script');
@@ -57,11 +57,11 @@ test('repro B: Record from here on the Script, the arrow keys replace the start 
   const chosen = await reading(page);
   await arrowDown(page, 3);
   expect(await reading(page)).not.toBe(chosen);
+  // A move is the narrator's choice of start: the cursor is the only mark, and Record looks exactly that spot up once.
   await expect(nextRoll(page)).toHaveCount(0);
   const before = await lookups(page);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
   expect(await dawRecording(page)).toBe(true);
-  expect(await lookups(page)).toBe(before);
-  await expect(page.getByText(/Recording over ¶/)).toHaveCount(0);
+  expect(await lookups(page)).toBe(before + 1);
 });
