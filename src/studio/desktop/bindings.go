@@ -262,6 +262,7 @@ func (h *Host) ProjectSwitch(path, name string) (string, error) {
 	}
 	if attached {
 		h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
+		h.goBackground(h.warmProject)                                      // the new project's read caches (warm.go)
 	}
 	return reportAttach(ctx, attached, reason)
 }
