@@ -119,7 +119,6 @@ local function insert_child(plan)
   reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', plan.new_delta)
   reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(plan.source, 'I_RECINPUT'))
   reaper.SetMediaTrackInfo_Value(track, 'I_RECMODE', reaper.GetMediaTrackInfo_Value(plan.source, 'I_RECMODE'))
-  monitor_on(track)
   return plan.index
 end
 
