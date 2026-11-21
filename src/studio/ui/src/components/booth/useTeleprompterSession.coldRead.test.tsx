@@ -92,9 +92,8 @@ describe('stopping and waiting', () => {
     const { hook, state, teleprompterStop } = setup();
     await state({ phase: 'running', coldRead: true });
     let done = false;
-    let waiting: Promise<void> = Promise.resolve();
     act(() => {
-      waiting = hook.result.current.stopAndWait().then(() => {
+      void hook.result.current.stopAndWait().then(() => {
         done = true;
       });
     });
@@ -102,8 +101,8 @@ describe('stopping and waiting', () => {
     await state({ phase: 'stopping', coldRead: true });
     expect(done).toBe(false);
     await state({ phase: 'stopped', coldRead: true });
-    await act(() => waiting);
-    expect(done).toBe(true);
+    // On the host's word, well inside the 9 s after which it answers anyway.
+    await waitFor(() => expect(done).toBe(true), { timeout: 1000 });
   });
 
   it('answers at once when nothing runs', async () => {
