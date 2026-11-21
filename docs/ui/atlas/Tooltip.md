@@ -30,7 +30,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/booth/bookmarks/BookmarkRibbons.tsx`
 - `src/components/booth/page/CreditsWarning.tsx`
 - `src/components/booth/resume/RecordedThroughChip.tsx`
-- `src/components/booth/resume/ResumeOffer.tsx`
 - `src/components/booth/voices/VoiceControl.tsx`
 - `src/components/chapterTracks/SavedProjectChip.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`

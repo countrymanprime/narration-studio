@@ -50,8 +50,6 @@ describe('footerHints', () => {
   it('footer-spec-is-the-mocks: the Booth footer follows the mock, from the keymap, with pickups off', () => {
     expect(footerHints('booth', keymap)).toEqual([
       { keys: ['Space'], label: 'Record / stop', id: 'hint-reading.toggle' },
-      { keys: ['R'], label: 'Punch and roll from here', id: 'hint-booth.roll' },
-      { keys: ['Right-click'], label: 'Mark start' },
       { keys: ['↑', '↓'], label: 'Phrase', id: 'hint-booth.phrase.prev' },
       { keys: ['←', '→'], label: 'Word', id: 'hint-booth.word.prev' },
       { keys: ['B'], label: 'Bookmark', id: 'hint-bookmark.here' },
@@ -59,6 +57,12 @@ describe('footerHints', () => {
       { keys: ['F11'], label: 'Full screen', id: 'hint-booth.fullscreen' },
       { keys: ['Escape'], label: 'Exit', id: 'hint-booth.exit' },
     ]);
+  });
+
+  it('roll-again-shows-only-during-a-take: R is Record before a take, so its hint is listed only while one runs', () => {
+    const labels = (active: ReadonlySet<'take'>) => footerHints('booth', keymap, undefined, undefined, active).map((hint) => hint.label);
+    expect(labels(new Set())).not.toContain('Roll again');
+    expect(labels(new Set(['take' as const]))).toContain('Roll again');
   });
 
   it('the-footer-does-not-grow: the Booth footer lists no Ctrl+Alt+Space row, so it keeps the room it had (the key is in the shortcut sheet and Settings)', () => {
@@ -79,7 +83,7 @@ describe('footerHints', () => {
   });
 
   it('the-record-and-roll-hints-are-struck-for-a-take-the-DAW-started (#3666): Space and R cannot stop or roll it from here, and the tooltip says where', () => {
-    const held = footerHints('booth', keymap, undefined, undefined, new Set(['takeInDaw' as const]), 'REAPER');
+    const held = footerHints('booth', keymap, undefined, undefined, new Set(['take' as const, 'takeInDaw' as const]), 'REAPER');
     for (const id of ['hint-reading.toggle', 'hint-booth.roll']) {
       expect(held.find((hint) => hint.id === id)).toMatchObject({ off: true, offReason: 'This take was started in REAPER, so it stops and rolls there' });
     }
@@ -134,7 +138,7 @@ describe('footerHints', () => {
 
   it("remapped-keys-show-in-the-footer: the cap follows the narrator's keymap", () => {
     const remapped = { ...keymap, 'booth.roll': [gesture('keyboard', 'KeyG', ['Ctrl'])], 'booth.fullscreen': [gesture('keyboard', 'KeyF', ['Ctrl'])] };
-    const hints = footerHints('booth', remapped);
+    const hints = footerHints('booth', remapped, undefined, undefined, new Set(['take' as const]));
     expect(hints.find((hint) => hint.id === 'hint-booth.roll')?.keys).toEqual(['Ctrl', 'G']);
     expect(hints.find((hint) => hint.id === 'hint-booth.fullscreen')?.keys).toEqual(['Ctrl', 'F']);
   });
@@ -162,7 +166,7 @@ describe('nonKeyHints', () => {
   });
 
   it('lists the Booth right-click and no hint for a surface with none', () => {
-    expect(nonKeyHints('booth')).toEqual([{ after: 'booth.roll', keys: ['Right-click'], label: 'Mark start' }]);
+    expect(nonKeyHints('booth')).toEqual([]);
     expect(nonKeyHints('proof')).toEqual([]);
   });
 });

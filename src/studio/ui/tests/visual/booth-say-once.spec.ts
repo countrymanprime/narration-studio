@@ -1,5 +1,5 @@
 // A refused press says its sentence once (#3322). The mock's DAW refuses the start through `__NARRATION_MOCK_OVERRIDES__`, the start is chosen with
-// Start from here, and each window size the Booth supports is driven: the sentence is on screen once (the message, not again in the footer), and the
+// a clicked start, and each window size the Booth supports is driven: the sentence is on screen once (the message, not again in the footer), and the
 // message is not cut off or sideways.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
@@ -50,11 +50,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.setViewportSize({ width, height });
       await openRefusing(page);
       const idleFooter = await footerHeight(page);
-      await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-      await page
-        .getByRole('menuitem', { name: /Mark the start here/ })
-        .first()
-        .click();
+      await page.locator('[data-booth-text] [data-word]').nth(40).click();
       await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
       const toast = page.locator('[data-toast-region] [data-tone="error"]');
       await expect(toast).toBeVisible();

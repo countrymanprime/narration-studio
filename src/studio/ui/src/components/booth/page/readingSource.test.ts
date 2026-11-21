@@ -10,7 +10,6 @@ import {
   positionInScript,
   readingParagraphsOf,
   scriptWordAt,
-  secondsBefore,
   suspectedFrom,
   wordRangeOf,
 } from './readingSource';
@@ -81,12 +80,6 @@ describe('places', () => {
     expect(positionAtOffset(reading, 'p1', 4)).toEqual({ paragraphId: 'p1', word: 1 });
     expect(positionAtOffset(reading, 'p1', 6)).toEqual({ paragraphId: 'p1', word: 1 });
     expect(positionAtOffset(reading, 'p9', 6)).toBeNull();
-  });
-
-  it('a phrase sits at the words before it, at the standard rate', () => {
-    const units = boothUnits(reading);
-    expect(secondsBefore(units, 0)).toBe(0);
-    expect(secondsBefore(units, 1)).toBeGreaterThan(0);
   });
 });
 

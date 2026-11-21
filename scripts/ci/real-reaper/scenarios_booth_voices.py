@@ -1466,3 +1466,27 @@ def arm_lane_monitors_and_restores(env: Env) -> str:
         f"kept a value changed meanwhile and put back its own; change count, dirty flag and undo label unchanged ({before}); "
         f"a restore during a take waited and ran after the stop"
     )
+
+
+@scenario(
+    "booth_voices",
+    "track_create, arm_lane",
+    "#3670, #3333: track_create gives the new track (plain, voice in a folder, child of a new chapter folder) input monitoring on, "
+    "and arming it with arm_lane leaves it on; the other tracks' monitoring is not touched",
+)
+def track_create_monitors(env: Env) -> str:
+    g = folder_book(env)
+    for name in ("Narrator", "Veyra", "Drone", "Chapter 3", "Chapter 4"):
+        set_monitoring(env, name, 0)
+    before = monitoring(env)
+    env.ok("track_create", "Plain", until="TRACK_CREATED")
+    voice = env.ok("track_create", "Newcomer", g["Chapter 3"], until="TRACK_CREATED")
+    env.ok("track_create", "Chapter 9", "", "Narrator 9", until="TRACK_CREATED")
+    created = monitoring(env)
+    assert {k: v for k, v in created.items() if k in before} == before, f"a track that was there changed its monitoring: {created}"
+    assert [created[n] for n in ("Plain", "Newcomer", "Narrator 9")] == [1, 1, 1], f"new tracks must monitor: {created}"
+    armed = env.ok("arm_lane", voice[2], "monitor", until="ARMED")
+    after = monitoring(env)
+    assert after["Newcomer"] == 1 and armed[5] == "0", f"arming a created track must leave it monitored, with nothing turned on again: {armed} {after}"
+    # The untouched folder track (Chapter 9) shows what REAPER's own insert gives in this scratch config; if it reads 1 the 0-to-1 step is proven by the harness only.
+    return f"after create (REAPER 7.x): Plain {created['Plain']}, Newcomer {created['Newcomer']}, Narrator 9 {created['Narrator 9']}, Chapter 9 folder {created['Chapter 9']}; after arm_lane monitor: Newcomer {after['Newcomer']}, answer {armed}; earlier tracks unchanged"

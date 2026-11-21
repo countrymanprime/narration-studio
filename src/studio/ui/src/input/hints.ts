@@ -41,7 +41,7 @@ export function gestureKeys(gesture: Gesture): string[] {
 }
 
 /** A fact about the screen that decides whether a conditional hint shows. */
-type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldRead' | 'takeInDaw';
+type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders' | 'coldRead' | 'takeInDaw' | 'take';
 
 /**
  * One footer's hints: the command whose first gesture is drawn, any `with` commands whose caps follow it in one chord
@@ -80,7 +80,7 @@ const VOICE_IN_DAW = { when: 'takeInDaw', reason: (dawName: string) => `This tak
 export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   booth: [
     { id: 'reading.toggle', label: 'Record / stop', off: [TAKE_IN_DAW] },
-    { id: 'booth.roll', label: 'Punch and roll from here', off: [TAKE_IN_DAW] },
+    { id: 'booth.roll', label: 'Roll again', when: 'take', off: [TAKE_IN_DAW] },
     { id: 'booth.phrase.prev', with: ['booth.phrase.next'], label: 'Phrase' },
     { id: 'booth.word.prev', with: ['booth.word.next'], label: 'Word' },
     { id: 'bookmark.here', label: 'Bookmark' },
@@ -107,7 +107,7 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
 };
 
 const FOOTER_EXTRAS: Record<FooterSurface, FooterExtra> = {
-  booth: [{ after: 'booth.roll', keys: ['Right-click'], label: 'Mark start' }],
+  booth: [],
   proof: [],
 };
 

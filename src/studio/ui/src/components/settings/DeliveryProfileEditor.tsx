@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { TextField } from '../primitives/TextField';
 import { deliveryProfileTitle, formatBound } from '../master/deliveryProfile';
 import { Mark } from '../master/RuleBadges';
+import { hasVisibleText } from '../../visibleText';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -91,7 +92,7 @@ export function DeliveryProfileEditor({
     }
     return out;
   }, [drafts, fileRules]);
-  const nameProblem = name.trim() === '' ? 'Give the profile a name.' : name.trim().length > 80 ? 'A name is at most 80 characters.' : undefined;
+  const nameProblem = !hasVisibleText(name) ? 'Give the profile a name.' : name.trim().length > 80 ? 'A name is at most 80 characters.' : undefined;
   const invalid = nameProblem !== undefined || Object.keys(problems).length > 0;
 
   const update = (id: string, change: Partial<Draft>) => setDrafts((current) => ({ ...current, [id]: { ...current[id], ...change } }));

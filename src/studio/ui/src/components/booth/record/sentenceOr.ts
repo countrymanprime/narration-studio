@@ -1,8 +1,4 @@
-/** Fillers that are letters or symbols to Unicode and draw nothing: the blank braille pattern, the Hangul fillers and the musical null notehead. */
-const FILLERS = new RegExp('[\\u2800\\u115F\\u1160\\u3164\\uFFA0\\u{1D159}]', 'gu');
-
-/** A character that draws something: a letter, a number, punctuation or a symbol. White space, controls, format characters, fillers and lone combining marks do not. */
-const DRAWS = /[\p{L}\p{N}\p{P}\p{S}]/u;
+import { hasVisibleText } from '../../../visibleText';
 
 /**
  * A host's sentence for why a press ended, or `fallback` when it has no words: nothing, spaces, or only characters that draw nothing (zero-width, controls, format
@@ -11,5 +7,5 @@ const DRAWS = /[\p{L}\p{N}\p{P}\p{S}]/u;
  */
 export function sentenceOr(text: unknown, fallback: string): string {
   // A host's answer is not typed: a number, a flag or an object where a sentence belongs says nothing.
-  return typeof text === 'string' && DRAWS.test(text.replace(FILLERS, '')) ? text.trim() : fallback;
+  return hasVisibleText(text) ? (text as string).trim() : fallback;
 }

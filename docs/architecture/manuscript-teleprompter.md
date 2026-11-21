@@ -498,8 +498,8 @@ redirects here keeping its query and hash. What the narrator sees and does on it
 ## Resume: where REAPER is and where the prompter was
 
 The Companion opens a chapter with a compact **Where you stopped** prompt above the
-text (`src/studio/ui/src/components/booth/ResumePrompt.tsx`); the Booth shows the same lookup as one line, "Resume at ¶ n"
-(`resume/ResumeOffer.tsx`). It reconciles two
+text (`src/studio/ui/src/components/booth/ResumePrompt.tsx`); the Booth uses the same lookup to know where the recording ends, so it
+opens there and a Record with nothing chosen continues from it (#3858); the Booth draws no resume line. It reconciles two
 sources and asks only when they disagree (owner report of 2026-09-24: "find where
 the track was, and find out where you were in the script, and if they match, you
 keep going").

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { describeScope, scopeOf } from './atlas-scope.mjs';
+import { atlasScript, describeScope, scopeOf } from './atlas-scope.mjs';
 
 const UI = 'src/studio/ui/';
 const module = (source, ...imports) => ({ source, dependencies: imports.map((resolved) => ({ resolved })) });
@@ -102,4 +102,10 @@ test('describeScope says what runs and what is left to main', () => {
     describeScope(scopeOf([`${UI}src/components/proof/Page.tsx`], GRAPH)),
     `atlas scope: 1 story files the change reaches (${PAGE}); the other stories run on main after the merge.`,
   );
+});
+
+test('the atlas builds Storybook itself, unless CI built it once for the run', () => {
+  assert.equal(atlasScript({}), 'atlas');
+  assert.equal(atlasScript({ UI_STORYBOOK_PREBUILT: '' }), 'atlas');
+  assert.equal(atlasScript({ UI_STORYBOOK_PREBUILT: '1' }), 'atlas:draw');
 });
