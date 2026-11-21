@@ -258,7 +258,8 @@ export async function scrollToTopHeld(page: Page, panel: Locator): Promise<void>
   const where = () =>
     panel.evaluate((element) => {
       let scroller: HTMLElement | null = element.parentElement;
-      while (scroller && scroller.scrollHeight <= scroller.clientHeight) scroller = scroller.parentElement;
+      while (scroller && !(/auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight))
+        scroller = scroller.parentElement;
       if (!scroller) return { moved: false, atTop: false, canMove: false };
       const gap = element.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
       return { moved: scroller.scrollTop > 0, atTop: gap <= 4, canMove: true };

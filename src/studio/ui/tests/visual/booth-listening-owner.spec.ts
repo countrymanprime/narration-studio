@@ -381,11 +381,13 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     // Nothing stopped the take behind the narrator; Stop is theirs and works.
     expect((await calls(page)).stops).toBe(1);
     await expect(stop).toBeVisible();
+    const clicked = Date.now();
     await stop.click();
     // The press must reach the host first: when Record does not come back, which of "the press never sent the stop" and "the stop went through and
     // the take was taken again" it was is the difference between 1 and 2 here (#3930).
     await expect.poll(async () => (await calls(page)).stops, { message: "the narrator's Stop reached the host", timeout: 8000 }).toBe(2);
-    await expect(record(page), 'Record is back once the stop is answered').toBeVisible({ timeout: 8000 });
+    // One 8 s limit from the click for both waits, as before: the first must not lengthen the second.
+    await expect(record(page), 'Record is back once the stop is answered').toBeVisible({ timeout: Math.max(1, 8000 - (Date.now() - clicked)) });
     expect((await calls(page)).stops, 'nothing sent a third stop while Record came back').toBe(2);
     // The sentence goes with the take: it does not stay beside "Stopped. Recorded".
     await expect(sentence).toHaveCount(0);
