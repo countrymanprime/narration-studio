@@ -399,11 +399,11 @@ function BoothSession({
 
   const chapterLabels = useMemo(() => (data.chapters ?? []).map((item) => ({ id: item.id, name: chapterName(item, 'short') })), [data.chapters]);
   const chapterLabel = useCallback((id: string) => chapterLabels.find((item) => item.id === id)?.name ?? id, [chapterLabels]);
-  const { seek } = page;
+  const { seek, pick } = page;
   const jumpToLine = (line: PickupItem) => {
     onPick(line.id);
     if (line.chapterId !== chapterId) choose({ chapter: line.chapterId });
-    else if (line.paragraphId) seek(line.paragraphId, 0);
+    else if (line.paragraphId) pick(line.paragraphId, 0);
   };
   const pickups = usePickupSession({
     ids: pickupIds,
@@ -438,8 +438,8 @@ function BoothSession({
   useEffect(() => {
     if (placed.current || !startLine || units.length === 0) return;
     placed.current = true;
-    if (startLine.chapterId === chapter?.id && startLine.paragraphId) seek(startLine.paragraphId, 0);
-  }, [startLine, units.length, chapter?.id, seek]);
+    if (startLine.chapterId === chapter?.id && startLine.paragraphId) pick(startLine.paragraphId, 0);
+  }, [startLine, units.length, chapter?.id, pick]);
 
   const bookmarks = useBoothBookmarks({
     chapterId: chapter?.id ?? '',
@@ -476,7 +476,8 @@ function BoothSession({
     position: page.position,
     listening: session.active,
     refreshRecorded: data.refreshRecorded,
-    seek,
+    seek: page.seek,
+    place: page.place,
     setOpened: page.setOpened,
     onReturned,
   });

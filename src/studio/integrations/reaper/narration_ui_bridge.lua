@@ -90,6 +90,8 @@ end
 -- How often the reachability heartbeat (PROJECT_STATUS) is appended, in reaper.time_precise() seconds: frequent enough that the Go host's own poll (transcriptLoop, 150ms) notices REAPER closing
 -- quickly, rare enough not to grow events.log without bound over a long session.
 M.HEARTBEAT_INTERVAL_SECONDS = 1.5
+-- The least time between two reads of the track list revision that the edit counter asked for (the heartbeat function).
+M.REVISION_MIN_SECONDS = 0.1
 
 -- The bridge running in this REAPER publishes its session folder in a non-persistent ExtState, which every script in the same
 -- REAPER reads and which is gone when REAPER closes, so the launcher action reuses it instead of starting a second loop
@@ -192,14 +194,31 @@ function M.run(session_dir, registry)
   -- The time the last heartbeat read, so checking the timing switch costs no clock read of its own; and the timing being
   -- collected, nil while the diagnostic is off.
   local last_now, timing, timing_checked_at = nil, nil, nil
+  -- The track list's revision (narration_tracks_read.lua) in the last heartbeat sent, and the edit counter it was read at. The revision is
+  -- read again when a heartbeat is due and, between two, on a tick where the edit counter has moved: a track added, renamed, moved or removed
+  -- sends a heartbeat at once, so the host reads the list again then and at no other time. The read every interval catches a change the
+  -- counter does not count (an edit a script makes outside an undo block).
+  -- A source that moves the counter on every tick must not make every tick read the list: between two heartbeats the revision is read at most
+  -- once every REVISION_MIN_SECONDS, and a counter move inside that wait is read when it ends.
+  local last_revision, last_change_count, revision_read_at = '', nil, nil
   local function heartbeat()
     local now = reaper.time_precise()
     last_now = now
     local play_state = reaper.GetPlayState()
-    if last_heartbeat_at and (now - last_heartbeat_at) < M.HEARTBEAT_INTERVAL_SECONDS and play_state == last_play_state then
+    local change_count = reaper.APIExists('GetProjectStateChangeCount') and reaper.GetProjectStateChangeCount(0) or ''
+    local due = not last_heartbeat_at or (now - last_heartbeat_at) >= M.HEARTBEAT_INTERVAL_SECONDS or play_state ~= last_play_state
+    local revision = last_revision
+    local moved = change_count ~= last_change_count and (not revision_read_at or (now - revision_read_at) >= M.REVISION_MIN_SECONDS)
+    if registry.tracks_revision and (due or moved) then
+      -- A revision that cannot be read is sent empty, and the host then judges its list by age: the heartbeat itself must not stop for it.
+      local ok, value = pcall(registry.tracks_revision)
+      revision = ok and value or ''
+      last_change_count, revision_read_at = change_count, now
+    end
+    if not due and revision == last_revision then
       return
     end
-    last_heartbeat_at, last_play_state = now, play_state
+    last_heartbeat_at, last_play_state, last_revision = now, play_state, revision
     -- EnumProjects(-1, '') returns the active tab's path for a saved project and the exact empty string (never
     -- nil) for an unsaved one (spike S6, docs/reference/daw/reaper.md); the run field
     -- (second argument to ctx.event) is deliberately empty, the broadcast shape events.go's fan-out already
@@ -209,17 +228,13 @@ function M.run(session_dir, registry)
     -- The fourth field is REAPER's edit counter (GetProjectStateChangeCount), appended for DAW chapter-track auto-sync,
     -- so the host can tell the project changed before it is saved. It is empty on a REAPER without the call,
     -- and wire.go treats it as optional, so an older script's three-field heartbeat still passes.
-    local change_count = reaper.APIExists('GetProjectStateChangeCount') and reaper.GetProjectStateChangeCount(0) or ''
     -- The fifth and sixth fields are the transport: GetPlayState's bit field (1 playing, 2 paused, 4 recording)
     -- and GetPlayPosition in seconds. wire.go treats both as optional, so an older script's heartbeat still passes.
     local play_position = string.format('%.6f', reaper.GetPlayPosition() or 0)
     -- A seventh field, 1, only while the timing diagnostic is on: the host then writes its record-press timeline too
-    -- (docs/research/record-press-timeline.md). Off, the heartbeat keeps the six fields an older host expects.
-    if timing then
-      ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, '1')
-    else
-      ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)
-    end
+    -- (docs/research/record-press-timeline.md).
+    -- The eighth field is the track list's revision, so the seventh is sent empty while the diagnostic is off.
+    ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '', revision)
   end
   local function check_timing()
     if not last_now or (timing_checked_at and last_now - timing_checked_at < M.TIMING_CHECK_SECONDS) then

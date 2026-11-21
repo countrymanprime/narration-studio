@@ -112,7 +112,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Intent:** know without asking whether the engine is answering, which project it has open, whether that project has unsaved changes, its change count, and the transport state.
 - **Role:** `Heartbeat`, synchronous reads of what the engine last reported.
 - **Result:** `Reachable`, `CurrentProject`, `Matches`, `ChangeCount` and `Transport`. The heartbeat carries the transport and is sent at once when it changes ([The REAPER bridge and its test harness](../../architecture/reaper-bridge.md)).
-- **REAPER:** the bridge's reachability heartbeat ([the bridge](../../architecture/reaper-bridge.md#reachability-heartbeat)).
+- **REAPER:** the bridge's reachability heartbeat ([the bridge](../../architecture/reaper-bridge.md#reachability-heartbeat)). It also carries the track list's revision and is sent at once when the list changes, which is how the host knows to read [`tracks_read`](#tracks_read) again; that is REAPER's own (`Reachability.TracksRevision`), outside the role.
 - **Audacity:** not built.
 - **Checked:** expected result is row A1 of [the verification pass](../../operations/reaper-verification-pass.md#the-rows): the change count is present, whole, and rises after a move, a marker and a save; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-studio/issues/510)).
 
@@ -162,7 +162,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 - **Intent:** show the tracks the engine has now, so a track or folder the narrator adds there appears in Chapter links and Link chapters before the project is saved ([#2840](https://github.com/countrymanprime/narration-studio/issues/2840)).
 - **Role:** `TrackLister`, synchronous.
-- **Result:** the open project's file (empty when never saved), whether it is unsaved, its edit counter, and every track in order with the engine's id for it, its name (empty for a track never named) and its folder depth change; then how many were listed and how many there are. It changes nothing and adds no undo point. The host uses it only when the engine has the linked project open, and otherwise reads the saved project and says why (`TracksLive`).
+- **Result:** the open project's file (empty when never saved), whether it is unsaved, its edit counter, the list's revision on an engine that has one (REAPER: the value its heartbeat carries, so the host knows when to read again), and every track in order with the engine's id for it, its name (empty for a track never named) and its folder depth change; then how many were listed and how many there are. It changes nothing and adds no undo point. The host uses it only when the engine has the linked project open, and otherwise reads the saved project and says why (`TracksLive`).
 - **REAPER:** `tracks_read` (`TRACKS_READ`, `TRACKS_ROW`, `TRACKS_READ_END`), Experimental, in `narration_tracks_read.lua`: `EnumProjects(-1)`, `GetProjectStateChangeCount`, then per track `GetTrackGUID`, `P_NAME` and `I_FOLDERDEPTH`, at most 2000 rows. `P_NAME` is read rather than `GetTrackName`, which answers "Track N" for a track with no name, so the live name equals the saved `.rpp`'s `NAME`.
 - **Audacity 3.x:** not yet available: the host keeps reading Audacity's tracks from the snapshot it takes while Audacity answers.
 - **Audacity 4.x:** not available: no scripting interface ([Audacity 4.x](audacity-4.md)).

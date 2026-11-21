@@ -53,6 +53,11 @@ var numberSpecs = map[string]map[string]numberSpec{
 	"Booth": {
 		"words_per_page": {min: bound(50), max: bound(1000), step: bound(1), unit: "words"},
 	},
+	// How many unknown lines one run may put to the local model: a whole number, 1 to 200 (settings.wholeNumbers reads one
+	// outside as 20).
+	"ManuscriptGuide": {
+		"speaker_fallback_max_quotes": {min: bound(1), max: bound(200), step: bound(1), unit: "lines"},
+	},
 	// The proofing render length tolerance is seconds, at least 0, with no
 	// declared maximum and a 0.1 s step; blank (no default) keeps the length check not required.
 	"Proofing": {
