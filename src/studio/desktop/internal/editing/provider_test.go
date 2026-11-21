@@ -1,13 +1,9 @@
 package editing
 
 import (
-	"bytes"
 	"context"
-	"os"
 	"testing"
-	"time"
 
-	"desktop/internal/evidence"
 	"desktop/internal/stages"
 	"desktop/internal/tracks"
 )
@@ -191,69 +187,3 @@ var errUnreadableFixture = errNamed("could not read the saved project")
 type errNamed string
 
 func (e errNamed) Error() string { return string(e) }
-
-// A scan writes each item's key down, so it reads the file whatever the cache holds, and so does the write of its result.
-func TestAScanRefreshesIdentitiesTheCacheAlreadyHeld(t *testing.T) {
-	svc := newTestService(t)
-	old := time.Now().Add(-time.Hour)
-	for _, item := range svc.track.Items {
-		if err := os.Chtimes(item.SourceFile, old, old); err != nil {
-			t.Fatal(err)
-		}
-	}
-	scanCache := &evidence.IdentityCache{}
-	svc.config.Identities = scanCache
-	for _, item := range svc.track.Items {
-		if _, err := scanCache.Identify(item.SourceFile, svc.dir); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if _, err := svc.Start(context.Background(), Request{DocumentID: "doc-1", ChapterID: "chapter-1", ChapterTitle: "Chapter One"}); err != nil {
-		t.Fatal(err)
-	}
-	svc.Wait()
-	if got := scanCache.Reads(); got != 6 {
-		t.Fatalf("a scan of two files the cache already held made %d reads in all, want 6 (each read again for its key and for its result)", got)
-	}
-}
-
-// A take rewritten in place with its size and modification time kept is a different file: the next read of the signals samples it and
-// answers that its scan is stale.
-func TestSignalsOfATakeRewrittenKeepingSizeAndTimeAreStale(t *testing.T) {
-	svc := newTestService(t)
-	take := svc.track.Items[0].SourceFile
-	old := time.Now().Add(-time.Hour)
-	if err := os.Chtimes(take, old, old); err != nil {
-		t.Fatal(err)
-	}
-	svc.config.Identities = &evidence.IdentityCache{}
-	if _, err := svc.Start(context.Background(), Request{DocumentID: "doc-1", ChapterID: "chapter-1", ChapterTitle: "Chapter One"}); err != nil {
-		t.Fatal(err)
-	}
-	svc.Wait()
-	state := func() evidence.EvaluatorState {
-		t.Helper()
-		coverage, _, _, err := svc.gatherCoverage(chapterContext(), evidenceView(svc), AnalyzerSilence, AnalyzerVersion)
-		if err != nil || len(coverage.Items) != 2 {
-			t.Fatalf("gatherCoverage() = %+v, %v", coverage, err)
-		}
-		return coverage.Items[0].State
-	}
-	if got := state(); got != evidence.StateCurrent {
-		t.Fatalf("after the scan the take is %q, want current", got)
-	}
-
-	info, err := os.Stat(take)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(take, bytes.Repeat([]byte("Z"), int(info.Size())), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chtimes(take, old, old); err != nil {
-		t.Fatal(err)
-	}
-	if got := state(); got != evidence.StateStale {
-		t.Fatalf("a take rewritten keeping its size and time is %q, want stale", got)
-	}
-}

@@ -175,59 +175,6 @@ func TestRecorderWritesOneRecordPerFinishedRun(t *testing.T) {
 	}
 }
 
-// ageAudio sets path's modification time an hour back, so an identity cache remembers the file.
-func ageAudio(t *testing.T, path string) {
-	t.Helper()
-	old := time.Now().Add(-time.Hour)
-	if err := os.Chtimes(path, old, old); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// rewriteKeepingSizeAndTime replaces path's content with content of the same length and puts its modification time back: the change an
-// identity cache's Identify cannot see and its Refresh must.
-func rewriteKeepingSizeAndTime(t *testing.T, path string) {
-	t.Helper()
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, []byte(strings.Repeat("Z", int(info.Size()))), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chtimes(path, info.ModTime(), info.ModTime()); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// A run's record says which audio was compared, so the recorder reads each file whatever the identity cache holds.
-func TestRecorderWritesDownTheAudioAsItIsNotAsTheCacheRemembersIt(t *testing.T) {
-	f := newCompareFixture(t)
-	f.recorder.Identities = &evidence.IdentityCache{}
-	ageAudio(t, f.audioA)
-	if _, err := f.recorder.Identities.Identify(f.audioA, f.dir); err != nil {
-		t.Fatal(err)
-	}
-	rewriteKeepingSizeAndTime(t, f.audioA)
-	f.record(t, OutcomeComplete, "Chapter One", f.project.Tracks[0].Items[0])
-
-	records, err := f.ledger.List(AnalyzerTranscriptCompare, testChapter)
-	if err != nil || len(records) != 1 {
-		t.Fatalf("records = %d, %v", len(records), err)
-	}
-	var payload ComparisonPayload
-	if err := json.Unmarshal(records[0].Payload, &payload); err != nil {
-		t.Fatal(err)
-	}
-	onDisk, err := evidence.Identify(f.audioA, f.dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(payload.Compared) != 1 || payload.Compared[0].Identity != identityKey(onDisk) {
-		t.Fatalf("compared = %+v, want the identity of the file on disk %q", payload.Compared, identityKey(onDisk))
-	}
-}
-
 func TestRecorderAttributesOnlyWhatItCan(t *testing.T) {
 	f := newCompareFixture(t)
 	f.recorder.Lookup = titleLookup{"Chapter One": {testChapter, "c-0009"}}

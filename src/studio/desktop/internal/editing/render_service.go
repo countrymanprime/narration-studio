@@ -78,7 +78,7 @@ func (s *Service) startRender(ctx context.Context, request Request) (proofing.Re
 	}
 	view := stages.EvidenceView{
 		DocumentID: request.DocumentID, ProjectFolder: s.config.Project, Project: project,
-		ProjectFile: projectFile, Ledger: s.ledger, Mapping: s.mapping, Identities: s.config.Identities,
+		ProjectFile: projectFile, Ledger: s.ledger, Mapping: s.mapping,
 	}
 	chapter := stages.ChapterContext{DocumentID: request.DocumentID, ChapterID: request.ChapterID, Title: request.ChapterTitle, Status: stages.StageEditing}
 	status, err := proofing.EvaluateRender(s.config.Renders, chapter, view)

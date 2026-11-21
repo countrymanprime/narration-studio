@@ -93,7 +93,7 @@ func (p *SignalProvider) projectUnreadable(err error) stages.Signal {
 // ledger folder or reads the link file per chapter (issue 3801). A saved project that cannot be used is ProjectErr, a refusal with its
 // Reason, never a failed read.
 func (s *Service) EvidenceView(_ context.Context, documentID string) stages.EvidenceView {
-	view := stages.EvidenceView{DocumentID: documentID, ProjectFolder: s.config.Project, Ledger: s.ledger.SnapshotWhenAsked(), Mapping: s.mapping.SnapshotWhenAsked(documentID), Identities: s.identities}
+	view := stages.EvidenceView{DocumentID: documentID, ProjectFolder: s.config.Project, Ledger: s.ledger.SnapshotWhenAsked(), Mapping: s.mapping.SnapshotWhenAsked(documentID)}
 	if s.config.Project == "" {
 		view.ProjectErr = unknown(ReasonNoProject, "open a project first")
 		return view

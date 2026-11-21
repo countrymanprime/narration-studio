@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"desktop/internal/evidence"
 	"desktop/internal/measure"
 	"desktop/internal/stages"
 )
@@ -181,7 +180,7 @@ func TestRenderMeasurementIsKeyedByTheRender(t *testing.T) {
 		t.Fatalf("nothing measured yet: %+v", status)
 	}
 
-	recorded, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, f.render, wavReport(f.render), "sha", nil, attestedAt, attestedAt.Add(time.Minute))
+	recorded, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, f.render, wavReport(f.render), "sha", nil, attestedAt, attestedAt.Add(time.Minute))
 	if err != nil || len(recorded) != 1 {
 		t.Fatalf("RecordRenderMeasurements() = %v, %v", recorded, err)
 	}
@@ -195,11 +194,11 @@ func TestRenderMeasurementIsKeyedByTheRender(t *testing.T) {
 	}
 
 	other := writeAudio(t, f.dir, "somewhere-else.wav", "RIFF....WAVE unrelated")
-	if recorded, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, other, wavReport(other), "", nil, attestedAt, attestedAt); err != nil || len(recorded) != 0 {
+	if recorded, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, other, wavReport(other), "", nil, attestedAt, attestedAt); err != nil || len(recorded) != 0 {
 		t.Fatalf("a file that is no chapter's render records nothing: %v %v", recorded, err)
 	}
 
-	if _, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, f.render, measure.Report{}, "", errors.New("the file changed"), attestedAt.Add(2*time.Minute), attestedAt.Add(3*time.Minute)); err != nil {
+	if _, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, f.render, measure.Report{}, "", errors.New("the file changed"), attestedAt.Add(2*time.Minute), attestedAt.Add(3*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if status := f.evaluate(t); !status.MeasurementFailed || status.Measurement != nil {
@@ -228,69 +227,5 @@ func TestSniffFormat(t *testing.T) {
 		if got := sniffFormat(path); got != want[name] {
 			t.Errorf("sniffFormat(%s) = %q, want %q", name, got, want[name])
 		}
-	}
-}
-
-// Choosing the render writes its identity and its takes' down, so each choice reads every file whatever the cache holds.
-func TestAttestReadsTheRenderAndItsTakesOnEveryChoice(t *testing.T) {
-	f := newRenderFixture(t)
-	for _, path := range []string{f.render, f.audioA, f.audioB} {
-		ageAudio(t, path)
-	}
-	view := f.savedView()
-	view.Identities = &evidence.IdentityCache{}
-	for _, want := range []int64{3, 6} {
-		if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
-			t.Fatal(err)
-		}
-		if got := view.Identities.Reads(); got != want {
-			t.Fatalf("%d reads in all, want %d (the render and two takes on each choice)", got, want)
-		}
-	}
-}
-
-// The render's state is read from the files as they are: a render or a take rewritten with its size and modification time kept is
-// sampled on the next read, and the render is stale.
-func TestEvaluateRenderOfARenderRewrittenKeepingSizeAndTime(t *testing.T) {
-	for name, rewritten := range map[string]func(f *renderFixture) string{
-		"the render": func(f *renderFixture) string { return f.render },
-		"a take":     func(f *renderFixture) string { return f.audioA },
-	} {
-		t.Run(name, func(t *testing.T) {
-			f := newRenderFixture(t)
-			for _, path := range []string{f.render, f.audioA, f.audioB} {
-				ageAudio(t, path)
-			}
-			view := f.savedView()
-			view.Identities = &evidence.IdentityCache{}
-			if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
-				t.Fatal(err)
-			}
-			if status, err := EvaluateRender(f.store, proofingChapter(), view); err != nil || status.State != RenderCurrent {
-				t.Fatalf("EvaluateRender() = %+v, %v, want current", status, err)
-			}
-			rewriteKeepingSizeAndTime(t, rewritten(f))
-			if status, err := EvaluateRender(f.store, proofingChapter(), view); err != nil || status.State != RenderStale {
-				t.Fatalf("EvaluateRender() = %+v, %v, want stale", status, err)
-			}
-		})
-	}
-}
-
-// A measurement is recorded for the render the file is now, so a file rewritten after it was chosen (its size and time kept, which the
-// identity cache alone cannot see) is no chapter's render and records nothing.
-func TestRecordRenderMeasurementsReadsTheFileWhateverTheCacheHolds(t *testing.T) {
-	f := newRenderFixture(t)
-	ageAudio(t, f.render)
-	view := f.savedView()
-	view.Identities = &evidence.IdentityCache{}
-	if _, err := Attest(f.store, proofingChapter(), view, f.render, attestedAt); err != nil {
-		t.Fatal(err)
-	}
-	rewriteKeepingSizeAndTime(t, f.render)
-
-	recorded, err := RecordRenderMeasurements(f.ledger, f.store, view.Identities, testDocument, f.dir, f.render, wavReport(f.render), "", nil, attestedAt, attestedAt)
-	if err != nil || len(recorded) != 0 {
-		t.Fatalf("RecordRenderMeasurements() = %v, %v, want no record for a file that is no longer the chosen render", recorded, err)
 	}
 }

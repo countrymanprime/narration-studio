@@ -198,7 +198,7 @@ func (s *RenderStore) read() (rendersFileShape, error) {
 // basis, not a guess from timestamps). It refuses a file it cannot read and
 // a chapter without one confirmed track in the saved project.
 func Attest(store *RenderStore, chapter stages.ChapterContext, view stages.EvidenceView, renderPath string, now time.Time) (RenderAssociation, error) {
-	render, err := fingerprintRender(renderPath, view.ProjectFolder, view.Identities.Refresh)
+	render, err := fingerprintRender(renderPath, view.ProjectFolder)
 	if err != nil {
 		return RenderAssociation{}, fmt.Errorf("could not read the rendered file: %w", err)
 	}
@@ -208,7 +208,7 @@ func Attest(store *RenderStore, chapter stages.ChapterContext, view stages.Evide
 	}
 	association := RenderAssociation{
 		DocumentID: chapter.DocumentID, ChapterID: chapter.ChapterID, Path: renderPath, Render: render, Format: sniffFormat(renderPath),
-		TrackGUID: track.GUID, ItemsFingerprint: itemsFingerprint(track.Items, view.ProjectFolder, view.Identities.Refresh), AttestedAt: now.UTC(),
+		TrackGUID: track.GUID, ItemsFingerprint: itemsFingerprint(track.Items, view.ProjectFolder), AttestedAt: now.UTC(),
 	}
 	if err := store.Set(association); err != nil {
 		return RenderAssociation{}, err
@@ -260,7 +260,7 @@ func EvaluateRender(store *RenderStore, chapter stages.ChapterContext, view stag
 		return RenderStatus{State: RenderNone, Cause: stages.CauseNeverAnalyzed, Reason: "Choose the rendered file for this chapter."}, nil
 	}
 	status := RenderStatus{Association: &association, Fingerprint: association.Render.Key + "|" + association.ItemsFingerprint}
-	render, err := fingerprintRender(association.Path, view.ProjectFolder, view.Identities.Refresh)
+	render, err := fingerprintRender(association.Path, view.ProjectFolder)
 	if err != nil {
 		status.State, status.Cause, status.Reason = RenderMissing, stages.CauseMeasurementUnavailable, fmt.Sprintf("The rendered file %s could not be read. Choose the rendered file again.", filepath.Base(association.Path))
 		return status, nil
@@ -274,7 +274,7 @@ func EvaluateRender(store *RenderStore, chapter stages.ChapterContext, view stag
 		status.State, status.Cause, status.Reason = RenderStale, problem.Cause, problem.Reason
 		return status, nil
 	}
-	if track.GUID != association.TrackGUID || itemsFingerprint(track.Items, view.ProjectFolder, view.Identities.Refresh) != association.ItemsFingerprint {
+	if track.GUID != association.TrackGUID || itemsFingerprint(track.Items, view.ProjectFolder) != association.ItemsFingerprint {
 		status.State, status.Cause, status.Reason = RenderStale, stages.CauseStale, "The chapter's audio changed in the saved project since you chose the rendered file. Render the chapter again and choose the new file."
 		return status, nil
 	}
@@ -322,7 +322,7 @@ type RenderMeasurementPayload struct {
 // chosen for more than one chapter): complete with the Report, or failed with
 // measureErr. A file that is no chapter's render writes nothing. It is called
 // when the measurement job finishes a file; a cancelled file is not reported.
-func RecordRenderMeasurements(ledger *evidence.LedgerStore, store *RenderStore, identities *evidence.IdentityCache, documentID, projectFolder, path string, report measure.Report, sha256 string, measureErr error, started, completed time.Time) ([]evidence.LedgerRecord, error) {
+func RecordRenderMeasurements(ledger *evidence.LedgerStore, store *RenderStore, documentID, projectFolder, path string, report measure.Report, sha256 string, measureErr error, started, completed time.Time) ([]evidence.LedgerRecord, error) {
 	if ledger == nil || store == nil || documentID == "" {
 		return nil, nil
 	}
@@ -330,7 +330,7 @@ func RecordRenderMeasurements(ledger *evidence.LedgerStore, store *RenderStore, 
 	if err != nil {
 		return nil, err
 	}
-	render, err := fingerprintRender(path, projectFolder, identities.Refresh)
+	render, err := fingerprintRender(path, projectFolder)
 	if err != nil {
 		return nil, nil
 	}
@@ -372,11 +372,8 @@ func decodeRenderMeasurement(record evidence.LedgerRecord) (RenderMeasurementPay
 	return payload, true
 }
 
-// identifyFunc reads a file's identity: an IdentityCache's Refresh, so the file's content is sampled on every ask.
-type identifyFunc func(path, projectFolder string) (evidence.SourceIdentity, error)
-
-func fingerprintRender(path, projectFolder string, identify identifyFunc) (RenderFingerprint, error) {
-	identity, err := identify(path, projectFolder)
+func fingerprintRender(path, projectFolder string) (RenderFingerprint, error) {
+	identity, err := evidence.Identify(path, projectFolder)
 	if err != nil {
 		return RenderFingerprint{}, err
 	}
@@ -386,14 +383,14 @@ func fingerprintRender(path, projectFolder string, identify identifyFunc) (Rende
 // itemsFingerprint is EL's track fingerprint of the chapter's items as the
 // saved project has them: each unmuted audio item's position, length, take and
 // played source content, in order.
-func itemsFingerprint(items []tracks.Item, projectFolder string, identify identifyFunc) string {
-	identifySource := func(source string) (evidence.SourceIdentity, error) {
+func itemsFingerprint(items []tracks.Item, projectFolder string) string {
+	identify := func(source string) (evidence.SourceIdentity, error) {
 		if source == "" {
 			return evidence.SourceIdentity{}, errors.New("item has no source file")
 		}
-		return identify(source, projectFolder)
+		return evidence.Identify(source, projectFolder)
 	}
-	fingerprint, _ := evidence.ComputeChapterFingerprint(items, identifySource)
+	fingerprint, _ := evidence.ComputeChapterFingerprint(items, identify)
 	return string(fingerprint.TrackFingerprint)
 }
 

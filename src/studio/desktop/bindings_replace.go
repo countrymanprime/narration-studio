@@ -624,7 +624,7 @@ func (h *Host) ReplaceFilePeaks(fileID string) (string, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), workspacePeaksTimeout)
 	defer cancel()
-	identity, err := svc.identities.Refresh(file.Path, svc.config.projectFolder)
+	identity, err := evidence.Identify(file.Path, svc.config.projectFolder)
 	if err != nil {
 		view.Reason = "their file could not be read"
 		return encodeBinding(view, nil)

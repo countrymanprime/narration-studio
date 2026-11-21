@@ -35,9 +35,6 @@ type Config struct {
 	// transcript.Service (Backend is the script, empty for a frozen sidecar).
 	Python  string
 	Backend string
-	// Identities is the open project's source identity cache, shared with the other services that read the same take files. nil gives the
-	// service one of its own.
-	Identities *evidence.IdentityCache
 	// ProjectFile resolves the saved .rpp the narrator chose for the project
 	// (the audio engine panel's selection). It may be anywhere.
 	ProjectFile func() (string, error)
@@ -261,12 +258,9 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 	if config.Align == nil {
 		config.Align = recordingcoverage.Run
 	}
-	if config.Identities == nil {
-		config.Identities = &evidence.IdentityCache{}
-	}
 	return &Service{
 		config: config, launch: launch, changed: changed, now: time.Now, pollInterval: defaultPollInterval,
-		ledger: ledger, cache: cache, mapping: mapping, identities: config.Identities,
+		ledger: ledger, cache: cache, mapping: mapping, identities: &evidence.IdentityCache{},
 		results:   resultStore{dir: resultsDir(config.Project), reporter: config.Reporter, cache: newResultCache()},
 		summaries: &summaryStore{dir: summariesDir(config.Project), reporter: config.Reporter},
 		state:     State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},

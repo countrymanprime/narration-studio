@@ -21,9 +21,9 @@ import (
 // title through the manuscript, the manuscript's documentId, the compared set read from the run's manifest and the
 // saved project file's time at completion. A record that cannot be written is logged and never fails the comparison
 // the narrator is looking at.
-func comparisonRecorder(folder string, ledger *evidence.LedgerStore, text *manuscript.Service, store *settings.Store, reporter *persist.Reporter, identities *evidence.IdentityCache) func(transcript.CompletedRun) {
+func comparisonRecorder(folder string, ledger *evidence.LedgerStore, text *manuscript.Service, store *settings.Store, reporter *persist.Reporter) func(transcript.CompletedRun) {
 	recorder := &proofing.ComparisonRecorder{
-		Ledger: ledger, Lookup: text, ProjectFolder: folder, Identities: identities,
+		Ledger: ledger, Lookup: text, ProjectFolder: folder,
 		DocumentID:  func() string { return manuscriptDocumentID(text) },
 		ProjectFile: func() (evidence.LedgerProjectFile, error) { return savedProjectFile(folder, store) },
 	}
@@ -43,13 +43,13 @@ func comparisonRecorder(folder string, ledger *evidence.LedgerStore, text *manus
 // measured file that is some chapter's chosen render becomes one ledger record per such chapter, keyed by the render's
 // fingerprint, with its Report (or failed, with the error). Nil without a project or a manuscript. A record that cannot
 // be written is logged; the measurement the narrator is looking at is unaffected.
-func renderMeasurementRecorder(folder string, ledger *evidence.LedgerStore, text *manuscript.Service, reporter *persist.Reporter, identities *evidence.IdentityCache) measuredFileFunc {
+func renderMeasurementRecorder(folder string, ledger *evidence.LedgerStore, text *manuscript.Service, reporter *persist.Reporter) measuredFileFunc {
 	if folder == "" || text == nil || ledger == nil {
 		return nil
 	}
 	renders := proofing.NewRenderStore(folder)
 	return func(path string, measured measure.FileMeasurement, measureErr error, began time.Time) {
-		_, err := proofing.RecordRenderMeasurements(ledger, renders, identities, manuscriptDocumentID(text), folder, path,
+		_, err := proofing.RecordRenderMeasurements(ledger, renders, manuscriptDocumentID(text), folder, path,
 			measured.Report, measured.Fingerprint.SHA256, measureErr, began, time.Now().UTC())
 		if err != nil {
 			reporter.Warn("render_measurement_record_failed", fmt.Sprintf("The measurement of %s was not recorded for the proofing check: %v", filepath.Base(path), err))

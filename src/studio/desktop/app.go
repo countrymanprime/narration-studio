@@ -195,8 +195,6 @@ type Host struct {
 	// runs the Transcript Compare sidecar's --coverage mode. Swapped on every project switch like transcript; the Coverage* bindings
 	// reach it (bindings_coverage.go) and it fills the manuscript chapters' recordedFraction.
 	coverage *coverage.Service
-	// identities is the open project's source identity cache, shared by every service that identifies its take files.
-	identities *evidence.IdentityCache
 	// ledger is the open project's analysis ledger: the one store coverage, editing and the proofing recorders read and
 	// write, so a record one of them writes is in the next read of the others and is decoded once (issue 3801). Swapped
 	// with coverage on every project switch.
@@ -792,12 +790,10 @@ func (h *Host) configureLocked(next config) {
 	h.transcript.SetPersist(h.persist)
 	h.transcript.SetFindings(h.findings, h.manuscript)
 	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
-	// One per attached project: a switch must not answer for the last project's files.
-	h.identities = &evidence.IdentityCache{}
 	h.ledger = evidence.NewLedgerStore(h.config.projectFolder)
 	h.ledger.Reporter = h.persist
 	h.coverage = coverage.New(coverage.Config{
-		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend, Ledger: h.ledger, Identities: h.identities,
+		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend, Ledger: h.ledger,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		ChapterAudio: func(project tracks.Project) tracks.Project {
 			return chapterAudio(coverageReporter, projectFolder, project)
@@ -832,7 +828,6 @@ func (h *Host) configureLocked(next config) {
 	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore, h.manuscript))
 	h.editing = editing.New(editing.Config{
 		Project:     h.config.projectFolder,
-		Identities:  h.identities,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		Policy:      func() editing.Policy { return editingPolicy(settingsStore) },
 		Reporter:    h.persist,
@@ -851,7 +846,7 @@ func (h *Host) configureLocked(next config) {
 		ProjectReader: projectFileReader{},
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
-	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist, h.identities))
+	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist))
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
 	h.stages = stagesService(h.config.projectFolder, h.manuscript, h.coverage, h.editing, settingsStore, h.coverageUnavailable(h.config.comparePython, settingsStore), h.persist,

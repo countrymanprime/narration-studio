@@ -103,7 +103,7 @@ func proofingCorpusCases() []proofingCorpusCase {
 				f := newRenderFixture(t)
 				f.attest(t, f.render)
 				report := reportWith(func(r *measure.Report) { r.RMSdBFS = level(-30) })
-				if _, err := RecordRenderMeasurements(f.ledger, f.store, nil, testDocument, f.dir, f.render, *report, "", nil, measuredAt, measuredAt); err != nil {
+				if _, err := RecordRenderMeasurements(f.ledger, f.store, testDocument, f.dir, f.render, *report, "", nil, measuredAt, measuredAt); err != nil {
 					t.Fatalf("RecordRenderMeasurements() error = %v", err)
 				}
 				provider := NewSignalProvider(Config{

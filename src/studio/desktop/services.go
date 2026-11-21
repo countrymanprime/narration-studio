@@ -48,7 +48,6 @@ type hostServices struct {
 	recorder     *recording.Service
 	transcript   *transcript.Service
 	coverage     *coverage.Service
-	identities   *evidence.IdentityCache
 	// ledger is the open project's analysis ledger (Host.ledger).
 	ledger     *evidence.LedgerStore
 	stages     *stages.Service
@@ -169,7 +168,6 @@ func (h *Host) services() hostServices {
 		recorder:         h.recorder,
 		transcript:       h.transcript,
 		coverage:         h.coverage,
-		identities:       h.identities,
 		ledger:           h.ledger,
 		stages:           h.stages,
 		production:       h.production,

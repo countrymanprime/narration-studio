@@ -131,15 +131,15 @@ func identityPath(path, projectFolder string) string {
 // racyWindow is how recent a file's modification time must be for the cache not to trust it (the "racy" rule): see IdentityCache.
 const racyWindow = 2 * time.Second
 
-// IdentityCache holds the identity of each source file it has read. The host keeps one per open project and shares it between the
-// recording check, the editing check, proofing and the workspace's waveforms; a project switch starts an empty one.
-// Refresh reads the file's sample every time and replaces the entry. Every write of an identity and every read about one chapter or one
-// file uses it: the owner does not accept an unchanged size and modification time as proof that a file is unchanged.
-// Identify answers from the entry after one stat while the file's size and modification time are the ones it was read with. Only the
-// recording check's whole-book staleness sweep uses it: a chapter-list read covers thousands of files, and a sample costs 0.14 ms a file.
-// shortcut: Identify does not notice a file rewritten with the same size and the same modification time, or a symlink retargeted to a file
-// of the same size and time, and a filesystem with a coarse time (FAT32, some network shares) can hide a quick same-size rewrite; upgrade
-// the sweep to Refresh if a tool that keeps the time turns up.
+// IdentityCache remembers the identity of each source file it has read, so asking again costs one stat and no read. An entry holds while the
+// file's size and modification time are the ones it was read with; a file that changed either (a replaced or re-recorded file) is read again.
+// A caller that writes an identity down (a check run) uses Refresh, which always reads and replaces the entry, so what it stored and what the
+// cache answers agree.
+// Only the recording check holds one. Other readers sample the file on every read, because an unchanged size and modification time is not
+// accepted as proof of unchanged content outside that sweep, and an entry another reader stored would be trusted by it.
+// shortcut: a file rewritten with the same size and the same modification time, or a symlink retargeted to a file of the same size and time, is
+// not noticed by Identify (Refresh sees it), and a filesystem
+// with a coarse time (FAT32, some network shares) can hide a quick same-size rewrite; upgrade to FullHash if a tool that keeps the time turns up.
 // A file modified less than racyWindow before it was read is not remembered: a rewrite in the same clock tick, or on a filesystem with a coarse
 // time (FAT32 keeps two seconds), would leave the size and time unchanged.
 // The cache holds at most maxIdentityEntries entries; a new file past that replaces an arbitrary one, which is then read again when next asked.
@@ -153,8 +153,8 @@ type IdentityCache struct {
 	limit int
 }
 
-// maxIdentityEntries bounds an IdentityCache. The largest measured project (docs/research/performance-architecture-2026-11.md) has 30,000
-// items, each with at most one source file, so a project of that size never evicts.
+// maxIdentityEntries bounds an IdentityCache at 32,768: the largest measured project (docs/research/performance-architecture-2026-11.md) has
+// 30,000 items with at most one source file each, so a project of that size never evicts.
 const maxIdentityEntries = 32768
 
 // Reads is how many times the cache has read a file in full (not counting a stat): a test's way to see that a repeat ask read none.

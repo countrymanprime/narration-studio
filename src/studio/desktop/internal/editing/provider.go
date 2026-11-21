@@ -158,7 +158,7 @@ func (s *Service) gatherCoverage(chapter stages.ChapterContext, view stages.Evid
 			continue
 		}
 		coverage.HasAnalyzableItems = true
-		identity, err := s.config.Identities.Refresh(res.Source.File, s.config.Project)
+		identity, err := evidence.Identify(res.Source.File, s.config.Project)
 		if err != nil {
 			coverage.UnsupportedReasons = append(coverage.UnsupportedReasons, ReasonMissingFile)
 			continue
