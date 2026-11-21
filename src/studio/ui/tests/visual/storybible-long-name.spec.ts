@@ -44,6 +44,7 @@ for (const size of SIZES) {
       };
     });
     expect.soft(measured.nameScrollWidth, 'the name does not run past its own box').toBeLessThanOrEqual(measured.nameClientWidth + 1);
+    if (size.width >= 480) expect.soft(measured.nameRight, 'the name ends before the row’s first button').toBeLessThanOrEqual(measured.firstButtonLeft + 1);
     expect.soft(measured.nameRight, 'the name ends inside the row').toBeLessThanOrEqual(measured.rowRight + 1);
     expect.soft(measured.rowHeight, 'the row is a few lines, not a screen').toBeLessThan(size.width < 480 ? 300 : 170);
     // Below a 32 rem card the name has a line of its own and the cells wrap under it.
