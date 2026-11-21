@@ -340,8 +340,6 @@ const installHeldTake = () => {
       // The first stop (the leave question's) fails; the narrator's own Stop later goes through.
       if (w.__calls.stops <= ((w as unknown as { __failStops?: number }).__failStops ?? 1)) throw new Error('REAPER did not answer.');
       w.__recording = false;
-      // The host pushes the transport before it answers a stop (useRecordControl.ts, "the real host pushes..."): the page then reads a project that no longer records.
-      push();
       return { outcome: 'stopped', message: '', undoPoints: 0 };
     },
   };
@@ -388,6 +386,7 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     // the take was taken again" it was is the difference between 1 and 2 here (#3930).
     await expect.poll(async () => (await calls(page)).stops, { message: "the narrator's Stop reached the host", timeout: 8000 }).toBe(2);
     await expect(record(page), 'Record is back once the stop is answered').toBeVisible({ timeout: 8000 });
+    expect((await calls(page)).stops, 'nothing sent a third stop while Record came back').toBe(2);
     // The sentence goes with the take: it does not stay beside "Stopped. Recorded".
     await expect(sentence).toHaveCount(0);
   });
