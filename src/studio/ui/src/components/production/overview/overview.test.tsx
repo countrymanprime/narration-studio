@@ -238,6 +238,11 @@ describe('stageSegments', () => {
 });
 
 describe('WeekCard', () => {
+  // #3443: 3,582 s of a 3,600 s target reads "0h 59m / 1h 00m" and the bar says 99, never 100 before the target is met.
+  it('floors the bar like the figures', () => {
+    view(<WeekCard figures={{ week: { ok: true, value: 3582 }, target: 3600, last24h: { ok: true, value: 0 } }} />);
+    expect(screen.getByRole('progressbar', { name: 'Recorded this week' }).getAttribute('aria-valuenow')).toBe('99');
+  });
   it('this-week-sourced-or-reason: with a take log', () => {
     const { week } = overviewFor(MID_BOOK);
     view(<WeekCard figures={week} />);

@@ -167,8 +167,8 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
     const rows = rowsOf(linked);
     expect(rows).toHaveLength(16);
     for (const row of rows) {
-      expect(row.recorded).toMatchObject({ kind: 'measured', text: '1h 04m' });
-      expect(row.recorded.label).toBe(`${row.name}: 1 hour 4 minutes recorded of about 1 hour estimated`);
+      expect(row.recorded).toMatchObject({ kind: 'measured', text: '1h 03m' });
+      expect(row.recorded.label).toBe(`${row.name}: 1 hour 3 minutes recorded of about 1 hour estimated`);
       expect(row.estimate).toBe('1h 00m');
       // The audio is there, so Record is under way even though the chapter's stage still says not started.
       expect(row.cells.record).toMatchObject({ kind: 'progress', text: '99%' });
@@ -269,5 +269,51 @@ describe('each-row-shows-what-is-recorded-next-to-the-estimate', () => {
       chapter('c1', { status: 'editing', recordedSeconds: 31 }),
     ]);
     expect(credits!.cells.edit).toMatchObject({ kind: plain!.cells.edit.kind, text: plain!.cells.edit.text, state: plain!.cells.edit.state });
+  });
+});
+
+// R3 (qa round 3): "about" never stands before "<0h 01m", in the Rec. figure's name or the Record cell's tip.
+describe('about-before-an-under-a-minute-estimate', () => {
+  it('says "of <0h 01m estimated" in the tip and "of less than a minute estimated" in the name, and keeps "about" before any other figure', () => {
+    const [tiny] = rowsOf([chapter('c1', { status: 'recording', wordCount: 3, recordedSeconds: 1 })]);
+    expect(tiny!.cells.record.tip).toContain('of <0h 01m');
+    expect(tiny!.cells.record.tip).not.toMatch(/about <0h/);
+    expect(tiny!.recorded.label).toContain('of less than a minute estimated');
+    expect(tiny!.recorded.label).not.toMatch(/about less than/);
+    const [normal] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 1800 })]);
+    expect(normal!.cells.record.tip).toContain('of about 1h 00m');
+    expect(normal!.recorded.label).toContain('of about 1 hour estimated');
+  });
+});
+
+// S1 (qa delta): the Record cell never says 0% beside audio. A host 0 with audio on the track reads 1%; a host 0 with none reads 0%.
+describe('record-percent-with-a-host-zero', () => {
+  const zero = { paragraphId: 'p1', word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
+  it('reads 1% when the track holds audio and 0% when it holds none', () => {
+    const [withAudio] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 12, recordedThrough: zero })]);
+    expect(withAudio!.cells.record.text).toBe('1%');
+    const [none] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 0, recordedThrough: zero })]);
+    expect(none!.cells.record.text).toBe('0%');
+  });
+  it('reads 1% for a few seconds of audio against an hour, never 0%', () => {
+    const [few] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 5 })]);
+    expect(few!.cells.record.text).toBe('1%');
+  });
+});
+
+// T1 (qa delta): a host 0 with audio on the track says one percent everywhere on the row: the cell, its tip and the Rec. figure's tip and name (the cell said 1%, the tips 0%).
+describe('a-host-zero-with-audio-says-one-percent', () => {
+  const zero = { paragraphId: 'p1', paragraph: 1, word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
+  it('prints 1% in the cell, its tip, the Rec. tip and the Rec. name when audio is on the track, and 0% in all four when it is not', () => {
+    const [withAudio] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 12, recordedThrough: zero })]);
+    expect(withAudio!.cells.record.text).toBe('1%');
+    expect(withAudio!.cells.record.state).toBe('1% recorded');
+    expect(withAudio!.cells.record.tip).toContain('(1%)');
+    expect(withAudio!.recorded.tip).toContain('(1%)');
+    expect(withAudio!.recorded.label).toContain('(1%)');
+    expect(`${withAudio!.cells.record.tip} ${withAudio!.recorded.tip} ${withAudio!.recorded.label}`).not.toMatch(/\(0%/);
+    const [none] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 0, recordedThrough: zero })]);
+    expect(none!.cells.record.text).toBe('0%');
+    expect(none!.cells.record.tip).toContain('(0%)');
   });
 });
