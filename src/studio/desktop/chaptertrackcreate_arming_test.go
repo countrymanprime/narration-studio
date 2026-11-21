@@ -31,7 +31,7 @@ func TestChapterTrackCreateNeverArmsAnything(t *testing.T) {
 				creator = &fakeFolderCreator{}
 			}
 			hostWithArmingDAW(t, host, creator, recorder)
-			raw, err := host.ChapterTrackCreate(ids[0])
+			raw, err := host.ChapterTrackCreate(ids[0], "")
 			if err != nil {
 				t.Fatal(err)
 			}

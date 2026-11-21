@@ -42,7 +42,7 @@ jobs:
     #     A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
     #     nx-scope.sh --pins, and the `pins` step (scripts/ci/workflow-pins.mjs, pin-flags.mjs) ORs in the families of the jobs that
     #     contain a changed pin (a changed local action: every job that uses it). On a pure pin bump the lint steps run only when this job
-    #     is reached (`static`) and the quick test steps of Test (Linux) only when that job is (`quickubuntu`). Any other change under
+    #     is reached (`static`) and the quick test steps of Test (Linux quick) only when that job is (`quickubuntu`). Any other change under
     #     .github/workflows or .github/actions (a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added or removed) is `all`.
     #   - Lint, one step per project family, each on its affected projects: ui static and web static (lint, format, architecture and
     #     node:test of the UI and site projects, the site's typecheck and Vitest run), Knip (every workspace, so `always`), python lint
@@ -56,7 +56,7 @@ jobs:
       shell: ${{ steps.shell.outputs.affected == 'true' || steps.pins.outputs.shell == 'true' }}
       static: ${{ steps.pins.outputs.static }}
       quickubuntu: ${{ steps.pins.outputs.quickubuntu }}
-      # Test (Linux)'s shards: all six when the UI is affected, else shard 1 alone (its quick tests).
+      # Test (Linux)'s shards: all six when the UI is affected, else shard 1 alone.
       test-shards: ${{ (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') && '[1,2,3,4,5,6]' || '[1]' }}
       ui-dist: ${{ steps.ui-dist.outcome == 'success' }}
     steps:
@@ -177,27 +177,23 @@ jobs:
             "test ratchet": "${{ steps.test-ratchet.outcome }}"}
         run: node scripts/ci/step-summary.mjs
   test-linux:
-    # Every Linux test, in six shards (owner decision, #3065: 11 checks on free runners, each shard well under the 30-minute limit).
-    #   - Shard 1 also runs the quick tests (`quickubuntu`): repo-scripts (the plain-Node scripts; `always`: the layout and project guards
-    #     read every tracked file), docs-site (its unit tests; `always`: docs/ belongs to no project), python (pytest of the Python projects;
-    #     Go is installed for the transcript-compare tests), reaper (Lua) (the bridge harness under Lua 5.4: on a pull request its
-    #     characterization tests, the `pr` configuration; on every other run with its mutation checks too) and the rename rehearsal (renames a
-    #     throwaway worktree of this commit to a made-up name and runs the brand sync, both name guards and the tests that read the name,
-    #     scripts/brand/rehearse-rename.mjs; main-health runs `--full`, which adds the UI typecheck and the built site, #3078).
+    # The UI's Linux tests, in six shards (owner decision, #3065: each shard well under the 30-minute limit). The quick tests and the rename
+    # rehearsal that shard 1 also ran are Test (Linux quick), below: with them shard 1 reached the limit.
     #   - Every shard, when the UI is affected, runs a sixth of:
     #       - Vitest (`vitest --shard=i/6`, split by cost, src/studio/ui/scripts/vitest-shards.mjs). A shard checks no coverage floor; it
     #         uploads a blob of its results and coverage, and ci.yml's `CI passed` (.github/actions/ci-gate) merges the five and checks the
     #         floors of scripts/ci/coverage-floors.json over the whole run. No Nx cache and no retry.
     #       - the visual suite (full tier): every {page, state, viewport} of the mock-backed app, failing on errors, sideways overflow and
     #         collapsed controls per capture (src/studio/ui/tests/visual/lib/capture.ts). Split by measured time (scripts/ci/visual-shards.mjs
-    #         and src/studio/ui/tests/visual/shard-weights.json); shard 1's share is smaller by the time its quick tests take
-    #         (`--reserve-first`). The checks that need the whole run (blank, undeclared duplicate, stale sameAs, and that the shards held
+    #         and src/studio/ui/tests/visual/shard-weights.json); shard 1's share is smaller by its reserve (`--reserve-first`, at the `split` step). The checks that need the whole run (blank, undeclared duplicate, stale sameAs, and that the shards held
     #         every test) run in `CI passed` from each shard's capture records and manifest. `aria` (the role trees, about 50 s) runs on the
     #         shard the split names.
     #       - the component atlas (full tier): every Storybook story x light/dark x wide/narrow, with play() interactions, axe and overflow
     #         checks (`pnpm atlas --shard=i/6`); shard 1 also checks docs/ui equals a fresh generation (fix with
     #         `pnpm --dir src/studio/ui docs:atlas`).
-    #     A change that does not reach the UI runs shard 1 alone (lint's `test-shards`), so only its quick tests run.
+    #     A change that does not reach the UI runs shard 1 alone (lint's `test-shards`), whose steps then find nothing to do. The shard still
+    #     starts because its own scope check differs from lint's on a workflow pin bump that reaches neither this job nor the gate: there
+    #     shard 1 runs its sixth of the UI steps and `atlas docs`, as it always has (#3836).
     # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result.
     # 30 min, six shards: five shards each took 20 to 28.7 min on 2026-11-10 (ten full runs, #3327), the longest 27.6 to 28.7 against the
     # 30 min limit, from about 125 min of this work in total; a sixth is about 21 min plus about 1.5 of setup, which leaves room for a slow
@@ -213,58 +209,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
-      # Go and Python only on shard 1, which runs the quick tests. Shard 1 also installs GTK 4 and WebKitGTK: the rename rehearsal's
-      # `go vet ./...` compiles the Wails packages, whose cgo runs pkg-config, and without the libraries it failed on a pull request whose
-      # Go vet results were not in the cache (#3149, #3235).
+      # Node only: the steps that need Go, Python and the GTK libraries are in Test (Linux quick).
       - uses: ./.github/actions/setup-toolchain
         with:
-          need-go: ${{ matrix.shard == 1 }}
-          need-python: ${{ matrix.shard == 1 }}
+          need-go: 'false'
+          need-python: 'false'
           need-stylua: 'false'
           need-wails-tools: 'false'
-          need-linux-native-deps: ${{ matrix.shard == 1 }}
-          python-sync-args: --group docs
+          need-linux-native-deps: 'false'
       - id: scope
         uses: ./.github/actions/nx-affected
         with:
           projects: ui
-      - name: repo-scripts
-        id: repo-scripts
-        if: ${{ !cancelled() && matrix.shard == 1 && needs.lint.outputs.quickubuntu == 'true' }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: test-node
-          projects: repo-scripts
-          always: 'true'
-      - name: docs-site
-        id: docs-site
-        if: ${{ !cancelled() && matrix.shard == 1 && needs.lint.outputs.quickubuntu == 'true' }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: test
-          projects: docs-site
-          always: 'true'
-      - name: python
-        id: python
-        if: ${{ !cancelled() && matrix.shard == 1 && needs.lint.outputs.quickubuntu == 'true' }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: test
-          projects: tag:toolchain:python,fixtures
-      - name: reaper (Lua)
-        id: reaper
-        if: ${{ !cancelled() && matrix.shard == 1 && needs.lint.outputs.quickubuntu == 'true' }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: test
-          projects: reaper
-          configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}
-      - name: rename rehearsal
-        id: rename
-        if: ${{ !cancelled() && matrix.shard == 1 }}
-        env:
-          FULL: ${{ github.event_name != 'pull_request' && '--full' || '' }}
-        run: node scripts/brand/rehearse-rename.mjs $FULL
       - name: vitest
         id: vitest
         if: ${{ !cancelled() && steps.scope.outputs.affected == 'true' }}
@@ -283,14 +239,15 @@ jobs:
       - if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         uses: ./.github/actions/setup-playwright
         with:
-          # Shard 1's setup-toolchain installs the GTK and WebKit libraries before this step; the cached packages must match what each shard had.
-          variant: ${{ matrix.shard == 1 && 'native' || 'plain' }}
+          # No shard installs the GTK and WebKit libraries first (Test (Linux quick) does, and runs no browser), so every shard shares one cache.
+          variant: plain
       # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
-      # hold every test exactly once. Shard 1 carries the quick tests (about 4 to 5 min on a pull request), and the reserve is in the
-      # split's estimated seconds. Measured: a 300 s reserve left shard 1 at 19.8 min against 24.75 for the longest other (run
-      # 42397023062); 110 s put it at 28.2 against 23.9 (run 42400723192). 200 s lay between: in ten full runs on 2026-11-10 (#3327)
-      # shard 1 took 17.8 to 28.7 min and was the longest shard in 5, so a pull request uses 300 s. Elsewhere the mutation checks and
-      # the `--full` rehearsal add about 3 min, so 380 (not yet measured on a main-health run).
+      # hold every test exactly once. The reserve, in the split's estimated seconds, gives shard 1 fewer visual tests. It was sized for the
+      # quick tests and the rename rehearsal shard 1 ran until #3836 (about 280 s; 300 s on a pull request, 380 elsewhere for the mutation
+      # checks and the `--full` rehearsal). They are Test (Linux quick) now and the reserve is unchanged on purpose: it is shard 1's headroom
+      # (28.0 to 30.4 min before, runs 44817955682 and 44829430641, so about 23.3 to 25.7 now), and the seconds it keeps off shard 1 cost each
+      # other shard a fifth of them. What shard 1 alone still runs is `atlas docs` (32 s) and a larger share of the atlas (286 to 300 s
+      # against 240 to 260 on the next longest shards). Resize it with the split weights (#3836, "Not covered here").
       - id: split
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         env:
@@ -371,11 +328,85 @@ jobs:
         if: always()
         env:
           OUTCOMES: >-
-            {"repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
-            "python": "${{ steps.python.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}",
-            "rename rehearsal": "${{ steps.rename.outcome }}", "vitest": "${{ steps.vitest.outcome }}",
+            {"vitest": "${{ steps.vitest.outcome }}",
             "visual": "${{ steps.visual.outcome }}", "aria": "${{ steps.aria.outcome }}",
             "atlas": "${{ steps.atlas.outcome }}", "atlas docs": "${{ steps.atlas-docs.outcome }}"}
+        run: node scripts/ci/step-summary.mjs
+
+  test-linux-quick:
+    # The Linux tests that are not the UI's, in a job of their own. They ran at the head of Test (Linux 1/6), which with them reached 28.0
+    # and 30.2 min against its 30 minute limit (runs 44817955682 and 44810564219) and was cancelled at the limit in its last step twice on
+    # 2026-11-20 (runs 44810564219 and 44829430641), every test before it green. Here they take about 5 min: about 50 s of setup, repo-scripts
+    # 14 to 17 s, docs-site 22 to 29 s, python 2 to 3 s, reaper (Lua) 1 s and the rename rehearsal 184 to 220 s (the same runs).
+    #   - repo-scripts (the plain-Node scripts; `always`: the layout and project guards read every tracked file), docs-site (its unit tests;
+    #     `always`: docs/ belongs to no project), python (pytest of the Python projects; Go is installed for the transcript-compare tests) and
+    #     reaper (Lua) (the bridge harness under Lua 5.4: on a pull request its characterization tests, the `pr` configuration; on every other
+    #     run with its mutation checks too), each only when lint's `quickubuntu` says the change reaches this job.
+    #   - the rename rehearsal, on every run (renames a throwaway worktree of this commit to a made-up name and runs the brand sync, both name
+    #     guards and the tests that read the name, scripts/brand/rehearse-rename.mjs; main-health runs `--full`, which adds the UI typecheck
+    #     and the built site, #3078).
+    # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result.
+    name: Test (Linux quick)
+    needs: lint
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      # GTK 4 and WebKitGTK: the rename rehearsal's `go vet ./...` compiles the Wails packages, whose cgo runs pkg-config, and without the
+      # libraries it failed on a pull request whose Go vet results were not in the cache (#3149, #3235).
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'true'
+          need-python: 'true'
+          need-stylua: 'false'
+          need-wails-tools: 'false'
+          need-linux-native-deps: 'true'
+          python-sync-args: --group docs
+      - name: repo-scripts
+        id: repo-scripts
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test-node
+          projects: repo-scripts
+          always: 'true'
+      - name: docs-site
+        id: docs-site
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test
+          projects: docs-site
+          always: 'true'
+      - name: python
+        id: python
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test
+          projects: tag:toolchain:python,fixtures
+      - name: reaper (Lua)
+        id: reaper
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test
+          projects: reaper
+          configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}
+      - name: rename rehearsal
+        id: rename
+        if: ${{ !cancelled() }}
+        env:
+          FULL: ${{ github.event_name != 'pull_request' && '--full' || '' }}
+        run: node scripts/brand/rehearse-rename.mjs $FULL
+      - name: Summary
+        if: always()
+        env:
+          OUTCOMES: >-
+            {"repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
+            "python": "${{ steps.python.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}",
+            "rename rehearsal": "${{ steps.rename.outcome }}"}
         run: node scripts/ci/step-summary.mjs
 
   test-windows:
@@ -389,7 +420,7 @@ jobs:
     #     (the teleprompter and shutdown tests on one and on four CPUs: an ordering bug between goroutines that hides on the default
     #     scheduler fails there on demand); then reaper (Lua), the bridge harness under Lua 5.4 on Windows, because the bridge builds paths
     #     from package.config and REAPER's own Lua writes CRLF. A pull request runs the harness's `pr` configuration (the characterization
-    #     tests, about a minute) here and in Test (Linux); every other run (main-health, a manual run) and post-merge.yml run the mutation
+    #     tests, about a minute) here and in Test (Linux quick); every other run (main-health, a manual run) and post-merge.yml run the mutation
     #     checks on both.
     #   Each go test step checks the coverage floors of the packages it ran; together they run every package once.
     # Measured on one runner (run 42405595296): root 10.6, rest 10.7, schedules 2.7, lint 1.25, harness 0.6 min, 28.2 with setup, past

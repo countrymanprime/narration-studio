@@ -147,18 +147,53 @@ describe('withDawLatency', () => {
     expect(reached).toEqual(['readAloudRecordStop']);
   });
 
-  it('waits the long wait for a voice switch, and ends an arm at its own 3 s deadline', async () => {
+  it('waits the long wait for a voice switch and for the arm, and reads the track list once for both', async () => {
     const { api, reached } = host();
     const slow = slowed(api, 'delay=4s,only=boothVoiceSet+dawArmBoothVoice');
     const voice = watch(slow.boothVoiceSet('c1', 'g2'));
     // The track list is read first (4 s, inside its 7 s), then the arm (4 s, inside the long wait): the switch is answered, late.
     await vi.advanceTimersByTimeAsync(8_000);
     expect(voice.answer).toEqual({ outcome: 'selected' });
+    // The list is kept, so the arm is one command: 4 s, past the 3 s answer wait and inside the long wait of an arm REAPER has read.
     const arm = watch(slow.dawArmBoothVoice('c1'));
-    await vi.advanceTimersByTimeAsync(3_000);
-    expect(arm.answer).toMatchObject({ ok: false, refused: 'REAPER did not confirm within 3 seconds. Nothing started.' });
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(3_999);
+    expect(arm.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(arm.answer).toEqual({ ok: true });
     expect(reached).toEqual(['boothVoiceSet', 'dawArmBoothVoice']);
+  });
+
+  it('hands a lane command a kept track list past its age while one read behind it brings the next, and never past the bound', async () => {
+    const { api } = host();
+    const slow = slowed(api, '2s');
+    const arm = () => watch(slow.dawArmBoothVoice('c1'));
+    const first = arm();
+    await vi.advanceTimersByTimeAsync(4_000); // the list (2 s), then the arm (2 s)
+    expect(first.answer).toEqual({ ok: true });
+    await vi.advanceTimersByTimeAsync(11_000); // the list is 13 s old: past its age, inside the bound
+    const stale = arm();
+    await vi.advanceTimersByTimeAsync(2_000); // the arm alone: the list did not cost a round trip
+    expect(stale.answer).toEqual({ ok: true });
+    await vi.advanceTimersByTimeAsync(40_000); // nothing read the list for longer than the bound
+    const cold = arm();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(cold.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(cold.answer).toEqual({ ok: true });
+  });
+
+  it('makes every other call wait for the list once it is past its age', async () => {
+    const { api } = host();
+    const slow = slowed(api, '2s');
+    const first = watch(slow.readAloudReaperState('c1'));
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(first.answer).toEqual({ status: 'ready' });
+    await vi.advanceTimersByTimeAsync(11_000);
+    const later = watch(slow.readAloudReaperState('c1'));
+    await vi.advanceTimersByTimeAsync(2_000); // the list again: a read a page shows is never the stale one
+    expect(later.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(later.answer).toEqual({ status: 'ready' });
   });
 
   it('never delivers a dropped command', async () => {

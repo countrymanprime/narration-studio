@@ -93,6 +93,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterCreateOptionsSchema,
   chapterTrackCreateSchema,
   chapterFoldersSchema,
   trackSelectResultSchema,
@@ -167,7 +168,7 @@ import type { TeleprompterStartOptions } from './contracts/teleprompter';
 import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsOpenCountSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
@@ -638,6 +639,7 @@ export const wailsClient: NarrationApi = {
   pickupsCount: () => decode(pickupsStartResultSchema, 'PickupsCount', host.PickupsCount()),
   pickupsState: () => decode(pickupsStateSchema, 'PickupsState', host.PickupsState()),
   pickupsList: () => decode(pickupListSchema, 'PickupsList', host.PickupsList()),
+  pickupsOpenCount: () => decode(pickupsOpenCountSchema, 'PickupsOpenCount', host.PickupsOpenCount()),
   pickupsAdd: (chapterId, time, line) => decode(pickupListSchema, 'PickupsAdd', host.PickupsAdd(chapterId, time, line)),
   pickupsRemove: (id) => decode(pickupListSchema, 'PickupsRemove', host.PickupsRemove(id)),
   pickupsSetIncluded: (id, included) => decode(pickupListSchema, 'PickupsSetIncluded', host.PickupsSetIncluded(id, included)),
@@ -806,7 +808,10 @@ export const wailsClient: NarrationApi = {
   tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
-  chapterTrackCreate: (chapterId) => decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId)),
+  chapterTrackCreate: (chapterId, choice) =>
+    decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId, choice ? JSON.stringify(choice) : '')),
+  chapterCreateOptions: () => decode(chapterCreateOptionsSchema, 'ChapterCreateOptions', host.ChapterCreateOptions()),
+  chapterCreateDefaultSet: (choice) => decode(chapterCreateOptionsSchema, 'ChapterCreateDefaultSet', host.ChapterCreateDefaultSet(JSON.stringify(choice))),
   chapterFoldersCheck: () => decode(chapterFoldersSchema, 'ChapterFoldersCheck', host.ChapterFoldersCheck()),
   chapterFoldersRepair: (expected) => decode(chapterFoldersSchema, 'ChapterFoldersRepair', host.ChapterFoldersRepair(expected)),
   chapterTrackUnlink: (chapterId) => decode(chapterTrackMappingSchema, 'ChapterTrackUnlink', host.ChapterTrackUnlink(chapterId)),

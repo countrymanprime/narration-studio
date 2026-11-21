@@ -70,6 +70,16 @@ type chapterTrackCreated struct {
 	chapterTrackSetResult
 	Track createdTrack  `json:"track"`
 	Voice *createdTrack `json:"voice,omitempty"`
+	// Children are every child the folder was made with, in order, the Narrator (Voice) first (#3748). NotVoice marks Extras. Absent for a plain track.
+	Children []createdChild `json:"children,omitempty"`
+	// Message is a sentence for the narrator when the create is partly done: fewer children than asked for, or Extras not marked.
+	Message string `json:"message,omitempty"`
+}
+
+// createdChild is one child of a new chapter folder: its track, and whether it is marked as not a voice (Extras).
+type createdChild struct {
+	createdTrack
+	NotVoice bool `json:"notVoice"`
 }
 
 // createdTrack is the track the engine added: its id (a GUID in REAPER), its name and its 0-based index in the project's tracks.
@@ -202,8 +212,9 @@ func trackCreateError(name, title string, err error, noun string) chapterTrackCr
 // chapterTrackCreateIn adds a track named after chapterID's display title with creator and links the chapter to it with the same
 // store call ChapterTrackSet makes. support is why creator is nil (trackCreatorFrom). A chapter the manuscript does not have is a
 // hard error, as for ChapterTrackSet; the opening and closing credits count as chapters and name their track after their title.
-// Anything that keeps the track from being added is a refusal, and then nothing is linked.
-func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport.TrackCreator, support dawport.Support, chapterID string) (any, error) {
+// Anything that keeps the track from being added is a refusal, and then nothing is linked. In a Voice folders project the folder is made with its
+// Narrator, then the voices and Extras of choice (the remembered pick when choice is nil, #3748).
+func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport.TrackCreator, support dawport.Support, chapterID string, choice *chapterCreateChoice) (any, error) {
 	documentID, store, err := mappingContext(svc)
 	if err != nil {
 		return nil, err
@@ -250,16 +261,44 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 	if creator == nil {
 		return trackCreateUnavailable(name, title, support, noun), nil
 	}
-	created, voice, err := createChapterTrack(ctx, creator, title, folders)
+	children := []string{narratorVoice}
+	if folders && canMakeFolders(svc, creator) {
+		if children, err = createChildren(svc, choice); err != nil {
+			return nil, err
+		}
+	}
+	created, made, err := createChapterTrack(ctx, creator, title, folders, children)
 	svc.tracksCache.Invalidate() // a create that timed out may still have made the track: the next list is read again
 	if err != nil {
 		return trackCreateError(name, title, err, noun), nil
 	}
 	chapterTrackCreates.made[guidKey(created.GUID)] = created.Name
-	if voice != nil {
-		// The folder and its Narrator are in the engine but not in the saved project until the narrator saves: the Booth records on the voice
-		// and lists it from what the app made (chapterVoices), not from the saved file alone, or the press would arm the folder itself (#3271).
-		svc.boothVoices.add(created.GUID, BoothVoiceTrack{GUID: voice.GUID, Name: voice.Name})
+	var voice *createdTrack
+	var kids []createdChild
+	var notes []string
+	if len(made) > 0 {
+		voice = &made[0]
+		setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
+		extrasVoice := extrasIsVoice(setup)
+		for position, child := range made {
+			isExtras := position > 0 && strings.EqualFold(oneLineName(child.Name), extrasName) && !extrasVoice
+			kids = append(kids, createdChild{createdTrack: child, NotVoice: isExtras})
+			if isExtras {
+				if _, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).SetNotVoice(child.GUID, true); err != nil {
+					notes = append(notes, fmt.Sprintf("“%s” was added but could not be marked as not a voice: %s. Mark it in the Engine panel.", child.Name, strings.TrimRight(strings.TrimSpace(err.Error()), ".")))
+				}
+				continue
+			}
+			// The folder and its voices are in the engine but not in the saved project until the narrator saves: the Booth records on a voice and
+			// lists it from what the app made (chapterVoices), not from the saved file alone, or the press would arm the folder itself (#3271).
+			svc.boothVoices.add(created.GUID, BoothVoiceTrack{GUID: child.GUID, Name: child.Name})
+		}
+		if len(made) < len(children) {
+			notes = append(notes, fmt.Sprintf("%s added %d of the %d tracks asked for. Add the rest in %s.", name, len(made), len(children), name))
+		}
+		if note := rememberCreateChoice(svc, choice); note != "" {
+			notes = append(notes, note)
+		}
 	}
 	set, err := setChapterLink(store, documentID, chapterID, storedTitle, created.GUID)
 	if err != nil {
@@ -275,6 +314,8 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		chapterTrackSetResult: chapterTrackSetResult{DocumentID: documentID, ChapterLinkSet: set, Mappings: mappings},
 		Track:                 createdTrack{GUID: created.GUID, Name: created.Name, Index: created.Index},
 		Voice:                 voice,
+		Children:              kids,
+		Message:               strings.Join(notes, " "),
 	}, nil
 }
 
@@ -339,17 +380,22 @@ func voiceFoldersLayout(svc hostServices) (bool, error) {
 	return setup.Layout == voicetracks.LayoutFolders, nil
 }
 
-// createChapterTrack adds the chapter's track named title: a folder with a Narrator child when folders is set and the engine has folder
-// tracks, else one plain track. voice is the child, nil for a plain track (and for a folder request an older script answered with one).
-func createChapterTrack(ctx context.Context, creator dawport.TrackCreator, title string, folders bool) (dawport.CreatedTrack, *createdTrack, error) {
+// createChapterTrack adds the chapter's track named title: a folder holding children (the Narrator first) when folders is set and the engine has
+// folder tracks, else one plain track. made are the children the engine answered, in order: fewer than asked for from a script older than #3748,
+// none for a plain track (and for a folder request an older script answered with one).
+func createChapterTrack(ctx context.Context, creator dawport.TrackCreator, title string, folders bool, children []string) (dawport.CreatedTrack, []createdTrack, error) {
 	folderCreator, ok := creator.(dawport.FolderTrackCreator)
 	if !folders || !ok {
 		created, err := creator.CreateTrack(ctx, title)
 		return created, nil, err
 	}
-	created, err := folderCreator.CreateFolderTrack(ctx, title, narratorVoice)
-	if err != nil || created.Child.GUID == "" {
+	created, err := folderCreator.CreateFolderTrack(ctx, title, children...)
+	if err != nil {
 		return created.Folder, nil, err
 	}
-	return created.Folder, &createdTrack{GUID: created.Child.GUID, Name: created.Child.Name, Index: created.Child.Index}, nil
+	var made []createdTrack
+	for _, child := range created.Children() {
+		made = append(made, createdTrack{GUID: child.GUID, Name: child.Name, Index: child.Index})
+	}
+	return created.Folder, made, nil
 }

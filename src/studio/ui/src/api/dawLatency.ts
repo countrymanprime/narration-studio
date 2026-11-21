@@ -120,6 +120,8 @@ const LONG_MS = ANSWER_MS + 20_000;
 const TRACKS_LIVE_MS = 7_000;
 /** How long the host keeps a track list it read (`liveTracksMaxAge`, tracks_cache.go). */
 const TRACKS_KEPT_MS = 10_000;
+/** How long the host still hands out a kept list past that while it reads a new one behind it (`liveTracksStaleAge`). */
+const TRACKS_STALE_MS = 30_000;
 
 const NOT_ANSWERING = 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.';
 const NO_ANSWER = 'REAPER did not answer: check that REAPER is open; the app reconnects by itself';
@@ -142,6 +144,9 @@ const outcome = (reason: string, message: string, more: object = {}) => answer({
 
 /** The track list the host reads before many calls (`liveSelectedProject`, tracks_live.go): it waits 7 s, then uses the saved project, and keeps a list it read. */
 const TRACKS: Step = { limit: TRACKS_LIVE_MS };
+/** The same list read for a voice choice or the Booth's arm (`liveSelectedProjectForLane`): past 10 s it is still handed out, up to 30 s, while it is read again. */
+const LANE_TRACKS: Step = { limit: TRACKS_LIVE_MS };
+const laneCommand = (fail: Fail): HostCall => ({ steps: [LANE_TRACKS, { limit: LONG_MS, fail }] });
 const one = (fail: Fail, limit = ANSWER_MS): HostCall => ({ steps: [{ limit, fail }] });
 const afterTracks = (fail: Fail, limit = ANSWER_MS): HostCall => ({ steps: [TRACKS, { limit, fail }] });
 const SHORT_REFUSAL = one(answer(refused(NOT_ANSWERING)));
@@ -181,22 +186,15 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   readAloudRecordStart: RECORD_START,
   readAloudRecordStartAt: RECORD_START,
   readAloudRecordStop: NOT_RUNNING,
-  boothVoiceSet: afterTracks(
-    (args) => ({
-      outcome: 'selected',
-      trackGuid: args[1],
-      reason: 'timeout',
-      message: 'REAPER did not confirm in time, so the armed track may not match the voice. The Booth records on the voice you chose.',
-    }),
-    LONG_MS,
-  ),
+  boothVoiceSet: laneCommand((args) => ({
+    outcome: 'selected',
+    trackGuid: args[1],
+    reason: 'timeout',
+    message: 'REAPER did not confirm in time, so the armed track may not match the voice. The Booth records on the voice you chose.',
+  })),
   boothVoiceAdd: CREATE,
   chapterTrackCreate: CREATE,
-  dawArmBoothVoice: {
-    steps: [TRACKS, { limit: LONG_MS, fail: answer(refused(TOOK_NOT_CONFIRMED)) }],
-    deadline: ANSWER_MS,
-    overrun: answer(refused('REAPER did not confirm within 3 seconds. Nothing started.')),
-  },
+  dawArmBoothVoice: laneCommand(answer(refused(TOOK_NOT_CONFIRMED))),
   dawPlace: one(answer({ ok: false, message: WITHIN_3S, chapterId: '', selected: 0, cursor: 0 })),
   dawGoToChapter: one(answer(refused(WITHIN_3S))),
   dawTransportSync: one(answer(refused(WITHIN_3S))),
@@ -312,24 +310,46 @@ export function withDawLatency(api: NarrationApi, initial: DawLatency): Narratio
   let link = initial;
   let clock = new LinkClock(link, performance.now());
   let tracksReadAt = -Infinity;
+  let tracksRefreshing = false;
   window.__NARRATION_MOCK_DAW_LATENCY__ = (profile) => {
     link = parseDawLatency(profile);
     clock = new LinkClock(link, performance.now());
-    tracksReadAt = -Infinity;
   };
 
   async function run(name: string, call: HostCall, args: readonly unknown[], invoke: () => unknown): Promise<unknown> {
-    if (!slows(link)) return invoke();
+    if (!slows(link)) {
+      // A prompt host reads the list too, and keeps it when the link turns slow.
+      if (call.steps.includes(TRACKS) || call.steps.includes(LANE_TRACKS)) tracksReadAt = performance.now();
+      return invoke();
+    }
     const began = performance.now();
     for (const [index, step] of call.steps.entries()) {
-      if (step === TRACKS && performance.now() - tracksReadAt < TRACKS_KEPT_MS) continue;
+      if (step === TRACKS || step === LANE_TRACKS) {
+        const age = performance.now() - tracksReadAt;
+        if (age < TRACKS_KEPT_MS) continue;
+        if (step === LANE_TRACKS && age < TRACKS_STALE_MS) {
+          // Stale while revalidate, as the host: this call has the kept list now, and one read behind it brings the next list.
+          if (!tracksRefreshing) {
+            tracksRefreshing = true;
+            const wait = clock.release(name, performance.now()) - performance.now();
+            setTimeout(
+              () => {
+                tracksRefreshing = false;
+                if (wait <= LONG_MS) tracksReadAt = performance.now();
+              },
+              Math.min(wait, LONG_MS),
+            );
+          }
+          continue;
+        }
+      }
       const release = clock.release(name, performance.now());
       const hold = release - performance.now();
       const left = call.deadline === undefined ? Infinity : began + call.deadline - performance.now();
       const limit = Math.min(step.limit, left);
       if (hold <= limit) {
         if (hold > 0) await sleep(hold);
-        if (step === TRACKS) tracksReadAt = performance.now();
+        if (step === TRACKS || step === LANE_TRACKS) tracksReadAt = performance.now();
         continue;
       }
       await sleep(limit);
