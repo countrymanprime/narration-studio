@@ -167,7 +167,10 @@ describe('createHostEvents wired by the provider', () => {
   it('reloads the chapters slot when a job ends', async () => {
     let ended: () => void = () => undefined;
     const load = vi.fn().mockResolvedValue([]);
-    const subscribe = createHostEvents({ subscribeJobEnded: (cb: () => void) => ((ended = cb), () => undefined) } as never);
+    const subscribe = createHostEvents({
+      subscribeJobEnded: (cb: () => void) => ((ended = cb), () => undefined),
+      subscribeChapterSync: () => () => undefined,
+    } as never);
     const store = createStudioStore({
       registry: createSlots({ manuscriptChapters: load }, { bookmarksList: async () => [] }),
       subscribe,

@@ -663,6 +663,20 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     choice('analysis_prompt', 'Offer better analysis tools', ['ask', 'basic'], 'ask'),
     // "" (Automatic) is the unset default, matching app.go's fieldSchemas.
     choice('default_pronunciation_source', 'Default pronunciation source', ['', 'cmu', 'wiktextract', 'espeak'], ''),
+    // The local model for unknown speakers: off until the narrator turns it on, as config/defaults.json has it.
+    bool('speaker_fallback', 'Ask a local model about unknown speakers', 'false'),
+    choice('speaker_fallback_model', 'Local model for unknown speakers', ['qwen3-4b'], 'qwen3-4b'),
+    {
+      key: 'speaker_fallback_max_quotes',
+      label: 'Lines the local model may take per run',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '20',
+      effectiveSource: 'repo_default',
+      number: { min: 1, max: 200, step: 1, unit: 'lines' },
+    },
   ],
   // Script.definition_source unset, so it reads as the default, web (tests/fixtures/contracts/settings-definition-source.json).
   Script: [

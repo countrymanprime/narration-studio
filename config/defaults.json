@@ -10,7 +10,10 @@
   "ManuscriptGuide": {
     "spacy_model": "en_core_web_sm",
     "build_after_import": "true",
-    "analysis_prompt": "ask"
+    "analysis_prompt": "ask",
+    "speaker_fallback": "false",
+    "speaker_fallback_model": "qwen3-4b",
+    "speaker_fallback_max_quotes": "20"
   },
   "Script": {
     "definition_source": "web"

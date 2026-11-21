@@ -3,7 +3,8 @@ name: Main health
 # has a commit it has not run on. The agent train merges on the light gate (D43) and runs the full suite only at the end (D44), and two
 # pull requests that were each green alone can break together once both are merged (startupRequests.spec.ts did, 2026-10-18), so a
 # regression can sit on `main` unseen. When this run fails, or a job of it is cancelled at its time limit, it ticks HOLD on every open train issue, so no new worker launches onto a red `main`
-# (docs/operations/agent-train.md, "Safety net"). The owner or the coordinator clears HOLD once `main` is green.
+# (docs/operations/agent-train.md, "Safety net"), and opens the blocking `main-red` issue (or comments on the open one) with the failed jobs
+# and the commits since the last green run. The owner or the coordinator clears HOLD once `main` is green; the next green run closes the issue.
 #
 # Two triggers. A push to `main` finds a regression within about one run (35 minutes on 2026-11-09) of the merge that caused it; the schedule
 # stays as the backstop. GitHub ran the schedule only 2 to 3 times a day on 2026-11-04 to
@@ -75,7 +76,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # to check out the script
-      issues: write # to edit the train issues
+      issues: write # to edit the train issues and open the main-red issue
+      actions: read # to read this run's failed jobs and the last green run
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -88,3 +90,34 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           # Which of the two it was: a timeout is fixed by making a job faster, not by reading a failed test.
           OUTCOME: ${{ needs.ci.result == 'cancelled' && 'had a job cancelled, most likely at its time limit' || 'failed' }}
+      # After the HOLD, and even if it failed: the issue is the part a person reads. Only for `main`: a manual run of another branch says
+      # nothing about `main`. `continue-on-error`: a failure to write the issue must not change what this run reports.
+      - if: always() && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        run: node scripts/ci/train-health.mjs red
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  clear-on-green:
+    name: Close the main-red issue when main is green
+    needs: ci
+    # No `always()`: a skipped or cancelled `ci` judged nothing and closes nothing. Only for `main`: a green manual run of another
+    # branch must not close the issue while `main` is red. scripts/ci/main-health-workflow.test.mjs holds both conditions.
+    if: needs.ci.result == 'success' && github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to check out the script
+      issues: write # to close the main-red issue
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node scripts/ci/train-health.mjs green
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

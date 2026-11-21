@@ -210,7 +210,7 @@ hear how you voiced a character in the app, mark a [voice sample](#voice-samples
 
 **Dialogue cues** lists the quoted lines the scan attributed to this character, plus
 any line left unattributed (three or more speakers active in a scene, or no speaker tag at all, are
-left `unknown` rather than guessed). In edit mode, pick a different speaker, or **Unknown**, from the dropdown
+left `unknown` rather than guessed). A line whose speaker a [local model suggested](script.md#a-local-model-for-unknown-speakers) shows **Suggested by the local model:** and the model's reason under it until you confirm or change it. In edit mode, pick a different speaker, or **Unknown**, from the dropdown
 beside a cue to correct it. A correction survives the next scan - it is never
 silently overwritten by a fresh, possibly-wrong, extraction.
 

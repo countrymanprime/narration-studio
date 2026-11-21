@@ -40,7 +40,10 @@ H.test('tracks_read answers the project, then every track in order with its GUID
   folder.folder_depth, guard.folder_depth = 1, -1
   s.fake.change_count = 12
   s:send('tracks_read', 'r1')
-  H.eq(s:events(), {
+  local answered = s:events()
+  -- The sixth field is the track list's revision (reachability_test.lua covers what changes it).
+  H.eq(table.remove(answered[1]):match('^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x$') ~= nil, true, 'the revision is 16 hex digits')
+  H.eq(answered, {
     { 'TRACKS_READ', 'r1', path, '0', '12' },
     { 'TRACKS_ROW', 'r1', '0', opening.guid, 'Opening Credits', '0' },
     { 'TRACKS_ROW', 'r1', '1', folder.guid, 'Chapter 1', '1' },
@@ -67,7 +70,9 @@ end)
 H.test('tracks_read answers an unsaved project with no path, and an empty project with no rows', function()
   local s = new_session('')
   s:send('tracks_read', 'r1')
-  H.eq(s:events(), { { 'TRACKS_READ', 'r1', '', '1', '0' }, { 'TRACKS_READ_END', 'r1', '0', '0' } })
+  local answered = s:events()
+  H.eq(table.remove(answered[1]):match('^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x$') ~= nil, true, 'the revision is 16 hex digits')
+  H.eq(answered, { { 'TRACKS_READ', 'r1', '', '1', '0' }, { 'TRACKS_READ_END', 'r1', '0', '0' } })
 end)
 
 H.test('tracks_read sends a name with a bar, a line break, emoji and right-to-left text whole', function()

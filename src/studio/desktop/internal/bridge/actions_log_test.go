@@ -20,62 +20,64 @@ var runIDPattern = regexp.MustCompile(`act\d+-\d+`)
 // every event answering it carries in the session's events.log, so a narrator's "Record did nothing" can be traced. The line
 // carries the failure's kind, never the answer's text, which can hold a track's or a file's name.
 func TestAFailedCommandIsLoggedWithItsRunID(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	var mu sync.Mutex
-	var lines []string
-	client.SetLog(func(kind, message string) {
+	onVirtualClock(t, func(t *testing.T) {
+		actions, client, dir := newActionsSession(t, true)
+		var mu sync.Mutex
+		var lines []string
+		client.SetLog(func(kind, message string) {
+			mu.Lock()
+			defer mu.Unlock()
+			lines = append(lines, kind+": "+message)
+		})
+		fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+			if command[1] == "arm_only" {
+				return [][]string{{"ERROR", run(command), "Track \"Chapter 1 - Alice\" is locked."}}
+			}
+			return nil
+		})
+		actions.SetTimeout(50 * time.Millisecond)
+
+		if _, err := actions.ArmOnly(context.Background(), testTrack); err == nil {
+			t.Fatal("ArmOnly: no error")
+		}
+		// A loaded runner can starve the fake past the timeout, so Record Stop is taken back before the fake reads it (#3188). The
+		// stall makes that the case every time: the logged run ID comes from the host, whether or not REAPER saw the command.
+		fake.stall(200 * time.Millisecond)
+		if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrNoAnswer) {
+			t.Fatalf("RecordStop: %v, want ErrNoAnswer", err)
+		}
+
 		mu.Lock()
 		defer mu.Unlock()
-		lines = append(lines, kind+": "+message)
+		received := fake.commands()
+		if len(lines) != 2 || len(received) == 0 || received[0][1] != "arm_only" {
+			t.Fatalf("lines = %q, received = %q", lines, received)
+		}
+		ids := make([]string, len(lines))
+		for i, line := range lines {
+			ids[i] = runIDPattern.FindString(line)
+		}
+		if ids[0] != run(received[0]) {
+			t.Errorf("arm_only line names run %q, the fake received %q", ids[0], run(received[0]))
+		}
+		if ids[1] == "" || ids[1] == ids[0] {
+			t.Errorf("record_stop line names run %q, want its own run ID (arm_only's is %q)", ids[1], ids[0])
+		}
+		for _, command := range received[1:] {
+			if command[1] == "record_stop" && run(command) != ids[1] {
+				t.Errorf("record_stop line names run %q, the fake received %q", ids[1], run(command))
+			}
+		}
+		for i, want := range []struct{ command, kind string }{{"arm_only", "error"}, {"record_stop", "no answer"}} {
+			line := lines[i]
+			if !strings.HasPrefix(line, "reaper_action_failed: ") || !strings.Contains(line, want.command) || !strings.Contains(line, want.kind) {
+				t.Errorf("line %d = %q, want %s and %q", i, line, want.command, want.kind)
+			}
+			if strings.Contains(line, "Alice") {
+				t.Errorf("line %d = %q carries the answer's text", i, line)
+			}
+		}
 	})
-	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
-		if command[1] == "arm_only" {
-			return [][]string{{"ERROR", run(command), "Track \"Chapter 1 - Alice\" is locked."}}
-		}
-		return nil
-	})
-	actions.SetTimeout(50 * time.Millisecond)
-
-	if _, err := actions.ArmOnly(context.Background(), testTrack); err == nil {
-		t.Fatal("ArmOnly: no error")
-	}
-	// A loaded runner can starve the fake past the timeout, so Record Stop is taken back before the fake reads it (#3188). The
-	// stall makes that the case every time: the logged run ID comes from the host, whether or not REAPER saw the command.
-	fake.stall(200 * time.Millisecond)
-	if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrNoAnswer) {
-		t.Fatalf("RecordStop: %v, want ErrNoAnswer", err)
-	}
-
-	mu.Lock()
-	defer mu.Unlock()
-	received := fake.commands()
-	if len(lines) != 2 || len(received) == 0 || received[0][1] != "arm_only" {
-		t.Fatalf("lines = %q, received = %q", lines, received)
-	}
-	ids := make([]string, len(lines))
-	for i, line := range lines {
-		ids[i] = runIDPattern.FindString(line)
-	}
-	if ids[0] != run(received[0]) {
-		t.Errorf("arm_only line names run %q, the fake received %q", ids[0], run(received[0]))
-	}
-	if ids[1] == "" || ids[1] == ids[0] {
-		t.Errorf("record_stop line names run %q, want its own run ID (arm_only's is %q)", ids[1], ids[0])
-	}
-	for _, command := range received[1:] {
-		if command[1] == "record_stop" && run(command) != ids[1] {
-			t.Errorf("record_stop line names run %q, the fake received %q", ids[1], run(command))
-		}
-	}
-	for i, want := range []struct{ command, kind string }{{"arm_only", "error"}, {"record_stop", "no answer"}} {
-		line := lines[i]
-		if !strings.HasPrefix(line, "reaper_action_failed: ") || !strings.Contains(line, want.command) || !strings.Contains(line, want.kind) {
-			t.Errorf("line %d = %q, want %s and %q", i, line, want.command, want.kind)
-		}
-		if strings.Contains(line, "Alice") {
-			t.Errorf("line %d = %q carries the answer's text", i, line)
-		}
-	}
 }
 
 // A command the gate refuses never reaches the bridge, so it has no run to trace and logs nothing.
@@ -157,51 +159,54 @@ func TestPercentDecodeReadsEscapesAndRefusesBadOnes(t *testing.T) {
 // Every request reports how long it took and how it ended, by command name and a fixed outcome word. Nothing of the arguments
 // or the answer's text is in the report (a track's name is the canary here).
 func TestEveryRequestReportsItsTiming(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	var mu sync.Mutex
-	var timings []RequestTiming
-	actions.SetObserver(func(timing RequestTiming) {
+	onVirtualClock(t, func(t *testing.T) {
+		actions, client, dir := newActionsSession(t, true)
+		var mu sync.Mutex
+		var timings []RequestTiming
+		actions.SetObserver(func(timing RequestTiming) {
+			mu.Lock()
+			defer mu.Unlock()
+			timings = append(timings, timing)
+		})
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			switch command[1] {
+			case "arm_only":
+				return [][]string{{"ERROR", run(command), "Track \"CANARY Alice\" is locked."}}
+			case "record_stop":
+				return nil
+			}
+			return trackStateAnswer(command)
+		})
+		actions.SetTimeout(100 * time.Millisecond)
+		actions.SetLateWait(100 * time.Millisecond)
+
+		if _, err := actions.ChapterTrackState(context.Background(), testTrack); err != nil {
+			t.Fatal(err)
+		}
+		_, _ = actions.ArmOnly(context.Background(), testTrack)
+		_, _ = actions.RecordStop(context.Background())
+		cancelled, cancel := context.WithCancel(context.Background())
+		cancel()
+		_, _ = actions.RecordStop(cancelled)
+
 		mu.Lock()
 		defer mu.Unlock()
-		timings = append(timings, timing)
+		want := []struct{ command, outcome string }{{"chapter_track_state", "answered"}, {"arm_only", "error"}, {"record_stop", "no_answer"}, {"record_stop", "cancelled"}}
+		if len(timings) != len(want) {
+			t.Fatalf("timings = %+v, want %d", timings, len(want))
+		}
+		for i, w := range want {
+			if timings[i].Command != w.command || timings[i].Outcome != w.outcome || timings[i].Elapsed < 0 {
+				t.Errorf("timing %d = %+v, want %s %s", i, timings[i], w.command, w.outcome)
+			}
+			if strings.Contains(fmt.Sprintf("%+v", timings[i]), "CANARY") {
+				t.Errorf("timing %d holds a canary: %+v", i, timings[i])
+			}
+		}
+		if timings[2].Elapsed < 90*time.Millisecond {
+			t.Errorf("a request that timed out reports %v, want about the 100 ms timeout", timings[2].Elapsed)
+		}
 	})
-	startFakeReaper(t, client, dir, func(command []string) [][]string {
-		switch command[1] {
-		case "arm_only":
-			return [][]string{{"ERROR", run(command), "Track \"CANARY Alice\" is locked."}}
-		case "record_stop":
-			return nil
-		}
-		return trackStateAnswer(command)
-	})
-	actions.SetTimeout(100 * time.Millisecond)
-
-	if _, err := actions.ChapterTrackState(context.Background(), testTrack); err != nil {
-		t.Fatal(err)
-	}
-	_, _ = actions.ArmOnly(context.Background(), testTrack)
-	_, _ = actions.RecordStop(context.Background())
-	cancelled, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, _ = actions.RecordStop(cancelled)
-
-	mu.Lock()
-	defer mu.Unlock()
-	want := []struct{ command, outcome string }{{"chapter_track_state", "answered"}, {"arm_only", "error"}, {"record_stop", "no_answer"}, {"record_stop", "cancelled"}}
-	if len(timings) != len(want) {
-		t.Fatalf("timings = %+v, want %d", timings, len(want))
-	}
-	for i, w := range want {
-		if timings[i].Command != w.command || timings[i].Outcome != w.outcome || timings[i].Elapsed < 0 {
-			t.Errorf("timing %d = %+v, want %s %s", i, timings[i], w.command, w.outcome)
-		}
-		if strings.Contains(fmt.Sprintf("%+v", timings[i]), "CANARY") {
-			t.Errorf("timing %d holds a canary: %+v", i, timings[i])
-		}
-	}
-	if timings[2].Elapsed < 90*time.Millisecond {
-		t.Errorf("a request that timed out reports %v, want about the 100 ms timeout", timings[2].Elapsed)
-	}
 }
 
 // A request the gate refuses is never sent, so it reports nothing.
