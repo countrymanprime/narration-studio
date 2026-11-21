@@ -433,15 +433,37 @@ func fakeBuildSidecar(mode string, args []string) int {
 		}
 		fallthrough
 	case "pronunciation":
-		raw, _ := os.ReadFile(flagValue(args, "--words-file"))
-		var words []string
-		_ = json.Unmarshal(raw, &words)
+		words, err := readWordsFile(flagValue(args, "--words-file"), 20*time.Second)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "fake sidecar:", err)
+			return 1
+		}
 		for _, word := range words {
 			encoded, _ := json.Marshal(map[string]string{"ipa": "ipa:" + word})
 			fmt.Printf("{\"ipa\": %s, \"source\": \"cmu\", \"confidence\": \"medium\"}\n", encoded[7:len(encoded)-1])
 		}
 	}
 	return 0
+}
+
+// readWordsFile reads the host's list of words, trying again for up to wait while the file cannot be read or is not a list yet. A read
+// that failed once (on a loaded Windows runner a file just renamed into place can be briefly locked) used to leave an empty list, so the
+// fake answered nothing and the host reported an answer it could not read, which hid the real cause.
+func readWordsFile(path string, wait time.Duration) ([]string, error) {
+	var last error
+	for deadline := time.Now().Add(wait); ; time.Sleep(5 * time.Millisecond) {
+		raw, err := os.ReadFile(path)
+		if err == nil {
+			var words []string
+			if err = json.Unmarshal(raw, &words); err == nil {
+				return words, nil
+			}
+		}
+		last = err
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("could not read the words file %s: %w", path, last)
+		}
+	}
 }
 
 // fakeRecordingSidecar is the "record" mode: it appends its arguments, joined by a unit separator, as one line of the record log, and
