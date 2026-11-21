@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { StudioProvider } from '../../studio/StudioProvider';
+import { StudioProvider, useStoreHandle } from '../../studio/StudioProvider';
 import { useChapters } from '../../studio/useChapters';
 import { ApiProvider } from '../../api/ApiContext';
 import type { Finding } from '../../api/contracts/findings';
@@ -182,5 +182,38 @@ describe('usePipelineSources under the store (#3658)', () => {
     view.rerender({ key: 'b' });
     await waitFor(() => expect(view.result.current.master).toBeUndefined());
     expect(view.result.current.failing).toBeNull();
+  });
+  it("never pairs a reloaded chapter list with the previous project's measurement", async () => {
+    let project = 'a';
+    const files = { a: [file('Alpha.wav', 'met')], b: [file('Gamma.wav', 'met')] };
+    const lists = { a: [chapter('a1', 0, 'Alpha')], b: [chapter('b1', 0, 'Alpha')] };
+    const api = {
+      ...createMockApi(),
+      findingsList: () => Promise.resolve({ findings: [], total: 0 }),
+      measureState: () => Promise.resolve({ phase: 'success', files: files[project as 'a' | 'b'] } as unknown as MeasureJob),
+      manuscriptChapters: async () => lists[project as 'a' | 'b'],
+      scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
+    } as unknown as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const renders: unknown[] = [];
+    const { result } = renderHook(
+      () => {
+        const out = { pipeline: usePipelineSources(true, 'same'), store: useStoreHandle() };
+        renders.push(out.pipeline.master);
+        return out;
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.pipeline.master).toEqual({ a1: { mastered: true, qc: 'PASS' } }));
+    project = 'b';
+    renders.length = 0;
+    act(() => result.current.store.reset());
+    // Project B's own measurement (Gamma.wav) matches none of its chapters: the cell ends empty, and no render before that shows project A's Alpha.wav against B's Alpha.
+    await waitFor(() => expect(result.current.pipeline.master).toEqual({}));
+    expect(renders.filter((master) => master && 'b1' in (master as object))).toEqual([]);
   });
 });

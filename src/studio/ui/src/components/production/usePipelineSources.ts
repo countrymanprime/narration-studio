@@ -56,13 +56,19 @@ export function usePipelineSources(
   const measure = usePort('measure');
   const scriptPrep = usePort('scriptPrep');
   const [proof, setProof] = useState<Proof>();
-  const [job, setJob] = useState<Awaited<ReturnType<typeof measure.measureState>>>();
+  const [read, setRead] = useState<{ state: Awaited<ReturnType<typeof measure.measureState>> | undefined; epoch: number }>();
   const [prep, setPrep] = useState<Prep>();
   // The chapter list is the store's, shared with every page: mounting does not read it again. A new `refreshKey` (an import, a project switch) asks the
   // store for it now, as it re-reads the measurement, so a lost `job:ended` or a first failed read does not leave the list behind.
   const refreshes = useRef({ key: refreshKey, count: 0 });
   if (refreshes.current.key !== refreshKey) refreshes.current = { key: refreshKey, count: refreshes.current.count + 1 };
   const { chapters, error: listError } = useChapters(active, refreshes.current.count);
+  // A project switch empties the list; the measurement read before it is the old project's. Each emptying starts a new epoch: the measurement is read
+  // again in it, and one read in an earlier epoch is never paired with the new list.
+  const listSeen = useRef({ held: false, epoch: 0 });
+  if (chapters) listSeen.current.held = true;
+  else if (listSeen.current.held) listSeen.current = { held: false, epoch: listSeen.current.epoch + 1 };
+  const epoch = listSeen.current.epoch;
 
   useEffect(() => {
     if (!active) return;
@@ -72,8 +78,8 @@ export function usePipelineSources(
       () => live && setProof(undefined),
     );
     measure.measureState().then(
-      (state) => live && setJob(state),
-      () => live && setJob(undefined),
+      (state) => live && setRead({ state, epoch }),
+      () => live && setRead({ state: undefined, epoch }),
     );
     scriptPrep.scriptPrepList().then(
       (record) => live && setPrep(Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state]))),
@@ -82,7 +88,8 @@ export function usePipelineSources(
     return () => {
       live = false;
     };
-  }, [active, refreshKey, findings, measure, scriptPrep]);
+  }, [active, refreshKey, epoch, findings, measure, scriptPrep]);
+  const job = read?.epoch === epoch ? read.state : undefined;
 
   // A list whose last read failed may not match the measurement: no pairing then, never a stale fact.
   const list = listError ? undefined : chapters;
