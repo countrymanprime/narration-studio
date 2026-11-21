@@ -113,7 +113,7 @@ describe('every page prints the same recorded percent', () => {
     ['host 100 not complete (mock-only: 99 on every page)', { percent: 100, complete: false }],
     ['complete', { percent: 100, complete: true }],
   ];
-  const measured = [null, 0, 12, 7200] as const;
+  const measured = [null, 0, 0.5, 0.99, 1, 12, 7200] as const;
   for (const [name, over] of hosts) {
     for (const seconds of measured) {
       it(`${name} with ${seconds === null ? 'no measured length' : `${seconds} s measured`}`, () => {
@@ -149,7 +149,7 @@ describe('every page prints the same recorded percent', () => {
   }
 });
 
-// #3869: a recorded length under one second prints as 0:00, so the percent beside it reads 0 (any recorded second reads at least 1). Over lengths from 0 to 2 s the percent is 0
+// #3869: a recorded length under one second counts as no audio (the clock prints 0:00 for it), so the percent beside it reads 0 (any recorded second reads at least 1). Over lengths from 0 to 2 s the percent is 0
 // exactly when the printed length is 0:00, with no host percent and with a host 0; a host 1 to 99 and complete are unchanged by the length.
 describe('a recorded length and its percent agree about audio under one second', () => {
   const lengths = Array.from({ length: 201 }, (_, step) => step / 100);

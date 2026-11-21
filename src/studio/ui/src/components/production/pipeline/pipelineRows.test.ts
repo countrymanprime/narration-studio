@@ -317,3 +317,29 @@ describe('a-host-zero-with-audio-says-one-percent', () => {
     expect(none!.cells.record.tip).toContain('(0%)');
   });
 });
+
+// #3869 (intent review): under one second is no audio on Production too. The row says exactly what it says for 0 s (Rec. "None yet", the Record cell, their tips and names), never
+// "0%" beside "<0h 01m"; one second is audio and says 1% beside "<0h 01m".
+describe('audio under one second reads as no audio on the row', () => {
+  const zero = { paragraphId: 'p1', paragraph: 1, word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
+  for (const status of ['not_started', 'recording', 'editing'] as const) {
+    for (const host of [undefined, zero]) {
+      for (const seconds of [0.5, 0.99]) {
+        it(`${status}, ${host ? 'host 0' : 'no host percent'}, ${seconds} s equals 0 s`, () => {
+          const make = (recordedSeconds: number) => rowsOf([chapter('c1', { status, wordCount: WPH, recordedSeconds, recordedThrough: host })])[0]!;
+          const none = make(0);
+          const under = make(seconds);
+          expect(under.cells.record).toEqual(none.cells.record);
+          expect(under.recorded).toEqual(none.recorded);
+          expect(`${under.cells.record.tip} ${under.recorded.tip} ${under.recorded.label}`).not.toContain('<0h 01m');
+        });
+      }
+    }
+  }
+  it('says 1% beside <0h 01m at one second', () => {
+    const [row] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 1, recordedThrough: zero })]);
+    expect(row!.cells.record.text).toBe('1%');
+    expect(row!.recorded.text).toBe('<0h 01m');
+    expect(row!.recorded.tip).toContain('(1%)');
+  });
+});

@@ -29,6 +29,7 @@ describe('Next up says the Record cell’s percent', () => {
   it.each([
     [0, 0],
     [0.5, 0],
+    [0.99, 0],
     [1, 1],
     [18, 1],
     [35.99, 1],
