@@ -170,6 +170,7 @@ describe('Story Bible types panel (SN-M53)', () => {
     await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
     fireEvent.click(removeButton('Organization'));
     expect(remove).toHaveBeenCalledTimes(1);
+    await act(async () => undefined); // the queued rename starts a microtask later
     await act(async () => finish());
     await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Lore' })).toBeNull());
     expect(within(panel()).getByRole('textbox', { name: 'Type name: Organization' })).toBeTruthy();
@@ -203,6 +204,7 @@ describe('Story Bible types panel (SN-M53)', () => {
     fireEvent.blur(nameField('Lore'));
     fireEvent.click(removeButton('Item'));
     expect(remove).not.toHaveBeenCalled();
+    await act(async () => undefined); // the queued rename starts a microtask later
     await act(async () => finish());
     await waitFor(() => expect(remove).toHaveBeenCalledWith('Item'));
     await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Item' })).toBeNull());
@@ -241,6 +243,7 @@ describe('Story Bible types panel (SN-M53)', () => {
     fireEvent.blur(nameField('Lore'));
     fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
     expect(speaks).not.toHaveBeenCalled();
+    await act(async () => undefined); // the queued rename starts a microtask later
     await act(async () => finish());
     await waitFor(() => expect(speaks).toHaveBeenCalledTimes(1));
   });
@@ -262,6 +265,7 @@ describe('Story Bible types panel (SN-M53)', () => {
     fireEvent.blur(nameField('Lore'));
     fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
     await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Add type' }).getAttribute('aria-disabled')).toBe('true'));
+    await act(async () => undefined); // the queued rename starts a microtask later
     await act(async () => finish());
     await waitFor(() => expect(speaks).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Add type' }).getAttribute('aria-disabled')).toBeNull());
@@ -413,6 +417,7 @@ describe('text typed in New type is held until it is added (#3457)', () => {
     expect(registry.heldNow()).toEqual([]);
     fireEvent.keyDown(box, { key: 'Enter' });
     expect(add).toHaveBeenCalledTimes(1);
+    await act(async () => undefined); // the queued rename starts a microtask later
     await act(async () => finish());
     await waitFor(() => expect((within(panel()).getByRole('textbox', { name: 'New type' }) as HTMLInputElement).value).toBe(''));
   });

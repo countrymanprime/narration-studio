@@ -265,7 +265,6 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
   const [types, setTypes] = useState<GuideType[]>();
   const [counts, setCounts] = useState<Record<string, number>>();
   const [error, setError] = useState<string>();
-  const [busy, setBusy] = useState(false);
 
   // `live` is false once the panel is gone, so a late answer is dropped.
   const read = useCallback(
@@ -286,24 +285,22 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
     };
   }, [read]);
 
-  // A second press before the first answer would land on whatever row moved under the pointer, so one change is in flight at a time.
-  const inFlight = useRef<string | undefined>(undefined);
-  const settled = useRef<Promise<boolean>>(Promise.resolve(true));
+  // Changes run one at a time, in the order they were pressed: a press never lands on a row that moved under the pointer (the controls are drawn
+  // busy while one is waiting or out, so a second press is answered, not dropped), and a press made while a rename is out waits for it. A rename is
+  // committed by leaving its box, often by pressing another control, so it does not draw the others busy itself: that press must still reach them.
+  const [waiting, setWaiting] = useState(0);
+  const [settling, setSettling] = useState(false);
+  const settlingNow = useRef(false);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const tail = useRef<Promise<boolean>>(Promise.resolve(true));
   useEffect(() => () => clearTimeout(settleTimer.current), []);
-  const change = async (kind: string, call: () => Promise<void>): Promise<boolean> => {
-    // A rename is committed by leaving its box, often by pressing another control: that press is one press, so it waits for the rename and then goes ahead.
-    if (inFlight.current === 'rename') {
-      // The controls are drawn busy from here, so a second press made during the rename is answered (disabled), not dropped.
-      setBusy(true);
-      // Presses made during one rename run one after another, in the order they were made.
-      while (inFlight.current) await settled.current;
-    }
-    if (inFlight.current) return false;
-    inFlight.current = kind;
-    // A rename keeps the other controls live, so the press that took the focus out of its box still reaches them (above).
-    if (kind !== 'rename') setBusy(true);
-    const done = (async () => {
+  const change = (kind: string, call: () => Promise<void>): Promise<boolean> => {
+    // After a removal the row below has moved up under the pointer: the controls stay off (drawn busy) for a moment, so a second press of the same
+    // spot is not taken for a second choice (#3674, qa-breaker B-N1).
+    if (settlingNow.current) return Promise.resolve(false);
+    const counts = kind !== 'rename';
+    if (counts) setWaiting((n) => n + 1);
+    const run = async (): Promise<boolean> => {
       try {
         await call();
         await read();
@@ -314,16 +311,22 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
         setError(apiErrorMessage(failure));
         return false;
       } finally {
-        inFlight.current = undefined;
-        // After a removal the row below has moved up under the pointer: the controls stay off (drawn busy, so the press is answered) for a moment, so a
-        // second press of the same spot is not taken for a second choice (#3674, qa-breaker B-N1).
-        if (kind === 'remove') settleTimer.current = setTimeout(() => setBusy(false), SETTLE_AFTER_REMOVE_MS);
-        else setBusy(false);
+        if (counts) setWaiting((n) => n - 1);
+        if (kind === 'remove') {
+          settlingNow.current = true;
+          setSettling(true);
+          settleTimer.current = setTimeout(() => {
+            settlingNow.current = false;
+            setSettling(false);
+          }, SETTLE_AFTER_REMOVE_MS);
+        }
       }
-    })();
-    settled.current = done;
+    };
+    const done = tail.current.then(run);
+    tail.current = done;
     return done;
   };
+  const busy = waiting > 0 || settling;
 
   return {
     types,
