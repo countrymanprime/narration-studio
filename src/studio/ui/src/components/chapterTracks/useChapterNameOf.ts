@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { headingName } from '../../chapterHeading';
-import { usePort } from '../../ports/usePort';
+import { useChapters } from '../../studio/useChapters';
 import type { ManuscriptChapter } from '../../types';
 
 /** Names a chapter by the manuscript's current heading out of a chapter list: the one lookup every caller shares (the pickers, the takeover sentence). */
@@ -17,20 +17,7 @@ export function chapterNameLookup(chapters: readonly ManuscriptChapter[]): (chap
  * row spell one chapter one way (#3398); a caller falls back to the title the host kept with the link.
  */
 export function useChapterNameOf(active = true, refreshKey = 0): (chapterId: string) => string | undefined {
-  const manuscript = usePort('manuscript');
-  const [lookup, setLookup] = useState<(chapterId: string) => string | undefined>(() => () => undefined);
-  // Read when the caller becomes active (a panel opening, a dialog mounting), so a chapter renamed since is named as it is now.
-  useEffect(() => {
-    if (!active) return;
-    let live = true;
-    manuscript
-      .manuscriptChapters()
-      .then((chapters) => live && setLookup(() => chapterNameLookup(chapters)))
-      // The kept titles name the holders meanwhile.
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [manuscript, active, refreshKey]);
-  return lookup;
+  // The store's chapter list, read again when the manuscript changes, so a chapter renamed since is named as it is now; the kept titles name the holders meanwhile.
+  const { chapters } = useChapters(active, refreshKey);
+  return useMemo(() => (chapters ? chapterNameLookup(chapters) : () => undefined), [chapters]);
 }
