@@ -98,8 +98,41 @@ for (const [width, height, driver] of SIZES) {
   });
 }
 
+// Every width a narrow or half-width window can have, at the heights on each side of the 400 px chrome change (320x400 included): the layout with the pointer showing is the
+// layout once it has gone. One dialog, resized; the pointer is brought back at each size by scrolling the chain out of view.
+test("Master / the approval's chain pointer takes no room at every width from 275 to 700 px", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await settlePage(page);
+  await masterDrivers['to-spec-approve-daw']!(page);
+  const problems: string[] = [];
+  let compared = 0;
+  for (const height of [400, 422]) {
+    for (let width = 275; width <= 700; width += 5) {
+      await page.setViewportSize({ width, height });
+      await scrollChain(page, 'end');
+      await frames(page);
+      if ((await chip(page).count()) === 0) {
+        problems.push(`${width}x${height}: no pointer with the chain scrolled out of view`);
+        continue;
+      }
+      const shown = await layout(page);
+      await chip(page).click();
+      await expect(chip(page)).toHaveCount(0);
+      await frames(page);
+      const gone = await layout(page);
+      compared += 1;
+      if (JSON.stringify(gone) !== JSON.stringify(shown))
+        problems.push(`${width}x${height}: with the pointer ${JSON.stringify(shown)}, without ${JSON.stringify(gone)}`);
+    }
+  }
+  expect(problems).toEqual([]);
+  expect(compared).toBe(172);
+});
+
 // The step itself: as the window gets shorter one pixel at a time the action row keeps its height on each side of the 400 px chrome change, and the body never jumps.
-for (const width of [320, 400]) {
+for (const width of [275, 320, 360, 400, 480, 640]) {
   test(`Master / the approval's action row and body do not step as the window shrinks / ${width} wide`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');

@@ -539,9 +539,9 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     return watched;
   };
 
-  // Round 3 decision (option B): Approve is never held. When the chain is not in view as the dialog opens (a small window), a button
-  // beside Approve says how many effects the chain holds and scrolls to it; it watches the first row, not the number in it (M5).
-  it('when the chain is out of view on open, a pointer beside Approve says so and scrolls to it, and Approve stays usable', async () => {
+  // Round 3 decision (option B): Approve is never held. When the chain is not in view as the dialog opens (a small window), a chip
+  // over the body says how many effects the chain holds and scrolls to it (a button beside Approve until #3605); it watches the first row, not the number in it (M5).
+  it('when the chain is out of view on open, a pointer over the body says so and scrolls to it, and Approve stays usable', async () => {
     const watched = observeAs(false);
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;

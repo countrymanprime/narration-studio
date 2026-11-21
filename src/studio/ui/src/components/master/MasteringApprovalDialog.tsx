@@ -60,7 +60,7 @@ function ChainList({ chain, onView }: { chain: ExportPlan['chain'] | null | unde
   const tracks = chain ?? [];
   const rows = tracks.flatMap((track) => (track.fx ?? []).map((fx) => ({ master: track.master, track: track.name, fx })));
   // Whether the chain's first row is in view. At a small window (320x300, or 400% zoom) it is below the dialog's visible body while
-  // Approve is in view, so a pointer beside Approve says so (round 3 on #2932: Approve is never held, since at 400% zoom the body can
+  // Approve is in view, so a pointer over the body says so (round 3 on #2932: Approve is never held, since at 400% zoom the body can
   // be 0 px tall and a held Approve would be a dead end). It is watched for as long as the dialog is open, so the pointer follows a
   // resize (round 4, N3). The row counts as in view when half of it shows, or a few lines of a row taller than that (M5), never a
   // sliver (round 4, N4). Without IntersectionObserver (jsdom) nothing is reported.
