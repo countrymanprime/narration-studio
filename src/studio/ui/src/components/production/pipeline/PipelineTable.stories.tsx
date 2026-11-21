@@ -53,3 +53,22 @@ export const WithCredits: Story = {
     await expect(rows.at(-1)?.textContent).toContain('Closing credits');
   },
 };
+
+// #3443: a recorded length and an estimate of under a minute read "<0h 01m", 7 characters in a 64 px column: whole inside their cells and spoken as "less than a minute".
+export const UnderAMinute: Story = {
+  args: {
+    rows: buildPipelineRows(MID_BOOK, MID_BOOK_SOURCES).map((row, index) =>
+      index < 2
+        ? {
+            ...row,
+            estimate: '<0h 01m',
+            recorded: { kind: 'measured', text: '<0h 01m', label: `${row.name}: less than a minute recorded`, tip: 'Under a minute recorded' },
+          }
+        : row,
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByText('<0h 01m').length).toBeGreaterThanOrEqual(2);
+  },
+};
