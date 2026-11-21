@@ -62,7 +62,8 @@ const within = (log: readonly TakeLogEntry[], from: Date, to: Date): number =>
 /** The windows end with the last minute of `today`; the target uses the book's finished hours (its words at the estimate's WPH, worked out by the caller) and the plan's due date. */
 export function weekFigures(log: Measured<readonly TakeLogEntry[]>, today: Date, start: Date, due: Date | null, finishedHours: number): WeekFigures {
   const planDays = due ? diffDays(due, start) : 0;
-  const target = planDays > 0 ? Math.round((finishedHours * HOUR_SECONDS * WEEK_DAYS) / planDays) : null;
+  // Exact, not rounded to the second: `clock` floors it, so 59.79 s reads "<0h 01m" and not "0h 01m".
+  const target = planDays > 0 ? (finishedHours * HOUR_SECONDS * WEEK_DAYS) / planDays : null;
   if (!log.ok) return { week: log, target, last24h: log };
   const end = new Date(addDays(today, 1).getTime() - 1);
   return {
