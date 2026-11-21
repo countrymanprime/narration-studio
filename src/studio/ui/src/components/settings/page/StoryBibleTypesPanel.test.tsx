@@ -245,6 +245,28 @@ describe('Story Bible types panel (SN-M53)', () => {
     await waitFor(() => expect(speaks).toHaveBeenCalledTimes(1));
   });
 
+  // The ux-reviewer's third pass on #3674: a second press during one rename was dropped with nothing shown. Now the first waiting press draws the
+  // controls busy, so the second is answered (disabled), and the waiting press itself still runs after the rename.
+  it('a press made during a rename waits and the other controls are drawn busy meanwhile, then live again', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRename.bind(api);
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeRename').mockImplementation(
+      (name, to) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name, to).then(resolve);
+        }),
+    );
+    const speaks = vi.spyOn(api, 'guideTypeSetSpeaks');
+    fireEvent.change(nameField('Lore'), { target: { value: 'Lore renamed' } });
+    fireEvent.blur(nameField('Lore'));
+    fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
+    await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Add type' }).getAttribute('aria-disabled')).toBe('true'));
+    await act(async () => finish());
+    await waitFor(() => expect(speaks).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Add type' }).getAttribute('aria-disabled')).toBeNull());
+  });
+
   it('remove is disabled on the last type', async () => {
     const api = createMockApi();
     api.guideTypes = async () => [{ name: 'Character', colour: 'green', speaks: true }];
