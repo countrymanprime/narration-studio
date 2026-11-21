@@ -19,7 +19,7 @@
  * Race scope (M6 of docs/research/test-speed-plan-2026-11.md, #3860). On a pull request `-race` applies to the raced packages the change
  * touches (touchedPackages: a changed file in the package's own folder); the other raced packages still run every test, without the
  * detector. A package that imports a touched one is not touched: a race a change causes in its importers' tests is found on `main`. Every other run (main-health on each push to `main` and every three hours, a push, `pnpm check`) races all of them, and a red
- * main-health run ticks HOLD on every open train issue. A change the rule cannot place (go.mod, this script, a workflow)
+ * main-health run opens the blocking `main-red` issue and ticks HOLD on every open train issue. A change the rule cannot place (go.mod, this script, a workflow)
  * races everything.
  *
  * `--group` (with `-race`) runs only some of the packages, so CI can run them as parallel jobs: `root` is the module's root
