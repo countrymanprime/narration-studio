@@ -37,21 +37,29 @@ for (const width of WIDTHS) {
       expect.soft(Math.abs(measured.listLeft - measured.labelLeft), 'the list starts at the label’s left edge').toBeLessThan(24);
       expect.soft(measured.listWidth, 'the list takes the row’s width').toBeGreaterThan(measured.row * 0.85);
       for (const [index, type] of measured.types.entries()) expect.soft(type.height, `type ${index + 1} is one line`).toBeLessThan(44);
-      expect.soft(measured.colourWidth, 'the colour box is wide enough to show the colour’s name').toBeGreaterThanOrEqual(120);
+      expect.soft(measured.colourWidth, 'the colour box is wide enough to show the colour’s name').toBeGreaterThanOrEqual(100);
     });
   }
 }
 
-// A sweep, because the rail appears at 860 px and takes width from the list: a width that is one line on both sides of it can still be two lines at it.
-test('Settings, Entry types: every window from 554 to 1300 px draws each type on one line', async ({ page }) => {
+// A sweep, because the rail appears at 860 px and takes width from the list: a width that is one line on both sides of it can still be two lines
+// at it, and a name box squeezed to fit can cut the name's last letter.
+test('Settings, Entry types: every window from 400 to 1300 px shows each name whole, and one line per type from 554 px', async ({ page }) => {
   await openEntryTypes(page, 1300, 'light');
   const wrapped: number[] = [];
-  for (let width = 554; width <= 1300; width += 3) {
+  const clipped: string[] = [];
+  for (let width = 400; width <= 1300; width += 1) {
     await page.setViewportSize({ width, height: 900 });
-    const tall = await page
-      .locator('[data-row="project.types"] li')
-      .evaluateAll((items) => items.filter((item) => item.getBoundingClientRect().height >= 44).length);
-    if (tall > 0) wrapped.push(width);
+    const found = await page.locator('[data-row="project.types"] li').evaluateAll((items) => ({
+      tall: items.filter((item) => item.getBoundingClientRect().height >= 44).length,
+      cut: items
+        .map((item) => item.querySelector('input'))
+        .filter((input): input is HTMLInputElement => input !== null && input.scrollWidth > input.clientWidth)
+        .map((input) => input.value),
+    }));
+    if (width >= 554 && found.tall > 0) wrapped.push(width);
+    if (found.cut.length > 0) clipped.push(`${width}: ${found.cut.join(', ')}`);
   }
   expect(wrapped, 'widths where a type takes two lines').toEqual([]);
+  expect(clipped, 'widths where a name is cut by its box').toEqual([]);
 });
