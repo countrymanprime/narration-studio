@@ -111,18 +111,20 @@ func TestOverlappingRequestsAreEachAnswered(t *testing.T) {
 
 // Fast polling ends with the answer: once nothing is waiting, the client does not dispatch on its own any more (the host's tick is the only poller).
 func TestFastPollingStopsWhenTheAnswerArrives(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	client.poll.interval = 5 * time.Millisecond
-	startQuietReaper(t, dir, positionAnswer)
-	if _, err := actions.PlayPosition(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	time.Sleep(50 * time.Millisecond) // the poller notices on its next tick that nobody waits
-	before := client.events.dispatches.Load()
-	time.Sleep(100 * time.Millisecond)
-	if after := client.events.dispatches.Load(); after != before {
-		t.Errorf("the client kept dispatching after the answer: %d calls became %d in 100 ms", before, after)
-	}
+	onVirtualClock(t, func(t *testing.T) {
+		actions, client, dir := newActionsSession(t, true)
+		client.poll.interval = 5 * time.Millisecond
+		startQuietReaper(t, dir, positionAnswer)
+		if _, err := actions.PlayPosition(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(50 * time.Millisecond) // the poller notices on its next tick that nobody waits
+		before := client.events.dispatches.Load()
+		time.Sleep(100 * time.Millisecond)
+		if after := client.events.dispatches.Load(); after != before {
+			t.Errorf("the client kept dispatching after the answer: %d calls became %d in 100 ms", before, after)
+		}
+	})
 }
 
 // With no answer coming, fast polling stops at its window instead of running until the request's timeout: a hung script costs a bounded
@@ -145,20 +147,22 @@ func TestFastPollingIsBoundedWhenNoAnswerComes(t *testing.T) {
 
 // A request that is cancelled stops its fast polling.
 func TestFastPollingStopsWhenTheRequestIsCancelled(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	client.poll.interval = 5 * time.Millisecond
-	startQuietReaper(t, dir, func([]string) [][]string { return nil })
-	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
-	defer cancel()
-	if _, err := actions.PlayPosition(ctx); !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("PlayPosition: %v", err)
-	}
-	time.Sleep(50 * time.Millisecond)
-	before := client.events.dispatches.Load()
-	time.Sleep(100 * time.Millisecond)
-	if after := client.events.dispatches.Load(); after != before {
-		t.Errorf("dispatching continued after the cancel: %d became %d", before, after)
-	}
+	onVirtualClock(t, func(t *testing.T) {
+		actions, client, dir := newActionsSession(t, true)
+		client.poll.interval = 5 * time.Millisecond
+		startQuietReaper(t, dir, func([]string) [][]string { return nil })
+		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+		defer cancel()
+		if _, err := actions.PlayPosition(ctx); !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("PlayPosition: %v", err)
+		}
+		time.Sleep(50 * time.Millisecond)
+		before := client.events.dispatches.Load()
+		time.Sleep(100 * time.Millisecond)
+		if after := client.events.dispatches.Load(); after != before {
+			t.Errorf("dispatching continued after the cancel: %d became %d", before, after)
+		}
+	})
 }
 
 // The log is read from where the last call stopped, not from its start: a long session's log (it only grows) costs a tick what its new
