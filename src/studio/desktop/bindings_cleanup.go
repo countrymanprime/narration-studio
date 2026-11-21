@@ -177,7 +177,7 @@ func levelMatchApplyIn(ctx context.Context, svc hostServices, chapterID, metric 
 	}
 	result, err := role.Apply(ctx, candidates)
 	if err != nil {
-		return levelMatchApplyAnswer{}, err
+		return levelMatchApplyAnswer{}, lateAnswerError(readAloudAdapterName(svc), err)
 	}
 	changed := make([]gainChangeWire, len(result.Changed))
 	for i, c := range result.Changed {

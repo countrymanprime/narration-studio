@@ -150,7 +150,8 @@ func NewRegistry() *port.Registry[Source] {
 	r := &port.Registry[Source]{Kind: "extraction source"}
 	r.Register(row(builtin{name: Rules, label: "Rules", icon: "auto", runs: true, scored: true}))
 	r.Register(row(builtin{name: Imported, label: "Imported file", icon: "import", scored: true}))
-	r.Register(row(builtin{name: LocalModel, label: "Local model", icon: "globe", runs: true, reason: "No local model is installed."}))
+	// Not started from the Story Bible (runs false): only "Attribute speakers" asks the local model, so a scan never starts it.
+	r.Register(row(builtin{name: LocalModel, label: "Local model", icon: "globe", reason: "No local model is installed."}))
 	r.Register(row(builtin{name: Gliner, label: "GLiNER", icon: "locate", runs: true, scored: true, assets: []string{"gliner"}}))
 	r.Register(row(builtin{name: BookNLP, label: "BookNLP", icon: "dictionary", runs: true, scored: true,
 		assets: []string{"booknlp-small", "booknlp-big"}}))

@@ -33,10 +33,13 @@ export const PRESS_LIMITS_MS = {
   recordStart: 14_000,
   /** The start of the take by the app's own recorder: the host runs it under `recorderDevicesTimeout`, 20 s, so the limit is above that. */
   recordStartInApp: 25_000,
-  /** The stop of a take whose listening failed (`dropUnheardTake`). The host's stop goes through the bridge, which answers within `DefaultAnswerTimeout` (3 s, internal/bridge/navigation.go) when the DAW does not; this limit is the start's, well above that, so a stop is never cut off sooner than the bridge would give up. */
-  recordStop: 10_000,
-  /** Taking that short recording back: the host's own limit is `undoLastTimeout`, 12 s, so this is above it. */
-  undoLast: 14_000,
+  /**
+   * A stop of the take. The host's stop goes through the bridge, which gives up after `DefaultAnswerTimeout` (3 s) on a stop the DAW never read and waits
+   * `LateAnswerWait` (20 s) more for one it has read (#3752), so this is above 23 s: a stop that is about to land is never cut off and then reported failed.
+   */
+  recordStop: 26_000,
+  /** Taking that short recording back: the host's own limit is `undoLastTimeout` (`writeCommandTimeout`, 26 s: an undo the DAW has read is waited for), so this is above it. */
+  undoLast: 29_000,
   /** Rolling again in a take (R, Punch and roll): the host's own limit is `rollTimeout`, 5 s (the stop, the cursor move and the DAW recording again). */
   roll: 8_000,
   /** Making the voice a passage was recorded on the take's track (a punch). */
@@ -65,8 +68,8 @@ export const PRESS_LIMIT_BASIS: Record<PressStage, string> = {
   listening: 'host limit: defaultGrace + 2 s + listeningWait (read from the Go source by the guard)',
   recordStart: 'host limit: readAloudRecordStartTimeout + tracksLiveTimeout (read from the Go source by the guard)',
   recordStartInApp: 'host limit: recorderDevicesTimeout (read from the Go source by the guard)',
-  recordStop: "host limit: the bridge's DefaultAnswerTimeout, 3 s (internal/bridge/navigation.go); this is the start's limit",
-  undoLast: 'host limit: undoLastTimeout, 12 s',
+  recordStop: "host limit: the bridge's DefaultAnswerTimeout plus LateAnswerWait for a stop the DAW has read (read from the Go source by the guard)",
+  undoLast: 'host limit: undoLastTimeout, which is writeCommandTimeout (read from the Go source by the guard)',
   roll: 'host limit: rollTimeout (read from the Go source by the guard)',
   voiceChoice:
     'host limit: BoothVoiceSet runs under laneCommandTimeout: the arm wait, the late wait for a command the DAW has read and two live list reads (read from the Go source by the guard)',

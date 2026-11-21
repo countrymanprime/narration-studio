@@ -343,6 +343,9 @@ describe('the Record control stop (#3320)', () => {
 
   it('never answers: the press ends at its limit with the failure sentence, and the next press can ask again', async () => {
     const view = mount({ start: () => Promise.resolve(OK) });
+    // The DAW goes on recording through the wait: the take's own read of the play state (every POLL_MS) would otherwise end the take before the limit.
+    const projectState = view.client.projectState.bind(view.client);
+    view.client.projectState = async () => ({ ...(await projectState()), playState: 'recording' });
     await ready(view);
     await act(async () => void (await view.result.current.toggle()));
     expect(view.result.current.recording).toBe(true);
