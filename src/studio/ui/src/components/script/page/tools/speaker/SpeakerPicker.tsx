@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Listbox, listboxOptionId, type ListboxOption } from '../../../../primitives/Listbox';
+import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Swatch, type SwatchColour } from '../../../../primitives/Swatch';
 import { TextField } from '../../../../primitives/TextField';
 import { suggestionReasonLine } from '../../../../manuscript/dialogueCues.selectors';
@@ -76,37 +77,50 @@ export function SpeakerPicker({
   const choose = (row: Row | undefined) => row && onChoose(row.entryId);
 
   return (
-    <div className="flex max-w-[360px] min-w-[280px] flex-col gap-1.5 [overflow-wrap:anywhere]">
-      <TextField
-        ref={field}
-        label="Search speakers"
-        placeholder="Search speakers"
-        role="combobox"
-        aria-expanded={rows.length > 0}
-        aria-controls={rows.length > 0 ? listId : undefined}
-        aria-activedescendant={rows[current] ? listboxOptionId(listId, rows[current].id) : undefined}
-        autoComplete="off"
-        value={search}
-        onChange={(next) => {
-          setSearch(next);
-          setActive(0);
+    // In a popover the window has cut short, the picker is as tall as the room inside it (the popover's height less its padding and border), so the
+    // list below scrolls and the popover does not: one scroller, and the search box stays in view (#3258). It is 280 px wide, or the
+    // popover's own width where a narrow window leaves less (a definite width: a min-width in a shrink-to-fit popup resolves to nothing).
+    <div className="flex max-h-[calc(var(--available-height)_-_2rem_-_2px)] w-[280px] max-w-full flex-col gap-1.5 [overflow-wrap:anywhere]">
+      <div className="shrink-0">
+        <TextField
+          ref={field}
+          label="Search speakers"
+          placeholder="Search speakers"
+          role="combobox"
+          aria-expanded={rows.length > 0}
+          aria-controls={rows.length > 0 ? listId : undefined}
+          aria-activedescendant={rows[current] ? listboxOptionId(listId, rows[current].id) : undefined}
+          autoComplete="off"
+          value={search}
+          onChange={(next) => {
+            setSearch(next);
+            setActive(0);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault();
+              setActive(Math.max(0, Math.min(rows.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1))));
+            } else if (event.key === 'Enter') {
+              event.preventDefault();
+              choose(rows[current]);
+            } else if (event.key === 'Escape') {
+              event.preventDefault();
+              event.stopPropagation();
+              onClose();
+            }
+          }}
+        />
+      </div>
+      <SectionLabel as="div" className="shrink-0 px-1 py-0.5">
+        {term ? 'Matches' : 'In this chapter'}
+      </SectionLabel>
+      {/* In a window the picker covers its chip in, the second press of a double-click on the chip lands on a row: it chose a speaker the narrator did not pick. */}
+      <div
+        className="max-h-60 min-h-0 overflow-auto"
+        onClickCapture={(event) => {
+          if (event.detail > 1) event.stopPropagation();
         }}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault();
-            setActive(Math.max(0, Math.min(rows.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1))));
-          } else if (event.key === 'Enter') {
-            event.preventDefault();
-            choose(rows[current]);
-          } else if (event.key === 'Escape') {
-            event.preventDefault();
-            event.stopPropagation();
-            onClose();
-          }
-        }}
-      />
-      <div className="px-1 py-0.5 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">{term ? 'Matches' : 'In this chapter'}</div>
-      <div className="max-h-60 overflow-auto">
+      >
         <Listbox
           id={listId}
           label={term ? 'Matching speakers' : 'Speakers in this chapter'}

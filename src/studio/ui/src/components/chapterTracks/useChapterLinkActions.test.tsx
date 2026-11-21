@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { TrackMapping } from '../../types';
-import { displacedSentence, useChapterLinkActions } from './useChapterLinkActions';
+import { displacedSentence, keptTitle, useChapterLinkActions } from './useChapterLinkActions';
 
 const mapping = (chapterId: string, chapterTitle: string): TrackMapping => ({ trackGuid: 'T', chapterId, chapterTitle, confirmedAt: '' });
 const setAnswer = (displaced: TrackMapping | null) => ({ documentId: 'd', link: mapping('c1', 'One'), displaced, mappings: [mapping('c1', 'One')] });
@@ -84,5 +84,17 @@ describe('useChapterLinkActions', () => {
     expect((await actions.create('c1')).outcome).toBe('refused');
     expect(chapterTrackUnlink).toHaveBeenCalledWith('c1');
     expect(chapterTrackCreate).toHaveBeenCalledWith('c1');
+  });
+});
+
+describe('keptTitle keeps text that draws (#3382 f, found by qa-breaker)', () => {
+  it.each([
+    ['an emoji with a variation selector', 'I ❤️ NY'],
+    ['a keycap', '#️⃣ Hashtag'],
+    ['an ideographic variation sequence', '葛\u{E0100}飾区'],
+    ['a flag tag sequence', '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}'],
+    ['a zero-width joiner in an emoji', '\u{1F468}‍\u{1F469}'],
+  ])('%s', (_label, title) => {
+    expect(keptTitle(title)).toBe(title);
   });
 });

@@ -12,7 +12,7 @@
 //   rapid double-fire                     'Add track is busy until the host answers, and a second press sends nothing more'
 //   leave mid-action                      the page closes the dialog on another chapter (BoothNextPage's effect on recordId); not tested here
 //   reload mid-action                     not tested: the dialog holds no saved state; a track the host added is listed by BoothVoiceGet
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Voice } from '../../engine/voices';
@@ -88,6 +88,15 @@ describe('Who is in Num N?', () => {
     await userEvent.type(nameField(), 'Court');
     await userEvent.click(screen.getByRole('checkbox', { name: /Duchess/ }));
     expect(nameField().value).toBe('Court');
+  });
+
+  it('a track name of only invisible characters is refused like a blank one (#3382 f)', async () => {
+    const props = show({ kind: 'key', key: 5 });
+    await userEvent.clear(nameField());
+    fireEvent.change(nameField(), { target: { value: String.fromCodePoint(0x200b, 0x200d) } });
+    expect(screen.getByText('The new track needs a name.')).toBeTruthy();
+    await userEvent.type(nameField(), '{Enter}');
+    expect(props.onAdd).not.toHaveBeenCalled();
   });
 
   it('a name a track of the chapter has is refused before anything is sent, and so is a blank one', async () => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, renderHook, screen, waitFor, act } from '@testing-library/react';
+import { cleanup, fireEvent, render, renderHook, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -135,6 +135,20 @@ describe('speaker-picker-never-offers-a-narrator', () => {
     await userEvent.clear(search());
     await userEvent.type(search(), '{ArrowDown}{ArrowDown}{ArrowDown}{ArrowUp}{Enter}');
     expect(onChoose).toHaveBeenLastCalledWith('e3');
+  });
+
+  // In a window the picker covers its chip in, the second press of a double-click on the chip lands on a row (#3847): only a press that is not the
+  // second or later of a multi-click chooses.
+  it('ignores the second click of a multi-click on a row, and takes a single click and a click with no count', () => {
+    const { onChoose } = picker();
+    const row = screen.getByRole('option', { name: /^Five/ });
+    fireEvent.click(row, { detail: 2 });
+    fireEvent.click(row, { detail: 3 });
+    expect(onChoose).not.toHaveBeenCalled();
+    fireEvent.click(row, { detail: 1 });
+    expect(onChoose).toHaveBeenCalledTimes(1);
+    fireEvent.click(row, { detail: 0 });
+    expect(onChoose).toHaveBeenCalledTimes(2);
   });
 
   it('names the active row for the arrows and stops at either end', async () => {

@@ -37,6 +37,13 @@ describe('NewProjectDialog', () => {
     expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it('a name of only invisible characters is refused like an empty one (#3382 f)', () => {
+    renderDialog();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: String.fromCodePoint(0x200b, 0x200d) } });
+    expect((screen.getByRole('button', { name: 'Create' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('A project name is required')).toBeTruthy();
+  });
+
   it('creates the project with an empty parent by default, so the host uses its default projects directory', async () => {
     const createProject = vi.fn(async () => ({ switched: true }));
     const { onCreated } = renderDialog({ createProject });
