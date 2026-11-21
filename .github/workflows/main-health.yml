@@ -2,7 +2,7 @@ name: Main health
 # The full CI run (quality, the sharded visual suites, the UI bundle, the Windows build) on `main` after each push and every three hours, when `main`
 # has a commit it has not run on. The agent train merges on the light gate (D43) and runs the full suite only at the end (D44), and two
 # pull requests that were each green alone can break together once both are merged (startupRequests.spec.ts did, 2026-10-18), so a
-# regression can sit on `main` unseen. When this run fails it ticks HOLD on every open train issue, so no new worker launches onto a red `main`
+# regression can sit on `main` unseen. When this run fails, or a job of it is cancelled at its time limit, it ticks HOLD on every open train issue, so no new worker launches onto a red `main`
 # (docs/operations/agent-train.md, "Safety net"). The owner or the coordinator clears HOLD once `main` is green.
 #
 # Two triggers. A push to `main` finds a regression within about one run (35 minutes on 2026-11-09) of the merge that caused it; the schedule
@@ -46,7 +46,9 @@ jobs:
             echo "A $EVENT run always runs."
             exit 0
           fi
-          # The newest run that finished with a verdict (a cancelled run judged nothing), on any trigger.
+          # The newest run that finished with a verdict, on any trigger. A run that was cancelled, or had a job cancelled at its time
+          # limit, concludes `cancelled` and is not one: the next scheduled run tries the same commit again. A time limit reached
+          # twice ticks HOLD twice, each with its own comment (#3845).
           last=$(gh api "repos/$GH_REPO/actions/workflows/main-health.yml/runs?branch=main&status=completed&per_page=20" \
             --jq '[.workflow_runs[] | select(.conclusion == "success" or .conclusion == "failure")][0].head_sha // ""')
           if [ "$last" = "$SHA" ]; then
@@ -64,7 +66,11 @@ jobs:
     name: Tick HOLD when main is red
     needs: ci
     # `always()`: without a status function the condition is "success() && ...", which skips this job exactly when `ci` failed.
-    if: always() && needs.ci.result == 'failure'
+    # `cancelled` without `cancelled()`: a job of `ci` that reaches its timeout-minutes is cancelled by GitHub, and `ci` then reports
+    # `cancelled`, not `failure`, although its gate failed (run 44839193505: a Linux shard timed out and HOLD was not ticked, #3845; both terms checked on a runner, run 44857723452).
+    # `cancelled()` is true only when this run itself was cancelled, which judges nothing and ticks nothing. Only a person does that:
+    # this workflow's concurrency group never cancels, and ci.yml's own group cannot meet a second run while this one serialises them. scripts/ci/main-health-workflow.test.mjs holds this condition.
+    if: always() && (needs.ci.result == 'failure' || (needs.ci.result == 'cancelled' && !cancelled()))
     timeout-minutes: 5
     runs-on: ubuntu-latest
     permissions:
@@ -75,8 +81,10 @@ jobs:
         with:
           persist-credentials: false
       - run: |
-          node scripts/ci/train-health.mjs hold "the scheduled full CI run on main failed ($RUN_URL)"
+          node scripts/ci/train-health.mjs hold "the full CI run on main $OUTCOME ($RUN_URL)"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Which of the two it was: a timeout is fixed by making a job faster, not by reading a failed test.
+          OUTCOME: ${{ needs.ci.result == 'cancelled' && 'had a job cancelled, most likely at its time limit' || 'failed' }}

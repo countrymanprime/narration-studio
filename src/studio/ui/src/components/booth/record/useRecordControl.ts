@@ -469,7 +469,9 @@ export function useRecordControl({
   // when the linked project is the open one and the chapter's lane is the one armed (the host answers `recording_here`), as the reads above (`link`, `match`) say
   // once they have been made after the take was seen (`readSeq`); any other is "elsewhere". Nothing but this app starts a take of its own recorder.
   // A press in flight owns the transport events of its own start, so it is never taken for a take of the DAW's.
-  const heldInDaw = !recording && !adopt && !inApp && !starting && projectHeard && project?.playState === 'recording';
+  // Nor is the play state a quiet DAW left behind (`answering`): an answer about the transport is heard and, while the DAW is quiet, unheard again by the
+  // effect below, and without this each such answer read as a held take and then not, asked the DAW again, and that answer began the next turn (#3840).
+  const heldInDaw = !recording && !adopt && !inApp && !starting && answering && projectHeard && project?.playState === 'recording';
   const [startedInDaw, setStartedInDaw] = useState(false);
   const startedInDawRef = useRef(false);
   startedInDawRef.current = startedInDaw;

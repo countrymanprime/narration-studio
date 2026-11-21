@@ -35,7 +35,7 @@ const cellStatus = (cell: PipelineCell): StatusId => {
 };
 /**
  * The columns (Table `columns`): every stage column holds a 52 px cell and 4 px either side, the last also the card's 16 px edge. Rec.
- * holds "1h 12m" (or "<0h 01m", or "Not linked") on one line, a longer state word on two and Est. its "0h 14m" (owner report, #2251: two columns, not one stacked), each with its
+ * holds "1h 12m" (or "<0h 01m", or "Not linked") on one line, a longer state word on two and Est. its "0h 13m" or "<0h 01m" (owner report, #2251: two columns, not one stacked), each with its
  * info mark under a centred header. The mock's 80 px stage columns left 28 px of air around each cell and squeezed the chapter names to
  * two to five lines (alignment audit XPR2-10). Chapter takes the rest, and the table never goes below a 10 rem name column: under that
  * it scrolls inside its card with the names pinned at the left (R4TA-1).
@@ -249,7 +249,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                 <TableCell numeric align="center" className={FIGURE_HEAD}>
                   <RecordedCell figure={row.recorded} />
                 </TableCell>
-                <TableCell numeric align="center">
+                <TableCell numeric align="center" className={FIGURE_HEAD}>
                   <SpokenFigure text={row.estimate} />
                 </TableCell>
                 {STAGE_COLUMNS.map((column) => {

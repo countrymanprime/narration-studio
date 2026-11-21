@@ -18,6 +18,7 @@ Storybook title: `Primitives/StatTile`. Source: `src/components/primitives/StatT
 - Long Label Wraps
 - With Icon
 - Compact
+- Under A Minute
 
 ## Used by
 
