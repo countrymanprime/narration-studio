@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -237,9 +238,8 @@ func parseProject(path string, raw []byte) (project tracks.Project, fromRaw bool
 // projectCacheSize is how many saved projects the cache keeps: the selected file and the one it was switched from, with room to spare.
 const projectCacheSize = 4
 
-// maxCachedProjectBytes is the largest file the cache reads and hashes: the largest saved project measured is 11.9 MB (300 chapters).
-// A larger file goes to the reader by path and is not kept; the Audacity reader refuses it with its own error, and the REAPER
-// reader (tracks.Parse) reads it whole, with no limit of its own.
+// maxCachedProjectBytes is the largest saved project the host reads: the largest measured is 11.9 MB (300 chapters). A larger
+// .rpp is refused here; a larger Audacity snapshot is refused by its reader, which has its own limit.
 const maxCachedProjectBytes = 64 << 20
 
 // projectByteLimit is the most the cache reads of the file at path: an Audacity snapshot is refused by its reader above its own limit.
@@ -276,8 +276,14 @@ type projectCacheEntry struct {
 func (c *projectCache) read(path string, parse projectParse) (tracks.Project, error) {
 	c.reads.Add(1)
 	raw, err := persist.ReadFileMax(path, projectByteLimit(path))
-	if err != nil {
-		// Too large, not a file, or unreadable: the parser reports why, and nothing is kept.
+	switch {
+	case errors.Is(err, persist.ErrNotAFile):
+		// A pipe, socket or device: the parsers open by path and would wait for a writer or read without end.
+		return tracks.Project{}, fmt.Errorf("%s is not a project file: it is a pipe, socket or device", filepath.Base(path))
+	case errors.Is(err, persist.ErrTooLarge) && !audacity.IsSnapshot(path):
+		return tracks.Project{}, fmt.Errorf("the saved project %s is too large to read (over %d bytes)", filepath.Base(path), maxCachedProjectBytes)
+	case err != nil:
+		// A snapshot over its reader's limit, or a file that cannot be read: the reader says why, and nothing is kept.
 		project, _, err := parse(path, nil)
 		return project, err
 	}

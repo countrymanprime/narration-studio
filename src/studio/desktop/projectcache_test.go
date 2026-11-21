@@ -457,24 +457,27 @@ func TestAnAudacitySnapshotAboveTheReadersLimitIsNotReadFirst(t *testing.T) {
 	}
 }
 
-// A path whose size is not its content (a link to a device) is not read without end: the reader is asked by path, and kept nothing.
-func TestAProjectPathThatIsADeviceIsNotReadWithoutEnd(t *testing.T) {
+// A saved .rpp over the limit is refused, not read whole: the REAPER parser has no limit of its own.
+func TestAnOversizedRppIsRefusedWithoutBeingRead(t *testing.T) {
 	savedProjects.reset()
 	t.Cleanup(savedProjects.reset)
 	reader := &pathOnlyProjectReader{}
 	withProjectReaderRole(t, reader)
 	path := filepath.Join(t.TempDir(), "Book.rpp")
-	if err := os.Symlink("/dev/zero", path); err != nil {
-		t.Skipf("no /dev/zero here: %v", err)
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		t.Fatal(err)
 	}
-	done := make(chan error, 1)
-	go func() { _, err := readProject(path); done <- err }()
-	select {
-	case err := <-done:
-		if err != nil || reader.reads != 1 || len(savedProjects.entries) != 0 {
-			t.Fatalf("err = %v, reads = %d, kept = %d; want the reader asked once by path and nothing kept", err, reader.reads, len(savedProjects.entries))
-		}
-	case <-time.After(10 * time.Second):
-		t.Fatal("reading a path that is a device did not stop")
+	if err := os.Truncate(path, maxCachedProjectBytes+1); err != nil { // sparse
+		t.Fatal(err)
+	}
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	_, err := readProject(path)
+	runtime.ReadMemStats(&after)
+	if err == nil || !strings.Contains(err.Error(), "too large") || reader.reads != 0 {
+		t.Fatalf("err = %v, reader asked %d times; want a too large refusal and the reader not asked", err, reader.reads)
+	}
+	if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 1<<20 {
+		t.Fatalf("refusing the file allocated %d bytes, want under 1 MB", allocated)
 	}
 }

@@ -13,8 +13,8 @@ import (
 // decodes and listings count the work ReadJSON, ReadHeld (a file it decoded, not one it only hashed) and ReadDir did in this process, for the tests that budget what a host read costs.
 var decodes, listings atomic.Int64
 
-// errNotAFile is why ReadFile refuses a named pipe, a socket or a device: a read of one waits for a writer that may never come.
-var errNotAFile = errors.New("not a regular file")
+// ErrNotAFile is why ReadFile and ReadFileMax refuse a named pipe, a socket or a device: a read of one waits for a writer that may never come.
+var ErrNotAFile = errors.New("not a regular file")
 
 // Work reports how many files ReadJSON has read and decoded and how many folders ReadDir has listed since the process started. A
 // test takes the difference across a read; nothing in the app depends on the numbers.
@@ -39,7 +39,7 @@ func ReadFile(name string) ([]byte, error) {
 	size := 0
 	if info, err := file.Stat(); err == nil {
 		if info.Mode()&(os.ModeNamedPipe|os.ModeSocket|os.ModeDevice) != 0 {
-			return nil, &fs.PathError{Op: "read", Path: name, Err: errNotAFile}
+			return nil, &fs.PathError{Op: "read", Path: name, Err: ErrNotAFile}
 		}
 		if info.Size() > 0 && info.Size() < math.MaxInt32 {
 			size = int(info.Size())
@@ -63,7 +63,7 @@ func ReadFileMax(name string, limit int64) ([]byte, error) {
 	size := 0
 	if info, err := file.Stat(); err == nil {
 		if info.Mode()&(os.ModeNamedPipe|os.ModeSocket|os.ModeDevice) != 0 {
-			return nil, &fs.PathError{Op: "read", Path: name, Err: errNotAFile}
+			return nil, &fs.PathError{Op: "read", Path: name, Err: ErrNotAFile}
 		}
 		if info.Size() > limit {
 			return nil, ErrTooLarge
