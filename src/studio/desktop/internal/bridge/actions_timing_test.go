@@ -133,9 +133,10 @@ func TestATimedOutCommandIsTakenBackEvenWhenTheObserverPanics(t *testing.T) {
 	}
 }
 
-// A commands folder that vanishes (a dropped share, a session folder removed) is not REAPER reading the command. Nothing reads the command
-// here (there is no fake REAPER), the folder goes in one step (a rename, as a dropped share goes, where a RemoveAll deletes the file first and
-// leaves the folder standing for a moment), and the take-back waits for it to be gone: the order is the same on any runner.
+// A commands folder that vanishes in one step (a dropped share, a session folder moved away) is not REAPER reading the command. Nothing reads
+// the command here (there is no fake REAPER), the folder goes in a rename, and the take-back waits for it to be gone: the order is the same on
+// any runner. A folder deleted file by file is not this case: while the file is gone and the folder still stands, the host cannot tell
+// that from REAPER reading the command (takenWatch.retracted says so), and no test claims it can.
 func TestACommandFolderThatVanishesIsNotREAPERReadingTheCommand(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	timings := observeTimings(actions)
