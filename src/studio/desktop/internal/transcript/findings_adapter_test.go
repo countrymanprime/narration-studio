@@ -53,7 +53,11 @@ type fakeLookup struct {
 	paragraphOK        bool
 	calledWithChapter  string
 	calledWithGlobalIx int
+	taken              int
 }
+
+// once is the fake as SetFindings takes it, counting how often a save asked for the manuscript.
+func (f *fakeLookup) once() ManuscriptLookup { f.taken++; return f }
 
 func (f *fakeLookup) ChapterIDByTitle(title string) (string, bool, bool) {
 	f.calledWithChapter = title
