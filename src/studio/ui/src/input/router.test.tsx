@@ -213,6 +213,27 @@ describe('CommandRouter', () => {
     input.remove();
   });
 
+  it('a control left in a popup that has begun to close no longer owns a plain key (#3906, #3931)', () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    render(
+      <CommandRouter source={source} catalog={[PAGE_COMMAND]} keymap={keymapFor(PAGE_COMMAND)}>
+        <CommandScope kind="page">
+          <Registrar id="test.page" onFire={onFire} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+    const radio = document.createElement('span');
+    radio.setAttribute('role', 'radio');
+    document.body.appendChild(radio);
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: radio }));
+    expect(onFire).not.toHaveBeenCalled();
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: radio, context: { layerOpen: false, targetClosing: true } }));
+    expect(onFire).toHaveBeenCalledTimes(1);
+    radio.remove();
+  });
+
   it('does not apply the target guard to a gesture with a modifier held', () => {
     const source = fakeSource();
     const onFire = vi.fn();

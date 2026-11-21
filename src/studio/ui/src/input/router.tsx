@@ -132,7 +132,8 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         !event.target.closest(EDITABLE) &&
         !KEY_ROLE_TARGET(event.target) &&
         !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code);
-      const guarded = isGuardedTarget(event.target) && !event.context?.targetClosing;
+      // A control left in a popup that has begun to close keeps Space and Enter (they would press it) but no other key: it is going, and the key is the page's (#3906, #3931).
+      const guarded = isGuardedTarget(event.target) && !(event.context?.targetClosing && !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code));
       if (event.gesture.modifiers.length === 0 && guarded && !onlyButton) return;
       // A key a button's own list already used (the Story Bible's rows walk with the arrows) is not also the page's.
       if (event.gesture.modifiers.length === 0 && guarded && event.consumed?.()) return;
