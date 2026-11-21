@@ -227,7 +227,7 @@ const OVERLAYS: Overlay[] = [
 ];
 
 // #3931: the read of where focus is must not wait for a popup that has just closed.
-test('focusInside answers at once for a popup that is gone, instead of waiting for it', async ({ page }) => {
+test('focusInside answers for a popup that is gone, instead of waiting out the test', async ({ page }) => {
   await page.setContent('<div role="dialog" aria-label="Gone" tabindex="-1">x</div>');
   const popup = page.getByRole('dialog', { name: 'Gone' });
   await expect(popup).toBeVisible();
