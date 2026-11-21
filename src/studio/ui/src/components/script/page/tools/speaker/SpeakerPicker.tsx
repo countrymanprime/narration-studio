@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Listbox, listboxOptionId, type ListboxOption } from '../../../../primitives/Listbox';
+import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Swatch, type SwatchColour } from '../../../../primitives/Swatch';
 import { TextField } from '../../../../primitives/TextField';
 import { suggestionReasonLine } from '../../../../manuscript/dialogueCues.selectors';
@@ -110,8 +111,16 @@ export function SpeakerPicker({
           }}
         />
       </div>
-      <div className="shrink-0 px-1 py-0.5 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">{term ? 'Matches' : 'In this chapter'}</div>
-      <div className="max-h-60 min-h-0 overflow-auto">
+      <SectionLabel as="div" className="shrink-0 px-1 py-0.5">
+        {term ? 'Matches' : 'In this chapter'}
+      </SectionLabel>
+      {/* In a window the picker covers its chip in, the second press of a double-click on the chip lands on a row: it chose a speaker the narrator did not pick. */}
+      <div
+        className="max-h-60 min-h-0 overflow-auto"
+        onClickCapture={(event) => {
+          if (event.detail > 1) event.stopPropagation();
+        }}
+      >
         <Listbox
           id={listId}
           label={term ? 'Matching speakers' : 'Speakers in this chapter'}

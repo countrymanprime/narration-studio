@@ -97,7 +97,7 @@ test('in a 360x500 window the speaker picker keeps its whole list height', async
 for (const [width, height, wide] of [
   [1440, 900, 270],
   [360, 500, 270],
-  [320, 300, 230],
+  [320, 300, 240],
 ] as const) {
   test(`the speaker picker's search box is a whole box and the picker is not narrow at ${width}x${height}`, async ({ page }) => {
     await openScript(page, width, height);
@@ -108,5 +108,21 @@ for (const [width, height, wide] of [
     }));
     expect(field).toBeGreaterThanOrEqual(36);
     expect(picker).toBeGreaterThanOrEqual(wide);
+  });
+}
+
+// At 360x500 and 320x300 the picker covers the chip it was opened from, so the second press of a double-click lands under the pointer where a
+// row may be drawn: the narrator pressed one chip once and must not have chosen a speaker.
+for (const [width, height] of [
+  [1440, 900],
+  [360, 500],
+  [320, 300],
+] as const) {
+  test(`a double press on the speaker chip opens the picker and chooses nobody at ${width}x${height}`, async ({ page }) => {
+    await openScript(page, width, height);
+    const before = await speakerChip(page).getAttribute('data-state');
+    await speakerChip(page).dblclick();
+    await expect(speakerPicker(page)).toBeVisible();
+    await expect(speakerChip(page)).toHaveAttribute('data-state', before ?? '');
   });
 }
