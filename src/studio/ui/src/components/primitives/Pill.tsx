@@ -66,7 +66,8 @@ export function Pill({
       aria-disabled={gated || undefined}
       aria-describedby={gated ? reasonId : undefined}
       onClick={() => (gated ? undefined : onClick?.())}
-      className={className}
+      // Off with a reason it is dimmed like the toggle chip (`ariaStateGuards.test.ts` holds every raw aria-disabled button to that).
+      className={`${className} aria-disabled:opacity-75`}
     >
       {content}
     </button>
