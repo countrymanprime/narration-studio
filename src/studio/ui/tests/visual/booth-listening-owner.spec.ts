@@ -300,7 +300,10 @@ const installHeldTake = () => {
     phases.forEach((listener) => listener(state()));
   };
   const state = () => ({ phase, message: '', engine: 'whisper', chapter: null, paused: false, coldRead, script: null, position: null });
-  const push = () => w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
+  const push = () => {
+    (w as unknown as { __lastPush: boolean | null }).__lastPush = w.__recording;
+    w.__transport.forEach((listener) => listener({ playing: w.__recording, recording: w.__recording, position: 1 }));
+  };
   w.__NARRATION_MOCK_OVERRIDES__ = {
     // The fake DAW's take is on the chapter's armed lane in the linked project, as the host answers it (the Booth follows only such a take).
     readAloudReaperState: async () => ({
@@ -356,6 +359,8 @@ const installHeldTake = () => {
       // The first stop (the leave question's) fails; the narrator's own Stop later goes through.
       if (w.__calls.stops <= ((w as unknown as { __failStops?: number }).__failStops ?? 1)) throw new Error('REAPER did not answer.');
       w.__recording = false;
+      // The host pushes the transport on a tick after a stop as after a start (api/dawMock.ts: "the host pushes the transport on a tick, never inside the call").
+      setTimeout(push, 20);
       return { outcome: 'stopped', message: '', undoPoints: 0 };
     },
   };
@@ -409,6 +414,12 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
       throw new Error(`${(error as Error).message}\n${await whatThePageShows(page)}`, { cause: error });
     }
     expect((await calls(page)).stops, 'nothing sent a third stop while Record came back').toBe(2);
+    // The fake DAW said it stopped, as the host does: the page never has to wait for its project poll to learn it.
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __lastPush: boolean | null }).__lastPush), {
+        message: 'the DAW pushed that it stopped recording',
+      })
+      .toBe(false);
     // The sentence goes with the take: it does not stay beside "Stopped. Recorded".
     await expect(sentence).toHaveCount(0);
   });
