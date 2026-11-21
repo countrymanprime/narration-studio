@@ -181,12 +181,22 @@ describe("the Booth's voices", () => {
 
   // #3271: in a Voice folders project the voice keys never say a chapter records on one track; what they say follows what the chapter is linked to.
   it.each([
-    ['a folder the saved project does not hold yet (just made)', [], 'unknown'],
-    ['a plain track', [{ guid: '{LINKED}', name: 'Chapter', isFolder: false, depth: 0 }], 'track'],
-    ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty'],
-  ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind) => {
+    ['a folder the saved project does not hold yet (just made)', [], 'unknown', []],
+    ['a plain track', [{ guid: '{LINKED}', name: 'Chapter', isFolder: false, depth: 0 }], 'track', []],
+    ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty', []],
+    // #3828 finding 5: the fix for a folder whose every track is marked is to turn one back on, not to add a track.
+    [
+      'a folder whose every track is marked as not a voice',
+      [
+        { guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 },
+        { guid: '{BED}', name: 'Music bed', isFolder: false, depth: 1 },
+      ],
+      'marked',
+      ['{bed}'],
+    ],
+  ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind, marked = []) => {
     const api = createMockApi({
-      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }),
+      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [...marked], tracks: [] }),
       chapterTrackMapList: async () => ({
         documentId: 'd',
         mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
@@ -208,6 +218,7 @@ describe("the Booth's voices", () => {
     await act(async () => hook.current.byKey(1));
     expect(hook.current.linkKind).toBe(kind);
     expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
+    if (kind === 'marked') expect(destinationFor('folders').noVoiceKeys(kind)).toContain('Turn one back on in the Voices card');
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
   });
 
@@ -481,6 +492,23 @@ describe("the Booth's voices", () => {
       await waitFor(() => expect(again.hook.current.voices.map((voice) => voice.guid)).toContain(target.guid));
       cleanup();
     }
+  });
+
+  // #3828 finding 5: with every track marked the refusal names the fix that works (turn one back on), not "add a track", which does not help.
+  it('says to turn a track back on when every track of the folder is marked, and to add one when the folder is empty', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const first = await mount({}, false, api);
+    await waitFor(() => expect(first.hook.current.voices.length).toBeGreaterThan(1));
+    const everyone = first.hook.current.voices.map((voice) => voice.guid);
+    cleanup();
+    expect((await api.boothVoiceGet(chapterId)).outcome).toBe('selected');
+    for (const guid of everyone) await api.voiceTracksSetNotAVoice(guid, true);
+    const marked = await api.boothVoiceGet(chapterId);
+    expect(marked).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(marked.outcome === 'refused' && marked.message).toContain('Turn one back on in the Voices card');
+    const started = await api.readAloudRecordStart(chapterId);
+    expect(started).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(started.outcome === 'refused' && started.message).toContain('turned off as not a voice');
   });
 
   // A chapter with no one link has no folder, so it lists no voices and the control names no link. Whether the DAW is read at all belongs to

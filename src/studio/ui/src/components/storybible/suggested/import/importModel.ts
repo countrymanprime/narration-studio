@@ -2,19 +2,12 @@
 // hint, words the size refusal and counts the lines the host returned.
 
 import type { ExtractionImportLine, ExtractionImportPlan, ImportFormat } from '../../../../api/contracts/extraction';
-import { apiErrorMessage } from '../../../../api/errorMessage';
 import { pct } from '../row/selectors';
+
+export { readableFailure } from '../../../../api/errorMessage';
 
 /** The host's file limit (storybible-import format: 2 MiB), used until the host's own `maxBytes` has been read. */
 export const IMPORT_MAX_BYTES = 2 << 20;
-
-/** A failed host call as one sentence a narrator can read: the host's own words, or `fallback` when it gave none. Never "Error: ...". */
-export function readableFailure(error: unknown, fallback: string): string {
-  const text = apiErrorMessage(error)
-    .replace(/^(?:\w*Error:\s*)+/, '')
-    .trim();
-  return text && text !== '[object Object]' && text !== 'undefined' && text !== 'null' ? text : fallback;
-}
 
 /** A chosen file's name as drawn: control and bidi-override characters out, so a name cannot read as another extension. */
 export function displayName(name: string): string {
