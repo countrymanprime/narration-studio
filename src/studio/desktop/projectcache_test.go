@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"desktop/internal/dawport/reaper"
+	"desktop/internal/filetest"
 	"desktop/internal/tracks"
 )
 
@@ -17,6 +18,11 @@ type countingProjectReader struct{ parses atomic.Int64 }
 func (c *countingProjectReader) ReadProject(path string) (tracks.Project, error) {
 	c.parses.Add(1)
 	return reaper.ProjectReader{}.ReadProject(path)
+}
+
+func (c *countingProjectReader) ParseProject(path string, raw []byte) (tracks.Project, error) {
+	c.parses.Add(1)
+	return reaper.ProjectReader{}.ParseProject(path, raw)
 }
 
 func TestAnUnchangedSavedProjectIsParsedOnce(t *testing.T) {
@@ -60,12 +66,63 @@ func TestAChangedSavedProjectIsParsedAgain(t *testing.T) {
 		}
 	}
 	read()
-	write(chapterTracksRpp, base.Add(time.Minute)) // same size, newer time
+	write(chapterTracksRpp+"\n", base) // same time, new bytes
 	read()
-	write(chapterTracksRpp+"\n", base.Add(time.Minute)) // same time, new size
-	read()
-	if got := counter.parses.Load(); got != 3 {
-		t.Fatalf("a new mtime and a new size each parsed again: parses = %d, want 3", got)
+	if got := counter.parses.Load(); got != 2 {
+		t.Fatalf("a file with new bytes is parsed again: parses = %d, want 2", got)
+	}
+}
+
+func TestASavedProjectRewrittenAtTheSameSizeAndTimeIsParsedAgain(t *testing.T) {
+	savedProjects.reset()
+	counter := &countingProjectReader{}
+	withProjectReaderRole(t, counter)
+	path := filepath.Join(t.TempDir(), "Book.rpp")
+	if err := os.WriteFile(path, []byte(chapterTracksRpp), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	firstTrack := func() string {
+		t.Helper()
+		project, err := readProject(path)
+		if err != nil || len(project.Tracks) == 0 {
+			t.Fatalf("project = %v, %v", project, err)
+		}
+		return project.Tracks[0].Name
+	}
+	if got := firstTrack(); got != "Chapter I" {
+		t.Fatalf("first track = %q, want Chapter I", got)
+	}
+	filetest.RewriteInPlace(t, path, `NAME "Chapter I"`, `NAME "Chapter X"`)
+	if got := firstTrack(); got != "Chapter X" {
+		t.Fatalf("after a rewrite that kept the size and the time the first track is %q, want Chapter X", got)
+	}
+	if got := counter.parses.Load(); got != 2 {
+		t.Fatalf("the rewritten file was parsed %d times in all, want 2", got)
+	}
+	if firstTrack(); counter.parses.Load() != 2 {
+		t.Fatalf("the untouched file was parsed again: parses = %d, want 2", counter.parses.Load())
+	}
+}
+
+func TestASavedProjectSavedAgainWithTheSameBytesIsNotParsedAgain(t *testing.T) {
+	savedProjects.reset()
+	counter := &countingProjectReader{}
+	withProjectReaderRole(t, counter)
+	path := filepath.Join(t.TempDir(), "Book.rpp")
+	for _, age := range []time.Duration{-time.Hour, -time.Minute} {
+		if err := os.WriteFile(path, []byte(chapterTracksRpp), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		saved := time.Now().Add(age)
+		if err := os.Chtimes(path, saved, saved); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := readProject(path); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := counter.parses.Load(); got != 1 {
+		t.Fatalf("the same bytes at a newer modification time were parsed %d times, want 1", got)
 	}
 }
 
@@ -171,14 +228,14 @@ func TestAParseInFlightDoesNotBlockCachedReadsOfOtherProjects(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	fast := func(string) (tracks.Project, error) { return tracks.Project{}, nil }
+	fast := func(string, []byte) (tracks.Project, error) { return tracks.Project{}, nil }
 	if _, err := cache.read(b, fast); err != nil {
 		t.Fatal(err)
 	}
 	release, started := make(chan struct{}), make(chan struct{})
 	t.Cleanup(func() { close(release) })
 	go func() {
-		_, _ = cache.read(a, func(string) (tracks.Project, error) {
+		_, _ = cache.read(a, func(string, []byte) (tracks.Project, error) {
 			close(started)
 			<-release
 			return tracks.Project{}, nil

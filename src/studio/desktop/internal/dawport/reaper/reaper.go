@@ -371,6 +371,11 @@ type ProjectReader struct{}
 
 func (ProjectReader) ReadProject(path string) (dawport.Project, error) { return tracks.Parse(path) }
 
+// ParseProject is ReadProject over raw, the bytes of the .rpp at path the caller has already read.
+func (ProjectReader) ParseProject(path string, raw []byte) (dawport.Project, error) {
+	return tracks.ParseBytes(path, raw)
+}
+
 // takeSelector is the takes role: bridge.Actions' SetActiveTake as it is, and HideTakes answering a dawport.Result,
 // which bridge cannot import.
 type takeSelector struct {

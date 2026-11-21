@@ -8,7 +8,6 @@ import (
 	"sort"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"desktop/internal/dawport"
 	"desktop/internal/dawport/audacity"
@@ -202,20 +201,29 @@ var projectReaderRole = func() (dawport.ProjectReader, error) {
 }
 
 // readProject is the host's one way to read a saved project file (a REAPER .rpp, or an Audacity snapshot): tracks.go, chapterlinks.go,
-// recordedlengths.go and the analyses (projectFileReader) all come here. The parse is kept while the file's path, modification time and
-// size are unchanged (savedProjects), so a call on an unchanged file costs a stat. The Project it returns is shared: callers read it and
-// never write into it (mergeLiveTracks copies the tracks it changes).
+// recordedlengths.go and the analyses (projectFileReader) all come here. Every call reads the file and hashes it, and the parse is
+// kept while the file's bytes are the ones it was made from (savedProjects), so a call on an unchanged file costs the read and the
+// hash. The Project it returns is shared: callers read it and never write into it (mergeLiveTracks copies the tracks it changes).
 func readProject(path string) (tracks.Project, error) { return savedProjects.read(path, parseProject) }
 
-// parseProject reads the file at path: an Audacity snapshot through the Audacity adapter's reader, anything else through the DAW port's
-// project-read role (a REAPER .rpp).
-func parseProject(path string) (tracks.Project, error) {
-	if audacity.IsSnapshot(path) {
-		return audacity.SnapshotReader{}.ReadProject(path)
+// projectParser is a project-read role that parses bytes the host has already read, so the bytes the cache hashed are the ones parsed.
+type projectParser interface {
+	ParseProject(path string, raw []byte) (tracks.Project, error)
+}
+
+// parseProject parses raw, the bytes of the file at path: an Audacity snapshot through the Audacity adapter's reader, anything else
+// through the DAW port's project-read role (a REAPER .rpp). When raw is nil the file could not be read, and the reader opens path
+// itself to report why; so does a role that only reads by path.
+func parseProject(path string, raw []byte) (tracks.Project, error) {
+	var reader dawport.ProjectReader = audacity.SnapshotReader{}
+	if !audacity.IsSnapshot(path) {
+		var err error
+		if reader, err = projectReaderRole(); err != nil {
+			return tracks.Project{}, err
+		}
 	}
-	reader, err := projectReaderRole()
-	if err != nil {
-		return tracks.Project{}, err
+	if parser, ok := reader.(projectParser); ok && raw != nil {
+		return parser.ParseProject(path, raw)
 	}
 	return reader.ReadProject(path)
 }
@@ -223,38 +231,39 @@ func parseProject(path string) (tracks.Project, error) {
 // projectCacheSize is how many saved projects the cache keeps: the selected file and the one it was switched from, with room to spare.
 const projectCacheSize = 4
 
-// projectCache keeps the parse of each of the last few saved project files while its path, modification time and size are unchanged (#3287).
-// What invalidates an entry is the file's own change: a rewrite that keeps both its size and its modification time is not seen, the trade
-// the manuscript's parse cache makes too. A parse that fails is not kept.
+// projectCache keeps the parse of each of the last few saved project files while the file's bytes are the ones it was parsed from
+// (#3287, #3863): every read hashes the file, so a rewrite that keeps its size and its modification time is parsed again, and a save
+// of the same bytes at a newer time is not. A parse that fails is not kept.
 type projectCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
 	entries []projectCacheEntry // oldest first
-	// reads counts the calls of read, for the tests that guard how often one binding asks for the saved project: each call looks up
-	// every take's source file on disk, whatever the cache holds.
+	// reads counts the calls of read, for the tests that guard how often one binding asks for the saved project: each call reads and
+	// hashes the file and looks up every take's source file on disk, whatever the cache holds.
 	reads atomic.Int64
 }
 
 type projectCacheEntry struct {
 	path    string
-	modTime time.Time
-	size    int64
+	sum     persist.Digest // of the bytes project was parsed from
 	project tracks.Project
 }
 
-// read answers path's parse from the cache, or parses it (parse) and keeps it. A file that cannot be examined is parsed, so the parser
-// reports why.
-func (c *projectCache) read(path string, parse func(string) (tracks.Project, error)) (tracks.Project, error) {
+// read answers path's parse from the cache when the file's bytes are the ones it holds the parse of, or parses them (parse) and keeps
+// it. A file that cannot be read is handed to parse with no bytes, so the parser reports why. The file is read with persist.ReadFile:
+// the host opens it on every call, and on Windows that open does not stop the DAW from replacing the file while it is read.
+func (c *projectCache) read(path string, parse func(path string, raw []byte) (tracks.Project, error)) (tracks.Project, error) {
 	c.reads.Add(1)
-	info, err := os.Stat(path)
+	raw, err := persist.ReadFile(path)
 	if err != nil {
-		return parse(path)
+		return parse(path, nil)
 	}
-	if project, ok := c.lookup(path, info); ok {
+	sum := persist.Sum(raw)
+	if project, ok := c.lookup(path, sum); ok {
 		return withCurrentSources(project), nil
 	}
 	// Parsed outside the lock: a slow parse of one project must not hold up cached reads of another. Two callers that miss together parse twice.
-	project, err := parse(path)
+	project, err := parse(path, raw)
 	if err != nil {
 		c.forget(path)
 		return tracks.Project{}, err
@@ -264,17 +273,17 @@ func (c *projectCache) read(path string, parse func(string) (tracks.Project, err
 	if len(c.entries) >= projectCacheSize {
 		c.entries = c.entries[1:]
 	}
-	c.entries = append(c.entries, projectCacheEntry{path: path, modTime: info.ModTime(), size: info.Size(), project: project})
+	c.entries = append(c.entries, projectCacheEntry{path: path, sum: sum, project: project})
 	c.mu.Unlock()
 	// The caller gets a copy, as on a hit: what it writes into never reaches the cached parse.
 	return withCurrentSources(project), nil
 }
 
-func (c *projectCache) lookup(path string, info os.FileInfo) (tracks.Project, bool) {
+func (c *projectCache) lookup(path string, sum persist.Digest) (tracks.Project, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, entry := range c.entries {
-		if entry.path == path && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
+		if entry.path == path && entry.sum == sum {
 			return entry.project, true
 		}
 	}
