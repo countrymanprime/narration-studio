@@ -102,6 +102,8 @@ export function CapabilityReference({
     setRetrying(true);
     try {
       await onRetry();
+    } catch {
+      // The caller shows why a read failed (loadError); the button only has to come back.
     } finally {
       if (live.current) setRetrying(false);
     }
