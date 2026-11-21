@@ -33,13 +33,15 @@ func TestPrintTheRetentionPass(t *testing.T) {
 	for i, read := range walk {
 		before[i] = costOf(t, host, read)
 	}
-	host.mu.RLock()
-	ledger, checks := host.ledger, host.coverage
-	host.mu.RUnlock()
+	// The pass runs on a host of its own, so its first pass meets a ledger store that has decoded nothing.
+	cold := freshPerfHost(t, dir)
+	cold.mu.RLock()
+	ledger, checks := cold.ledger, cold.coverage
+	cold.mu.RUnlock()
 	step := ledgerRetention{
 		project:      dir,
 		ledger:       ledger,
-		referenced:   stages.NewDecisionStore(dir, host.persist).ReferencedRecordIDs,
+		referenced:   stages.NewDecisionStore(dir, cold.persist).ReferencedRecordIDs,
 		removeResult: checks.RemoveStoredResult,
 		sweep:        checks.SweepOrphanResults,
 		measure:      measureDirs(ledgerRetentionDirs(dir)),
