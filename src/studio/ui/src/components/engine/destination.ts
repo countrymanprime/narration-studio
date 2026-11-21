@@ -16,7 +16,7 @@ export const LINK_GONE =
 /** The sentence while the project's tracks have not been read (the first read has not answered or failed): the chapter's link is not known to be missing. */
 const TRACKS_UNREAD = 'The tracks are still being read, so there is no voice to choose yet. Try again in a moment.';
 
-export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown' | 'unread';
+export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'marked' | 'unknown' | 'unread';
 
 /**
  * The words for where a chapter records, from the project's layout (the Voice folders setting): a chapter is a track in a flat project and a
@@ -73,7 +73,7 @@ export function destinationFor(layout: VoiceTracksLayout) {
     chipSeveral: { words: folders ? 'several folders' : 'several tracks', sentence: `this chapter is linked to several ${noun}s` },
     /**
      * A voice key pressed where no voice is listed, and why, by what the chapter is linked to: nothing (`none`), a track that is not a folder (`track`),
-     * a folder holding no voices yet (`empty`), or a track the project does not hold (`unknown`: deleted in the DAW, or a folder just made that is not saved yet), or tracks not read yet (`unread`).
+     * a folder holding no voices yet (`empty`), a folder whose every track is marked as not a voice (`marked`), or a track the project does not hold (`unknown`: deleted in the DAW, or a folder just made that is not saved yet), or tracks not read yet (`unread`).
      */
     noVoiceKeys: (link: ChapterLinkKind) => {
       // One sentence in either layout for a link to a track the project does not hold, as the host says it and the Engine panel's "Track missing" (#3269).
@@ -85,6 +85,8 @@ export function destinationFor(layout: VoiceTracksLayout) {
           return 'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.';
         case 'track':
           return 'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.';
+        case 'marked':
+          return 'Every track in this chapter’s folder is turned off as not a voice, so there is no voice to choose. Turn one back on in the Voices card.';
         case 'empty':
           return 'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.';
       }
