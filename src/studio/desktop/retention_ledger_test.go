@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"sort"
 	"testing"
@@ -11,6 +14,7 @@ import (
 	"desktop/internal/coverage"
 	"desktop/internal/evidence"
 	"desktop/internal/retention"
+	"desktop/internal/stages"
 )
 
 // stepRig is the ledger step over a real ledger in a temp project, with the result store and the sweep replaced by recorders.
@@ -197,5 +201,65 @@ func TestTheLedgerStepCountsWhatTheSweepRemoved(t *testing.T) {
 	rig.swept = []string{"orphan-1", "orphan-2"}
 	if report := rig.run(never); report.Removed != 2 {
 		t.Fatalf("report = %+v, want the two swept records counted", report)
+	}
+}
+
+// A corrupt stage-decisions.json stops every pass, not only the first: the pass must not move the narrator's file aside, or the next
+// pass would read a missing file as no decisions and delete the records the lost decision named.
+func TestTheLedgerStepStopsEveryPassWhileTheDecisionsFileIsCorrupt(t *testing.T) {
+	rig := newStepRig(t)
+	rig.write("c0", coverage.AnalyzerID, evidence.LedgerComplete)
+	rig.write("c1", coverage.AnalyzerID, evidence.LedgerComplete)
+	path := stages.DecisionsFile(rig.project)
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"schemaVersion": 1, "documentId": "d", "decisions": [{"chapterId": "c-0001", "basis": [{"ledgerRecordIds": ["c0"`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store := stages.NewDecisionStore(rig.project, nil)
+	rig.referenced = store.ReferencedRecordIDs
+	for pass := 1; pass <= 2; pass++ {
+		report := rig.run(never)
+		if report.Err == nil || report.Removed != 0 {
+			t.Fatalf("pass %d: report = %+v, want an error and nothing removed", pass, report)
+		}
+		if !slices.Equal(rig.left(), []string{"c0", "c1"}) {
+			t.Fatalf("pass %d: ledger holds %v, want both records", pass, rig.left())
+		}
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("the narrator's decisions file was moved or removed: %v", err)
+	}
+}
+
+// A check that starts in the middle of the pass stops the removals: what is left of the pass removes nothing.
+func TestTheLedgerStepStopsRemovingWhenACheckStartsMidPass(t *testing.T) {
+	rig := newStepRig(t)
+	// Five chapters, each with an old complete record and a newer one: five records are superseded.
+	for i := range 5 {
+		chapter := fmt.Sprintf("c-%04d", i+1)
+		for _, id := range []string{"old", "new"} {
+			rig.clock = rig.clock.Add(time.Minute)
+			record := evidence.LedgerRecord{
+				ID: chapter + id, AnalyzerID: coverage.AnalyzerID, AnalyzerVersion: "1", Scope: evidence.LedgerScope{DocumentID: "d", ChapterID: chapter},
+				StartedAt: rig.clock, CompletedAt: rig.clock.Add(time.Second), Outcome: evidence.LedgerComplete,
+			}
+			if _, err := rig.ledger.Write(record); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	asked := 0
+	stop := func() bool { asked++; return asked > 3 } // the first calls pass; then a check starts
+	report := rig.run(stop)
+	if !report.Stopped || report.Removed >= 5 {
+		t.Fatalf("report = %+v, want a stopped pass that did not remove all five", report)
+	}
+	if report.Err != nil {
+		t.Fatalf("stopping reported %v as a failure", report.Err)
+	}
+	if got := len(rig.left()); got != 10-report.Removed {
+		t.Fatalf("ledger holds %d records after %d removed", got, report.Removed)
 	}
 }

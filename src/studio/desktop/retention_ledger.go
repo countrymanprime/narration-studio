@@ -54,7 +54,14 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 		report.Err = fmt.Errorf("no ledger record was removed: %w", err)
 		return report
 	}
+	// Retain cannot be interrupted, so a check that starts mid-pass is honoured here: every record after that is refused before anything
+	// is removed for it (the loop through the rest is quick), and it stays.
+	stopped := false
 	beforeDelete := func(record evidence.LedgerRecord) error {
+		if stopped || stop() || ctx.Err() != nil {
+			stopped = true
+			return errPassStopped
+		}
 		if record.AnalyzerID != coverage.AnalyzerID {
 			return nil
 		}
@@ -62,7 +69,8 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	}
 	var errs []error
 	dropped, err := l.ledger.Retain(ledgerRetentionKeys, referenced, beforeDelete)
-	errs = append(errs, err)
+	errs = append(errs, withoutStopped(err))
+	report.Stopped = report.Stopped || stopped
 	report.Removed = len(dropped)
 	// The sweep goes right after the pass: a record the pass stopped on halfway leaves a result or a summary the sweep finds.
 	if !stop() && ctx.Err() == nil {
@@ -76,6 +84,29 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	after := l.measure(func() bool { return false })
 	report.BytesAfter, report.FilesAfter = after.BytesBefore, after.FilesBefore
 	return report
+}
+
+// errPassStopped is what beforeDelete answers for a record the pass was stopped before.
+var errPassStopped = errors.New("the retention pass was stopped")
+
+// withoutStopped is err without the per-record refusals that stopping the pass caused, which are not failures.
+func withoutStopped(err error) error {
+	if err == nil {
+		return nil
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		var kept []error
+		for _, each := range joined.Unwrap() {
+			if kept2 := withoutStopped(each); kept2 != nil {
+				kept = append(kept, kept2)
+			}
+		}
+		return errors.Join(kept...)
+	}
+	if errors.Is(err, errPassStopped) {
+		return nil
+	}
+	return err
 }
 
 // ledgerRetentionDirs are the folders of a project that the ledger step prunes.

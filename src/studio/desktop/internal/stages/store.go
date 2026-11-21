@@ -221,34 +221,25 @@ func (s *DecisionStore) writeLocked(file decisionsFile) error {
 }
 
 // ReferencedRecordIDs is every ledger record id any decision's basis names, whichever document the file was kept for: a record a
-// confirmation or a dismissal stands on is kept by the ledger's retention. A missing file names none. A file that cannot be read,
-// is corrupt or was written by a newer app is an error, never an empty set: a caller that deletes by it must stop.
+// confirmation or a dismissal stands on is kept by the ledger's retention. A missing file names none. A file that cannot be read, is
+// corrupt or was written by a newer app is an error on every call, never an empty set: a caller that deletes by it must stop. It reads
+// the file as it is and never moves a corrupt one aside, so a background pass cannot turn the error of one pass into the empty set of
+// the next, and does not touch the narrator's file.
 func (s *DecisionStore) ReferencedRecordIDs() (map[string]bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var decoded decisionsFile
-	newer := 0
-	outcome := s.reporter.ReadJSON(s.path, decisionsWhat, persist.NarratorData, func(raw []byte) error {
-		var candidate decisionsFile
-		if err := json.Unmarshal(raw, &candidate); err != nil {
-			return err
-		}
-		if candidate.SchemaVersion > decisionsSchemaVersion {
-			newer = candidate.SchemaVersion
-			return nil
-		}
-		decoded = candidate
-		return nil
-	})
-	switch outcome {
-	case persist.Missing:
+	raw, err := persist.ReadFile(s.path)
+	if errors.Is(err, os.ErrNotExist) {
 		return map[string]bool{}, nil
-	case persist.Quarantined, persist.Healed:
-		return nil, fmt.Errorf("your %s file could not be read; it was kept aside and a fresh one is started", decisionsWhat)
-	case persist.Unreadable:
-		return nil, fmt.Errorf("your %s file could not be read", decisionsWhat)
 	}
-	if err := persist.CheckVersion(newer, decisionsSchemaVersion, decisionsWhat); err != nil {
+	if err != nil {
+		return nil, fmt.Errorf("your %s file could not be read: %w", decisionsWhat, err)
+	}
+	var decoded decisionsFile
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return nil, fmt.Errorf("your %s file could not be read: %w", decisionsWhat, err)
+	}
+	if err := persist.CheckVersion(decoded.SchemaVersion, decisionsSchemaVersion, decisionsWhat); err != nil {
 		return nil, err
 	}
 	ids := map[string]bool{}

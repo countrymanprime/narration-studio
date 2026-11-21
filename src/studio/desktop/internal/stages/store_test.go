@@ -275,3 +275,17 @@ func TestReferencedRecordIDsOfNoFileIsEmptyAndOfAnUnreadableFileIsAnError(t *tes
 		}
 	}
 }
+
+func TestReferencedRecordIDsDoesNotMoveACorruptFileAside(t *testing.T) {
+	project := t.TempDir()
+	writeRaw(t, project, "{not json")
+	store := NewDecisionStore(project, nil)
+	for range 2 {
+		if got, err := store.ReferencedRecordIDs(); err == nil || got != nil {
+			t.Fatalf("ReferencedRecordIDs = %v, %v; want an error on every call", got, err)
+		}
+	}
+	if raw, err := os.ReadFile(DecisionsFile(project)); err != nil || string(raw) != "{not json" {
+		t.Fatalf("the file after two reads = %q, %v; want it untouched", raw, err)
+	}
+}
