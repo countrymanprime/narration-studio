@@ -76,7 +76,7 @@ export function usePipelineSources(
   );
   const [proofRead, setProofRead] = useState<{ value: Proof | undefined; generation: number }>();
   const [prepRead, setPrepRead] = useState<{ value: Prep | undefined; generation: number }>();
-  // The list and the measurement answer together under one tag, and only that pair is shown: never a list from one read with a measurement from another.
+  // The list and the measurement answer together under one tag, and only that pair is shown. The list then follows the store's slot, as Master & QC's does.
   const [pair, setPair] = useState<{ tag: string; chapters: readonly ManuscriptChapter[] | undefined; job: MeasureJob | undefined }>();
   const asked = useRef<{ generation: number; key: string }>(undefined);
 
