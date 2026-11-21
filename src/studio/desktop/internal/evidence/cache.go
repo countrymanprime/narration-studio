@@ -70,9 +70,12 @@ func (k CacheEntryKey) hash() string {
 // analyzer's own format) plus enough metadata for CacheStore.Prune
 // and CacheStore.Read to do their job without ever looking inside Blob.
 // encoding/json encodes a []byte field as base64 automatically, so Blob's
-// bytes round-trip exactly regardless of what they hold.
+// bytes round-trip exactly regardless of what they hold. AnalyzerID is the
+// key's, so an entry says which analyzer wrote it without its key; an entry
+// written before the field has none.
 type cacheEnvelope struct {
 	SchemaVersion int       `json:"schemaVersion"`
+	AnalyzerID    string    `json:"analyzerId,omitempty"`
 	WrittenAt     time.Time `json:"writtenAt"`
 	Blob          []byte    `json:"blob"`
 }
@@ -112,7 +115,7 @@ func (s *CacheStore) Write(key CacheEntryKey, blob []byte) error {
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
 		return fmt.Errorf("could not create the analysis cache: %w", err)
 	}
-	envelope := cacheEnvelope{SchemaVersion: cacheSchemaVersion, WrittenAt: time.Now().UTC(), Blob: blob}
+	envelope := cacheEnvelope{SchemaVersion: cacheSchemaVersion, AnalyzerID: key.AnalyzerID, WrittenAt: time.Now().UTC(), Blob: blob}
 	bytes, err := json.Marshal(envelope)
 	if err != nil {
 		return err
