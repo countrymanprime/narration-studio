@@ -230,6 +230,27 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 	// The file is gone or is not the one cached: what was cached for the record is not served again, whatever the file now holds.
 	s.cache.drop(recordID)
 	epoch := s.cache.now()
+	result, outcome := s.decode(path, recordID)
+	if outcome == persist.Loaded && statErr == nil {
+		s.cache.put(recordID, info, result, epoch)
+	}
+	return result, outcome == persist.Loaded
+}
+
+// readUncached is read past the decoded-result cache, for a caller that reads many results once each (the summaries'
+// rebuild): it neither fills the cache nor pushes out the entries the Editing and Booth pages are reading, and several
+// may run at once, which the cache's epoch would turn into refused fills.
+func (s resultStore) readUncached(recordID string) (StoredResult, bool) {
+	path, err := s.path(recordID)
+	if err != nil {
+		return StoredResult{}, false
+	}
+	result, outcome := s.decode(path, recordID)
+	return result, outcome == persist.Loaded
+}
+
+// decode reads and checks one result file.
+func (s resultStore) decode(path, recordID string) (StoredResult, persist.Outcome) {
 	var result StoredResult
 	outcome := s.reporter.ReadJSON(path, "coverage result", persist.Disposable, func(raw []byte) error {
 		var decoded StoredResult
@@ -245,10 +266,7 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 	if outcome == persist.Loaded && s.cache != nil {
 		s.cache.decoded.Add(1)
 	}
-	if outcome == persist.Loaded && statErr == nil {
-		s.cache.put(recordID, info, result, epoch)
-	}
-	return result, outcome == persist.Loaded
+	return result, outcome
 }
 
 // ChapterResult is what the result reader answers for a chapter: whether the

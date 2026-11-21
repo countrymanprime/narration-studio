@@ -20,8 +20,11 @@ func summaryFixture(t *testing.T) (p *testProject, recordID, resultPath, summary
 	return p, recordID, filepath.Join(resultsDir(p.dir), recordID+".json"), filepath.Join(summariesDir(p.dir), recordID+".json")
 }
 
-// decodedResults is how many stored results the service holds decoded: a result that was read is kept (resultCache).
-func decodedResults(service *Service) int {
+// decodedResults is how many stored result files the service has decoded.
+func decodedResults(service *Service) int { return int(service.ResultsDecoded()) }
+
+// cachedResults is how many decoded results the service keeps for the Editing and Booth pages (resultCache).
+func cachedResults(service *Service) int {
 	service.results.cache.mu.Lock()
 	defer service.results.cache.mu.Unlock()
 	return len(service.results.cache.entries)
@@ -98,8 +101,9 @@ func TestASummaryThatCannotBeUsedIsRebuiltFromItsResult(t *testing.T) {
 			if got, _ := first.Current(DefaultAlignmentParams); len(want) != 1 || !reflect.DeepEqual(got, want) {
 				t.Fatalf("fractions = %v, want %v", got, want)
 			}
-			if decodedResults(first) != 1 {
-				t.Fatalf("the rebuild decoded %d results, want 1", decodedResults(first))
+			// One decode, past the pages' decoded-result cache: a rebuild must not push out what Editing is reading.
+			if decodedResults(first) != 1 || cachedResults(first) != 0 {
+				t.Fatalf("the rebuild decoded %d results and cached %d, want 1 and 0", decodedResults(first), cachedResults(first))
 			}
 			second := p.service(&fakeSidecar{})
 			if rebuilt, ok := second.summaries.read(recordID); !ok || rebuilt.RecordID != recordID {

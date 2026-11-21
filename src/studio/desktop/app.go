@@ -671,6 +671,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
 	go h.cleanStaleDownloads()
+	h.goBackground(h.warmProject) // the read caches, while the window loads (warm.go)
 	return nil
 }
 
@@ -1446,6 +1447,7 @@ func (h *Host) onSecondInstance(instance application.SecondInstanceData) {
 		bringWindowForward()
 		if attached {
 			h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
+			h.goBackground(h.warmProject)                                      // the new project's read caches (warm.go)
 			emitEvent("system:attached", map[string]any{"attached": true})
 		} else if reason != "" {
 			emitEvent("system:attached", map[string]any{"attached": false, "reason": reason})
