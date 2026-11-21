@@ -72,12 +72,12 @@ func TestACleanCompleteRunMarksEarlierFindingsAbsent(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			service, _ := testService(t)
 			store := findings.NewStore(service.config.Project)
-			service.SetFindings(store, &fakeLookup{chapterID: "chapter-1", chapterOK: true})
+			service.SetFindings(store, (&fakeLookup{chapterID: "chapter-1", chapterOK: true}).once)
 			inspecting(service, nil)
 			service.Handle(compareMarkerEvent("run-1", fixtureRows()[0]))
 			service.Handle([]string{"COMPARE_INSPECTED", "run-1", "1 discrepancy found.", "1", "0"})
 
-			service.SetFindings(store, tc.lookup)
+			service.SetFindings(store, tc.lookup.once)
 			inspecting(service, nil)
 			service.Handle([]string{"COMPARE_INSPECTED", "run-1", "MATCH: 'Chapter One' (score 0.99) - 0 discrepancy marker(s)", "0", "0"})
 			saved, err := store.List(findings.Query{IncludeNotInLatestRun: true})

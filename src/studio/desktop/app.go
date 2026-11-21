@@ -788,7 +788,7 @@ func (h *Host) configureLocked(next config) {
 	}
 	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
 	h.transcript.SetPersist(h.persist)
-	h.transcript.SetFindings(h.findings, h.manuscript)
+	h.transcript.SetFindings(h.findings, transcriptManuscript(h.manuscript))
 	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
 	h.ledger = evidence.NewLedgerStore(h.config.projectFolder)
 	h.ledger.Reporter = h.persist
