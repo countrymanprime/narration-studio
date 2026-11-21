@@ -343,3 +343,21 @@ describe('audio under one second reads as no audio on the row', () => {
     expect(row!.recorded.tip).toContain('(1%)');
   });
 });
+
+// #3869 (qa delta B1 and B2): the Record cell says 0% exactly when the Rec. figure says no audio, and under a second on a not-started chapter is not "recording under way".
+describe('the Rec. figure and the Record cell agree about audio', () => {
+  const zero = { paragraphId: 'p1', paragraph: 1, word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
+  it('a row never shows a measured Rec. figure beside 0% recorded', () => {
+    for (const host of [undefined, zero]) {
+      for (const seconds of [0, 0.001, 0.5, 0.999999, 1, 12]) {
+        const [row] = rowsOf([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: seconds, recordedThrough: host })]);
+        expect(row!.cells.record.text === '0%', `${host ? 'host 0' : 'no host'}, ${seconds} s`).toBe(row!.recorded.kind === 'none');
+      }
+    }
+  });
+  it('under a second of audio on a not-started chapter is not recording under way', () => {
+    const cellOf = (recordedSeconds: number) => rowsOf([chapter('c1', { status: 'not_started', wordCount: WPH, recordedSeconds })])[0]!.cells.record;
+    for (const seconds of [0.001, 0.5, 0.999999]) expect(cellOf(seconds), `${seconds} s`).toEqual(cellOf(0));
+    expect(cellOf(1).text).toBe('1%');
+  });
+});
