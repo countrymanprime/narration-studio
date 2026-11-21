@@ -88,10 +88,11 @@ func (s *Service) rewriteChapterKind(chapterID, kind string, now time.Time) (map
 	}
 	found["contentKind"] = kind
 	found["kindChangedAt"] = now.UTC().Format(time.RFC3339)
-	if err := replaceManuscript(path, data); err != nil {
+	encoded, err := replaceManuscript(path, data)
+	if err != nil {
 		return nil, "", err
 	}
-	s.manCache.Store(nil)
+	s.put(encoded)
 	return found, previous, nil
 }
 
@@ -102,14 +103,14 @@ func isNarration(chapter map[string]any) bool {
 	return kind == "" || kind == "narration"
 }
 
-// replaceManuscript replaces manuscript.json through a temporary file and a rename, as commit does.
-func replaceManuscript(path string, data map[string]any) error {
+// replaceManuscript replaces manuscript.json through a temporary file and a rename, as commit does, and returns the bytes it wrote.
+func replaceManuscript(path string, data map[string]any) ([]byte, error) {
 	encoded, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := persist.WriteFile(path, encoded, 0o600); err != nil {
-		return fmt.Errorf("could not write the manuscript: %w", err)
+		return nil, fmt.Errorf("could not write the manuscript: %w", err)
 	}
-	return nil
+	return encoded, nil
 }
