@@ -406,6 +406,91 @@ describe('a read that never answers does not freeze a slot (#3658)', () => {
     }
   });
 
+  it('a slow read that answers while events keep starting newer ones still fills the slot (older answers are not dropped)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const gates: Array<ReturnType<typeof deferred<unknown>>> = [];
+      const load = vi.fn(() => {
+        const g = deferred<unknown>();
+        gates.push(g);
+        return g.promise;
+      });
+      const { store, events } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+      store.start();
+      events.emit('sync');
+      vi.setSystemTime(Date.now() + 5500);
+      events.emit('sync'); // the first read is stuck: a newer one starts
+      expect(load).toHaveBeenCalledTimes(2);
+      gates[0]!.resolve({ count: 1 }); // the older one answers, no newer answer yet
+      await vi.advanceTimersByTimeAsync(0);
+      await flush();
+      expect(store.getState().slots.jobs).toEqual({ count: 1 });
+      gates[1]!.resolve({ count: 2 });
+      await vi.advanceTimersByTimeAsync(0);
+      await flush();
+      expect(store.getState().slots.jobs).toEqual({ count: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('an older read that answers after a newer one answered writes nothing', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const gates: Array<ReturnType<typeof deferred<unknown>>> = [];
+      const load = vi.fn(() => {
+        const g = deferred<unknown>();
+        gates.push(g);
+        return g.promise;
+      });
+      const { store, events } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+      store.start();
+      events.emit('sync');
+      vi.setSystemTime(Date.now() + 5500);
+      events.emit('sync');
+      gates[1]!.resolve({ count: 2 });
+      await vi.advanceTimersByTimeAsync(0);
+      await flush();
+      gates[0]!.resolve({ count: 1 });
+      await vi.advanceTimersByTimeAsync(0);
+      await flush();
+      expect(store.getState().slots.jobs).toEqual({ count: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('an ensure after the read has been out longer than the stuck age starts a new read, and one joined earlier settles with it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const never = new Promise<unknown>(() => undefined);
+      const load = vi.fn().mockReturnValueOnce(never).mockResolvedValue({ count: 4 });
+      const { store } = make({ jobs: { schema: isCount, load } });
+      void store.ensure('jobs');
+      vi.setSystemTime(Date.now() + 5001);
+      await store.ensure('jobs');
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(store.getState().slots.jobs).toEqual({ count: 4 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a clock set back counts as stuck, not as young forever', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const never = new Promise<unknown>(() => undefined);
+      const load = vi.fn().mockReturnValueOnce(never).mockResolvedValue({ count: 5 });
+      const { store } = make({ jobs: { schema: isCount, load } });
+      void store.ensure('jobs');
+      vi.setSystemTime(Date.now() - 60_000);
+      await store.ensure('jobs');
+      expect(load).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a refresh dropped by a reset does not release the refresh of the new project', async () => {
     const first = deferred<unknown>();
     const second = deferred<unknown>();

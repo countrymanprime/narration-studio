@@ -102,6 +102,13 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   // The read in flight for each slot, whoever started it (a load, an event, an ensure), so an ensure joins it instead of starting another.
   // A read out longer than `STUCK_READ_MS` is not joined and does not hold back the next one (a host call that never answers must not freeze the slot).
   const STUCK_READ_MS = 5000;
+  /** Whether a read that started at `at` is still worth joining: not out longer than the stuck age (a clock set back counts as out too long). */
+  const young = (at: number) => {
+    const age = Date.now() - at;
+    return age >= 0 && age < STUCK_READ_MS;
+  };
+  /** The newest read of each slot whose answer or failure was written: an older read that answers later writes nothing, a read that was merely slower than a newer one's start still does. */
+  const applied = new Map<string, number>();
   const flights = new Map<string, { promise: Promise<Error | undefined>; at: number }>();
   function attempt(name: keyof R & string): Promise<Error | undefined> {
     const flight = run(name);
@@ -119,18 +126,22 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     const request = (requests.get(name) ?? 0) + 1;
     requests.set(name, request);
     // A reset or a newer load of the same slot makes this answer stale: it writes nothing, not even its failure.
-    const current = () => myEpoch === epoch && requests.get(name) === request;
+    const current = () => myEpoch === epoch && request > (applied.get(name) ?? 0);
     let value: unknown;
     try {
       value = parseWire(config.schema, await config.load(), { boundary: 'studio store', payload: name });
     } catch (e) {
       if (!current()) return undefined;
+      applied.set(name, request);
       const error = toError(e);
       setError(name, error);
       onError(name, error);
       return error;
     }
-    if (current()) setSlot(name, value);
+    if (current()) {
+      applied.set(name, request);
+      setSlot(name, value);
+    }
     return undefined;
   }
 
@@ -144,7 +155,9 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   const refreshing = new Map<string, { again: boolean; at: number }>();
   function refresh(name: keyof R & string): void {
     const running = refreshing.get(name);
-    if (running && Date.now() - running.at < STUCK_READ_MS) {
+    // A refresh is held back by the read in flight, judged by that read's own age (an ensure may have replaced the refresh's read since).
+    const flight = flights.get(name);
+    if (running && flight && young(flight.at)) {
       running.again = true;
       return;
     }
@@ -159,21 +172,21 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   }
 
   // A load an `ensure` started or joined: the one read in flight for the slot, so callers that mount together share it.
-  const ensuring = new Map<string, Promise<void>>();
+  const ensuring = new Map<string, { promise: Promise<void>; at: number }>();
   function ensure(name: keyof R & string): Promise<void> {
     if (state.slots[name] !== undefined) return Promise.resolve();
     const running = ensuring.get(name);
-    if (running) return running;
+    if (running && young(running.at)) return running.promise;
     // A read already in flight (a load, an event, a refresh) is joined, not repeated.
     const flight = flights.get(name);
-    const joinable = flight && Date.now() - flight.at < STUCK_READ_MS ? flight.promise : undefined;
+    const joinable = flight && young(flight.at) ? flight.promise : undefined;
     const read = (joinable ?? attempt(name)).then((error) => {
       if (error) throw error;
     });
     const settled = read.finally(() => {
-      if (ensuring.get(name) === settled) ensuring.delete(name);
+      if (ensuring.get(name)?.promise === settled) ensuring.delete(name);
     });
-    ensuring.set(name, settled);
+    ensuring.set(name, { promise: settled, at: Date.now() });
     return settled;
   }
 
@@ -218,6 +231,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     reset() {
       epoch += 1;
       ensuring.clear();
+      applied.clear();
       flights.clear();
       refreshing.clear();
       caches.forEach((cache) => cache.clear());
