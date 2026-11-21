@@ -208,4 +208,12 @@ describe('the voice control', () => {
     expect(onChoose).toHaveBeenCalledWith(voices[1]);
     expect(onPickCharacter).not.toHaveBeenCalled();
   });
+
+  it('with nothing typed, a chapter character who is only named and has no track is offered under No track', async () => {
+    render(<Harness onChoose={vi.fn()} extra={{ cast, noTrack: [] }} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
+    const list = await screen.findByRole('listbox', { name: 'Voices of this chapter' });
+    expect(list.textContent).toMatch(/No track.*Mara/);
+    expect(list.textContent).not.toContain('Hatter');
+  });
 });

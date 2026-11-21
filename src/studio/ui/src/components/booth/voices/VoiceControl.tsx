@@ -107,7 +107,11 @@ export function VoiceControl({
   // the list shows only the chapter's speakers with no track.
   const missing = useMemo(() => {
     const named = (list: readonly WhoCharacter[]) => list.filter((character) => !needle || character.name.toLocaleLowerCase().includes(needle));
-    if (!needle || !cast) return named(noTrack).map((character) => ({ character, group: 'No track' }));
+    if (!needle || !cast) {
+      // Nothing typed: the speakers with no track, then the chapter's characters only named (no line to speak) with none, so "Mara said" is offered too.
+      const named0 = cast ? cast.inChapter.filter((character) => character.key === undefined && !noTrack.some((each) => each.id === character.id)) : [];
+      return named([...noTrack, ...named0]).map((character) => ({ character, group: 'No track' }));
+    }
     return [
       ...named(cast.inChapter).map((character) => ({ character, group: 'In this chapter' })),
       ...named(cast.elsewhere).map((character) => ({ character, group: 'Everyone else' })),
