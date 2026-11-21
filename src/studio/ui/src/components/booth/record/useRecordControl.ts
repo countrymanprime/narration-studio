@@ -11,6 +11,7 @@ import { playTakeTone } from '../takeTone';
 import { sentenceOr } from './sentenceOr';
 import { takeEndedIn } from './takeWords';
 import { NOT_WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
+import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 import { limited, PRESS_LIMITS_MS, recordStartLimit } from './pressLimits';
 import { recordCheck, type ChapterRecordState, type NotFollowedWhy, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
@@ -19,8 +20,12 @@ import type { RecordSetupFacts } from './recordSetupModel';
 export const POLL_MS = 4000;
 /** The topic of what the Booth says about how a take ended without the narrator's own Stop: gone once the next take starts. */
 export const TAKE_TOPIC = 'daw-take';
-/** How often the Booth asks again while Record is ready and idle: another project can be opened in the DAW with no event to say so. */
+/** How often the Booth asks again while Record is ready and idle with no revision of the DAW's track list to follow (an older script, a DAW that does
+ * not answer): another project can be opened in the DAW with no event to say so. */
 export const READY_POLL_MS = 15_000;
+/** The same, while the shared track state follows the DAW's track-list revision: another project, a track added or removed and a take started in the DAW each
+ * arrive as an event (`daw_tracks_changed`, the transport), so the timer is the backstop for what has none (a track armed or disarmed in the DAW). */
+export const READY_FOLLOWING_POLL_MS = 60_000;
 
 /** How long after a take starts that a press is not taken for Stop: a double click or a key repeat must not start and end a take at once. */
 export const START_GUARD_MS = 1000;
@@ -255,6 +260,8 @@ export function useRecordControl({
   const daw = usePort('daw');
   const system = usePort('system');
   const teleprompter = usePort('teleprompter');
+  const tracks = usePort('tracks');
+  const following = useChapterTrackState().live.following;
   const recorder = usePort('recording');
   const [capabilities, setCapabilities] = useState<DawCapabilities | null>(null);
   const [project, setProject] = useState<DawProjectState | null>(null);
@@ -582,13 +589,22 @@ export function useRecordControl({
     const onVisible = () => document.visibilityState === 'visible' && again();
     window.addEventListener('focus', again);
     document.addEventListener('visibilitychange', onVisible);
-    const timer = window.setInterval(again, unready || recording || projectFailed || undecided ? POLL_MS : READY_POLL_MS);
+    const timer = window.setInterval(again, unready || recording || projectFailed || undecided ? POLL_MS : following ? READY_FOLLOWING_POLL_MS : READY_POLL_MS);
     return () => {
       window.removeEventListener('focus', again);
       document.removeEventListener('visibilitychange', onVisible);
       if (timer !== undefined) window.clearInterval(timer);
     };
-  }, [unready, recording, projectFailed, undecided]);
+  }, [unready, recording, projectFailed, undecided, following]);
+  // Another project opened in the DAW, or a track added or removed (`daw_tracks_changed`), is read at once while idle (a take the narrator starts in the DAW is
+  // already heard from the transport, below). Not during a take or a press, whose own events and timer the code below owns.
+  useEffect(() => {
+    const again = () => {
+      if (!recordingRef.current && !busy.current) setReads((n) => n + 1);
+    };
+    const offTracks = tracks.subscribeTracksChanged(again);
+    return offTracks;
+  }, [tracks]);
 
   // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers. A stopped transport is
   // also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now before the end is believed

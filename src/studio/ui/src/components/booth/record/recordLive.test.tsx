@@ -8,9 +8,10 @@ import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { POLL_MS, READY_POLL_MS, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
+import { POLL_MS, READY_FOLLOWING_POLL_MS, READY_POLL_MS, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -50,15 +51,28 @@ function liveDaw(initial: DawCapabilities | 'fail') {
       throw new Error('the host went away');
     },
   };
-  return { client, reads, set: (next: DawCapabilities | 'fail') => (truth = next), emit: (next: DawCapabilities) => emit(next) };
+  return {
+    client,
+    reads,
+    set: (next: DawCapabilities | 'fail') => (truth = next),
+    emit: (next: DawCapabilities) => emit(next),
+  };
 }
 
-function mount(initial: DawCapabilities | 'fail', api = createMockApi()) {
+function mount(initial: DawCapabilities | 'fail', api = createMockApi(), options: { follow?: boolean } = {}) {
   const daw = liveDaw(initial);
   const notify = vi.fn();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <ApiProvider api={api}>
-      <PortOverrides clients={{ daw: daw.client }}>{children}</PortOverrides>
+      <PortOverrides clients={{ daw: daw.client }}>
+        {options.follow ? (
+          <ProjectTrackProviders projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            {children}
+          </ProjectTrackProviders>
+        ) : (
+          children
+        )}
+      </PortOverrides>
     </ApiProvider>
   );
   return { ...daw, notify, ...renderHook(() => useRecordControl({ chapterId: 'c1', notify }), { wrapper }) };
@@ -455,6 +469,36 @@ describe('another project opened in the DAW while Record is ready or a take runs
     await waitFor(() => expect(daw.result.current.facts.openProject).toBe('different'));
     expect(daw.result.current.disabled).toBe(true);
     expect(daw.result.current.reason).toMatch(/different project open/);
+  });
+
+  // #3880: what the DAW says while Record is idle is read at once, and the slow timer is only the backstop for what has no event.
+  it('a track list change in the DAW (another project, a track added or removed) is read at once', async () => {
+    let tell: () => void = () => {};
+    const api = createMockApi({ subscribeTracksChanged: (on) => ((tell = () => on({ revision: '' })), () => {}) } as Partial<NarrationApi>);
+    const daw = mount(CONNECTED, api);
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    await act(() => vi.advanceTimersByTimeAsync(500));
+    const before = daw.reads.count;
+    await act(async () => tell());
+    expect(daw.reads.count).toBeGreaterThan(before);
+  });
+
+  it('with the DAW following its track list the idle timer is the slow one; without, it is the old one', async () => {
+    const following = mount(CONNECTED, createMockApi(), { follow: true });
+    await waitFor(() => expect(following.result.current.disabled).toBe(false));
+    // The shared track state has read once and holds a revision.
+    await act(() => vi.advanceTimersByTimeAsync(1000));
+    const settled = following.reads.count;
+    await act(() => vi.advanceTimersByTimeAsync(READY_POLL_MS + 50));
+    expect(following.reads.count).toBe(settled);
+    await act(() => vi.advanceTimersByTimeAsync(READY_FOLLOWING_POLL_MS - READY_POLL_MS));
+    expect(following.reads.count).toBeGreaterThan(settled);
+    cleanup();
+    const plain = mount(CONNECTED);
+    await waitFor(() => expect(plain.result.current.disabled).toBe(false));
+    const first = plain.reads.count;
+    await act(() => vi.advanceTimersByTimeAsync(READY_POLL_MS + 50));
+    expect(plain.reads.count).toBeGreaterThan(first);
   });
 
   it('the narrator opens the linked project again: the refusal goes by itself', async () => {
