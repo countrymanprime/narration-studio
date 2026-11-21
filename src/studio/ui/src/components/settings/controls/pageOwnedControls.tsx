@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 import type { ScopedSettingField } from '../../../types';
 import { BackupsSection } from '../BackupsSection';
 import { RecordingCheckSummary } from '../RecordingCheckSummary';
@@ -20,13 +20,14 @@ const colourOnly = filterFor('stt.compareColours');
 const favouritesOnly = filterFor('daw.fxFavourites');
 
 /** The scopes a panel edits: the computer's values, and this project's when one is open, with what waits for a project said under it. */
-function Scoped({ children }: { children: (scopes: readonly ['global'] | readonly ['global', 'project']) => ReactElement }) {
+function Scoped({ children, labelWidth }: { children: (scopes: readonly ['global'] | readonly ['global', 'project']) => ReactElement; labelWidth?: string }) {
   const hasProject = useHasProject();
   return (
-    <>
+    // The row's body column lays its children out from the start, so a panel would shrink to its content: it takes the row's whole width instead.
+    <div className="w-full min-w-0" style={labelWidth ? ({ '--scoped-label': labelWidth, '--scoped-label-max': labelWidth } as CSSProperties) : undefined}>
       {children(hasProject ? (['global', 'project'] as const) : (['global'] as const))}
       {!hasProject && <p className="m-0 mt-2 text-[0.8125rem] text-[var(--text-muted)]">{NEEDS_PROJECT_FOR_PROJECT}</p>}
-    </>
+    </div>
   );
 }
 
@@ -97,7 +98,7 @@ export function PreviewSuggestionBody() {
 export function StageSuggestionsBody() {
   const { notify } = useSettingsHost();
   return (
-    <Scoped>
+    <Scoped labelWidth="19rem">
       {(scopes) => (
         <ScopedFieldsPanel id="stage-suggestions" title="Stage suggestions" tool="StageRecommendations" scopes={scopes} pageSaysReadError notify={notify} />
       )}
@@ -106,5 +107,11 @@ export function StageSuggestionsBody() {
 }
 
 export function AudacityBackupsBody() {
-  return useHasProject() ? <BackupsSection /> : <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">{NEEDS_PROJECT_REASON}</p>;
+  return useHasProject() ? (
+    <div className="w-full min-w-0">
+      <BackupsSection />
+    </div>
+  ) : (
+    <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">{NEEDS_PROJECT_REASON}</p>
+  );
 }
