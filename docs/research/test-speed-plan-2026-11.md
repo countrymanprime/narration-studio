@@ -110,10 +110,14 @@ Python 2 s, the Lua harness 1 s (its mutation checks already run on `main` only)
 | Tier | Runs on | Holds | Gates |
 | --- | --- | --- | --- |
 | **Pull request** | every push to a pull request | lint and typecheck; every unit test (Vitest, Go, Python, Lua, Node); the UI bundle and `Build (Windows)`; the visual state matrix with its whole-run checks and `aria`; the behaviour specs, overlay guard rows and stories of what the change touches | the merge: `CI passed` |
-| **Main** | every push to `main`, and every three hours when `main` has a commit not yet judged (`main-health.yml`) | everything in the pull request tier with nothing narrowed: all 3,227 visual tests, the whole atlas, `go test-schedules`, the Lua mutation checks, the rename rehearsal `--full`, the strict coverage floors | the next merge and the next launch: a red run ticks `HOLD` on every open train issue and opens a blocking issue |
-| **Release** | promoting a release candidate (`promote-release.yml`) | a green `Main health` run on the candidate's commit, then the checks `windows-release-checks.yml` and the owner's release checklist already hold | the stable release |
+| **Main** | every push to `main`, and every three hours when `main` has a commit not yet judged (`main-health.yml`) | everything in the pull request tier with nothing narrowed: all 3,227 visual tests, the whole atlas, `go test-schedules`, the Lua mutation checks, the rename rehearsal `--full`, the strict coverage floors | the next merge and the next launch: a red run ticks `HOLD` on every open train issue (today) and opens a blocking issue (pull request 2) |
+| **Release** | promoting a release candidate (`promote-release.yml`) | a green `Main health` run on the candidate's commit (pull request 2; `promote-release.yml` checks today that the tag is a pre-release and an ancestor of `main`). `windows-release-checks.yml` is a manual run that gates nothing, and the owner's release checklist is a person's step | the stable release |
 
 The draft tier (`CI light passed`) stays as it is: the pull request tier without Playwright and without the Windows build.
+
+**The state matrix stays on the pull request**, where #3860 names the visual matrix for the schedule. It is the one browser check that draws every page, so it is what catches a shared-code change on a page the change did not name, and the whole-run checks read its records. At 5.1 minutes a shard it fits the budget. If the pipeline still passes 15 minutes after pull request 10, narrowing the matrix to touched pages is the next move, and it is listed here so that it is a decision and not a surprise.
+
+**One `main` run can judge several merges.** `main-health.yml` runs one at a time and keeps at most one run waiting, so a burst of merges is judged by a run on the newest commit. "Every push to `main`" below means every commit on `main` is inside a judged run, not that each has a run of its own; the blocking issue lists the commits since the last green run for that reason.
 
 "What the change touches" is decided from the changed files, on the pull request, by the script that already splits the suite (`scripts/ci/visual-shards.mjs split`):
 
@@ -130,6 +134,8 @@ A change to shared UI code (`primitives/`, `styles.css`, `App.tsx`, `api/`) runs
 
 1. **A blocking issue.** The failing run opens an issue labelled `main-red` (or comments on the open one) naming the failed jobs, the run and the commits merged since the last green run. The first green run closes it. While it is open, the merge procedure treats `main` as closed to everything except the fix or the revert.
 2. **A release gate.** `promote-release.yml` refuses a candidate whose commit has no successful `Main health` run.
+
+Both are to add (pull request 2); `HOLD` exists.
 
 `scripts/ci/check-manifest.json` records each moved check with `tier: post-merge` and its `safety_net`; `check-manifest.test.mjs` fails when a check leaves the pull request without one.
 
@@ -177,19 +183,22 @@ Estimates from the measurements above, to be replaced by measurement as each pul
 
 With `lint` (3 min) before and `CI passed` (1 min) after, a shared-UI pull request reaches about 14 minutes when no job queues. The Windows shards are the tightest; M6 is the lever if they stay over.
 
+**The queue is the gap in this plan.** The three full runs waited 319 to 1,088 s for a runner at their worst job, and no change here removes a wait outright. Two things shorten it: a full run asks for about half the runner minutes, and pull request 10 lowers the shard count, so two pull requests fit where one does on 2026-11-21. Pull request 10 measures wall clock with the queue included over five runs. If the median still passes 15 minutes, the remaining choices are the owner's: more concurrent runners on the account, or starting the test jobs beside `lint` instead of after it (about 3 minutes, and a change to the owner's decision on #3065).
+
 ## Pull requests, in order
 
 Each is one small change with its own measurement in the body; the workflow changes go one at a time.
 
-1. **Visual: no trace on the first pass, failed tests re-run with a trace.** 19% of `visual`, nothing moved.
+1. **Visual: no trace on the first pass, failed tests re-run with a trace.** 19% of `visual`, nothing moved. The second run only records: the first pass alone decides the step, so a test that passes the second time is still red.
 2. **Main health: a red run opens a blocking `main-red` issue; `promote-release.yml` requires a green run on the candidate.** The safety net, before any move.
 3. **Visual scope on a pull request (M1, M2):** `visual-shards.mjs split --changed`, the manifest rows, the whole-run check proven to judge the same records. The largest win: up to 54% of `visual`.
 4. **Atlas scope on a pull request (M3)** and one Storybook build per run.
 5. **Go: the bridge tests take their limits as parameters** (110 s), then the largest sleeps.
 6. **Go: `go test-schedules` to `main` (M4); the root package's tests shared between the two Windows shards.**
-7. **Vitest: the real-time waits to fake timers; `isolate: false` folder by folder.**
-8. **Rename rehearsal to `main` (M5).**
-9. **Re-measure five full runs; rebuild `shard-weights.json`; lower the shard count to what a 10-minute shard needs; M6 only if the Windows shards need it.**
+7. **Vitest: the real-time waits to fake timers; `App.test.tsx` and `BoothNextPage.hugeChapter` investigated; `isolate: false` folder by folder.** A folder shares a jsdom only once its tests pass in shuffled order, and the `main` tier keeps running the isolated configuration, so a test that passes only in one of the two turns `main` red.
+8. **A slow-test list that only shrinks.** The owner's 200 ms is the budget for a unit test. On 2026-11-21 2,043 Vitest tests and 310 Go tests are over it, so a hard limit would fail every run. The Vitest and Go steps report every test over 200 ms; a committed list holds the ones allowed to be, a new test over the budget fails the step, and the list loses entries as pull requests 5 and 7 and later work fix them.
+9. **Rename rehearsal to `main` (M5).**
+10. **Re-measure five full runs; rebuild `shard-weights.json`; lower the shard count to what a 10-minute shard needs; M6 only if the Windows shards need it.**
 
 ## State matrix
 
