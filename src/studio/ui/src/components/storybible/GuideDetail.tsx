@@ -206,10 +206,10 @@ function FindInManuscript({ name }: { name: string }) {
   );
 }
 
-/** What the entry list asks the open entry to do (its right-click menu, or a Hear whose voice must be installed first). `nonce` makes the same command twice two commands. */
 /** An Enter this soon after an add is the same keypress arriving twice. */
 const SAME_PRESS_MS = 600;
 
+/** What the entry list asks the open entry to do (its right-click menu, or a Hear whose voice must be installed first). `nonce` makes the same command twice two commands. */
 export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; nonce: number };
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
@@ -273,7 +273,7 @@ export function GuideDetail({
   const [editing, setEditing] = useState(false);
   const [aliasQuery, setAliasQuery] = useState('');
   // A name the narrator asked to add that the entry or another entry already has: the Names box says so, and for another entry's offers to merge it in.
-  /** True from an add until the box is typed in again: the Enter that follows is the same press, not an empty name (#3382 f). */
+  /** When the last add was made (ms, 0 once the box is typed in): an Enter within SAME_PRESS_MS of it is the same press, not an empty name (#3382 f). */
   const justAdded = useRef(0);
   const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string; blank?: boolean }>();
   const [nameError, setNameError] = useState<string>();
