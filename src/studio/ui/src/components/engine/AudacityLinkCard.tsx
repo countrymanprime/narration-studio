@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { startDaw } from '../connection/startDaw';
 import { Button } from '../primitives/Button';
+import { CheckedStamp, useCheckedAt } from '../primitives/CheckedStamp';
 import { IconButton } from '../primitives/IconButton';
 import { Icon } from '../primitives/Icon';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -37,6 +38,7 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
   const { link, error, receivedAt, check, adopt } = view;
   const [busy, setBusy] = useState<string>();
   const [problem, setProblem] = useState<string>();
+  const [checkedAt, markChecked, reads] = useCheckedAt();
   const now = useNow(link !== undefined && link.state !== 'answering');
 
   if (!link) {
@@ -132,8 +134,9 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
           size="sm"
           pending={busy === 'check'}
           disabled={busy !== undefined && busy !== 'check'}
-          onClick={() => void run('check', () => check())}
+          onClick={() => void run('check', async () => void ((await check()) && markChecked()))}
         />
+        <CheckedStamp at={checkedAt} reads={reads} />
       </div>
       {(problem ?? error) && (
         <p role="alert" className="text-[var(--danger-text)]">

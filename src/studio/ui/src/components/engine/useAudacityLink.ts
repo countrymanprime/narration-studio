@@ -11,7 +11,8 @@ export type AudacityLinkView = {
   /** When the answer arrived: the clock "last heard N s ago" counts from, so a quiet host shows its age instead of a stale fact. */
   receivedAt?: number;
   /** Asks Audacity now (the Check again button) and resolves once the answer is in. */
-  check: () => Promise<void>;
+  /** Asks Audacity now; resolves true when it was read, false when the read failed (the failure is in `error`). */
+  check: () => Promise<boolean>;
   /** Adopts an answer a binding returned (a link or an unlink), without another read. */
   adopt: (next: AudacityLink) => void;
 };
@@ -40,7 +41,20 @@ export function useAudacityLink(enabled = true): AudacityLinkView {
   }, []);
 
   const read = useCallback(() => port.audacityLink().then(adopt, fail), [port, adopt, fail]);
-  const check = useCallback(() => port.audacityLinkCheck().then(adopt, fail), [port, adopt, fail]);
+  const check = useCallback(
+    () =>
+      port.audacityLinkCheck().then(
+        (next) => {
+          adopt(next);
+          return true;
+        },
+        (failure: unknown) => {
+          fail(failure);
+          return false;
+        },
+      ),
+    [port, adopt, fail],
+  );
 
   useEffect(() => {
     if (!enabled) return;
