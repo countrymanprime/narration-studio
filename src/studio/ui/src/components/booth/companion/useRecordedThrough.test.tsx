@@ -24,10 +24,13 @@ describe('useRecordedThrough', () => {
     const { result, rerender } = renderHook(({ active }) => useRecordedThrough('c1', active), { wrapper, initialProps: { active: false } });
     await waitFor(() => expect(result.current.reading).toBe(false));
     expect(result.current.recorded).toEqual({ through: zero, audio: false });
+    expect(result.current.recordedSeconds).toBe(0);
     // A session runs and ends; the take left 12 s on the track.
     rerender({ active: true });
     answer.seconds = 12;
     rerender({ active: false });
     await waitFor(() => expect(result.current.recorded).toEqual({ through: zero, audio: true }));
+    // "This chapter" prints this value, so its "Recorded 0:12" and the notice's percent move together.
+    expect(result.current.recordedSeconds).toBe(12);
   });
 });

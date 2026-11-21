@@ -118,4 +118,37 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     await push({ phase: 'stopped' });
     await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 1% through'));
   });
+  // G1 (qa delta): "This chapter" printed the recorded length of the Production read made when the page opened ("Recorded 0:00") while the resume notice, after a session ended,
+  // read the new take ("recorded 1% through"). Both come from the one read `useRecordedThrough` makes, so after a session the two lines agree.
+  it('after a session ends "This chapter" and the resume notice come from the same read', async () => {
+    const subscribers = new Set<(state: TeleprompterState) => void>();
+    const host = { seconds: 0 };
+    const zero: RecordedThrough = { ...through, percent: 0 };
+    const base = pageApi({} as Partial<NarrationApi>);
+    const overview = await base.productionOverview();
+    const api = pageApi({
+      subscribeTeleprompterState: (on: (state: TeleprompterState) => void) => {
+        subscribers.add(on);
+        return () => subscribers.delete(on);
+      },
+      manuscriptChapters: async () =>
+        CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: host.seconds } : chapter)),
+      productionOverview: async () => ({
+        ...overview,
+        chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 0 }],
+      }),
+    } as Partial<NarrationApi>);
+    renderCompanion(api);
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 0% through'));
+    await waitFor(() => expect(screen.getByText('Recorded 0:00')).toBeTruthy());
+    const push = (state: Partial<TeleprompterState>) =>
+      act(() => subscribers.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state })));
+    await waitFor(() => expect(subscribers.size).toBeGreaterThan(0));
+    await push({});
+    host.seconds = 12;
+    await push({ phase: 'stopped' });
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 1% through'));
+    expect(screen.getByText('Recorded 0:12')).toBeTruthy();
+    expect(screen.queryByText('Recorded 0:00')).toBeNull();
+  });
 });

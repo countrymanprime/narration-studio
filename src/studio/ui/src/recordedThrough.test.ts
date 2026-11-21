@@ -99,8 +99,8 @@ describe('recordedPercent', () => {
   });
 });
 
-// #3443: one synchronized state across pages. Every printer of a chapter's recorded percent prints the number `recordedPercent` gives: the Booth chip (`.short`) and its position
-// line (`.text`), the chapter lists (`chapterRecordedDetail`: Booth, Editing, Proof), the Record cell and its tip, and the Rec. figure's tip and spoken name. A host 0 with audio on
+// #3443: one synchronized state across pages. Every printer of a chapter's recorded percent prints the number `recordedPercent` gives: the Booth chip (`.short`) and its text
+// (`.text`; the position line `progressLine.ts` is the reading position and is not one of these), the chapter lists (`chapterRecordedDetail`: Booth, Editing, Proof), the Record cell and its tip, and the Rec. figure's tip and spoken name. A host 0 with audio on
 // the track is the case that used to differ (the cell said 1%, the rest 0%).
 describe('every page prints the same recorded percent', () => {
   const hosts: Array<[string, Partial<RecordedThrough>]> = [

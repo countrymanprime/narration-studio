@@ -203,7 +203,7 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
   const through = chapter.recordedThrough;
   const words = throughWords(chapter);
   if (through && words) {
-    // One percent for every page: `recordedPercent` is what the Record cell, its tip, the Rec. name, Next up, the Booth chip, position line and chapter lists, the
+    // One percent for every page: `recordedPercent` is what the Record cell, its tip, the Rec. name, Next up, the Booth chip (its short and text) and chapter lists, the
     // Editing and Proof chapter lists and the Companion print (a host 0 reads 1 with audio on the track; the Booth resumes at the same place).
     const stageNote = chapter.status === 'recording' ? '' : ' · The chapter’s stage is still Not started';
     const percent = recordedPercent(chapter, wph) ?? 0;
