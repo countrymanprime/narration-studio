@@ -5,7 +5,8 @@ const START_GUARD_PAUSE_MS = 1100;
 
 /**
  * Waits START_GUARD_PAUSE_MS on the page's own clock, the one the guard reads: a wait in real time is shorter than the guard when the page's clock runs slow
- * (`slowPageClock`), and was only as long as the guard because the page's clock and the test's agree.
+ * (`slowPageClock`), and was only as long as the guard because the page's clock and the test's agree. Not for a test whose page clock is paused or frozen
+ * (`page.clock.pauseAt`), where it never ends, nor across a navigation, which destroys the page it runs in.
  */
 export const pastStartGuard = (page: Page): Promise<void> =>
   page.evaluate(
