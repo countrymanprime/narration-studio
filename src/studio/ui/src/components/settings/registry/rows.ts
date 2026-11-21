@@ -221,7 +221,7 @@ export const ROWS: readonly SettingMeta[] = [
     more: 'The effects chains you chose as favourites, listed first on the Effects tab. Chosen from the effects list while editing; set here they are the computer’s values, and a project may use its own.',
     used: ['editing'],
     also: 'Editing › Effects',
-    syn: 'plugin fx chain favourite',
+    syn: 'plugin fx chain favourite favorite',
   },
   {
     id: 'daw.backups',
@@ -358,7 +358,7 @@ export const ROWS: readonly SettingMeta[] = [
     more: 'The colours of the markers a Proof compare run puts on misread, skipped and extra words. Chosen when starting a compare run; set here they are the computer’s values, and a project may use its own.',
     used: ['proof'],
     also: 'Proof › Compare options',
-    syn: 'misread skipped extra colour compare marker',
+    syn: 'misread skipped extra colour color compare marker',
   },
   {
     id: 'stt.live',

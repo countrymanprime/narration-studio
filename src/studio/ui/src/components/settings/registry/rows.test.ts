@@ -247,3 +247,10 @@ describe('settings a page reads are filed under their topic (#3673)', () => {
     }
   });
 });
+
+describe('panel rows are found by the words the panels themselves use', () => {
+  it('finds the favourite effects by "favorite" and the compare marker colours by "color"', () => {
+    expect(search('favorite').some((hit) => hit.row.id === 'daw.fxFavourites')).toBe(true);
+    expect(search('misread color').some((hit) => hit.row.id === 'stt.compareColours')).toBe(true);
+  });
+});
