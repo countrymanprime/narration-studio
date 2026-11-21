@@ -185,6 +185,33 @@ test.describe('a lane key then Enter', () => {
     await expect(list(page)).toHaveCount(0, { timeout: 2000 });
   });
 
+  // The pedal's Space with a panel open closes the panel and toggles the take once. Pressed right after Escape, while the panel is still leaving, it toggled twice:
+  // the take stopped and a new one started (the walkthrough of #3976). Frames are held back so the panel is always still leaving.
+  for (const frames of ['held back', 'on time']) {
+    test(`Space right after Escape on Record options, frames ${frames}, stops a running take once and starts no other`, async ({ page }) => {
+      if (frames === 'held back') {
+        await page.addInitScript(() => {
+          const raf = window.requestAnimationFrame.bind(window);
+          window.requestAnimationFrame = (callback) => raf((time) => void window.setTimeout(() => callback(time), 400));
+        });
+      }
+      await openBooth(page);
+      await page.getByRole('button', { name: /^Record$/ }).click();
+      await expect(stopButton(page)).toBeVisible();
+      await pastStartGuard(page);
+      await page.getByRole('button', { name: 'Record options' }).click();
+      await expect(page.getByRole('dialog', { name: 'Record options' })).toBeVisible();
+      await page.waitForTimeout(800);
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Space');
+      await expect(page.getByRole('button', { name: /^Record$/ })).toBeVisible();
+      // A second toggle would start a take again about half a second later.
+      await page.waitForTimeout(1500);
+      await expect(stopButton(page)).toHaveCount(0);
+      expect(await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording)).toBe(false);
+    });
+  }
+
   test('a key with no track asks who is in it, and focus is on the dialog, then back on the page when it closes', async ({ page }) => {
     await openBooth(page);
     await page.keyboard.press('Numpad7');
