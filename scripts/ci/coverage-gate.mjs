@@ -118,8 +118,8 @@ const RACE_EVERYTHING = [
 
 /**
  * Files outside the Go module that no Go test reads to drive concurrent code (`internal/boothreplay` compares one UI fixture after its run), so changing them races nothing: the UI, the site, the docs tooling, the pages of
- * `docs/` that are prose, and the top-level documents. A file outside the module that is not here (a script, a fixture, `docs/reference/`,
- * a manifest) may be read by a test, and races everything: the direction of every unsure case.
+ * `docs/` that are prose, and the top-level documents. A file outside the module that is not here (a script, a fixture, a file of `docs/reference/` or
+ * `docs/architecture/` that a test reads, a manifest) may be read by a test, and races everything: the direction of every unsure case.
  */
 const GO_FREE = [
   /^src\/studio\/ui\//,
@@ -127,6 +127,9 @@ const GO_FREE = [
   /^tools\//,
   /^docs\/(adr|design|guides|images|operations|prds|research|ui|utilities|workflows)\//,
   /^docs\/[^/]+\.md$/,
+  // These two folders hold the files below, which Go tests read (the guard in coverage-gate.test.mjs fails when another is read), so only they race everything.
+  /^docs\/reference\/(?!daw(\/|$)|storybible-import-format\.md$)/,
+  /^docs\/architecture\/(?!provider-ports\.md$)/,
   /^[^/]+\.md$/,
   /^LICENSE$/,
 ];
