@@ -50,8 +50,7 @@ describe('footerHints', () => {
   it('footer-spec-is-the-mocks: the Booth footer follows the mock, from the keymap, with pickups off', () => {
     expect(footerHints('booth', keymap)).toEqual([
       { keys: ['Space'], label: 'Record / stop', id: 'hint-reading.toggle' },
-      { keys: ['R'], label: 'Punch and roll from here', id: 'hint-booth.roll' },
-      { keys: ['Right-click'], label: 'Mark start' },
+      { keys: ['R'], label: 'Roll again', id: 'hint-booth.roll' },
       { keys: ['↑', '↓'], label: 'Phrase', id: 'hint-booth.phrase.prev' },
       { keys: ['←', '→'], label: 'Word', id: 'hint-booth.word.prev' },
       { keys: ['B'], label: 'Bookmark', id: 'hint-bookmark.here' },
@@ -162,7 +161,7 @@ describe('nonKeyHints', () => {
   });
 
   it('lists the Booth right-click and no hint for a surface with none', () => {
-    expect(nonKeyHints('booth')).toEqual([{ after: 'booth.roll', keys: ['Right-click'], label: 'Mark start' }]);
+    expect(nonKeyHints('booth')).toEqual([]);
     expect(nonKeyHints('proof')).toEqual([]);
   });
 });

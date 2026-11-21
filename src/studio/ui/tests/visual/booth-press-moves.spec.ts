@@ -1,5 +1,5 @@
 // While a press is under way (lookup, checks, record start) the reading stays where the press chose, so the take records where the text shows
-// (#3338). Resume at, the arrow keys and the phrase menu are ignored with one sentence; the lookup is held through `__NARRATION_MOCK_OVERRIDES__`
+// (#3338). The arrow keys and the phrase menu are ignored with one sentence; the lookup is held through `__NARRATION_MOCK_OVERRIDES__`
 // as in booth-start-lookup.spec.ts, and the controls work again once the take has begun.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
@@ -30,30 +30,9 @@ async function openWithHeldLookup(page: Page): Promise<void> {
 }
 
 async function startFromHere(page: Page): Promise<void> {
-  await page.locator('[data-booth-text] [data-word]').nth(5).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
+  await page.locator('[data-booth-text] [data-word]').nth(5).click();
   await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
 }
-
-test('Resume at during the held lookup is ignored: one sentence, and the take records where the text shows', async ({ page }) => {
-  await openWithHeldLookup(page);
-  await startFromHere(page);
-  await expect(record(page)).toHaveAttribute('aria-busy', 'true', { timeout: 500 });
-  const chosen = await reading(page);
-  const chip = page.getByRole('button', { name: /^Resume at ¶/ });
-  await expect(chip).toBeVisible();
-  await chip.click();
-  await chip.click();
-  await expect(toasts(page)).toHaveCount(1);
-  expect(await reading(page)).toBe(chosen);
-  await expect(stop(page)).toBeVisible({ timeout: HELD_MS + 2000 });
-  expect(await reading(page)).toBe(chosen);
-  await expect(page.getByText(/Recording over ¶ 1\b/).first()).toBeVisible();
-  await expect(page.getByText('Next roll starts from ¶ 1')).toBeVisible();
-});
 
 test('ArrowDown and the phrase menu during the held lookup are ignored, and work again once the take has begun', async ({ page }) => {
   await openWithHeldLookup(page);

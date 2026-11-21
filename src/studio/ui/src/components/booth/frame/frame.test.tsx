@@ -329,8 +329,7 @@ describe('the-footer-hints-come-from-the-catalogue', () => {
   it('draws the catalogue hints with the right-click extra, and the timer', () => {
     footer(api(), { seconds: 402 });
     const keys = screen.getByRole('note', { name: 'Keyboard shortcuts' });
-    for (const label of ['Record / stop', 'Punch and roll from here', 'Mark start', 'Phrase', 'Word', 'Full screen', 'Exit'])
-      expect(keys.textContent).toContain(label);
+    for (const label of ['Record / stop', 'Roll again', 'Phrase', 'Word', 'Full screen', 'Exit']) expect(keys.textContent).toContain(label);
     expect(keys.textContent).not.toContain('Next pickup');
     expect(document.getElementById('btimer')?.textContent).toBe('06:42');
   });
