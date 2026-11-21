@@ -48,8 +48,10 @@ with the file being measured (its row reads **Measuring**), and **Cancel** stops
 runs; Master & QC shows the last check when you come back. If the app stops hearing how the check is going,
 the page shows an error message, **Can't tell how the measurement is going**, with a **Retry** button, and keeps
 trying every couple of seconds (the message goes when the host answers); the check itself keeps running. Once files are checked its tooltip reads
-**Re-check 3 files** and it measures the same files again (after a new render, say); the **Choose other files…** icon button
-picks others.
+**Re-check 3 files** and it checks the same files again (after a new render, say); the **Choose other files…** icon button
+picks others. With a project open, a file whose content has not changed since it was last measured is not measured again, also after you
+close and reopen the app: the app reads the whole file to make sure it is the same audio, which takes a fraction of the time, and shows the
+measurement it kept. A file that changed in any way is measured again.
 
 ![A check in progress, with its real progress and Cancel](../../images/ui/master-running.webp)
 
