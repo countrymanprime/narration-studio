@@ -46,7 +46,9 @@ jobs:
             echo "A $EVENT run always runs."
             exit 0
           fi
-          # The newest run that finished with a verdict (a cancelled run judged nothing), on any trigger.
+          # The newest run that finished with a verdict, on any trigger. A run that was cancelled, or had a job cancelled at its time
+          # limit, concludes `cancelled` and is not one: the next scheduled run tries the same commit again. A time limit reached
+          # twice ticks HOLD twice, each with its own comment (#3845).
           last=$(gh api "repos/$GH_REPO/actions/workflows/main-health.yml/runs?branch=main&status=completed&per_page=20" \
             --jq '[.workflow_runs[] | select(.conclusion == "success" or .conclusion == "failure")][0].head_sha // ""')
           if [ "$last" = "$SHA" ]; then
@@ -65,9 +67,9 @@ jobs:
     needs: ci
     # `always()`: without a status function the condition is "success() && ...", which skips this job exactly when `ci` failed.
     # `cancelled` without `cancelled()`: a job of `ci` that reaches its timeout-minutes is cancelled by GitHub, and `ci` then reports
-    # `cancelled`, not `failure`, although its gate failed (run 44839193505: a Linux shard timed out and HOLD was not ticked, #3845).
-    # `cancelled()` is true only when this run itself was cancelled (by a person; the concurrency group never cancels), which judges
-    # nothing and ticks nothing. scripts/ci/main-health-workflow.test.mjs holds this condition.
+    # `cancelled`, not `failure`, although its gate failed (run 44839193505: a Linux shard timed out and HOLD was not ticked, #3845; both terms checked on a runner, run 44857723452).
+    # `cancelled()` is true only when this run itself was cancelled, which judges nothing and ticks nothing. Only a person does that:
+    # this workflow's concurrency group never cancels, and ci.yml's own group cannot meet a second run while this one serialises them. scripts/ci/main-health-workflow.test.mjs holds this condition.
     if: always() && (needs.ci.result == 'failure' || (needs.ci.result == 'cancelled' && !cancelled()))
     timeout-minutes: 5
     runs-on: ubuntu-latest
