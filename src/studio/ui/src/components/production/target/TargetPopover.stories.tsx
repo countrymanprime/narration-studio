@@ -54,3 +54,11 @@ export const MeasuredStandardChosen: Story = {
     await expect(args.onBasis).toHaveBeenCalledWith('own');
   },
 };
+
+// #3443: a target of under a minute reads "<0h 01m".
+export const UnderAMinute: Story = {
+  args: { hours: { standard: 0.004, own: 0.004 } },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getAllByText('<0h 01m')).toHaveLength(2);
+  },
+};

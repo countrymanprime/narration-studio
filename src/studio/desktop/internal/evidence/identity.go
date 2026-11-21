@@ -135,19 +135,27 @@ const racyWindow = 2 * time.Second
 // file's size and modification time are the ones it was read with; a file that changed either (a replaced or re-recorded file) is read again.
 // A caller that writes an identity down (a check run) uses Refresh, which always reads and replaces the entry, so what it stored and what the
 // cache answers agree.
+// Only the recording check holds one. Other readers sample the file on every read, because an unchanged size and modification time is not
+// accepted as proof of unchanged content outside that sweep, and an entry another reader stored would be trusted by it.
 // shortcut: a file rewritten with the same size and the same modification time, or a symlink retargeted to a file of the same size and time, is
 // not noticed by Identify (Refresh sees it), and a filesystem
 // with a coarse time (FAT32, some network shares) can hide a quick same-size rewrite; upgrade to FullHash if a tool that keeps the time turns up.
 // A file modified less than racyWindow before it was read is not remembered: a rewrite in the same clock tick, or on a filesystem with a coarse
 // time (FAT32 keeps two seconds), would leave the size and time unchanged.
-// shortcut: entries are never dropped, one small record per take file for the project's lifetime.
+// The cache holds at most maxIdentityEntries entries; a new file past that replaces an arbitrary one, which is then read again when next asked.
 // An entry is keyed by the file and the project folder it was asked through.
 type IdentityCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
 	entries map[string]SourceIdentity
 	reads   atomic.Int64
+	// limit replaces maxIdentityEntries when it is not 0, so a test can fill the cache with two files.
+	limit int
 }
+
+// maxIdentityEntries bounds an IdentityCache at 32,768: the largest measured project (docs/research/performance-architecture-2026-11.md) has
+// 30,000 items with at most one source file each, so a project of that size never evicts.
+const maxIdentityEntries = 32768
 
 // Reads is how many times the cache has read a file in full (not counting a stat): a test's way to see that a repeat ask read none.
 func (c *IdentityCache) Reads() int64 {
@@ -196,8 +204,22 @@ func (c *IdentityCache) Refresh(path, projectFolder string) (SourceIdentity, err
 	if c.entries == nil {
 		c.entries = map[string]SourceIdentity{}
 	}
-	c.entries[entryKey(path, projectFolder)] = identity
+	key := entryKey(path, projectFolder)
+	if _, known := c.entries[key]; !known && len(c.entries) >= c.maxEntries() {
+		for other := range c.entries {
+			delete(c.entries, other)
+			break
+		}
+	}
+	c.entries[key] = identity
 	return identity, nil
+}
+
+func (c *IdentityCache) maxEntries() int {
+	if c.limit > 0 {
+		return c.limit
+	}
+	return maxIdentityEntries
 }
 
 // entryKey names an entry by the file and the folder its Path is relative to, so the same file asked through another folder is read again.
