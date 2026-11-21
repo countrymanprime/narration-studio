@@ -86,11 +86,27 @@ func TestABackgroundFillThatPanicsIsLoggedAndTheHostGoesOn(t *testing.T) {
 	host.mu.Unlock()
 	host.warmProject()
 	// The log line is also what shows the fill did panic: without it this test would pass on a fill that ran clean.
-	logged, _ := os.ReadFile(host.log.Path())
-	if !strings.Contains(string(logged), "project_warm_failed") {
-		t.Fatalf("the failed fill is not in the host log: %q", logged)
+	logged, err := os.ReadFile(host.log.Path())
+	if err != nil || !strings.Contains(string(logged), "project_warm_failed") {
+		t.Fatalf("the failed fill is not in the host log: %q, %v", logged, err)
 	}
 	if _, err := host.ManuscriptChapters(); err != nil {
 		t.Fatalf("after a failed fill the chapter list answers %v", err)
+	}
+}
+
+// A worker's panic reaches the host as a coverage.WarmFailure (the coverage package's own test shows Warm raises one
+// with the worker's stack); its log line carries the value and that stack, so the log says where the fill failed.
+func TestAFillWorkersPanicIsLoggedWithItsStack(t *testing.T) {
+	host := &Host{log: hostlog.New(filepath.Join(t.TempDir(), "host.log"), 0)}
+	host.reportWarmFailure(coverage.WarmFailure{Value: "a chapter could not be read", Stack: "desktop/internal/coverage.(*Service).evaluateSummary(...)\n\tread.go:288"})
+	logged, err := os.ReadFile(host.log.Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"project_warm_failed", "a chapter could not be read at ", "evaluateSummary", "read.go:288"} {
+		if !strings.Contains(string(logged), want) {
+			t.Fatalf("the host log lacks %q: %s", want, logged)
+		}
 	}
 }
