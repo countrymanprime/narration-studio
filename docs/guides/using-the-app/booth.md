@@ -196,9 +196,18 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
     creating it reminds you.
 
   In a project whose layout is **Voice folders** ([Settings](settings.md)) the same messages say folder: **Not linked to a folder**,
-  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with a Narrator track in it), the chip
+  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with its tracks in it, below), the chip
   **REAPER · no folder**, and a message after creating it that names the folder and its Narrator ("Folder “Chapter 1” with a Narrator track added
   in REAPER and linked to Chapter 1"). Record then records on that Narrator, and the voice control lists it, before you save the REAPER project.
+
+  Above **Create a new folder** the dialog lists what the folder is made with, in this order: the **Narrator**, which is always made, the
+  project's known voices, and **Extras**, a track for sound that is not a voice (a crowd, a door, music). Untick any voice or Extras to leave it out;
+  with two or more voices **All N voices** ticks or clears them together, and a long list scrolls inside its own box so the buttons stay in view. What
+  you leave out is remembered for the next chapter, and a voice that appears later starts ticked; the same list is a row in [Settings](settings.md).
+  Extras is not a voice: the Booth never arms it and the chapter's record progress does not ask for a take on it (a project that already gives characters to a track named Extras keeps it as a voice, so nothing already set up changes). The list holds up to 60 voices, and a line under it says how many more are not listed. What you tick in this dialog is remembered when you press **Create a new folder**; closing the dialog without creating leaves the last remembered choice (the Settings row keeps a tick as you make it). The list is read again when you press **Check again** or return to the window, and keeps your ticks. (The Engine panel's **Create a folder
+  for this chapter** button makes the folder with the choice you made last).
+
+  ![Booth - the Chapter 1 is not linked to a folder dialog in a Voice folders project, with the list of what the new folder is made with above Create a new folder](../../images/ui/booth-record-unlinked-folders.webp)
 
   Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording or not connected), the dialog says
   why and links nothing. Audacity 3 adds the track too; Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
@@ -471,7 +480,7 @@ On a chapter linked to a folder of voices, a track in it that you marked as not 
 
 The top bar says how far the chapter is recorded: **Recorded 45%**, or **Complete**, in green, once the recording reaches
 the end. A chapter recorded to the end shows only where you are reading (`At ¶ 1 of 24`), with no share or time left. Its tip quotes the last words recorded, for example *Recorded through "said the Queen" (45%)*, and says *about* when the
-figure comes from the track's length.
+figure comes from the track's length. It is one number on every page, the chip, the chapter menus here, on Editing and on Proof, the Companion's resume line and Production's Record cell: a chapter with audio on its track never reads 0% (the host rounds the share of words, so a chapter's first take can be at 0% of its words), and only a chapter recorded to the end reads 100% (the chip and the menus say **Complete** then). The reading line (`¶ 1 of 24 · 0% · ~13:47 of audio left`) is where you are reading, not how much is recorded, and can read 0% beside **Recorded 1%**.
 The chapter menu lists the same figure after every chapter's name, as the chapter menus on [Editing](editing.md) and
 [Proof](proof.md) do.
 

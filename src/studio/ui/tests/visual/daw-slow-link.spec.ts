@@ -24,17 +24,16 @@ type Profile = (typeof PROFILES)[number]['name'];
 /** What the narrator has on screen "at once": the page answers a press or shows what it knows within this, whatever the DAW is doing. */
 const AT_ONCE_MS = 1_500;
 
-/** The cells that fail today, with what the narrator gets (measured on the mock, 2026-11-20). Each is an expected failure until its fix lands. */
+/** The cells that fail today, with what the narrator gets (measured on the mock, 2026-11-20, after the host's track list is served stale while it is re-read and the Booth's arm waits as a lane command). Each is an expected failure until its fix lands. */
 const KNOWN: Record<string, Partial<Record<Profile, string>>> = {
-  'the Booth opens ready': {
-    '3 s': 'the voice shows after 2.5 s, and opening the page raises "REAPER did not confirm within 3 seconds. Nothing started."',
-    '10 s': 'the voice shows after 6.5 s, and opening the page raises the same error toast',
-    'stall then recover': 'the voice shows after 6 s, and opening the page raises the same error toast',
+  'the Booth opens with its voice at once': {
+    '3 s': 'the voice shows after 2.5 s',
+    '10 s': 'the voice shows after 6.5 s',
+    'stall then recover': 'the voice shows after 6 s',
   },
   'a lane key shows its lane at once and its take starts': {
-    '1 s': 'the lane shows 2 s after the key',
     '3 s': 'the lane shows 3 s after the key',
-    '10 s': 'the lane shows 17 s after the key and the take ends in "REAPER took the command but did not confirm it in time"',
+    '10 s': 'the lane shows only when the arm answers',
     'stall then recover': 'the lane shows when the stall ends',
   },
   'the engine panel lists the tracks': {
@@ -71,9 +70,8 @@ const forgetErrorToasts = (page: Page) => page.evaluate(() => void ((window as u
 
 for (const { name, text, ms } of PROFILES) {
   test.describe(`a DAW link at ${name}`, () => {
-    test('the Booth opens ready', async ({ page }) => {
-      known('the Booth opens ready', name);
-      await collectErrorToasts(page);
+    test('the Booth opens with its voice at once', async ({ page }) => {
+      known('the Booth opens with its voice at once', name);
       await page.goto(`/?mockVoiceFolders=1&mockDawLatency=${text}`);
       await settlePage(page);
       await goToPage(page, 'Booth');
@@ -81,10 +79,19 @@ for (const { name, text, ms } of PROFILES) {
       // The voice and Record are what the page already knows (the saved choice, the last arm state): they do not wait for the DAW.
       await expect(voiceButton(page)).toBeVisible({ timeout: AT_ONCE_MS });
       await expect(record(page)).toBeEnabled({ timeout: AT_ONCE_MS });
-      // Long enough for the page's own reads to come back or reach the host's limits: none of them is the narrator's failure.
-      await page.waitForTimeout(Math.min(2 * ms + 1_500, 12_000));
-      expect(await errorToasts(page)).toEqual([]);
       await expect(voiceButton(page)).toContainText('Narrator');
+    });
+
+    test('opening the Booth raises no error', async ({ page }) => {
+      await collectErrorToasts(page);
+      await page.goto(`/?mockVoiceFolders=1&mockDawLatency=${text}`);
+      await settlePage(page);
+      await goToPage(page, 'Booth');
+      await boothChapterReady(page);
+      // Long enough for the page's own reads and its arm to come back or reach the host's limits: none of them is the narrator's failure.
+      await page.waitForTimeout(Math.min(2 * ms + 1_500, 22_000));
+      expect(await errorToasts(page)).toEqual([]);
+      await expect(voiceButton(page)).toContainText('Narrator', { timeout: 15_000 });
     });
 
     test('a lane key shows its lane at once and its take starts', async ({ page }) => {

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import type { ManuscriptChapter, TrackMapping } from '../../types';
-import type { ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
+import type { ChapterCreateChoice, ChapterCreateOptions, ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
 import { chapterNameLookup } from './useChapterNameOf';
 import { describeApiError } from '../../api/errorMessage';
@@ -88,7 +88,9 @@ type ChapterLinkActions = {
   /** Removes the chapter's link; answers the links that remain. Rejects with the host's error. */
   unlink: (chapterId: string) => Promise<{ mappings: TrackMapping[] }>;
   /** Has the DAW add a track for the chapter and link it; a refusal is an answer, not a rejection. */
-  create: (chapterId: string) => Promise<ChapterTrackCreateResult>;
+  create: (chapterId: string, choice?: ChapterCreateChoice) => Promise<ChapterTrackCreateResult>;
+  /** What a new chapter folder can be made with: the known voices and Extras, ticked by the last pick (#3748). Rejects with the host's error. */
+  createOptions: () => Promise<ChapterCreateOptions>;
 };
 
 /**
@@ -112,6 +114,10 @@ export function useChapterLinkActions(): ChapterLinkActions {
     [trackMap, manuscript],
   );
   const unlink = useCallback((chapterId: string) => trackMap.chapterTrackUnlink(chapterId), [trackMap]);
-  const create = useCallback((chapterId: string) => trackMap.chapterTrackCreate(chapterId), [trackMap]);
-  return useMemo(() => ({ set, unlink, create }), [set, unlink, create]);
+  const create = useCallback(
+    (chapterId: string, choice?: ChapterCreateChoice) => (choice ? trackMap.chapterTrackCreate(chapterId, choice) : trackMap.chapterTrackCreate(chapterId)),
+    [trackMap],
+  );
+  const createOptions = useCallback(() => trackMap.chapterCreateOptions(), [trackMap]);
+  return useMemo(() => ({ set, unlink, create, createOptions }), [set, unlink, create, createOptions]);
 }

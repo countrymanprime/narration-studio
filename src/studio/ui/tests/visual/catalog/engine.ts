@@ -172,7 +172,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'chapter-folder-created',
     description:
-      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 1 voice", the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
+      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 2 voices" (the Narrator and Extras, which this project\'s voice setup gives characters, #3748), the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

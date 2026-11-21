@@ -725,6 +725,13 @@ describe('wailsClient', () => {
     expect(answer.mock.calls).toEqual([[], ['c-0001', 3, 'a line'], ['you:1'], ['you:1', false], ['you:1', true]]);
   });
 
+  it('decodes the open pickups count and rejects one that is not a count', async () => {
+    standInHost({ PickupsOpenCount: vi.fn().mockResolvedValue(JSON.stringify({ open: 4 })) });
+    await expect(wailsClient.pickupsOpenCount()).resolves.toEqual({ open: 4 });
+    standInHost({ PickupsOpenCount: vi.fn().mockResolvedValue(JSON.stringify({ open: -1 })) });
+    await expect(wailsClient.pickupsOpenCount()).rejects.toBeInstanceOf(WireError);
+  });
+
   it('rejects a pickup list the host never sends', async () => {
     standInHost({ PickupsList: vi.fn().mockResolvedValue(JSON.stringify({ pickups: [{ id: 'x' }], leftOut: [] })) });
     await expect(wailsClient.pickupsList()).rejects.toBeInstanceOf(WireError);

@@ -66,6 +66,7 @@ describe('destinationFor names where a chapter records from the project layout',
       d.noVoiceKeys('none'),
       d.noVoiceKeys('track'),
       d.noVoiceKeys('empty'),
+      d.noVoiceKeys('marked'),
       d.noVoiceKeys('unknown'),
       d.editingUnlinked('Ch 1', 'REAPER'),
     ];
@@ -88,10 +89,27 @@ describe('destinationFor names where a chapter records from the project layout',
       'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.',
       'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.',
       'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.',
+      'Every track in this chapter’s folder is turned off as not a voice, so there is no voice to choose. Turn one back on in the Voices card.',
       'The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel.',
       'Ch 1 is not linked to a folder in REAPER, so there is no audio to edit.',
     ]);
     expect(all.filter((sentence) => /records on one track/.test(sentence))).toEqual([]);
+  });
+
+  it('a folder made with voices and Extras names every track, and a partly done create says what is left (#3748)', () => {
+    const made = (name: string, index: number) => ({ guid: `{${index}}`, name, index, notVoice: name === 'Extras' });
+    const folder = {
+      track: { name: 'Opening' },
+      voice: { guid: '{4}', name: 'Narrator', index: 4 },
+      children: [made('Narrator', 4), made('Alice', 5), made('Extras', 6)],
+    };
+    expect(createdSentence(folder, 'Opening', 'REAPER')).toBe(
+      'Folder “Opening” with Narrator, Alice and Extras tracks added in REAPER and linked to Opening. Save the REAPER project to keep it.',
+    );
+    const partial = { ...folder, children: [made('Narrator', 4)], message: 'REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.' };
+    expect(createdSentence(partial, 'Opening', 'REAPER')).toBe(
+      'Folder “Opening” with a Narrator track added in REAPER and linked to Opening. Save the REAPER project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
+    );
   });
 
   it('what the DAW made is named from its answer: a folder with its Narrator, or a plain track (an engine with no folders makes one in a folders project)', () => {

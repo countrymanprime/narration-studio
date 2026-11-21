@@ -574,6 +574,7 @@
       ],
       "consumers": [
         "src/components/booth/voices/WhoIsInDialog.tsx",
+        "src/components/chapterTracks/NewChapterTracks.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/cleanup/CleanupList.tsx",
@@ -2304,13 +2305,29 @@
       "a11yDebt": false
     },
     {
+      "title": "Chapter tracks/New chapter tracks",
+      "name": "New chapter tracks",
+      "source": "src/components/chapterTracks/NewChapterTracks.stories.tsx",
+      "stories": [
+        "Voices And Extras",
+        "One Voice",
+        "Extras Only",
+        "Many Voices",
+        "Long Name",
+        "All Clears And Ticks"
+      ],
+      "consumers": [],
+      "a11yDebt": false
+    },
+    {
       "title": "Production/NextUp",
       "name": "NextUp",
       "source": "src/components/production/pipeline/NextUp.tsx",
       "stories": [
         "Ranked",
         "Empty",
-        "Timer Running"
+        "Timer Running",
+        "Almost Recorded"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
@@ -2637,7 +2654,8 @@
         "Finished",
         "Nothing Recorded",
         "Long Chapter Name",
-        "With Credits"
+        "With Credits",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
@@ -3196,6 +3214,7 @@
       ],
       "consumers": [
         "src/components/booth/voices/WhoIsInDialog.tsx",
+        "src/components/chapterTracks/NewChapterTracks.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/profile/FormatRows.tsx",
         "src/components/delivery/profile/ProfileCard.tsx",
@@ -3624,7 +3643,8 @@
       "stories": [
         "Mid Way",
         "Finished",
-        "Nothing Recorded"
+        "Nothing Recorded",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
@@ -3677,7 +3697,8 @@
         "Info",
         "Long Label Wraps",
         "With Icon",
-        "Compact"
+        "Compact",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/primitives/ActivityPanel.tsx",
@@ -4034,7 +4055,8 @@
       "stories": [
         "Not Measured",
         "Measured Own Chosen",
-        "Measured Standard Chosen"
+        "Measured Standard Chosen",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/target/TargetInfoButton.tsx"
@@ -4568,7 +4590,8 @@
       "source": "src/components/production/overview/WeekCard.tsx",
       "stories": [
         "With Take Log",
-        "Nothing Measured"
+        "Nothing Measured",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"

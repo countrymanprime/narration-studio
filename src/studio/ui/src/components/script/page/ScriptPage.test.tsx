@@ -450,6 +450,31 @@ describe('credits-cards-and-banner-stay', () => {
     await waitFor(() => expect(scrolled).toContain(4992));
   });
 
+  // #3821, the owner's steps: go to the closing credits from the chapter list, leave the page, come back.
+  it('opens on the closing credits again after the narrator went to them and left the page', async () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.ch === 'credits:closing' && this.hasAttribute('data-bound') ? 5000 : 0;
+    });
+    const at = new WeakMap<Element, number>();
+    vi.spyOn(Element.prototype, 'scrollTop', 'get').mockImplementation(function (this: Element) {
+      return at.get(this) ?? 0;
+    });
+    vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (this: Element, value: number) {
+      at.set(this, value);
+    });
+    const reader = () => screen.getByRole('region', { name: /Script reader/ });
+    const first = mount();
+    await firstHeading();
+    fireEvent.click(await within(panel('chapters')).findByRole('button', { name: /Closing credits/ }));
+    await waitFor(() => expect(at.get(reader())).toBe(4992));
+    fireEvent.scroll(reader());
+    await waitFor(() => expect(window.localStorage.getItem('narration.script.reader.position')).toContain('credits:closing'));
+    first.unmount();
+    mount();
+    await firstHeading();
+    expect(at.get(reader())).toBe(4992);
+  });
+
   it('shows the banner above the cards; its Fill in opens the setup dialog and the banner steps aside; Save closes it', async () => {
     mount({ api: createMockApi({}, { creditsSetup: true }) });
     const banner = (await screen.findByText(/The credits need 3 values/)).closest('section') as HTMLElement;

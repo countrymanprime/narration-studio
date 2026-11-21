@@ -31,6 +31,8 @@ type Props = {
   chapterTitle?: string;
   /** The chapter being read, for "This chapter"; the credits chapters included. */
   chapterId?: string;
+  /** The recorded length from the same read as the resume notice's percent (`useRecordedThrough`); undefined until that read lands. */
+  recordedSeconds?: number | null;
   marks?: Map<string, ReaderMark[]>;
   onOpenMark?: (mark: ReaderMark) => void;
   header?: ReactNode;
@@ -107,7 +109,7 @@ function Section({ title, badge, children, first = false }: { title: string; bad
  * Play/Pause and Stop repeat the Booth page's few lines on the same handlers rather than share a hook with it: each surface
  * is mounted alone (one `reading.toggle` registration at a time).
  */
-export function CompanionShell({ session: t, follow, chapterTitle, chapterId, marks, onFullApp, onOpenMark, header }: Props) {
+export function CompanionShell({ session: t, follow, chapterTitle, chapterId, recordedSeconds, marks, onFullApp, onOpenMark, header }: Props) {
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const [escapeArmed, setEscapeArmed] = useState(false);
   const escapeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -251,7 +253,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, ma
           </p>
         </Section>
         <Section title="This chapter">
-          <CompanionThisChapter chapterId={chapterId} />
+          <CompanionThisChapter chapterId={chapterId} recordedSeconds={recordedSeconds} sessionActive={t.active} />
         </Section>
         {/* Not built yet: last, so the working sections come first (XBO-32). */}
         <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />} />

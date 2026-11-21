@@ -1,8 +1,9 @@
 import { creditsKindOfId } from '../../credits/creditsEntries';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
+import { recordedAtOf, type RecordedAt } from '../../../recordedThrough';
 import type { CreditsKind } from '../readerModel';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
@@ -73,7 +74,12 @@ export function useBoothData(target: BoothChapterTarget | null) {
 
   // How far each chapter is recorded, read with the chapters and read again after a take (`refreshRecorded`), so a chapter the narrator
   // comes back to opens where the take they just made ends; the chapters themselves are not replaced, so nothing on the page re-renders.
-  const [recorded, setRecorded] = useState<Record<string, RecordedThrough>>({});
+  // Each entry is the chapter's `recordedThrough` AND whether its track holds audio, from the same read (`RecordedAt`): a refresh replaces the pairs together.
+  const [recordedAt, setRecorded] = useState<Record<string, RecordedAt>>({});
+  const recorded = useMemo<Record<string, RecordedThrough>>(
+    () => Object.fromEntries(Object.entries(recordedAt).map(([id, at]) => [id, at.through])),
+    [recordedAt],
+  );
   // Reads can answer out of order; only the newest one asked is kept, so an old answer never replaces how far a later take reached.
   const recordedRead = useRef(0);
   const refreshRecorded = useCallback(() => {
@@ -171,6 +177,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
   return {
     chapters,
     recorded,
+    recordedAt,
     refreshRecorded,
     source,
     unavailable,
@@ -184,7 +191,12 @@ export function useBoothData(target: BoothChapterTarget | null) {
   };
 }
 
-/** Each chapter's `recordedThrough`, by id; a chapter with none is left out. */
-function recordedOf(chapters: readonly ManuscriptChapter[]): Record<string, RecordedThrough> {
-  return Object.fromEntries(chapters.flatMap((chapter) => (chapter.recordedThrough ? [[chapter.id, chapter.recordedThrough]] : [])));
+/** Each chapter's `recordedThrough` with its audio flag, by id, from one read; a chapter with none is left out. */
+function recordedOf(chapters: readonly ManuscriptChapter[]): Record<string, RecordedAt> {
+  return Object.fromEntries(
+    chapters.flatMap((chapter) => {
+      const at = recordedAtOf(chapter);
+      return at ? [[chapter.id, at]] : [];
+    }),
+  );
 }

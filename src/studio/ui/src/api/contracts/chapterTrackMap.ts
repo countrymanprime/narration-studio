@@ -106,8 +106,37 @@ export type ChapterTrackCreateReason =
   /** The DAW added the track but its link was not saved: the sentence names the track to link by hand. */
   | 'link_failed';
 export type CreatedTrack = { guid: string; name: string; index: number };
+/** A child the new chapter folder was made with (#3748); `notVoice` marks Extras, which the Booth never arms. */
+export type CreatedChild = CreatedTrack & { notVoice: boolean };
+/** What a new chapter folder can be made with: the Narrator (always), the project's known voices and an Extras track, each ticked unless the
+ * last choice left it out, in the order the folder gets them (#3748). `folders` is false for a project that records one track a chapter: there is
+ * nothing to choose and the lists are empty. */
+export type ChapterCreateVoice = { name: string; checked: boolean };
+export type ChapterCreateOptions = {
+  folders: boolean;
+  narrator: string;
+  voices: ChapterCreateVoice[];
+  extras: ChapterCreateVoice;
+  /** How many known voices the list leaves off at its cap; absent when it holds them all. */
+  omitted?: number;
+};
+/** The pick sent with the create: the voices to add after the Narrator, in order, and whether to add Extras. Omitted, the host uses the last pick. */
+export type ChapterCreateChoice = {
+  voices: string[];
+  /** The voices the list showed and the narrator left unticked: what is remembered as left out. A voice in neither list was not shown. */
+  skipped?: string[];
+  extras: boolean;
+};
 export type ChapterTrackCreateResult =
-  | (ChapterTrackSetResult & { outcome: 'created'; track: CreatedTrack; voice?: CreatedTrack })
+  | (ChapterTrackSetResult & {
+      outcome: 'created';
+      track: CreatedTrack;
+      voice?: CreatedTrack;
+      /** Every child of a new folder in order, the Narrator (`voice`) first; absent for a plain track. */
+      children?: CreatedChild[];
+      /** A sentence when the create is partly done: fewer tracks than asked for, or Extras not marked. */
+      message?: string;
+    })
   | { outcome: 'refused'; reason: ChapterTrackCreateReason; message: string };
 
 /** TrackSelectInReaper's answer: "Select in REAPER" from the chapter track
@@ -256,7 +285,11 @@ export interface ChapterTrackMapApi {
   /** Makes trackGuid chapterId's one link, replacing its old one; `displaced` names the chapter the track was taken from. */
   chapterTrackSet(chapterId: string, trackGuid: string): Promise<ChapterTrackSetResult>;
   /** Adds a track named after chapterId in the DAW (at the end, unsaved) and links it as chapterTrackSet would; a DAW that cannot is a refusal. */
-  chapterTrackCreate(chapterId: string): Promise<ChapterTrackCreateResult>;
+  chapterTrackCreate(chapterId: string, choice?: ChapterCreateChoice): Promise<ChapterTrackCreateResult>;
+  /** What a new chapter folder can be made with (#3748). */
+  chapterCreateOptions(): Promise<ChapterCreateOptions>;
+  /** Keeps what a new chapter folder is made with from now on (the Settings row); answers the options as they now read. */
+  chapterCreateDefaultSet(choice: ChapterCreateChoice): Promise<ChapterCreateOptions>;
   /** Asks the DAW whether a linked chapter's track sits inside another linked chapter's folder, and what a repair would move; writes nothing. */
   chapterFoldersCheck(): Promise<ChapterFolders>;
   /** Moves the chapters a check listed (its `expected`) out of those folders, in one DAW undo point, only when the DAW plans the same moves. */

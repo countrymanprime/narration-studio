@@ -69,6 +69,13 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByText('The app received data it could not read.').waitFor();
     await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
   },
+  // The cue read fails: the text is drawn without its speaker chips and the toast says why, with Retry.
+  'cue-read-failed': async (page) => {
+    await page.goto('/?mockCuesRead=fails');
+    await settlePage(page);
+    await goToPage(page, 'Script');
+    await page.getByRole('alert').filter({ hasText: 'The dialogue cues could not be read' }).getByRole('button', { name: 'Retry' }).waitFor();
+  },
   reader: async (page) => {
     await goToPage(page, 'Script');
     await page.getByRole('heading', { level: 2, name: 'Chapter 1: Down the Rabbit-Hole' }).first().waitFor();
