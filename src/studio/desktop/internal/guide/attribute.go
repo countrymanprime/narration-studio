@@ -22,11 +22,18 @@ type SpeakerAttribution struct {
 	KeptConfirmed int `json:"keptConfirmed"`
 	// Previous holds the earlier suggestion of every Filled and Changed line, for RestoreSpeakers.
 	Previous []CueSpeaker `json:"previous"`
+	// ModelFilled is how many lines the rules left unknown now carry a speaker the local model suggested in this run; each is
+	// counted in Filled or Changed too. ModelNote is a sentence for the narrator when the model stopped early, could not be
+	// asked or was not asked about every line.
+	ModelFilled int    `json:"modelFilled"`
+	ModelNote   string `json:"modelNote"`
 }
 
 // AttributeSpeakers finds who speaks each quoted line, whenever the narrator asks, first run or re-run. It is RefreshCues over every
 // chapter plus a report of what moved: a line the narrator confirmed or edited (corrected) keeps its speaker, and only unconfirmed lines
-// are filled or changed. The file is written once, at the end, so a run that fails writes nothing and loses no confirmed work.
+// are filled or changed. The rules' result is written once, at the end, so a run that fails writes nothing and loses no confirmed work.
+// With a fallback set (SetSpeakerFallback), the lines the rules left unknown are then put to it and its suggestions written in a
+// second write; a fallback that fails or runs out of time leaves the rules' result and says so in ModelNote.
 func (s *Service) AttributeSpeakers(ctx context.Context) (SpeakerAttribution, error) {
 	before, err := s.DialogueCues()
 	if err != nil {
@@ -36,6 +43,7 @@ func (s *Service) AttributeSpeakers(ctx context.Context) (SpeakerAttribution, er
 	if err != nil {
 		return SpeakerAttribution{}, err
 	}
+	modelFilled, modelNote := s.fillUnknownSpeakers(ctx)
 	after, err := s.DialogueCues()
 	if err != nil {
 		return SpeakerAttribution{}, err
@@ -44,14 +52,19 @@ func (s *Service) AttributeSpeakers(ctx context.Context) (SpeakerAttribution, er
 	for _, cue := range before {
 		was[cue.ID] = cue
 	}
-	result := SpeakerAttribution{Cues: counts.Cues, Attributed: counts.Attributed, Previous: []CueSpeaker{}}
+	result := SpeakerAttribution{
+		Cues: counts.Cues, Attributed: counts.Attributed + len(modelFilled), Previous: []CueSpeaker{}, ModelFilled: len(modelFilled), ModelNote: modelNote,
+	}
 	for _, cue := range after {
 		if cue.Corrected || cue.SpeakerSource == "correction" {
 			result.KeptConfirmed++
 			continue
 		}
 		prior, existed := was[cue.ID]
-		if existed && sameSpeaker(prior.SpeakerEntityID, cue.SpeakerEntityID) {
+		// A line the model filled in this run moved even when it names the speaker a rule named before: its source changed, and
+		// undo must be able to take it back.
+		movedToModel := modelFilled[cue.ID] && prior.SpeakerSource != cueSourceLocalModel
+		if existed && sameSpeaker(prior.SpeakerEntityID, cue.SpeakerEntityID) && !movedToModel {
 			continue
 		}
 		if cue.SpeakerEntityID == nil && (!existed || prior.SpeakerEntityID == nil) {
@@ -79,7 +92,9 @@ func sameSpeaker(a, b *string) bool {
 }
 
 // RestoreSpeakers undoes an attribution run: each cue goes back to the suggestion it had, unless the narrator has confirmed or edited it
-// since, which is never overwritten. It returns how many lines were restored.
+// since, which is never overwritten. It returns how many lines were restored. A local model's reason goes with its suggestion: a
+// line restored to anything else loses it, and a line that had a model's suggestion goes back to unknown, since the reason that came
+// with that suggestion is gone and the model can be asked again.
 func (s *Service) RestoreSpeakers(previous []CueSpeaker) (int, error) {
 	restored := 0
 	err := s.mutateInHost(func(document map[string]any) (bool, error) {
@@ -98,12 +113,18 @@ func (s *Service) RestoreSpeakers(previous []CueSpeaker) (int, error) {
 			if !ok || truthy(cue["corrected"]) || cue["speaker_source"] == "correction" {
 				continue
 			}
+			if row.SpeakerSource == cueSourceLocalModel {
+				row = CueSpeaker{SpeakerSource: "unknown"}
+			}
 			if row.SpeakerEntityID == nil {
 				cue["speaker_entity_id"] = nil
 			} else {
 				cue["speaker_entity_id"] = *row.SpeakerEntityID
 			}
 			cue["speaker_source"] = row.SpeakerSource
+			if evidence, ok := cue["evidence"].(map[string]any); ok {
+				delete(evidence, "reason")
+			}
 			restored++
 		}
 		return restored > 0, nil

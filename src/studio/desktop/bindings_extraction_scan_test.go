@@ -32,7 +32,7 @@ func TestExtractionSourcesReportAvailabilityAndReason(t *testing.T) {
 	want := []ExtractionSource{
 		{ID: "rules", Label: "Rules", Icon: "auto", Runs: true, Available: true},
 		{ID: "imported", Label: "Imported file", Icon: "import", Reason: "Imported file is not available yet."},
-		{ID: "local-model", Label: "Local model", Icon: "globe", Runs: true, Reason: "No local model is installed."},
+		{ID: "local-model", Label: "Local model", Icon: "globe", Reason: "No local model is installed."},
 		{ID: "gliner", Label: "GLiNER", Icon: "locate", Runs: true, Reason: "GLiNER is not downloaded."},
 		{ID: "booknlp", Label: "BookNLP", Icon: "dictionary", Runs: true, Reason: "BookNLP is not downloaded."},
 	}

@@ -286,9 +286,10 @@ export function useBoothVoices({
     if (!linked) return 'unknown';
     if (!linked.isFolder) return 'track';
     // A folder with tracks, every one marked as not a voice, needs one turned back on; an empty one needs a track.
-    const children = folderChildren(tracks, link);
+    // As the host counts them (markedChildren): a track another chapter is linked to is that chapter's own, not one of this folder's.
+    const children = folderChildren(tracks, link).filter((child) => !linkedTracks.includes(child.guid.toLowerCase()));
     return children.length > 0 && children.every((child) => setup.notVoiceGuids.includes(child.guid.toLowerCase())) ? 'marked' : 'empty';
-  }, [link, tracks, trackState.reading, answered, chapterId, setup.notVoiceGuids]);
+  }, [link, tracks, trackState.reading, answered, chapterId, setup.notVoiceGuids, linkedTracks]);
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
   const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
   const current = fromHost ?? voices.find((voice) => voice.narrator) ?? voices[0];

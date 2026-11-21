@@ -233,7 +233,7 @@ The primitives supply these. A page that builds its own control instead must sup
   - A plain `Menu` item: the item stays reachable by keyboard, with the reason drawn under its label and as its description; it has no hint. An item of a `select="one"` or `select="many"` section ignores `disabledReason` and is drawn on.
 
   A `ContextMenu` item takes `unavailable`. A toolbar command taken out of the rotation on purpose is the exception (`ToolbarButton focusableWhenDisabled={false}`). A `RadioGroup` option takes `reason`, read as its description; the standalone `Radio` drops it. `Checkbox`, `Select`, `TextField`, `NumberInput`, `Slider`, `DateField` and `Field` have a native `disabled` and no reason prop: the reason is text beside the control, tied to it with `aria-describedby` where the primitive passes that through. `Checkbox`, `Select`, `TextField`, `NumberInput` and `DateField` do; `Slider` and `Field` do not. `Switch` is CS-K3.
-- **CS-K3** A `Switch` that can be off says why. `Switch` takes `disabled` only, so wrap it in a `TooltipTarget` with the reason until it gains `disabledReason`.
+- **CS-K3** A `Switch` that can be off says why: `Switch disabledReason` keeps it a tab stop, announces it unavailable with the reason as its description, and draws the reason beside the label. Plain `disabled` is for a switch whose row already gives the reason.
 - **CS-K4** Every new command that has an `IconButton` and is used often gets a row in `input/commands.catalog.ts`, and its row in `icons.catalog.ts` names the shortcut, which `IconButton` adds to the tooltip and reports as `aria-keyshortcuts`. A `label=` beside `action=` drops both, and a `hint=` or a `disabledReason` replaces the tooltip and so its shortcut.
 - **CS-K5** Native elements (`button`, `select`, `input`, `textarea`, table parts) are not written outside the primitives (`rawNatives.test.ts`), and Base UI is not imported outside them (`baseUiBoundary.test.ts`).
 - **CS-K6** A segmented `ToggleGroup` is one tab stop with arrow-key roving, as `RadioGroup` is. `ToggleGroup` makes every chip a tab stop as of 2026-11-20; CS-E6 orders the fix. **New**.
@@ -328,7 +328,6 @@ The audit lists every site with its file and line; this table names the larger c
 | CS-L1 | `Slider`'s `label` and `aria-label` are both optional | (none) |
 | CS-K2 | The standalone `Radio` drops `reason`; `Select`, `TextField`, `NumberInput`, `Slider`, `DateField` and `Field` take no reason, and `Slider` and `Field` take no `aria-describedby` either. `Button` and `IconButton` show `disabledReason` as a hint only, not as the button's description; an `IconButton` with `label=` alone shows it only if the caller adds the `TooltipTarget` | (none) |
 | CS-E5, CS-E7, CS-E8, CS-E13 | `Menu` reads `disabledReason` only on a plain item. An item of a `select="one"` or `select="many"` section cannot be off with a reason | (none) |
-| CS-K3 | `Switch` has no `disabledReason` | (none) |
 | CS-X6 | `Menu` and `ContextMenu` items have no danger tone | (none) |
 | CS-N5, CS-N8 | `Stepper` and `TimeField` are not written | E9 |
 | CS-A4 | `components/proof/ChapterCompare.tsx` switches three panels with a segmented `ToggleGroup` | F1 |

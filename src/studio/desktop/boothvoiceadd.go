@@ -84,6 +84,13 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, recorder 
 			"This chapter records on one track. Voice tracks are added to a chapter linked to a folder of voices (the audio engine panel).",
 			"This chapter is not linked to a folder of voices, so a voice track cannot be added to it. Link or create its folder first.")), nil
 	}
+	// Under Flat a folder with a folder answer and no voices has every child turned off: a new track would be the only voice, so the narrator is
+	// told to turn one back on first, as Record says (#3828), not left to add a track beside the marked ones.
+	if len(voices) == 0 {
+		if setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get(); err == nil && setup.Layout != voicetracks.LayoutFolders {
+			return boothVoiceAddRefused(boothVoiceNoVoices, "Every track in this chapter's folder is turned off as not a voice. Turn one back on in the Voices card, or link the chapter to a track of its own."), nil
+		}
+	}
 	engine := readAloudAdapterName(svc)
 	name = cleanTrackName(name)
 	if name == "" {

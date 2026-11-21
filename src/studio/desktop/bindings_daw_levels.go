@@ -50,7 +50,8 @@ func (h *Host) DawSetMonitorLevel(level int) (string, error) {
 	}
 	svc := h.services()
 	resolver, _ := h.dawResolverFor(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), monitorLevelTimeout)
+	// A set the DAW has read is waited for; the read keeps monitorLevelTimeout.
+	ctx, cancel := context.WithTimeout(context.Background(), writeCommandTimeout)
 	defer cancel()
 	return encodeBinding(dawMonitorLevelIn(ctx, readAloudAdapterName(svc), resolver.Support(dawport.CapMonitorLevel), svc.monitorLeveler, &level), nil)
 }
@@ -96,6 +97,8 @@ func monitorLevelRefusal(name string, setting bool, err error) string {
 	switch {
 	case errors.As(err, &refusal):
 		return refusal.Sentence
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return lateAnswerSentence(name)
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return readAloudConnectionRefusal(name, reaperNotRunning).Message
 	case errors.Is(err, bridge.ErrUnavailable):

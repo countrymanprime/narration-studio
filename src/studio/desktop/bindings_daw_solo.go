@@ -127,7 +127,7 @@ func (d *soloDebt) restore(ctx context.Context, name string, follower dawport.Pl
 func (h *Host) DawSoloChapter(chapterID string) (string, error) {
 	svc := h.services()
 	resolver, _ := h.dawResolverFor(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), placeTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), writeCommandTimeout)
 	defer cancel()
 	return encodeBinding(dawSoloChapterWith(ctx, svc, readAloudAdapterName(svc), resolver.Support(dawport.CapFollowPosition), svc.placeFollower, chapterID, &h.solo))
 }
@@ -189,7 +189,7 @@ func putBackBefore(ctx context.Context, follower dawport.PlaceFollower) {
 // the DAW records it touches nothing and the DAW puts it back itself once the recording stops. A DAW with nothing to put back answers as done.
 func (h *Host) DawSoloRestore() (string, error) {
 	svc := h.services()
-	ctx, cancel := context.WithTimeout(context.Background(), placeTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), writeCommandTimeout)
 	defer cancel()
 	return encodeBinding(h.solo.restore(ctx, readAloudAdapterName(svc), svc.placeFollower), nil)
 }

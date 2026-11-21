@@ -128,12 +128,17 @@ func (h *Host) PreviewCandidates() (string, error) {
 	if service == nil {
 		return encodeBinding(previewNoManuscript, nil)
 	}
-	input, err := previewInput(service, previewSettings(svc.settings))
+	// One book answers every chapter: each load of the manuscript reads and hashes the whole file (issue 3896).
+	book, err := service.Book()
+	if err != nil {
+		return encodeBinding(previewNoManuscript, nil)
+	}
+	input, err := previewInput(service, book, previewSettings(svc.settings))
 	if err != nil {
 		return encodeBinding(previewNoManuscript, nil)
 	}
 	input.OpenFindings = previewOpenFindings(svc.findings)
-	input.AudioEvidence = previewAudioEvidence(svc, input.Chapters, service)
+	input.AudioEvidence = previewAudioEvidence(svc, input.Chapters, book)
 	return encodeBinding(previewView(preview.Suggest(input)), nil)
 }
 
@@ -144,22 +149,25 @@ func (h *Host) PreviewCandidates() (string, error) {
 // whose recording has not been checked yet, or whose coverage service is unavailable, reads as AudioUnknown, never as met or not_met. The diagnostics
 // pass's windowed findings are never given here (docs/architecture/preview-suggestion.md: they carry no chapter anchor and are not persisted, so
 // there is nothing this binding could read without starting a new measurement, which this binding never does).
-func previewAudioEvidence(svc hostServices, chapters []preview.Chapter, manuscriptService *manuscript.Service) map[string]preview.ChapterAudioEvidence {
-	if svc.coverage == nil || len(chapters) == 0 {
+func previewAudioEvidence(svc hostServices, chapters []preview.Chapter, book *manuscript.Book) map[string]preview.ChapterAudioEvidence {
+	if svc.coverage == nil || book == nil || len(chapters) == 0 {
 		return nil
 	}
-	sourceHash := previewManuscriptSourceHash(manuscriptService)
+	sourceHash := previewManuscriptSourceHash(book)
 	settings := coverageSettings(svc.settings)
 	result := make(map[string]preview.ChapterAudioEvidence, len(chapters))
 	// The saved project is read once for the book, as the pickups list reads it: read per chapter, every take's source file was looked
 	// up on disk once for every chapter (issue 3766). A project that cannot be read leaves every chapter not current, as Result answers it.
-	view := svc.coverage.EvidenceView(context.Background(), manuscriptDocumentID(svc.manuscript))
+	documentID, _ := book.Data()["documentId"].(string)
+	view := svc.coverage.EvidenceView(context.Background(), documentID)
+	// The pass reads the ledger, the chapter links and the manuscript once for all the chapters.
+	pass := svc.coverage.Pass()
 	for _, chapter := range chapters {
 		var coverageResult coverage.ChapterResult
 		if view.ProjectErr == nil {
-			coverageResult, _ = svc.coverage.ResultIn(view.Project, view.ProjectFile, chapter.ID, settings.Alignment)
+			coverageResult, _ = pass.ResultIn(view.Project, view.ProjectFile, chapter.ID, settings.Alignment)
 		}
-		paragraphIDs := previewParagraphIDsForChapter(manuscriptService, chapter.ID)
+		paragraphIDs := previewParagraphIDsForChapter(book, chapter.ID)
 		result[chapter.ID] = preview.ChapterAudioEvidence{
 			Coverage:       previewCoverageSignal(coverageResult, settings),
 			ParagraphTimes: preview.MapParagraphsToTime(nil, sourceHash, paragraphIDs),
@@ -213,11 +221,8 @@ func previewPaceReason(secondsPerWord, errorFraction float64) string {
 
 // previewParagraphIDsForChapter reads chapterID's paragraph ids in order, the same reader Paragraphs() already
 // gives previewInput above.
-func previewParagraphIDsForChapter(service *manuscript.Service, chapterID string) []string {
-	payloads, err := service.Paragraphs(chapterID)
-	if err != nil {
-		return nil
-	}
+func previewParagraphIDsForChapter(book *manuscript.Book, chapterID string) []string {
+	payloads := book.Paragraphs(chapterID)
 	ids := make([]string, 0, len(payloads))
 	for _, payload := range payloads {
 		ids = append(ids, previewString(payload, "id"))
@@ -228,12 +233,8 @@ func previewParagraphIDsForChapter(service *manuscript.Service, chapterID string
 // previewManuscriptSourceHash reads the manuscript's own recorded source checksum, the same field
 // internal/lineidentity's own sourceSHA256 reads (that package's own helper is unexported, so this is the
 // binding's own small copy of the same three-line lookup, not a second scheme).
-func previewManuscriptSourceHash(service *manuscript.Service) string {
-	data, err := service.Load()
-	if err != nil {
-		return ""
-	}
-	source, ok := data["source"].(map[string]any)
+func previewManuscriptSourceHash(book *manuscript.Book) string {
+	source, ok := book.Data()["source"].(map[string]any)
 	if !ok {
 		return ""
 	}
@@ -286,9 +287,8 @@ func previewOpenFinding(f findings.Finding) preview.OpenFinding {
 
 // previewInput builds preview.Input from the manuscript service's loosely-typed reader payloads (Chapters,
 // Paragraphs: src/studio/desktop/internal/manuscript/reader.go has no typed structs, only map[string]any). It loops
-// Chapters(), then Paragraphs(chapterID) per chapter - the simplest shape, and the one reader.go's own
-// chapterPayload already builds "paragraphIds" from.
-func previewInput(service *manuscript.Service, resolved preview.Settings) (preview.Input, error) {
+// the chapters, then asks book for each chapter's paragraphs: the service's own Paragraphs reads the whole file on every call.
+func previewInput(service *manuscript.Service, book *manuscript.Book, resolved preview.Settings) (preview.Input, error) {
 	chapterPayloads, err := service.ChaptersUnmeasured() // id, title, kind and order only; no recorded length is read here
 	if err != nil {
 		return preview.Input{}, err
@@ -308,11 +308,7 @@ func previewInput(service *manuscript.Service, resolved preview.Settings) (previ
 			Order:       order,
 		})
 
-		paragraphPayloads, err := service.Paragraphs(id)
-		if err != nil {
-			return preview.Input{}, err
-		}
-		for index, paragraphPayload := range paragraphPayloads {
+		for index, paragraphPayload := range book.Paragraphs(id) {
 			paragraphs = append(paragraphs, preview.Paragraph{
 				ID:        previewString(paragraphPayload, "id"),
 				ChapterID: id,
