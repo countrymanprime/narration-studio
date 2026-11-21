@@ -2,7 +2,7 @@
 /* global console, process */
 // The atlas step of CI (_quality.yml, Test (Linux)): on a pull request it runs only the stories the change reaches, and every
 // other run (Main health on `main`, a manual run, `pnpm atlas`) runs all of them (docs/research/test-speed-plan-2026-11.md, M3).
-// So a story left off a pull request runs on `main` after the merge, where a red run ticks HOLD and opens the main-red issue.
+// So a story left off a pull request runs on `main` after the merge, where a red run ticks HOLD on the train issue.
 //
 // A story is reached when its story file imports a changed file, directly or through other modules (the import graph of
 // dependency-cruiser, type-only imports included). A changed file the graph does not hold reaches nothing when Storybook cannot
@@ -11,6 +11,9 @@
 //   - is any other file the graph does not hold (a deleted module, a stylesheet only another stylesheet imports, an asset, a
 //     config, a lockfile, the atlas spec, a workflow, a script);
 //   - reaches .storybook/, which every story loads (styles.css, the theme, the fonts).
+// shortcut: the stylesheet is built from the class names Tailwind finds in every file under src/studio/ui, so a class name added or
+// removed in a file that reaches no story changes the CSS of a story that builds the same name at run time; main draws it. Upgrade
+// by treating a changed class name as reaching every story if that is ever seen.
 // A pull request that reaches no story builds no Storybook and starts no browser.
 //
 // Usage: node scripts/atlas-scope.mjs [playwright arguments, e.g. --shard=1/6]   (from src/studio/ui)

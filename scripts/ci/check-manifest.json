@@ -7,7 +7,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "lint",
-      "step": ["targets: lint format architecture test-node", "projects: ui"]
+      "step": [
+        "targets: lint format architecture test-node",
+        "projects: ui"
+      ]
     },
     {
       "id": "js-static/web",
@@ -15,7 +18,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "lint",
-      "step": ["targets: lint format architecture typecheck test-node test", "projects: web"]
+      "step": [
+        "targets: lint format architecture typecheck test-node test",
+        "projects: web"
+      ]
     },
     {
       "id": "js-static/knip",
@@ -23,7 +29,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "lint",
-      "step": ["targets: knip", "projects: workspace"]
+      "step": [
+        "targets: knip",
+        "projects: workspace"
+      ]
     },
     {
       "id": "js-test/vitest-shard",
@@ -31,7 +40,9 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux",
-      "step": ["coverage-gate.mjs vitest src/studio/ui --shard="]
+      "step": [
+        "coverage-gate.mjs vitest src/studio/ui --shard="
+      ]
     },
     {
       "id": "js-test/coverage-merge",
@@ -39,9 +50,14 @@
       "tier": "pr",
       "workflow": "ci.yml",
       "job": "ci-passed",
-      "step": ["uses: ./.github/actions/ci-gate", "vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '6' || '0' }}"],
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '6' || '0' }}"
+      ],
       "action_has": {
-        "ci-gate": ["coverage-gate.mjs vitest src/studio/ui --merge="]
+        "ci-gate": [
+          "coverage-gate.mjs vitest src/studio/ui --merge="
+        ]
       }
     },
     {
@@ -50,7 +66,9 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux",
-      "step": ["run screenshots --test-list"]
+      "step": [
+        "run screenshots --test-list"
+      ]
     },
     {
       "id": "ui-visual/aria",
@@ -58,7 +76,9 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux",
-      "step": ["run aria"]
+      "step": [
+        "run aria"
+      ]
     },
     {
       "id": "ui-visual/whole-run",
@@ -66,9 +86,14 @@
       "tier": "pr",
       "workflow": "ci.yml",
       "job": "ci-passed",
-      "step": ["uses: ./.github/actions/ci-gate", "visual-shards:"],
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "visual-shards:"
+      ],
       "action_has": {
-        "ci-gate": ["run visual:check-run"]
+        "ci-gate": [
+          "run visual:check-run"
+        ]
       }
     },
     {
@@ -77,7 +102,9 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux",
-      "step": ["node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""],
+      "step": [
+        "node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""
+      ],
       "note": "On a pull request the step draws the stories the change reaches through the import graph (src/studio/ui/scripts/atlas-scope.mjs, #3860); the entry below is what it leaves to main."
     },
     {
@@ -86,7 +113,9 @@
       "tier": "post-merge",
       "workflow": "_quality.yml",
       "job": "test-linux",
-      "step": ["node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""],
+      "step": [
+        "node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""
+      ],
       "safety_net": "Every run of ci.yml that is not a pull request draws every story: Main health on each push to main and every three hours, where a red run ticks HOLD on the train issue. On the pull request every story still renders with its play() in jsdom (src/stories.test.tsx, the Vitest step) and atlas docs checks every page. A manual run of CI on the branch draws every story before the merge."
     },
     {
@@ -95,7 +124,9 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux",
-      "step": ["nx run ui:atlas-docs"]
+      "step": [
+        "nx run ui:atlas-docs"
+      ]
     },
     {
       "id": "quick-ubuntu/repo-scripts",
@@ -103,7 +134,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux-quick",
-      "step": ["targets: test-node", "projects: repo-scripts"]
+      "step": [
+        "targets: test-node",
+        "projects: repo-scripts"
+      ]
     },
     {
       "id": "quick-ubuntu/docs-site",
@@ -111,7 +145,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux-quick",
-      "step": ["targets: test", "projects: docs-site"]
+      "step": [
+        "targets: test",
+        "projects: docs-site"
+      ]
     },
     {
       "id": "lint/docs-site",
@@ -119,7 +156,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "lint",
-      "step": ["targets: lint", "projects: docs-site"],
+      "step": [
+        "targets: lint",
+        "projects: docs-site"
+      ],
       "note": "The docs site's lint, split from its tests (quick-ubuntu/docs-site) into the lint job."
     },
     {
@@ -128,7 +168,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux-quick",
-      "step": ["targets: test", "projects: tag:toolchain:python,fixtures"]
+      "step": [
+        "targets: test",
+        "projects: tag:toolchain:python,fixtures"
+      ]
     },
     {
       "id": "lint/python",
@@ -136,7 +179,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "lint",
-      "step": ["targets: lint typecheck", "projects: tag:toolchain:python,fixtures"],
+      "step": [
+        "targets: lint typecheck",
+        "projects: tag:toolchain:python,fixtures"
+      ],
       "note": "Ruff and the typecheck of the Python projects, split from their tests (quick-ubuntu/python) into the lint job."
     },
     {
@@ -145,8 +191,14 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux-quick",
-      "step": ["targets: test", "projects: reaper", "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"],
-      "job_has": ["runs-on: ubuntu-latest"],
+      "step": [
+        "targets: test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: ubuntu-latest"
+      ],
       "note": "A pull request runs the characterization tests on Linux (the reaper project's `pr` configuration); the mutation checks on Linux are the two entries below."
     },
     {
@@ -155,8 +207,14 @@
       "tier": "post-merge",
       "workflow": "_quality.yml",
       "job": "test-linux-quick",
-      "step": ["targets: test", "projects: reaper", "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"],
-      "job_has": ["runs-on: ubuntu-latest"],
+      "step": [
+        "targets: test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: ubuntu-latest"
+      ],
       "safety_net": "Every run of ci.yml that is not a pull request runs the full harness with mutations on Linux: Main health when main moved, and a red run ticks HOLD on the train issue. The post-merge checks run them on each push to main that touches the harness (the entry below)."
     },
     {
@@ -165,8 +223,13 @@
       "tier": "post-merge",
       "workflow": "post-merge.yml",
       "job": "reaper-linux",
-      "step": ["targets: lint test", "projects: reaper"],
-      "job_has": ["runs-on: ubuntu-latest"],
+      "step": [
+        "targets: lint test",
+        "projects: reaper"
+      ],
+      "job_has": [
+        "runs-on: ubuntu-latest"
+      ],
       "safety_net": "A red run shows on the main commit about 5 minutes after the merge and notifies whoever merged it; Main health runs the same checks when main moved and ticks HOLD; the coordinator fixes forward or reverts the merge (agent-train Safety net)."
     },
     {
@@ -175,7 +238,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "lint",
-      "step": ["targets: lint", "projects: reaper"],
+      "step": [
+        "targets: lint",
+        "projects: reaper"
+      ],
       "note": "StyLua and ruff on the bridge, split from its harness (quick-ubuntu/reaper-linux) into the lint job."
     },
     {
@@ -184,7 +250,9 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-linux-quick",
-      "step": ["node scripts/brand/rehearse-rename.mjs"]
+      "step": [
+        "node scripts/brand/rehearse-rename.mjs"
+      ]
     },
     {
       "id": "quick-windows/reaper-windows",
@@ -192,8 +260,14 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-windows",
-      "step": ["targets: lint test", "projects: reaper", "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"],
-      "job_has": ["runs-on: windows-latest"],
+      "step": [
+        "targets: lint test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
       "note": "A pull request runs the characterization tests on Windows (the reaper project's `pr` configuration); the mutation checks on Windows are the entry below."
     },
     {
@@ -202,8 +276,14 @@
       "tier": "post-merge",
       "workflow": "_quality.yml",
       "job": "test-windows",
-      "step": ["targets: lint test", "projects: reaper", "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"],
-      "job_has": ["runs-on: windows-latest"],
+      "step": [
+        "targets: lint test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
       "safety_net": "Every run of ci.yml that is not a pull request runs the full harness with mutations on Windows: Main health every 3 hours when main moved, and a red run ticks HOLD on the train issue. The Linux harness runs every mutation check on each pull request (quick-ubuntu/reaper-linux)."
     },
     {
@@ -212,8 +292,13 @@
       "tier": "post-merge",
       "workflow": "post-merge.yml",
       "job": "reaper-windows",
-      "step": ["targets: lint test", "projects: reaper"],
-      "job_has": ["runs-on: windows-latest"],
+      "step": [
+        "targets: lint test",
+        "projects: reaper"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
       "safety_net": "A red run shows on the main commit about 20 minutes after the merge and notifies whoever merged it; Main health runs the same checks every 3 hours when main moved and ticks HOLD; the coordinator fixes forward or reverts the merge (agent-train Safety net)."
     },
     {
@@ -222,8 +307,15 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-windows",
-      "step": ["targets: lint", "projects: desktop", "configuration: ci"],
-      "job_has": ["runs-on: windows-latest", "need-golangci-lint: ${{ matrix.shard == 1 }}"]
+      "step": [
+        "targets: lint",
+        "projects: desktop",
+        "configuration: ci"
+      ],
+      "job_has": [
+        "runs-on: windows-latest",
+        "need-golangci-lint: ${{ matrix.shard == 1 }}"
+      ]
     },
     {
       "id": "go-test/root",
@@ -231,8 +323,14 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-windows",
-      "step": ["targets: test", "projects: desktop", "configuration: ci-root"],
-      "job_has": ["runs-on: windows-latest"],
+      "step": [
+        "targets: test",
+        "projects: desktop",
+        "configuration: ci-root"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
       "note": "Test (Windows 1/2) runs it (`go test (root)`), with go lint, instead of a job of its own."
     },
     {
@@ -241,8 +339,14 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-windows",
-      "step": ["targets: test", "projects: desktop", "configuration: ci-rest"],
-      "job_has": ["runs-on: windows-latest"],
+      "step": [
+        "targets: test",
+        "projects: desktop",
+        "configuration: ci-rest"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
       "note": "Test (Windows 2/2) runs it (`go test (rest)`), with test-schedules and the Windows harness."
     },
     {
@@ -251,7 +355,10 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "test-windows",
-      "step": ["targets: test-schedules", "projects: desktop"]
+      "step": [
+        "targets: test-schedules",
+        "projects: desktop"
+      ]
     },
     {
       "id": "ui-dist/build",
@@ -259,7 +366,9 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "lint",
-      "step": ["pnpm --dir src/studio/ui run build"],
+      "step": [
+        "pnpm --dir src/studio/ui run build"
+      ],
       "note": "The lint job builds the UI bundle (full tier) and uploads it as `ui-dist` for Build (Windows); the Windows runner cannot build it (case-insensitive file system)."
     },
     {
@@ -268,8 +377,13 @@
       "tier": "pr",
       "workflow": "_quality.yml",
       "job": "build-windows",
-      "step": ["uses: ./.github/actions/build-native"],
-      "job_has": ["runs-on: windows-latest", "needs: lint"]
+      "step": [
+        "uses: ./.github/actions/build-native"
+      ],
+      "job_has": [
+        "runs-on: windows-latest",
+        "needs: lint"
+      ]
     },
     {
       "id": "ci-passed",
@@ -277,8 +391,14 @@
       "tier": "pr",
       "workflow": "ci.yml",
       "job": "ci-passed",
-      "step": ["uses: ./.github/actions/ci-gate", "results: ${{ join(needs.*.result, ' ') }}"],
-      "job_has": ["name: ${{ github.event.pull_request.draft == true && 'CI light passed' || 'CI passed' }}", "if: always()"]
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "results: ${{ join(needs.*.result, ' ') }}"
+      ],
+      "job_has": [
+        "name: ${{ github.event.pull_request.draft == true && 'CI light passed' || 'CI passed' }}",
+        "if: always()"
+      ]
     },
     {
       "id": "ci-light-passed",
@@ -286,8 +406,14 @@
       "tier": "pr",
       "workflow": "ci.yml",
       "job": "ci-passed",
-      "step": ["uses: ./.github/actions/ci-gate", "results: ${{ join(needs.*.result, ' ') }}"],
-      "job_has": ["name: ${{ github.event.pull_request.draft == true && 'CI light passed' || 'CI passed' }}", "if: always()"],
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "results: ${{ join(needs.*.result, ' ') }}"
+      ],
+      "job_has": [
+        "name: ${{ github.event.pull_request.draft == true && 'CI light passed' || 'CI passed' }}",
+        "if: always()"
+      ],
       "note": "One gate job serves both tiers: on a draft its check is named `CI light passed` and judges no visual records (the draft runs no visual suite)."
     },
     {
@@ -296,7 +422,9 @@
       "tier": "pr",
       "workflow": "security.yml",
       "job": "govulncheck",
-      "step": ["govulncheck -C src/studio/desktop"],
+      "step": [
+        "govulncheck -C src/studio/desktop"
+      ],
       "note": "On a pull request only when go.mod, go.sum, scripts/toolchain.json, the SARIF dedupe script, the toolchain action or security.yml change; a code-only change is scanned after the merge (the entry below)."
     },
     {
@@ -305,7 +433,9 @@
       "tier": "post-merge",
       "workflow": "security.yml",
       "job": "govulncheck",
-      "step": ["govulncheck -C src/studio/desktop"],
+      "step": [
+        "govulncheck -C src/studio/desktop"
+      ],
       "safety_net": "security.yml runs on each push to main that touches src/studio/desktop and nightly; a finding is a Code scanning alert on main within minutes of the merge. The scan never failed a pull request (SARIF and a continue-on-error print), so on a pull request it was advisory too."
     }
   ]
