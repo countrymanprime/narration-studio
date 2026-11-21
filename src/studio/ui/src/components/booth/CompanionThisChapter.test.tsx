@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -56,5 +56,50 @@ describe('the Companion prints its recorded length from the same read as its per
       .filter((path) => /Companion/.test(path))
       .filter((path) => /clock\([^)]*chapter\.recordedSeconds/.test(readFileSync(path, 'utf8')));
     expect(offenders).toEqual([]);
+  });
+});
+
+// H1 (qa delta): a re-read that fails when a session ends must keep the lines it had, and a session starting must not re-read at all.
+describe('the re-read when a session ends', () => {
+  async function mount(reads: { fail: boolean; count: number }) {
+    const base = createMockApi();
+    const overview = await base.productionOverview();
+    const row = { ...overview.chapters[0], id: 'c1', recordedSeconds: 760, status: 'editing' } as ProductionChapter;
+    const api: NarrationApi = {
+      ...base,
+      productionOverview: async (): Promise<ProductionOverview> => {
+        reads.count += 1;
+        if (reads.fail && reads.count > 1) throw new Error('Production board unreadable');
+        return { ...overview, chapters: [row] };
+      },
+    };
+    const view = (active: boolean) => (
+      <ApiProvider api={api}>
+        <CompanionThisChapter chapterId="c1" sessionActive={active} />
+      </ApiProvider>
+    );
+    const result = render(view(false));
+    return { ...result, view };
+  }
+
+  it('a re-read that fails when a session ends keeps the lines it had', async () => {
+    const reads = { fail: true, count: 0 };
+    const { rerender, view } = await mount(reads);
+    expect(await screen.findByText(/Recorded 12:40/)).toBeTruthy();
+    rerender(view(true));
+    rerender(view(false));
+    await waitFor(() => expect(reads.count).toBe(2));
+    expect(screen.getByText(/Recorded 12:40/)).toBeTruthy();
+    expect(screen.queryByText('Nothing measured for this chapter yet.')).toBeNull();
+  });
+
+  it('reads again when a session ends and not when one starts', async () => {
+    const reads = { fail: false, count: 0 };
+    const { rerender, view } = await mount(reads);
+    await screen.findByText(/Recorded 12:40/);
+    rerender(view(true));
+    expect(reads.count).toBe(1);
+    rerender(view(false));
+    await waitFor(() => expect(reads.count).toBe(2));
   });
 });

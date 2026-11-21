@@ -151,4 +151,34 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     expect(screen.getByText('Recorded 0:12')).toBeTruthy();
     expect(screen.queryByText('Recorded 0:00')).toBeNull();
   });
+  // H1 (qa delta): when the Production board cannot be read at a session's end, "This chapter" keeps the length of the read the notice came from (it used to empty to "Nothing measured").
+  it('after a session ends with the Production board unreadable, This chapter still shows the recorded length of the read the notice came from', async () => {
+    const subscribers = new Set<(state: TeleprompterState) => void>();
+    const zero: RecordedThrough = { ...through, percent: 0 };
+    const base = pageApi({} as Partial<NarrationApi>);
+    const overview = await base.productionOverview();
+    const reads = { overview: 0 };
+    const api = pageApi({
+      subscribeTeleprompterState: (on: (state: TeleprompterState) => void) => {
+        subscribers.add(on);
+        return () => subscribers.delete(on);
+      },
+      manuscriptChapters: async () => CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 12 } : chapter)),
+      productionOverview: async () => {
+        reads.overview += 1;
+        if (reads.overview > 1) throw new Error('Production board unreadable');
+        return { ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 0 }] };
+      },
+    } as Partial<NarrationApi>);
+    renderCompanion(api);
+    await waitFor(() => expect(screen.getByText('Recorded 0:12')).toBeTruthy());
+    const push = (state: Partial<TeleprompterState>) =>
+      act(() => subscribers.forEach((on) => on({ phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null, ...state })));
+    await waitFor(() => expect(subscribers.size).toBeGreaterThan(0));
+    await push({});
+    await push({ phase: 'stopped' });
+    await waitFor(() => expect(reads.overview).toBe(2));
+    expect(screen.getByText('Recorded 0:12')).toBeTruthy();
+    expect(screen.queryByText('Nothing measured for this chapter yet.')).toBeNull();
+  });
 });

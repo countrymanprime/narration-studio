@@ -33,4 +33,25 @@ describe('useRecordedThrough', () => {
     // "This chapter" prints this value, so its "Recorded 0:12" and the notice's percent move together.
     expect(result.current.recordedSeconds).toBe(12);
   });
+
+  // H1 class guard with the "This chapter" test in CompanionThisChapter.test.tsx: every Companion read that runs more than once keeps what the first read drew when the second fails.
+  it('keeps the first read when the read after a session ends fails', async () => {
+    const reads = { count: 0 };
+    const api = {
+      ...createMockApi(),
+      manuscriptChapters: async () => {
+        reads.count += 1;
+        if (reads.count > 1) throw new Error('unreadable');
+        return CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 12 } : chapter));
+      },
+    } as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
+    const { result, rerender } = renderHook(({ active }) => useRecordedThrough('c1', active), { wrapper, initialProps: { active: false } });
+    await waitFor(() => expect(result.current.reading).toBe(false));
+    rerender({ active: true });
+    rerender({ active: false });
+    await waitFor(() => expect(reads.count).toBe(2));
+    expect(result.current.recorded).toEqual({ through: zero, audio: true });
+    expect(result.current.recordedSeconds).toBe(12);
+  });
 });
