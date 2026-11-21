@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"desktop/internal/coverage"
 	"desktop/internal/evidence"
+	"desktop/internal/retention"
 )
 
 // hostLogHas reports whether the host log holds a retention_pass line for reason.
@@ -101,3 +103,41 @@ func listFiles(t *testing.T, dir string) []string {
 }
 
 func sameStrings(a, b []string) bool { return slices.Equal(a, b) }
+
+// A project switch cancels the previous pass without holding the host's lock while the pass leaves its folder.
+func TestAProjectSwitchDoesNotWaitForARetentionPassUnderTheHostLock(t *testing.T) {
+	project := twoTakeCoverageProject(t)
+	host := coverageHost(t, project, true, fakeAlignedCoverageSidecarWithSkip())
+	waitForRetentionPass(t, host, "open")
+	started := make(chan struct{})
+	release := make(chan struct{})
+	slow := retention.New([]retention.Step{slowStep{started: started, release: release}}, nil, nil)
+	host.mu.Lock()
+	host.retention = slow
+	host.mu.Unlock()
+	slow.Kick("open")
+	<-started
+	switched := make(chan struct{})
+	go func() {
+		host.mu.Lock()
+		host.startRetentionLocked() // cancels the slow runner under the lock
+		host.mu.Unlock()
+		close(switched)
+	}()
+	select {
+	case <-switched:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the switch waited for the pass while holding the host lock")
+	}
+	close(release)
+}
+
+// slowStep holds a pass until released.
+type slowStep struct{ started, release chan struct{} }
+
+func (slowStep) Name() string { return "slow" }
+func (s slowStep) Run(context.Context, func() bool) retention.Report {
+	close(s.started)
+	<-s.release
+	return retention.Report{}
+}

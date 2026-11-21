@@ -2,15 +2,17 @@
 // background, never while a recording check runs, and stopped when one starts or the project closes. It schedules; each
 // Step knows its own store and what may leave it. The package names no analyzer and no store.
 //
-// Step.Run, the busy predicate and the log function run on the pass's goroutine while a project switch may be waiting for
-// the pass in Close with the host's lock held, so none of them may take that lock.
+// Step.Run, the busy predicate and the log function run on the pass's goroutine, which Close may be waiting for, so none of
+// them may take a lock its caller holds while it closes the runner.
 package retention
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -124,8 +126,9 @@ func (r *Runner) pass(ctx context.Context, reason string) {
 	r.log(reason, reports)
 }
 
-// Close stops a pass in progress, waits for it and refuses every later Kick. It is for the project switch and the app's exit.
-func (r *Runner) Close() {
+// Cancel stops a pass in progress and refuses every later Kick, and returns without waiting for the pass. It is for a caller that
+// holds a lock the pass may be waiting on; Close is Cancel and the wait.
+func (r *Runner) Cancel() {
 	if r == nil {
 		return
 	}
@@ -135,7 +138,14 @@ func (r *Runner) Close() {
 		r.cancel()
 	}
 	r.mu.Unlock()
-	r.done.Wait()
+}
+
+// Close is Cancel, then waits for the pass to end. It is for the app's exit and for whoever may wait.
+func (r *Runner) Close() {
+	r.Cancel()
+	if r != nil {
+		r.done.Wait()
+	}
 }
 
 // DirStep is a Step that reports the size of the regular files below dir, which it never changes: the report-only step of a store
@@ -149,35 +159,55 @@ func (d dirStep) Name() string { return d.kind }
 
 func (d dirStep) Run(_ context.Context, stop func() bool) Report {
 	report := Report{Kind: d.kind}
+	d.walk(d.dir, stop, &report)
+	report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
+	return report
+}
+
+// walk adds the regular files below dir to report. A folder is read 512 entries at a time with stop asked between the chunks, so a
+// folder of hundreds of thousands of files does not hold up a Close; a link is not followed and a folder that cannot be listed
+// is passed over with the first such error in the report.
+func (d dirStep) walk(dir string, stop func() bool, report *Report) {
 	note := func(path string, err error) {
 		if report.Err == nil && !errors.Is(err, fs.ErrNotExist) {
 			report.Err = fmt.Errorf("%s: %w", path, err)
 		}
 	}
-	_ = filepath.WalkDir(d.dir, func(path string, entry fs.DirEntry, err error) error {
+	folder, err := os.Open(dir)
+	if err != nil {
+		note(dir, err)
+		return
+	}
+	defer func() { _ = folder.Close() }() // read-only
+	for {
 		if stop() {
 			report.Stopped = true
-			return filepath.SkipAll
+			return
 		}
-		if err != nil {
-			note(path, err)
-			if entry != nil && entry.IsDir() {
-				return fs.SkipDir
+		entries, err := folder.ReadDir(512)
+		for _, entry := range entries {
+			path := filepath.Join(dir, entry.Name())
+			switch {
+			case entry.Type().IsDir():
+				d.walk(path, stop, report)
+				if report.Stopped {
+					return
+				}
+			case entry.Type().IsRegular():
+				if info, err := entry.Info(); err != nil {
+					note(path, err)
+				} else {
+					report.FilesBefore++
+					report.BytesBefore += info.Size()
+				}
 			}
-			return nil
 		}
-		if !entry.Type().IsRegular() {
-			return nil // WalkDir does not follow a link; a folder is walked
+		if errors.Is(err, io.EOF) {
+			return
 		}
-		info, err := entry.Info()
 		if err != nil {
-			note(path, err)
-			return nil
+			note(dir, err)
+			return
 		}
-		report.FilesBefore++
-		report.BytesBefore += info.Size()
-		return nil
-	})
-	report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
-	return report
+	}
 }

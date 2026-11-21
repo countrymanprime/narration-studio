@@ -2,6 +2,7 @@ package retention
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -220,5 +221,51 @@ func TestADirStepThatIsToldToStopSaysSo(t *testing.T) {
 	}
 	if report := DirStep("kind", dir).Run(t.Context(), func() bool { return true }); !report.Stopped {
 		t.Fatalf("report = %+v, want Stopped", report)
+	}
+}
+
+// A folder of very many files is read in chunks with stop asked between them, so a Close does not wait for the whole listing.
+func TestADirStepStopsWithinABoundOnAHugeFolder(t *testing.T) {
+	dir := t.TempDir()
+	for i := range 30000 {
+		f, err := os.Create(filepath.Join(dir, fmt.Sprintf("%06d.json", i)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = f.Close()
+	}
+	var calls atomic.Int32
+	stop := func() bool { return calls.Add(1) > 3 }
+	start := time.Now()
+	report := DirStep("kind", dir).Run(t.Context(), stop)
+	if elapsed := time.Since(start); elapsed > 100*time.Millisecond {
+		t.Fatalf("a stopped step took %v on a folder of 30000 files", elapsed)
+	}
+	if !report.Stopped || report.FilesBefore > 3*512 {
+		t.Fatalf("report = %+v, want stopped within a few chunks", report)
+	}
+}
+
+func TestCancelReturnsAtOnceAndCloseWaits(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var finished atomic.Bool
+	runner := New([]Step{stepFunc{"a", func(ctx context.Context, _ func() bool) Report {
+		close(started)
+		<-release
+		finished.Store(true)
+		return Report{}
+	}}}, nil, nil)
+	runner.Kick("open")
+	<-started
+	runner.Cancel()
+	if finished.Load() {
+		t.Fatal("Cancel waited for the pass")
+	}
+	runner.Kick("later") // refused after Cancel
+	close(release)
+	runner.Close()
+	if !finished.Load() {
+		t.Fatal("Close returned before the pass finished")
 	}
 }

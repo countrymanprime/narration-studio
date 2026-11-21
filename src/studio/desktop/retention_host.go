@@ -20,7 +20,11 @@ func (h *Host) startRetentionLocked() {
 	if h.retentionOff {
 		return
 	}
-	h.retention.Close()
+	// The previous pass is cancelled here, with h.mu held, and joined in the background: waiting for it here would hold every binding
+	// until the pass left a large folder.
+	old := h.retention
+	old.Cancel()
+	h.goBackground(old.Close)
 	h.retention = nil
 	project := h.config.projectFolder
 	if project == "" {
