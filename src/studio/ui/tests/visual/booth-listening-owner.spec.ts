@@ -10,6 +10,22 @@ test.setTimeout(90_000);
 
 type Calls = { stops: number; listeningStops: number; listeningStarts: number };
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
+// What a failed wait on the Record button found: the host's stop count, the main button's label and state, and every notice and dialog on the page.
+const whatThePageShows = async (page: Page): Promise<string> => {
+  const seen = await page
+    .evaluate(() => {
+      const main = document.getElementById('brec');
+      return {
+        stops: (window as unknown as { __calls: Calls }).__calls.stops,
+        button: main ? `"${main.textContent?.trim()}" aria-disabled=${main.getAttribute('aria-disabled')}` : 'no #brec button',
+        notices: [...document.querySelectorAll('[role="alert"], [role="status"], [role="alertdialog"], [role="dialog"], #brec-why')]
+          .map((node) => node.textContent?.trim())
+          .filter(Boolean),
+      };
+    })
+    .catch((error: Error) => ({ stops: -1, button: `unreadable: ${error.message}`, notices: [] as string[] }));
+  return `The page showed: host stops=${seen.stops}; main button ${seen.button}; notices ${JSON.stringify(seen.notices)}`;
+};
 const calls = (page: Page) => page.evaluate(() => (window as unknown as { __calls: Calls }).__calls);
 
 async function openBooth(page: Page, overrides: 'stopNeverAnswers' | 'listeningStartLate' | 'listeningStartPastLimit'): Promise<void> {
@@ -383,11 +399,15 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     await expect(stop).toBeVisible();
     const clicked = Date.now();
     await stop.click();
-    // The press must reach the host first: when Record does not come back, which of "the press never sent the stop" and "the stop went through and
-    // the take was taken again" it was is the difference between 1 and 2 here (#3930).
-    await expect.poll(async () => (await calls(page)).stops, { message: "the narrator's Stop reached the host", timeout: 8000 }).toBe(2);
-    // One 8 s limit from the click for both waits, as before: the first must not lengthen the second.
-    await expect(record(page), 'Record is back once the stop is answered').toBeVisible({ timeout: Math.max(1, 8000 - (Date.now() - clicked)) });
+    // When Record does not come back, the failure says what the page showed: the press that never sent the stop (`stops` 1: a notice says why), the stop that
+    // went through and the take taken again (`stops` 2, Stop still showing), or something else (#3931).
+    try {
+      // The press must reach the host first, then Record returns: one 8 s limit from the click for both, as the one wait had.
+      await expect.poll(async () => (await calls(page)).stops, { message: "the narrator's Stop reached the host", timeout: 8000 }).toBe(2);
+      await expect(record(page), 'Record is back once the stop is answered').toBeVisible({ timeout: Math.max(1, 8000 - (Date.now() - clicked)) });
+    } catch (error) {
+      throw new Error(`${(error as Error).message}\n${await whatThePageShows(page)}`, { cause: error });
+    }
     expect((await calls(page)).stops, 'nothing sent a third stop while Record came back').toBe(2);
     // The sentence goes with the take: it does not stay beside "Stopped. Recorded".
     await expect(sentence).toHaveCount(0);
