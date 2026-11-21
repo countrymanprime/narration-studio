@@ -9,7 +9,10 @@ import { EDITABLE, isGuardedTarget, keyLayerOpen, ownsKeysByRole } from './targe
 
 const KEY_ROLE_TARGET = ownsKeysByRole;
 
-export type CommandHandlerEvent = { target: EventTarget | null };
+export type CommandHandlerEvent = {
+  target: EventTarget | null;
+  /** Shift was held with the gesture, for a command bound with and without it. */ shift?: boolean;
+};
 type CommandHandler = (event: CommandHandlerEvent) => void;
 
 type Registry = { register(id: CommandId, handler: CommandHandler): () => void; catalog: readonly CommandDescriptor[] };
@@ -159,7 +162,7 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         if (command.noisy && isRecordingRef.current()) {
           announceSuppressed();
         } else {
-          handler({ target: event.target });
+          handler({ target: event.target, shift: event.gesture.modifiers.includes('Shift') });
         }
         return;
       }

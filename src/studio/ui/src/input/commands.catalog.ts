@@ -519,13 +519,13 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['help', 'settings'],
   },
   // The voices of a chapter linked to a REAPER folder (Voice folders, docs/prds/booth-voice-tracks.prd.md): Num 0 is the Narrator track,
-  // Num 1 to Num 9 the others in REAPER's order, Num + and Num − the next and previous voice, Num . the list. During a take a voice key
+  // Num 1 to Num 9 the others in REAPER's order, Shift with a number adds ten (Shift Num 1 is the 11th voice), Num + and Num − the next and previous voice, Num . the list. During a take a voice key
   // switches the recording live; in a flat chapter the keys say why they do nothing.
   ...Array.from({ length: 10 }, (_, n) => ({
     id: `booth.voice.${n}` as const,
     label: n === 0 ? 'Record the Narrator voice' : `Record voice ${n}`,
     scope: 'booth' as const,
-    defaults: [key(`Numpad${n}`)],
+    defaults: [key(`Numpad${n}`), key(`Numpad${n}`, ['Shift'])],
     group: 'Booth' as const,
     surfaces: ['help', 'settings'] as const,
   })),

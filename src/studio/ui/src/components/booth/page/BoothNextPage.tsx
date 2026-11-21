@@ -621,16 +621,16 @@ function BoothSession({
           addWhy: control.recording ? whileRecording : undefined,
         }
       : undefined;
-  useCommand('booth.voice.0', () => voices.byKey(0));
-  useCommand('booth.voice.1', () => voices.byKey(1));
-  useCommand('booth.voice.2', () => voices.byKey(2));
-  useCommand('booth.voice.3', () => voices.byKey(3));
-  useCommand('booth.voice.4', () => voices.byKey(4));
-  useCommand('booth.voice.5', () => voices.byKey(5));
-  useCommand('booth.voice.6', () => voices.byKey(6));
-  useCommand('booth.voice.7', () => voices.byKey(7));
-  useCommand('booth.voice.8', () => voices.byKey(8));
-  useCommand('booth.voice.9', () => voices.byKey(9));
+  useCommand('booth.voice.0', (event) => voices.byKey(0 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.1', (event) => voices.byKey(1 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.2', (event) => voices.byKey(2 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.3', (event) => voices.byKey(3 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.4', (event) => voices.byKey(4 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.5', (event) => voices.byKey(5 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.6', (event) => voices.byKey(6 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.7', (event) => voices.byKey(7 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.8', (event) => voices.byKey(8 + (event.shift ? 10 : 0)));
+  useCommand('booth.voice.9', (event) => voices.byKey(9 + (event.shift ? 10 : 0)));
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {

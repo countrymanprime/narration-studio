@@ -122,7 +122,7 @@ describe('the Booth rows', () => {
       // Num + and Num − moved to the next and previous voice (docs/research/2026-10-30-booth-sub-track-recording.md, section 8, decision 4).
       'booth.text.larger': ['Equal'],
       'booth.text.smaller': ['Minus'],
-      ...Object.fromEntries(Array.from({ length: 10 }, (_, n) => [`booth.voice.${n}`, [`Numpad${n}`]])),
+      ...Object.fromEntries(Array.from({ length: 10 }, (_, n) => [`booth.voice.${n}`, [`Numpad${n}`, `Shift+Numpad${n}`]])),
       'booth.voice.next': ['NumpadAdd'],
       'booth.voice.prev': ['NumpadSubtract'],
       'booth.voice.list': ['NumpadDecimal'],
