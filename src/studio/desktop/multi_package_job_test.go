@@ -498,3 +498,36 @@ func TestMultiPackageOnePlatformSaysPackageInTheSingular(t *testing.T) {
 		t.Fatalf("expected success with %q, got %q (%s)", "Built 1 package.", job.Phase, job.Message)
 	}
 }
+
+func TestMultiPackageResultLinesAgreeWithTheirCount(t *testing.T) {
+	phases := func(list ...string) []MultiPackageResult {
+		results := make([]MultiPackageResult, len(list))
+		for i, phase := range list {
+			results[i].Phase = phase
+		}
+		return results
+	}
+	cases := []struct {
+		name      string
+		results   []MultiPackageResult
+		cancelled bool
+		want      string
+	}{
+		{"one built", phases("success"), false, "Built 1 package."},
+		{"two built", phases("success", "success"), false, "Built 2 packages."},
+		{"one cancelled", phases("pending"), true, "Cancelled. 0 of 1 package was built."},
+		{"two cancelled", phases("success", "pending"), true, "Cancelled. 1 of 2 packages were built."},
+		{"one failed", phases("error"), false, "1 of 1 package could not be built; the rest are ready."},
+		{"one of two failed", phases("success", "error"), false, "1 of 2 packages could not be built; the rest are ready."},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			host := newTestHost(t)
+			job := &multiPackageJobState{id: "package-multi-test", phase: "running", started: time.Now(), results: c.results}
+			host.finishMultiPackage(job, nil, c.cancelled)
+			if job.message != c.want {
+				t.Fatalf("message = %q, want %q", job.message, c.want)
+			}
+		})
+	}
+}

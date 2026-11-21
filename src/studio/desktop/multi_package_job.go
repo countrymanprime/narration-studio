@@ -156,7 +156,7 @@ func (j *multiPackageJobState) succeedResult(index int, outputDir string, manife
 	defer j.mu.Unlock()
 	r := &j.results[index]
 	r.Phase, r.OutputDir = "success", outputDir
-	r.Message = fmt.Sprintf("Built %d files.", len(manifest.Files))
+	r.Message = fmt.Sprintf("Built %d %s.", len(manifest.Files), plural(len(manifest.Files), "file", "files"))
 	for _, file := range manifest.Files {
 		r.Files = append(r.Files, PackageManifestFile{Kind: string(file.Kind), Name: file.Name, DestPath: file.DestPath, Tagged: file.Tagged})
 	}
@@ -234,7 +234,7 @@ func (h *Host) startMultiPackage(req MultiPackageRequest) (MultiPackageJob, erro
 	id := fmt.Sprintf("package-multi-%d", time.Now().UnixNano())
 	ctx = runlog.WithRun(ctx, h.jobRuns.begin(h.runLog, id, jobKindRenderPackageMulti, "selection_count", len(selections)))
 	job := &multiPackageJobState{id: id, phase: "running", started: time.Now(), cancel: cancel, outputDir: rootDir}
-	job.message = fmt.Sprintf("Preparing %d packages.", len(selections))
+	job.message = fmt.Sprintf("Preparing %d %s.", len(selections), plural(len(selections), "package", "packages"))
 	for _, sel := range selections {
 		job.results = append(job.results, MultiPackageResult{Profile: sel.profile.Key(), Platform: sel.profile.Platform, Phase: "pending"})
 	}

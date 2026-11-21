@@ -568,16 +568,20 @@ export function createRenderEncodeMasterMock(
           profile: forProfile.id,
           platform: platformNameFor(forProfile),
           phase: 'success',
-          message: `Built ${files.length} files.`,
+          message: `Built ${plural(files.length, 'file')}.`,
           outputDir,
           files,
           checklist,
         };
       });
 
+      const failedCount = results.filter((r) => r.phase === 'error').length;
+      // The host's sentences (multi_package_job.go finishMultiPackage), so a failed build reads the same here.
       const message = multiHold
         ? `Building the ${platformNameFor(resolved[0])} package (1 of ${resolved.length}).`
-        : `Built ${plural(results.filter((r) => r.phase === 'success').length, 'package')}.`;
+        : failedCount > 0
+          ? `${failedCount} of ${results.length} ${results.length === 1 ? 'package' : 'packages'} could not be built; the rest are ready.`
+          : `Built ${plural(results.length, 'package')}.`;
       multiPackageJob = {
         id: 'package-multi-1',
         kind: 'render_package_multi',
