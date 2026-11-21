@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booth one start rule draft mock</title>
+<style>
+/* Tokens copied from docs/research/mockups/research-mock/src/styles/app.css so the draft reads like the spec mock. System fonts only: nothing loads from the network. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --ok:#2F6B3E; --ok-soft:#D9EAD9; --warn:#8A5A00; --warn-soft:#F5E6BF; --bad:#A3302A; --bad-soft:#F4D6D2; --info:#2A5C86; --info-soft:#D8E5F2;
+  --spk:#6B4C9A; --spk-soft:#E6DDF3; --focus:#1F5FBF; --shadow:0 1px 2px rgba(36,33,28,.08),0 10px 28px rgba(36,33,28,.14);
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42;
+  --spk:#B79DE0; --spk-soft:#2C2338; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2{font-family:var(--f-display);font-weight:600;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13px;max-width:70ch}
+.frame{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0 28px;background:var(--bg)}
+.btop,.bfoot{display:flex;align-items:center;gap:10px;background:var(--surface);padding:10px 16px;flex-wrap:wrap}
+.btop{border-bottom:1px solid var(--line)} .bfoot{border-top:1px solid var(--line)}
+.mono{font-family:var(--f-mono)} .spacer{flex:1}
+.badge{font:600 11.5px var(--f-display);letter-spacing:.06em;text-transform:uppercase;border:1px solid transparent;border-radius:999px;padding:2px 9px}
+.rec{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.cold{background:var(--bad-soft);color:var(--bad);border-color:var(--bad);border-style:dashed}
+.btn{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--btn-line);border-radius:6px;padding:7px 12px;background:var(--surface)}
+.btn.primary{background:var(--copper);color:var(--copper-ink);border-color:transparent}
+.btn[aria-pressed="true"]{background:transparent;border-color:var(--bad);color:var(--bad)}
+.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.text{font-size:30px;line-height:1.5;padding:30px 28px;max-width:26em;margin:0 auto;height:230px;overflow:hidden}
+.done{color:var(--muted)}
+.now{background:var(--copper);color:var(--copper-ink);border-radius:.12em;position:relative;box-shadow:0 0 0 .08em var(--copper)}
+.now::before{content:"";position:absolute;top:-.3em;left:50%;transform:translateX(-50%);border:.18em solid transparent;border-top:.2em solid var(--copper);border-bottom:0}
+/* The ghost: a second channel, shape plus tone. A dashed outline and a muted wash, never the real cursor's fill; its caret is hollow. */
+.ghost{outline:.06em dashed var(--muted);outline-offset:.04em;background:color-mix(in srgb,var(--muted) 14%,transparent);border-radius:.12em;position:relative}
+.ghost::before{content:"";position:absolute;top:-.34em;left:50%;transform:translateX(-50%);width:.28em;height:.2em;border:.05em dashed var(--muted);border-top:0;clip-path:polygon(0 0,100% 0,50% 100%)}
+.why{color:var(--muted);font-size:13px}
+.note{font-size:13px;color:var(--muted);margin:4px 0 0}
+
+.start{background:var(--copper);color:var(--copper-ink);border-radius:.12em;position:relative;box-shadow:0 0 0 .08em var(--copper)}
+.start::before{content:"";position:absolute;top:-.3em;left:50%;transform:translateX(-50%);border:.18em solid transparent;border-top:.2em solid var(--copper);border-bottom:0}
+.pick{border-bottom:3px solid var(--warn)}
+.chip{font:600 11.5px var(--f-display);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;padding:2px 9px;color:var(--muted)}
+.menu{display:inline-block;background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;box-shadow:var(--shadow);padding:6px;min-width:15em}
+.menu div{padding:5px 10px;border-radius:5px;font-size:14px}
+.menu .off{color:var(--faint)}
+.keys{font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.keys kbd{font:600 11px var(--f-mono);border:1px solid var(--line-strong);border-radius:4px;padding:0 5px;background:var(--surface);color:var(--ink)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;max-width:70ch;font-size:13px}
+.cmp b{font-family:var(--f-display)}
+</style>
+</head>
+<body>
+<h1>Booth: one rule for where recording starts (draft)</h1>
+<p class="sub">Draft for <a href="https://github.com/countrymanprime/narration-studio/issues/3858">#3858</a>, PR 2 of the plan posted there. The rule: a place you chose (a click, a pickup line, Record from here) wins; else where your recording ends if part of the chapter is recorded; else the beginning. <b>The one indicator is the cursor word</b> (the filled word with a caret), as the owner decided on 2026-11-16: no chip, no extra footer or top-bar item. Before a take the cursor is where Record starts, so there is nothing else to read. The sample text is invented.</p>
+
+<h2>1. Opened on a partly recorded chapter</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 3 · The Lighthouse</b><span class="mono sub">¶ 14 of 31 · 38% · about 29 min left</span><span class="spacer"></span><span class="chip">Recorded 38%</span></div>
+  <div class="text"><span class="done">The keeper climbed the stair at dusk. He counted the steps as he always had.</span> At the top he <span class="start">found</span> the lamp already lit, and the sea below it black as slate.</div>
+  <div class="bfoot"><button class="btn primary">● Record</button><span class="mono">00:00</span><button class="btn">Levels</button><button class="btn" aria-pressed="false">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+<p class="note">The cursor is on the word after the last one recorded. Record continues from the end of the recording; nothing is looked up. There is no "Resume at" chip because the Booth is already there. Recorded 38% says how far, not where.</p>
+
+<h2>2. Opened on a chapter with no recording</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 4 · The Storm</b><span class="mono sub">¶ 1 of 28 · 0% · about 44 min left</span><span class="spacer"></span></div>
+  <div class="text"><span class="start">The</span> wind came up before the keeper had finished his tea, and by the time he reached the gallery the first rain had begun to rattle against the glass.</div>
+  <div class="bfoot"><button class="btn primary">● Record</button><span class="mono">00:00</span><button class="btn">Levels</button><button class="btn" aria-pressed="false">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+<p class="note">Nothing recorded: the cursor opens on the first word, and Record starts there.</p>
+
+<h2>3. A word chosen (a click, the arrows, a find or bookmark jump)</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 3 · The Lighthouse</b><span class="mono sub">¶ 9 of 31 · 38% · about 29 min left</span><span class="spacer"></span><span class="chip">Recorded 38%</span></div>
+  <div class="text"><span class="done">The keeper climbed the stair at dusk.</span> He <span class="start">counted</span> the steps as he always had, one hundred and twelve, and at the top he found the lamp already lit.</div>
+  <div class="bfoot"><button class="btn primary">● Record</button><span class="mono">00:00</span><button class="btn">Levels</button><button class="btn" aria-pressed="false">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+<p class="note">The cursor moved, so it is the start: it looks the same as in frame 1 because it is the same thing. Record looks the place up and records over it (REAPER keeps the earlier audio as a take; Audacity asks first). To get back to where the recording ends, click there or press the arrows.</p>
+
+<h2>4. A pickup line</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 3 · The Lighthouse</b><span class="mono sub">¶ 9 of 31 · Pickups · 2 open</span><span class="spacer"></span></div>
+  <div class="text"><span class="done">The keeper climbed the stair at dusk.</span> <span class="pick"><span class="start">He</span> counted the steps as he always had, one hundred and twelve,</span> and at the top he found the lamp already lit.</div>
+  <div class="bfoot"><button class="btn primary">● Record</button><span class="mono">00:00</span><button class="btn">Levels</button><button class="btn" aria-pressed="false">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+<p class="note">A pickup is an explicit entry: the cursor is on the line to redo (the pickup bar is unchanged), and Record records over it.</p>
+
+<h2>5. A take running</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 3 · The Lighthouse</b><span class="mono sub">¶ 14 of 31 · 38% · about 29 min left</span><span class="spacer"></span><span class="badge rec">REC</span></div>
+  <div class="text"><span class="done">The keeper climbed the stair at dusk. He counted the steps as he always had. At the top he found</span> the <span class="start">lamp</span> already lit, and the sea below it black as slate.</div>
+  <div class="bfoot"><button class="btn primary">■ Stop</button><span class="mono">00:07</span><button class="btn">Levels</button><button class="btn" aria-disabled="true">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+<p class="note">During a take the cursor follows the voice. No start is shown: the take has started.</p>
+
+<h2>6. The right-click menu, before a take</h2>
+<div class="frame" style="padding:16px 28px">
+  <div class="menu" role="menu">
+    <div>Bookmark here</div><div>Next phrase</div><div>Back one phrase</div><div>Larger text</div><div>Smaller text</div><div>Exit Booth</div>
+  </div>
+  <p class="note">No "Mark the start here" (a click does it) and no "Punch and roll" before a take (Record does it); during a take the menu also offers <b>Punch and roll</b> and <b>Roll again from here</b> keeps R's meaning.</p>
+</div>
+
+<h2>7. The footer's key hints</h2>
+<div class="frame" style="padding:12px 28px">
+  <div class="keys"><span><kbd>Space</kbd> Record / stop</span><span><kbd>R</kbd> Roll again (during a take)</span><span><kbd>↑</kbd><kbd>↓</kbd> Phrase</span><span><kbd>←</kbd><kbd>→</kbd> Word</span><span><kbd>B</kbd> Bookmark</span><span><kbd>F11</kbd> Full screen</span><span><kbd>Esc</kbd> Exit</span></div>
+  <p class="note">"Mark start" (right-click) is gone from the hints; the row is shorter, not longer.</p>
+</div>
+
+<h2>What goes</h2>
+<div class="cmp">
+  <div><b>Top bar: "Resume at ¶ n" chip</b><br>The reading already opens at the resume point; moving away is a choice of start.</div>
+  <div><b>Side panel: "Next roll starts from ¶ n"</b><br>The cursor shows the start; the panel keeps session numbers.</div>
+  <div><b>Menu item "Mark the start here" and its footer hint</b><br>A click chooses the start.</div>
+  <div><b>R before a take</b><br>R rolls again during a take; before one, Space is Record.</div>
+</div>
+</body>
+</html>
