@@ -63,8 +63,13 @@ func (h *Host) tracksLive() (tracksLive, error) {
 	lister, support := trackListerFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
 	defer cancel()
+	return h.tracksLiveWith(ctx, svc, lister, support)
+}
+
+// tracksLiveWith is tracksLiveIn with the revision held to what the page may rely on: it stops its timer on a revision, so it holds one only
+// where the tick that sends daw_tracks_changed would send it too.
+func (h *Host) tracksLiveWith(ctx context.Context, svc hostServices, lister dawport.TrackLister, support dawport.Support) (tracksLive, error) {
 	answer, err := tracksLiveIn(ctx, svc, lister, support, time.Now())
-	// The page stops its timer on a revision, so it holds one only where the tick that sends daw_tracks_changed would send it too.
 	if revision, _ := h.heartbeatTracks(svc); revision == "" {
 		answer.Revision = ""
 	}
