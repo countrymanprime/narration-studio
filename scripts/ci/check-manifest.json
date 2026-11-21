@@ -137,7 +137,8 @@
       "job": "test-linux",
       "step": [
         "nx run ui:atlas-docs"
-      ]
+      ],
+      "note": "With the Storybook that lint built once for the run, shard 1 runs `docs:atlas:verify` (the check without the build); `nx run ui:atlas-docs` builds one first, and runs when lint made none (#3860)."
     },
     {
       "id": "quick-ubuntu/repo-scripts",

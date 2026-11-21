@@ -3,7 +3,8 @@ import { launchOptions } from './playwright.launch';
 
 // Component atlas: every Storybook story x theme x viewport, captured and
 // checked (a11y, play(), overflow, console errors). Run through the `atlas` script,
-// which builds Storybook first - the spec enumerates storybook-static/index.json.
+// which builds Storybook first, or `atlas:draw` on the copy CI built once for the run -
+// the spec enumerates storybook-static/index.json.
 // UI_ATLAS_PORT moves the static server (default 6106) when several repos run at once.
 const port = Number(process.env.UI_ATLAS_PORT ?? 6106);
 // Launch args and the optional PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH live in playwright.launch.ts.
