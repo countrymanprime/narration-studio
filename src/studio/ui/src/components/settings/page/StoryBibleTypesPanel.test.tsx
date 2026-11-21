@@ -147,6 +147,8 @@ describe('Story Bible types panel (SN-M53)', () => {
     // Adding needs a new name: an empty or taken one is refused and the field keeps what was typed.
     const newType = within(panel()).getByRole('textbox', { name: 'New type' }) as HTMLInputElement;
     const addButton = within(panel()).getByRole('button', { name: 'Add type' });
+    // The controls are drawn busy for a moment after a removal (#3674), so this press waits for them.
+    await waitFor(() => expect(addButton.getAttribute('aria-disabled')).toBeNull(), { timeout: 3000 });
     fireEvent.click(addButton);
     expect(add).not.toHaveBeenCalled();
     expect((await within(panel()).findByRole('alert')).textContent).toContain('Give the type a new name.');
@@ -161,6 +163,139 @@ describe('Story Bible types panel (SN-M53)', () => {
     await screen.findByRole('textbox', { name: 'Type name: Creature' });
     expect(newType.value).toBe('');
     expect(within(panel()).queryByRole('alert')).toBeNull();
+  });
+
+  it('a second press on Remove before the host answers removes nothing more (the next row moves under the pointer)', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRemove.bind(api);
+    let finish: () => void = () => {};
+    const remove = vi.spyOn(api, 'guideTypeRemove').mockImplementation(
+      (name) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name).then(resolve);
+        }),
+    );
+    fireEvent.click(removeButton('Lore'));
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
+    fireEvent.click(removeButton('Organization'));
+    expect(remove).toHaveBeenCalledTimes(1);
+    await act(async () => undefined); // the queued rename starts a microtask later
+    await act(async () => finish());
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Lore' })).toBeNull());
+    expect(within(panel()).getByRole('textbox', { name: 'Type name: Organization' })).toBeTruthy();
+  });
+
+  // The qa-breaker's B-N1 on #3902: the first removal had been answered, the next row had moved up, and a second press of the same spot removed it too.
+  it('a second press on the spot of a removal just after the host answered removes nothing more', async () => {
+    const api = await renderPanel();
+    const remove = vi.spyOn(api, 'guideTypeRemove');
+    fireEvent.click(removeButton('Lore'));
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Lore' })).toBeNull());
+    fireEvent.click(removeButton('Item'));
+    await act(async () => undefined);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(within(panel()).getByRole('textbox', { name: 'Type name: Item' })).toBeTruthy();
+  });
+
+  // B-N4: the press on Remove took the focus out of another type's name box, the rename started, and the removal was dropped without a word.
+  it('Remove pressed while another type is being renamed removes the type once the rename is done', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRename.bind(api);
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeRename').mockImplementation(
+      (name, to) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name, to).then(resolve);
+        }),
+    );
+    const remove = vi.spyOn(api, 'guideTypeRemove');
+    fireEvent.change(nameField('Lore'), { target: { value: 'Lore renamed' } });
+    fireEvent.blur(nameField('Lore'));
+    fireEvent.click(removeButton('Item'));
+    expect(remove).not.toHaveBeenCalled();
+    await act(async () => undefined); // the queued rename starts a microtask later
+    await act(async () => finish());
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('Item'));
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Item' })).toBeNull());
+  });
+
+  // B-N3: a right-to-left name in a cut box showed its last words and hid its first.
+  it("a type's name box takes the name's own direction", async () => {
+    await renderPanel();
+    expect(nameField('Character').getAttribute('dir')).toBe('auto');
+  });
+
+  // The ux-reviewer's second pass on #3902: after a removal the controls are drawn busy for a moment (so a press is answered), not silently dropped.
+  it('right after a removal the other Remove buttons are drawn busy, and are live again after the moment', async () => {
+    const api = await renderPanel();
+    fireEvent.click(removeButton('Lore'));
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Lore' })).toBeNull());
+    expect(removeButton('Item').getAttribute('aria-disabled')).toBe('true');
+    await waitFor(() => expect(removeButton('Item').getAttribute('aria-disabled')).toBeNull(), { timeout: 3000 });
+    const remove = vi.spyOn(api, 'guideTypeRemove');
+    fireEvent.click(removeButton('Item'));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('Item'));
+  });
+
+  it('Can speak pressed while another type is being renamed is applied once the rename is done, not dropped', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRename.bind(api);
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeRename').mockImplementation(
+      (name, to) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name, to).then(resolve);
+        }),
+    );
+    const speaks = vi.spyOn(api, 'guideTypeSetSpeaks');
+    fireEvent.change(nameField('Lore'), { target: { value: 'Lore renamed' } });
+    fireEvent.blur(nameField('Lore'));
+    fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
+    expect(speaks).not.toHaveBeenCalled();
+    await act(async () => undefined); // the queued rename starts a microtask later
+    await act(async () => finish());
+    await waitFor(() => expect(speaks).toHaveBeenCalledTimes(1));
+  });
+
+  // The ux-reviewer's third pass on #3674: a second press during one rename was dropped with nothing shown. Now the first waiting press draws the
+  // controls busy, so the second is answered (disabled), and the waiting press itself still runs after the rename.
+  it('a press made during a rename waits and the other controls are drawn busy meanwhile, then live again', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRename.bind(api);
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeRename').mockImplementation(
+      (name, to) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name, to).then(resolve);
+        }),
+    );
+    const speaks = vi.spyOn(api, 'guideTypeSetSpeaks');
+    fireEvent.change(nameField('Lore'), { target: { value: 'Lore renamed' } });
+    fireEvent.blur(nameField('Lore'));
+    fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
+    await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Add type' }).getAttribute('aria-disabled')).toBe('true'));
+    await act(async () => undefined); // the queued rename starts a microtask later
+    await act(async () => finish());
+    await waitFor(() => expect(speaks).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Add type' }).getAttribute('aria-disabled')).toBeNull());
+  });
+
+  // The ux-reviewer's fifth pass on #3674: while a change was out the colour box looked live and its swatches opened, then a pick was dropped.
+  it('the colour box is disabled while a change is out, so no swatch can be picked and dropped', async () => {
+    const api = await renderPanel();
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeSetSpeaks').mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
+    await act(async () => undefined);
+    const box = within(panel()).getByRole('button', { name: /^Colour for Place/ });
+    expect((box as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => finish());
+    await waitFor(() => expect((within(panel()).getByRole('button', { name: /^Colour for Place/ }) as HTMLButtonElement).disabled).toBe(false));
   });
 
   it('remove is disabled on the last type', async () => {
@@ -309,6 +444,7 @@ describe('text typed in New type is held until it is added (#3457)', () => {
     expect(registry.heldNow()).toEqual([]);
     fireEvent.keyDown(box, { key: 'Enter' });
     expect(add).toHaveBeenCalledTimes(1);
+    await act(async () => undefined); // the queued rename starts a microtask later
     await act(async () => finish());
     await waitFor(() => expect((within(panel()).getByRole('textbox', { name: 'New type' }) as HTMLInputElement).value).toBe(''));
   });
