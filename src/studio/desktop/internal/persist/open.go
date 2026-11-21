@@ -38,14 +38,22 @@ func ReadFile(name string) ([]byte, error) {
 	// than doubled the read of a megabyte file, and every held file is read whole on every ask (issue 3863).
 	size := 0
 	if info, err := file.Stat(); err == nil {
-		if info.Mode()&(os.ModeNamedPipe|os.ModeSocket|os.ModeDevice) != 0 {
-			return nil, &fs.PathError{Op: "read", Path: name, Err: ErrNotAFile}
+		if err := refuseNonFile(name, info.Mode()); err != nil {
+			return nil, err
 		}
 		if info.Size() > 0 && info.Size() < math.MaxInt32 {
 			size = int(info.Size())
 		}
 	}
 	return readSized(file, size)
+}
+
+// refuseNonFile is the refusal of a named pipe, a socket or a device by its mode: nil for anything else.
+func refuseNonFile(name string, mode fs.FileMode) error {
+	if mode&(fs.ModeNamedPipe|fs.ModeSocket|fs.ModeDevice) != 0 {
+		return &fs.PathError{Op: "read", Path: name, Err: ErrNotAFile}
+	}
+	return nil
 }
 
 // ErrTooLarge is ReadFileMax's answer for a file with more bytes than its limit.
@@ -62,8 +70,8 @@ func ReadFileMax(name string, limit int64) ([]byte, error) {
 	defer func() { _ = file.Close() }()
 	size := 0
 	if info, err := file.Stat(); err == nil {
-		if info.Mode()&(os.ModeNamedPipe|os.ModeSocket|os.ModeDevice) != 0 {
-			return nil, &fs.PathError{Op: "read", Path: name, Err: ErrNotAFile}
+		if err := refuseNonFile(name, info.Mode()); err != nil {
+			return nil, err
 		}
 		if info.Size() > limit {
 			return nil, ErrTooLarge
