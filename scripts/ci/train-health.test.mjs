@@ -108,3 +108,12 @@ test('redReport says what it could not read, so a failed read never hides the re
   assert.match(report, /Failed jobs:\n- not read: see the run/);
   assert.match(report, /- not read: no earlier green run was found/);
 });
+
+test('the slow-clock tier report names the failed jobs and the fix, lists no commits and holds nothing', () => {
+  const report = redReport({ runUrl: 'https://example.test/run/9', sha: '0123456789abcdef', failed: ['slow-clock'], commits: [], tier: 'slow-clock' });
+  assert.match(report, /slowed to 70% at 0123456: https:\/\/example\.test\/run\/9/);
+  assert.match(report, /- `slow-clock`/);
+  assert.match(report, /pastStartGuard/);
+  assert.match(report, /Nothing is held/);
+  assert.doesNotMatch(report, /Commits on `main`/);
+});
