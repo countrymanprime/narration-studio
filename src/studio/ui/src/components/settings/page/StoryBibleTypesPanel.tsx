@@ -73,16 +73,16 @@ function TypeRow({
   };
   const blocked = count === undefined ? 'Reading the entries…' : count > 0 ? `${type.name} is in use` : last ? 'The last type stays' : undefined;
   return (
-    // From 512 px of the list's own width a type is one line. Narrower, the name takes the first line and the rest the second, indented to
+    // From 480 px of the list's own width a type is one line. Narrower, the name takes the first line and the rest the second, indented to
     // start under the name box, with less room inside a type than between two (alignment audit R3SE1-2, XSE2-10, XSE1-15). Under a 24 rem list
     // (the 390 px window) the indent goes: indented, the line was 16 px wider than the type and Remove hung past the name box (A4).
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 @lg:flex-nowrap">
-      <span className="flex min-w-0 basis-full items-center gap-3 @lg:flex-1 @lg:basis-auto">
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 @[30rem]:flex-nowrap">
+      <span className="flex min-w-0 basis-full items-center gap-3 @[30rem]:flex-1 @[30rem]:basis-auto">
         <Swatch colour={kindSwatch([type], type.name)} />
         <TextField
           label={`Type name: ${type.name}`}
           value={value}
-          className="min-w-[8rem] flex-1 @lg:max-w-[16rem]"
+          className="min-w-[8rem] flex-1 @[30rem]:max-w-[16rem] @[30rem]:min-w-[6rem]"
           disabled={busy}
           onChange={setValue}
           onBlur={commit}
@@ -91,12 +91,12 @@ function TypeRow({
           }}
         />
       </span>
-      <span className="flex w-full items-center gap-2 pl-6 @max-sm:pl-0 @lg:w-auto @lg:gap-3 @lg:pl-0">
+      <span className="flex w-full items-center gap-2 pl-6 @max-sm:pl-0 @[30rem]:w-auto @[30rem]:gap-3 @[30rem]:pl-0">
         <ColourField
           mode="palette"
           form="popover"
           label={`Colour for ${type.name}`}
-          className="w-[100px] @lg:w-[130px]"
+          className="w-[100px] @[30rem]:w-[120px]"
           choices={COLOUR_CHOICES}
           value={type.colour}
           pending={busy}
@@ -111,7 +111,7 @@ function TypeRow({
             </span>
           </Checkbox>
         </TooltipTarget>
-        <span data-type-count={type.name} className="ml-auto min-w-[70px] text-right text-sm whitespace-nowrap text-[var(--text-muted)] @lg:ml-0">
+        <span data-type-count={type.name} className="ml-auto min-w-[60px] text-right text-sm whitespace-nowrap text-[var(--text-muted)] @[30rem]:ml-0">
           {count === undefined ? '' : `${plural(count, 'entry', 'entries')}`}
         </span>
         <IconButton
@@ -195,7 +195,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
     <>
       <div className="@container flex w-full min-w-0 flex-col gap-3">
         {types ? (
-          <ul className="m-0 flex list-none flex-col gap-5 p-0 @lg:gap-3">
+          <ul className="m-0 flex list-none flex-col gap-5 p-0 @[30rem]:gap-3">
             {types.map((type) => (
               <TypeRow
                 key={rowKey.of(type.name)}
@@ -220,7 +220,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
               label="New type"
               placeholder="New type"
               value={name}
-              className="min-w-[8rem] flex-1 @lg:max-w-[16rem]"
+              className="min-w-[8rem] flex-1 @[30rem]:max-w-[16rem] @[30rem]:min-w-[6rem]"
               disabled={busy}
               onChange={setName}
               onKeyDown={(event) => {

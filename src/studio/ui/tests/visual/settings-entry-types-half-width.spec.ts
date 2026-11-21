@@ -1,11 +1,11 @@
 // Settings > Project > Entry types at a half-width window (#3674): the row's body sits under its label across the whole row, so each type
-// (its name box, its colour box and Remove) is one line, and the colour box shows the colour's name. At 960 and 1100 px the row used to give
+// (its name box, its colour box and Remove) is one line, and the colour box shows the colour's name. From 825 to 1210 px the row used to give
 // the body about 280 px beside the label, so every type wrapped to two lines and the colour box showed a swatch and a caret.
 import { expect, test, type Page } from '@playwright/test';
 import { settingsDrivers } from './drivers/settings';
 import { settlePage } from './helpers/settle';
 
-const WIDTHS = [960, 1100];
+const WIDTHS = [825, 880, 900, 960, 1100];
 const THEMES = ['light', 'dark'] as const;
 
 async function openEntryTypes(page: Page, width: number, theme: (typeof THEMES)[number]): Promise<void> {
