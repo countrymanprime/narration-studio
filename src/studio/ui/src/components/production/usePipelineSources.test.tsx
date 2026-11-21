@@ -343,4 +343,39 @@ describe('usePipelineSources under the store (#3658)', () => {
     await new Promise((resolve) => setTimeout(resolve, 120));
     expect(result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } });
   });
+  it('re-pairs when the store refreshes the chapter list on the same key (a rename, a recovery after a failed read)', async () => {
+    let title = 'Alpha';
+    let fail = false;
+    const api = {
+      ...createMockApi(),
+      findingsList: () => Promise.resolve({ findings: [], total: 0 }),
+      measureState: () => Promise.resolve({ phase: 'success', files: [file('Alpha.wav', 'met')] } as unknown as MeasureJob),
+      manuscriptChapters: async () => {
+        if (fail) throw new Error('offline');
+        return [chapter('c1', 0, title)];
+      },
+      scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
+    } as unknown as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result, rerender } = renderHook(({ k }) => ({ pipeline: usePipelineSources(true, k), store: useStoreHandle() }), {
+      wrapper,
+      initialProps: { k: 'a' },
+    });
+    await waitFor(() => expect(result.current.pipeline.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+    title = 'Beta';
+    await act(() => result.current.store.load('chapters'));
+    await waitFor(() => expect(result.current.pipeline.master).toEqual({}));
+    // A key whose list read fails, then the slot recovers on an event: the cells come back without another key.
+    fail = true;
+    rerender({ k: 'b' });
+    title = 'Alpha';
+    await waitFor(() => expect(result.current.store.getState().errors.chapters).toBeDefined());
+    fail = false;
+    await act(() => result.current.store.load('chapters'));
+    await waitFor(() => expect(result.current.pipeline.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+  });
 });

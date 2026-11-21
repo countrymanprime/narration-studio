@@ -66,6 +66,11 @@ export function usePipelineSources(
     () => store?.generation() ?? 0,
     () => 0,
   );
+  const held = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.getState().slots.chapters,
+    () => undefined,
+  );
   const [proofRead, setProofRead] = useState<{ value: Proof | undefined; generation: number }>();
   const [prepRead, setPrepRead] = useState<{ value: Prep | undefined; generation: number }>();
   // The list and the measurement answer together under one tag, and only that pair is shown: never a list from one read with a measurement from another.
@@ -105,7 +110,8 @@ export function usePipelineSources(
   const proof = proofRead?.generation === generation ? proofRead.value : undefined;
   const prep = prepRead?.generation === generation ? prepRead.value : undefined;
   const current = pair?.tag === `${generation}:${refreshKey}` ? pair : undefined;
-  const chapters = current?.chapters;
+  // Once the pair is the current one the list follows the store's slot: a refresh of it (a rename, a recovery after a failed read) re-pairs the cells.
+  const chapters = store ? (current ? held : undefined) : current?.chapters;
   const job = current?.job;
   const master = useMemo<Master | undefined>(() => (chapters && job?.files.length ? masterByChapter(chapters, job.files) : undefined), [chapters, job]);
   const failing = useMemo<NextUpInputs['failing']>(() => (chapters && job ? failingChapter(chapters, job.files, job.profile ?? null) : null), [chapters, job]);
