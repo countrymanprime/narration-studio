@@ -194,33 +194,58 @@ describe("the Booth's voices", () => {
       'marked',
       ['{bed}'],
     ],
-  ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind, marked = []) => {
-    const api = createMockApi({
-      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [...marked], tracks: [] }),
-      chapterTrackMapList: async () => ({
-        documentId: 'd',
-        mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
-      }),
-      // The page reads REAPER's live list (#3269), so the stub answers tracksLive.
-      tracksLive: async () => ({
-        source: 'live' as const,
-        reason: '' as const,
-        message: '',
-        readAt: '2026-11-10T00:00:00Z',
-        project: {
-          path: 'a.rpp',
-          tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),
-        },
-      }),
-    });
-    const { notify, hook } = await mount({}, false, api);
-    await act(async () => new Promise((r) => setTimeout(r, 20)));
-    await act(async () => hook.current.byKey(1));
-    expect(hook.current.linkKind).toBe(kind);
-    expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
-    if (kind === 'marked') expect(destinationFor('folders').noVoiceKeys(kind)).toContain('Turn one back on in the Voices card');
-    expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
-  });
+    // The host leaves out a child another chapter owns, so a folder of one marked bed and one owned track is still all marked.
+    [
+      'a folder of a marked track and a track another chapter owns',
+      [
+        { guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 },
+        { guid: '{BED}', name: 'Music bed', isFolder: false, depth: 1 },
+        { guid: '{OWNED}', name: 'Chapter 2', isFolder: false, depth: 1 },
+      ],
+      'marked',
+      ['{bed}'],
+      ['{OWNED}'],
+    ],
+  ] as const)(
+    'in a Voice folders project a voice key on a chapter linked to %s says so',
+    async (_what, tracks, kind, marked: readonly string[] = [], owned: readonly string[] = []) => {
+      const api = createMockApi({
+        voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [...marked], tracks: [] }),
+        chapterTrackMapList: async () => ({
+          documentId: 'd',
+          mappings: [
+            { trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null },
+            ...owned.map((trackGuid) => ({
+              trackGuid,
+              chapterId: 'other-chapter',
+              chapterTitle: 'Other',
+              confirmedAt: '',
+              origin: 'manual' as const,
+              match: null,
+            })),
+          ],
+        }),
+        // The page reads REAPER's live list (#3269), so the stub answers tracksLive.
+        tracksLive: async () => ({
+          source: 'live' as const,
+          reason: '' as const,
+          message: '',
+          readAt: '2026-11-10T00:00:00Z',
+          project: {
+            path: 'a.rpp',
+            tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),
+          },
+        }),
+      });
+      const { notify, hook } = await mount({}, false, api);
+      await act(async () => new Promise((r) => setTimeout(r, 20)));
+      await act(async () => hook.current.byKey(1));
+      expect(hook.current.linkKind).toBe(kind);
+      expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
+      if (kind === 'marked') expect(destinationFor('folders').noVoiceKeys(kind)).toContain('Turn one back on in the Voices card');
+      expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
+    },
+  );
 
   it('a voice key with no take running starts the take once the host has accepted the voice; a pick from the list does not (#3430)', async () => {
     const startTake = vi.fn(() => Promise.resolve());
