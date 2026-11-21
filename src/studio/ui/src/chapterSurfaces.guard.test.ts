@@ -19,11 +19,11 @@ const COVERED: Record<string, readonly string[]> = {
   'components/booth/page/useBoothData.ts': ['components/booth/page/BoothNextPage.test.tsx'],
   'components/booth/companion/CompanionPage.tsx': ['components/booth/companion/CompanionPage.test.tsx'],
   'components/pickups/PickupsPage.tsx': ['components/pickups/PickupsPage.test.tsx'],
-  'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
   'components/production/useChapterTools.tsx': ['components/production/ProductionPage.test.tsx'],
   'components/masterqc/page/MasterPage.tsx': ['components/masterqc/page/Page.test.tsx'],
   'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
-  'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx'],
+  // A surface that reads the list through the hook is covered here: the pipeline's cells (usePipelineSources) are checked in ProductionPage.test.tsx.
+  'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx', 'components/production/ProductionPage.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],
   'studio/slots.ts': ['components/layout/useGoToCommands.test.tsx', 'components/layout/AddressGate.test.tsx', 'components/delivery/page/DeliveryPage.test.tsx'],

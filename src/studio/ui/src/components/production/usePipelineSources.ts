@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Finding } from '../../api/contracts/findings';
 import type { ManuscriptChapter, MeasureFileResult } from '../../types';
 import { usePort } from '../../ports/usePort';
+import { useChapters } from '../../studio/useChapters';
 import { chapterIdOfPrepId } from '../credits/creditsEntries';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
@@ -53,12 +54,12 @@ export function usePipelineSources(
 ): Pick<PipelineSources, 'proof' | 'master' | 'prep'> & { failing: NextUpInputs['failing'] } {
   const findings = usePort('findings');
   const measure = usePort('measure');
-  const manuscript = usePort('manuscript');
   const scriptPrep = usePort('scriptPrep');
   const [proof, setProof] = useState<Proof>();
-  const [master, setMaster] = useState<Master>();
+  const [job, setJob] = useState<Awaited<ReturnType<typeof measure.measureState>>>();
   const [prep, setPrep] = useState<Prep>();
-  const [failing, setFailing] = useState<NextUpInputs['failing']>(null);
+  // The chapter list is the store's, shared with every page: this hook does not read it again.
+  const { chapters } = useChapters(active);
 
   useEffect(() => {
     if (!active) return;
@@ -67,17 +68,9 @@ export function usePipelineSources(
       (page) => live && setProof(proofByChapter(page.findings)),
       () => live && setProof(undefined),
     );
-    Promise.all([measure.measureState(), manuscript.manuscriptChapters()]).then(
-      ([job, chapters]) => {
-        if (!live) return;
-        setMaster(job.files.length ? masterByChapter(chapters, job.files) : undefined);
-        setFailing(failingChapter(chapters, job.files, job.profile ?? null));
-      },
-      () => {
-        if (!live) return;
-        setMaster(undefined);
-        setFailing(null);
-      },
+    measure.measureState().then(
+      (state) => live && setJob(state),
+      () => live && setJob(undefined),
     );
     scriptPrep.scriptPrepList().then(
       (record) => live && setPrep(Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state]))),
@@ -86,7 +79,10 @@ export function usePipelineSources(
     return () => {
       live = false;
     };
-  }, [active, refreshKey, findings, measure, manuscript, scriptPrep]);
+  }, [active, refreshKey, findings, measure, scriptPrep]);
+
+  const master = useMemo<Master | undefined>(() => (chapters && job?.files.length ? masterByChapter(chapters, job.files) : undefined), [chapters, job]);
+  const failing = useMemo<NextUpInputs['failing']>(() => (chapters && job ? failingChapter(chapters, job.files, job.profile ?? null) : null), [chapters, job]);
 
   return { proof, master, prep, failing };
 }
