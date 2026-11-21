@@ -110,6 +110,16 @@ func scopesOneItem(scope evidence.LedgerScope, key string) bool {
 	return len(scope.ItemGUIDs) == 1 && scope.ItemGUIDs[0] == key
 }
 
+// ItemRetentionKey is the evidence.RetentionKey of a per-item record (AnalyzerSilence, AnalyzerClick, AnalyzerBreath):
+// the one item its scope names, since CurrentItemRecord takes the newest complete record that scopesOneItem matches. A
+// record whose scope names no item or several is one CurrentItemRecord never matches, and has no group.
+func ItemRetentionKey(record evidence.LedgerRecord) (string, bool) {
+	if len(record.Scope.ItemGUIDs) != 1 {
+		return "", false
+	}
+	return record.Scope.ItemGUIDs[0], true
+}
+
 // scopeKeys hands out the names the items of one chapter give their records. An item's GUID is its name, so every record written before
 // twins were told apart stays readable; a later item that repeats a GUID (a track copied in from another project) is "GUID#2", "GUID#3", the
 // first name no item has taken (a real GUID that already ends in "#2" keeps its own). Keyed by the GUID alone, two twins read each other's

@@ -484,15 +484,19 @@ func newestRecordTime(ledger LedgerReader, chapterID string) (time.Time, error) 
 	}
 	var newest time.Time
 	for _, record := range records {
-		at := record.CompletedAt
-		if at.IsZero() {
-			at = record.StartedAt
-		}
-		if at.After(newest) {
+		if at := recordEnd(record); at.After(newest) {
 			newest = at
 		}
 	}
 	return newest, nil
+}
+
+// recordEnd is when a record's run ended: CompletedAt, or StartedAt for a run that recorded no end.
+func recordEnd(record LedgerRecord) time.Time {
+	if record.CompletedAt.IsZero() {
+		return record.StartedAt
+	}
+	return record.CompletedAt
 }
 
 // itemKeys hands out the keys items are stored under in a LedgerFingerprint's maps: an item's GUID, so every record written before this
