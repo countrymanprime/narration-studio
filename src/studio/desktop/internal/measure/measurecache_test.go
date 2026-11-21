@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
@@ -70,7 +71,10 @@ func TestCachedMeasureFileAnswersAStoredMeasurementFromANewStoreWithoutMeasuring
 	if got.Report.File != path || got.Fingerprint.SHA256 != sha256Hex(raw) {
 		t.Fatalf("stored answer names %q with hash %s", got.Report.File, got.Fingerprint.SHA256)
 	}
-	log.check(t, int64(len(raw)))
+	// The check's hash reports no progress: see the test of an edited file below.
+	if len(log.done) != 0 {
+		t.Fatalf("a stored answer reported progress %d times, want none", len(log.done))
+	}
 }
 
 // The owner's ruling: same size and same modified time are not an identity. This edit keeps both, and keeps the
@@ -100,11 +104,14 @@ func TestCachedMeasureFileMeasuresAgainWhenAByteChangedOutsideTheSampledBlocks(t
 	}
 
 	again := &countedMeasure{}
-	got := mustMeasure(t, CachedMeasureFile(evidence.NewCacheStore(project), project, again.measure), path, Options{})
+	var log progressLog
+	got := mustMeasure(t, CachedMeasureFile(evidence.NewCacheStore(project), project, again.measure), path, Options{Progress: log.record})
 
 	if again.calls != 1 {
 		t.Fatalf("compute was called %d times for an edited file, want 1", again.calls)
 	}
+	// Only the measurement reports progress, so it never runs to the end for the hash and then starts again.
+	log.check(t, int64(len(raw)-44)) // the audio bytes after the WAV header, never backwards
 	want := mustMeasure(t, MeasureFile, path, Options{})
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("answer = %+v, want the edited file's %+v", got, want)
@@ -230,16 +237,33 @@ func writeBlob(t *testing.T, store *evidence.CacheStore, key evidence.CacheEntry
 	}
 }
 
+// betweenBlocks is a context whose Err runs then on its second call. The hash asks Err before every block, so then
+// runs after the first block of the file is hashed and before the second is read.
+type betweenBlocks struct {
+	context.Context
+	calls int
+	then  func()
+}
+
+func (c *betweenBlocks) Err() error {
+	if c.calls++; c.calls == 2 {
+		c.then()
+	}
+	return c.Context.Err()
+}
+
 func TestCachedMeasureFileStopsHashingWhenCancelledAndAnswersNothing(t *testing.T) {
 	project := t.TempDir()
 	path, _ := bigFile(t) // over two hash blocks, so there is a block left to refuse after the first
 	storedMeasurement(t, project, path)
 
 	again := &countedMeasure{}
-	ctx, cancel := context.WithCancel(context.Background())
+	cancellable, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	got, err := CachedMeasureFile(evidence.NewCacheStore(project), project, again.measure)(ctx, path, Options{Progress: func(int64, int64) { cancel() }})
+	ctx := &betweenBlocks{Context: cancellable, then: cancel}
+	got, err := CachedMeasureFile(evidence.NewCacheStore(project), project, again.measure)(ctx, path, Options{})
 
+	// A hash that ran to its end would have matched and answered the stored measurement.
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("err = %v, want context.Canceled", err)
 	}
@@ -248,28 +272,88 @@ func TestCachedMeasureFileStopsHashingWhenCancelledAndAnswersNothing(t *testing.
 	}
 }
 
-func TestFingerprintFileWithProgressNeverReportsPastTheSizeItOpenedAt(t *testing.T) {
-	path, raw := bigFile(t)
-	var log progressLog
-	grown := false
-	_, err := fingerprintFile(context.Background(), path, func(done, total int64) {
-		log.record(done, total)
-		if grown {
-			return
-		}
-		grown = true
-		file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
+// The edit lands in the block already hashed, so the hash still matches the stored one: only the file's size and
+// modified time, read again after the hash as MeasureFile reads them, show that the hash is of a file that moved.
+func TestCachedMeasureFileDoesNotAnswerAStoredMeasurementForAFileThatChangedWhileItWasHashed(t *testing.T) {
+	project := t.TempDir()
+	path, _ := bigFile(t)
+	before := storedMeasurement(t, project, path)
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	edited := false
+	ctx := &betweenBlocks{Context: context.Background(), then: func() {
+		file, err := os.OpenFile(path, os.O_WRONLY, 0)
 		if err != nil {
 			t.Error(err)
 			return
 		}
-		_, _ = file.Write(make([]byte, 4096))
-		_ = file.Close()
-	})
-	if err != nil {
+		defer func() { _ = file.Close() }()
+		if _, err := file.WriteAt([]byte{0x7F}, 500_001); err != nil {
+			t.Error(err)
+		}
+		later := info.ModTime().Add(time.Minute)
+		if err := os.Chtimes(path, later, later); err != nil {
+			t.Error(err)
+		}
+		edited = true
+	}}
+	again := &countedMeasure{}
+	got, err := CachedMeasureFile(evidence.NewCacheStore(project), project, again.measure)(ctx, path, Options{})
+
+	if !edited {
+		t.Fatal("the file was not edited while it was hashed, so this test proves nothing")
+	}
+	if !errors.Is(err, ErrFileChanged) {
+		t.Fatalf("answer = %+v, %v; want ErrFileChanged", got, err)
+	}
+	if again.calls != 0 || !reflect.DeepEqual(got, FileMeasurement{}) {
+		t.Fatalf("%d compute calls, answer %+v; want nothing measured or answered for a file that is still moving", again.calls, got)
+	}
+
+	// Once the file is still, the edit is measured and replaces the stored measurement.
+	after := mustMeasure(t, CachedMeasureFile(evidence.NewCacheStore(project), project, again.measure), path, Options{})
+	if again.calls != 1 || after.Fingerprint.SHA256 == before.Fingerprint.SHA256 {
+		t.Fatalf("%d compute calls, hash %s; want the edited file measured once", again.calls, after.Fingerprint.SHA256)
+	}
+}
+
+// The entry's key holds the file's path relative to the project, so a project folder that is moved or copied keeps
+// its stored measurements.
+func TestCachedMeasureFileAnswersAStoredMeasurementInACopyOfTheProject(t *testing.T) {
+	original, copied := t.TempDir(), t.TempDir()
+	const name = "Chapter 01.wav"
+	if err := os.WriteFile(filepath.Join(original, name), encodeWAV(t, 1, 8000, 16, false, longMono(8000)), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	log.check(t, int64(len(raw)))
+	want := storedMeasurement(t, original, filepath.Join(original, name))
+	if err := os.CopyFS(copied, os.DirFS(original)); err != nil {
+		t.Fatal(err)
+	}
+
+	again := &countedMeasure{}
+	path := filepath.Join(copied, name)
+	got := mustMeasure(t, CachedMeasureFile(evidence.NewCacheStore(copied), copied, again.measure), path, Options{})
+
+	if again.calls != 0 {
+		t.Fatalf("compute was called %d times in a copy of the project, want 0", again.calls)
+	}
+	if got.Report.File != path || got.Fingerprint.SHA256 != want.Fingerprint.SHA256 || !reflect.DeepEqual(got.Report.RMSdBFS, want.Report.RMSdBFS) {
+		t.Fatalf("answer in the copy = %+v, want the stored figures under %q", got, path)
+	}
+}
+
+// An entry is filed under AnalyzerVersion, so a version that changes what a value means stops reading the entries
+// made before it ("an entry of another analyzer version" above is such an entry).
+func TestMeasurementCacheKeyCarriesTheAnalyzerVersion(t *testing.T) {
+	project := t.TempDir()
+	path := writeTemp(t, "chapter.wav", encodeWAV(t, 1, 8000, 16, false, longMono(8000)))
+	key := keyOf(t, path, project)
+	if key.AnalyzerID != "measure.file" || key.AnalyzerVersion != strconv.Itoa(AnalyzerVersion) {
+		t.Fatalf("key = %s version %s, want measure.file version %d", key.AnalyzerID, key.AnalyzerVersion, AnalyzerVersion)
+	}
 }
 
 func TestCachedMeasureFileDoesNotStoreAnMP3WhoseLevelsWereNotDecoded(t *testing.T) {

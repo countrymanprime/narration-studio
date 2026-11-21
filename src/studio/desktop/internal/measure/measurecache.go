@@ -3,6 +3,7 @@ package measure
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 
 	"desktop/internal/evidence"
@@ -16,6 +17,10 @@ import (
 // entry: it cannot see an edit made in place elsewhere in a file of the same length, and neither can the size and
 // the modification time, which a copy can restore. So every read hashes the whole file, which costs about 2% of
 // measuring it (0.24 to 0.43 s against 17 to 20 s for an hour of audio).
+//
+// Two limits. An entry whose SHA-256 matches the file is trusted: the cache is the app's own file inside the
+// project, and nothing checks who wrote it. And a stored MP3 measurement with levels is answered whatever decoder
+// is installed now, since the decoder is not part of the key.
 
 const (
 	// measurementAnalyzerID identifies this file's entries in the evidence cache (evidence.CacheEntryKey); their
@@ -39,14 +44,17 @@ type measurementBlob struct {
 // relative to the project for a file inside it (evidence.Identify). A nil store answers compute unchanged.
 //
 // A served measurement names the path it was asked for and the file's modification time as it is now; every other
-// value is the stored one. While the file is hashed for the check, opts.Progress is told the bytes read and
-// cancelling ctx answers ctx's error. An entry that is missing, undecodable, of another version or of other content
-// is measured again and written over.
+// value is the stored one. The check hashes the file without telling opts.Progress (it takes under half a second
+// per hour of audio), so progress never runs to the end and then starts again when the hash differs and the file
+// is measured. Cancelling ctx stops the hash and answers ctx's error, and a file whose size or modification time
+// moved while it was hashed answers ErrFileChanged, as MeasureFile does, and never the stored measurement. An
+// entry that is missing, undecodable, of another version or of other content is measured again and written over.
 //
 // Three answers are never stored: a range's (opts.Range), an error (ErrFileChanged included), and an MP3's that
 // carries no levels, whether for want of a decoder ("not checked") or because the decode failed ("not measurable"):
-// either can be the decoder's doing and not the file's, and would otherwise stay after the decoder is put right. No option is part of the key: Range is never stored, Progress changes nothing, and
-// a Decoder only adds the levels a stored MP3 measurement already has.
+// either can be the decoder's doing and not the file's, and would otherwise stay after the decoder is put right. No
+// option is part of the key: Range is never stored, Progress changes nothing, and a Decoder only adds the levels a
+// stored MP3 measurement already has.
 func CachedMeasureFile(store *evidence.CacheStore, projectFolder string, compute func(context.Context, string, Options) (FileMeasurement, error)) func(context.Context, string, Options) (FileMeasurement, error) {
 	if store == nil {
 		return compute
@@ -62,14 +70,14 @@ func CachedMeasureFile(store *evidence.CacheStore, projectFolder string, compute
 		}
 		key := measurementCacheKey(identity)
 		if stored, ok := readMeasurement(store, key, identity.Size); ok {
-			current, err := fingerprintFile(ctx, path, opts.Progress)
-			if ctxErr := ctx.Err(); ctxErr != nil {
-				return FileMeasurement{}, ctxErr
-			}
-			if err == nil && current.SHA256 == stored.Fingerprint.SHA256 {
+			current, err := fingerprintFile(ctx, path)
+			switch {
+			case err == nil && current.SHA256 == stored.Fingerprint.SHA256:
 				stored.Report.File = path
 				stored.Fingerprint.ModifiedAt = current.ModifiedAt
 				return stored, nil
+			case errors.Is(err, ErrFileChanged), err != nil && ctx.Err() != nil:
+				return FileMeasurement{}, err
 			}
 		}
 		measured, err := compute(ctx, path, opts)

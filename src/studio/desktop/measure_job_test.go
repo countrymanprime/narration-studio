@@ -519,3 +519,40 @@ func TestMeasureAnalyzeAnswersAStoredMeasurementAfterARestart(t *testing.T) {
 		t.Fatalf("the job from stored measurements =\n%s\nwant the measured job\n%s", got, want)
 	}
 }
+
+// With no project open there is no project to keep a measurement in: every job measures, and nothing is written
+// where the app happens to run.
+func TestMeasureAnalyzeWithNoProjectOpenMeasuresEveryTimeAndStoresNothing(t *testing.T) {
+	renders, working := t.TempDir(), t.TempDir()
+	tone := filepath.Join(renders, "Chapter 01.wav")
+	writeToneWAV(t, tone)
+	t.Chdir(working)
+	run := func() int {
+		host, _ := measureHost(t, tone)
+		host.config.projectFolder = ""
+		spy := &countingMeasure{}
+		host.measureFile = spy.measure
+		if _, err := host.startMeasure(pickAll(t, host)); err != nil {
+			t.Fatal(err)
+		}
+		if job := waitForMeasurement(t, host); job.Phase != "success" || job.Files[0].Report == nil {
+			t.Fatalf("job = %+v", job)
+		}
+		return spy.count()
+	}
+
+	if first, second := run(), run(); first != 1 || second != 1 {
+		t.Fatalf("measure calls = %d, then %d; want 1 each time with no project open", first, second)
+	}
+	for _, dir := range []string{working, renders} {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range entries {
+			if entry.Name() != filepath.Base(tone) {
+				t.Fatalf("measuring with no project open wrote %s", filepath.Join(dir, entry.Name()))
+			}
+		}
+	}
+}

@@ -34,15 +34,16 @@ type FileMeasurement struct {
 	Fingerprint Fingerprint `json:"fingerprint"`
 }
 
-// FingerprintFile reads the whole file at path, read-only, and fingerprints it.
+// FingerprintFile reads the whole file at path, read-only, and fingerprints it. A file whose size or modified time
+// moved while it was read answers ErrFileChanged.
 func FingerprintFile(path string) (Fingerprint, error) {
-	return fingerprintFile(context.Background(), path, nil)
+	return fingerprintFile(context.Background(), path)
 }
 
-// fingerprintFile is FingerprintFile for a caller that can be cancelled and shows progress: it checks ctx before
-// every drainBlockBytes of the file and then tells progress the bytes hashed so far, as a measurement does.
-func fingerprintFile(ctx context.Context, path string, progress Progress) (Fingerprint, error) {
-	file, info, err := openForReading(path)
+// fingerprintFile is FingerprintFile for a caller that can be cancelled: it checks ctx before every drainBlockBytes
+// of the file, and a cancelled ctx answers ctx's error.
+func fingerprintFile(ctx context.Context, path string) (Fingerprint, error) {
+	file, before, err := openForReading(path)
 	if err != nil {
 		return Fingerprint{}, err
 	}
@@ -50,18 +51,16 @@ func fingerprintFile(ctx context.Context, path string, progress Progress) (Finge
 
 	digest := sha256.New()
 	counted := &countingReader{r: io.TeeReader(file, digest)}
-	var tick func()
-	if progress != nil {
-		// A file that grew while it was hashed never reports more than the size it was opened at.
-		tick = func() { progress(min(counted.n, info.Size()), info.Size()) }
-	}
-	if err := drain(ctx, counted, tick); err != nil {
+	if err := drain(ctx, counted); err != nil {
 		if ctx.Err() != nil {
 			return Fingerprint{}, err
 		}
 		return Fingerprint{}, fmt.Errorf("%s: %w", path, err)
 	}
-	return fingerprintOf(info, digest), nil
+	if err := unchangedSince(before, path, counted.n); err != nil {
+		return Fingerprint{}, err
+	}
+	return fingerprintOf(before, digest), nil
 }
 
 // MeasureFile measures the WAV file at path (or opts.Range of it) and fingerprints it in the same pass. A file that
@@ -95,18 +94,27 @@ func MeasureFile(ctx context.Context, path string, opts Options) (FileMeasuremen
 			return FileMeasurement{}, err
 		}
 	}
-	if err := drain(ctx, counted, nil); err != nil {
+	if err := drain(ctx, counted); err != nil {
 		return FileMeasurement{}, err
 	}
-	after, err := os.Stat(path)
-	if err != nil {
+	if err := unchangedSince(before, path, counted.n); err != nil {
 		return FileMeasurement{}, err
-	}
-	if counted.n != before.Size() || after.Size() != before.Size() || !after.ModTime().Equal(before.ModTime()) {
-		return FileMeasurement{}, ErrFileChanged
 	}
 	report.File = path
 	return FileMeasurement{Report: report, Fingerprint: fingerprintOf(before, digest)}, nil
+}
+
+// unchangedSince answers ErrFileChanged when the file at path is no longer the file before describes, read bytes
+// long: its size or modified time moved, or another number of bytes was read from it.
+func unchangedSince(before os.FileInfo, path string, read int64) error {
+	after, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if read != before.Size() || after.Size() != before.Size() || !after.ModTime().Equal(before.ModTime()) {
+		return ErrFileChanged
+	}
+	return nil
 }
 
 func openForReading(path string) (*os.File, os.FileInfo, error) {
@@ -135,17 +143,13 @@ func fingerprintOf(info os.FileInfo, digest hash.Hash) Fingerprint {
 }
 
 // drain reads r to its end in blocks of drainBlockBytes, so the hash behind it covers the whole file: what a
-// measurement did not need, or all of a file that is only fingerprinted. It checks ctx before every block and calls
-// tick, when set, after it.
-func drain(ctx context.Context, r io.Reader, tick func()) error {
+// measurement did not need, or all of a file that is only fingerprinted. It checks ctx before every block.
+func drain(ctx context.Context, r io.Reader) error {
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		n, err := io.CopyN(io.Discard, r, drainBlockBytes)
-		if tick != nil {
-			tick()
-		}
 		if errors.Is(err, io.EOF) || (err == nil && n < drainBlockBytes) {
 			return nil
 		}
