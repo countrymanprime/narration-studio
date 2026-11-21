@@ -1178,6 +1178,20 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'project', { max_missing_run: '7' });
   });
 
+  it('does not send a number its own box refuses: Save says why it waits and the host is not asked', async () => {
+    const saveSettings = vi.fn(createMockApi().saveSettings);
+    renderApp({ saveSettings });
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
+    const rules = await openKeptPanel('stt.rules', 'Recording check');
+
+    // The share of a paragraph is 0 to 1: 5 is marked by the box, and Save does not offer to send it.
+    fireEvent.change(await within(rules).findByRole('textbox', { name: 'Share of each paragraph that must be read' }), { target: { value: '5' } });
+    const save = await within(rules).findByRole('button', { name: 'Save' });
+    expect(save.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(save);
+    expect(saveSettings).not.toHaveBeenCalled();
+  });
+
   it('offers the recording check settings at their defaults and saves a changed threshold', async () => {
     const store = createMockApi();
     const saveSettings = vi.fn(store.saveSettings);

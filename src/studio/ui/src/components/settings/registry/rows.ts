@@ -357,7 +357,6 @@ export const ROWS: readonly SettingMeta[] = [
     desc: 'The colours a compare run marks a finding with.',
     more: 'The colours of the markers a Proof compare run puts on misread, skipped and extra words. Chosen when starting a compare run; set here they are the computer’s values, and a project may use its own.',
     used: ['proof'],
-    also: 'Proof › Compare options',
     syn: 'misread skipped extra colour color compare marker',
   },
   {

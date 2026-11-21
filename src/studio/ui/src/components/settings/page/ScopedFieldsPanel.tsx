@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
 import { type Notify, retryAction } from '../../primitives/Toast';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
+import { numberProblem } from '../numberSetting';
 import { ScopedSetting } from '../ScopedSetting';
 import { useScopedFields, useSettingsForms } from '../data/settingsForms';
 
@@ -34,6 +35,16 @@ function changedValues(fields: readonly ScopedSettingField[], values: Record<str
   return Object.fromEntries(
     fields.filter((field) => isChanged(field, values[field.key] ?? field.value)).map((field) => [field.key, saved(field, values[field.key] ?? '')]),
   );
+}
+
+/** The first number the form holds that its own range refuses (the box marks it): Save does not send it, and the narrator is told why. */
+function firstNumberProblem(fields: readonly ScopedSettingField[], values: Record<string, string>): string | undefined {
+  for (const field of fields) {
+    if (field.kind !== 'number' || !field.number) continue;
+    const problem = numberProblem(field.number, values[field.key] ?? field.value);
+    if (problem) return `${field.label}: ${problem}`;
+  }
+  return undefined;
 }
 
 const sameValues = (one: Record<string, string>, other: Record<string, string>) =>
@@ -109,6 +120,7 @@ export function ScopedFieldsPanel({
     [read, filter, tool],
   );
   const [values, setValues] = useState<Record<string, string>>({});
+  const saveProblem = firstNumberProblem(fields, values);
   const [dirty, setDirtyState] = useState(false);
   // The flag as of now, not as of the last render: an edit typed before this panel copied a fresh read into the form
   // runs ahead of that render's effect, which must then leave the edit alone.
@@ -126,6 +138,8 @@ export function ScopedFieldsPanel({
 
   // The form as the last render drew it. A save reads it when it starts and again when it ends, and the save that waited for another starts
   // before the next render: a closure's copy would be the form as it was when the narrator pressed Save.
+  const fieldsNow = useRef(fields);
+  fieldsNow.current = fields;
   const form = useRef({ read, values, scope });
   form.current = { read, values, scope };
   // What the host took in saves answered since `over` was read. A save that waited for another starts before the new read is drawn, and
@@ -142,6 +156,8 @@ export function ScopedFieldsPanel({
     const { read: readNow, values: sent, scope: sentScope } = form.current;
     const send = async (): Promise<boolean> => {
       if (!tool || !readNow) return true;
+      // A number its own box refuses is not sent: the form keeps it, marked, and Save says why it waits.
+      if (firstNumberProblem(fieldsNow.current, sent)) return false;
       try {
         const changed = changedValues(heldByHost(readNow, taken.current), sent);
         // An edit that was put back leaves nothing to save: the host is not asked, and "Unsaved changes" clears.
@@ -276,7 +292,7 @@ export function ScopedFieldsPanel({
                   <Button variant="secondary" type="button" onClick={() => void discard()}>
                     Discard changes
                   </Button>
-                  <Button variant="primary" type="submit">
+                  <Button variant="primary" type="submit" disabledReason={saveProblem}>
                     Save
                   </Button>
                 </div>
