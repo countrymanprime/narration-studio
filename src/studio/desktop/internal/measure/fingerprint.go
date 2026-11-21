@@ -36,6 +36,12 @@ type FileMeasurement struct {
 
 // FingerprintFile reads the whole file at path, read-only, and fingerprints it.
 func FingerprintFile(path string) (Fingerprint, error) {
+	return fingerprintFile(context.Background(), path, nil)
+}
+
+// fingerprintFile is FingerprintFile for a caller that can be cancelled and shows progress: it checks ctx before
+// every drainBlockBytes of the file and then tells progress the bytes hashed so far, as a measurement does.
+func fingerprintFile(ctx context.Context, path string, progress Progress) (Fingerprint, error) {
 	file, info, err := openForReading(path)
 	if err != nil {
 		return Fingerprint{}, err
@@ -43,7 +49,16 @@ func FingerprintFile(path string) (Fingerprint, error) {
 	defer func() { _ = file.Close() }() // read-only
 
 	digest := sha256.New()
-	if _, err := io.Copy(digest, file); err != nil {
+	counted := &countingReader{r: io.TeeReader(file, digest)}
+	var tick func()
+	if progress != nil {
+		// A file that grew while it was hashed never reports more than the size it was opened at.
+		tick = func() { progress(min(counted.n, info.Size()), info.Size()) }
+	}
+	if err := drain(ctx, counted, tick); err != nil {
+		if ctx.Err() != nil {
+			return Fingerprint{}, err
+		}
 		return Fingerprint{}, fmt.Errorf("%s: %w", path, err)
 	}
 	return fingerprintOf(info, digest), nil
@@ -80,7 +95,7 @@ func MeasureFile(ctx context.Context, path string, opts Options) (FileMeasuremen
 			return FileMeasurement{}, err
 		}
 	}
-	if err := drain(ctx, counted); err != nil {
+	if err := drain(ctx, counted, nil); err != nil {
 		return FileMeasurement{}, err
 	}
 	after, err := os.Stat(path)
@@ -119,13 +134,18 @@ func fingerprintOf(info os.FileInfo, digest hash.Hash) Fingerprint {
 	}
 }
 
-// drain reads what the measurement did not need, so the hash covers the whole file.
-func drain(ctx context.Context, r io.Reader) error {
+// drain reads r to its end in blocks of drainBlockBytes, so the hash behind it covers the whole file: what a
+// measurement did not need, or all of a file that is only fingerprinted. It checks ctx before every block and calls
+// tick, when set, after it.
+func drain(ctx context.Context, r io.Reader, tick func()) error {
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		n, err := io.CopyN(io.Discard, r, drainBlockBytes)
+		if tick != nil {
+			tick()
+		}
 		if errors.Is(err, io.EOF) || (err == nil && n < drainBlockBytes) {
 			return nil
 		}
