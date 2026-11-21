@@ -290,6 +290,8 @@ const mockChapters = (['loading', 'fails', 'reread-hangs'] as const).find((seed)
 const mockChapterRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockChapterRead'));
 // `?mockProfileRead=fails` makes the read of the delivery profiles fail, so Master & QC says so and offers Retry.
 const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockProfileRead'));
+// `?mockCuesRead=fails` makes the read of the dialogue cues a reader draws fail, so Script says so and offers Retry.
+const mockCuesRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockCuesRead'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails', 'odd-chunk'] as const).find((seed) => seed === mockParams.get('mockSettings'));
@@ -568,6 +570,7 @@ const mockInitial = {
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
+  ...(mockCuesRead ? { cuesRead: mockCuesRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockOpenFolder ? { openFolder: mockOpenFolder } : {}),

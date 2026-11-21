@@ -389,3 +389,23 @@ func TestIdentityCacheHitsOnAMachineNotOnUTC(t *testing.T) {
 		t.Fatalf("%d reads in two asks in a +05:30 zone, want 1", cache.Reads())
 	}
 }
+
+// The cache is bounded: a new file at the limit takes the place of another, and a file already held does not evict.
+func TestIdentityCacheDropsAnEntryForANewFileAtItsLimit(t *testing.T) {
+	folder := t.TempDir()
+	cache := IdentityCache{limit: 2}
+	for _, name := range []string{"a.wav", "b.wav", "b.wav", "c.wav"} {
+		path := filepath.Join(folder, name)
+		writeSourceFile(t, path, []byte(name))
+		ageFile(t, path)
+		if _, err := cache.Refresh(path, folder); err != nil {
+			t.Fatal(err)
+		}
+		if name == "b.wav" && len(cache.entries) != 2 {
+			t.Fatalf("after b.wav the cache holds %d entries, want 2 (a file already held evicts nothing)", len(cache.entries))
+		}
+	}
+	if _, held := cache.entries[entryKey(filepath.Join(folder, "c.wav"), folder)]; !held || len(cache.entries) != 2 {
+		t.Fatalf("after a third file the cache holds %d entries (the new one: %v), want 2 with the new one", len(cache.entries), held)
+	}
+}
