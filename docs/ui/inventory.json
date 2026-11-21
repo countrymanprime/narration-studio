@@ -2324,7 +2324,8 @@
       "stories": [
         "Ranked",
         "Empty",
-        "Timer Running"
+        "Timer Running",
+        "Almost Recorded"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
@@ -2650,7 +2651,8 @@
         "Finished",
         "Nothing Recorded",
         "Long Chapter Name",
-        "With Credits"
+        "With Credits",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
@@ -3636,7 +3638,8 @@
       "stories": [
         "Mid Way",
         "Finished",
-        "Nothing Recorded"
+        "Nothing Recorded",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
@@ -3689,7 +3692,8 @@
         "Info",
         "Long Label Wraps",
         "With Icon",
-        "Compact"
+        "Compact",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/primitives/ActivityPanel.tsx",
@@ -4046,7 +4050,8 @@
       "stories": [
         "Not Measured",
         "Measured Own Chosen",
-        "Measured Standard Chosen"
+        "Measured Standard Chosen",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/target/TargetInfoButton.tsx"
@@ -4580,7 +4585,8 @@
       "source": "src/components/production/overview/WeekCard.tsx",
       "stories": [
         "With Take Log",
-        "Nothing Measured"
+        "Nothing Measured",
+        "Under A Minute"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"

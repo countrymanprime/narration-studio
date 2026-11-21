@@ -8,8 +8,8 @@ type Group = 0 | 1 | 2 | 3;
 
 /** What the page knows that Next up can list. An input is null when its source has nothing to say, and then its item is absent. */
 export type NextUpInputs = {
-  /** The chapter being recorded: the first whose status is `recording`. `share` is the measured fraction recorded, null when not measured. */
-  recording: { chapterId: string; stage: ChapterStatus; name: string; words: number; share: number | null } | null;
+  /** The chapter being recorded: the first whose status is `recording`. `share` is the measured fraction recorded and `percent` the percent every page shows for it (`recordedPercent`), both null when not measured. */
+  recording: { chapterId: string; stage: ChapterStatus; name: string; words: number; share: number | null; percent: number | null } | null;
   /** The open pickup lines, project-wide, and the names of the chapters they are in. */
   pickups: { lines: number; chapters: readonly string[] } | null;
   /** The first chapter that fails the delivery check, and what failed. */
@@ -28,6 +28,7 @@ export type NextItem =
       chapterStage: ChapterStatus;
       name: string;
       share: number | null;
+      percent: number | null;
       hoursLeft: number | null;
     }
   | { kind: 'pick'; group: Group; stage: number; risk: number; lines: number; chapters: readonly string[] }
@@ -51,6 +52,7 @@ export function rankNextUp(inputs: NextUpInputs): NextItem[] {
       chapterStage: rec.stage,
       name: rec.name,
       share: rec.share,
+      percent: rec.percent,
       hoursLeft: rec.share === null ? null : finishedLeft,
     });
   }
