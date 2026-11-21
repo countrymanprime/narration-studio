@@ -1,11 +1,10 @@
-//go:build !windows
-
 package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
-	"syscall"
+	"runtime"
 	"testing"
 	"time"
 
@@ -15,10 +14,13 @@ import (
 // A path that is a device or a pipe is refused: the parsers open by path, and would read a device without end or wait for a
 // writer to a pipe. The reader is not asked.
 func TestAProjectPathThatIsADeviceOrAPipeIsRefused(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("no /dev/zero or mkfifo")
+	}
 	for _, name := range []string{"Book.rpp", audacity.SnapshotFile} {
 		for kind, build := range map[string]func(path string) error{
 			"a link to a device": func(path string) error { return os.Symlink("/dev/zero", path) },
-			"a named pipe":       func(path string) error { return syscall.Mkfifo(path, 0o600) },
+			"a named pipe":       func(path string) error { return exec.Command("mkfifo", path).Run() },
 		} {
 			t.Run(name+" is "+kind, func(t *testing.T) {
 				savedProjects.reset()
