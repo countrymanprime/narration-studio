@@ -220,10 +220,24 @@ export function useBoothPage(options: BoothPageOptions) {
   const ghostAt = ghostHeard && unitAtPosition(paragraphs, units, ghostHeard);
   const ghost: ReadingPosition | undefined = (ghostAt && positionOf(paragraphs, units, ghostAt)) ?? undefined;
   const [browse, setBrowse] = useState(false);
-  const [punchAt, setPunchAt] = useState<number | null>(null);
+  // The chosen start and the place the reading was moved to are mirrored in refs, so a Record pressed in the same task as the move (a pedal or a macro)
+  // reads them before React has rendered the move.
+  type Phrase = number | null;
+  const punchRef = useRef<Phrase>(null);
+  const movedRef = useRef<Phrase>(null);
+  const [punchAt, setPunchAtState] = useState<Phrase>(null);
+  const setPunchAt = useCallback((next: Phrase | ((chosen: Phrase) => Phrase)) => {
+    const value = typeof next === 'function' ? next(punchRef.current) : next;
+    punchRef.current = value;
+    setPunchAtState(value);
+  }, []);
   // Where the narrator moved the reading before a take (#3858): the take starts there, as it does at a chosen start, but nothing is drawn for it
   // (the reading's own cursor is the mark). Cleared when the reading goes back to the resume point, when a take ends and with a chosen start.
-  const [movedTo, setMovedTo] = useState<number | null>(null);
+  const [movedTo, setMovedToState] = useState<Phrase>(null);
+  const setMovedTo = useCallback((value: Phrase) => {
+    movedRef.current = value;
+    setMovedToState(value);
+  }, []);
   const text = useTextChoices();
   const { setSize } = text;
   const view = useRef<BrowseView>(null);
@@ -261,6 +275,10 @@ export function useBoothPage(options: BoothPageOptions) {
   // The press of Record, for a message's Retry that is said before the press itself is defined.
   const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
+  // A take under way has used it: from then on the voice owns the cursor, and R rolls from a start shown by Mark the start here or the current word.
+  useEffect(() => {
+    if (recording) setMovedTo(null);
+  }, [recording, setMovedTo]);
   // The take's length is the wall clock's (`useTakeClock`): a question that holds the reading never holds the clock, the DAW records on.
   const takeClock = useTakeClock(recording);
   const { seconds } = takeClock;
@@ -403,7 +421,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // with the cursor as its only mark.
     if (from.placeOnly) setMovedTo(unit.cur);
     else setPunchAt(unit.cur);
-  }, [from, paragraphs, units]);
+  }, [from, paragraphs, units, setMovedTo, setPunchAt]);
 
   // The next listening session starts at the reading position (docs/guides/using-the-app/booth.md#where-you-stopped: a choice only sets where Start begins).
   const startWord = position && !listening ? scriptWordAt(spans, paragraphs, position) : null;
@@ -700,6 +718,7 @@ export function useBoothPage(options: BoothPageOptions) {
       phraseCount: units.length,
       phrase: at.cur,
       punchAt: punchAt ?? movedTo,
+      chosen: () => punchRef.current ?? movedRef.current,
       paragraphOf: (phrase) => bodyParagraphIndex(paragraphs, units[phrase]?.paragraphIndex ?? 0),
       punchTarget: (phrase) => {
         // The words of the phrase (a sentence) in its paragraph: where the host finds them in the last recording check.
@@ -856,7 +875,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
       moveTo(next);
     },
-    [moveBlocked, moveTo],
+    [moveBlocked, moveTo, setMovedTo, setPunchAt],
   );
   const chooseResume = useCallback(
     (target: ResumeTarget) => {
@@ -1044,7 +1063,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen, recorderLabel]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen, recorderLabel, setMovedTo, setPunchAt]);
   // This page's own state at this moment decides (a take recording here, no session following it, no press of its own after the reporting one), and a
   // session still starting or stopping is waited out: the effect runs again when it settles. A report about a take this page never shows is forgotten.
   const { active: sessionActive } = session;

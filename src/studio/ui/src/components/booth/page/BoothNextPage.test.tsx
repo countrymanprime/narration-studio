@@ -3574,6 +3574,36 @@ describe('a move of the reading chooses the start, and Record starts there (#385
     expect(nextRoll()).toBeTruthy();
   });
 
+  it('a move and Record in the same task (a pedal, a macro) still look the moved-to place up', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ api: { boothPunchTarget, boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
+    await ready();
+    boothPunchTarget.mockClear();
+    await act(async () => {
+      skipStartGuard();
+      fireEvent.click(document.querySelector('[data-unit="1"] [data-word="2"]')!);
+      fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+  });
+
+  it('R during a take rolls from the word the voice is on, never from the place clicked before the take', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ api: { boothPunchTarget, boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
+    await ready();
+    await userEvent.click(document.querySelector('[data-unit="1"] [data-word="2"]')!);
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    boothPunchTarget.mockClear();
+    await press('r', 'KeyR');
+    await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
+    // The roll goes to the reading's own phrase; the earlier click is spent when the take starts, so no lookup is made for it.
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+    expect(nextRoll()).toBeNull();
+  });
+
   describe('invariant: after any move, no mark names a phrase the reading is not on (the cursor is the start)', () => {
     const moves: [string, () => Promise<void>][] = [
       ['ArrowUp', async () => press('ArrowUp')],

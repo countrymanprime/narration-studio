@@ -266,10 +266,34 @@ describe('where Record starts, by entry and by how much of the chapter is record
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 
+  it('a complete chapter opened at the place it was left: that place counts as chosen, so Record looks it up', async () => {
+    window.localStorage.setItem('narration.booth.chapterPlaces./proj', JSON.stringify({ c1: { paragraphId: 'p3', word: 3, at: 1 } }));
+    const { api, boothPunchTarget } = punchApi({ c1: through({ complete: true, percent: 100 }) });
+    renderPage({ api });
+    await waitFor(() => expect(document.body.textContent).toContain('She turned and walked away.'));
+    await waitFor(() => expect(reading()).not.toBe('Chapter'));
+    await settle();
+    boothPunchTarget.mockClear();
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('a complete chapter never left anywhere opens at the top: Record starts there with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through({ complete: true, percent: 100 }) });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('Chapter'));
+    await settle();
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
   it('a link to a line (Record from here) wins over the recording: Record looks that line up', async () => {
     const { api, boothPunchTarget } = punchApi({ c1: through() });
     renderPage({ search: '?chapter=c1&para=p3&at=9', api });
     await waitFor(() => expect(reading()).not.toBe('said'));
+    await settle();
+    // Opening at the line moves the DAW to where it was recorded (its own lookup); Record then looks the same place up once more.
+    boothPunchTarget.mockClear();
     await record();
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
   });

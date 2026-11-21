@@ -26,6 +26,8 @@ export type RollSession = {
   phrase: number;
   /** The phrase chosen with Mark the start here, or null. */
   punchAt: number | null;
+  /** The chosen start read right now, for a press that comes in the same task as the move that chose it (before the page has rendered it). */
+  chosen?: () => number | null;
   /** The paragraph (0-based) a phrase belongs to. */
   paragraphOf: (phrase: number) => number;
   /** Where the phrase was recorded before (the host reads it from the recording check and the DAW's items), on which track. */
@@ -243,7 +245,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const punchAndRoll = useCallback(async () => {
     const s = sessionRef.current;
     if (!s.recording) return startTakeRef.current();
-    return rollFrom(s.punchAt ?? s.phrase);
+    return rollFrom((s.chosen ? s.chosen() : s.punchAt) ?? s.phrase);
   }, [rollFrom]);
 
   /**
@@ -321,7 +323,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const startTake = useCallback(
     async (from?: number) => {
       const s = sessionRef.current;
-      const at = from ?? s.punchAt;
+      const at = from ?? (s.chosen ? s.chosen() : s.punchAt);
       if (at == null || at >= s.phraseCount) {
         // A plain press is a press too: it joins another plain press (Space again), and a Mark the start here meanwhile is refused.
         if (s.recording) return actionsRef.current.beginTake();
