@@ -31,7 +31,7 @@ export function createQuietWindow(ms: number = QUIET_MS): QuietWindow {
 
 /** A window for the life of one mount. */
 export function useQuietWindow(ms: number = QUIET_MS): QuietWindow {
-  const window = useRef<QuietWindow | null>(null);
-  window.current ??= createQuietWindow(ms);
-  return window.current;
+  const held = useRef<QuietWindow | null>(null);
+  held.current ??= createQuietWindow(ms);
+  return held.current;
 }
