@@ -18,6 +18,7 @@ exclude_docs: |
   research/mockups/master-to-spec-entry/
   research/mockups/approval-fx-chain/
   research/mockups/settings-parity/
+  research/mockups/booth-one-start/
 site_dir: build/site
 strict: true
 
