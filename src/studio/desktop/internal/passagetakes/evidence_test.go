@@ -293,13 +293,15 @@ func setModified(t *testing.T, path string, when time.Time) {
 }
 
 // overwriteByte changes one byte of path in place, keeping its size.
-func overwriteByte(t *testing.T, path string, offset int64) {
+func overwriteByte(t *testing.T, path string, offset int64) { writeByteAt(t, path, offset, 9) }
+
+func writeByteAt(t *testing.T, path string, offset int64, b byte) {
 	t.Helper()
 	file, err := os.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := file.WriteAt([]byte{9}, offset); err != nil {
+	if _, err := file.WriteAt([]byte{b}, offset); err != nil {
 		t.Fatal(err)
 	}
 	if err := file.Close(); err != nil {
@@ -749,17 +751,60 @@ func TestAnEntryOfANewerBuildIsAMissAndStays(t *testing.T) {
 }
 
 func TestTheTakesOfOneRecordingHashItOnce(t *testing.T) {
-	project, calls, hashes := t.TempDir(), 0, 0
+	project, calls, hashed := t.TempDir(), 0, 0
 	r := source(t, t.TempDir())
 	cache := counted(project, &calls)
-	cache.hash = func(path string) (string, error) { hashes++; return sha256File(path) }
+	cache.hash = func(path string) (string, error) { hashed++; return sha256File(path) }
+	memo := hashes{}
 	for i := range 3 {
 		ask := r
 		ask.Start = float64(i)
-		cache.Get(ask)
+		cache.get(ask, memo)
 	}
-	if hashes != 1 || calls != 3 {
-		t.Fatalf("%d hashes and %d measurements over three ranges of one file, want 1 and 3", hashes, calls)
+	// Three misses hash the file once to look and once again before each store: the look is shared.
+	if lookups := hashed - 3; lookups != 1 || calls != 3 {
+		t.Fatalf("%d lookup hashes and %d measurements over three ranges of one file, want 1 and 3", lookups, calls)
+	}
+}
+
+// A cache that is asked again, outside one Evidence call, hashes again: an edit in place that kept the size and time is seen.
+func TestAFileEditedInPlaceUnderALongLivedCacheIsMeasuredAgain(t *testing.T) {
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	cache := counted(project, &calls)
+	cache.Get(r)
+	overwriteByte(t, r.File, unsampledOffset)
+	setModified(t, r.File, sourceTime)
+	if got := pauseOf(t, cache.Get(r)); got != 2 || calls != 2 {
+		t.Fatalf("after the edit: measurement %v of %d, want the second", got, calls)
+	}
+}
+
+// A file edited while it is measured, then put back, must not leave the edited content's figures under the original's sum.
+func TestAnEntryMeasuredWhileTheFileChangedUnsampledIsNotStored(t *testing.T) {
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	cache := NewMeasureCache(func(Range) (TakeMeasure, bool) {
+		calls++
+		writeByteAt(t, r.File, unsampledOffset, 9)
+		setModified(t, r.File, sourceTime)
+		return measuredAs(float64(calls)), true
+	}, evidence.NewCacheStore(project), project)
+	cache.Get(r)
+	writeByteAt(t, r.File, unsampledOffset, 7) // put back
+	setModified(t, r.File, sourceTime)
+	if got := pauseOf(t, counted(project, &calls).Get(r)); got != 2 || calls != 2 {
+		t.Fatalf("figures of the edited content were answered for the original: measurement %v of %d, want a new one", got, calls)
+	}
+}
+
+func TestARelativeProjectFolderWritesNothing(t *testing.T) {
+	cwd := t.TempDir()
+	t.Chdir(cwd)
+	r := source(t, t.TempDir())
+	NewMeasureCache(func(Range) (TakeMeasure, bool) { return measuredAs(1), true }, evidence.NewCacheStore("proj"), "proj").Get(r)
+	if entries, err := os.ReadDir(cwd); err != nil || len(entries) != 0 {
+		t.Fatalf("the working directory holds %v (%v), want nothing", entries, err)
 	}
 }
 
