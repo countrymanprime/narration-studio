@@ -175,3 +175,62 @@ def list_edits_change_the_revision(env: Env) -> str:
         f"{r['edit']}: {'changed' if r['changed'] else 'same'}" + (f", heartbeat {r['seconds_from_edit']} s after the edit" if "seconds_from_edit" in r else "")
         for r in rows
     )
+
+
+# The edits an undo and a redo can be pressed on: the ones ROWS lists as changing the list, minus the delete, whose undo needs REAPER to restore a track.
+UNDO_ROWS = [row for row in ROWS if row[1] and row[0] != "delete a track"]
+
+
+@scenario(
+    "tracks_read",
+    "tracks_read",
+    "track list revision (#3880): an undo puts the revision back to what it was and a redo moves it again, each carried by a heartbeat sent at "
+    "once; an edit outside an undo block is in a heartbeat within the interval",
+)
+def revision_follows_undo_redo_and_unblocked_edits(env: Env) -> str:
+    rows = []
+    failed = []
+    for name, _lists, body in UNDO_ROWS:
+        env.lua(ARRANGE)
+        before = revision_read(env)
+        heartbeat_carries(env, before, timeout=5.0)
+        edit = body.replace("return {}", "")
+        env.lua(f"reaper.Undo_BeginBlock2(0) {edit} reaper.Undo_EndBlock2(0, 'revision undo row', -1) return true")
+        after = revision_read(env)
+        heartbeat_carries(env, after, timeout=5.0)
+        env.lua("reaper.Undo_DoUndo2(0) return true")
+        started = time.monotonic()
+        undone = revision_read(env)
+        undo_seconds = round(heartbeat_carries(env, undone, timeout=5.0) + (time.monotonic() - started), 3)
+        env.lua("reaper.Undo_DoRedo2(0) return true")
+        started = time.monotonic()
+        redone = revision_read(env)
+        redo_seconds = round(heartbeat_carries(env, redone, timeout=5.0) + (time.monotonic() - started), 3)
+        row = {
+            "edit": name,
+            "before": before,
+            "after": after,
+            "undone": undone,
+            "redone": redone,
+            "undo_seconds": undo_seconds,
+            "redo_seconds": redo_seconds,
+        }
+        rows.append(row)
+        if after == before or undone != before or redone != after:
+            failed.append(name)
+    # A script's edit outside any undo block: the change counter may not move, so it is the next heartbeat (interval 1.5 s) that carries it.
+    env.lua(ARRANGE)
+    before = revision_read(env)
+    heartbeat_carries(env, before, timeout=5.0)
+    env.lua("reaper.GetSetMediaTrackInfo_String(ci.track_by_name('Voice A'), 'P_NAME', 'Renamed outside a block', true) return true")
+    after = revision_read(env)
+    seconds = round(heartbeat_carries(env, after, timeout=5.0), 3)
+    rows.append({"edit": "rename outside an undo block", "before": before, "after": after, "heartbeat_seconds": seconds})
+    if after == before:
+        failed.append("rename outside an undo block")
+    write(env, "revision_undo_rows", rows)
+    assert not failed, f"track list revision rows that did not hold: {failed}; rows {rows}"
+    return "; ".join(
+        f"{r['edit']}: " + (f"undo {r['undo_seconds']} s, redo {r['redo_seconds']} s" if "undo_seconds" in r else f"heartbeat {r['heartbeat_seconds']} s")
+        for r in rows
+    )

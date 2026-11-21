@@ -13,11 +13,12 @@ import {
   chapterFoldersSchema,
   trackSelectResultSchema,
 } from '../schemas/chapterTrackMap';
-import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from '../schemas/tracks';
+import { tracksChangedSchema, tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from '../schemas/tracks';
 
 export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'tracks-project.json': tracksProjectSchema,
   'tracks-project-folders.json': tracksProjectSchema,
+  'daw-tracks-changed.json': tracksChangedSchema,
   'tracks-live-live.json': tracksLiveSchema,
   'tracks-live-saved.json': tracksLiveSchema,
   'tracks-discovery-none.json': tracksDiscoverySchema,

@@ -744,6 +744,34 @@ describe('useBoothLeaveGuard', () => {
       expect(t.go).toHaveBeenCalledWith('/script');
     });
 
+    // #3846's review: a start still out is waited for LEAVE_WAIT_MS, not the stop's longer limit, and what is out is judged when the wait begins.
+    it('a pending start that never lands is refused after LEAVE_WAIT_MS, and a start that landed during the question waits as a stop does', async () => {
+      const yes = async (over: Partial<BoothLeaveSession>, landedMeanwhile: boolean) => {
+        vi.useFakeTimers();
+        const t = setup({ startPending: true, settle: never, ...over });
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        if (landedMeanwhile) t.hook.rerender({ ...t.session, recording: true, startPending: false });
+        await flush();
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LEAVE_WAIT_MS - 100);
+        });
+        expect(t.dialog()).toBeUndefined();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(200);
+        });
+        return t;
+      };
+      expect((await yes({}, false)).dialog()?.spec.title).toBe('Could not stop the take');
+      const landed = await yes({}, true);
+      expect(landed.dialog(), 'a stop is waited for as long as the stop itself').toBeUndefined();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LEAVE_STOP_WAIT_MS - LEAVE_WAIT_MS);
+      });
+      expect(landed.dialog()?.spec.title).toBe('Could not stop the take');
+    });
+
     it('a start that never lands ends the same way', async () => {
       const t = await yesAndWait({ settle: never });
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
@@ -1089,6 +1117,20 @@ describe('useBoothLeaveGuard', () => {
       await act(() => done);
       expect(stopRecording).toHaveBeenCalledTimes(1);
       expect(go).toHaveBeenCalledWith('/proof');
+    });
+
+    // #3846 A2: the start landed while the question was open, so a settle that says "no take" is a quiet DAW, not a start that never began.
+    it('a start that landed during the question is stopped even when the DAW then reads quiet', async () => {
+      const { stopRecording, go, hook, session, dialog } = setup({ startPending: true, settle: async () => false });
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.leave('/proof', go);
+      });
+      hook.rerender({ ...session, recording: true, startPending: false });
+      await waitFor(() => expect(dialog()?.spec.title).toBe('Stop recording?'));
+      act(() => dialog()!.answer(true));
+      await act(() => done);
+      expect(stopRecording).toHaveBeenCalledTimes(1);
     });
   });
 });

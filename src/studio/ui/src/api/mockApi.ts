@@ -212,6 +212,7 @@ export function createMockApi(
     peekCoverage: (chapterId) => peekCoverage(chapterId),
     dawRecording: () => dawControl.recording(),
   });
+  dawControl.addTrackInDaw = chapterTracks.addTrackInDaw;
   const merges = createMergeEvents();
   // The local model's settings as the host reads them: this computer's value only, never a project's.
   const guideSetting = (key: string) => settings.settings.global.ManuscriptGuide?.find((item) => item.key === key)?.effectiveValue ?? '';

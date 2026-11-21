@@ -38,7 +38,8 @@ import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable } from './ChapterLinksTable';
-import { CREATE_QUIET_MS, resetChapterTrackCreateGuard, useChapterLinks } from './useChapterLinks';
+import { QUIET_MS } from '../../quietWindow';
+import { resetChapterTrackCreateGuard, useChapterLinks } from './useChapterLinks';
 import { VoiceLayoutContext } from './voiceLayout';
 import type { LiveTracks } from './useLiveTracks';
 import { ApiProvider } from '../../api/ApiContext';
@@ -49,7 +50,7 @@ import { headingName } from '../../chapterHeading';
 import { chapterName } from '../../chapterName';
 import type { NarrationApi, Track, VoiceTracksLayout } from '../../types';
 
-// The quiet after a create (CREATE_QUIET_MS) is passed on a fake clock, not waited for.
+// The quiet after a create (QUIET_MS) is passed on a fake clock, not waited for.
 beforeEach(() => void vi.useFakeTimers({ shouldAdvanceTime: true }));
 afterEach(() => {
   cleanup();
@@ -143,7 +144,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-const pastQuiet = () => act(() => vi.advanceTimersByTimeAsync(CREATE_QUIET_MS + 30));
+const pastQuiet = () => act(() => vi.advanceTimersByTimeAsync(QUIET_MS + 30));
 
 describe('ChapterLinksTable: create a track for a chapter with no link', () => {
   it('puts one create button on each unlinked row, and none on a linked or missing-track row', async () => {
@@ -366,7 +367,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await user.click(next);
     expect(create).toHaveBeenCalledTimes(1);
     const now = Date.now();
-    vi.spyOn(Date, 'now').mockReturnValue(now + CREATE_QUIET_MS + 1);
+    vi.spyOn(Date, 'now').mockReturnValue(now + QUIET_MS + 1);
     await user.click(next);
     expect(create).toHaveBeenCalledTimes(2);
   });
