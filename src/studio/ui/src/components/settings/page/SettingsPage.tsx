@@ -35,6 +35,7 @@ import { PaneTitle } from './PaneTitle';
 import { Results } from './Results';
 import { settingsPageItems } from './pageItems';
 import { useDeepLink } from './useDeepLink';
+import { PANEL_ROWS } from '../registry/panelFields';
 
 export type SettingsPageProps = {
   data: Bootstrap;
@@ -130,7 +131,12 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     [store, flagged],
   );
   const inProject = useCallback(
-    (row: SettingMeta): boolean => (row.scope === 'project' && !row.field) || overrideValue(row, store.fieldsOf(row).project) !== undefined,
+    (row: SettingMeta): boolean => {
+      // A panel row has no field of its own: it is in this project when the project layer holds a value for one of the fields it draws.
+      const panel = PANEL_ROWS[row.id];
+      if (panel && store.settings.project?.[panel.tool]?.some((field) => field.isSet && panel.wanted(field.key))) return true;
+      return (row.scope === 'project' && !row.field) || overrideValue(row, store.fieldsOf(row).project) !== undefined;
+    },
     [store],
   );
   const passes = useCallback(

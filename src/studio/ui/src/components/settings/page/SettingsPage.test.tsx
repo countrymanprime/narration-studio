@@ -496,6 +496,17 @@ describe('Settings: row layout', () => {
   });
 });
 
+describe('Settings: the In this project filter and panel rows', () => {
+  it('lists a panel row whose project layer holds a value, and leaves one that holds none (found by the qa-breaker)', async () => {
+    const api = createMockApi();
+    await api.saveSettings('Cleanup', 'project', { min_breath_seconds: '0.3' });
+    await renderPage({ api });
+    fireEvent.click(await screen.findByRole('button', { name: 'In this project' }));
+    await waitFor(() => expect(screen.getByText('Silence cleanup thresholds')).toBeTruthy());
+    expect(screen.queryByText('Preview suggestion')).toBeNull();
+  });
+});
+
 describe('Settings: editing', () => {
   it('applies at once, says Saved, marks the row Changed and offers Reset', async () => {
     const api = createMockApi();
