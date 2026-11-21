@@ -42,7 +42,33 @@ const BARE: Array<[string, RegExp]> = [
   ['a bare seconds compared with 0 or 1', new RegExp(`\\bseconds\\b\\s*${COMPARE}\\s*[01]\\b|\\b[01]\\s*${COMPARE}\\s*seconds\\b`)],
 ];
 
+const flagged = (line: string, patterns = [...PATTERNS, ...BARE]): string[] =>
+  patterns.filter(([why, pattern]) => pattern.test(line) && !(why.startsWith('summed') && line.includes('audibleSeconds('))).map(([why]) => why);
+
 describe('one threshold for audio on the track', () => {
+  it('flags each spelling it claims to catch, and not the helpers', () => {
+    for (const line of [
+      'if (chapter.recordedSeconds > 0) {',
+      'if (0 < chapter.recordedSeconds) {',
+      'if ((chapter.recordedSeconds ?? 0) > 0) {',
+      'if (c.measuredSeconds === 0) {',
+      'if (!chapter.recordedSeconds) {',
+      'const has = chapter.recordedSeconds && true;',
+      'const has = Boolean(chapter.recordedSeconds);',
+      'const total = chapters.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0);',
+      'const total = sum(chapters.map((c) => c.measuredSeconds));',
+    ])
+      expect(flagged(line), line).not.toEqual([]);
+    for (const line of ['if (seconds >= 1) {', 'if (1 > seconds) {']) expect(flagged(line, BARE), line).not.toEqual([]);
+    for (const line of [
+      'if (hasAudio(chapter.recordedSeconds)) {',
+      'const s = audibleSeconds(chapter.recordedSeconds);',
+      'const total = chapters.reduce((a, c) => a + audibleSeconds(c.recordedSeconds), 0);',
+      'const clock = format(chapter.recordedSeconds);',
+    ])
+      expect(flagged(line), line).toEqual([]);
+  });
+
   it('compares no recorded length with 0 or 1, or tests it for truthiness, outside the allow-list', () => {
     const root = __dirname;
     const paths = [
@@ -60,8 +86,7 @@ describe('one threshold for audio on the track', () => {
         .forEach((line, index) => {
           const text = line.trim();
           if (text.startsWith('//') || text.startsWith('*') || text.startsWith('/*') || `${rel.split('/').pop()}:${text}` in ALLOWED) return;
-          for (const [why, pattern] of patterns)
-            if (pattern.test(line) && !(why.startsWith('summed') && line.includes('audibleSeconds('))) offenders.push(`${rel}:${index + 1}: ${why}: ${text}`);
+          for (const why of flagged(line, patterns)) offenders.push(`${rel}:${index + 1}: ${why}: ${text}`);
         });
     }
     expect(offenders).toEqual([]);
