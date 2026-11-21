@@ -457,9 +457,9 @@ jobs:
     # go-test (rest); the shards keep that split of the Go packages (scripts/ci/coverage-gate.mjs --group) and share the other steps
     # between them by time.
     #   - Shard 1: go test (root), the module's root package with the race detector (the `ci-root` configuration of the test target), then
-    #     go lint (gofmt, go vet, golangci-lint and checklocks, the `ci` configuration of the lint target; here because it needs the
-    #     Windows build tags); then go test-schedules (the teleprompter and shutdown tests on one and on four CPUs: an ordering bug between
-    #     goroutines that hides on the default scheduler fails there on demand); then reaper (Lua), the bridge harness under Lua 5.4 on
+    #     go test-schedules (the teleprompter and shutdown tests on one and on four CPUs: an ordering bug between goroutines that hides on
+    #     the default scheduler fails there on demand), then go lint (gofmt, go vet, golangci-lint and checklocks, the `ci` configuration
+    #     of the lint target; here because it needs the Windows build tags); then reaper (Lua), the bridge harness under Lua 5.4 on
     #     Windows, because the bridge builds paths from package.config and REAPER's own Lua writes CRLF. A pull request runs the harness's
     #     `pr` configuration (the characterization tests, about a minute) here and in Test (Linux quick); every other run (main-health, a
     #     manual run) and post-merge.yml run the mutation checks on both. Those two steps were on shard 2, which then ran 17.4 min against
