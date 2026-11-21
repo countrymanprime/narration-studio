@@ -11,6 +11,7 @@ package editing
 import (
 	"fmt"
 
+	"desktop/internal/evidence"
 	"desktop/internal/findings"
 	"desktop/internal/measure"
 )
@@ -218,7 +219,7 @@ func EmptySpaceEvidenceVersion(candidate EmptySpaceCandidate) string {
 			parts = append(parts, string(part.Kind), formatFloat(part.Length))
 		}
 	}
-	return hashParts(parts...)
+	return evidence.HashParts(parts...)
 }
 
 // ClassCandidateFinding builds one silence_cleanup finding for a click or
@@ -260,7 +261,7 @@ func ClassCandidateFinding(documentID, chapterID, chapterTitle string, item Item
 		evidenceMap["speech_level_dbfs"] = *cleanup.SpeechLeveldBFS
 	}
 	confidence := candidate.Confidence
-	evidenceVersion := hashParts(class, item.File, formatFloat(sourceStart), formatFloat(sourceEnd))
+	evidenceVersion := evidence.HashParts(class, item.File, formatFloat(sourceStart), formatFloat(sourceEnd))
 	finding := findings.Finding{
 		SchemaVersion: findings.SchemaVersion,
 		Analyzer:      analyzerName,
