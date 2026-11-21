@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Track, TrackItem, TracksDiscovery, TracksLive, TracksProject } from '../contracts/tracks';
+import type { Track, TrackItem, TracksChanged, TracksDiscovery, TracksLive, TracksProject } from '../contracts/tracks';
 import { listFromNull } from './base';
 
 const trackItemSchema = z.object({
@@ -30,13 +30,20 @@ const trackSchema = z.object({
 
 export const tracksProjectSchema = z.object({ path: z.string(), tracks: listFromNull(trackSchema) }) satisfies z.ZodType<TracksProject>;
 
+/** The bridge script's 16 hex digits (narration_tracks_read.lua), or '' for none known. */
+const tracksRevisionSchema = z.string().regex(/^([0-9a-f]{16})?$/);
+
 export const tracksLiveSchema = z.object({
   source: z.enum(['live', 'saved']),
   reason: z.enum(['', 'standalone', 'not_running', 'unsupported', 'other_project', 'outdated', 'too_many', 'failed']),
   message: z.string(),
   readAt: z.string(),
   project: tracksProjectSchema,
+  revision: tracksRevisionSchema,
 }) satisfies z.ZodType<TracksLive>;
+
+/** daw_tracks_changed. */
+export const tracksChangedSchema = z.strictObject({ revision: tracksRevisionSchema }) satisfies z.ZodType<TracksChanged>;
 
 /** No REAPER project file found is a null list on the wire; `selected` is empty while the choice is still to be made. */
 export const tracksDiscoverySchema = z.object({ candidates: listFromNull(z.string()), selected: z.string() }) satisfies z.ZodType<TracksDiscovery>;

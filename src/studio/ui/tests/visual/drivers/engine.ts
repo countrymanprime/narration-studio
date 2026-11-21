@@ -225,7 +225,7 @@ export const engineDrivers: Record<string, Driver> = {
     await firstRow.getByRole('button', { name: /^Use this (track|folder) for/ }).click();
     const change = firstRow.getByRole('button', { name: 'Change the track' });
     await change.waitFor();
-    // A press right after the swap is ignored (CREATE_QUIET_MS), as a narrator's would be if it were a double click.
+    // A press right after the swap is ignored (QUIET_MS), as a narrator's would be if it were a double click.
     await page.waitForTimeout(700);
     await change.click();
     await firstRow.getByRole('button', { name: /^Check the link for/ }).waitFor();

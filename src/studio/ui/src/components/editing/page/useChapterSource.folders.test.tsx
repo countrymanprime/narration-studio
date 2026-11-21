@@ -54,7 +54,7 @@ function read(tracks: Track[], linked: string | null) {
       documentId: 'doc',
       mappings: linked === null ? [] : [{ trackGuid: linked, chapterId: 'c1', chapterTitle: 'One', confirmedAt: '' }],
     }),
-    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', project: project }),
+    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', revision: '', project: project }),
     workspaceAlignment: async () => unheard(),
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
