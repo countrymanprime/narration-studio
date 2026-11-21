@@ -131,7 +131,7 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             </IconButton>
           </TooltipTarget>
         )}
-        <span className="inline-flex flex-wrap items-center gap-2">
+        <>
           <IconButton
             action="checkAgain"
             size="sm"
@@ -139,9 +139,9 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             disabled={busy !== undefined && busy !== 'check'}
             onClick={() => void run('check', async () => void ((await check()) ? markChecked() : setFailedAt(Date.now())))}
           />
-          {/* A failure shown beside the stamp would read as a good check followed by noise, so the stamp waits for the next good read. */}
+          {/* The stamp is a sibling of the button, not its group: when it does not fit it wraps alone and the button stays under the pointer. A failure shown beside the stamp would read as a good check followed by noise, so the stamp waits for the next good read. */}
           <CheckedStamp at={error || (checkedAt ?? 0) <= failedAt ? null : checkedAt} reads={reads} />
-        </span>
+        </>
       </div>
       {(problem ?? error) && (
         <p role="alert" className="[overflow-wrap:anywhere] text-[var(--danger-text)]">

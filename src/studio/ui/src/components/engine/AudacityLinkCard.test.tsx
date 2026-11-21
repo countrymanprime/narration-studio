@@ -142,6 +142,16 @@ describe('AudacityLinkCard states', () => {
     expect(text).not.toMatch(/: $|undefined|\[object Object\]/);
   });
 
+  it('the Check again button and its stamp are separate children of the row, so the stamp wrapping never moves the button', async () => {
+    const user = userEvent.setup();
+    renderCard({ module: 'on' });
+    const button = await screen.findByRole('button', { name: 'Check again' });
+    await user.click(button);
+    const stamp = await screen.findByText(/^Checked \d/);
+    expect(stamp.parentElement!.contains(button)).toBe(true);
+    expect(stamp.parentElement!.className).not.toContain('inline-flex');
+  });
+
   it('says when it last asked even while Audacity is not running (the host answers that too)', async () => {
     const user = userEvent.setup();
     renderCard({ module: 'on' });
