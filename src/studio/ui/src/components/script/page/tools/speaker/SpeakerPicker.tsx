@@ -2,11 +2,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Listbox, listboxOptionId, type ListboxOption } from '../../../../primitives/Listbox';
 import { Swatch, type SwatchColour } from '../../../../primitives/Swatch';
 import { TextField } from '../../../../primitives/TextField';
+import { suggestionReasonLine } from '../../../../manuscript/dialogueCues.selectors';
 import type { Phrase } from '../../data/script.selectors';
 import { searchSpeakers, speakerColourIndexOf, type SpeakerChoice } from './speakerChoices';
 
 // Who says this phrase (the mock's `SpeakerPicker`): a search box, this chapter's speakers first and everyone when searching, a
-// swatch per name, the entry beneath each name, and "Confirm “X”" first for a suggestion. There is no Narrator row. It is the
+// swatch per name, the entry beneath each name, and "Confirm “X”" first for a suggestion, with the local model's reason beneath it
+// when the suggestion is the model's. There is no Narrator row. It is the
 // popover's content: the page opens it at a click or under a chip and puts focus back there on `onClose`.
 
 type Row = { id: string; entryId: string; option: ListboxOption };
@@ -21,7 +23,7 @@ export function SpeakerPicker({
   onClose,
 }: {
   /** The phrase being attributed: who is suggested or confirmed for it. */
-  phrase: Pick<Phrase, 'speaker' | 'state'>;
+  phrase: Pick<Phrase, 'speaker' | 'state' | 'reason'>;
   /** This chapter's speakers, listed while the search is empty. */
   inChapter: readonly SpeakerChoice[];
   /** Every speaker, searched when something is typed. */
@@ -39,11 +41,22 @@ export function SpeakerPicker({
   const term = search.trim();
   const { speaker, state } = phrase;
   const rows: Row[] = [];
+  const reason = phrase.reason?.trim() ? suggestionReasonLine(phrase.reason.trim()) : undefined;
   if (!term && speaker && state === 'suggested') {
     rows.push({
       id: `confirm:${speaker.id}`,
       entryId: speaker.id,
-      option: { id: `confirm:${speaker.id}`, label: `Confirm “${speaker.canonical_name}”`, leading: swatch(speakerColourIndexOf(speaker)) },
+      option: {
+        id: `confirm:${speaker.id}`,
+        label: `Confirm “${speaker.canonical_name}”`,
+        // Three lines at most, so the speakers below stay in view; the whole sentence is in the tooltip.
+        description: reason && (
+          <span className="line-clamp-3" title={reason}>
+            {reason}
+          </span>
+        ),
+        leading: swatch(speakerColourIndexOf(speaker)),
+      },
     });
   }
   const confirmed = state === 'confirmed' ? speaker?.id : undefined;
@@ -64,8 +77,9 @@ export function SpeakerPicker({
 
   return (
     // In a popover the window has cut short, the picker is as tall as the room inside it (the popover's height less its padding and border), so the
-    // list below scrolls and the popover does not: one scroller, and the search box stays in view (#3258).
-    <div className="flex max-h-[calc(var(--available-height)_-_2rem_-_2px)] w-[280px] max-w-full flex-col gap-1.5">
+    // list below scrolls and the popover does not: one scroller, and the search box stays in view (#3258). It is 280 to 360 px wide, or the
+    // popover's own width where a narrow window leaves less.
+    <div className="flex max-h-[calc(var(--available-height)_-_2rem_-_2px)] max-w-[min(360px,100%)] min-w-[min(280px,100%)] flex-col gap-1.5 [overflow-wrap:anywhere]">
       <TextField
         ref={field}
         label="Search speakers"

@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import { REPOSITORY_ROOT } from './brand.mjs';
-import { steps } from './rehearse-rename.mjs';
+import { startBeside, steps } from './rehearse-rename.mjs';
 
 const labels = (full) => steps(REPOSITORY_ROOT, full).map(([label]) => label);
 
@@ -41,4 +44,27 @@ test('the UI brand tests are found, so the UI step is never an empty Vitest run 
   const files = ui[2].slice(3);
   assert.ok(files.length > 0, 'no UI test imports the generated brand module');
   for (const file of files) assert.match(file, /^src\/.*\.test\.tsx?$/);
+});
+
+test('a check started beside the others reports its result and prints its whole output in its group', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'rehearsal-beside-'));
+  const printed = [];
+  const run = (script) => startBeside(['a check', 'node', ['-e', script]], root, join(root, 'check.log'), (text) => printed.push(text))();
+  assert.equal(await run("console.log('said'); console.error('warned')"), true);
+  assert.equal(printed[0], '\n::group::a check\nsaid\nwarned\n::endgroup::');
+  assert.equal(await run("console.log('broke'); process.exit(3)"), false);
+  assert.match(printed[1], /broke/);
+  assert.equal(existsSync(join(root, 'check.log')), false);
+});
+
+test('a check that cannot start has failed', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'rehearsal-beside-'));
+  assert.equal(await startBeside(['a check', 'no-such-command-here', []], root, join(root, 'check.log'), () => {})(), false);
+});
+
+test('a check started beside the others can be stopped, and then has failed', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'rehearsal-beside-'));
+  const check = startBeside(['a check', 'node', ['-e', 'setTimeout(() => {}, 60000)']], root, join(root, 'check.log'), () => {});
+  check.kill();
+  assert.equal(await check(), false);
 });

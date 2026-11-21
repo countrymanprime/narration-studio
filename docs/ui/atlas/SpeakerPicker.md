@@ -7,6 +7,7 @@ Storybook title: `Script/SpeakerPicker`. Source: `src/components/script/page/too
 ## Stories
 
 - Suggested
+- Suggested By The Local Model
 - Searching
 - Empty
 

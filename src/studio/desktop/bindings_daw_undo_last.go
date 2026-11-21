@@ -91,6 +91,8 @@ func undoLastRefusal(name string, err error) dawport.Result {
 		return refused
 	}
 	switch {
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return dawport.Refused(lateAnswerSentence(name))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperNotRunning).Message)
 	case errors.Is(err, bridge.ErrUnavailable):

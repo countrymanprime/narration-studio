@@ -104,15 +104,32 @@ func TestASlowLinkStillAnswersACommandThatMayRunLong(t *testing.T) {
 	}
 }
 
-// A command outside mayRunLong keeps the short wait, so on a link slower than that wait the host reports no answer and the command
-// still reaches the DAW afterwards: the simulator reproduces "it said it failed, then it happened".
-func TestASlowLinkOutlastsTheShortWaitAndTheCommandStillLands(t *testing.T) {
+// #3752: a command that changes the DAW is waited for on a link slower than the short wait, so the host never reports "no answer" for
+// a stop that then lands. The stop here reaches the DAW a second after the short wait ended, and its answer is the answer.
+func TestASlowLinkOutlastsTheShortWaitAndTheWriteIsStillAnswered(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"RECORD_STOPPED", run(command), "3", "1", "2"}}
+	})
+	actions.SetTimeout(20 * time.Millisecond)
+	client.SetSlowLink(SlowLink{Delay: time.Second})
+	if _, err := actions.RecordStop(context.Background()); err != nil {
+		t.Fatalf("a stop on a slow link: %v; want its answer", err)
+	}
+	if len(fake.commands()) != 1 {
+		t.Fatalf("the DAW read %d commands; want the one stop", len(fake.commands()))
+	}
+}
+
+// A read keeps the short wait: on a link slower than it the host reports no answer at once and the read still reaches the DAW afterwards,
+// where it changes nothing.
+func TestASlowLinkOutlastsTheShortWaitOfARead(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
 	actions.SetTimeout(20 * time.Millisecond)
 	client.SetSlowLink(SlowLink{Delay: time.Second})
-	if _, err := actions.SelectTrack(context.Background(), testTrack); !errors.Is(err, ErrNoAnswer) {
-		t.Fatalf("got %v; want ErrNoAnswer", err)
+	if _, err := actions.ChapterTrackState(context.Background(), testTrack); !errors.Is(err, ErrNoAnswer) || errors.Is(err, ErrAnswerLate) {
+		t.Fatalf("got %v; want plain ErrNoAnswer", err)
 	}
 	if len(fake.commands()) != 0 {
 		t.Fatal("the DAW read the command before the link released it")
