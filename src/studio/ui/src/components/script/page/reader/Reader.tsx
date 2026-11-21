@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type CSSProperties,
+  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
 } from 'react';
@@ -385,13 +386,16 @@ export function Reader(props: ReaderProps) {
     scrollToChapter(chapterId);
     held.current = { chapterId, offset: -8 };
   };
-  /** Where the first draw put the reader, held until the narrator scrolls or a request scrolls it. */
-  const held = useRef<{ chapterId: string; offset: number } | null>(null);
+  /** Where the first draw, a jump or End put the reader, held until the narrator scrolls or a request scrolls it. */
+  const held = useRef<{ chapterId: string; offset: number } | 'end' | null>(null);
   const hold = (): void => {
     const root = scroller.current;
     const place = held.current;
-    const bound = place && root?.querySelector<HTMLElement>(`[data-bound][data-ch="${place.chapterId}"]`);
-    if (root && place && bound && root.scrollTop !== Math.max(0, bound.offsetTop + place.offset)) root.scrollTop = Math.max(0, bound.offsetTop + place.offset);
+    if (!root || !place) return;
+    const bound = place === 'end' ? null : root.querySelector<HTMLElement>(`[data-bound][data-ch="${place.chapterId}"]`);
+    if (place !== 'end' && !bound) return;
+    const top = Math.max(0, place === 'end' ? root.scrollHeight - root.clientHeight : bound!.offsetTop + place.offset);
+    if (root.scrollTop !== top) root.scrollTop = top;
   };
   const release = (): void => {
     held.current = null;
@@ -416,6 +420,16 @@ export function Reader(props: ReaderProps) {
   /* A section drawn above that place after the first draw (the credits, read after the chapters) does not push it down: the reader
      stays there until the narrator moves it or a request scrolls it. */
   useLayoutEffect(hold);
+  /* The same when a size changes with no draw of the reader: the header grows a line and the reader loses that height, or a card fills in. */
+  useEffect(() => {
+    const root = scroller.current;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(hold);
+    observer.observe(root);
+    if (root.firstElementChild) observer.observe(root.firstElementChild);
+    return () => observer.disconnect();
+    // `hold` reads refs only, so the first one serves.
+  }, []);
 
   /* Later: honour each request to scroll once. A target outside the drawn text is drawn first and the request waits for it. */
   useLayoutEffect(() => {
@@ -502,6 +516,20 @@ export function Reader(props: ReaderProps) {
     }, SAVE_DELAY_MS);
   };
 
+  /* Home and End go to the true ends at once. The browser's own scroll aims at the end as it was when the key went down, and the far
+     chapters it passes are drawn at their real height on the way, so it stopped short of the closing credits (#3822). */
+  const onHomeEnd = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const root = scroller.current;
+    // A control inside the reader that uses the key itself (a text box, a menu) keeps it.
+    if (!root || event.defaultPrevented || (event.target as Element).closest('input, textarea, select, [contenteditable="true"]')) return;
+    event.preventDefault();
+    if (event.key === 'Home') root.scrollTop = 0;
+    else {
+      held.current = 'end';
+      hold();
+    }
+  };
+
   const onClick = (event: MouseEvent<HTMLDivElement>): void => {
     const target = event.target as Element;
     if (!target.closest('[data-bm]')) onTextClick?.();
@@ -529,6 +557,7 @@ export function Reader(props: ReaderProps) {
         onTouchStart={release}
         onKeyDownCapture={release}
         onKeyDown={(event) => {
+          if (event.key === 'Home' || event.key === 'End') return onHomeEnd(event);
           if (event.target !== event.currentTarget || (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')) return;
           const id = spy.get().chapterId ?? chapters[0]?.id;
           if (!id) return;

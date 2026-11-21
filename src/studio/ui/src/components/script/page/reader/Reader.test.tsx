@@ -429,6 +429,99 @@ describe('Find', () => {
   });
 });
 
+describe('Home and End', () => {
+  const many: ManuscriptChapter[] = Array.from({ length: 60 }, (_, i) => chapter(`k${i}`, i));
+  const card = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);
+  const long = (extra: Partial<Props> = {}) => (
+    <Reader
+      chapters={many}
+      paragraphsOf={() => []}
+      sources={sources}
+      renderChapterCard={card}
+      after={<div data-bound="" data-ch="credits:closing" />}
+      {...extra}
+    />
+  );
+  let height = 0;
+  const sized = (): HTMLElement => {
+    const root = scroller();
+    Object.defineProperty(root, 'scrollHeight', { configurable: true, get: () => height });
+    Object.defineProperty(root, 'clientHeight', { configurable: true, value: 400 });
+    return root;
+  };
+
+  // #3822: the browser's End aims at the end as it was at the key press; the far chapters drawn on the way made the book longer.
+  it('End goes to the end of the book and stays there while the chapters drawn there make the book longer', () => {
+    const { rerender } = render(long());
+    const root = sized();
+    height = 6500;
+    expect(fireEvent.keyDown(root, { key: 'End' })).toBe(false);
+    expect(scrolls.get(root)).toBe(6100);
+    // The scroll draws the last chapters, whose real height is more than the estimate.
+    fireEvent.scroll(root);
+    expect(document.querySelector('[data-bound][data-ch="k59"] [data-card]')).not.toBeNull();
+    height = 9000;
+    rerender(long());
+    expect(scrolls.get(root)).toBe(8600);
+    // The narrator's own scroll lets go of the end.
+    fireEvent.wheel(root);
+    scrollTo(8000);
+    height = 9500;
+    rerender(long());
+    expect(scrolls.get(root)).toBe(8000);
+  });
+
+  // The header gains a line under the closing credits and the reader loses that height, with no draw of the reader.
+  it('stays at the end when a size changes without a draw', () => {
+    const resized: ResizeObserverCallback[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          resized.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    render(long());
+    const root = sized();
+    height = 6500;
+    fireEvent.keyDown(root, { key: 'End' });
+    height = 6512;
+    resized.forEach((callback) => callback([], {} as ResizeObserver));
+    expect(scrolls.get(root)).toBe(6112);
+    vi.unstubAllGlobals();
+  });
+
+  it('Home goes to the top of the book', () => {
+    render(long({ initialChapterId: 'k30' }));
+    const root = sized();
+    expect(scrolls.get(root)).toBeGreaterThan(0);
+    expect(fireEvent.keyDown(root, { key: 'Home' })).toBe(false);
+    expect(scrolls.get(root)).toBe(0);
+  });
+
+  it('leaves Home and End to a text box inside the reader, and to a control that handled the key', () => {
+    render(
+      long({
+        before: (
+          <>
+            <input aria-label="Label" />
+            <button onKeyDown={(event) => event.preventDefault()}>Menu</button>
+          </>
+        ),
+      }),
+    );
+    const root = sized();
+    height = 6500;
+    const before = scrolls.get(root);
+    expect(fireEvent.keyDown(screen.getByLabelText('Label'), { key: 'End' })).toBe(true);
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Menu' }), { key: 'End' });
+    expect(scrolls.get(root)).toBe(before);
+  });
+});
+
 describe('a long book', () => {
   const CHAPTERS = 300;
   const PER_CHAPTER = 34;
