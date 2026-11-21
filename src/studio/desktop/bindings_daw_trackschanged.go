@@ -24,11 +24,15 @@ func (h *Host) pollDawTracksChanged() {
 		}
 	}
 	h.mu.Lock()
-	changed := !h.dawTracksSeen || revision != h.dawTracksRevision || (revision != "" && epoch != h.dawTracksEpoch)
-	h.dawTracksRevision, h.dawTracksEpoch, h.dawTracksSeen = revision, epoch, true
-	ctx := h.ctx
+	// Nothing is used up before the event can be sent (no context yet in a test), and a new tracker (another project) counts as a restart.
+	if h.ctx == nil {
+		h.mu.Unlock()
+		return
+	}
+	changed := !h.dawTracksSeen || revision != h.dawTracksRevision || (revision != "" && (epoch != h.dawTracksEpoch || svc.reachability != h.dawTracksFrom))
+	h.dawTracksRevision, h.dawTracksEpoch, h.dawTracksSeen, h.dawTracksFrom = revision, epoch, true, svc.reachability
 	h.mu.Unlock()
-	if changed && ctx != nil {
+	if changed {
 		emitEvent("daw_tracks_changed", dawTracksChanged{Revision: revision})
 	}
 }

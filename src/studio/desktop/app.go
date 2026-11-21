@@ -136,6 +136,9 @@ type Host struct {
 	dawTracksEpoch uint64
 	// +checklocks:mu
 	dawTracksSeen bool
+	// dawTracksFrom is the reachability tracker that revision came from: a project switch makes a new one, whose epoch starts again at 0.
+	// +checklocks:mu
+	dawTracksFrom dawport.Heartbeat
 	// dawUnsavedTracker is the edit-counter baseline DawProjectState's unsavedChanges is read against
 	// (bindings_daw_projectstate.go), fed on every transcriptLoop tick.
 	// +checklocks:mu

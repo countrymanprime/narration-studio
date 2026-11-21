@@ -7,6 +7,7 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
+	"desktop/internal/daw"
 )
 
 func TestDawTracksChangedGolden(t *testing.T) {
@@ -60,5 +61,69 @@ func TestDawTracksChangedIsSentOncePerRevision(t *testing.T) {
 	want := []string{"", "aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb", "", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", ""}
 	if !reflect.DeepEqual(sent, want) {
 		t.Fatalf("daw_tracks_changed must be sent once per change of revision, got %q want %q", sent, want)
+	}
+}
+
+func recordTracksChanged(t *testing.T) *[]string {
+	t.Helper()
+	var sent []string
+	emitEventSink = func(name string, data any) {
+		if name == "daw_tracks_changed" {
+			sent = append(sent, data.(dawTracksChanged).Revision)
+		}
+	}
+	t.Cleanup(func() { emitEventSink = nil })
+	return &sent
+}
+
+// A script that writes a revision in another form must not reach the page: its schema would refuse the event and the whole track list.
+func TestDawTracksChangedSendsNoneForARevisionThePageCannotRead(t *testing.T) {
+	host, reach := newTestHostWithHeartbeat(t)
+	host.ctx = context.Background()
+	sent := recordTracksChanged(t)
+	host.pollDawTracksChanged()
+	reach.Record(tracksBeat("ABCDEF0123456789"))
+	host.pollDawTracksChanged()
+	reach.Record(tracksBeat("xyz"))
+	host.pollDawTracksChanged()
+	if want := []string{""}; !reflect.DeepEqual(*sent, want) {
+		t.Fatalf("a revision the page cannot read is not known, so nothing changes after the first tick: got %q want %q", *sent, want)
+	}
+	for _, bad := range []string{"", "ABCDEF0123456789", "xyz", "00c3a1f29b7d4e5", "00c3a1f29b7d4e58a"} {
+		if wireRevision(bad) != "" {
+			t.Fatalf("wireRevision(%q) must be empty", bad)
+		}
+	}
+	if wireRevision("00c3a1f29b7d4e58") != "00c3a1f29b7d4e58" {
+		t.Fatal("a 16-digit lower-case hex revision passes")
+	}
+}
+
+// A tick before the host has a context sends nothing and does not use the change up.
+func TestDawTracksChangedIsNotUsedUpBeforeItCanBeSent(t *testing.T) {
+	host, reach := newTestHostWithHeartbeat(t)
+	sent := recordTracksChanged(t)
+	reach.Record(tracksBeat("aaaaaaaaaaaaaaaa"))
+	host.pollDawTracksChanged()
+	host.ctx = context.Background()
+	host.pollDawTracksChanged()
+	if want := []string{"aaaaaaaaaaaaaaaa"}; !reflect.DeepEqual(*sent, want) {
+		t.Fatalf("got %q want %q", *sent, want)
+	}
+}
+
+// Another studio project makes a new tracker whose epoch starts again at 0: the same revision at the same epoch is still sent again.
+func TestDawTracksChangedIsSentAgainForAnotherProjectsTracker(t *testing.T) {
+	host, reach := newTestHostWithHeartbeat(t)
+	host.ctx = context.Background()
+	sent := recordTracksChanged(t)
+	reach.Record(tracksBeat("aaaaaaaaaaaaaaaa"))
+	host.pollDawTracksChanged()
+	next := daw.NewReachability(nil)
+	next.Record(tracksBeat("aaaaaaaaaaaaaaaa"))
+	host.reachability = next
+	host.pollDawTracksChanged()
+	if want := []string{"aaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaa"}; !reflect.DeepEqual(*sent, want) {
+		t.Fatalf("got %q want %q", *sent, want)
 	}
 }

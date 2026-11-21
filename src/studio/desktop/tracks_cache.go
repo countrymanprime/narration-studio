@@ -237,9 +237,22 @@ func (l cachedTrackLister) revision() (string, bool) {
 // tracksRevisionOf is the track list's revision in heartbeat's last beat, or not known: no heartbeat, a stale one, or one that carries none.
 func tracksRevisionOf(heartbeat dawport.Heartbeat) (string, bool) {
 	if h, ok := heartbeat.(interface{ TracksRevision() (string, bool) }); ok {
-		return h.TracksRevision()
+		revision, known := h.TracksRevision()
+		if wireRevision(revision) == "" {
+			return "", false
+		}
+		return revision, known
 	}
 	return "", false
+}
+
+// wireRevision is revision when it is what the page's schema accepts (16 lower-case hex digits, what the script writes), else "": a script
+// that writes another form must cost the page its event, not the whole track list, which fails the schema with the revision in it.
+func wireRevision(revision string) string {
+	if len(revision) != 16 || strings.Trim(revision, "0123456789abcdef") != "" {
+		return ""
+	}
+	return revision
 }
 
 // epoch is the heartbeat's count of times the bridge may have started over (a gap, another project, a counter that went down), or 0 for a

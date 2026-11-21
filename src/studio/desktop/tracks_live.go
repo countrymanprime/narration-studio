@@ -126,7 +126,7 @@ type revisionLister struct {
 func (r *revisionLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, error) {
 	live, err := r.TrackLister.ReadTracks(ctx)
 	if err == nil {
-		r.revision = live.Revision
+		r.revision = wireRevision(live.Revision)
 	}
 	return live, err
 }
