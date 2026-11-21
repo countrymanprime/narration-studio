@@ -185,7 +185,7 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 
 ## The Booth's idle read: every 15 s against once a minute
 
-[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 2. While Record is ready and idle the record control read the DAW's capabilities, the link facts (`Bootstrap`), the project's play state and the chapter's track state (`ReadAloudReaperState`) every 15 s. When the shared track state follows REAPER's revision ([above](#the-track-list-a-5-s-poll-against-reapers-change-event)) another project or a track change arrives as `daw_tracks_changed`, which reads at once, and the timer is a 60 s backstop. A notice or a take keeps its 4 s timer; with no revision the idle timer stays 15 s. Same rig and method (`reads --runs 3`, medians, warm), four reads added to its list (`DawCapabilities`, `DawProjectState`, `ReadAloudReaperState(c-0001)`; `Bootstrap` was there). The rig has no DAW, so the three DAW reads answer that REAPER is not running: this is the host's work for a tick, not the round trip to a live REAPER.
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 2. While Record is ready and idle the record control read the DAW's capabilities, the link facts (`Bootstrap`), the project's play state and the chapter's track state (`ReadAloudReaperState`) every 15 s. When the shared track state follows REAPER's revision ([above](#the-track-list-a-5-s-poll-against-reapers-change-event)) another project or a track change arrives as `daw_tracks_changed`, which reads at once, and the timer is a 60 s backstop. A notice or a take keeps its 4 s timer; with no revision the idle timer stays 15 s. Same rig and method (`reads --runs 3`, medians, warm), three reads added to its list (`DawCapabilities`, `DawProjectState`, `ReadAloudReaperState(c-0001)`; `Bootstrap` was there). The rig has no DAW, so the three DAW reads answer that REAPER is not running: this is the host's work for a tick, not the round trip to a live REAPER.
 
 | Book | One tick, warm, ms (`Bootstrap` + capabilities + play state + `ReadAloudReaperState`) | Before, per minute (4 ticks) | After, idle, per minute (1 tick) | Per change |
 | --- | --- | --- | --- | --- |
@@ -196,7 +196,7 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 
 - Four times fewer ticks when idle at every size: 3 of 4 a minute not done, 200 ms a minute at 300 chapters. A tick's answers are 8.8 KB at every size, so the saving is the host's work and the bridge calls (four a tick), not bytes.
 - `ReadAloudReaperState` is the cost that grows (60 ms at 300 chapters, with no DAW: it reads the chapter's link and the manuscript); with a live REAPER it also reads the track state through the bridge, which this rig cannot time.
-- The slow timer is the only way the Booth learns that a track was armed or disarmed in REAPER while idle (no event carries it); Record's press checks again, so a stale "ready" is at most a minute old and never reaches a take. A take started in the DAW is heard from the transport at once, as before.
+- A track armed or disarmed in REAPER raises its change counter (the real-REAPER rows above: arm 24 to 25), so `daw_project_edited` carries it: the Booth reads on it at most every 4 s, many edits as one read, and the 60 s timer is only the backstop for a lost event. A take started in the DAW is heard from the transport at once, as before. The script's `record_start` refuses a wrong arming whatever the page showed.
 
 ## Not measured
 

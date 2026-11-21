@@ -243,6 +243,11 @@ export function useLiveTracks({
     };
   }, [enabled, read, tracks]);
 
+  // Switched off (the last watcher left): nothing hears the event any more, so the list does not claim to follow it when it is switched on again.
+  useEffect(() => {
+    if (!enabled) setState((previous) => (previous.following ? { ...previous, following: false } : previous));
+  }, [enabled]);
+
   const refresh = useCallback(() => void read(true, true), [read]);
   refreshRef.current = refresh;
   const recheck = useCallback(() => read(true, true), [read]);

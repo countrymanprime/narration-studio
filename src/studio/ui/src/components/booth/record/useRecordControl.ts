@@ -261,6 +261,7 @@ export function useRecordControl({
   const system = usePort('system');
   const teleprompter = usePort('teleprompter');
   const tracks = usePort('tracks');
+  const sync = usePort('dawTransportSync');
   const following = useChapterTrackState().live.following;
   const recorder = usePort('recording');
   const [capabilities, setCapabilities] = useState<DawCapabilities | null>(null);
@@ -584,27 +585,50 @@ export function useRecordControl({
   const refusedForChapter =
     takeElsewhere || (match?.chapterId === chapterId && (match.tracks === 'unlinked' || match.tracks === 'several' || match.tracks === 'missing'));
   const unready = !capabilities || !!capabilities.capabilities.record?.available === false || readFailed || refusedForChapter || link.open === 'different';
+  // What the DAW tells the Booth, held until the Booth is idle: a change of the track list (another project, a track added or removed: `daw_tracks_changed`) reads on the
+  // next second; an edit of the project (`daw_project_edited`, which rises when a track is armed or disarmed too) reads at most as often as the notice timer, since edits
+  // stream. An event heard during a take or a press is read when it ends, not lost.
+  const listChanged = useRef(false);
+  const projectEdited = useRef(false);
+  const followingRef = useRef(following);
+  followingRef.current = following;
   useEffect(() => {
-    const again = () => setReads((n) => n + 1);
+    let since = 0;
+    const again = () => {
+      since = 0;
+      listChanged.current = false;
+      projectEdited.current = false;
+      setReads((n) => n + 1);
+    };
     const onVisible = () => document.visibilityState === 'visible' && again();
     window.addEventListener('focus', again);
     document.addEventListener('visibilitychange', onVisible);
-    const timer = window.setInterval(again, unready || recording || projectFailed || undecided ? POLL_MS : following ? READY_FOLLOWING_POLL_MS : READY_POLL_MS);
+    // One tick a second counts toward the timer, so a change of its length (a read that fails, a notice) never restarts the count.
+    const timer = window.setInterval(() => {
+      since += 1000;
+      const quick = unready || recording || projectFailed || undecided;
+      const limit = quick ? POLL_MS : followingRef.current ? READY_FOLLOWING_POLL_MS : READY_POLL_MS;
+      const idle = !recordingRef.current && !busy.current;
+      if (since >= limit || (idle && (listChanged.current || (projectEdited.current && since >= POLL_MS)))) again();
+    }, 1000);
     return () => {
       window.removeEventListener('focus', again);
       document.removeEventListener('visibilitychange', onVisible);
-      if (timer !== undefined) window.clearInterval(timer);
+      window.clearInterval(timer);
     };
-  }, [unready, recording, projectFailed, undecided, following]);
-  // Another project opened in the DAW, or a track added or removed (`daw_tracks_changed`), is read at once while idle (a take the narrator starts in the DAW is
-  // already heard from the transport, below). Not during a take or a press, whose own events and timer the code below owns.
+  }, [unready, recording, projectFailed, undecided]);
   useEffect(() => {
-    const again = () => {
-      if (!recordingRef.current && !busy.current) setReads((n) => n + 1);
+    const offList = tracks.subscribeTracksChanged(() => {
+      listChanged.current = true;
+    });
+    const offEdited = sync.subscribeDawProjectEdited(() => {
+      projectEdited.current = true;
+    });
+    return () => {
+      offList();
+      offEdited();
     };
-    const offTracks = tracks.subscribeTracksChanged(again);
-    return offTracks;
-  }, [tracks]);
+  }, [tracks, sync]);
 
   // The take is heard to have ended (the narrator's stop in the DAW, a quiet DAW): said once the DAW is asked whether it answers. A stopped transport is
   // also what a DAW that went quiet leaves behind, and the heartbeat has not been missed yet: ask whether it answers now before the end is believed

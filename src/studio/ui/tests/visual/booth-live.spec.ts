@@ -274,6 +274,25 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(notice(page)).toHaveCount(0, { timeout: 12_000 });
   });
 
+  // #3880 slice 2: the host tells the page that another project was opened (daw_tracks_changed), so the idle Booth no longer waits for a timer.
+  test('another project opened while Record is ready and idle is refused within seconds, with no focus and no press', async ({ page }) => {
+    await toRecordReady(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+    await expect(differentNotice(page)).toBeVisible({ timeout: 4000 });
+    await expect(record(page)).toBeDisabled();
+  });
+
+  test('another project opened during a take that then ends in the DAW is refused within seconds of the end', async ({ page }) => {
+    await toRecordReady(page);
+    await record(page).click();
+    await expect(stop(page)).toBeVisible();
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+    await pastStartGuard(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.endTakeInDaw(1));
+    await expect(differentNotice(page)).toBeVisible({ timeout: 8000 });
+    await expect(record(page)).toBeDisabled();
+  });
+
   test('another project opened mid-take: the take goes on and the footer says what changed', async ({ page }) => {
     await toRecordReady(page);
     await record(page).click();

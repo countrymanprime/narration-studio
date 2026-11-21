@@ -213,6 +213,12 @@ export function createMockApi(
     dawRecording: () => dawControl.recording(),
   });
   dawControl.addTrackInDaw = chapterTracks.addTrackInDaw;
+  // Another project opened in the DAW is a change of its track list as the host tells it (the epoch moves): daw_tracks_changed, with the list as it is.
+  const openProjectInDaw = dawControl.openProject;
+  dawControl.openProject = (which) => {
+    openProjectInDaw(which);
+    chapterTracks.announceTracksChanged();
+  };
   const merges = createMergeEvents();
   // The local model's settings as the host reads them: this computer's value only, never a project's.
   const guideSetting = (key: string) => settings.settings.global.ManuscriptGuide?.find((item) => item.key === key)?.effectiveValue ?? '';

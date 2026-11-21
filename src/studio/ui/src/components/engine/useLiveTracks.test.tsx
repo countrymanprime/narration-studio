@@ -629,6 +629,16 @@ describe('reading the live track list', () => {
       expect(older.hook.current.following).toBe(false);
     });
 
+    it('`following` is not claimed again when the live read is switched on again, before it has answered', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { api } = eventHost(A);
+      const view = mount(api);
+      await settle();
+      expect(view.hook.current.following).toBe(true);
+      await act(async () => view.rerender({ enabled: false }));
+      expect(view.hook.current.following).toBe(false);
+    });
+
     it('a failed read forgets the revision, so the timer reads again', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       const { api, send, reads } = eventHost(A);
