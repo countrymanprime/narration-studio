@@ -105,6 +105,16 @@ describe('a name typed in "Add a name"', () => {
     },
   );
 
+  it('Escape on a box holding only invisible characters clears it without the discard question (#3382 f)', async () => {
+    const confirm = vi.spyOn(overlay, 'confirm');
+    mount();
+    const box = screen.getByRole('textbox', { name: 'Add a name' }) as HTMLInputElement;
+    fireEvent.change(box, { target: { value: String.fromCodePoint(0x200b) } });
+    fireEvent.keyDown(box, { key: 'Escape' });
+    await waitFor(() => expect(box.value).toBe(''));
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it("a relationship row half filled refuses the entry's Save in its own words (#3457)", async () => {
     const { notify } = mount();
     fireEvent.click(screen.getByRole('button', { name: 'Add a relationship' }));

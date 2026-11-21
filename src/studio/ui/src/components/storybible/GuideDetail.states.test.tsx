@@ -57,6 +57,16 @@ describe('Save', () => {
     expect(write).not.toHaveBeenCalled();
   });
 
+  it('a name that draws nothing is refused like an empty one (#3382 f)', async () => {
+    const { api } = mount(hatter());
+    const write = vi.spyOn(api, 'guideEdit');
+    edit();
+    fireEvent.change(name(), { target: { value: String.fromCodePoint(0x200b, 0x200d) } });
+    fireEvent.click(save());
+    await vi.waitFor(() => expect(toast).toHaveBeenLastCalledWith('Give this entry a name.', expect.objectContaining({ tone: 'error' })));
+    expect(write).not.toHaveBeenCalled();
+  });
+
   it('a long, right-to-left or emoji name is sent as typed, trimmed', async () => {
     const { api } = mount(hatter());
     const write = vi.spyOn(api, 'guideEdit').mockResolvedValue(undefined);
