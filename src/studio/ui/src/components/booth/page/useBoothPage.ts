@@ -447,6 +447,12 @@ export function useBoothPage(options: BoothPageOptions) {
   useEffect(() => {
     openedPhrase.current = null;
   }, [recordId]);
+  // After a take the place a take continues from is where it stopped, not the phrase the chapter opened on.
+  const wasRecording = useRef(false);
+  useEffect(() => {
+    if (wasRecording.current && !recording) openedPhrase.current = null;
+    wasRecording.current = recording;
+  }, [recording]);
   resumePhrase.current =
     resume.kind === 'offer' && resume.offer.source !== 'left'
       ? (unitAtPosition(paragraphs, units, { paragraphId: resume.offer.paragraphId, word: resume.offer.word })?.cur ?? null)

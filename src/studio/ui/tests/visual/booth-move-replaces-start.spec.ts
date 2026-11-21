@@ -56,3 +56,25 @@ test('repro B: Record from here on the Script, the arrow keys move the start to 
   expect(await dawRecording(page)).toBe(true);
   expect(await lookups(page)).toBe(before + 1);
 });
+
+test('after a take, going back to the phrase the chapter opened on chooses it, as the take now continues from where it stopped (#3858)', async ({ page }) => {
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  const opened = await reading(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible();
+  await expect.poll(() => reading(page), { timeout: 60_000 }).not.toBe(opened); // the voice carries the reading on
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible();
+  const stopped = await reading(page);
+  for (let i = 0; i < 20 && (await reading(page)) !== opened; i++) await page.keyboard.press('ArrowUp');
+  expect(await reading(page)).toBe(opened);
+  const before = await lookups(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible();
+  expect(await lookups(page)).toBe(before + 1);
+  expect(stopped).not.toBe(opened);
+});
