@@ -206,4 +206,9 @@ describe('Who records a character with no track?', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Use this track' }));
     expect(props.onUse).toHaveBeenCalledWith(voices[1], ['king']);
   });
+
+  it('a track added from a search that found nothing starts named by what was typed (#3970)', () => {
+    show({ kind: 'key', key: 5, name: ' Duchess ' });
+    expect((screen.getByLabelText('Track name') as HTMLInputElement).value).toBe('Duchess');
+  });
 });

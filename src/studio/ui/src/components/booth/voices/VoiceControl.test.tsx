@@ -192,7 +192,7 @@ describe('the voice control', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Search voices' }), 'zzz');
     await userEvent.click(within(screen.getByRole('listbox', { name: 'Voices of this chapter' })).getByRole('option', { name: /Add a track/ }));
-    expect(onAddLane).toHaveBeenCalledOnce();
+    expect(onAddLane).toHaveBeenCalledWith('zzz');
     expect(screen.queryByRole('listbox', { name: 'Voices of this chapter' })).toBeNull();
   });
 

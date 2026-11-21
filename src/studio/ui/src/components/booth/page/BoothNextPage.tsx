@@ -1041,7 +1041,7 @@ function BoothSession({
                 }}
                 noTrack={cast.noTrack}
                 cast={cast}
-                onAddLane={() => askWho({ kind: 'key', key: voices.voices.filter((voice) => !voice.narrator).length + 1 })}
+                onAddLane={(name) => askWho({ kind: 'key', key: voices.voices.filter((voice) => !voice.narrator).length + 1, name })}
                 // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
                 onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : askWho({ kind: 'character', character }))}
                 standIn={voices.standIn}

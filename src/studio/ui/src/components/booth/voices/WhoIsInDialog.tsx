@@ -13,7 +13,9 @@ import { CharacterBadge } from './CharacterBadge';
 import { defaultTrackName, keyForNewTrack, keyName, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
-export type WhoAsk = { kind: 'key'; key: number } | { kind: 'character'; character: WhoCharacter; choice?: WhoChoice };
+export type WhoAsk =
+  | { kind: 'key'; key: number; /** The text typed in the voice search that found nothing: the new track's name. */ name?: string }
+  | { kind: 'character'; character: WhoCharacter; choice?: WhoChoice };
 
 export type WhoChoice = 'new' | 'existing' | 'narrator';
 
@@ -95,7 +97,7 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const everyone = useMemo(() => [...cast.inChapter, ...cast.elsewhere, ...(asked ? [asked] : [])], [cast, asked]);
   const tickedCharacters = everyone.filter((character, at) => ticked.has(character.id) && everyone.findIndex((each) => each.id === character.id) === at);
   // The name follows the ticks until the narrator types one.
-  const [typed, setTyped] = useState<string | null>(null);
+  const [typed, setTyped] = useState<string | null>(ask.kind === 'key' && ask.name?.trim() ? ask.name.trim() : null);
   const name = typed ?? defaultTrackName(tickedCharacters, voices);
   const [existing, setExisting] = useState(others[0]?.guid ?? '');
   const [busy, setBusy] = useState(false);

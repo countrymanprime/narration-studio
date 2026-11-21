@@ -89,7 +89,7 @@ export function VoiceControl({
   /** Everyone a search reaches: this chapter's characters first, then the rest of the story (#3970). */
   cast?: Pick<Cast, 'inChapter' | 'elsewhere'>;
   /** The "add a track" row of a search that matches nothing: asks who the next new track is for. */
-  onAddLane?: () => void;
+  onAddLane?: (name: string) => void;
   /** A "No track" row picked: while stopped the page asks who records it; during a take the Narrator voice records it (`standIn`). */
   onPickCharacter?: (character: WhoCharacter) => void;
   /** The character with no track the Narrator voice records (decision 5): the control shows "King → Narrator" as a warning. */
@@ -187,7 +187,7 @@ export function VoiceControl({
   const pick = (guid: string) => {
     if (guid === ADD_LANE) {
       changeOpen(false);
-      onAddLane?.();
+      onAddLane?.(query.trim());
       return;
     }
     if (guid.startsWith(CHARACTER)) {
