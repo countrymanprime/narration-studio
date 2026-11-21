@@ -62,3 +62,22 @@ func TestAssigningARunningProgramPutsItInTheJob(t *testing.T) {
 		t.Fatal("the program outlived its job: it was not in it")
 	}
 }
+
+// An assignment that fails for a program that is still running is still an error: the ended-program rule must not hide it. An event
+// handle is not a job, so Windows refuses it whatever the program is doing.
+func TestAssigningARunningProgramThatWindowsRefusesIsAnError(t *testing.T) {
+	event, err := windows.CreateEvent(nil, 0, 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jobs := jobSet{handle: event}
+	t.Cleanup(func() { _ = jobs.close() })
+	command := exec.Command("ping", "-n", "120", "127.0.0.1")
+	if err := command.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = command.Process.Kill(); _ = command.Wait() })
+	if err := jobs.assign(command.Process.Pid); err == nil {
+		t.Fatal("assign into a handle that is not a job answered no error for a running program")
+	}
+}
