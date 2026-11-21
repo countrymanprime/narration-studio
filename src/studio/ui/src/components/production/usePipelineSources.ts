@@ -55,14 +55,20 @@ export function usePipelineSources(
   const findings = usePort('findings');
   const measure = usePort('measure');
   const scriptPrep = usePort('scriptPrep');
-  const [proof, setProof] = useState<Proof>();
-  const [read, setRead] = useState<{ state: Awaited<ReturnType<typeof measure.measureState>> | undefined; epoch: number }>();
-  const [prep, setPrep] = useState<Prep>();
+  const [proofRead, setProofRead] = useState<{ value: Proof | undefined; epoch: number }>();
+  const [read, setRead] = useState<{ state: Awaited<ReturnType<typeof measure.measureState>> | undefined; epoch: number; key: string }>();
+  const [prepRead, setPrepRead] = useState<{ value: Prep | undefined; epoch: number }>();
   // The chapter list is the store's, shared with every page: mounting does not read it again. A new `refreshKey` (an import, a project switch) asks the
   // store for it now, as it re-reads the measurement, so a lost `job:ended` or a first failed read does not leave the list behind.
   const refreshes = useRef({ key: refreshKey, count: 0 });
-  if (refreshes.current.key !== refreshKey) refreshes.current = { key: refreshKey, count: refreshes.current.count + 1 };
+  const lastList = useRef<readonly ManuscriptChapter[] | undefined>(undefined);
+  const staleList = useRef<readonly ManuscriptChapter[] | undefined>(undefined);
+  if (refreshes.current.key !== refreshKey) {
+    refreshes.current = { key: refreshKey, count: refreshes.current.count + 1 };
+    staleList.current = lastList.current;
+  }
   const { chapters, error: listError } = useChapters(active, refreshes.current.count);
+  lastList.current = chapters;
   // A project switch empties the list; the measurement read before it is the old project's. Each emptying starts a new epoch: the measurement is read
   // again in it, and one read in an earlier epoch is never paired with the new list.
   const listSeen = useRef({ held: false, epoch: 0 });
@@ -74,25 +80,30 @@ export function usePipelineSources(
     if (!active) return;
     let live = true;
     findings.findingsList({}).then(
-      (page) => live && setProof(proofByChapter(page.findings)),
-      () => live && setProof(undefined),
+      (page) => live && setProofRead({ value: proofByChapter(page.findings), epoch }),
+      () => live && setProofRead({ value: undefined, epoch }),
     );
     measure.measureState().then(
-      (state) => live && setRead({ state, epoch }),
-      () => live && setRead({ state: undefined, epoch }),
+      (state) => live && setRead({ state, epoch, key: refreshKey }),
+      () => live && setRead({ state: undefined, epoch, key: refreshKey }),
     );
     scriptPrep.scriptPrepList().then(
-      (record) => live && setPrep(Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state]))),
-      () => live && setPrep(undefined),
+      (record) =>
+        live && setPrepRead({ value: Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state])), epoch }),
+      () => live && setPrepRead({ value: undefined, epoch }),
     );
     return () => {
       live = false;
     };
   }, [active, refreshKey, epoch, findings, measure, scriptPrep]);
-  const job = read?.epoch === epoch ? read.state : undefined;
+  // Only what was read in this project (epoch) counts, and the measurement must also be the one asked for under this refresh key.
+  const proof = proofRead?.epoch === epoch ? proofRead.value : undefined;
+  const prep = prepRead?.epoch === epoch ? prepRead.value : undefined;
+  const job = read?.epoch === epoch && read.key === refreshKey ? read.state : undefined;
 
   // A list whose last read failed may not match the measurement: no pairing then, never a stale fact.
-  const list = listError ? undefined : chapters;
+  // After a new key the list the store still holds is the old one until its read answers: it is not paired with the new measurement.
+  const list = listError || chapters === staleList.current ? undefined : chapters;
   const master = useMemo<Master | undefined>(() => (list && job?.files.length ? masterByChapter(list, job.files) : undefined), [list, job]);
   const failing = useMemo<NextUpInputs['failing']>(() => (list && job ? failingChapter(list, job.files, job.profile ?? null) : null), [list, job]);
 

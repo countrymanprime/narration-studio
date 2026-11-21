@@ -216,4 +216,68 @@ describe('usePipelineSources under the store (#3658)', () => {
     await waitFor(() => expect(result.current.pipeline.master).toEqual({}));
     expect(renders.filter((master) => master && 'b1' in (master as object))).toEqual([]);
   });
+  it("drops the previous project's proof and prep on a switch until the new reads answer", async () => {
+    let project: 'a' | 'b' = 'a';
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const api = {
+      ...createMockApi(),
+      findingsList: async () => {
+        if (project === 'b') await gate;
+        return { findings: [finding('c-0001', 'dismissed')], total: 1 };
+      },
+      measureState: () => Promise.resolve({ phase: 'success', files: [] } as unknown as MeasureJob),
+      manuscriptChapters: async () => [chapter('c-0001', 0, 'Alpha')],
+      scriptPrepList: async () => {
+        if (project === 'b') await gate;
+        return { chapters: [{ chapterId: 'c-0001', state: 'ready' }], words: [] } as unknown as ScriptPrep;
+      },
+    } as unknown as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result } = renderHook(() => ({ pipeline: usePipelineSources(true, 'same'), store: useStoreHandle() }), { wrapper });
+    await waitFor(() => expect(result.current.pipeline.proof).toBeDefined());
+    await waitFor(() => expect(result.current.pipeline.prep).toBeDefined());
+    project = 'b';
+    act(() => result.current.store.reset());
+    await waitFor(() => expect(result.current.pipeline.proof).toBeUndefined());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(result.current.pipeline.proof).toBeUndefined();
+    expect(result.current.pipeline.prep).toBeUndefined();
+    release();
+    await waitFor(() => expect(result.current.pipeline.proof).toBeDefined());
+  });
+
+  it('never pairs a chapter list and a measurement read under different refresh keys', async () => {
+    let key: 'a' | 'b' = 'a';
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const api = {
+      ...createMockApi(),
+      findingsList: () => Promise.resolve({ findings: [], total: 0 }),
+      measureState: () => Promise.resolve({ phase: 'success', files: [file(key === 'a' ? 'Alpha.wav' : 'Beta.wav', 'met')] } as unknown as MeasureJob),
+      manuscriptChapters: async () => {
+        if (key === 'b') await gate;
+        return key === 'a' ? [chapter('c1', 0, 'Alpha')] : [chapter('c1', 0, 'Beta')];
+      },
+      scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
+    } as unknown as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result, rerender } = renderHook(({ k }) => usePipelineSources(true, k), { wrapper, initialProps: { k: 'a' } });
+    await waitFor(() => expect(result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+    key = 'b';
+    rerender({ k: 'b' });
+    // The new measurement (Beta.wav) has answered; the list is still the old one (Alpha): nothing is paired until the new list lands.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(result.current.master).toBeUndefined();
+    release();
+    await waitFor(() => expect(result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+  });
 });
