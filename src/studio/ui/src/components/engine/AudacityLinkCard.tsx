@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { startDaw } from '../connection/startDaw';
 import { Button } from '../primitives/Button';
+import { CheckedStamp, useCheckedAt } from '../primitives/CheckedStamp';
 import { IconButton } from '../primitives/IconButton';
 import { Icon } from '../primitives/Icon';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -37,6 +38,7 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
   const { link, error, receivedAt, check, adopt } = view;
   const [busy, setBusy] = useState<string>();
   const [problem, setProblem] = useState<string>();
+  const [checkedAt, markChecked, reads] = useCheckedAt();
   const now = useNow(link !== undefined && link.state !== 'answering');
 
   if (!link) {
@@ -127,16 +129,20 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             </IconButton>
           </TooltipTarget>
         )}
-        <IconButton
-          action="checkAgain"
-          size="sm"
-          pending={busy === 'check'}
-          disabled={busy !== undefined && busy !== 'check'}
-          onClick={() => void run('check', () => check())}
-        />
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <IconButton
+            action="checkAgain"
+            size="sm"
+            pending={busy === 'check'}
+            disabled={busy !== undefined && busy !== 'check'}
+            onClick={() => void run('check', async () => void ((await check()) && markChecked()))}
+          />
+          {/* A failure shown beside the stamp would read as a good check followed by noise, so the stamp waits for the next good read. */}
+          <CheckedStamp at={error ? null : checkedAt} reads={reads} />
+        </span>
       </div>
       {(problem ?? error) && (
-        <p role="alert" className="text-[var(--danger-text)]">
+        <p role="alert" className="[overflow-wrap:anywhere] text-[var(--danger-text)]">
           {problem ?? error}
         </p>
       )}
