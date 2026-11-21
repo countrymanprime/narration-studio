@@ -20,7 +20,7 @@ export type Voice = {
 };
 
 const NARRATOR = 'narrator';
-export const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
+const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
 
 /** The direct children of the folder `folderGuid` among `tracks` (file order, with depth), or [] when it is not a folder. */
 /** A chapter folder as the link pickers name it: "Ch 8 · 5 voices" in a Voice folders project, where its children are voices, and "· N tracks" in
