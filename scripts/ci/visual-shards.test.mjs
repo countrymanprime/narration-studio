@@ -240,3 +240,15 @@ test('describeScope counts what runs and what is left to main', () => {
   );
   assert.match(describeScope(scopeOf(null), suite, suite), /the whole suite \(not a pull request/);
 });
+
+test('the engine panel is shared code: its specs drive other pages, and a change to it owes the specs named for no page', () => {
+  const engineSpec = { file: 'engine-link-closes-overlay.spec.ts', loadFile: 'engine-link-closes-overlay.spec.ts', titlePath: ['x'] };
+  assert.equal(
+    PAGES.some((page) => page.spec === 'engine' || page.folders.includes('engine')),
+    false,
+  );
+  for (const folder of ['proof', 'production', 'engine']) {
+    assert.equal(inScope(engineSpec, scopeOf([`${UI}src/components/${folder}/x.tsx`])), true, folder);
+  }
+  assert.equal(scopeOf([`${UI}src/components/engine/EnginePanel.tsx`]).shared, true);
+});

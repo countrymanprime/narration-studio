@@ -139,13 +139,13 @@ const OVERLAY_GUARD = 'helpers/overlayGuardFor.ts';
 
 /**
  * A page: its folders under src/components, the first word of its behaviour specs' file names (`booth-keys.spec.ts`), and its name in
- * the overlay guard's titles. A component folder that is not listed here (primitives, layout, tracks) is shared code.
+ * the overlay guard's titles. A component folder that is not listed here (primitives, layout, tracks) is shared code. So is `engine`: it is
+ * a panel that other pages draw, and its specs (`engine-link-closes-overlay`) drive Proof and Production.
  */
 export const PAGES = [
   { folders: ['booth'], spec: 'booth' },
   { folders: ['delivery'], spec: 'delivery', overlay: 'Delivery' },
   { folders: ['editing'], spec: 'editing', overlay: 'Editing' },
-  { folders: ['engine'], spec: 'engine' },
   { folders: ['master', 'masterqc'], spec: 'master', overlay: 'Master & QC' },
   { folders: ['pickups'], spec: 'pickups', overlay: 'Pickups' },
   { folders: ['production'], spec: 'production', overlay: 'Production' },
