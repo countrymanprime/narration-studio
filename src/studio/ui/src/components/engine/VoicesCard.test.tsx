@@ -324,7 +324,9 @@ describe('the Voices card', () => {
     await user.unhover(within(screen.getByRole('table')).getByText('Not a voice'));
     await user.hover(screen.getByRole('button', { name: 'Choose who the Queen track records' }));
     expect(await screen.findByText('Not a voice: it records no character. Turn it back on to choose one.')).toBeTruthy();
-    expect(within(screen.getByRole('table')).getByRole('columnheader', { name: /Voice/ })).toBeTruthy();
+    await user.unhover(screen.getByRole('button', { name: 'Choose who the Queen track records' }));
+    await user.hover(within(screen.getByRole('table')).getByRole('button', { name: 'About the Voice column' }));
+    expect(await screen.findByText('Counts as a voice. Turn off for a track that is not one (a music bed).')).toBeTruthy();
   });
 
   it('a marked Narrator has no key 0', () => {
