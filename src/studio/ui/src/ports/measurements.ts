@@ -85,7 +85,12 @@ export function createMockMeasurements(options: MockMeasurementsOptions = {}): M
       const db = roomTone[mic];
       return Promise.resolve(off || db === undefined ? none(NOTHING) : { ok: true, value: db });
     },
-    chapterLengths: () => Promise.resolve(off || !Object.keys(lengths).length ? none(NO_LENGTHS) : { ok: true, value: { ...lengths } }),
+    chapterLengths: () =>
+      Promise.resolve(
+        off || !Object.keys(lengths).length
+          ? none(NO_LENGTHS)
+          : { ok: true, value: Object.fromEntries(Object.entries(lengths).map(([id, seconds]) => [id, audibleSeconds(seconds) ?? 0])) },
+      ),
     takeLog: () => Promise.resolve(off || !log.length ? none(NOTHING) : { ok: true, value: log.map((entry) => ({ ...entry })) }),
     pickupSessionSeconds(ids) {
       const known = Object.values(booth.seconds);

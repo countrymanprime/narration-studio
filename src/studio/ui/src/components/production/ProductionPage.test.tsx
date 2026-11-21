@@ -836,6 +836,7 @@ describe('the board follows a link changed elsewhere', () => {
         tile: within(kpis).getByRole('button', { name: /Recorded audio/ }).textContent!,
         table: table.textContent!,
         segment: document.querySelector('[title^="Recorded:"]'),
+        chartY: document.querySelector('circle[data-marker="today"]')?.getAttribute('cy') ?? null,
       };
     };
     for (const host of [undefined, zero]) {
@@ -849,6 +850,16 @@ describe('the board follows a link changed elsewhere', () => {
         });
       }
     }
+    it('puts the plan chart’s today point of 0.5 s and 0.99 s where 0 s puts it, and one second above it', async () => {
+      const zero = (await boardWith(0, undefined)).chartY;
+      expect(zero).not.toBeNull();
+      cleanup();
+      expect((await boardWith(0.5, undefined)).chartY).toBe(zero);
+      cleanup();
+      expect((await boardWith(0.99, undefined)).chartY).toBe(zero);
+      cleanup();
+      expect((await boardWith(1, undefined)).chartY).not.toBe(zero);
+    });
     it('1 s: the tile and the row say <0h 01m and 1%', async () => {
       const { tile, table } = await boardWith(1, undefined);
       expect(tile).toMatch(/^Recorded audio<0h 01m/);

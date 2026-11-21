@@ -6,11 +6,16 @@ import { describe, expect, it } from 'vitest';
 // back two thresholds, and a take under a second reads 0% on one page and "<0h 01m" or 1% on another. This scans the non-test sources under components, api and ports and the
 // root modules for a recorded length (`recordedSeconds`, `measuredSeconds`) compared with 0 or 1 (either operand order), tested for truthiness, or, in the two files that name the
 // length `seconds` (cardSelectors.ts and recordedThrough.ts), a bare `seconds` compared with 0 or 1.
-// It does NOT catch: a length copied into another name first (`const s = chapter.recordedSeconds; if (s > 0)`) outside those two files, a comparison split over two lines, or a
-// threshold other than 0 and 1 (a length compared with 30, say). Reviewers still read the diff for those.
+// It also flags a raw sum of a length (`reduce` or `sum` on the same line). It does NOT catch: a length copied into another name first (`const s = chapter.recordedSeconds; if (s > 0)`)
+// outside those two files, a comparison or a sum split over two lines, `.filter(Boolean)` over lengths, or a threshold other than 0 and 1 (a length compared with 30, say). The
+// behaviour test next to this one is what catches those; reviewers still read the diff.
 //
 // The allow-list is per line, `path:the line's trimmed text`, each with the reason it is not a "has audio" test.
 const ALLOWED: Record<string, string> = {
+  'overviewFixtures.ts:const hours = (chapters: readonly ProductionChapter[]): number => chapters.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0);':
+    'story fixture totals, not a page figure',
+  'productionMock.ts:const recordedSeconds = chapters.reduce((sum, chapter) => sum + (chapter.recordedSeconds ?? 0), 0);':
+    'the mock host computing its own totals (the host side, #3909), not a page',
   'recordedThrough.ts:export const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;':
     'the rule itself',
 };
@@ -25,9 +30,13 @@ const sourcesIn = (dir: string, deep: boolean): string[] =>
 const LENGTH = '(?:recordedSeconds|measuredSeconds)';
 const COMPARE = '(?:<=?|>=?|===?|!==?)';
 const PATTERNS: Array<[string, RegExp]> = [
-  ['compared with 0 or 1', new RegExp(`${LENGTH}\\b[^;|&]*?${COMPARE}\\s*[01]\\b`)],
-  ['compared with 0 or 1 (reversed)', new RegExp(`\\b[01]\\s*${COMPARE}\\s*[\\w.?]*${LENGTH}\\b`)],
-  ['tested for truthiness', new RegExp(`!!?\\s*[\\w.?]*${LENGTH}\\b(?!\\s*(?:===?|!==?|\\?\\?))|${LENGTH}\\s*(?:&&|\\?(?![?.:]))`)],
+  ['compared with 0 or 1', new RegExp(`${LENGTH}(?:\\s*\\?\\?\\s*\\d+\\)?)?\\s*${COMPARE}\\s*[01]\\b`)],
+  ['compared with 0 or 1 (reversed)', new RegExp(`\\b[01]\\s*${COMPARE}\\s*\\(?[\\w.?]*${LENGTH}\\b`)],
+  [
+    'tested for truthiness',
+    new RegExp(`!!?\\s*[\\w.?]*${LENGTH}\\b(?!\\s*(?:===?|!==?|\\?\\?))|${LENGTH}\\s*(?:&&|\\|\\||\\?(?![?.:]))|Boolean\\(\\s*[\\w.?]*${LENGTH}\\s*\\)`),
+  ],
+  ['summed raw (use audibleSeconds or recordedAudioHours)', new RegExp(`\\b(?:reduce|sum)\\b[^;]*${LENGTH}\\b`)],
 ];
 const BARE: Array<[string, RegExp]> = [
   ['a bare seconds compared with 0 or 1', new RegExp(`\\bseconds\\b\\s*${COMPARE}\\s*[01]\\b|\\b[01]\\s*${COMPARE}\\s*seconds\\b`)],
@@ -51,7 +60,8 @@ describe('one threshold for audio on the track', () => {
         .forEach((line, index) => {
           const text = line.trim();
           if (text.startsWith('//') || text.startsWith('*') || text.startsWith('/*') || `${rel.split('/').pop()}:${text}` in ALLOWED) return;
-          for (const [why, pattern] of patterns) if (pattern.test(line)) offenders.push(`${rel}:${index + 1}: ${why}: ${text}`);
+          for (const [why, pattern] of patterns)
+            if (pattern.test(line) && !(why.startsWith('summed') && line.includes('audibleSeconds('))) offenders.push(`${rel}:${index + 1}: ${why}: ${text}`);
         });
     }
     expect(offenders).toEqual([]);
