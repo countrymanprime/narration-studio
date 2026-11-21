@@ -113,6 +113,12 @@ describe('a name typed in "Add a name"', () => {
     fireEvent.keyDown(box, { key: 'Enter' });
     await waitFor(() => expect(box.value).toBe(''));
     expect(screen.queryByText('Type a name to add first.')).toBeNull();
+    // A later Enter on the empty box is a new decision and answers, without typing first (found by the ux review).
+    const now = Date.now();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now + 5000);
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect((await screen.findByRole('status')).textContent).toContain('Type a name to add first.');
+    clock.mockRestore();
     // Typing and deleting again is a new decision: a blank Enter answers once more.
     fireEvent.change(box, { target: { value: 'x' } });
     fireEvent.change(box, { target: { value: '' } });

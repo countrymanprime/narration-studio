@@ -207,6 +207,9 @@ function FindInManuscript({ name }: { name: string }) {
 }
 
 /** What the entry list asks the open entry to do (its right-click menu, or a Hear whose voice must be installed first). `nonce` makes the same command twice two commands. */
+/** An Enter this soon after an add is the same keypress arriving twice. */
+const SAME_PRESS_MS = 600;
+
 export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; nonce: number };
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
@@ -271,7 +274,7 @@ export function GuideDetail({
   const [aliasQuery, setAliasQuery] = useState('');
   // A name the narrator asked to add that the entry or another entry already has: the Names box says so, and for another entry's offers to merge it in.
   /** True from an add until the box is typed in again: the Enter that follows is the same press, not an empty name (#3382 f). */
-  const justAdded = useRef(false);
+  const justAdded = useRef(0);
   const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string; blank?: boolean }>();
   const [nameError, setNameError] = useState<string>();
   useErrorToast(nameError);
@@ -517,10 +520,10 @@ export function GuideDetail({
     const value = aliasQuery.trim();
     // Another action is running: keep what was typed instead of clearing it and adding nothing.
     if (mutation.isBusy) return;
-    // Enter on nothing, or on a name that draws nothing, says so (the button is off with the same reason). A second Enter straight after an
-    // add finds the box it just emptied: that is the same press twice, not a blank name.
+    // Enter on nothing, or on a name that draws nothing, says so (the button is off with the same reason). A second Enter within SAME_PRESS_MS of an
+    // add finds the box it just emptied: that is the same press twice, not a blank name; a later one is a new decision.
     if (!hasVisibleText(value)) {
-      if (!justAdded.current) setNameNote({ text: '', blank: true });
+      if (Date.now() - justAdded.current > SAME_PRESS_MS) setNameNote({ text: '', blank: true });
       return;
     }
     const taken = typedOwner();
@@ -529,7 +532,7 @@ export function GuideDetail({
       return;
     }
     clearAliasMatch();
-    justAdded.current = true;
+    justAdded.current = Date.now();
     void setAliasTexts([...entity.aliases.map((alias) => alias.text), value]);
   };
   const closeVoicePrompt = () => {
@@ -1065,7 +1068,7 @@ export function GuideDetail({
                   onChange={(value) => {
                     setAliasQuery(value);
                     setNameNote(undefined);
-                    justAdded.current = false;
+                    justAdded.current = 0;
                   }}
                   onKeyDown={onAliasKeyDown}
                   placeholder="Add a name"
