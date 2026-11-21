@@ -117,7 +117,7 @@ const RACE_EVERYTHING = [
 ];
 
 /**
- * Files outside the Go module that no Go test reads, so changing them races nothing: the UI, the site, the docs tooling, the pages of
+ * Files outside the Go module that no Go test reads to drive concurrent code (`internal/boothreplay` compares one UI fixture after its run), so changing them races nothing: the UI, the site, the docs tooling, the pages of
  * `docs/` that are prose, and the top-level documents. A file outside the module that is not here (a script, a fixture, `docs/reference/`,
  * a manifest) may be read by a test, and races everything: the direction of every unsure case.
  */
