@@ -2287,6 +2287,14 @@ export function PickupsListMarkers(): $CancellablePromise<string> {
 }
 
 /**
+ * PickupsOpenCount answers how many pickups of the list are still open, for a reader that shows the number only (the
+ * navigation's badge): the list is built as PickupsList builds it, but not sent, and nothing is written to the DAW.
+ */
+export function PickupsOpenCount(): $CancellablePromise<string> {
+    return $Call.ByID(319923862);
+}
+
+/**
  * PickupsRemove hides a pickup of any source from the list; a note or a check keeps its own record.
  */
 export function PickupsRemove(id: string): $CancellablePromise<string> {

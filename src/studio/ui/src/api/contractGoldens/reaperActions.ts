@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from '../schemas/chaptertags';
 import { cleanupToolsStateSchema } from '../schemas/cleanuptools';
 import { lineIdentityStateSchema } from '../schemas/lineidentity';
-import { pickupListSchema, pickupsStateSchema } from '../schemas/pickups';
+import { pickupListSchema, pickupsOpenCountSchema, pickupsStateSchema } from '../schemas/pickups';
 import { projectStateChangedSchema, projectStateStateSchema } from '../schemas/projectstate';
 import { renderConfigStateSchema } from '../schemas/renderconfig';
 
@@ -15,6 +15,7 @@ export const reaperActionsGoldens: Record<string, z.ZodType> = {
   'pickups-markers-listed.json': pickupsStateSchema,
   'pickups-list-empty.json': pickupListSchema,
   'pickups-list-merged.json': pickupListSchema,
+  'pickups-open-count.json': pickupsOpenCountSchema,
   'render-config-idle.json': renderConfigStateSchema,
   'render-config-success.json': renderConfigStateSchema,
   'cleanup-tools-idle.json': cleanupToolsStateSchema,

@@ -542,7 +542,7 @@ const PICKUP_LINE_MAX = 500;
 function createPickupListMock(
   manuscript?: PickupManuscript,
   unreadable?: MockApiSeed['pickupList'],
-): Pick<NarrationApi, 'pickupsList' | 'pickupsAdd' | 'pickupsRemove' | 'pickupsSetIncluded' | 'pickupsSetDone'> {
+): Pick<NarrationApi, 'pickupsList' | 'pickupsOpenCount' | 'pickupsAdd' | 'pickupsRemove' | 'pickupsSetIncluded' | 'pickupsSetDone'> {
   const lines = () => manuscript?.paragraphs() ?? WIRE_PARAGRAPHS;
   let items = samplePickups(WIRE_PARAGRAPHS);
   // Every call waits for the manuscript, so the list is placed on its lines before anything reads or changes it.
@@ -587,6 +587,13 @@ function createPickupListMock(
       if (unreadable === 'loading') return new Promise<never>(() => {});
       if (unreadable) throw new Error('the project folder could not be read');
       return list();
+    },
+    pickupsOpenCount: async () => {
+      await placed;
+      syncProofLines();
+      if (unreadable === 'loading') return new Promise<never>(() => {});
+      if (unreadable) throw new Error('the project folder could not be read');
+      return { open: list().pickups.filter((pickup) => !pickup.done).length };
     },
     pickupsAdd: async (chapterId, time, line) => {
       await placed;

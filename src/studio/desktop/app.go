@@ -421,6 +421,8 @@ type Host struct {
 	// chapterSyncEmitMu keeps one emitChapterSyncState at a time: each reads the state and sends it, so two started by quick link changes cannot
 	// send in the opposite order from their reads and leave the UI on the older state (#3416).
 	chapterSyncEmitMu sync.Mutex
+	// chapterSyncEmitWaiting is set while one emitChapterSyncState waits for chapterSyncEmitMu: later requests leave the read to it.
+	chapterSyncEmitWaiting atomic.Bool
 	// background counts the fire-and-forget goroutines the host starts through goBackground (cue refreshes, chapter-sync triggers, the
 	// backups prune, the Audacity probe), so a test can wait for them before it removes the project folder they write into. Nothing in
 	// the app waits on it: a quit or a user action never blocks on this work.

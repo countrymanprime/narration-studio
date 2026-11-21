@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"desktop/internal/evidence"
@@ -81,6 +82,8 @@ type resultCache struct {
 	entries []resultCacheEntry
 	// +checklocks:mu
 	epoch uint64
+	// decoded counts the result files decoded, for the tests that guard what a read of every chapter costs.
+	decoded atomic.Int64
 }
 
 type resultCacheEntry struct {
@@ -239,6 +242,9 @@ func (s resultStore) read(recordID string) (StoredResult, bool) {
 		result = decoded
 		return nil
 	})
+	if outcome == persist.Loaded && s.cache != nil {
+		s.cache.decoded.Add(1)
+	}
 	if outcome == persist.Loaded && statErr == nil {
 		s.cache.put(recordID, info, result, epoch)
 	}
