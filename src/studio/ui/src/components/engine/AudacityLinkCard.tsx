@@ -129,14 +129,16 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             </IconButton>
           </TooltipTarget>
         )}
-        <IconButton
-          action="checkAgain"
-          size="sm"
-          pending={busy === 'check'}
-          disabled={busy !== undefined && busy !== 'check'}
-          onClick={() => void run('check', async () => void ((await check()) && markChecked()))}
-        />
-        <CheckedStamp at={checkedAt} reads={reads} />
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <IconButton
+            action="checkAgain"
+            size="sm"
+            pending={busy === 'check'}
+            disabled={busy !== undefined && busy !== 'check'}
+            onClick={() => void run('check', async () => void ((await check()) && markChecked()))}
+          />
+          <CheckedStamp at={checkedAt} reads={reads} />
+        </span>
       </div>
       {(problem ?? error) && (
         <p role="alert" className="text-[var(--danger-text)]">
