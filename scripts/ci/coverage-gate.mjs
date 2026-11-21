@@ -101,7 +101,19 @@ export function splitRacePackages(packages, readFile = (path) => readFileSync(pa
 }
 
 /** Changed files outside any one package that put every raced package under the detector: the module, the toolchain, this gate and the workflows. */
-const RACE_EVERYTHING = [/(^|\/)go\.(mod|sum|work)$/, /^\.github\//, /^scripts\/ci\//, /^scripts\/toolchain\.json$/, /^scripts\/quality\.mjs$/];
+const RACE_EVERYTHING = [
+  /(^|\/)go\.(mod|sum|work)$/,
+  /^\.github\//,
+  /^scripts\/ci\//,
+  /^scripts\/toolchain\.json$/,
+  /^scripts\/quality\.mjs$/,
+  // What the desktop project declares it depends on (implicitDependencies in its project.json) and its test commands: the Go tests read them.
+  /^src\/studio\/desktop\/project\.json$/,
+  /^config\//,
+  /^tests\/fixtures\//,
+  /^src\/studio\/integrations\/reaper\//,
+  /^src\/studio\/sidecars\/(manuscript-guide|manuscript-teleprompter|transcript-compare)\//,
+];
 
 /**
  * The import paths of the packages a pull request touches, or null for "all of them" (`changed` is null: not a pull request, or its base

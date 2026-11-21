@@ -340,7 +340,7 @@ test('a pull request touches the package whose folder is the nearest above each 
 
 test('a change the rule cannot place, or a run that is not a pull request, touches every package', () => {
   assert.equal(touchedPackages(FOLDERS, null), null, 'not a pull request, or its base could not be read');
-  for (const file of ['src/app/go.mod', 'src/app/go.sum', 'go.work', '.github/workflows/_quality.yml', '.github/actions/nx-run/action.yml', 'scripts/ci/coverage-gate.mjs', 'scripts/ci/pr-scope.mjs', 'scripts/toolchain.json', 'scripts/quality.mjs']) {
+  for (const file of ['src/app/go.mod', 'src/app/go.sum', 'go.work', '.github/workflows/_quality.yml', '.github/actions/nx-run/action.yml', 'scripts/ci/coverage-gate.mjs', 'scripts/ci/pr-scope.mjs', 'scripts/toolchain.json', 'scripts/quality.mjs', 'src/studio/desktop/project.json', 'config/defaults.json', 'tests/fixtures/a.json', 'src/studio/integrations/reaper/x.lua', 'src/studio/sidecars/manuscript-guide/x.py']) {
     assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', file]), null, file);
   }
 });
