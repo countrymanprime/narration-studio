@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import { rememberClosedTarget } from './dialogClosed';
-import { escapeClosesPanel, focusIsInAnotherPopup, focusPageMain, useReturnFocusTarget } from './focusReturn';
+import { escapeClosesPanel, focusIsInAnotherPopover, focusPageMain, useReturnFocusTarget } from './focusReturn';
 
 afterEach(cleanup);
 
@@ -218,7 +218,16 @@ describe('focusPageMain with a <main> inside an inert subtree', () => {
   });
 });
 
-describe('focusIsInAnotherPopup', () => {
+describe('focusIsInAnotherPopover', () => {
+  it('is false with focus in a dialog around the popover, or in a menu or list of the page: focus returns to the trigger there', () => {
+    const { own, other } = page('<div id="own" data-popover-popup="" data-ending-style=""></div><div role="dialog"><input id="other" /></div>');
+    other!.focus();
+    expect(focusIsInAnotherPopover(own)).toBe(false);
+    document.body.innerHTML = '<div id="own" data-popover-popup="" data-ending-style=""></div><div role="listbox"><button id="other"></button></div>';
+    document.getElementById('other')!.focus();
+    expect(focusIsInAnotherPopover(document.getElementById('own'))).toBe(false);
+  });
+
   const page = (html: string) => {
     document.body.innerHTML = html;
     return {
@@ -231,15 +240,15 @@ describe('focusIsInAnotherPopup', () => {
 
   it('is false with focus on the body or on a control of the page', () => {
     const { own } = page('<button id="page">x</button><div id="own" data-popover-popup=""></div>');
-    expect(focusIsInAnotherPopup(own)).toBe(false);
+    expect(focusIsInAnotherPopover(own)).toBe(false);
     document.getElementById('page')!.focus();
-    expect(focusIsInAnotherPopup(own)).toBe(false);
+    expect(focusIsInAnotherPopover(own)).toBe(false);
   });
 
   it('is false with focus inside the leaving popup itself', () => {
     const { own, mine } = page('<div id="own" data-popover-popup="" data-ending-style=""><input id="mine" /></div>');
     mine!.focus();
-    expect(focusIsInAnotherPopup(own)).toBe(false);
+    expect(focusIsInAnotherPopover(own)).toBe(false);
   });
 
   it('is true with focus inside a popup that opened while this one was leaving', () => {
@@ -247,7 +256,7 @@ describe('focusIsInAnotherPopup', () => {
       '<div id="own" data-popover-popup="" data-ending-style=""></div><div role="dialog" data-popover-popup=""><input id="other" /></div>',
     );
     other!.focus();
-    expect(focusIsInAnotherPopup(own)).toBe(true);
+    expect(focusIsInAnotherPopover(own)).toBe(true);
   });
 
   it('is false with focus inside another popup that is itself leaving', () => {
@@ -255,6 +264,6 @@ describe('focusIsInAnotherPopup', () => {
       '<div id="own" data-popover-popup="" data-ending-style=""></div><div role="dialog" data-popover-popup="" data-ending-style=""><input id="ending" /></div>',
     );
     ending!.focus();
-    expect(focusIsInAnotherPopup(own)).toBe(false);
+    expect(focusIsInAnotherPopover(own)).toBe(false);
   });
 });

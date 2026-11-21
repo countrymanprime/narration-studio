@@ -84,12 +84,12 @@ export function handFocusToPage(): boolean {
 }
 
 /**
- * Whether focus is inside a popup other than `own`: a popup (`data-popover-popup`, a menu, a list of choices, a dialog) that opened while `own` was still
- * leaving. `own` is leaving, not open, so focus in it, or on the body, is not "another popup".
+ * Whether focus is inside a popover other than `own`: one (`data-popover-popup`) that opened while `own` was still leaving. `own` is leaving, not open, so
+ * focus in it, or on the body, is not "another popover". A dialog around the popover, or a menu or list on the page, is not one: focus returns to the trigger there.
  */
-export function focusIsInAnotherPopup(own: Element | null): boolean {
+export function focusIsInAnotherPopover(own: Element | null): boolean {
   const active = document.activeElement;
   if (!active || active === document.body || own?.contains(active)) return false;
-  const popup = active.closest('[data-popover-popup], [role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]');
+  const popup = active.closest('[data-popover-popup]');
   return popup !== null && popup !== own && !popup.closest('[data-ending-style]');
 }
