@@ -120,6 +120,8 @@ function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; 
   return { types, failed, checkAgain: () => setNonce((n) => n + 1) };
 }
 
+/** Why Add name is off, and what Enter says on a box with nothing in it to add. */
+const ADD_NAME_FIRST = 'Type a name to add first.';
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 const hasName = (entry: GuideEntity, text: string) => sameName(entry.canonical_name, text) || entry.aliases.some((alias) => sameName(alias.text, text));
 /** The other entry that already has `text` as its name or one of its names, ignoring case; a draft is not an entry yet. */
@@ -1064,7 +1066,7 @@ export function GuideDetail({
               <Button
                 variant="secondary"
                 // Off with its reason (a tooltip a keyboard reaches), not just dimmed (#3339).
-                disabledReason={!hasVisibleText(aliasQuery) ? 'Type a name to add first.' : busyReason('alias')}
+                disabledReason={!hasVisibleText(aliasQuery) ? ADD_NAME_FIRST : busyReason('alias')}
                 pending={mutation.isPending('alias')}
                 onClick={addAliasFromQuery}
               >
@@ -1074,7 +1076,7 @@ export function GuideDetail({
                 <>
                   <span role="status" className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     {nameNote.blank
-                      ? 'Type a name to add first.'
+                      ? ADD_NAME_FIRST
                       : nameNote.ownerId
                         ? `“${nameNote.text}” is already a name of the entry ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
                         : `“${nameNote.text}” is already a name of this entry.`}

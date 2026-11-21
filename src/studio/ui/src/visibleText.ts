@@ -1,9 +1,13 @@
-// The one test for "this text draws something": a name typed into any field is blank when it is only spaces or only characters that draw nothing
-// (zero-width and direction marks, the soft hyphen, the BOM, the braille blank, the hangul fillers, the object replacement mark). `trim()` keeps those, so a field that only
-// trims accepts a name nobody can see (#3382 f).
+// The one test for "this text draws something": a name or a sentence is blank when it is only spaces or only characters that draw nothing
+// (zero-width and direction marks, other format and control characters, the Hangul fillers, the braille blank, the musical null notehead,
+// the object replacement mark, a combining mark with no letter). `trim()` keeps those, so a field that only trims accepts a name nobody can see
+// (#3382 f). The track-name fallback, the host-sentence fallback (`sentenceOr`) and the mastering dialog's name all use it.
 
-/** Characters that draw nothing, plus white space. */
-export const INVISIBLE = new RegExp(String.raw`[\s\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u206F\u115F\u1160\u180E\u2800\u3164\uFFA0\uFEFF\uFFFC]`, 'g');
+/** Fillers that are letters or symbols to Unicode and draw nothing; chain.go's `blankLooking` is the host's copy. */
+const FILLERS = new RegExp('[\\u2800\\u115F\\u1160\\u3164\\uFFA0\\uFFFC\\u{1D159}]', 'gu');
+
+/** A character that draws something: a letter, a number, punctuation or a symbol. */
+const DRAWS = /[\p{L}\p{N}\p{P}\p{S}]/u;
 
 /** True when the text has at least one character that draws. A value that is not a string has none. */
-export const hasVisibleText = (text: unknown): boolean => typeof text === 'string' && text.replace(INVISIBLE, '') !== '';
+export const hasVisibleText = (text: unknown): boolean => typeof text === 'string' && DRAWS.test(text.replace(FILLERS, ''));
