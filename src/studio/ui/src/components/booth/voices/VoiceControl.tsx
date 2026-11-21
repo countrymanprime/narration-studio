@@ -9,12 +9,12 @@ import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { VOICE_CONTROL_ID, type BoothVoices } from './useBoothVoices';
-import { keyName, lineCount, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
-import { StatusBadge } from '../../primitives/StatusBadge';
+import { CharacterBadge } from './CharacterBadge';
+import { keyName, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 
 /** A "No track" row's option id: a character, never a track GUID. */
 const CHARACTER = 'character:';
-/** The empty search's "add a lane" row: no number to type, so the narrator need not know which lanes exist. */
+/** The empty search's "add a track" row: no number to type, so the narrator need not know which lanes exist. */
 const ADD_LANE = 'add-lane';
 
 const keyLabel = (voice: Voice) => (voice.key ? keyName(voice.key) : '');
@@ -88,7 +88,7 @@ export function VoiceControl({
   noTrack?: readonly WhoCharacter[];
   /** Everyone a search reaches: this chapter's characters first, then the rest of the story (#3970). */
   cast?: Pick<Cast, 'inChapter' | 'elsewhere'>;
-  /** The "add a lane" row of a search that matches nothing: asks who the next new track is for. */
+  /** The "add a track" row of a search that matches nothing: asks who the next new track is for. */
   onAddLane?: () => void;
   /** A "No track" row picked: while stopped the page asks who records it; during a take the Narrator voice records it (`standIn`). */
   onPickCharacter?: (character: WhoCharacter) => void;
@@ -141,26 +141,17 @@ export function VoiceControl({
       ...missing.map(({ character, group }) => ({
         id: `${CHARACTER}${character.id}`,
         group,
-        leading: (
-          <span className="inline-flex min-w-14 flex-none text-[var(--text-muted)]">
-            <Icon name="add" />
-          </span>
-        ),
+        leading: <span className="inline-flex min-w-14 flex-none text-[var(--text-muted)]">{character.key === undefined ? <Icon name="add" /> : null}</span>,
         label: (
           <span className="truncate" title={character.name}>
             <bdi>{character.name}</bdi>
           </span>
         ),
         // The same badge as the dialog's (the mock's `pill n`), so a line count is drawn one way.
-        trailing:
-          character.key !== undefined ? (
-            <StatusBadge tone="neutral" label={character.key ? `on ${keyName(character.key)}` : 'on a track'} />
-          ) : character.lines > 0 ? (
-            <StatusBadge tone="neutral" label={lineCount(character.lines)} />
-          ) : undefined,
+        trailing: <CharacterBadge character={character} />,
       })),
     ];
-    // Nothing matches: the list offers to add a lane, so no number has to be typed.
+    // Nothing matches: the list offers to add a track, so no number has to be typed.
     if (needle && rows.length === 0 && onAddLane)
       rows.push({
         id: ADD_LANE,
@@ -169,7 +160,7 @@ export function VoiceControl({
             <Icon name="add" />
           </span>
         ),
-        label: 'Add a lane',
+        label: 'Add a track',
       });
     return rows;
   }, [voices, needle, current, arm.state, missing, grouped, onAddLane]);

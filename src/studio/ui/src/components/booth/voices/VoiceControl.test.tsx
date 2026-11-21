@@ -186,12 +186,12 @@ describe('the voice control', () => {
     expect(onPickCharacter).toHaveBeenCalledWith(cast.elsewhere[0]);
   });
 
-  it('a search that matches nothing offers to add a lane, with no number to type', async () => {
+  it('a search that matches nothing offers to add a track, with no number to type', async () => {
     const onAddLane = vi.fn();
     render(<Harness onChoose={vi.fn()} extra={{ cast, onAddLane }} />);
     await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
     await userEvent.type(await screen.findByRole('combobox', { name: 'Search voices' }), 'zzz');
-    await userEvent.click(within(screen.getByRole('listbox', { name: 'Voices of this chapter' })).getByRole('option', { name: /Add a lane/ }));
+    await userEvent.click(within(screen.getByRole('listbox', { name: 'Voices of this chapter' })).getByRole('option', { name: /Add a track/ }));
     expect(onAddLane).toHaveBeenCalledOnce();
     expect(screen.queryByRole('listbox', { name: 'Voices of this chapter' })).toBeNull();
   });

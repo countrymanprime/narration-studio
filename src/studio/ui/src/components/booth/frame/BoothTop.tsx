@@ -123,8 +123,8 @@ export function BoothTop({
       ) : null}
       {/* Not drawn in a short window (still read by a screen reader): it wraps to two rows there, and those rows are what the side panel needs to be readable. */}
       <span id="bprog" className={`flex min-w-0 flex-wrap items-center gap-1.5 ${GIVES_WAY_IN_A_SHORT_WINDOW}`}>
-        {progress.map((text) => (
-          <HeaderChip key={text}>{text}</HeaderChip>
+        {progress.map((text, at) => (
+          <HeaderChip key={at}>{text}</HeaderChip>
         ))}
       </span>
       {resume}

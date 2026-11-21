@@ -9,8 +9,8 @@ import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { Select } from '../../primitives/Select';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
-import { StatusBadge } from '../../primitives/StatusBadge';
-import { defaultTrackName, keyForNewTrack, keyName, lineCount, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
+import { CharacterBadge } from './CharacterBadge';
+import { defaultTrackName, keyForNewTrack, keyName, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
 export type WhoAsk = { kind: 'key'; key: number } | { kind: 'character'; character: WhoCharacter; choice?: WhoChoice };
@@ -44,11 +44,7 @@ function CharacterRow({ character, ticked, onTick }: { character: WhoCharacter; 
         <span className="min-w-0 break-words">
           <SpeakerTag label={character.name} speakerId={character.id} />
         </span>
-        {character.key !== undefined ? (
-          <StatusBadge tone="neutral" label={character.key ? `on ${keyName(character.key)}` : 'on a track'} />
-        ) : character.lines > 0 ? (
-          <StatusBadge tone="neutral" label={lineCount(character.lines)} />
-        ) : null}
+        <CharacterBadge character={character} />
       </span>
     </Checkbox>
   );
