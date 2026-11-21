@@ -1,19 +1,25 @@
 // @vitest-environment jsdom
 // #2823: the project file is linked from the DAW connection dialog of any page, and every other page follows without a reload, the Booth
 // included (it used to keep its own copy of the bootstrap's link flag).
-import { cleanup, configure, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiProvider } from './api/ApiContext';
 import { createMockApi } from './api/mockApi';
 import { DAW_SETUPS } from './fixtures/daw';
+import { DAW_CONNECT_GRACE_MS } from './components/connection/useDawConnecting';
 import { CommandRouter } from './input/router';
 import { ThemeProvider } from './theme/ThemeContext';
 
-configure({ asyncUtilTimeout: 12_000 });
-beforeEach(() => window.history.replaceState(null, '', '/'));
-afterEach(cleanup);
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  window.history.replaceState(null, '', '/');
+});
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe('linking the project file from one page', () => {
   it("Proof's dialog links it, and the Booth reads the new link with no reload", async () => {
@@ -43,8 +49,11 @@ describe('linking the project file from one page', () => {
         </ApiProvider>
       </ThemeProvider>,
     );
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     expect((await api.bootstrap()).dawFileLinked).toBe(false);
+    // A DAW that is off is "connecting" for its grace; the chip says "not connected" once that has passed.
+    await screen.findByRole('button', { name: /Connecting to REAPER/, hidden: true });
+    await act(() => vi.advanceTimersByTimeAsync(DAW_CONNECT_GRACE_MS));
     await user.click(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true }));
     const dialog = await screen.findByRole('dialog');
     await user.click(await within(dialog).findByRole('button', { name: 'Link project file…' }));
