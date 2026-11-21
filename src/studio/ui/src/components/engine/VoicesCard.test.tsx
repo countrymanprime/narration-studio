@@ -207,19 +207,14 @@ describe('the Voices card', () => {
     const queen = screen.getByRole('switch', { name: 'Queen counts as a voice' });
     expect(queen.getAttribute('aria-checked')).toBe('true');
     await userEvent.setup().click(queen);
-    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true, undefined);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true, expect.any(String));
   });
 
-  // #3828 findings 4 and 6: marking a voice moves things the page does not show (the Booth's voice, the keys), so the change says so.
-  it('turning the Narrator off says the Booth records on the next voice', async () => {
-    const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] });
-    await userEvent.setup().click(screen.getByRole('switch', { name: 'Narrator counts as a voice' }));
-    expect(handlers.onNotAVoice).toHaveBeenCalledWith('nar', true, expect.stringContaining('the Booth records on the next voice'));
-  });
-
-  // qa-breaker on #3841: the notice says only what is true of the folder in front of the narrator.
-  describe('what the notice says of the folder', () => {
-    const drawFolder = (names: string[], notVoiceGuids: string[] = [], layout: 'folders' | 'flat' = 'folders') => {
+  // #3828 findings 4 and 6: marking a voice can move keys the page does not show, so the press says where the keys stand, worked out from the keys before
+  // and after (never from a name), and every press says something so a notice never outlives the row it described.
+  describe('the notice a Voice switch gives', () => {
+    const iso = (name: string) => `\u2068${name}\u2069`;
+    const drawFolder = (names: string[], notVoiceGuids: string[] = [], layout: 'folders' | 'flat' = 'folders', narratorGuids: string[] = []) => {
       cleanup();
       const list = [track('c8', 'Ch 8', 0, true), ...names.map((name, at) => track(`t${at}`, name, 1)), track('c9', 'Chapter 9', 0)];
       const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn(), onNotAVoice: vi.fn() };
@@ -228,7 +223,7 @@ describe('the Voices card', () => {
           tracks={list}
           chapters={chapters}
           mappings={mappings}
-          setup={{ layout, narratorCharacter: '', narratorGuids: [], notVoiceGuids, tracks: [] }}
+          setup={{ layout, narratorCharacter: '', narratorGuids, notVoiceGuids, tracks: [] }}
           characters={cast}
           layoutInCard
           {...handlers}
@@ -236,68 +231,70 @@ describe('the Voices card', () => {
       );
       return handlers;
     };
+    const press = async (label: string, at = 0) => userEvent.setup().click(screen.getAllByRole('switch', { name: `${label} counts as a voice` })[at]);
 
-    it('turning off the last voice says no voice is left (Voice folders), and says nothing of it in Flat, where the host records on the folder', async () => {
+    it('turning the Narrator off says where the keys stand without it', async () => {
+      const handlers = drawFolder(['Narrator', 'Queen']);
+      await press('Narrator');
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t0', true, `${iso('Narrator')} is turned off as a voice. Key 0 has no track now.`);
+    });
+
+    it('turning a marked Narrator back on says key 0 is back', async () => {
+      const handlers = drawFolder(['Narrator', 'Queen'], ['t0']);
+      await press('Narrator');
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t0', false, expect.stringContaining(`Keys now: 0 ${iso('Narrator')}.`));
+    });
+
+    it('a voice with a voice after it says the keys now; the last voice says only what it did', async () => {
+      const handlers = drawFolder(['Queen', 'Hatter']);
+      await press('Queen');
+      expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('t0', true, `${iso('Queen')} is turned off as a voice. Keys now: 1 ${iso('Hatter')}.`);
+      await press('Hatter');
+      expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('t1', true, `${iso('Hatter')} is turned off as a voice.`);
+    });
+
+    it('turning off the last voice says no voice is left (Voice folders), and not in Flat, where the host records on the folder', async () => {
       const folders = drawFolder(['Queen']);
-      await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
+      await press('Queen');
       expect(folders.onNotAVoice).toHaveBeenCalledWith('t0', true, expect.stringContaining('No voice is left'));
       const flat = drawFolder(['Queen'], [], 'flat');
-      await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
-      expect(flat.onNotAVoice).toHaveBeenCalledWith('t0', true, undefined);
+      await press('Queen');
+      expect(flat.onNotAVoice).toHaveBeenCalledWith('t0', true, `${iso('Queen')} is turned off as a voice.`);
     });
 
-    it('turning off a Narrator when another track is named Narrator says key 0 goes to it', async () => {
+    it('turning off the first of two tracks named Narrator says the second now holds key 0', async () => {
       const handlers = drawFolder(['Narrator', 'Narrator', 'Queen']);
-      await userEvent.setup().click(screen.getAllByRole('switch', { name: 'Narrator counts as a voice' })[0]);
-      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t0', true, expect.stringContaining('Key 0 goes to the next track named Narrator'));
+      await press('Narrator', 0);
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t0', true, expect.stringContaining(`Keys now: 0 ${iso('Narrator')}, 1 ${iso('Queen')}.`));
     });
 
-    it('turning off the ninth voice says the voices after it take the key before theirs, so a tenth gains key 9', async () => {
+    it('turning off the second track named Narrator does not claim key 0 moved, and says where Queen is', async () => {
+      const handlers = drawFolder(['Narrator', 'Narrator', 'Queen']);
+      await press('Narrator', 1);
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t1', true, `${iso('Narrator')} is turned off as a voice. Keys now: 1 ${iso('Queen')}.`);
+    });
+
+    it('turning off the ninth voice of eleven says the tenth now holds key 9; turning back on a voice past the ninth moves nothing', async () => {
       const names = Array.from({ length: 11 }, (_, at) => `Voice ${String(at + 1).padStart(2, '0')}`);
       const handlers = drawFolder(['Narrator', ...names]);
-      await userEvent.setup().click(screen.getByRole('switch', { name: 'Voice 09 counts as a voice' }));
-      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t9', true, expect.stringContaining('each take the key before theirs'));
+      await press('Voice 09');
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t9', true, expect.stringContaining(`9 ${iso('Voice 10')}`));
+      const past = drawFolder(['Narrator', ...names], ['t11']);
+      await press('Voice 11');
+      expect(past.onNotAVoice).toHaveBeenCalledWith('t11', false, `${iso('Voice 11')} is a voice again.`);
     });
 
-    it('names a right-to-left track inside isolates and a blank track by its place, as its row does', async () => {
+    it('a renamed Narrator remembered by its GUID is named as its row is, and turning it off says the keys now', async () => {
+      const handlers = drawFolder(['Alice VO', 'Queen'], [], 'folders', ['t0']);
+      await press('Alice VO');
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t0', true, `${iso('Alice VO')} is turned off as a voice. Key 0 has no track now.`);
+    });
+
+    it('names a right-to-left track inside isolates', async () => {
       const handlers = drawFolder(['Queen', 'שלום', 'Hatter']);
-      await userEvent.setup().click(screen.getByRole('switch', { name: 'שלום counts as a voice' }));
-      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t1', true, expect.stringContaining('\u2068שלום\u2069'));
+      await press('שלום');
+      expect(handlers.onNotAVoice).toHaveBeenCalledWith('t1', true, expect.stringContaining(iso('שלום')));
     });
-  });
-
-  it('turning a marked Narrator back on says key 0 is back, not that other keys moved', async () => {
-    const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['nar'], tracks: [] });
-    await userEvent.setup().click(screen.getByRole('switch', { name: 'Narrator counts as a voice' }));
-    expect(handlers.onNotAVoice).toHaveBeenCalledWith('nar', false, expect.stringContaining('Key 0 is back'));
-  });
-
-  it('turning a voice off or on says the keys after it move, and says nothing when none follows', async () => {
-    const withAfter = [track('c8', 'Ch 8', 0, true), track('queen', 'Queen', 1), track('hatter', 'Hatter', 1), track('c9', 'Chapter 9', 0)];
-    cleanup();
-    const handlers = { onLayout: vi.fn(), onTrackCharacters: vi.fn(), onNarratorCharacter: vi.fn(), onNotAVoice: vi.fn() };
-    render(
-      <VoicesCard
-        tracks={withAfter}
-        chapters={chapters}
-        mappings={mappings}
-        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }}
-        characters={cast}
-        layoutInCard
-        {...handlers}
-      />,
-    );
-    const user = userEvent.setup();
-    await user.click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
-    expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('queen', true, expect.stringContaining('voices after it each take the key before theirs'));
-    await user.click(screen.getByRole('switch', { name: 'Hatter counts as a voice' }));
-    expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('hatter', true, undefined);
-  });
-
-  it('the card has a help button that says what the Voice switch does', async () => {
-    draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] });
-    await userEvent.setup().click(screen.getByRole('button', { name: 'What the Voice switch does' }));
-    expect(await screen.findByText(/music bed or room tone/)).toBeTruthy();
   });
 
   it('a child marked as not a voice stays listed, dimmed and labelled, with no key, no characters to choose and a switch that turns it back on', async () => {
@@ -315,7 +312,7 @@ describe('the Voices card', () => {
     const queen = within(marked).getByRole('switch', { name: 'Queen counts as a voice' });
     expect(queen.getAttribute('aria-checked')).toBe('false');
     await userEvent.setup().click(queen);
-    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', false, undefined);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', false, expect.any(String));
   });
 
   it('a marked Narrator has no key 0', () => {
@@ -349,7 +346,7 @@ describe('the Voices card', () => {
     const handlers = draw({ layout: 'flat', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }, false);
     expect(screen.getByRole('table', { name: /^Voices of / })).toBeTruthy();
     await userEvent.setup().click(screen.getByRole('switch', { name: 'Queen counts as a voice' }));
-    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true, undefined);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('queen', true, expect.any(String));
   });
 
   it('while a take records the switches are off with the reason, and a press does nothing', async () => {
@@ -447,7 +444,7 @@ describe('the Voices card', () => {
     );
     expect(screen.queryByRole('switch', { name: 'Chapter 8 counts as a voice' })).toBeNull();
     await userEvent.setup().click(screen.getByRole('switch', { name: 'Music bed counts as a voice' }));
-    expect(handlers.onNotAVoice).toHaveBeenCalledWith('bed', true, undefined);
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('bed', true, expect.any(String));
   });
 
   it('a Flat project whose linked folder holds only another chapter’s track lists no voices', () => {

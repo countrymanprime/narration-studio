@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { useIsRecording } from '../../daw/useIsRecording';
-import { assignmentOf, folderChildren, folderVoices, same, type Voice } from './voices';
+import { assignmentOf, folderChildren, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 import { chapterLink } from '../chapterTracks/chapterLink';
 
@@ -46,27 +46,34 @@ const subscribeNarrow = (notify: () => void) => {
 };
 const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 
-/** What turning a voice off or on does beyond its row, so it is not a surprise in the Booth: the Narrator's key 0 goes (the Booth records on the next voice), or the keys of the voices after it move by one. Empty when nothing moves. */
-function switchConsequence(voice: Voice, voices: readonly Voice[], counts: boolean, place: number, layout: VoiceTracksLayout): string | undefined {
-  const others = voices.filter((other) => other.guid !== voice.guid && !other.notVoice);
-  // A marked Narrator row is not flagged `narrator` (it has no key), so it is known by its name.
-  if (voice.narrator || same(voice.name, 'narrator')) {
-    if (counts) return 'The Narrator is a voice again. Key 0 is back, and the Booth may record on it.';
-    if (others.some((other) => same(other.name, 'narrator'))) return 'The Narrator is turned off as a voice. Key 0 goes to the next track named Narrator.';
-    if (others.length === 0 && layout === 'folders')
-      return 'The Narrator is turned off as a voice. No voice is left, so the Booth cannot record until you turn one back on.';
-    return 'The Narrator is turned off as a voice. Key 0 has no track, and the Booth records on the next voice until you turn it back on.';
-  }
-  const name = bidiIsolated(shortName(trackName(voice.name, place)));
-  if (!counts && others.length === 0 && layout === 'folders')
-    return `${name} is turned off as a voice. No voice is left, so the Booth cannot record until you turn one back on.`;
-  // A track past the ninth has no key to give up; one before it moves every voice after it by one key, including a tenth that gains key 9.
-  if (!counts && voice.key === '') return undefined;
-  const at = voices.findIndex((other) => other.guid === voice.guid);
-  if (!voices.slice(at + 1).some((other) => !other.notVoice && !other.narrator)) return undefined;
-  return counts
-    ? `${name} is a voice again. The voices after it each take the next key.`
-    : `${name} is turned off as a voice. The voices after it each take the key before theirs.`;
+/** What turning a voice off or on did, worked out from the keys before and after (never from a track's name): the voice's own state, and where the keys stand
+ * now when any moved. Every press says something, so a notice never stays up under a row it no longer describes. */
+function switchConsequence(
+  voice: Voice,
+  before: readonly Voice[],
+  after: readonly Voice[],
+  counts: boolean,
+  placeOf: (guid: string) => number,
+  layout: VoiceTracksLayout,
+): string {
+  const name = bidiIsolated(shortName(trackName(voice.name, placeOf(voice.guid))));
+  const lead = counts ? `${name} is a voice again.` : `${name} is turned off as a voice.`;
+  if (!counts && layout === 'folders' && !after.some((other) => !other.notVoice))
+    return `${lead} No voice is left, so the Booth cannot record until you turn one back on.`;
+  const keyBefore = new Map(before.map((other) => [other.guid, other.key]));
+  const moved = after.some((other) => other.guid !== voice.guid && keyBefore.get(other.guid) !== other.key);
+  const ownKey = after.find((other) => other.guid === voice.guid)?.key ?? '';
+  // The voice's own key matters when it is key 0 (it gives up or takes the Narrator's key), whatever else moved.
+  const keyZero = (counts ? ownKey : keyBefore.get(voice.guid)) === '0';
+  if (!moved && !keyZero) return lead;
+  // Only the voices whose key changed are named (the toggled voice too, when it gains a key), so a long folder's notice stays short and every name in it moved.
+  const changed = after.filter((other) => other.key !== '' && keyBefore.get(other.guid) !== other.key);
+  if (changed.length === 0) return `${lead} Key 0 has no track now.`;
+  const shown = changed
+    .slice(0, 5)
+    .map((other) => `${other.key} ${bidiIsolated(shortName(trackName(other.name, placeOf(other.guid))))}`)
+    .join(', ');
+  return `${lead} Keys now: ${shown}${changed.length > 5 ? `, and ${changed.length - 5} more` : ''}.`;
 }
 
 /** A track's name inside a sentence of another direction: isolated, so a right-to-left name does not turn the sentence around. */
@@ -137,13 +144,22 @@ export function VoicesCard({
       <Switch
         checked={!voice.notVoice}
         disabled={recording}
-        onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, counts, projectPlace(voice.guid), setup.layout))}
+        onChange={(counts) =>
+          onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace, setup.layout))
+        }
       >
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>
     </TooltipTarget>
   );
-  const voices = current ? folderVoices(tracks, current.folder, characters, setup, setup.layout === 'folders' ? undefined : linkedTracks) : [];
+  const voicesWith = (notVoiceGuids: string[]) =>
+    current ? folderVoices(tracks, current.folder, characters, { ...setup, notVoiceGuids }, setup.layout === 'folders' ? undefined : linkedTracks) : [];
+  const voices = voicesWith(setup.notVoiceGuids);
+  /** The folder's voices as they would stand with `guid` marked (or, not marked), for the notice a press gives. */
+  const voicesAfter = (guid: string, marked: boolean) => {
+    const id = guid.toLowerCase();
+    return voicesWith(marked ? [...setup.notVoiceGuids.filter((other) => other !== id), id] : setup.notVoiceGuids.filter((other) => other !== id));
+  };
 
   // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
   const chapterPicker = links.length > 0 && (
