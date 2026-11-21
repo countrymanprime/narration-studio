@@ -24,7 +24,7 @@
   { "name": "security", "color": "ee0701", "description": "Security-relevant change or report" },
   { "name": "agent-train", "color": "0e8a16", "description": "One agent train's own issue: its switches, state block, Owner queue and log" },
   { "name": "main-red", "color": "b60205", "description": "The full run on main failed: merge only the fix or the revert until it closes (main-health.yml)" },
-  { "name": "slow-clock-red", "color": "fbca04", "description": "The Booth specs fail under a slowed page clock: read the failure (often a spec's wait); holds nothing (slow-clock.yml)" },
+  { "name": "slow-clock-red", "color": "fbca04", "description": "Booth specs fail on a slowed clock: read the failure; holds nothing (slow-clock.yml)" },
   { "name": "slice", "color": "5319e7", "description": "A slice: one worker, one PR, one slice-meta header" },
   { "name": "ready", "color": "0e8a16", "description": "Slice is groomed and its dependencies are met: a worker can start" },
   { "name": "owner-decision", "color": "d93f0b", "description": "Waiting on an owner decision (queue: #992)" },
