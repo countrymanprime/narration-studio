@@ -9,6 +9,7 @@ import {
   groupKey,
   inScope,
   loaderLines,
+  pagesNamedIn,
   planTests,
   scopeOf,
   testsOfReport,
@@ -251,4 +252,15 @@ test('the engine panel is shared code: its specs drive other pages, and a change
     assert.equal(inScope(engineSpec, scopeOf([`${UI}src/components/${folder}/x.tsx`])), true, folder);
   }
   assert.equal(scopeOf([`${UI}src/components/engine/EnginePanel.tsx`]).shared, true);
+});
+
+test('a spec is owed by every page its text names, not only by the page in its file name', () => {
+  const text = "await goToPage(page, 'Pickups');\nawait expect(page.getByText('Master & QC')).toBeVisible(); // the Story Bible is not opened";
+  assert.deepEqual(pagesNamedIn(text), ['master', 'pickups', 'storybible']);
+  assert.deepEqual(pagesNamedIn("await page.goto('/settings/connection');"), ['settings']);
+  assert.deepEqual(pagesNamedIn('const description = 1;'), []);
+  const boothLeave = { file: 'booth-leave-take-saved.spec.ts', loadFile: 'booth-leave-take-saved.spec.ts', titlePath: ['x'], names: ['booth', 'pickups'] };
+  assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/pickups/PickupsPage.tsx`])), true);
+  assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/booth/x.tsx`])), true);
+  assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/delivery/x.tsx`])), false);
 });

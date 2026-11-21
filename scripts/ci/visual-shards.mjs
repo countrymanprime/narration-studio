@@ -163,6 +163,17 @@ const OVERLAY_CODE = new RegExp(
 /** A unit test or a story draws nothing in the app. */
 const NOT_THE_APP = /\.(test|stories)\.[cm]?[jt]sx?$/;
 
+/**
+ * The pages a spec's text names, by any of a page's words (its spec word, its folders, its name in the overlay guard). A spec named for one
+ * page often drives another (a Booth spec that opens Pickups or reads a Settings card), so a spec is owed by every page it names, not only
+ * by the page in its file name. A word in a comment counts too: naming a page too often runs a spec more, never less.
+ */
+export function pagesNamedIn(text) {
+  return PAGES.filter((page) =>
+    [page.spec, ...page.folders, page.overlay ?? page.spec].some((word) => new RegExp(`\\b${word.replace(/[^a-z]+/gi, '\\W*')}`, 'i').test(text)),
+  ).map((page) => page.spec);
+}
+
 const pageOfFolder = (file) => PAGES.find((page) => page.folders.some((folder) => file.startsWith(`${COMPONENTS}${folder}/`)));
 const isDoc = (file) => file.startsWith('docs/') || file.endsWith('.md');
 
@@ -199,6 +210,8 @@ export function inScope(test, scope) {
     return scope.overlays || (page ? scope.pages.has(page.spec) : scope.shared);
   }
   const first = test.loadFile.split(/[-.]/)[0];
+  // `names`: the pages the spec's text names (split reads the file); without it, the page in the file name.
+  if ((test.names ?? []).some((name) => scope.pages.has(name))) return true;
   // A spec named for no page (dialog-*, toast-*, crossPage, colour-field, reader-*) exercises shared code, and some drive one page under
   // another name, so any change to the app's source owes it: shared code or a page's folder.
   return PAGES.some((page) => page.spec === first) ? scope.pages.has(first) : scope.shared || scope.pages.size > 0;
@@ -269,7 +282,9 @@ function split(argv) {
   const listed = planTests(testsOfReport(listSuite()), weights);
   if (listed.length === 0) throw new Error('Playwright listed no tests');
   const scope = scopeOf(changedFiles());
-  const items = listed.filter((test) => inScope(test, scope));
+  const namesOf = new Map();
+  for (const file of new Set(listed.map((test) => test.loadFile))) namesOf.set(file, pagesNamedIn(readFileSync(join(UI, 'tests', 'visual', file), 'utf8')));
+  const items = listed.filter((test) => inScope({ ...test, names: namesOf.get(test.loadFile) }, scope));
   const said = describeScope(scope, items, listed);
   console.log(said);
   // Shard 1 alone writes the line into the run's summary; every shard computes the same scope.
