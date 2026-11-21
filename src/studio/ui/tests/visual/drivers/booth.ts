@@ -18,7 +18,7 @@ const SAMPLES = '?mockVoiceSamples=bible';
 const HEADINGS = '?mockManuscript=mixed';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
-// The DAW refuses the start with a sentence, as the mock's REAPER does with a locked track: a press ends with its refusal, and a start chosen with Start from here is kept.
+// The DAW refuses the start with a sentence, as the mock's REAPER does with a locked track: a press ends with its refusal, and a start chosen by a click is kept.
 const REFUSAL = 'REAPER refused to start recording because the armed track is locked, so nothing was recorded. Unlock it and try again.';
 async function refusedStart(page: Page): Promise<void> {
   await page.addInitScript((sentence) => {

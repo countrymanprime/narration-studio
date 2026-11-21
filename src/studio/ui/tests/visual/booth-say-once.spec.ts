@@ -1,5 +1,5 @@
 // A refused press says its sentence once (#3322). The mock's DAW refuses the start through `__NARRATION_MOCK_OVERRIDES__`, the start is chosen with
-// Start from here, and each window size the Booth supports is driven: the sentence is on screen once (the message, not again in the footer), and the
+// a clicked start, and each window size the Booth supports is driven: the sentence is on screen once (the message, not again in the footer), and the
 // message is not cut off or sideways.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';

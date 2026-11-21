@@ -1073,8 +1073,6 @@ describe('a page that has nothing to show says so and leaves a way out', () => {
   });
 });
 
-describe('the resume line', () => {});
-
 describe('a refused stop keeps the take and the question', () => {
   it('shows the sentence and does not leave', async () => {
     const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
@@ -3102,7 +3100,7 @@ describe('a start chosen by a move: the wait is shown, dropped on leaving, and s
       expect(boothPunchTarget).toHaveBeenCalledTimes(2);
       expect(current()).toBe('7');
     };
-    it('a plain press under way, then Start from here on a phrase: refused, the reading stays and the take starts at the end of the chapter', async () => {
+    it('a plain press under way, then a click on a phrase: refused, the reading stays and the take starts at the end of the chapter', async () => {
       const boothPunchTarget = vi.fn(async () => FOUND);
       const slow = gated({ assets: [] });
       const page = renderPage({ api: { boothPunchTarget, assetsList: slow.answer } as never });
@@ -3129,7 +3127,7 @@ describe('a start chosen by a move: the wait is shown, dropped on leaving, and s
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(current()).toBe('7');
     });
-    it('a plain Space during a Start from here lookup on a DAW that cannot punch joins it: no take until the answer, one lookup, then one take from the end and one sentence (#3329)', async () => {
+    it('a plain Space during a lookup for a clicked start on a DAW that cannot punch joins it: no take until the answer, one lookup, then one take from the end and one sentence (#3329)', async () => {
       const lookup = slowLookup();
       const page = renderPage({ setup: 'builtin', api: { boothPunchTarget: lookup.boothPunchTarget } });
       await ready();
@@ -3150,7 +3148,7 @@ describe('a start chosen by a move: the wait is shown, dropped on leaving, and s
     });
 
     for (const slowPart of ['lookup', 'model check'] as const) {
-      it(`Space and a Record click during a Start from here with a slow ${slowPart} join it: one lookup, no sentence, the take at the chosen spot`, async () => {
+      it(`Space and a Record click during a clicked start with a slow ${slowPart} join it: one lookup, no sentence, the take at the chosen spot`, async () => {
         const lookup = slowLookup();
         const slow = gated({ assets: [] });
         const boothPunchTarget = slowPart === 'lookup' ? lookup.boothPunchTarget : vi.fn(async () => FOUND);
@@ -3427,7 +3425,7 @@ describe('while a press is under way the reading stays where the press chose, so
 });
 
 // Any move of the reading replaces the chosen start (#3317, #3353): after a move the chosen start is gone or is the reading's own phrase, so the cursor,
-// the footer's "Next roll starts from" and what Space starts from agree.
+// the cursor and what Space starts from agree.
 describe('a move of the reading chooses the start, and Record starts there (#3858, was #3317, #3353)', () => {
   const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
   const START = '?chapter=c1&para=p3&at=28';
@@ -3563,7 +3561,7 @@ describe('a move of the reading chooses the start, and Record starts there (#385
   });
 
   describe('a move that changes nothing replaces nothing, and one that lands on the chosen phrase keeps it', () => {
-    it('during a take an arrow key that cannot move the reading keeps Start from here, and R rolls from it again', async () => {
+    it('during a take an arrow key that cannot move the reading keeps the start, and R rolls from it again', async () => {
       const page = renderPage({ api: { boothPunchTarget: vi.fn(async () => FOUND), boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
       await record(page);
       await startFromUnit(3, false);

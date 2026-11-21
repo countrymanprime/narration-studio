@@ -42,7 +42,7 @@ async function startFromHere(page: Page): Promise<void> {
   await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
 }
 
-test('Space during Start from here lookup joins it: no take at once, one host call, then one take from the end and one sentence', async ({ page }) => {
+test('Space during the lookup of a start joins it: no take at once, one host call, then one take from the end and one sentence', async ({ page }) => {
   test.setTimeout(60_000);
   await open(page, HELD_MS, { outcome: 'found', start: 12, end: 20 });
   await startFromHere(page);

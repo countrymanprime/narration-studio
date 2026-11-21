@@ -23,7 +23,7 @@ export type RollSession = {
   phraseCount: number;
   /** The phrase the reading position is on. */
   phrase: number;
-  /** The phrase chosen with Mark the start here, or null. */
+  /** The phrase the narrator chose (a move of the reading), or null. */
   punchAt: number | null;
   /** The chosen start read right now, for a press that comes in the same task as the move that chose it (before the page has rendered it). */
   chosen?: () => number | null;
@@ -43,7 +43,7 @@ export type RollActions = TakeControls & {
   /** Makes the voice the passage was recorded on the one the take records on; false (with the reason said) when it could not. */
   chooseVoice?: (trackGuid: string) => Promise<boolean>;
   /** Marks the phrase the next roll starts from; before a take, `move` also moves the reading position there. */
-  /** Lets go of the phrase chosen with Mark the start here. */
+  /** Lets go of the phrase the narrator chose. */
   clearStart?: () => void;
   /** Moves the reading position to the phrase a roll started from. */
   moveTo: (phrase: number) => void;
@@ -68,7 +68,7 @@ const ROLL_REFUSED = 'The DAW refused to roll again.';
 /** Said when a press (R, Punch and roll, Space, a marked start) is not the one already under way before a take; nothing is changed. */
 export const START_BUSY = 'A take is already starting, so that press was ignored.';
 
-/** Said when the narrator tries to move the reading (Resume at, the arrow keys, Next or Back one phrase, a word) while a press is under way: the take records where the press chose, so the reading stays there. */
+/** Said when the narrator tries to move the reading (the arrow keys, Next or Back one phrase, a word) while a press is under way: the take records where the press chose, so the reading stays there. */
 export const START_BUSY_MOVE = 'A take is already starting, so the reading stays where it is.';
 
 /** How long after a roll went through another is ignored (milliseconds). */
@@ -76,7 +76,7 @@ export const START_BUSY_MOVE = 'A take is already starting, so the reading stays
 const ROLL_PAUSE_MS = 700;
 
 /**
- * Roll again, Mark the start here and a punch-in over the DAW's roll. One plan (`rollPlan`) decides every path: a roll the DAW keeps as a
+ * Roll again and a punch-in over the DAW's roll. One plan (`rollPlan`) decides every path: a roll the DAW keeps as a
  * take just runs, a destructive one asks once with the take held, a refused one
  * shows the capability's sentence. Answering no resumes the take and rolls nothing.
  */
@@ -238,7 +238,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
 
   const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
 
-  /** R: while a take runs, roll again from the phrase chosen with Mark the start here, otherwise from the current one; before one it is Record (#3858: one start rule). */
+  /** R: while a take runs, roll again from the current phrase; before one it is Record (#3858: one start rule). */
   const punchAndRoll = useCallback(async () => {
     const s = sessionRef.current;
     if (!s.recording) return startTakeRef.current();
@@ -246,7 +246,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   }, [rollFrom]);
 
   /**
-   * Starts the take. A phrase chosen with Mark the start here is looked up (the host reads where it was recorded before): found, the take records
+   * Starts the take. A phrase the narrator chose is looked up (the host reads where it was recorded before): found, the take records
    * over exactly that spot, on the voice that read it, and follows the plan; never recorded, it is not a punch and the take goes on from the end
    * of the chapter; refused, the sentence is shown and nothing starts (a start is never guessed).
    */
@@ -255,7 +255,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const s = sessionRef.current;
       const at = from ?? (s.chosen ? s.chosen() : s.punchAt);
       if (at == null || at >= s.phraseCount) {
-        // A plain press is a press too: it joins another plain press (Space again), and a Mark the start here meanwhile is refused.
+        // A plain press is a press too: it joins another plain press (Space again), and a move to another phrase meanwhile is refused.
         if (s.recording) return actionsRef.current.beginTake();
         if (pressing.current) {
           // Another plain press (Space again) is that press. A plain press during a press for a phrase is told so on a DAW that can punch (it never

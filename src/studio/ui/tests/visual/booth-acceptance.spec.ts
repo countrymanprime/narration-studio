@@ -329,7 +329,7 @@ test('row 28: Alt+[ and Alt+] step between bookmarks', async ({ page }) => {
 test('row 29: the footer lists the Booth keys from the catalogue', async ({ page }) => {
   await open(page);
   const hints = page.getByRole('note', { name: 'Keyboard shortcuts' });
-  for (const label of [/Record \/ stop/, /Punch and roll/, /Phrase/, /Word/, /Bookmark/, /Full screen/, /Exit/]) await expect(hints).toContainText(label);
+  for (const label of [/Record \/ stop/, /Roll again/, /Phrase/, /Word/, /Bookmark/, /Full screen/, /Exit/]) await expect(hints).toContainText(label);
 });
 
 test('row 30: F11 asks for full screen', async ({ page }) => {
@@ -345,7 +345,7 @@ test('row 30: F11 asks for full screen', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => (window as unknown as { __fullscreen: number }).__fullscreen)).toBeGreaterThan(0);
 });
 
-test('row 31: right-click offers Start from here, Bookmark here, roll, text size and Exit Booth', async ({ page }) => {
+test('row 31: right-click offers Bookmark here, text size and Exit Booth', async ({ page }) => {
   await open(page);
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });

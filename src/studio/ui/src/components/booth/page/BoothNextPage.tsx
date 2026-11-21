@@ -496,8 +496,8 @@ function BoothSession({
   const referenced = useBoothReference(recordId);
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
-  // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
+  // Opened at a chapter, the DAW goes there too: to the end of its track. A place the narrator chose is looked up by Record when the take starts.
+  const moveTarget = useMoveTarget({ units });
   const followChapterInDaw = useFollowChapterInDaw();
   // Until the DAW's transport has been read once (`project`), whether it records is not known: the move waits for it rather than guess.
   const dawRecording = useIsRecording() || control.recording || (control.project === null ? !control.projectFailed : control.project.playState === 'recording');

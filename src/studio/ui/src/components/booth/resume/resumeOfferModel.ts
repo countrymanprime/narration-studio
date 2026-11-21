@@ -16,7 +16,7 @@ export type KeptResume = ResumeTarget;
 export type OpenedResume = ResumeTarget & { why: 'recording' | 'left' };
 
 export type ResumeOffer = ResumeTarget & {
-  /** The paragraph's one-based position among the chapter's paragraphs, for "Resume at ¶ n". */
+  /** The paragraph's one-based position among the chapter's paragraphs, for the resume point. */
   paragraph: number;
   source: ResumeSource;
   /** False for an estimate: the host did not place the end of the recording with confidence. */

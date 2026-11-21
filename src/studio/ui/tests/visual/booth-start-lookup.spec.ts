@@ -1,4 +1,4 @@
-// A start chosen with Start from here is looked up in the host before the take begins (#3284). The lookup is made slow through the mock's overrides
+// A start chosen by a click is looked up in the host before the take begins (#3284). The lookup is made slow through the mock's overrides
 // (`__NARRATION_MOCK_OVERRIDES__`), so these hold for any slow lookup, not only a slow disk: Record shows the wait at once and does not change the
 // footer's size, presses join one lookup, and leaving the Booth while it or a later wait is out starts no take (REAPER recording with the narrator
 // on another page, and no Stop button there).
@@ -49,7 +49,7 @@ async function openWithSlowLookup(page: Page, delay: number, modelCheckMs = 0): 
   await showChapterTop(page);
 }
 
-/** Right-click a phrase and choose Start from here: the start is marked and, with no take running, the press begins one (after the lookup). */
+/** Click a phrase and press Record: the click chooses the start and the press begins the take (after the lookup). */
 async function startFromHere(page: Page, word = 40): Promise<void> {
   await page.locator('[data-booth-text] [data-word]').nth(word).click();
   await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
@@ -64,7 +64,7 @@ test('a slow lookup shows Record busy within 100 ms of the press, and five press
     await page.keyboard.press('Space');
     await page.waitForTimeout(100);
   }
-  // Presses during the wait join it: no lookup beyond the one Start from here made.
+  // Presses during the wait join it: no lookup beyond the one the press made.
   expect(await lookups(page)).toBe(before);
   expect(await dawRecording(page)).toBe(false);
   await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
@@ -170,7 +170,7 @@ for (const [name, modelCheckMs, lookupMs] of [
     await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
     expect(await lookups(page)).toBe(lookupsBefore);
     expect(await reading()).toBe(first);
-    // The take is over: a Start from here on the other phrase is an ordinary press again.
+    // The take is over: a click on the other phrase is an ordinary press again.
     await pastStartGuard(page);
     await stop(page).click();
     await expect(record(page)).toBeEnabled();
@@ -181,7 +181,7 @@ for (const [name, modelCheckMs, lookupMs] of [
   });
 }
 
-// The same for a plain Record press under way (no start chosen): a Start from here on any phrase meanwhile is refused and changes nothing.
+// The same for a plain Record press under way (no start chosen): a click on any phrase meanwhile is refused and changes nothing.
 test('a move during a plain press with a slow model check is refused and changes nothing', async ({ page }) => {
   // Two takes, each behind a 2.5 s model check, plus the waits between: about 25 s on a loaded runner, over the default 30 s.
   test.setTimeout(75_000);
