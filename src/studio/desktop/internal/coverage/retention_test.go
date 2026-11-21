@@ -520,7 +520,12 @@ func TestRemoveStoredResultReportsAFileAReadOnlyFolderKeeps(t *testing.T) {
 
 func writeStored(t *testing.T, service *Service, id string) {
 	t.Helper()
-	if err := service.results.write(StoredResult{RecordID: id}); err != nil {
+	// The result names the chapter of the first check in the ledger, which has a complete check: its record is gone because a newer one stands.
+	result := StoredResult{RecordID: id}
+	if records, err := service.ledger.All(); err == nil && len(records) > 0 {
+		result.DocumentID, result.ChapterID = records[0].Scope.DocumentID, records[0].Scope.ChapterID
+	}
+	if err := service.results.write(result); err != nil {
 		t.Fatal(err)
 	}
 	if err := service.summaries.write(ResultSummary{RecordID: id}); err != nil {
@@ -1123,5 +1128,27 @@ func TestTheSweepRefusesALedgerOfAnotherProject(t *testing.T) {
 	}
 	if got := f.stored("orphan"); got != before {
 		t.Fatalf("the sweep touched the results: %q", got)
+	}
+}
+
+// A result whose record has not arrived (a project being synced or restored) is not an orphan: only a result a newer complete check of
+// its chapter has superseded is. Deleting the first costs a whole re-check when the record lands.
+func TestTheSweepKeepsAResultWhoseChapterHasNoCompleteCheckInTheLedger(t *testing.T) {
+	f, _, _, _ := checkedTwiceThenFailed(t)
+	// Chapter c-0002 has no record in the ledger at all; its result and summary are there.
+	if err := f.service.results.write(StoredResult{RecordID: "late", DocumentID: "other-document", ChapterID: "c-0002"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.service.summaries.write(ResultSummary{RecordID: "late"}); err != nil {
+		t.Fatal(err)
+	}
+	// One whose chapter does have a complete check is superseded.
+	writeStored(t, f.service, "stale")
+	swept, err := f.service.SweepOrphanResults()
+	if err != nil || !reflect.DeepEqual(swept, []string{"stale"}) {
+		t.Fatalf("SweepOrphanResults = %v, %v; want the superseded result alone", swept, err)
+	}
+	if got := f.stored("late"); got != "result summary -" {
+		t.Fatalf("the result of a record that has not arrived has %q, want its result and summary kept", got)
 	}
 }

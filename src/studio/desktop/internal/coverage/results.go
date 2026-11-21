@@ -375,13 +375,13 @@ func (s *Service) SweepOrphanResults() ([]string, error) {
 		if _, isRecordID := evidence.RecordFileName(id); !isRecordID || recorded[id] {
 			continue
 		}
-		result, err := s.removeOrphan(resultsFolder, id, isStoredResult)
+		result, err := s.removeOrphan(resultsFolder, id, s.supersededResult)
 		if err != nil {
 			return removed, fmt.Errorf("could not remove the coverage result of record %s: %w", id, err)
 		}
 		s.results.cache.drop(id)
 		s.summaries.forget(id)
-		summary, err := s.removeOrphan(summariesFolder, id, isStoredSummary)
+		summary, err := s.removeOrphan(summariesFolder, id, s.orphanSummary)
 		if err != nil {
 			return removed, fmt.Errorf("could not remove the coverage result summary of record %s: %w", id, err)
 		}
@@ -390,6 +390,36 @@ func (s *Service) SweepOrphanResults() ([]string, error) {
 		}
 	}
 	return removed, nil
+}
+
+// supersededResult reports whether raw is a result this package stored for record id whose chapter has a complete check in the ledger
+// now. The record of a result that has no file is gone because a newer check replaced it, or because it has not arrived yet (a project
+// that is being synced or restored): only the first is an orphan, and the second costs a whole re-check if it is deleted.
+func (s *Service) supersededResult(raw []byte, id string) bool {
+	var result StoredResult
+	if json.Unmarshal(raw, &result) != nil || result.RecordID != id || result.SchemaVersion <= 0 {
+		return false
+	}
+	records, err := s.ledger.List(AnalyzerID, result.ChapterID)
+	if err != nil {
+		return false
+	}
+	for _, record := range records {
+		if record.Scope.DocumentID == result.DocumentID && record.Outcome == evidence.LedgerComplete {
+			return true
+		}
+	}
+	return false
+}
+
+// orphanSummary reports whether raw is a summary this package stored for record id whose result is not there any more: a summary is
+// answered only while its result is, so it goes with it, and one whose result stays (not superseded) stays too.
+func (s *Service) orphanSummary(raw []byte, id string) bool {
+	if !isStoredSummary(raw, id) {
+		return false
+	}
+	present, err := persist.IsRegular(s.config.Project, filepath.Join(resultsFolder, id+".json"))
+	return err == nil && !present
 }
 
 // removeOrphan deletes the file kept for record id in one of the two stores' folders when it is a regular file that
@@ -413,14 +443,7 @@ func (s *Service) removeOrphan(dir, id string, stored func(raw []byte, id string
 	return persist.RemoveRegular(s.config.Project, file)
 }
 
-// isStoredResult reports whether raw is a result this package stored for record id: a StoredResult that names the
-// record and carries the version every write stamps (any version, so a result an older build stored is one too).
-func isStoredResult(raw []byte, id string) bool {
-	var result StoredResult
-	return json.Unmarshal(raw, &result) == nil && result.RecordID == id && result.SchemaVersion > 0
-}
-
-// isStoredSummary is isStoredResult for a ResultSummary, which also carries the version of the result it was made from.
+// isStoredSummary reports whether raw is a summary this package stored for record id: a ResultSummary that names the record and carries the version of the result it was made from.
 func isStoredSummary(raw []byte, id string) bool {
 	var summary ResultSummary
 	return json.Unmarshal(raw, &summary) == nil && summary.RecordID == id && summary.SchemaVersion > 0 && summary.ResultVersion > 0

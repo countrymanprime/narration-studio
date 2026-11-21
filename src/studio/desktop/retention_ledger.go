@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"desktop/internal/coverage"
 	"desktop/internal/editing"
@@ -28,7 +29,9 @@ var ledgerRetentionKeys = map[string]evidence.RetentionKey{
 // (#3816). It deletes the records no reader selects any more, each with its result and summary first, then the results and summaries
 // whose record has no file. The ledger and the stores are injected, so a test drives it with files in a temp folder.
 type ledgerRetention struct {
-	ledger *evidence.LedgerStore
+	// project is the project folder the step was built for; the ledger must be that project's.
+	project string
+	ledger  *evidence.LedgerStore
 	// referenced is the record ids a narrator's decision stands on (stages.DecisionStore.ReferencedRecordIDs); an error stops the step.
 	referenced func() (map[string]bool, error)
 	// removeResult removes what is stored beside a record of the coverage analyzer, before the record itself goes.
@@ -46,6 +49,11 @@ func (l ledgerRetention) Run(ctx context.Context, stop func() bool) retention.Re
 	report.Kind = l.Name()
 	if stop() || ctx.Err() != nil {
 		report.Stopped = true
+		return report
+	}
+	if filepath.Clean(l.ledger.Project()) != filepath.Clean(l.project) {
+		// Retain would prune one project's ledger while the results of another are removed.
+		report.Err = fmt.Errorf("no ledger record was removed: the ledger belongs to %s, not to this project", l.ledger.Project())
 		return report
 	}
 	referenced, err := l.referenced()

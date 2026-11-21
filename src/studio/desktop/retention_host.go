@@ -11,8 +11,9 @@ import (
 )
 
 // Retention (#3816): the host keeps the project's derived files bounded by a pass in the background, started when a project
-// is opened and when a recording check ends, and never while one runs. So far a pass only reports how much each store
-// holds, in the host log, and deletes nothing; the stores' own deletes are wired one at a time behind it.
+// is opened and when a recording check ends, and never while one runs. Each step reports how much its store holds in the host log;
+// the ledger step (retention_ledger.go) also deletes what no reader selects any more, and the stores' other deletes are wired one at a
+// time behind it.
 
 // startRetentionLocked replaces the project's retention runner with one over the stores of the project just configured, and
 // kicks it. checks is the coverage service of the project just configured (passed in, so this reads no swappable service field). The previous runner is stopped first, so a pass never outlives its project. Call it with h.mu held.
@@ -34,6 +35,7 @@ func (h *Host) startRetentionLocked(checks *coverage.Service, ledger *evidence.L
 	decisions := stages.NewDecisionStore(project, h.persist)
 	steps := []retention.Step{
 		ledgerRetention{
+			project:      project,
 			ledger:       ledger,
 			referenced:   decisions.ReferencedRecordIDs,
 			removeResult: checks.RemoveStoredResult,

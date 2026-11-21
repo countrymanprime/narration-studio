@@ -51,6 +51,7 @@ func (r *stepRig) write(id, analyzer string, outcome evidence.LedgerOutcome) {
 
 func (r *stepRig) step() ledgerRetention {
 	return ledgerRetention{
+		project:    r.project,
 		ledger:     r.ledger,
 		referenced: func() (map[string]bool, error) { return r.referenced() },
 		removeResult: func(id string) error {
@@ -261,5 +262,18 @@ func TestTheLedgerStepStopsRemovingWhenACheckStartsMidPass(t *testing.T) {
 	}
 	if got := len(rig.left()); got != 10-report.Removed {
 		t.Fatalf("ledger holds %d records after %d removed", got, report.Removed)
+	}
+}
+
+// A ledger of another project is refused: Retain would prune it while the results of this project's service are removed.
+func TestTheLedgerStepRefusesALedgerOfAnotherProject(t *testing.T) {
+	rig := newStepRig(t)
+	rig.write("c0", coverage.AnalyzerID, evidence.LedgerComplete)
+	rig.write("c1", coverage.AnalyzerID, evidence.LedgerComplete)
+	step := rig.step()
+	step.project = t.TempDir()
+	report := step.Run(context.Background(), never)
+	if report.Err == nil || report.Removed != 0 || !slices.Equal(rig.left(), []string{"c0", "c1"}) || len(rig.removed) != 0 {
+		t.Fatalf("report = %+v, ledger holds %v, results removed %v; want an error and nothing removed", report, rig.left(), rig.removed)
 	}
 }
