@@ -45,6 +45,7 @@ func TestAssigningARunningProgramPutsItInTheJob(t *testing.T) {
 	if err := command.Start(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = command.Process.Kill() }) // if the test fails before the job ends it
 	if err := jobs.assign(command.Process.Pid); err != nil {
 		t.Fatalf("assign of a running program: %v", err)
 	}

@@ -53,6 +53,7 @@ func ended(process windows.Handle) bool {
 	var code uint32
 	return windows.GetExitCodeProcess(process, &code) == nil && code != stillActive
 }
+
 func (j *jobSet) close() error {
 	if j.handle == 0 {
 		return nil
