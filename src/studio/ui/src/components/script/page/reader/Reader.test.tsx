@@ -494,6 +494,24 @@ describe('Home and End', () => {
     vi.unstubAllGlobals();
   });
 
+  // Shift with End or Home extends a selection of the reader's text, and Alt with Home is the browser's: the reader takes neither.
+  it('leaves End and Home with Shift or Alt to the browser', () => {
+    render(long());
+    const root = sized();
+    height = 6500;
+    fireEvent.wheel(root); // the narrator's own scroll lets go of the place the reader opened on
+    scrollTo(1000);
+    for (const key of ['End', 'Home']) {
+      for (const modifier of [{ shiftKey: true }, { altKey: true }]) {
+        expect(fireEvent.keyDown(root, { key, ...modifier })).toBe(true);
+        expect(scrolls.get(root)).toBe(1000);
+      }
+    }
+    // Ctrl with End is the same move as End.
+    expect(fireEvent.keyDown(root, { key: 'End', ctrlKey: true })).toBe(false);
+    expect(scrolls.get(root)).toBe(6100);
+  });
+
   it('Home goes to the top of the book', () => {
     render(long({ initialChapterId: 'k30' }));
     const root = sized();

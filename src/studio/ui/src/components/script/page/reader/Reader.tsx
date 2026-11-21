@@ -557,7 +557,8 @@ export function Reader(props: ReaderProps) {
         onTouchStart={release}
         onKeyDownCapture={release}
         onKeyDown={(event) => {
-          if (event.key === 'Home' || event.key === 'End') return onHomeEnd(event);
+          // With Shift the key extends a selection of the text and with Alt it is the browser's or the system's: both are left alone.
+          if ((event.key === 'Home' || event.key === 'End') && !event.shiftKey && !event.altKey) return onHomeEnd(event);
           if (event.target !== event.currentTarget || (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')) return;
           const id = spy.get().chapterId ?? chapters[0]?.id;
           if (!id) return;
