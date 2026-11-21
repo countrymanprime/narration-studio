@@ -248,6 +248,12 @@ describe('settings a page reads are filed under their topic (#3673)', () => {
   });
 });
 
+describe('a panel draws only settings a narrator chooses', () => {
+  it('the Recording check rules panel leaves out the background-checks notice flag (found by the ux review)', () => {
+    expect(PANEL_ROWS['stt.rules']!.wanted('background_checks_confirmed')).toBe(false);
+  });
+});
+
 describe('panel rows are found by the words the panels themselves use', () => {
   it('finds the favourite effects by "favorite" and the compare marker colours by "color"', () => {
     expect(search('favorite').some((hit) => hit.row.id === 'daw.fxFavourites')).toBe(true);

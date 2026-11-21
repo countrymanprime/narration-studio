@@ -12,7 +12,8 @@ const rowKeys = (tool: string): ReadonlySet<string> => new Set(ROWS.flatMap((row
 const COVERAGE_ROW_KEYS = rowKeys('RecordingCoverage');
 
 export const PANEL_ROWS: Readonly<Record<string, PanelFields>> = {
-  'stt.rules': { tool: 'RecordingCoverage', wanted: (key) => !COVERAGE_ROW_KEYS.has(key) },
+  // background_checks_confirmed is the notice's "already asked" flag, not a setting a narrator chooses; the Booth's notice sets it.
+  'stt.rules': { tool: 'RecordingCoverage', wanted: (key) => !COVERAGE_ROW_KEYS.has(key) && key !== 'background_checks_confirmed' },
   'stt.compareColours': { tool: 'TranscriptCompare', wanted: (key) => key.startsWith('color_') },
   'daw.fxFavourites': { tool: 'DAW', wanted: (key) => key === 'fx_favourites' },
   'daw.backups': { tool: 'DAW', wanted: (key) => key.startsWith('backups.') },
