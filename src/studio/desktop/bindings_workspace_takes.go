@@ -5,7 +5,6 @@ import (
 	"desktop/internal/creditsid"
 	"fmt"
 	"strings"
-	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -21,8 +20,8 @@ import (
 // REAPER project (internal/passagetakes), exactly as WorkspaceGoTo does for a word (threat model rows 5l and 4f).
 
 // takeRequestTimeout bounds the wait for REAPER to answer one take request from the Takes panel (and the range
-// requests that share it): long enough for a busy REAPER, short enough that a hung one is reported.
-const takeRequestTimeout = 12 * time.Second
+// requests that share it): an edit REAPER has read is waited for until it lands (writeCommandTimeout).
+const takeRequestTimeout = writeCommandTimeout
 
 // workspaceTakesResolved reads the alternates of the passage [firstToken, lastToken] of chapterID, with the saved
 // project they were resolved against (a choice acts on that project's GUIDs).

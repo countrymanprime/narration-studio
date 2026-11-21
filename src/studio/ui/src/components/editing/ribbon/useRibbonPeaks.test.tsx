@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { usePort } from '../../../ports/usePort';
@@ -88,7 +88,10 @@ describe('usePrefetchPeaks', () => {
     chapterId,
     items: [{ index: 0, peaks: { startSeconds: 0, bucketsPerSecond: 50, buckets: 1, minMax: 'A'.repeat(mb * 1024 * 1024), sampleRate: 48000, channels: 1 } }],
   });
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 400)); // longer than the wait between two background reads
+  // Longer than the wait between two background reads, on a fake clock.
+  const settle = () => act(() => vi.advanceTimersByTimeAsync(400));
+  beforeEach(() => void vi.useFakeTimers({ shouldAdvanceTime: true }));
+  afterEach(() => void vi.useRealTimers());
 
   it('reads every chapter once, outwards from the open one, and none again when the narrator moves', async () => {
     const workspacePeaks = vi.fn(async (chapterId: string) => result(chapterId));

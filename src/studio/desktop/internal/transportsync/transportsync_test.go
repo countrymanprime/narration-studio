@@ -3,6 +3,7 @@ package transportsync
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -143,6 +144,11 @@ func TestTransportSyncWordsEachFailureAsASentence(t *testing.T) {
 		if got.OK || got.Message == "" || got.Refused != got.Message {
 			t.Errorf("%s: %+v, want a refusal with one sentence", name, got)
 		}
+	}
+	// A play the DAW took and had not confirmed may still start: it is not "not answering".
+	late := run(t, &fakeSyncer{err: fmt.Errorf("%w: %w", bridge.ErrAnswerLate, context.DeadlineExceeded)}, available(), true, "play", 3)
+	if want := "REAPER took the command but did not confirm it in time, so what it did may not match. Check REAPER."; late.Refused != want {
+		t.Errorf("a play taken and not confirmed: %q, want %q", late.Refused, want)
 	}
 	if got := run(t, &fakeSyncer{err: bridge.ErrRecording}, available(), true, "play", 3); !strings.Contains(got.Message, "recording") {
 		t.Errorf("recording sentence = %q", got.Message)

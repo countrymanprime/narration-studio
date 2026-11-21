@@ -271,6 +271,8 @@ const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'i
 );
 // `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
 const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
+// `?mockLocalModel=none` is the app as it ships: no local model for unknown speakers is installed, so Settings shows its switch off with the reason.
+const mockLocalModel = mockParams.get('mockLocalModel') === 'none' ? ('none' as const) : undefined;
 // `?mockAssetsVerify=damaged|absent|fails|silent|hangs` sets what Settings > Models & downloads' Check the files answers: the asset damaged,
 // gone, a refusal in the host's words, a refusal with no words, or no answer. `?mockAssetNames=long` gives the Whisper model a long name.
 const mockAssetsVerify = (['damaged', 'absent', 'fails', 'silent', 'hangs'] as const).find((seed) => seed === mockParams.get('mockAssetsVerify'));
@@ -563,6 +565,7 @@ const mockInitial = {
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
+  ...(mockLocalModel ? { localModel: mockLocalModel } : {}),
   ...(mockAssetsVerify ? { assetsVerify: mockAssetsVerify } : {}),
   ...(mockAssetNames ? { assetNames: mockAssetNames } : {}),
   ...(mockMove ? { assetMove: mockMove } : {}),
