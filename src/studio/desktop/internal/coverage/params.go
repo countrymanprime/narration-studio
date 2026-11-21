@@ -3,11 +3,12 @@ package coverage
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"desktop/internal/evidence"
 )
 
 const (
@@ -93,7 +94,7 @@ func readProjectInputs(project string) projectInputs {
 // compares: the alignment parameters and everything that shapes the words or
 // the match except the model and the language (Q13).
 func paramHash(params AlignmentParams, inputs projectInputs) string {
-	return hashParts("coverage-params", AnalyzerVersion,
+	return evidence.HashParts("coverage-params", AnalyzerVersion,
 		strconv.Itoa(params.MaxMisreadRun), strconv.Itoa(params.MinAnchorRun),
 		inputs.EquivalencesHash, inputs.HotwordsHash, wordsVersion, vadFilter)
 }
@@ -105,22 +106,12 @@ func paramHash(params AlignmentParams, inputs projectInputs) string {
 // carry the re-check model in their own key, so they never seed a later plain check of the same
 // first-pass model with words a stronger model has already touched.
 func wordsParamHash(transcription Transcription, recheckModel string, inputs projectInputs) string {
-	return hashParts("coverage-words", wordsVersion, transcription.Model, transcription.Language, recheckModel, inputs.HotwordsHash, vadFilter)
+	return evidence.HashParts("coverage-words", wordsVersion, transcription.Model, transcription.Language, recheckModel, inputs.HotwordsHash, vadFilter)
 }
 
 func digest(text string) string {
 	sum := sha256.Sum256([]byte(text))
 	return "sha256:" + hex.EncodeToString(sum[:])
-}
-
-// hashParts hashes length-prefixed parts, so ("ab","c") and ("a","bc") differ
-// (the same encoding evidence and findings use).
-func hashParts(parts ...string) string {
-	hash := sha256.New()
-	for _, part := range parts {
-		_, _ = fmt.Fprintf(hash, "%d:%s", len(part), part)
-	}
-	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // args are the sidecar flags for p with workers, the planned transcriptions at once (always sent, so the sidecar runs the
