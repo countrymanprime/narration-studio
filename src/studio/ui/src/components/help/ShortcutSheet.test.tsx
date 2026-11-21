@@ -111,11 +111,9 @@ describe('ShortcutSheet', () => {
     renderSheet();
     const keepRow = screen.getByText(/^Keep the take the keys are on/).closest('li')!;
     expect(keepRow.querySelector('kbd[data-key="Enter"]')).not.toBeNull();
+    // The right-click is no hint of its own any more (a click chooses the start, #3858): the roll row carries only R.
     const rollRow = screen.getByText('Punch and roll from here').closest('li')!;
-    const click = rollRow.querySelector('kbd[data-key="RightClick"]');
-    expect(click).not.toBeNull();
-    expect(within(click as HTMLElement).getByText('Right-click')).toBeTruthy();
-    expect(within(rollRow).getByText('Mark start')).toBeTruthy();
+    expect(rollRow.querySelector('kbd[data-key="RightClick"]')).toBeNull();
   });
 
   it('groups commands under a heading per scope, skipping a scope with no commands', () => {

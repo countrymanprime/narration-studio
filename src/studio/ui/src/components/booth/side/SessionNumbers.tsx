@@ -1,5 +1,5 @@
 import type { SessionNumbersData } from './sections';
-import { DIM_CLASS, SideSection } from './SideSection';
+import { SideSection } from './SideSection';
 import { clock } from '../../../clock';
 import { pluralWord } from '../../../plural';
 
@@ -8,7 +8,6 @@ export function LastPunch({ numbers }: { numbers: SessionNumbersData }) {
   return (
     <SideSection title="Last punch">
       <div>{numbers.lastPunch ?? 'No punches yet'}</div>
-      {numbers.nextRoll ? <div className={DIM_CLASS}>{numbers.nextRoll}</div> : null}
     </SideSection>
   );
 }

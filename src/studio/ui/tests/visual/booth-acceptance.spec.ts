@@ -286,15 +286,6 @@ test('row 25: R during a take on a DAW that keeps the take rolls without asking,
   await expect(page.locator('#booth-side, aside').getByText(/No punches yet/)).toHaveCount(0);
 });
 
-test('row 26: Resume at ¶ n moves the reading position to where the recording ends', async ({ page }) => {
-  await open(page);
-  // Chapter 1 opens at ¶ 14, where its recording ends, so no chip is offered until the narrator looks elsewhere: the next paragraph.
-  await page.locator('[data-booth-text] [data-paragraph]:has([data-current]) + [data-paragraph] [data-word="0"]').click();
-  const before = await wordIndex(page);
-  await page.getByRole('button', { name: /^Resume at ¶/ }).click();
-  await expect.poll(() => wordIndex(page)).not.toBe(before);
-});
-
 // A chapter that opens on its title (Chapter 2 here) has no manuscript paragraph a bookmark can name (#2251 item 7): the reading moves
 // onto the first paragraph's first word first. Chapter 1 opens at ¶ 14, where its recording ends (#2633), so its reading paragraph is used.
 const toReadingParagraph = (page: Page) =>
@@ -359,23 +350,18 @@ test('row 31: right-click offers Start from here, Bookmark here, roll, text size
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   const menu = page.getByRole('menu').last();
-  for (const item of [/Mark the start here/, /Bookmark here/, /Exit/]) await expect(menu.getByRole('menuitem', { name: item }).first()).toBeVisible();
+  for (const item of [/Bookmark here/, /Exit/]) await expect(menu.getByRole('menuitem', { name: item }).first()).toBeVisible();
 });
 
-// Punch has no switch since #2251: with REAPER linked and answering, Mark the start here sets the next roll and nothing else (#3319); Space then records from it.
-test('row 31: Mark the start here only sets the next roll, and Space records from it', async ({ page }) => {
+// Punch has no switch since #2251: with REAPER linked and answering, a click on a word chooses where the next take starts and nothing else (#3858); Space then records from it.
+test('row 31: a click only chooses the start, and Space records from it', async ({ page }) => {
   await open(page);
   await showChapterTop(page);
-  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
-  await expect(page.getByText(/Next roll starts from ¶/).first()).toBeVisible();
-  await expect(page.getByText(/The next take starts from the end of what is already there, not from ¶/)).toHaveCount(0);
-  // Nothing was sent to the DAW: no take is running until Record is pressed.
+  await page.locator('[data-booth-text] [data-word]').nth(40).click();
+  // Nothing was sent to the DAW: no take is running until Record is pressed, and there is no separate start mark.
   await expect(page.getByRole('button', { name: /^Record$/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Stop$/ })).toHaveCount(0);
+  await expect(page.locator('[data-start]')).toHaveCount(0);
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
 });
@@ -420,7 +406,7 @@ test('row 36: at 390 px the top bar wraps without overlap and nothing scrolls si
   await open(page);
   expect(await noSideways(page)).toBe(true);
   const rects = await page.evaluate(() =>
-    ['[aria-label^="Chapter:"]', '[aria-label^="Recording setup"]', 'button[aria-label^="Resume at"]'].map((selector) => {
+    ['[aria-label^="Chapter:"]', '[aria-label^="Recording setup"]'].map((selector) => {
       const b = document.querySelector(selector)?.getBoundingClientRect();
       return b ? { l: b.left, t: b.top, r: b.right, b: b.bottom } : null;
     }),

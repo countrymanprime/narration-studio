@@ -1400,7 +1400,6 @@
       "consumers": [
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
-        "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/chapterTracks/SavedProjectChip.tsx",
         "src/components/connection/ConnectionIndicator.tsx",
         "src/components/engine/EngineChipButton.tsx",
@@ -3027,22 +3026,6 @@
       "a11yDebt": false
     },
     {
-      "title": "Booth/ResumeOffer",
-      "name": "ResumeOffer",
-      "source": "src/components/booth/resume/ResumeOffer.tsx",
-      "stories": [
-        "Offered",
-        "Estimated",
-        "Remembered",
-        "None",
-        "Needs Model"
-      ],
-      "consumers": [
-        "src/components/booth/page/BoothNextPage.tsx"
-      ],
-      "a11yDebt": false
-    },
-    {
       "title": "Editing/Ribbon",
       "name": "Ribbon",
       "source": "src/components/editing/ribbon/Ribbon.tsx",
@@ -4398,7 +4381,6 @@
         "src/components/booth/bookmarks/BookmarkRibbons.tsx",
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
-        "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
         "src/components/chapterTracks/SavedProjectChip.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",

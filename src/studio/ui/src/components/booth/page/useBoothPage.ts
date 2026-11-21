@@ -46,7 +46,7 @@ import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../../recordingcheck/openCheckRecordings';
-import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
+import { resumeOfferFor, type KeptResume, type OpenedResume } from '../resume/resumeOfferModel';
 import { START_BUSY_MOVE, useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, suspectedFrom, wordRangeOf } from './readingSource';
@@ -220,19 +220,11 @@ export function useBoothPage(options: BoothPageOptions) {
   const ghostAt = ghostHeard && unitAtPosition(paragraphs, units, ghostHeard);
   const ghost: ReadingPosition | undefined = (ghostAt && positionOf(paragraphs, units, ghostAt)) ?? undefined;
   const [browse, setBrowse] = useState(false);
-  // The chosen start and the place the reading was moved to are mirrored in refs, so a Record pressed in the same task as the move (a pedal or a macro)
-  // reads them before React has rendered the move.
+  // Where the reading was moved before a take (#3858): the take starts there. It is the only start there is; the reading's own cursor is its mark. It is
+  // mirrored in a ref so a Record pressed in the same task as the move (a pedal or a macro) reads it before React has rendered the move, cleared when
+  // the reading goes back to the resume point and when a take begins or ends.
   type Phrase = number | null;
-  const punchRef = useRef<Phrase>(null);
   const movedRef = useRef<Phrase>(null);
-  const [punchAt, setPunchAtState] = useState<Phrase>(null);
-  const setPunchAt = useCallback((next: Phrase | ((chosen: Phrase) => Phrase)) => {
-    const value = typeof next === 'function' ? next(punchRef.current) : next;
-    punchRef.current = value;
-    setPunchAtState(value);
-  }, []);
-  // Where the narrator moved the reading before a take (#3858): the take starts there, as it does at a chosen start, but nothing is drawn for it
-  // (the reading's own cursor is the mark). Cleared when the reading goes back to the resume point, when a take ends and with a chosen start.
   const [movedTo, setMovedToState] = useState<Phrase>(null);
   const setMovedTo = useCallback((value: Phrase) => {
     movedRef.current = value;
@@ -275,7 +267,7 @@ export function useBoothPage(options: BoothPageOptions) {
   // The press of Record, for a message's Retry that is said before the press itself is defined.
   const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
-  // A take under way has used it: from then on the voice owns the cursor, and R rolls from a start shown by Mark the start here or the current word.
+  // A take under way has used it: from then on the voice owns the cursor, and R rolls from the word the voice is on.
   useEffect(() => {
     if (recording) setMovedTo(null);
   }, [recording, setMovedTo]);
@@ -417,11 +409,9 @@ export function useBoothPage(options: BoothPageOptions) {
     startedFrom.current = true;
     if (!unit) return;
     setLocal(unit);
-    // An explicit entry chooses the start (#3858): Record from here draws its mark; a bookmark jump from another chapter (`placeOnly`) starts there too,
-    // with the cursor as its only mark.
-    if (from.placeOnly) setMovedTo(unit.cur);
-    else setPunchAt(unit.cur);
-  }, [from, paragraphs, units, setMovedTo, setPunchAt]);
+    // An explicit entry chooses the start (#3858): Record from here, and a bookmark jump from another chapter.
+    setMovedTo(unit.cur);
+  }, [from, paragraphs, units, setMovedTo]);
 
   // The next listening session starts at the reading position (docs/guides/using-the-app/booth.md#where-you-stopped: a choice only sets where Start begins).
   const startWord = position && !listening ? scriptWordAt(spans, paragraphs, position) : null;
@@ -717,8 +707,8 @@ export function useBoothPage(options: BoothPageOptions) {
       startedByApp: control.startedByApp,
       phraseCount: units.length,
       phrase: at.cur,
-      punchAt: punchAt ?? movedTo,
-      chosen: () => punchRef.current ?? movedRef.current,
+      punchAt: movedTo,
+      chosen: () => movedRef.current,
       paragraphOf: (phrase) => bodyParagraphIndex(paragraphs, units[phrase]?.paragraphIndex ?? 0),
       punchTarget: (phrase) => {
         // The words of the phrase (a sentence) in its paragraph: where the host finds them in the last recording check.
@@ -822,15 +812,7 @@ export function useBoothPage(options: BoothPageOptions) {
         }
         return true;
       },
-      clearStart: () => {
-        setPunchAt(null);
-        setMovedTo(null);
-      },
-      chooseStart: (phrase, move) => {
-        setPunchAt(phrase);
-        setMovedTo(null);
-        if (move) moveTo({ cur: phrase, wcur: 0 });
-      },
+      clearStart: () => setMovedTo(null),
       moveTo: (phrase) => {
         const now = latest.current;
         const to = placeOf(now.paragraphs, now.units, { cur: phrase, wcur: 0 });
@@ -868,21 +850,10 @@ export function useBoothPage(options: BoothPageOptions) {
       // cursor is on).
       const now = latest.current;
       const phrase = Math.min(Math.max(next.cur, 0), Math.max(now.units.length - 1, 0));
-      if (phrase !== now.at.cur || force) {
-        setPunchAt((chosen) => (chosen === phrase ? chosen : null));
-        if (choose && !now.recording) setMovedTo(phrase === resumePhrase.current ? null : phrase);
-        else setMovedTo(null);
-      }
+      if (phrase !== now.at.cur || force) setMovedTo(choose && !now.recording && phrase !== resumePhrase.current ? phrase : null);
       moveTo(next);
     },
-    [moveBlocked, moveTo, setMovedTo, setPunchAt],
-  );
-  const chooseResume = useCallback(
-    (target: ResumeTarget) => {
-      const unit = unitAtPosition(latest.current.paragraphs, latest.current.units, { paragraphId: target.paragraphId, word: target.word });
-      if (unit) moveReading(unit);
-    },
-    [moveReading],
+    [moveBlocked, moveTo, setMovedTo],
   );
   // A start still waiting for the host or a check must not begin a take once the chapter has changed or the Booth is left.
   const { cancelStart } = roll;
@@ -1026,9 +997,8 @@ export function useBoothPage(options: BoothPageOptions) {
       takeBegan.current = null;
       return;
     }
-    // A start chosen with Mark the start here is for the take that just ended: the next Record press starts where the recording ends, and does not
+    // A start chosen before the take is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
-    setPunchAt(null);
     setMovedTo(null);
     // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
     const followed = takeByDaw.current;
@@ -1063,7 +1033,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen, recorderLabel, setMovedTo, setPunchAt]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen, recorderLabel, setMovedTo]);
   // This page's own state at this moment decides (a take recording here, no session following it, no press of its own after the reporting one), and a
   // session still starting or stopping is waited out: the effect runs again when it settles. A report about a take this page never shows is forgotten.
   const { active: sessionActive } = session;
@@ -1459,26 +1429,24 @@ export function useBoothPage(options: BoothPageOptions) {
           release();
           action();
         };
-        const unit = target.closest<HTMLElement>('[data-unit]');
-        const phrase = unit ? Number(unit.dataset.unit) : null;
         const larger = () => setSize((s) => Math.min(TEXT_SIZE.max, s + TEXT_SIZE.step));
         const smaller = () => setSize((s) => Math.max(TEXT_SIZE.min, s - TEXT_SIZE.step));
         const more = (extras.current.menuItems?.(target) ?? []).map((item) => ({ ...item, onSelect: run(item.onSelect) }));
         // A ribbon and a page marker offer only their own items.
         if (target.closest('[data-bm], [data-page-break]')) return more;
         return [
-          ...(phrase === null ? [] : [{ key: 'start', label: 'Mark the start here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
           ...more,
           { key: 'next', label: 'Next phrase', onSelect: run(() => moveReading(nextPhrase(latest.current.units, latest.current.at))) },
           { key: 'back', label: 'Back one phrase', onSelect: run(() => moveReading(backPhrase(latest.current.at))) },
-          { key: 'roll', label: 'Punch and roll', onSelect: run(punchAndRoll) },
+          // Before a take Record is the press that starts one, so the roll is offered only while a take runs (#3858).
+          ...(latest.current.recording ? [{ key: 'roll', label: 'Punch and roll', onSelect: run(punchAndRoll) }] : []),
           { key: 'larger', label: 'Larger text', onSelect: run(larger) },
           { key: 'smaller', label: 'Smaller text', onSelect: run(smaller) },
           { key: 'exit', label: 'Exit Booth', onSelect: run(exit) },
         ];
       },
     }),
-    [hold, roll, punchAndRoll, moveReading, exit, setSize],
+    [hold, punchAndRoll, moveReading, exit, setSize],
   );
   useContextProvider(menu);
 
@@ -1499,14 +1467,12 @@ export function useBoothPage(options: BoothPageOptions) {
     coldRead: { on: coldRead, toggle: coldReadFromJump, disabledReason: coldReadReason, mode: coldMode, setMode: setColdMode, starting: coldStarting },
     browse,
     setBrowse,
-    punchAt,
     text,
     control,
     paused,
     seconds,
     takeNote,
     resume,
-    chooseResume,
     /** Says where the page opened the chapter, for the resume line to offer back. */
     setOpened,
     flags,
@@ -1515,7 +1481,6 @@ export function useBoothPage(options: BoothPageOptions) {
       recordedSeconds: recorded + (recording ? seconds : 0),
       punches: punches.length,
       lastPunch: lastPunch ? `Rolled from ¶ ${lastPunch.paragraph + 1} · ${clock(lastPunch.seconds)}` : undefined,
-      nextRoll: punchAt !== null && units[punchAt] ? `Next roll starts from ¶ ${bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1}` : undefined,
     },
     seek: (paragraphId: string, word: number) => {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });

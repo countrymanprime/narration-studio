@@ -90,7 +90,6 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/ResumePrompt.tsx::teleprompterResumeUnfollow#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Stops the follow on cleanup; a failure here is unobservable and harmless (SILENT_CATCHES).'),
 
   // Suspected lines and the resume offer.
-  'src/components/booth/resume/useResumeOffer.ts::teleprompterLocate#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Asks the host where the chapter\'s recording ends, once per chapter; a failure drops the resume offer and the narrator starts the chapter from the top as before.'),
   'src/components/booth/suspected/SuspectedLines.tsx::teleprompterSaveFlags#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'Stores the suspected lines as findings when they appear, and again on Dismiss; a failure shows as a toast.'),
   'src/components/booth/suspected/SuspectedLines.tsx::teleprompterSaveFlags#2': row('click', 'file-io', 'na', 'na', 'toast', 'toast', 'na', 'ok', 'Inside the Dismissed toast\'s Undo: reloads the stored finding so the Undo reaches its current version; a failure is the Undo\'s refusal sentence.'),
   'src/studio/commands/reviewFinding.ts::findingsReview#5': row('click', 'file-io', 'na', 'na', 'toast', 'toast', 'na', 'ok', 'The Dismissed toast\'s Undo puts the finding back to unreviewed; a failure is the Undo\'s refusal sentence.'),

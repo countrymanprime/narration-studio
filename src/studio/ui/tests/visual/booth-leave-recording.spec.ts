@@ -543,11 +543,7 @@ test('Back while a start is still pending leaves with no question and starts no 
   await goToPage(page, 'Booth');
   await expect(record(page)).toBeEnabled();
   await showChapterTop(page);
-  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
+  await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await page.evaluate(() => window.history.back());

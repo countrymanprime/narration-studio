@@ -50,11 +50,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.setViewportSize({ width, height });
       await openRefusing(page);
       const idleFooter = await footerHeight(page);
-      await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-      await page
-        .getByRole('menuitem', { name: /Mark the start here/ })
-        .first()
-        .click();
+      await page.locator('[data-booth-text] [data-word]').nth(40).click();
       await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
       const toast = page.locator('[data-toast-region] [data-tone="error"]');
       await expect(toast).toBeVisible();

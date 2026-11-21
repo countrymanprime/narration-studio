@@ -9,7 +9,6 @@ import { sentenceOr } from '../record/sentenceOr';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { HELD_TOPIC, heldInDawSentence } from '../record/useRecordControl';
-import { clampPhrase } from './startFromHere';
 import { createTakeHold, type TakeControls } from './takeHold';
 
 /** The roll itself, typed here until `DawClient.roll` exists (SN-D6x). `confirmed` is true when the narrator answered the question. */
@@ -44,7 +43,6 @@ export type RollActions = TakeControls & {
   /** Makes the voice the passage was recorded on the one the take records on; false (with the reason said) when it could not. */
   chooseVoice?: (trackGuid: string) => Promise<boolean>;
   /** Marks the phrase the next roll starts from; before a take, `move` also moves the reading position there. */
-  chooseStart: (phrase: number, move: boolean) => void;
   /** Lets go of the phrase chosen with Mark the start here. */
   clearStart?: () => void;
   /** Moves the reading position to the phrase a roll started from. */
@@ -143,7 +141,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (from: number) => {
       const s = sessionRef.current;
       if (s.recording && s.startedByApp === false) return actionsRef.current.notify(heldInDawSentence(s.capabilities?.daw, 'roll again'), HELD_TOPIC);
-      const to = clampPhrase(from, s.phraseCount);
+      const to = Math.max(0, Math.min(from, s.phraseCount - 1));
       const plan = rollPlan(s.capabilities);
       if (plan.kind === 'refused') return actionsRef.current.refuse(plan.reason);
       if (plan.kind === 'confirm') {
@@ -239,7 +237,6 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
   const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
-  const markAndStartRef = useRef<(unit: number) => Promise<void>>(async () => {});
 
   /** R: while a take runs, roll again from the phrase chosen with Mark the start here, otherwise from the current one; before one it is Record (#3858: one start rule). */
   const punchAndRoll = useCallback(async () => {
@@ -247,73 +244,6 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     if (!s.recording) return startTakeRef.current();
     return rollFrom((s.chosen ? s.chosen() : s.punchAt) ?? s.phrase);
   }, [rollFrom]);
-
-  /**
-   * Mark the start here (right-click on a phrase) only marks the start (#3319): the text moves to the phrase and its first word is highlighted. It sends
-   * the DAW nothing, arms nothing and records nothing; Record (or its key) starts the take from the mark, and R is the press that marks and starts.
-   */
-  const startFromHere = useCallback(
-    async (unit: number) => {
-      const s = sessionRef.current;
-      const to = clampPhrase(unit, s.phraseCount);
-      if (joinsOrRefuses(to)) return;
-      actionsRef.current.chooseStart(to, !s.recording);
-    },
-    [joinsOrRefuses],
-  );
-
-  /** R before a take: marks the phrase (or the one already marked) and starts the take there in the same press; during a take it is `rollFrom`. */
-  const markAndStart = useCallback(
-    async (unit: number) => {
-      const s = sessionRef.current;
-      const to = clampPhrase(unit, s.phraseCount);
-      if (joinsOrRefuses(to)) return;
-      // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
-      // The lookup is a press like any other (#3329): Space meanwhile joins it, a hung one ends once at LOOKUP_MS, and its answer is the only one asked for.
-      const plan = rollPlan(s.capabilities);
-      if (!s.recording && plan.kind === 'refused') {
-        const mine = ++latestStart.current;
-        pressing.current = { mine, at: to };
-        setLookingUp(true);
-        try {
-          const looked = await lookUp(to);
-          if (outdated(mine)) return;
-          if (looked.outcome === 'found') {
-            // Not armed. A Space or Record press that joined this one meant to record: the take starts from the end, said in the same sentence.
-            const joined = pressing.current?.mine === mine && pressing.current.joined === true;
-            actionsRef.current.notify(
-              `${plan.reason} ${joined ? 'The take starts' : 'The next take starts'} from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`,
-            );
-            return joined ? await actionsRef.current.beginTake() : undefined;
-          }
-          if (looked.outcome !== 'never_recorded') {
-            // A failed, stale or unanswered lookup: said once, nothing started, and no start left chosen (as for a DAW that can punch).
-            actionsRef.current.refuse(sentenceOr(looked.message, NOT_KNOWN));
-            actionsRef.current.clearStart?.();
-            return;
-          }
-          // Never recorded: nothing to punch over on any DAW, so the take goes on from the end from this phrase, with no second lookup.
-          actionsRef.current.chooseStart(to, true);
-          actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`, PRESS_NOTE_TOPIC);
-          actionsRef.current.notify(
-            `¶ ${s.paragraphOf(to) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`,
-            PRESS_NOTE_TOPIC,
-          );
-          return await actionsRef.current.beginTake();
-        } finally {
-          endWait(mine);
-        }
-      }
-      actionsRef.current.chooseStart(to, !s.recording);
-      if (s.recording) return rollFrom(to);
-      // Not recording yet: the text moves to the phrase (chooseStart), and the take starts there now, with the DAW moved to that spot first,
-      // so the narrator never has to find the place and click in the DAW with a live microphone.
-      actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`, PRESS_NOTE_TOPIC);
-      return startTakeRef.current(to);
-    },
-    [rollFrom, lookUp, endWait, joinsOrRefuses],
-  );
-  markAndStartRef.current = markAndStart;
 
   /**
    * Starts the take. A phrase chosen with Mark the start here is looked up (the host reads where it was recorded before): found, the take records
@@ -392,5 +322,5 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   startTakeRef.current = startTake;
 
   /** `hold` is the one switch for the take: the page holds it for an open menu too, so neither resumes what the other still holds. */
-  return { punchAndRoll, startFromHere, markAndStart, startTake, cancelStart, pressUnderway, lookingUp, hold: hold.current };
+  return { punchAndRoll, startTake, cancelStart, pressUnderway, lookingUp, hold: hold.current };
 }

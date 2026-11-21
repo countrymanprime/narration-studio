@@ -84,6 +84,8 @@ describe('a chapter with a recording', () => {
     await waitFor(() => expect(reading()).toBe('said'));
     const chip = screen.getByRole('group', { name: 'Recorded through ““Off with her head,”” (45%)' });
     expect(chip.textContent).toBe('Recorded 45%');
+    // The Booth opens on the resume point itself, so there is no "Resume at" chip to offer it back (#3858).
+    expect(screen.queryByRole('button', { name: /Resume at/ })).toBeNull();
     // The chip says how far it is recorded; no green rail runs down the page beside the text (owner report, #2251).
     expect(document.querySelector('[data-recorded-extent], [data-recorded-rail]')).toBeNull();
   });
@@ -129,16 +131,6 @@ describe('a chapter with a recording', () => {
     await user.click(screen.getByRole('button', { name: /Change chapter/ }));
     const items = await screen.findAllByRole('menuitemradio');
     expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent)).toEqual(['45%', 'Complete']);
-  });
-
-  it('offers the way back to where it opened once the narrator looks elsewhere', async () => {
-    renderPage({ api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through() }) }) });
-    await waitFor(() => expect(reading()).toBe('said'));
-    expect(screen.queryByRole('button', { name: /Resume at ¶/ })).toBeNull();
-    act(() => void screen.getByText('Garden').click());
-    const back = await screen.findByRole('button', { name: 'Resume at ¶ 2' });
-    act(() => void back.click());
-    await waitFor(() => expect(reading()).toBe('said'));
   });
 
   // The host as the Booth sees it while a take is made: `recorded` is how far the chapters are recorded now, and a read made while `held`

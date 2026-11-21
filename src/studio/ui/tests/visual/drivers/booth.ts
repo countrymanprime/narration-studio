@@ -2,7 +2,6 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { rightClickVisibleWord } from '../helpers/visibleWord';
 import { boothChapterReady, readFromStart, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
@@ -29,11 +28,7 @@ async function refusedStart(page: Page): Promise<void> {
   }, REFUSAL);
   await readyToRecord(page);
   await showChapterTop(page);
-  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
+  await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   const toast = page.locator('[data-toast-region] [data-tone="error"]');
   await toast.waitFor();
@@ -487,18 +482,8 @@ export const boothDrivers: Record<string, Driver> = {
     await page.clock.runFor(2_000);
     await page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ }).waitFor();
   },
-  // Chapter 1 opens at ¶ 14, where its recording ends, so the chip is not offered; looking elsewhere (a word in the next paragraph)
-  // offers the way back, and the chip is left in view. A page opened again (the next viewport) returns to the remembered place, so each
-  // viewport looks away again.
-  resume: async (page) => {
-    await openBooth(page, '');
-    await page.getByText(/¶ 14 of 24/).waitFor();
-    await page.locator('[data-booth-text] [data-paragraph]:has([data-current]) + [data-paragraph] [data-word="0"]').click();
-    await page.getByRole('button', { name: /^Resume at ¶ 14/ }).waitFor();
-    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
-  },
   'recorded-partly': async (page) => {
-    // A reload for the next width reopens the chapter left at the last one (the kept place), which has no Resume line to wait for.
+    // A reload for the next width reopens the chapter left at the last one (the kept place).
     await openBooth(page, '?');
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
     const picker = page.getByRole('button', { name: /Change chapter/ });
@@ -657,14 +642,6 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('[data-bmk-margin] [data-bm-kind="stop"]').waitFor();
     await page.getByText('Stopping place marked.').waitFor();
     // The closed menu hands focus to the top bar's first button, whose hint would cover the text; the shot is of the margin.
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-  },
-  // Mark the start here on a word the narrator can see (#3319): the first word of that sentence wears the start mark, in the text itself.
-  'chosen-start': async (page) => {
-    await readyToRecord(page);
-    await rightClickVisibleWord(page);
-    await page.getByRole('menuitem', { name: 'Mark the start here' }).click();
-    await page.locator('[data-booth-text] [data-start]').first().waitFor();
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
   // Ctrl+F opens the jump menu; a match under "In this chapter" moves the reading to it and tints every match in the text.

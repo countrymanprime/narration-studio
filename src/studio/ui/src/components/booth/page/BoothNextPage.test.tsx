@@ -859,46 +859,13 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
     expect(at).toBeGreaterThanOrEqual(42);
     expect(at).toBeLessThan(45);
   });
-
-  it('after a take stops, Mark the start here only marks: the take starts when Record is pressed, from the chosen place (#3319)', async () => {
-    const page = renderPage();
-    await record(page);
-    await space();
-    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
-    const word = document.querySelector('[data-unit="3"] [data-word]')!;
-    await act(async () => {
-      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
-    });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
-    await waitFor(() => expect(current()).toBe('3'));
-    // Choosing the start sends the DAW nothing: the one take so far is the first one.
-    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy();
-    await space();
-    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
-    expect(current()).toBe('3');
-  });
 });
 
 describe('start-from-here-and-record-from-here', () => {
-  it('right-click Start from here moves the reading position there and marks the next start', async () => {
-    renderPage();
-    await ready();
-    // Unit 0 is the chapter title, so the second paragraph's first sentence is unit 3.
-    const word = document.querySelector('[data-unit="3"] [data-word]')!;
-    await act(async () => {
-      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
-    });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
-    await waitFor(() => expect(current()).toBe('3'));
-    expect(screen.getByText(/Next roll starts from ¶ 2/)).toBeTruthy();
-  });
-
   it('opening the Booth at a paragraph and offset from Script starts there', async () => {
     renderPage({ search: '?chapter=c1&para=p3&at=28' });
     await ready();
     await waitFor(() => expect(current()).toBe('7'));
-    expect(screen.getByText(/Next roll starts from ¶ 3/)).toBeTruthy();
   });
 });
 
@@ -1106,14 +1073,7 @@ describe('a page that has nothing to show says so and leaves a way out', () => {
   });
 });
 
-describe('the resume line', () => {
-  it('offers where the recording ends and choosing it moves the reading position', async () => {
-    renderPage({ api: { teleprompterLocate: async () => LOCATED } });
-    await ready();
-    await userEvent.click(await screen.findByRole('button', { name: /Resume at ¶ 2/ }));
-    expect(current()).not.toBe('0');
-  });
-});
+describe('the resume line', () => {});
 
 describe('a refused stop keeps the take and the question', () => {
   it('shows the sentence and does not leave', async () => {
@@ -1378,7 +1338,7 @@ describe('bookmarks on the page', () => {
     const labels = within(menu)
       .getAllByRole('menuitem')
       .map((item) => item.textContent);
-    expect(labels.slice(0, 2)).toEqual(['Mark the start here', 'Bookmark here']);
+    expect(labels.slice(0, 1)).toEqual(['Bookmark here']);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await waitFor(() => expect(ribbons()).toHaveLength(1));
@@ -1585,27 +1545,6 @@ describe('every way out of the page asks while a take records', () => {
 });
 
 describe('the right-click menu', () => {
-  it('Punch and roll in the menu is gated like R: a blocked start answers with its dialog and starts nothing', async () => {
-    const page = renderPage({ setup: 'reaper-off' });
-    await screen.findByText('Nobody', { exact: false });
-    const button = await screen.findByRole('button', { name: /^Record$/ });
-    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
-    act(() => {
-      fireEvent.contextMenu(document.querySelector('[data-unit="1"] [data-word="0"]')!, { button: 2, clientX: 10, clientY: 10 });
-    });
-    await userEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Punch and roll' }));
-    await settle();
-    expect(page.daw.recordStart).not.toHaveBeenCalled();
-    expect(page.daw.roll).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByRole('dialog') ?? page.overlay.getSnapshot().toasts[0]).toBeTruthy());
-    expect(
-      page.overlay
-        .getSnapshot()
-        .toasts.map((t) => t.text)
-        .join(' '),
-    ).not.toMatch(/Starting from/);
-  });
-
   it('right-click offers the phrase, take and text commands', async () => {
     const page = renderPage();
     await ready();
@@ -1620,17 +1559,7 @@ describe('the right-click menu', () => {
       within(menu)
         .getAllByRole('menuitem')
         .map((item) => item.textContent),
-    ).toEqual([
-      'Mark the start here',
-      'Bookmark here',
-      'Read to here',
-      'Next phrase',
-      'Back one phrase',
-      'Punch and roll',
-      'Larger text',
-      'Smaller text',
-      'Exit Booth',
-    ]);
+    ).toEqual(['Bookmark here', 'Read to here', 'Next phrase', 'Back one phrase', 'Larger text', 'Smaller text', 'Exit Booth']);
     const text = () => document.querySelector<HTMLElement>('[data-booth-text] > div')!.style.fontSize;
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Larger text' }));
     expect(text()).toBe('44px');
@@ -2807,7 +2736,7 @@ describe('enter-and-numpad-enter-record-and-stop-like-space', () => {
   });
 });
 
-describe('a start chosen with Start from here: the wait is shown, dropped on leaving, and spent by its take (#3284)', () => {
+describe('a start chosen by a move: the wait is shown, dropped on leaving, and spent by its take (#3284)', () => {
   const FOUND = { outcome: 'found' as const, start: 12, end: 20 };
   const START = '?chapter=c1&para=p3&at=28';
   const recordButton = () => screen.getByRole('button', { name: /^Record$/ });
@@ -3121,14 +3050,11 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
   });
-  describe('a second Start from here on another phrase while a take is starting is refused, not half-done (#3320)', () => {
-    const BUSY = 'A take is already starting, so that press was ignored.';
+  describe('a second move to another phrase while a take is starting is refused, not half-done (#3320)', () => {
+    const BUSY = 'A take is already starting, so the reading stays where it is.';
     const startFrom = async (unit: number) => {
       const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
-      await act(async () => {
-        fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
-      });
-      await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+      await userEvent.click(word);
       // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
       await space();
     };
@@ -3261,10 +3187,7 @@ describe('while a press is under way the reading stays where the press chose, so
   };
   const startFrom = async (unit: number) => {
     const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
-    await act(async () => {
-      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
-    });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    await userEvent.click(word);
     // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
     await space();
   };
@@ -3286,8 +3209,7 @@ describe('while a press is under way the reading stays where the press chose, so
     );
   /** What a blocked move leaves: the reading and the chosen start in the footer where the press put them, and no bookmark flash. */
   const untouched = () => {
-    expect(current()).toBe('0');
-    expect(document.body.textContent).toContain('Next roll starts from ¶ 1');
+    expect(current()).toBe('1');
     expect(document.querySelector('[data-just-changed]')).toBeNull();
   };
 
@@ -3319,9 +3241,9 @@ describe('while a press is under way the reading stays where the press chose, so
       });
     }
     await ready();
-    await startFrom(0);
+    await startFrom(1);
     await settle();
-    expect(current()).toBe('0');
+    expect(current()).toBe('1');
     return { page, release: hold.release, boothPunchTarget };
   };
 
@@ -3338,9 +3260,6 @@ describe('while a press is under way the reading stays where the press chose, so
     'a bookmark jump (Alt+])': () => press(']', 'BracketRight', { altKey: true }),
     'a word click': async () => {
       act(() => void screen.getByText('walked').click());
-    },
-    'the Resume at chip': async () => {
-      await userEvent.click(await screen.findByRole('button', { name: /Resume at ¶/ }));
     },
   };
 
@@ -3413,7 +3332,7 @@ describe('while a press is under way the reading stays where the press chose, so
       } as never,
     });
     await ready();
-    await startFrom(0);
+    await startFrom(1);
     await settle();
     await press(']', 'BracketRight', { altKey: true });
     await settle();
@@ -3443,10 +3362,10 @@ describe('while a press is under way the reading stays where the press chose, so
     });
     const page = renderPage({ api: { boothPunchTarget, teleprompterLocate: async () => LOCATED } as never });
     await ready();
-    await startFrom(0);
+    await startFrom(1);
     await settle();
     await press('ArrowDown');
-    expect(current()).toBe('0');
+    expect(current()).toBe('1');
     hold.release();
     await waitFor(() => expect(recordIdle()).toBe(true));
     await press('ArrowDown');
@@ -3462,7 +3381,6 @@ describe('while a press is under way the reading stays where the press chose, so
       boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })),
     });
     const card = (name: RegExp) => screen.getByRole('button', { name }).getAttribute('aria-current');
-    const footer = () => /Next roll starts from ¶ \d+/.exec(document.body.textContent ?? '')?.[0];
 
     it('held lookup: N twice does nothing but say the sentence once; the take records at the chosen spot', async () => {
       const hold = gate();
@@ -3472,7 +3390,7 @@ describe('while a press is under way the reading stays where the press chose, so
       await screen.findAllByText('Pickups · 2 open');
       await startFrom(1);
       await settle();
-      const [reading, chosen] = [current(), footer()];
+      const reading = current();
       expect(card(/The Garden was quiet/)).toBe('true');
       await press('n', 'KeyN');
       // At once, not after the page settles: the card is the first thing a refused jump must not have moved.
@@ -3480,7 +3398,6 @@ describe('while a press is under way the reading stays where the press chose, so
       await press('n', 'KeyN');
       await settle();
       expect(current()).toBe(reading);
-      expect(footer()).toBe(chosen);
       expect(card(/The Garden was quiet/)).toBe('true');
       expect(card(/Off with her head/)).not.toBe('true');
       expect(said(page).filter((text) => text === BUSY_MOVE)).toHaveLength(1);
@@ -3515,13 +3432,9 @@ describe('a move of the reading chooses the start, and Record starts there (#385
   const FOUND = { outcome: 'found' as const, start: 12, end: 20, trackGuid: 'T', trackName: 'Narrator' };
   const START = '?chapter=c1&para=p3&at=28';
   const refusedStart = { ok: false as const, changed: false, undoSteps: 0, message: 'Disk full.', refused: 'Disk full.' };
-  const nextRoll = () => screen.queryByText(/Next roll starts from/);
   const startFromUnit = async (unit: number, andRecord = true) => {
     const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
-    await act(async () => {
-      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
-    });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    await userEvent.click(word);
     // Marking sends nothing (#3319): the press that starts the take is Record, from the mark.
     if (andRecord) await space();
   };
@@ -3536,11 +3449,9 @@ describe('a move of the reading chooses the start, and Record starts there (#385
     await startFromUnit(3);
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
     await idle();
-    expect(nextRoll()).toBeTruthy();
     for (let i = 0; i < 4; i++) await press('ArrowDown');
     expect(current()).not.toBe('3');
     // The move chose the start: it is where the reading is (the cursor is the only mark), and Record looks that spot up and records over it.
-    expect(nextRoll()).toBeNull();
     boothPunchTarget.mockClear();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
@@ -3553,10 +3464,8 @@ describe('a move of the reading chooses the start, and Record starts there (#385
     const page = renderPage({ search: START, api: { boothPunchTarget, boothVoiceSet: vi.fn(async () => ({ outcome: 'selected' })) } as never });
     await ready();
     await waitFor(() => expect(current()).toBe('7'));
-    expect(nextRoll()).toBeTruthy();
     for (let i = 0; i < 3; i++) await press('ArrowUp');
     expect(current()).not.toBe('7');
-    expect(nextRoll()).toBeNull();
     boothPunchTarget.mockClear();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
@@ -3571,7 +3480,6 @@ describe('a move of the reading chooses the start, and Record starts there (#385
     await press('ArrowDown');
     await press('ArrowRight');
     expect(current()).toBe('7');
-    expect(nextRoll()).toBeTruthy();
   });
 
   it('a move and Record in the same task (a pedal, a macro) still look the moved-to place up', async () => {
@@ -3601,7 +3509,6 @@ describe('a move of the reading chooses the start, and Record starts there (#385
     await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
     // The roll goes to the reading's own phrase; the earlier click is spent when the take starts, so no lookup is made for it.
     expect(boothPunchTarget).not.toHaveBeenCalled();
-    expect(nextRoll()).toBeNull();
   });
 
   describe('invariant: after any move, no mark names a phrase the reading is not on (the cursor is the start)', () => {
@@ -3633,10 +3540,8 @@ describe('a move of the reading chooses the start, and Record starts there (#385
         });
         await ready();
         await waitFor(() => expect(current()).toBe('7'));
-        expect(nextRoll()).toBeTruthy();
         await move();
         await settle();
-        expect(nextRoll()).toBeNull();
       });
     }
   });
@@ -3663,14 +3568,11 @@ describe('a move of the reading chooses the start, and Record starts there (#385
       await record(page);
       await startFromUnit(3, false);
       // During a take the voice keeps the cursor, and choosing the start only marks it (#3319): no roll yet.
-      await waitFor(() => expect(nextRoll()?.textContent).toMatch(/¶ 2/));
       expect(page.daw.roll).not.toHaveBeenCalled();
       // A word step inside the phrase leaves the reading on the same phrase: nothing to replace.
       await press('ArrowRight');
-      expect(nextRoll()?.textContent).toMatch(/¶ 2/);
       await press('r', 'KeyR');
       await waitFor(() => expect(page.daw.roll).toHaveBeenCalled());
-      expect(nextRoll()?.textContent).toMatch(/¶ 2/);
     });
 
     it('a click inside the phrase chosen as the start keeps it', async () => {
@@ -3684,7 +3586,6 @@ describe('a move of the reading chooses the start, and Record starts there (#385
       await idle();
       await userEvent.click(document.querySelector('[data-unit="3"] [data-word="2"]')!);
       expect(current()).toBe('3');
-      expect(nextRoll()).toBeTruthy();
       await space();
       await waitFor(() => expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12));
     });
@@ -3699,7 +3600,6 @@ describe('a move of the reading chooses the start, and Record starts there (#385
       await press('ArrowUp');
       await press('ArrowDown');
       expect(current()).toBe('7');
-      expect(nextRoll()).toBeNull();
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
@@ -3720,7 +3620,6 @@ describe('a move of the reading chooses the start, and Record starts there (#385
       return { page, boothPunchTarget };
     };
     const spaceStartsAtCursor = async (page: ReturnType<typeof renderPage>, boothPunchTarget: ReturnType<typeof vi.fn>) => {
-      expect(nextRoll()).toBeNull();
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
@@ -3741,21 +3640,10 @@ describe('a move of the reading chooses the start, and Record starts there (#385
       await waitFor(() => expect(current()).toBe('7'));
       await userEvent.click(document.querySelector('[data-unit="1"] [data-word="2"]')!);
       boothPunchTarget.mockClear();
-      expect(nextRoll()).toBeNull();
       await space();
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
-    });
-
-    it('refused take, then Resume at: going back to where the recording ends chooses nothing, so Record just continues (no lookup)', async () => {
-      const { page, boothPunchTarget } = await refusedFirst({ teleprompterLocate: async () => LOCATED }, 7);
-      await userEvent.click(await screen.findByRole('button', { name: /Resume at ¶ 2/ }));
-      expect(nextRoll()).toBeNull();
-      await space();
-      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
-      expect(boothPunchTarget).not.toHaveBeenCalled();
-      expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
     });
 
     it('refused take, then a bookmark jump in the same chapter (the same path as a find or a pickup jump)', async () => {
@@ -3774,13 +3662,11 @@ describe('a move of the reading chooses the start, and Record starts there (#385
       await press(']', 'BracketRight', { altKey: true });
       await waitFor(() => expect(driver.search()).toContain('chapter=c2'));
       await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
-      expect(nextRoll()).toBeNull();
     });
 
     it('the Script link chooses the start', async () => {
       renderPage({ search: START });
       await ready();
-      await waitFor(() => expect(nextRoll()).toBeTruthy());
     });
   });
 });
@@ -3790,10 +3676,7 @@ describe('a refusal is said once (#3322)', () => {
   const START = '?chapter=c1&para=p3&at=28';
   const startFromUnit = async (unit: number) => {
     const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
-    await act(async () => {
-      fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
-    });
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mark the start here' }));
+    await userEvent.click(word);
     // Marking only marks (#3319): the take, and the lookup before it, begin when Record is pressed.
     await space();
   };
