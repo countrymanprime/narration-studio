@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"sync"
 	"testing"
 
 	"desktop/internal/evidence"
@@ -16,15 +19,15 @@ import (
 // package's own tests.
 func newTestHostForMapping(t *testing.T) (*Host, string) {
 	t.Helper()
+	template, err := importedAlice()
+	if err != nil {
+		t.Fatal(err)
+	}
 	project := t.TempDir()
+	if err := os.CopyFS(project, os.DirFS(template)); err != nil {
+		t.Fatal(err)
+	}
 	service := manuscript.New(project)
-	job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
-	if _, err := service.Preview(job.ID, 1); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := service.Commit(job.ID, false, manuscript.Choices{}); err != nil {
-		t.Fatal(err)
-	}
 	chapters, err := service.Chapters()
 	if err != nil {
 		t.Fatal(err)
@@ -36,6 +39,25 @@ func newTestHostForMapping(t *testing.T) (*Host, string) {
 	host.config.projectFolder = project
 	return host, chapters[0]["id"].(string)
 }
+
+// importedAlice is a project folder with tests/fixtures/alice.md imported and committed, made once for the whole run: the import is the
+// same every time and took a tenth of a second for each of the hundred-odd tests that start from it. A test gets its own copy of the folder
+// (newTestHostForMapping) and never this one.
+var importedAlice = sync.OnceValues(func() (string, error) {
+	project := filepath.Join(sharedFixtures, "imported-alice")
+	if err := os.Mkdir(project, 0o755); err != nil {
+		return "", err
+	}
+	service := manuscript.New(project)
+	job := service.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
+	if _, err := service.Preview(job.ID, 1); err != nil {
+		return "", err
+	}
+	if _, err := service.Commit(job.ID, false, manuscript.Choices{}); err != nil {
+		return "", err
+	}
+	return project, nil
+})
 
 func decodeBinding(t *testing.T, raw string) map[string]any {
 	t.Helper()

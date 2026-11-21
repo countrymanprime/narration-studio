@@ -42,6 +42,9 @@ func TestMain(m *testing.M) {
 	os.Exit(runIsolated(m))
 }
 
+// sharedFixtures is a folder for what the whole run makes once and every test copies (importedAlice); runIsolated makes and removes it.
+var sharedFixtures string
+
 // runIsolated points %APPDATA% at a throwaway folder for the whole run, so a test that builds a Host without its own
 // t.Setenv never writes the per-user recent-projects or credit-templates file into the runner's real profile (Windows)
 // or, with APPDATA unset, into a relative AppData folder inside the source tree (Linux, macOS).
@@ -56,6 +59,12 @@ func runIsolated(m *testing.M) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	sharedFixtures, err = os.MkdirTemp("", "test-shared-fixtures-")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	defer func() { _ = os.RemoveAll(sharedFixtures) }()
 	return m.Run()
 }
 
