@@ -486,10 +486,10 @@ export const ROWS: readonly SettingMeta[] = [
     label: 'Recording check rules',
     scope: 'both',
     def: '',
-    desc: 'When a chapter counts as recorded, and how words are lined up.',
+    desc: 'When a chapter counts as recorded, and how words line up.',
     more: 'The thresholds the recording check judges a chapter by, and the two alignment settings that decide which words count. Only the recording check reads them, and the run already shows the values it used. Set here they are the computer’s values, and a project may use its own.',
     used: ['production'],
-    also: 'Production › Jump to or run',
+    also: 'Production › Jump to or run › Open Recording check rules',
     syn: 'paragraph present missing run misread anchor threshold recording check rules',
   },
 
@@ -683,7 +683,7 @@ export const ROWS: readonly SettingMeta[] = [
     desc: 'How the sample preview of a chapter is chosen.',
     more: 'Only the preview builder uses these: the sample length, its tolerance and how a spot check is picked. Set here they are the computer’s values, and a project may use its own.',
     used: ['proof'],
-    also: 'Proof › Jump to or run',
+    also: 'Proof › Jump to or run › Open Preview options (with a chapter open)',
     syn: 'sample length tolerance spot check preview',
   },
   {
@@ -775,7 +775,7 @@ export const ROWS: readonly SettingMeta[] = [
     desc: 'What the board needs before it suggests the next stage.',
     more: 'The readiness signals the Production board requires or ignores before it suggests a chapter’s next stage. They shape the board they appear on. Set here they are the computer’s values, and a project may use its own.',
     used: ['production'],
-    also: 'Production › Jump to or run',
+    also: 'Production › Jump to or run › Open Stage suggestion options',
     syn: 'readiness signals required ignored stage suggestions board',
   },
   {

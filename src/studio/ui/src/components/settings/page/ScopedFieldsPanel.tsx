@@ -77,6 +77,8 @@ export type ScopedFieldsPanelProps = {
   before?: (state: ScopedPanelState) => ReactNode;
   /** The page already says the settings could not be read, with its own Retry: a panel drawn in a category row leaves its own line out. */
   pageSaysReadError?: boolean;
+  /** The panel is the body of a settings row, which already names it: no heading of its own, only the scope switch. */
+  inRow?: boolean;
   /** Drawn below the fields, above Save. */
   after?: (state: ScopedPanelState) => ReactNode;
   /** Replaces the form in a scope where the panel is not a form of fields (DAW Integration in a project); `undefined` keeps it. */
@@ -103,6 +105,7 @@ export function ScopedFieldsPanel({
   replace,
   onChoose,
   pageSaysReadError = false,
+  inRow = false,
 }: ScopedFieldsPanelProps) {
   const system = usePort('system');
   const { register } = useSettingsForms();
@@ -218,25 +221,29 @@ export function ScopedFieldsPanel({
     else setScope(next);
   };
 
+  const scopeSubtitle = scopes.length > 1 || scope === 'project' ? SCOPE_SUBTITLE[scope] : undefined;
+  const scopeSwitch =
+    scopes.length > 1 ? (
+      <ToggleGroup
+        label={`${title} scope`}
+        look="segmented"
+        value={scope}
+        onChange={(next) => chooseScope(next as Scope)}
+        options={scopes.map((entry) => ({ value: entry, label: SCOPE_LABEL[entry] }))}
+      />
+    ) : undefined;
   const state: ScopedPanelState = { scope, fields, dirty, reload };
   const replaced = replace?.(state);
   return (
     <div id={`settings-${id}`} className="scroll-mt-4">
-      <Panel
-        title={title}
-        subtitle={scopes.length > 1 || scope === 'project' ? SCOPE_SUBTITLE[scope] : undefined}
-        actions={
-          scopes.length > 1 ? (
-            <ToggleGroup
-              label={`${title} scope`}
-              look="segmented"
-              value={scope}
-              onChange={(next) => chooseScope(next as Scope)}
-              options={scopes.map((entry) => ({ value: entry, label: SCOPE_LABEL[entry] }))}
-            />
-          ) : undefined
-        }
-      >
+      <Panel {...(inRow ? { label: title } : { title, subtitle: scopeSubtitle, actions: scopeSwitch })}>
+        {inRow && (scopeSwitch || scopeSubtitle) && (
+          // The row above already says what this is, so the panel keeps no heading of its own: its scope switch and what it falls back to sit on one line.
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <span className="text-[0.8125rem] text-[var(--text-muted)]">{scopeSubtitle}</span>
+            {scopeSwitch}
+          </div>
+        )}
         {error && !pageSaysReadError && (
           <div
             role="alert"

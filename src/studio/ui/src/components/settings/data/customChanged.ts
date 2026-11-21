@@ -177,6 +177,11 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   // The probes read the page's fields only for the one fact they use (a command's keys changed), so the effect below runs again when that fact moves, not on
   // every read of a scope: each scope's answer used to start a whole pass of host reads again (#3658).
   const keymapSet = settings.global?.Keymap?.some((field) => field.isSet) === true;
+  // Likewise the panel rows: which of them hold a value the narrator chose is the one fact their probes read, so a save through a panel starts a pass.
+  const panelsChosen = Object.entries(PANEL_ROWS)
+    .filter(([, panel]) => panelChosen(settings, panel))
+    .map(([id]) => id)
+    .join(',');
   const latestSettings = useRef(settings);
   latestSettings.current = settings;
   // The last pass of the probes: when it started, with which settings, and how it ended. A pass that failed, or has been out longer than
@@ -227,7 +232,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     return () => {
       current = false;
     };
-  }, [api, keymapSet, version, again, hasProject]);
+  }, [api, keymapSet, panelsChosen, version, again, hasProject]);
 
   // A new read of the settings while the last pass has not answered every probe asks the probes again (a pass that answered leaves nothing to ask).
   useEffect(() => {

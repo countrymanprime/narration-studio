@@ -872,6 +872,17 @@ describe('Settings: search and filters', () => {
     await waitFor(() => expect(within(backups).getByText('Backups are kept only when the project records with Audacity.')).toBeTruthy());
   });
 
+  it('a value saved through a panel row marks the row Changed and counts it', async () => {
+    await renderPage();
+    pick('Delivery');
+    const entry = await waitForRow('proofing.preview');
+    const target = await within(entry).findByRole('textbox', { name: 'Target length (seconds)' });
+    fireEvent.change(target, { target: { value: '240' } });
+    fireEvent.click(within(entry).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(row('proofing.preview').getAttribute('data-changed')).toBe('true'));
+    expect(within(nav()).getByRole('button', { name: /^Delivery/ }).textContent).toMatch(/1/);
+  });
+
   it('lists the favourite effects under Recording & DAW, beside the effects coverage cap', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');
