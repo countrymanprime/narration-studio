@@ -199,8 +199,9 @@ export function inScope(test, scope) {
     return scope.overlays || (page ? scope.pages.has(page.spec) : scope.shared);
   }
   const first = test.loadFile.split(/[-.]/)[0];
-  // A spec named for no page (dialog-*, toast-*, crossPage) exercises shared code.
-  return PAGES.some((page) => page.spec === first) ? scope.pages.has(first) : scope.shared;
+  // A spec named for no page (dialog-*, toast-*, crossPage, colour-field, reader-*) exercises shared code, and some drive one page under
+  // another name, so any change to the app's source owes it: shared code or a page's folder.
+  return PAGES.some((page) => page.spec === first) ? scope.pages.has(first) : scope.shared || scope.pages.size > 0;
 }
 
 /** One line for the log and the job summary: what the pull request runs and what it leaves to `main`. */

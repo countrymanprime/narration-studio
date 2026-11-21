@@ -830,7 +830,7 @@ a state with extra viewports is more, and the `aria` step ran on the shard that 
 - On a pull request it first narrows the list to what the change touches (`scopeOf` and `inScope` in the script; [the test speed plan](../research/test-speed-plan-2026-11.md)).
   The state matrix (`app.spec.ts`, every catalogued page and state at every viewport) always runs whole. A behaviour spec named for a page
   (`booth-keys.spec.ts`) and that page's overlay guard rows run when a file under the page's folder in `src/components/` changed; a spec named for no page
-  (`dialog-*`, `toast-*`, `crossPage`) runs when shared app source changed; every overlay guard row runs when an overlay primitive or the shell changed; a
+  (`dialog-*`, `toast-*`, `crossPage`, `colour-field`) runs when any app source changed, shared or a page's, because some drive one page under another name; every overlay guard row runs when an overlay primitive or the shell changed; a
   changed spec file runs. A unit test, a story or a doc changes nothing. Any other changed file (the suite's helpers, catalog or configs, a lockfile, a
   workflow, a script, another project) runs the whole suite. The step prints the scope, and shard 1 writes it into the run's summary: how many tests run
   and how many are left. Every run that is not a pull request (`Main health` on `main`, a manual run of `CI` on the branch) splits the whole suite, so a

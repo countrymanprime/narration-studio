@@ -162,9 +162,23 @@ test('the state matrix runs on every pull request, whatever it changed', () => {
 });
 
 test('a change inside one page owes that page’s specs and overlay rows, and no other page’s', () => {
-  assert.deepEqual(owed([`${UI}src/components/booth/page/BoothNextPage.tsx`]), [matrix, boothSpec]);
-  assert.deepEqual(owed([`${UI}src/components/editing/EditingPage.tsx`]), [matrix, editingOverlay]);
-  assert.deepEqual(owed([`${UI}src/components/masterqc/page/Page.tsx`]).length, 1);
+  assert.deepEqual(owed([`${UI}src/components/booth/page/BoothNextPage.tsx`]), [matrix, boothSpec, dialogSpec]);
+  assert.deepEqual(owed([`${UI}src/components/editing/EditingPage.tsx`]), [matrix, dialogSpec, editingOverlay]);
+  assert.deepEqual(owed([`${UI}src/components/masterqc/page/Page.tsx`]), [matrix, dialogSpec]);
+});
+
+test('a spec named for no page may drive one under another name, so a change inside any page owes it', () => {
+  for (const name of [
+    'deliveryProfileHeader.spec.ts',
+    'models-folder-small.spec.ts',
+    'colour-field.spec.ts',
+    'reader-follow.spec.ts',
+    'link-dialog-long-name.spec.ts',
+  ]) {
+    const spec = { file: name, loadFile: name, titlePath: ['x'] };
+    assert.equal(inScope(spec, scopeOf([`${UI}src/components/delivery/page/Header.tsx`])), true, name);
+    assert.equal(inScope(spec, scopeOf([`${UI}src/x.test.ts`])), false, name);
+  }
 });
 
 test('a change to shared code owes the specs named for no page, and leaves the page specs to main', () => {
@@ -222,7 +236,7 @@ test('describeScope counts what runs and what is left to main', () => {
   const kept = suite.filter((item) => inScope(item, scope));
   assert.equal(
     describeScope(scope, kept, suite),
-    'visual scope: 2 of 6 tests (the state matrix; pages touched: booth; shared code: no). 4 tests of 3 spec files run on main after the merge.',
+    'visual scope: 3 of 6 tests (the state matrix; pages touched: booth; shared code: no). 3 tests of 2 spec files run on main after the merge.',
   );
   assert.match(describeScope(scopeOf(null), suite, suite), /the whole suite \(not a pull request/);
 });

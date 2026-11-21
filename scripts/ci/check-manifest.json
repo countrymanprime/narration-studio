@@ -427,8 +427,8 @@
       "safety_net": "security.yml runs on each push to main that touches src/studio/desktop and nightly; a finding is a Code scanning alert on main within minutes of the merge. The scan never failed a pull request (SARIF and a continue-on-error print), so on a pull request it was advisory too."
     },
     {
-      "id": "ui-visual/specs-of-untouched-pages",
-      "was": "quality / ui-visual (shard i/4)",
+      "id": "ui-visual/specs-and-overlay-rows-of-untouched-pages",
+      "was": "quality / Test (Linux i/6), the visual step",
       "tier": "post-merge",
       "workflow": "_quality.yml",
       "job": "test-linux",
