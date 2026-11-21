@@ -143,6 +143,13 @@ func (s *summaryStore) hold(summary ResultSummary) {
 	s.held[summary.RecordID] = summary
 }
 
+// forget drops the held summary of a record whose stored result is being removed.
+func (s *summaryStore) forget(recordID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.held, recordID)
+}
+
 // read returns the record's summary, or false when there is none this version can use: missing, unreadable, of another
 // version, made from a result of another version, or naming another record.
 func (s *summaryStore) read(recordID string) (ResultSummary, bool) {

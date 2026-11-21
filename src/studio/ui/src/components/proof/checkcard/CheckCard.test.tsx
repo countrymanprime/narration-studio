@@ -282,6 +282,8 @@ describe('the Check recordings button', () => {
   });
   it.each([
     [{ chapter: { recordedSeconds: 0 } }, 'This chapter has no recording to check.'],
+    [{ chapter: { recordedSeconds: 0.5 } }, 'This chapter has no recording to check.'],
+    [{ chapter: { recordedSeconds: 0.99 } }, 'This chapter has no recording to check.'],
     [{ chapter: { wordCount: 0 } }, 'This chapter has no text to check against.'],
   ] as const)('is disabled with its own reason: %j', async (setup, reason) => {
     mount(setup);

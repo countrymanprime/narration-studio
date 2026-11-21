@@ -1268,6 +1268,13 @@
   },
   {
     "page": "master",
+    "state": "to-spec-approve-chain-off",
+    "viewport": "desktop",
+    "docName": "master-to-spec-approve-pointer",
+    "caption": "Master & QC - the approval with a long FX chain scrolled past its first effect: the chip over the list that names the effects above"
+  },
+  {
+    "page": "master",
     "state": "to-spec-cancelled",
     "viewport": "desktop",
     "docName": "master-to-spec-cancelled",

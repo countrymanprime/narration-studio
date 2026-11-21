@@ -134,6 +134,7 @@ func coverageHostWithAligner(t *testing.T, project string, models *whisper.Manag
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
+	host.retentionOff = false
 	host.coverageLauncher, host.coverageAligner = launcher, aligner
 	host.assets = newAssetRegistry(t.TempDir(), nil, models, nil, nil)
 	next := host.config
@@ -150,6 +151,7 @@ func coverageHostWithAligner(t *testing.T, project string, models *whisper.Manag
 			svc.coverage.Wait()
 		}
 		host.chapterSyncEmits.Wait()
+		host.closeRetention() // before the project's folder is removed
 	})
 	return host
 }
