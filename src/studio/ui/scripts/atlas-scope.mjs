@@ -80,6 +80,11 @@ function importGraph() {
   return JSON.parse(run.stdout).modules;
 }
 
+/** The package script that draws the stories: `atlas:draw` alone when CI built Storybook once for the run (`UI_STORYBOOK_PREBUILT=1`, the `Storybook` step of lint in _quality.yml), else `atlas`, which builds it first. */
+export function atlasScript(env) {
+  return env.UI_STORYBOOK_PREBUILT === '1' ? 'atlas:draw' : 'atlas';
+}
+
 function main(args) {
   const changed = changedFiles();
   let scope;
@@ -97,7 +102,7 @@ function main(args) {
     ? { args, env: process.env }
     : // A shard can draw none of a short list. index.json names a story file as `./src/...`.
       { args: [...args, '--pass-with-no-tests'], env: { ...process.env, UI_ATLAS_STORY_FILES: scope.stories.map((source) => `./${source}`).join(',') } };
-  return spawnSync('pnpm', ['run', 'atlas', ...narrowed.args], { stdio: 'inherit', env: narrowed.env }).status ?? 1;
+  return spawnSync('pnpm', ['run', atlasScript(narrowed.env), ...narrowed.args], { stdio: 'inherit', env: narrowed.env }).status ?? 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) process.exit(main(process.argv.slice(2)));

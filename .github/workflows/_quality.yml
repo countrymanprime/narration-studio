@@ -111,7 +111,7 @@ jobs:
           retention-days: 1
       # Storybook, built once for the run (#3860): the six Test (Linux) shards download it for the atlas and `atlas docs` instead of building it
       # six and seven times (35 s each). Full tier, when the UI is affected, as the atlas is. A missing download fails those steps
-      # (scripts/storybook-build.mjs), it does not make them build their own.
+      # (`atlas:draw` and `docs:atlas:verify` read storybook-static/ and build nothing), it does not make them build their own.
       - name: Storybook
         id: storybook
         if: ${{ inputs.full && (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') }}
@@ -343,7 +343,12 @@ jobs:
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' && matrix.shard == 1 }}
         env:
           UI_STORYBOOK_PREBUILT: ${{ needs.lint.outputs.storybook == 'true' && '1' || '' }}
-        run: pnpm exec nx run ui:atlas-docs --skip-nx-cache
+        run: |
+          if [ "$UI_STORYBOOK_PREBUILT" = "1" ]; then
+            pnpm --dir src/studio/ui run docs:atlas:verify
+          else
+            pnpm exec nx run ui:atlas-docs --skip-nx-cache
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
