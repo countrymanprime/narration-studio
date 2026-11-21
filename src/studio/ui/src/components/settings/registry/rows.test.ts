@@ -261,6 +261,12 @@ describe('the mock host sends every field a panel row draws (found by the narrat
   });
 });
 
+describe('every layer the old Recording check rules panel offered is still offered (found by the intent review)', () => {
+  it('the processors for background checks keep a This project value, as the old panel let a narrator set', () => {
+    expect(ROWS.find((row) => row.id === 'stt.backgroundProcessors')!.scope).toBe('both');
+  });
+});
+
 describe('panel rows are found by the words the panels themselves use', () => {
   it('finds the favourite effects by "favorite" and the compare marker colours by "color"', () => {
     expect(search('favorite').some((hit) => hit.row.id === 'daw.fxFavourites')).toBe(true);
