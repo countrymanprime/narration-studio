@@ -14,6 +14,8 @@ export type Voice = {
   /** "0" for the Narrator track, "1" to "9" for the others in REAPER order, "" past nine. */
   key: string;
   narrator: boolean;
+  /** The narrator marked this child as not a voice (a music bed): it has no key and records no character, and the Booth does not list it. */
+  notVoice: boolean;
   characters: VoiceCharacter[];
 };
 
@@ -34,6 +36,12 @@ export const holdsWords = (count: number, voiceFolders: boolean): string => plur
  * recheck message and the pickers' tooltips. */
 export const kindInWords = (isFolder: boolean, children: number, voiceFolders: boolean): string =>
   isFolder ? `a folder of ${holdsWords(children, voiceFolders)}` : 'a single track';
+
+/** How many of a folder's children the words count: in a Voice folders project a child marked as not a voice is a track but not one of the folder's
+ * voices, so "3 voices" agrees with the Voices card and the Booth; in any other project every child is a track. */
+export function wordsCount(children: readonly Pick<Track, 'guid'>[], notVoiceGuids: readonly string[], voiceFolders: boolean): number {
+  return voiceFolders ? children.filter((child) => !notVoiceGuids.includes(child.guid.toLowerCase())).length : children.length;
+}
 
 export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {
   const at = tracks.findIndex((track) => track.guid === folderGuid);
@@ -72,18 +80,27 @@ function charactersOf(track: Track, entities: readonly GuideEntity[], setup: Voi
 }
 
 /** The voices of the chapter linked to `folderGuid`: the first Narrator child is key 0 wherever it sits, the others 1 to 9 in order. */
-export function folderVoices(tracks: readonly Track[], folderGuid: string, entities: readonly GuideEntity[], setup: VoiceTracksState): Voice[] {
+export function folderVoices(
+  tracks: readonly Track[],
+  folderGuid: string,
+  entities: readonly GuideEntity[],
+  setup: VoiceTracksState,
+  /** Children another chapter is linked to: never voices, as the host leaves them out when it keys a folder's voices. */
+  linked: ReadonlySet<string> = new Set(),
+): Voice[] {
   let next = 1;
   let narratorSeen = false;
-  const children = folderChildren(tracks, folderGuid);
-  const anyNamed = children.some((child) => same(child.name, NARRATOR));
+  const children = folderChildren(tracks, folderGuid).filter((child) => !linked.has(child.guid));
+  const anyNamed = children.some((child) => same(child.name, NARRATOR) && !setup.notVoiceGuids.includes(child.guid.toLowerCase()));
   return children.map((track) => {
     // Only the first Narrator child is key 0; a second one is an ordinary voice, so no two tracks share a key.
     // A track named Narrator is the Narrator; one only remembered as it before a rename is, when no track in the folder is named so.
+    const notVoice = setup.notVoiceGuids.includes(track.guid.toLowerCase());
+    if (notVoice) return { guid: track.guid, name: track.name, key: '', narrator: false, notVoice, characters: [] };
     const narrator = !narratorSeen && (same(track.name, NARRATOR) || (!anyNamed && setup.narratorGuids.includes(track.guid.toLowerCase())));
     if (narrator) narratorSeen = true;
     const key = narrator ? '0' : next <= 9 ? String(next) : '';
     if (!narrator) next += 1;
-    return { guid: track.guid, name: track.name, key, narrator, characters: charactersOf(track, entities, setup, narrator) };
+    return { guid: track.guid, name: track.name, key, narrator, notVoice, characters: charactersOf(track, entities, setup, narrator) };
   });
 }

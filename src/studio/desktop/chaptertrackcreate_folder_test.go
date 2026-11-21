@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -18,13 +19,22 @@ const createdVoiceGUID = "{00000004-0000-4000-8000-000000000004}"
 type fakeFolderCreator struct {
 	fakeCreator
 	folders [][2]string
-	older   bool
+	// asked is every folder request in full: the folder's name, then each child asked for in order.
+	asked [][]string
+	older bool
+	// firstChildOnly answers a request for several children as a script from before #3748 does: the folder and the first child.
+	firstChildOnly bool
 }
 
 var _ dawport.FolderTrackCreator = (*fakeFolderCreator)(nil)
 
-func (f *fakeFolderCreator) CreateFolderTrack(_ context.Context, name, childName string) (dawport.CreatedFolder, error) {
+func (f *fakeFolderCreator) CreateFolderTrack(_ context.Context, name string, children ...string) (dawport.CreatedFolder, error) {
+	childName := ""
+	if len(children) > 0 {
+		childName = children[0]
+	}
 	f.folders = append(f.folders, [2]string{name, childName})
+	f.asked = append(f.asked, append([]string{name}, children...))
 	if f.err != nil {
 		return dawport.CreatedFolder{}, f.err
 	}
@@ -32,7 +42,14 @@ func (f *fakeFolderCreator) CreateFolderTrack(_ context.Context, name, childName
 	if f.older {
 		return dawport.CreatedFolder{Folder: folder}, nil
 	}
-	return dawport.CreatedFolder{Folder: folder, Child: dawport.CreatedTrack{GUID: createdVoiceGUID, Name: childName, Index: f.index + 1}}, nil
+	created := dawport.CreatedFolder{Folder: folder, Child: dawport.CreatedTrack{GUID: createdVoiceGUID, Name: childName, Index: f.index + 1}}
+	for position, name := range children[min(1, len(children)):] {
+		if f.firstChildOnly {
+			break
+		}
+		created.More = append(created.More, dawport.CreatedTrack{GUID: fmt.Sprintf("{0000000%d-0000-4000-8000-00000000000%d}", position+7, position+7), Name: name, Index: f.index + 2 + position})
+	}
+	return created, nil
 }
 
 func setLayout(t *testing.T, host *Host, layout string) {
@@ -171,8 +188,9 @@ func TestARecordStartRightAfterCreatingAChapterFolderArmsItsNarratorNotTheFolder
 		t.Fatalf("result %+v, armed %q, started %q; want the new Narrator %s, never the folder %s", result, fake.armGUID, fake.startGUID, createdVoiceGUID, createdTrackGUID)
 	}
 	got, err := boothVoiceGetIn(host.services(), ids[1])
-	if err != nil || len(got.Added) != 1 || got.Added[0].GUID != createdVoiceGUID {
-		t.Fatalf("BoothVoiceGet = %+v, %v: want the Narrator the app made listed as added", got, err)
+	// The folder is made with the project's known voice too (#3748: this project assigns Queen), after the Narrator, and never with Extras as a voice.
+	if err != nil || len(got.Added) != 2 || got.Added[0].GUID != createdVoiceGUID || got.Added[1].Name != "Queen" {
+		t.Fatalf("BoothVoiceGet = %+v, %v: want the Narrator the app made listed first as added, then Queen", got, err)
 	}
 }
 

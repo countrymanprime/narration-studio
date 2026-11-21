@@ -32,6 +32,7 @@ import (
 	"desktop/internal/dawport/reaper"
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/editing"
+	"desktop/internal/evidence"
 	"desktop/internal/extraction"
 	"desktop/internal/extraction/apply"
 	"desktop/internal/extraction/importer"
@@ -78,7 +79,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 167
+const hostAPIVersion = 170
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -194,6 +195,10 @@ type Host struct {
 	// runs the Transcript Compare sidecar's --coverage mode. Swapped on every project switch like transcript; the Coverage* bindings
 	// reach it (bindings_coverage.go) and it fills the manuscript chapters' recordedFraction.
 	coverage *coverage.Service
+	// ledger is the open project's analysis ledger: the one store coverage, editing and the proofing recorders read and
+	// write, so a record one of them writes is in the next read of the others and is decoded once (issue 3801). Swapped
+	// with coverage on every project switch.
+	ledger *evidence.LedgerStore
 	// stages is the chapter stage recommendation service (bindings_stages.go, docs/architecture/stage-recommendations.md):
 	// the recording signal over coverage, the decision store and the manuscript's status path. Swapped with coverage on every
 	// project switch; it computes on read and stores no recommendation.
@@ -416,6 +421,8 @@ type Host struct {
 	// chapterSyncEmitMu keeps one emitChapterSyncState at a time: each reads the state and sends it, so two started by quick link changes cannot
 	// send in the opposite order from their reads and leave the UI on the older state (#3416).
 	chapterSyncEmitMu sync.Mutex
+	// chapterSyncEmitWaiting is set while one emitChapterSyncState waits for chapterSyncEmitMu: later requests leave the read to it.
+	chapterSyncEmitWaiting atomic.Bool
 	// background counts the fire-and-forget goroutines the host starts through goBackground (cue refreshes, chapter-sync triggers, the
 	// backups prune, the Audacity probe), so a test can wait for them before it removes the project folder they write into. Nothing in
 	// the app waits on it: a quit or a user action never blocks on this work.
@@ -495,6 +502,8 @@ type Host struct {
 	writableOK bool
 	// persist reports a file that cannot be read: to the host log and, for the narrator's own data, to the narrator.
 	persist *persist.Reporter
+	// reads shares one computation between identical read bindings in flight (readflights.go).
+	reads readFlights
 	// notifySender is a seam for tests: nil means the real Wails notification API. notifyInitOnce guards the lazy
 	// start of the notification service SystemNotify makes on the first qualifying send (notifications.go).
 	notifySender   notificationSender
@@ -662,6 +671,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
 	go h.cleanStaleDownloads()
+	h.goBackground(h.warmProject) // the read caches, while the window loads (warm.go)
 	return nil
 }
 
@@ -741,6 +751,7 @@ func (h *Host) configureLocked(next config) {
 				_ = h.log.Report(kind, message)
 				h.traceBridgeLog(kind)
 			})
+			client.SlowFromEnv(os.Getenv(bridge.SlowLinkEnv), update.IsDevelopment(h.version))
 		}
 	}
 	h.tracer.SetProjectRoot(h.config.projectFolder)
@@ -750,6 +761,10 @@ func (h *Host) configureLocked(next config) {
 	h.reachability = daw.NewReachability(client)
 	h.boothVoices = newBoothVoiceChoices()
 	h.tracksCache = newLiveTracksCache()
+	if h.bridge != nil {
+		// A replaced client's held commands (a slowed development run) must not land among the new client's.
+		h.bridge.DropHeld()
+	}
 	h.bridge = client
 	// The project's Audacity connection (audacityconn.go) is made before the services that take its roles; a project that records with
 	// anything else has none. The previous project's is closed, which drops its pipe.
@@ -775,8 +790,10 @@ func (h *Host) configureLocked(next config) {
 	h.transcript.SetPersist(h.persist)
 	h.transcript.SetFindings(h.findings, h.manuscript)
 	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
+	h.ledger = evidence.NewLedgerStore(h.config.projectFolder)
+	h.ledger.Reporter = h.persist
 	h.coverage = coverage.New(coverage.Config{
-		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend,
+		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend, Ledger: h.ledger,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		ChapterAudio: func(project tracks.Project) tracks.Project {
 			return chapterAudio(coverageReporter, projectFolder, project)
@@ -808,12 +825,13 @@ func (h *Host) configureLocked(next config) {
 	h.manuscript.SetCredits(h.creditsChapters)
 	h.manuscript.SetCreditsStatusWriter(func(kind, status string) error { _, err := h.setCreditsStatus(kind, status); return err })
 	// A chapter's recordedThrough is how far it is recorded, from its current Proof result, the Booth's takes and that length.
-	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore))
+	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore, h.manuscript))
 	h.editing = editing.New(editing.Config{
 		Project:     h.config.projectFolder,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		Policy:      func() editing.Policy { return editingPolicy(settingsStore) },
 		Reporter:    h.persist,
+		Ledger:      h.ledger,
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: projectFileReader{},
 		// The render association the proofing stage already owns, reused as-is,
@@ -828,7 +846,7 @@ func (h *Host) configureLocked(next config) {
 		ProjectReader: projectFileReader{},
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
-	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.manuscript, settingsStore, h.persist))
+	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist))
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
 	h.stages = stagesService(h.config.projectFolder, h.manuscript, h.coverage, h.editing, settingsStore, h.coverageUnavailable(h.config.comparePython, settingsStore), h.persist,
@@ -1429,6 +1447,7 @@ func (h *Host) onSecondInstance(instance application.SecondInstanceData) {
 		bringWindowForward()
 		if attached {
 			h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
+			h.goBackground(h.warmProject)                                      // the new project's read caches (warm.go)
 			emitEvent("system:attached", map[string]any{"attached": true})
 		} else if reason != "" {
 			emitEvent("system:attached", map[string]any{"attached": false, "reason": reason})

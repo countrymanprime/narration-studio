@@ -304,7 +304,7 @@ func (h *Host) startMeasure(requested []string) (MeasureJob, error) {
 	job := &measureJob{
 		id: id, phase: "running", started: time.Now(), cancel: cancel,
 		message:  fmt.Sprintf("Measuring %s.", countFiles(len(paths))),
-		measured: renderMeasurementRecorder(svc.config.projectFolder, svc.manuscript, h.persist),
+		measured: renderMeasurementRecorder(svc.config.projectFolder, svc.ledger, svc.manuscript, h.persist),
 		project:  svc.config.projectFolder,
 	}
 	job.logs = []string{job.message}

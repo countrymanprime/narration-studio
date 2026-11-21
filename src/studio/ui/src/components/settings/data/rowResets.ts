@@ -16,7 +16,9 @@ import { DEFAULT_SORT, saveEntrySort } from '../../storybible/entryTableModel';
 import { refreshUserKeymap } from '../../../input/useUserKeymap';
 import { DELIVERY_PROFILES_CHANGED, optionValue } from '../DeliveryProfilesPanel';
 import { engineChanged } from './engineSignal';
+import { projectDataChanged } from './projectDataSignal';
 import { changeReaderText } from '../controls/readerText';
+import { NEW_CHAPTER_DEFAULT_CHANGED } from '../controls/NewChapterTracksBody';
 import { useSettingsHost } from '../row/SettingsHost';
 import { rowOf } from '../registry/rows';
 import { isChosen, PANEL_ROWS, type PanelFields } from '../registry/panelFields';
@@ -43,6 +45,7 @@ export const RESETTABLE_ROWS = [
   'project.rateBasis',
   'daw.sync',
   'daw.layout',
+  'daw.newChapter',
   'keys.map',
   'daw.engine',
   'delivery.profile',
@@ -99,6 +102,7 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
   const chapterSync = usePort('chapterSync');
   const production = usePort('production');
   const dawChoice = usePort('dawChoice');
+  const trackMap = usePort('chapterTrackMap');
   const delivery = usePort('deliveryProfiles');
   const { reset: resetTips } = useTips();
   const { change: changeOutput } = useOutputPrefs();
@@ -133,6 +137,13 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
       },
       'daw.sync': () => chapterSync.chapterSyncSetEnabled(true),
       'daw.layout': () => setLayout('flat'),
+      // Every voice and Extras ticked is what a new chapter folder is made with by default; the row's list reads again.
+      'daw.newChapter': async () => {
+        const options = await trackMap.chapterCreateOptions();
+        await trackMap.chapterCreateDefaultSet({ voices: options.voices.map((voice) => voice.name), extras: true });
+        window.dispatchEvent(new Event(NEW_CHAPTER_DEFAULT_CHANGED));
+        projectDataChanged();
+      },
       // The shortcut list's own Reset all to defaults saves the default keymap; clearing the saved overrides is the same result.
       // Saved through the page's store, so its fields (which Changed reads) follow; the row has no field of its own.
       'keys.map': async () => {
@@ -147,6 +158,6 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
       'delivery.profile': () => deliveryProfileReset(delivery),
       ...Object.fromEntries(Object.entries(PANEL_ROWS).map(([id, panel]) => [id, () => clearPanel(store, id, panel)])),
     }),
-    [setPreference, setMotion, store, system, chapterSync, production, dawChoice, delivery, resetTips, changeOutput, setLayout],
+    [setPreference, setMotion, store, system, chapterSync, production, dawChoice, trackMap, delivery, resetTips, changeOutput, setLayout],
   );
 }

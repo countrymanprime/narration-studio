@@ -20,9 +20,15 @@ test('a pure pin bump starts only the families of the jobs it reaches', () => {
   assert.deepEqual(pinFlags(ciOnly), { ui: true, shell: false, static: false, quickubuntu: false });
 });
 
-test('a bump in Test (Windows) starts the shell family; a bump in lint runs its steps; a bump in Test (Linux) starts its shards and quick tests', () => {
+test('a bump in Test (Windows) starts the shell family; a bump in lint runs its steps; a bump in Test (Linux) starts its shards and the quick tests; one in Test (Linux quick) the quick tests alone', () => {
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-windows'] }), { ui: false, shell: true, static: false, quickubuntu: false });
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux'] }), { ui: true, shell: false, static: false, quickubuntu: true });
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux-quick'] }), {
+    ui: false,
+    shell: false,
+    static: false,
+    quickubuntu: true,
+  });
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#lint'] }), { ui: false, shell: false, static: true, quickubuntu: false });
 });
 
@@ -40,7 +46,7 @@ test('the command line reads the classifier output from stdin', () => {
 });
 
 test('every job a family names exists, so a renamed job cannot drop out of its family unnoticed', () => {
-  for (const ref of [...Object.values(FAMILIES).flat(), ...Object.values(SELF_SCOPED)]) {
+  for (const ref of [...Object.values(FAMILIES).flat(), ...Object.values(SELF_SCOPED).flat()]) {
     const [file, job] = ref.split('#');
     assert.ok(jobBlock(readWorkflow(file), job), `${ref} is not a job`);
   }

@@ -28,9 +28,10 @@ test('repro A: a refused take keeps its start, the arrow keys replace it and Spa
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'start'));
   await page.locator('[data-booth-text] [data-word]').nth(5).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
   await expect(page.getByText('Disk full.').first()).toBeVisible();
   await expect(nextRoll(page)).toBeVisible();
   const chosen = await reading(page);

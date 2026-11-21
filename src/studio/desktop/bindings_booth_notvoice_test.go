@@ -115,6 +115,10 @@ func TestAFolderWithOnlyMarkedChildrenIsRefusedUnderVoiceFolders(t *testing.T) {
 	if result.Outcome != "refused" || result.Reason != boothVoiceNoVoices {
 		t.Fatalf("got %+v, want refused with no voices, as an empty folder is", result)
 	}
+	// The sentence names the fix that works here (turn one back on), not the one for an empty folder (finding 5 of #3828).
+	if !strings.Contains(result.Message, "turned off as not a voice") || !strings.Contains(result.Message, "Voices card") {
+		t.Fatalf("message %q does not say every track is marked and where to turn one back on", result.Message)
+	}
 }
 
 func TestUnmarkingMakesTheChildAVoiceAgain(t *testing.T) {
@@ -206,6 +210,34 @@ func TestTheChapterRowsMembersSayWhichChildIsNotAVoice(t *testing.T) {
 		return
 	}
 	t.Fatal("the chapter row is missing")
+}
+
+// The binding the Voices card's switch calls: it marks, the Booth follows at once, and it unmarks; a bad GUID is refused and nothing is saved.
+func TestTheBindingMarksAndUnmarksAChildAndRefusesABadGUID(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat)
+	if got := armedOn(t, host, ids[0]); got != musicBedTrack {
+		t.Fatalf("before marking: armed %q, want the music bed (every child is a voice by default)", got)
+	}
+	payload, err := host.VoiceTracksSetNotAVoice(strings.ToUpper(musicBedTrack), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var state voicetracks.State
+	if err := json.Unmarshal([]byte(payload), &state); err != nil || len(state.NotVoiceGUIDs) != 1 {
+		t.Fatalf("marked answer = %s (%v), want the one GUID", payload, err)
+	}
+	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
+		t.Fatalf("after marking: armed %q, want the folder", got)
+	}
+	if _, err := host.VoiceTracksSetNotAVoice(musicBedTrack, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := armedOn(t, host, ids[0]); got != musicBedTrack {
+		t.Fatalf("after unmarking: armed %q, want the music bed again", got)
+	}
+	if _, err := host.VoiceTracksSetNotAVoice("bad\nguid", true); err == nil {
+		t.Fatal("a GUID with a line break was saved")
+	}
 }
 
 // #3559: the record start tells REAPER which tracks of the chapter's folder are marked, so the chapter's end leaves a music bed out.

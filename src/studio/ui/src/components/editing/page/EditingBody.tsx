@@ -91,7 +91,7 @@ import { useEditingActionCommands } from './useEditingPageCommands';
 import { useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
 import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
-import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
+import { useChapterCues, useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
 import { useLines } from './useLines';
 import type { DawRead } from '../../../playback/providers';
 
@@ -189,6 +189,7 @@ export function EditingBody(props: EditingBodyProps) {
   // What the Script page has read of the Story Bible and the narrator's marks, laid over the words (names, marks, notes, who speaks a quote).
   const marksRead = useMarks();
   const entriesRead = useEntries();
+  useChapterCues(chapterId);
   const speakersRead = useSpeakers();
   const noteSources = useMemo(
     () => ({ marks: marksRead.marks, markTypes: marksRead.types, words: [], entries: entriesRead.entries, cues: speakersRead.cues, types: entriesRead.types }),

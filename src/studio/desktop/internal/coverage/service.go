@@ -46,6 +46,9 @@ type Config struct {
 	LoadCredits func(kind string) (title, text string, err error)
 	// Reporter logs a stored file that cannot be read; may be nil.
 	Reporter *persist.Reporter
+	// Ledger is the project's analysis ledger, the one store every service of the project reads and writes, so each
+	// record is decoded once for all of them (issue 3801). Nil makes a store of the service's own.
+	Ledger *evidence.LedgerStore
 	// ChapterAudio sets the rule for which tracks inside a chapter's folder are its audio (tracks.Project.WithAudioSkip): the host makes a
 	// track marked as not a voice a non-chapter track (#3557). nil reads every track inside the folder, as a Config built before it did.
 	ChapterAudio func(tracks.Project) tracks.Project
@@ -220,6 +223,8 @@ type Service struct {
 	cache   *evidence.CacheStore
 	mapping *evidence.MappingStore
 	results resultStore
+	// summaries holds the part of each stored result a read of every chapter needs (ResultSummary).
+	summaries *summaryStore
 	// identities remembers each take file's identity, so a lookup that asks again (the Booth's Start from here, on every press) stats the
 	// takes and does not open and read each one (#3221).
 	identities *evidence.IdentityCache
@@ -241,8 +246,11 @@ type Service struct {
 // New builds the service for one project. changed, when not nil, hears every
 // state change.
 func New(config Config, launch Launcher, changed func(State)) *Service {
-	ledger := evidence.NewLedgerStore(config.Project)
-	ledger.Reporter = config.Reporter
+	ledger := config.Ledger
+	if ledger == nil {
+		ledger = evidence.NewLedgerStore(config.Project)
+		ledger.Reporter = config.Reporter
+	}
 	cache := evidence.NewCacheStore(config.Project)
 	cache.Reporter = config.Reporter
 	mapping := evidence.NewMappingStore(config.Project)
@@ -253,9 +261,10 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 	return &Service{
 		config: config, launch: launch, changed: changed, now: time.Now, pollInterval: defaultPollInterval,
 		ledger: ledger, cache: cache, mapping: mapping, identities: &evidence.IdentityCache{},
-		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter, cache: newResultCache()},
-		state:   State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
-		jobs:    map[string]*job{}, preparing: map[string]bool{},
+		results:   resultStore{dir: resultsDir(config.Project), reporter: config.Reporter, cache: newResultCache()},
+		summaries: &summaryStore{dir: summariesDir(config.Project), reporter: config.Reporter},
+		state:     State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
+		jobs:      map[string]*job{}, preparing: map[string]bool{},
 	}
 }
 

@@ -7,6 +7,12 @@ const track = (guid: string, name: string, depth = 0, isFolder = false): Track =
 
 // What a Confirm on an unchanged link says it found (#3275).
 describe('recheckSentence', () => {
+  it('counts a folder child marked as not a voice as a track but not as a voice', () => {
+    const tracks = [track('f', 'Ch 1', 0, true), track('w', 'White Rabbit', 1), track('m', 'Music bed', 1)];
+    expect(recheckSentence('Chapter 1', 'Ch 1', tracks, 'f', true, 'live', ['m'])).toContain('(a folder of 1 voice)');
+    expect(recheckSentence('Chapter 1', 'Ch 1', tracks, 'f', false, 'live', ['m'])).toContain('(a folder of 2 tracks)');
+  });
+
   it('says nothing changed for a single track', () => {
     expect(recheckSentence('Chapter 1', 'Ch 1', [track('a', 'Ch 1')], 'a')).toBe('Chapter 1 is linked to “Ch 1” (a single track). Nothing changed.');
   });

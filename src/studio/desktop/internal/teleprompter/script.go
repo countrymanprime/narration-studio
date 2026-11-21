@@ -47,6 +47,34 @@ func LoadBook(project string) (Book, bool) {
 	return Book{project: project, doc: doc}, ok
 }
 
+// BookOf is LoadBook from a manuscript already loaded (the map manuscript.Service.Load returns), for a caller that holds
+// one: the file is not read and decoded again (issue 3802).
+func BookOf(project string, data map[string]any) Book {
+	var doc manuscriptDoc
+	doc.DocumentID, _ = data["documentId"].(string)
+	chapters, _ := data["chapters"].([]any)
+	doc.Chapters = make([]manuscriptChapter, 0, len(chapters))
+	for _, raw := range chapters {
+		chapter, _ := raw.(map[string]any)
+		var row manuscriptChapter
+		row.ID, _ = chapter["id"].(string)
+		row.Title, _ = chapter["title"].(string)
+		row.Subtitle, _ = chapter["subtitle"].(string)
+		doc.Chapters = append(doc.Chapters, row)
+	}
+	paragraphs, _ := data["paragraphs"].([]any)
+	doc.Paragraphs = make([]manuscriptParagraph, 0, len(paragraphs))
+	for _, raw := range paragraphs {
+		paragraph, _ := raw.(map[string]any)
+		var row manuscriptParagraph
+		row.ID, _ = paragraph["id"].(string)
+		row.ChapterID, _ = paragraph["chapterId"].(string)
+		row.Text, _ = paragraph["text"].(string)
+		doc.Paragraphs = append(doc.Paragraphs, row)
+	}
+	return Book{project: project, doc: doc}
+}
+
 // Script is LoadChapterScript over the manuscript the book read.
 func (b Book) Script(chapterID string) (ChapterScript, bool) { return b.doc.script(chapterID) }
 
@@ -58,17 +86,21 @@ func (b Book) Reading(chapterID string) (*Reading, error) {
 
 // manuscriptDoc is the part of manuscript.json a chapter's script and its script hash are made of.
 type manuscriptDoc struct {
-	DocumentID string `json:"documentId"`
-	Chapters   []struct {
-		ID       string `json:"id"`
-		Title    string `json:"title"`
-		Subtitle string `json:"subtitle"`
-	} `json:"chapters"`
-	Paragraphs []struct {
-		ID        string `json:"id"`
-		ChapterID string `json:"chapterId"`
-		Text      string `json:"text"`
-	} `json:"paragraphs"`
+	DocumentID string                `json:"documentId"`
+	Chapters   []manuscriptChapter   `json:"chapters"`
+	Paragraphs []manuscriptParagraph `json:"paragraphs"`
+}
+
+type manuscriptChapter struct {
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Subtitle string `json:"subtitle"`
+}
+
+type manuscriptParagraph struct {
+	ID        string `json:"id"`
+	ChapterID string `json:"chapterId"`
+	Text      string `json:"text"`
 }
 
 func readManuscriptDoc(project string) (manuscriptDoc, bool) {

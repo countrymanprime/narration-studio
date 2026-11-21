@@ -172,6 +172,7 @@ export function mockChapterTrackLinks(
   project: TracksProject,
   mappings: TrackMapping[],
   state: ChapterTrackLinksProject,
+  notVoiceGuids: readonly string[] = [],
 ): ChapterTrackLinks {
   const ready = state === 'ready';
   const present = new Set(project.tracks.map((track) => track.guid));
@@ -210,14 +211,15 @@ export function mockChapterTrackLinks(
           links,
           recordedEnd: match.recordedEnd,
           // The host's rule: members follow the chapter's one confirmed link, never a name-matched guess.
-          members: links.length === 1 ? mockMembers(project, links[0].trackGuid, mappings) : [],
+          members: links.length === 1 ? mockMembers(project, links[0].trackGuid, mappings, notVoiceGuids) : [],
         };
       }),
   };
 }
 
-/** The host's `members` for a chapter: the direct children of its matched folder; a child some chapter is linked to is not a voice (the mock marks none as not a voice). */
-function mockMembers(project: TracksProject, folderGuid: string, mappings: TrackMapping[]): ChapterMember[] {
+/** The host's `members` for a chapter: the direct children of its matched folder; a child some chapter is linked to is not a voice, nor is one the
+ * narrator marked as not a voice (`notVoiceGuids`, lower case). */
+function mockMembers(project: TracksProject, folderGuid: string, mappings: TrackMapping[], notVoiceGuids: readonly string[]): ChapterMember[] {
   const at = project.tracks.findIndex((track) => track.guid.toLowerCase() === folderGuid.toLowerCase());
   const folder = project.tracks[at];
   if (!folder?.isFolder) return [];
@@ -226,7 +228,8 @@ function mockMembers(project: TracksProject, folderGuid: string, mappings: Track
     if (track.depth <= folder.depth) break;
     if (track.depth !== folder.depth + 1) continue;
     const linked = mappings.some((mapping) => mapping.trackGuid.toLowerCase() === track.guid.toLowerCase());
-    members.push({ guid: track.guid, name: track.name, isVoice: !linked, notAVoice: false });
+    const notAVoice = notVoiceGuids.includes(track.guid.toLowerCase());
+    members.push({ guid: track.guid, name: track.name, isVoice: !linked && !notAVoice, notAVoice });
   }
   return members;
 }

@@ -222,7 +222,7 @@ export function BoothPunchTarget(chapterID: string, paragraphID: string, fromWor
 
 /**
  * BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
- * Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
+ * Bible ids) to it, chooses it for the next take and arms its lane with monitoring as a voice chosen from the list is (#3670). Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
  * runs. The DAW's undo takes the track back; the project is not saved.
  */
 export function BoothVoiceAdd(chapterID: string, name: string, characterIDs: string[]): $CancellablePromise<string> {
@@ -250,6 +250,22 @@ export function Bootstrap(): $CancellablePromise<{ [_ in string]?: any }> {
     return $Call.ByID(2880307428).then(($result: any) => {
         return $$createType0($result);
     });
+}
+
+/**
+ * ChapterCreateDefaultSet keeps what a new chapter folder is made with from now on, a JSON chapterCreateChoice, as the Settings row sets it
+ * (#3748); it answers the options as they now read. A project with no folders answers Folders false but keeps the choice for when it has them.
+ */
+export function ChapterCreateDefaultSet(choice: string): $CancellablePromise<string> {
+    return $Call.ByID(99651976, choice);
+}
+
+/**
+ * ChapterCreateOptions lists what a new chapter folder can be made with (chaptercreateoptions.go): the Narrator, the known voices and Extras,
+ * each ticked unless the remembered choice left it out, in the order the folder gets them. A project with no folders answers Folders false.
+ */
+export function ChapterCreateOptions(): $CancellablePromise<string> {
+    return $Call.ByID(579516027);
 }
 
 /**
@@ -339,10 +355,11 @@ export function ChapterTagsPreview(): $CancellablePromise<string> {
  * of the DAW project's track list and links the chapter to it
  * (chaptertrackcreate.go). Outcome "created" carries ChapterTrackSet's
  * payload and the new track; "refused" says why nothing was added. A
- * chapter the manuscript does not have is an error.
+ * chapter the manuscript does not have is an error. In a Voice folders project the folder is made with its Narrator and the voices and Extras
+ * named in choice, a JSON chapterCreateChoice ("" is the remembered pick, #3748); a flat project ignores it.
  */
-export function ChapterTrackCreate(chapterID: string): $CancellablePromise<string> {
-    return $Call.ByID(626919906, chapterID);
+export function ChapterTrackCreate(chapterID: string, choice: string): $CancellablePromise<string> {
+    return $Call.ByID(626919906, chapterID, choice);
 }
 
 export function ChapterTrackLinks(): $CancellablePromise<string> {
@@ -712,7 +729,8 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
  * DawArmBoothVoice arms the track the Booth's next take on chapterID records on (the chapter's one track, or the voice it chose, else its
  * Narrator voice, as a record start picks it) and turns that track's input monitoring on when it is off, so the narrator hears themselves as
  * soon as the Booth opens on the chapter (#3428, the owner's answer 8). The page sends it once per chapter it enters, when Booth.follow_chapter_in_daw
- * is on and the DAW can follow; the voice a later choice makes is armed and monitored by BoothVoiceSet.
+ * is on and the DAW can follow, and again after a take that a voice was chosen during (with the switch off too, when it arms without monitoring: a voice
+ * choice still arms); the voice a later choice makes is armed and monitored by BoothVoiceSet.
  * 
  * It does nothing, and says nothing, for a DAW with no armed tracks, a chapter with no one track or no voice to arm, a take this app runs or
  * starts, and a DAW that is recording (the DAW refuses and the answer carries its sentence): a hot track is never moved under a take. A DAW that
@@ -1094,7 +1112,7 @@ export function DawSoloChapter(chapterID: string): $CancellablePromise<string> {
 }
 
 /**
- * DawSoloRestore puts back the solo DawSoloChapter set, when the narrator leaves the chapter's recording or turns the switch off: only the tracks it
+ * DawSoloRestore puts back the solo DawSoloChapter set, when the narrator leaves the Booth or turns the switch off: only the tracks it
  * soloed, and only where the narrator has not changed the solo since. It does not look at the switch, so it works after the switch was turned off. While
  * the DAW records it touches nothing and the DAW puts it back itself once the recording stops. A DAW with nothing to put back answers as done.
  */
@@ -1761,6 +1779,15 @@ export function GuideDialogueCues(): $CancellablePromise<string> {
     return $Call.ByID(1741759900);
 }
 
+/**
+ * GuideDialogueCuesIn returns the dialogue cues of the given chapters only,
+ * in the file's order: what a page that draws a few chapters reads instead
+ * of the whole book's cues.
+ */
+export function GuideDialogueCuesIn(chapterIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(4235836915, chapterIDs);
+}
+
 export function GuideEdit(id: string, values: { [_ in string]?: string }): $CancellablePromise<string> {
     return $Call.ByID(275232098, id, values);
 }
@@ -2257,6 +2284,14 @@ export function PickupsList(): $CancellablePromise<string> {
  */
 export function PickupsListMarkers(): $CancellablePromise<string> {
     return $Call.ByID(2406048942);
+}
+
+/**
+ * PickupsOpenCount answers how many pickups of the list are still open, for a reader that shows the number only (the
+ * navigation's badge): the list is built as PickupsList builds it, but not sent, and nothing is written to the DAW.
+ */
+export function PickupsOpenCount(): $CancellablePromise<string> {
+    return $Call.ByID(319923862);
 }
 
 /**
@@ -3300,6 +3335,15 @@ export function VoiceTracksSetLayout(layout: string): $CancellablePromise<string
  */
 export function VoiceTracksSetNarrator(characterID: string): $CancellablePromise<string> {
     return $Call.ByID(4074868469, characterID);
+}
+
+/**
+ * VoiceTracksSetNotAVoice marks the track with guid as not a voice (a music bed, room tone), or makes it a voice again with false. A
+ * marked track is never the recording target and is not a voice in the Booth; it stays in the folder. The chapters' rows follow at once,
+ * so chaptersync:state is sent like after a link change.
+ */
+export function VoiceTracksSetNotAVoice(guid: string, notAVoice: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1820023934, guid, notAVoice);
 }
 
 export function WhisperInstall(modelID: string): $CancellablePromise<string> {

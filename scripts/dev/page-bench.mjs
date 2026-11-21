@@ -87,7 +87,9 @@ async function measureWarm(browser, hours, name) {
   await page.getByRole('navigation').first().waitFor();
   await page.evaluate(MEASURE, await page.evaluate(() => performance.now())); // settle the first page
   const sinceCalls = await page.evaluate(() => window.__hostCalls.length);
-  const link = page.getByRole('navigation').getByText(new RegExp(`^${name.replace(/[&]/g, '\\$&')}\\b`)).first();
+  const inNavigation = page.getByRole('navigation').getByText(new RegExp(`^${name.replace(/[&]/g, '\\$&')}\\b`)).first();
+  // Settings sits beside the navigation, not in it: without this its warm run timed out on the click and its cells read NaN.
+  const link = (await inNavigation.count()) ? inNavigation : page.getByRole('button', { name: new RegExp(`^${name}`, 'i') }).first();
   const t0 = await page.evaluate(() => performance.now());
   await link.click({ timeout: 5000 });
   const result = await stats(page, cdp, t0, sinceCalls);

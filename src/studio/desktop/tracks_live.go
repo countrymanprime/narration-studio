@@ -164,6 +164,20 @@ func liveProject(ctx context.Context, name string, lister dawport.TrackLister, s
 // folder check, the Booth's voices and the record target use it; chapter sync and chapterTrackLinksIn still read the saved file.
 // Items, regions and colours are the saved file's (mergeLiveTracks). The error is selectedProject's.
 func liveSelectedProject(svc hostServices) (tracks.Project, error) {
+	return liveSelectedProjectFrom(svc, func(lister dawport.TrackLister) dawport.TrackLister { return lister })
+}
+
+// liveSelectedProjectForLane is liveSelectedProject for choosing the lane a voice choice or the Booth's arm is for (#3752): it may answer
+// from a list between liveTracksMaxAge and liveTracksStaleAge old while REAPER is asked again behind it (servingStale), so the narrator's
+// lane switch on a slow DAW does not wait a round trip for the list. Those two arm a track by its GUID, which REAPER refuses when the
+// track has gone; the arm picks the chapter's voice from this list (the chosen one, else the Narrator by name, else the first), and a record
+// start checks that choice again against REAPER's own list. A voice chosen during a take, a read a page shows, a take, and an edit of the
+// project all use liveSelectedProject and wait for REAPER's own list.
+func liveSelectedProjectForLane(svc hostServices) (tracks.Project, error) {
+	return liveSelectedProjectFrom(svc, servingStale)
+}
+
+func liveSelectedProjectFrom(svc hostServices, through func(dawport.TrackLister) dawport.TrackLister) (tracks.Project, error) {
 	saved, err := selectedProject(svc)
 	if err != nil {
 		return tracks.Project{}, err
@@ -171,7 +185,7 @@ func liveSelectedProject(svc hostServices) (tracks.Project, error) {
 	lister, support := trackListerFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
 	defer cancel()
-	project, _, _ := liveProject(ctx, readAloudAdapterName(svc), lister, support, saved.Path, saved)
+	project, _, _ := liveProject(ctx, readAloudAdapterName(svc), through(lister), support, saved.Path, saved)
 	return project, nil
 }
 

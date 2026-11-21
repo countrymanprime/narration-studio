@@ -22,7 +22,7 @@ async function pickAhead(page: Page): Promise<string> {
   // A sentence the narrator can see: the one after the first not-yet-read sentence that sits with its first word inside the reading box (right-clicking one out of
   // sight would scroll the box natively, which a narrator cannot do).
   const unit = await rightClickVisibleWord(page);
-  await page.getByRole('menuitem', { name: 'Start from here' }).click();
+  await page.getByRole('menuitem', { name: 'Mark the start here' }).click();
   return unit;
 }
 

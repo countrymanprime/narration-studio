@@ -144,6 +144,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-new-chapter-folder',
+    description:
+      'Settings, Recording & DAW (?mockVoiceFolders=1): the New chapter folder row under Chapter sync, with the Narrator as always made and the voices (White Rabbit, Alice and Cheshire Cat) and Extras a new chapter folder is made with, all ticked as by default (#3748)',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'recording-reaper-path-invalid',
     description:
       'Settings, Recording & DAW, Advanced: a REAPER program path that does not end in reaper.exe is refused in the row with "This is not the path to reaper.exe..." and the old value stays',

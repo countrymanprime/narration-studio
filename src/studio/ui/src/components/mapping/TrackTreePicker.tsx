@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useVoiceLayout } from '../engine/voiceLayout';
-import { folderLinkLabel, holdsWords, kindInWords } from '../engine/voices';
+import { useVoiceLayout, useVoiceSetup } from '../engine/voiceLayout';
+import { folderLinkLabel, holdsWords, kindInWords, wordsCount } from '../engine/voices';
 import { TreeSelect, type TreeSelectRow, type TreeSelectSection } from '../primitives/TreeSelect';
 import { TrackMark } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
@@ -12,10 +12,22 @@ const NO_AUDIO = 'A folder with no audio of its own can’t be linked';
 
 /** The tracks above a node, outermost first: "Narration / Chapters". */
 // A voice track's tooltip in a Voice folders project.
+// A track in such a folder the narrator marked as not a voice (a music bed): still part of its folder's chapter.
+const NOT_A_VOICE = 'Not a voice: it stays in its chapter’s folder, so link the chapter to that folder.';
 const VOICE = 'A voice track: link its chapter to the folder it sits in.';
 
 /** What a folder holds, in words ("3 voices", "2 tracks"): a single track needs none, the mark already says it is not a folder. */
-const holds = (node: TreeNode<Entry>, voiceFolders: boolean): string => (node.track.isFolder ? holdsWords(node.childCount, voiceFolders) : '');
+/** How many of a folder's children its words count: the direct children, less the ones marked as not a voice in a Voice folders project. */
+const countAt = (nodes: readonly TreeNode<Entry>[], at: number, voiceFolders: boolean, notVoiceGuids: readonly string[]): number =>
+  wordsCount(
+    nodes.filter((node) => node.parent === at).map((node) => node.track),
+    notVoiceGuids,
+    voiceFolders,
+  );
+
+/** What a folder holds, in words ("3 voices", "2 tracks"): a single track needs none, the mark already says it is not a folder. */
+const holds = (nodes: readonly TreeNode<Entry>[], at: number, voiceFolders: boolean, notVoiceGuids: readonly string[]): string =>
+  nodes[at].track.isFolder ? holdsWords(countAt(nodes, at, voiceFolders, notVoiceGuids), voiceFolders) : '';
 
 const pathOf = (nodes: readonly TreeNode<Entry>[], at: number): string => {
   const names: string[] = [];
@@ -78,9 +90,11 @@ export function TrackTreePicker({
   const shut = closed ?? defaultClosed;
   const layout = useVoiceLayout();
   const folders = layout === 'folders';
+  const { setup } = useVoiceSetup();
+  const notVoiceGuids = setup.notVoiceGuids;
   // A chapter folder is named with how many voices it holds, as Chapter links shows a linked one.
-  const shownName = (node: TreeNode<Entry>) =>
-    folders && node.track.isFolder ? folderLinkLabel(trackLabel(node.track), node.childCount) : trackLabel(node.track);
+  const shownName = (at: number) =>
+    folders && nodes[at].track.isFolder ? folderLinkLabel(trackLabel(nodes[at].track), countAt(nodes, at, true, notVoiceGuids)) : trackLabel(nodes[at].track);
 
   const searching = query.trim() !== '';
   const needle = query.trim().toLowerCase();
@@ -95,15 +109,22 @@ export function TrackTreePicker({
     // ...and a track directly inside such a folder is one of its voices, recorded as part of that folder's chapter, not a chapter's link.
     const parent = node.parent >= 0 ? nodes[node.parent].track : undefined;
     const voice = folders && !node.track.isFolder && parent?.isFolder === true && parent.choice.hasAudio === false;
+    const marked = notVoiceGuids.includes(node.track.guid.toLowerCase());
     const path = place.key.startsWith('t-') ? '' : pathOf(nodes, at);
     return {
       id: node.id,
       label: trackLabel(node.track),
       mark: <TrackMark color={entry.color ?? ''} folder={node.track.isFolder} open={!shut.has(node.id)} />,
       // What a folder holds, then where it sits and who holds it: "3 voices · Narration · linked to Chapter 2".
-      note: [holds(node, folders), path, entry.heldBy ? heldNote(entry.heldBy) : ''].filter(Boolean).join(' · ') || undefined,
-      disabledReason: blocked ? NO_AUDIO : voice ? VOICE : undefined,
-      disabledNote: blocked ? `${holds(node, folders)} · no audio` : voice ? 'A voice of its folder' : undefined,
+      note: [holds(nodes, at, folders, notVoiceGuids), path, entry.heldBy ? heldNote(entry.heldBy) : ''].filter(Boolean).join(' · ') || undefined,
+      disabledReason: blocked ? NO_AUDIO : voice ? (marked ? NOT_A_VOICE : VOICE) : undefined,
+      disabledNote: blocked
+        ? `${holds(nodes, at, folders, notVoiceGuids)} · no audio`
+        : voice
+          ? marked
+            ? 'In its folder, not a voice'
+            : 'A voice of its folder'
+          : undefined,
       ...place,
     };
   };
@@ -158,9 +179,12 @@ export function TrackTreePicker({
         chosen >= 0
           ? {
               path: pathOf(nodes, chosen) || undefined,
-              name: shownName(nodes[chosen]),
+              name: shownName(chosen),
               // A Voice folders name already says how many voices it holds.
-              kind: folders && nodes[chosen].track.isFolder ? undefined : kindInWords(nodes[chosen].track.isFolder, nodes[chosen].childCount, folders),
+              kind:
+                folders && nodes[chosen].track.isFolder
+                  ? undefined
+                  : kindInWords(nodes[chosen].track.isFolder, countAt(nodes, chosen, folders, notVoiceGuids), folders),
             }
           : undefined
       }

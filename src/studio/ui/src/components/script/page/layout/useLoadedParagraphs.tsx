@@ -1,11 +1,11 @@
 // The paragraphs of every chapter the reader has asked for, as one lookup. The data layer reads a chapter at a time (`useParagraphs`),
-// so each chapter wanted gets a reader component that holds that hook and reports what it read; the page keeps the results by chapter.
+// so each chapter wanted gets a reader component that holds that hook, reads the chapter's dialogue cues with it and reports what it read; the page keeps the results by chapter.
 // A chapter is read once it is wanted and kept: the reader asks for the chapters it draws, and Find and the search sources look in
 // every chapter read so far, as the mock's do over its loaded text.
 
 import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
-import { useParagraphs } from '../data/useScriptData';
+import { useChapterCues, useParagraphs } from '../data/useScriptData';
 
 type Loaded = Readonly<Record<string, readonly ManuscriptParagraph[]>>;
 
@@ -17,9 +17,11 @@ const ChapterReader = memo(function ChapterReader({
   onRead: (id: string, list: readonly ManuscriptParagraph[]) => void;
 }) {
   const { value } = useParagraphs(chapterId);
+  // A speaker chip is an inline block: drawn after the text it would wrap it again, so the text waits for the chapter's cues (read or failed).
+  const cuesSettled = useChapterCues(chapterId).status !== 'loading';
   useEffect(() => {
-    if (value) onRead(chapterId, value);
-  }, [chapterId, value, onRead]);
+    if (value && cuesSettled) onRead(chapterId, value);
+  }, [chapterId, value, cuesSettled, onRead]);
   return null;
 });
 

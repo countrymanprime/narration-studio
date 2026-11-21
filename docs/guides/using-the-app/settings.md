@@ -138,9 +138,13 @@ picked and the app asks the first time it could sync. It is the same choice as *
 
 **Voices** (REAPER only, under **Chapter sync**) is the Voices card of the engine panel on the page: with the **Voice folders** layout it
 lists the voices of one chapter's folder with their keys, and the pencil beside a voice chooses the characters that track records, or, for
-the Narrator, the one character it also voices. With the **Flat** layout the row says each chapter records on one track. Its tracks are the ones REAPER has now, as in the engine panel and the Booth, so a voice you rename in REAPER shows here before you save.
+the Narrator, the one character it also voices. The **Voice** switch on a voice's row turns it off for a track that is not a voice (a music bed): the row stays, dimmed and marked **Not a voice**, and the Booth never records on it. With the **Flat** layout the row lists the tracks of a folder a chapter is linked to, except any that another chapter is linked to, since the Booth records on one of them; with no such folder it says each chapter records on one track. Its tracks are the ones REAPER has now, as in the engine panel and the Booth, so a voice you rename in REAPER shows here before you save.
 
 ![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
+
+**New chapter folder** (REAPER only, under **Chapter sync**, with the **Voice folders** layout) lists what creating a chapter's folder also makes: the **Narrator**, always, then the project's known voices and **Extras**, a track for sound that is not a voice (the Booth never arms it and record progress does not ask for a take on it; a project that already gives characters to a track named Extras keeps it as a voice). Untick a voice or Extras to leave it out; a change is kept as you tick it, and the create dialog in the [Booth](booth.md) shows the same list and remembers what you leave out. A voice that appears later starts ticked. With the **Flat** layout the row is empty. It counts as changed while a voice or Extras is left out, and **Reset to defaults** ticks them all again.
+
+![Settings - Recording & DAW: the New chapter folder row, with the Narrator and the voices and Extras a new chapter folder is made with](../../images/ui/settings-new-chapter-folder.webp)
 
 **Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own. The Effects tab's cap box always sets the project's own value, so typing there creates that override; **Use computer setting** removes it. The **?** says more.
 

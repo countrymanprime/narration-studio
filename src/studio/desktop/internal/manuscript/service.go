@@ -122,6 +122,10 @@ type RecordedLengths func() map[string]RecordedLength
 // SetRecordedLengths says where recorded lengths come from; nil means none are known.
 func (s *Service) SetRecordedLengths(fn RecordedLengths) { s.lengths.Store(&fn) }
 
+// RecordedLengths is each chapter's recorded length as the chapter list carries it (recordedSeconds or the reason there
+// is none), for a reader that needs the lengths without the rest of the measured list.
+func (s *Service) RecordedLengths() map[string]RecordedLength { return s.recordedLengths() }
+
 // recordedLengths asks the provider once for a whole payload. Without one it is empty.
 func (s *Service) recordedLengths() map[string]RecordedLength {
 	if fn := s.lengths.Load(); fn != nil && *fn != nil {
@@ -135,20 +139,28 @@ func (s *Service) recordedLengths() map[string]RecordedLength {
 // RecordedThroughs supplies how far each chapter is recorded, by chapter id (recordedthrough.Resolve): what fills a chapter
 // payload's recordedThrough. It is given the payload's chapter ids and the recorded lengths it carries, so the track is
 // read once. A chapter it leaves out carries none. The host wires it in, since it reads the coverage results and the
-// Booth's readings.
-type RecordedThroughs func(chapterIDs []string, lengths map[string]RecordedLength) map[string]recordedthrough.Through
+// Booth's readings. Those results also hold the recorded fractions, so it may return them too and the chapter list reads
+// the results once (issue 3749); nil fractions mean the RecordedFractions provider is asked.
+type RecordedThroughs func(chapterIDs []string, lengths map[string]RecordedLength) (through map[string]recordedthrough.Through, fractions map[string]float64)
 
 // SetRecordedThrough says where recorded-through places come from; nil means none are known.
 func (s *Service) SetRecordedThrough(fn RecordedThroughs) { s.through.Store(&fn) }
 
-// recordedThrough asks the provider once for a whole payload. Without one it is empty.
-func (s *Service) recordedThrough(chapterIDs []string, lengths map[string]RecordedLength) map[string]recordedthrough.Through {
+// measured asks the recorded-through provider once for a whole payload, and the recorded-fractions provider only when the
+// first did not answer for it. Without providers both are empty.
+func (s *Service) measured(chapterIDs []string, lengths map[string]RecordedLength) (map[string]recordedthrough.Through, map[string]float64) {
+	var through map[string]recordedthrough.Through
+	var fractions map[string]float64
 	if fn := s.through.Load(); fn != nil && *fn != nil {
-		if through := (*fn)(chapterIDs, lengths); through != nil {
-			return through
-		}
+		through, fractions = (*fn)(chapterIDs, lengths)
 	}
-	return map[string]recordedthrough.Through{}
+	if through == nil {
+		through = map[string]recordedthrough.Through{}
+	}
+	if fractions == nil {
+		fractions = s.recordedFractions()
+	}
+	return through, fractions
 }
 
 // The parsed manuscript, kept only as long as the file's own mtime and size say it is still the
@@ -728,6 +740,7 @@ func sourceMetadataFields(metadata *importer.SourceMetadata) map[string]any {
 }
 
 func resetDerived(project string) error {
+	defer persist.Advance()
 	// Findings are anchored to manuscript chapter and paragraph ids, so a
 	// replace or Clear that invalidates those ids clears findings too.
 	paths := []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, brand.ProjectFolder, "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), editlog.ReplacementsFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project), scriptprep.BackupFile(project)}
@@ -752,6 +765,7 @@ func (s *Service) Clear() error {
 	if err := resetDerived(project); err != nil {
 		return err
 	}
+	defer persist.Advance()
 	// Voice samples are the narrator's own audio and survive a manuscript replace, so resetDerived leaves them; Clear project data
 	// is the one action that removes them (docs/reference/data-files.md, Retention terms: Cleared on Clear).
 	if err := os.RemoveAll(voicesample.Dir(project)); err != nil {

@@ -115,7 +115,7 @@ describe('ShortcutSheet', () => {
     const click = rollRow.querySelector('kbd[data-key="RightClick"]');
     expect(click).not.toBeNull();
     expect(within(click as HTMLElement).getByText('Right-click')).toBeTruthy();
-    expect(within(rollRow).getByText('Start from here')).toBeTruthy();
+    expect(within(rollRow).getByText('Mark start')).toBeTruthy();
   });
 
   it('groups commands under a heading per scope, skipping a scope with no commands', () => {

@@ -22,6 +22,8 @@ export const VIEWPORTS: Viewport[] = [
 // by resizing.
 export const REFLOW_VIEWPORT: Viewport = { name: 'reflow', width: 390, height: 844 };
 
+export const SMALL_WINDOW_VIEWPORT: Viewport = { name: 'small-window', width: 360, height: 500 };
+
 // Companion mode's window: the host narrows the app's one window
 // to 380 px (src/studio/desktop/bindings_companion.go's companionModeWidth) and pins it beside the DAW, so the companion rows are
 // judged at that width too, the way the narrator actually sees them. Not part of the matrix: rows opt in with `COMPANION`.

@@ -87,6 +87,16 @@ export const engineDrivers: Record<string, Driver> = {
     await table.getByRole('row', { name: /Extras/ }).waitFor();
     await table.scrollIntoViewIfNeeded();
   },
+  'voice-folders-marked': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: /^Voices of / });
+    await table.getByRole('row', { name: /Extras/ }).waitFor();
+    await table.scrollIntoViewIfNeeded();
+    await table.getByRole('switch', { name: 'Extras counts as a voice' }).click();
+    await table.getByText('Not a voice').waitFor();
+  },
   'voice-folders-picker': async (page) => {
     await page.goto('/?mockVoiceFolders=1');
     await settlePage(page);
@@ -246,7 +256,7 @@ export const engineDrivers: Record<string, Driver> = {
     await button.click();
     await table.getByRole('button', { name: label, exact: true }).waitFor({ state: 'detached' });
     await table
-      .getByText(/ · 1 voice$/)
+      .getByText(/ · 2 voices$/)
       .first()
       .waitFor();
     await page

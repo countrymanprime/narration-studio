@@ -28,7 +28,8 @@ export type ProbeContext = {
     PortOf<'assets'> &
     PortOf<'storyBible'> &
     PortOf<'marks'> &
-    PortOf<'credits'>;
+    PortOf<'credits'> &
+    PortOf<'chapterTrackMap'>;
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
 };
@@ -44,6 +45,11 @@ const panelChosen = (settings: ReadSettings, { tool, wanted }: PanelFields): boo
  * is in none of the three and not in `CHANGED_EXEMPT`.
  */
 export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => Promise<boolean> | boolean>> = {
+  // This project: a voice or Extras is left out of what a new chapter folder is made with (every voice and Extras is the default).
+  'daw.newChapter': async ({ api }) => {
+    const options = await api.chapterCreateOptions();
+    return options.folders && (options.voices.some((voice) => !voice.checked) || !options.extras.checked);
+  },
   // This computer: the window zoom is not 100%.
   'look.zoom': async ({ api }) => (await api.windowZoom()).level !== 1,
   // This computer: some command's keys were changed from the default.
@@ -157,9 +163,10 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const storyBible = usePort('storyBible');
   const marks = usePort('marks');
   const credits = usePort('credits');
+  const trackMap = usePort('chapterTrackMap');
   const api = useMemo(
-    () => ({ ...system, ...dawChoice, ...delivery, ...production, ...assets, ...storyBible, ...marks, ...credits }),
-    [system, dawChoice, delivery, production, assets, storyBible, marks, credits],
+    () => ({ ...system, ...dawChoice, ...delivery, ...production, ...assets, ...storyBible, ...marks, ...credits, ...trackMap }),
+    [system, dawChoice, delivery, production, assets, storyBible, marks, credits, trackMap],
   );
   const { setup: voiceSetup } = useVoiceSetup();
   const chapterSync = usePort('chapterSync');

@@ -7,6 +7,9 @@ import { retryAction } from '../primitives/Toast';
 import { usePort } from '../../ports/usePort';
 import { useVoiceSetup } from './voiceLayout';
 
+/** One notice at a time for the Voice switches: a second press replaces the first rather than stacking over the card. */
+const VOICE_SWITCH_TOPIC = 'voice-switch';
+
 /** The project's voice setup (shared app-wide by VoiceSetupProvider) and the Story Bible's characters, read when the Engine panel opens;
  * each change saves at once and a refusal is a toast (frontend-primitives rule 7). */
 export function useVoiceTracks(notify: Notify, { characters: wantCharacters = true }: { characters?: boolean } = {}) {
@@ -84,6 +87,17 @@ export function useVoiceTracks(notify: Notify, { characters: wantCharacters = tr
         (current) => withTrackCharacters(current, track, ids),
         () => voiceTracks.voiceTracksSetCharacters(track, ids),
       ),
+    /** `consequence` is what the change does beyond the row (the Booth's voice moves, the keys renumber): told once, as a notice, once the host has saved it
+     * (a refusal is the error toast alone), since nothing else on the page shows it. */
+    setNotAVoice: (guid: string, notAVoice: boolean, consequence?: string) =>
+      save(
+        (current) => withNotAVoice(current, guid, notAVoice),
+        () =>
+          voiceTracks.voiceTracksSetNotAVoice(guid, notAVoice).then((answer) => {
+            if (consequence) notify(consequence, 'info', undefined, undefined, undefined, VOICE_SWITCH_TOPIC);
+            return answer;
+          }),
+      ),
     setNarratorCharacter: (id: string) =>
       save(
         (current) => ({ ...current, narratorCharacter: id }),
@@ -102,4 +116,11 @@ function withTrackCharacters(current: VoiceTracksState, track: string, ids: stri
   const tracks = unique.length === 0 ? others : [...others, { track: name, characters: unique, guids }];
   tracks.sort((a, b) => (a.track < b.track ? -1 : a.track > b.track ? 1 : 0));
   return { ...current, tracks };
+}
+
+/** The host's SetNotVoice rule (internal/voicetracks), applied before it answers: the GUID lower case and trimmed, once, in order. */
+function withNotAVoice(current: VoiceTracksState, guid: string, notAVoice: boolean): VoiceTracksState {
+  const id = guid.trim().toLowerCase();
+  const others = current.notVoiceGuids.filter((other) => other !== id);
+  return { ...current, notVoiceGuids: notAVoice ? [...others, id].sort() : others };
 }
