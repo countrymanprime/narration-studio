@@ -193,6 +193,9 @@ func monitorUnreachableSentence(svc hostServices) string {
 
 // boothReleaseRefusal words a failed release on leaving the Booth (monitor_restore answers only MONITOR_RESTORED or an error, never a stale track): what failed (putting the input monitoring back), that it may still be on and what to do.
 func boothReleaseRefusal(name string, err error) string {
+	if errors.Is(err, bridge.ErrAnswerLate) {
+		return fmt.Sprintf("%s took the command but did not confirm it in time, so your input monitoring may still be on. Check it in %s.", name, name)
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Sprintf("%s did not answer in time, so your input monitoring may still be on. Turn it off in %s.", name, name)
 	}

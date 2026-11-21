@@ -128,7 +128,6 @@ const NOT_ANSWERING = 'REAPER is not answering. Check that REAPER is open, then 
 const NO_ANSWER = 'REAPER did not answer: check that REAPER is open; the app reconnects by itself';
 const WITHIN_3S = 'REAPER did not answer within 3 seconds.';
 const TOOK_NOT_CONFIRMED = 'REAPER took the command but did not confirm it in time, so what it did may not match. Check REAPER.';
-const ANSWER_LATE = `${NO_ANSWER}: REAPER took the command but has not confirmed it yet`;
 const NOT_CONFIRMED_TRACK = 'REAPER took the command but has not confirmed the track yet. Look in REAPER before trying again: it may already be there.';
 
 /** A `dawport.Result` refusal (internal/dawport/result.go). */
@@ -264,10 +263,10 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
     outcome('no_daw', 'The audio engine is not answering, so where this passage was recorded cannot be read. Check that it is open, then try again.'),
     5_000,
   ),
-  chapterRegionsCreate: one(reject(`could not create the regions in REAPER: ${ANSWER_LATE}`), LONG_MS),
+  chapterRegionsCreate: one(reject(TOOK_NOT_CONFIRMED), LONG_MS),
   workspaceListFXChains: one(reject(NO_ANSWER)),
   workspaceProjectFx: one(reject(NO_ANSWER)),
-  levelMatchApply: one(reject(ANSWER_LATE), LONG_MS),
+  levelMatchApply: one(reject(TOOK_NOT_CONFIRMED), LONG_MS),
   dawUndoLast: LATE_REFUSAL,
   dawSaveProject: LATE_REFUSAL,
   dawDeleteRange: afterTracks(answer(refused(TOOK_NOT_CONFIRMED)), LONG_MS),

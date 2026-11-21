@@ -30,6 +30,7 @@ func TestEveryWriteBindingSaysTheDawTookACommandItHasNotConfirmed(t *testing.T) 
 		"chapter folders": func(err error) string { return chapterFoldersError("REAPER", err).Message },
 		"select track":    func(err error) string { return trackSelectRefusal(err).Message },
 		"record stop":     func(err error) string { return readAloudRecordRefusal("REAPER", err).Message },
+		"an error handed to the page (gain change, regions)": func(err error) string { return lateAnswerError("REAPER", err).Error() },
 	}
 	want := lateAnswerSentence("REAPER")
 	for name, words := range mappers {
@@ -47,6 +48,14 @@ func TestEveryWriteBindingSaysTheDawTookACommandItHasNotConfirmed(t *testing.T) 
 		if got := words(bridge.ErrNoAnswer); strings.Contains(got, "took the command") {
 			t.Errorf("%s: a command the DAW never read is worded as taken: %q", name, got)
 		}
+	}
+}
+
+// Leaving the Booth: a release the DAW took says so, and still that the monitoring may be on.
+func TestAReleaseTheDawTookIsNotWordedAsNotAnswering(t *testing.T) {
+	got := boothReleaseRefusal("REAPER", fmt.Errorf("%w: %w", bridge.ErrAnswerLate, context.DeadlineExceeded))
+	if !strings.Contains(got, "took the command") || !strings.Contains(got, "may still be on") {
+		t.Fatalf("got %q", got)
 	}
 }
 

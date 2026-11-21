@@ -122,6 +122,15 @@ func lateAnswerSentence(name string) string {
 	return fmt.Sprintf("%s took the command but did not confirm it in time, so what it did may not match. Check %s.", name, name)
 }
 
+// lateAnswerError is err with lateAnswerSentence for its text when the DAW took the command, for a binding that hands its error to the
+// page as it is: the bridge's own text for it opens with "did not answer", which the page would show for a change that may land.
+func lateAnswerError(name string, err error) error {
+	if errors.Is(err, bridge.ErrAnswerLate) {
+		return errors.New(lateAnswerSentence(name))
+	}
+	return err
+}
+
 // readAloudUnsupportedRefusal is the refusal when the linked DAW does not report the record (or, for a punch, the punch)
 // capability: it speaks of recording, which is what the narrator pressed, and names the DAW.
 func readAloudUnsupportedRefusal(name string) ReadAloudRecording {
