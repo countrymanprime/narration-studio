@@ -5,7 +5,7 @@ import { joinFavourites, parseFavourites, toggledFavourites } from './favourites
 const TOOL = 'DAW';
 const KEY = 'fx_favourites';
 /** A press this soon after another is a double press: the list moves a starred chain to the top, so the second would land on another chain. */
-export const FAVOURITE_QUIET_MS = 400;
+const FAVOURITE_QUIET_MS = 400;
 
 export type FxFavourites = {
   /** The favourite names, in the order they were starred. */
