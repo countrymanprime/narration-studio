@@ -342,6 +342,18 @@ func storedKey(t *testing.T, project string, r Range) (*evidence.CacheStore, evi
 	return store, NewMeasureCache(nil, store, project).key(identity, r)
 }
 
+// The owner's rule: a stored figure is answered only for the content it was measured from, never for a size and a time.
+func TestAFileOnlyTouchedIsAnsweredFromTheStoredFigures(t *testing.T) {
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	cache := counted(project, &calls)
+	cache.Get(r)
+	setModified(t, r.File, sourceTime.Add(time.Minute))
+	if got := pauseOf(t, counted(project, &calls).Get(r)); got != 1 || calls != 1 {
+		t.Fatalf("a touched file was measured again: measurement %v of %d, want the stored first", got, calls)
+	}
+}
+
 func TestARestartAnswersFromTheStoredFigures(t *testing.T) {
 	dir, project := t.TempDir(), t.TempDir()
 	setup := recorded(t, dir)
@@ -373,8 +385,9 @@ func TestAnEditedSourceIsMeasuredAgain(t *testing.T) {
 			overwriteByte(t, path, unsampledOffset)
 			setModified(t, path, sourceTime.Add(time.Minute))
 		},
-		"only the time moved": func(t *testing.T, path string) {
-			setModified(t, path, sourceTime.Add(time.Minute))
+		"bytes between the sampled blocks rewritten, size and time kept": func(t *testing.T, path string) {
+			overwriteByte(t, path, unsampledOffset)
+			setModified(t, path, sourceTime)
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -425,12 +438,12 @@ func TestEachRangeAndSourceKindHasItsOwnEntry(t *testing.T) {
 func TestAnEntryThatCannotBeUsedIsDeletedAndMeasuredAgain(t *testing.T) {
 	for name, blob := range map[string]string{
 		"not JSON":                 `{"schemaVersion":1,"measure":`,
-		"a newer blob version":     `{"schemaVersion":2,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
-		"no blob version":          `{"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
-		"a figure with no value":   `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
-		"a figure with no reason":  `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false},"breaths":{"ok":true,"value":9}}}`,
-		"a value beside a reason":  `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":false,"value":9,"reason":"x"},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
-		"figures left out":         `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{}}`,
+		"a newer blob version":     `{"schemaVersion":2,"sourceSha256":"00","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"no blob version":          `{"sourceSha256":"00","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"a figure with no value":   `{"schemaVersion":1,"sourceSha256":"00","measure":{"pause":{"ok":true},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"a figure with no reason":  `{"schemaVersion":1,"sourceSha256":"00","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false},"breaths":{"ok":true,"value":9}}}`,
+		"a value beside a reason":  `{"schemaVersion":1,"sourceSha256":"00","measure":{"pause":{"ok":false,"value":9,"reason":"x"},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"figures left out":         `{"schemaVersion":1,"sourceSha256":"00","measure":{}}`,
 		"another analyzer's shape": `{"schemaVersion":1,"durationSeconds":4,"silences":[]}`,
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -687,9 +700,13 @@ func TestACopiedProjectAnswersFromTheCacheItCarries(t *testing.T) {
 
 // The stored blob, byte for byte: an entry this build writes is one a later build must still read.
 func TestTheStoredBlobShape(t *testing.T) {
-	const blob = `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":1},"rms":{"ok":true,"value":-18.3},"nf":{"ok":false,"reason":"Too short."},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":2}}}`
 	project, calls := t.TempDir(), 0
 	r := source(t, t.TempDir())
+	sum, err := sha256File(r.File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := `{"schemaVersion":1,"sourceSha256":"` + sum + `","measure":{"pause":{"ok":true,"value":1},"rms":{"ok":true,"value":-18.3},"nf":{"ok":false,"reason":"Too short."},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":2}}}`
 	counted(project, &calls).Get(r)
 	store, key := storedKey(t, project, r)
 	written, found := store.Read(key)

@@ -2,11 +2,13 @@ package passagetakes
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"math"
 	"os"
 	"strconv"
-	"time"
 
 	"desktop/internal/coverage"
 	"desktop/internal/evidence"
@@ -283,11 +285,11 @@ const (
 
 const reasonUnreadable = "This take's audio file cannot be read, so it was not measured."
 
-// measureBlob is the opaque JSON stored per take range: its figures and the modification time of the file they were
+// measureBlob is the opaque JSON stored per take range: its figures and the SHA-256 of the whole file they were
 // measured from.
 type measureBlob struct {
 	SchemaVersion int         `json:"schemaVersion"`
-	SourceModTime time.Time   `json:"sourceModTime"`
+	SourceSHA256  string      `json:"sourceSha256"`
 	Measure       TakeMeasure `json:"measure"`
 }
 
@@ -295,9 +297,10 @@ type measureBlob struct {
 // passage's evidence again, in this run of the app or the next, decodes nothing.
 //
 // An entry is the file's as it was when it was measured: the key (path, size and a hash of the file's first, middle and
-// last 64 KB) cannot see an edit made in place elsewhere in a file of the same length, so the entry also carries the
-// file's modification time and a file whose time has moved is measured again and the entry written over, as the
-// workspace peaks are (measure.CachedPeaksFile). A file that is only touched is therefore measured again.
+// last 64 KB) only finds the entry: it cannot see an edit made in place elsewhere in a file of the same length, and the
+// modification time can be restored by a copy. So the entry carries the SHA-256 of the whole file and is answered only
+// while the file still hashes to it, as the delivery measurement is (measure.CachedMeasureFile); otherwise the file is
+// measured again and the entry written over. Every call hashes the file (0.24 to 0.43 s per hour of audio).
 type MeasureCache struct {
 	measure       Measure
 	store         *evidence.CacheStore
@@ -332,13 +335,19 @@ func (c *MeasureCache) Get(r Range) TakeMeasure {
 		measured, _ := c.measure(r)
 		return measured
 	}
+	sum, err := sha256File(r.File)
+	if err != nil {
+		// Unreadable now: the measurer says why, and nothing is stored under a content nobody could hash.
+		measured, _ := c.measure(r)
+		return measured
+	}
 	key := c.key(identity, r)
-	if cached, found := c.read(key, identity); found {
+	if cached, found := c.read(key, sum); found {
 		return cached
 	}
 	measured, decoded := c.measure(r)
 	if decoded {
-		c.write(key, identity, r.File, measured)
+		c.write(key, identity, sum, r.File, measured)
 	}
 	return measured
 }
@@ -355,10 +364,10 @@ func (c *MeasureCache) key(identity evidence.SourceIdentity, r Range) evidence.C
 	}
 }
 
-// read is key's stored figures when they were measured from the file as identity describes it. An entry this package
+// read is key's stored figures when they were measured from a file with the SHA-256 sum. An entry this package
 // cannot use (not its JSON, another blob version, a figure that is neither a value nor a reason) is deleted; one of a
-// file modified since is left for the write that follows the new measurement.
-func (c *MeasureCache) read(key evidence.CacheEntryKey, identity evidence.SourceIdentity) (TakeMeasure, bool) {
+// file of other content is left for the write that follows the new measurement.
+func (c *MeasureCache) read(key evidence.CacheEntryKey, sum string) (TakeMeasure, bool) {
 	raw, found := c.store.Read(key)
 	if !found {
 		return TakeMeasure{}, false
@@ -369,7 +378,7 @@ func (c *MeasureCache) read(key evidence.CacheEntryKey, identity evidence.Source
 		_ = c.store.Delete(key)
 		return TakeMeasure{}, false
 	}
-	if !blob.SourceModTime.Equal(identity.ModTime) {
+	if blob.SourceSHA256 != sum {
 		return TakeMeasure{}, false
 	}
 	return blob.Measure, true
@@ -378,12 +387,12 @@ func (c *MeasureCache) read(key evidence.CacheEntryKey, identity evidence.Source
 // write stores measured under key unless file changed while it was measured: the entry would carry the earlier
 // identity over the later audio. A failure to store is not reported, because the figures just measured are still
 // answered and the next call measures again.
-func (c *MeasureCache) write(key evidence.CacheEntryKey, identity evidence.SourceIdentity, file string, measured TakeMeasure) {
+func (c *MeasureCache) write(key evidence.CacheEntryKey, identity evidence.SourceIdentity, sum, file string, measured TakeMeasure) {
 	after, err := c.identify(file, c.projectFolder)
 	if err != nil || after.Size != identity.Size || after.PartialHash != identity.PartialHash || !after.ModTime.Equal(identity.ModTime) {
 		return
 	}
-	if encoded, err := json.Marshal(measureBlob{SchemaVersion: measureBlobVersion, SourceModTime: identity.ModTime.UTC(), Measure: measured}); err == nil {
+	if encoded, err := json.Marshal(measureBlob{SchemaVersion: measureBlobVersion, SourceSHA256: sum, Measure: measured}); err == nil {
 		_ = c.store.Write(key, encoded)
 	}
 }
@@ -396,4 +405,18 @@ func (m TakeMeasure) complete() bool {
 		}
 	}
 	return true
+}
+
+// sha256File is the hex SHA-256 of every byte of the file at path.
+func sha256File(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = file.Close() }() // read-only
+	digest := sha256.New()
+	if _, err := io.Copy(digest, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(digest.Sum(nil)), nil
 }
