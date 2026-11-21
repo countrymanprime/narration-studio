@@ -23,7 +23,7 @@ func IsRegular(root, rel string) (bool, error) {
 // it leads, because a folder linked to another folder of the project would have a delete by name take that folder's
 // files. The root itself may be reached through a link. A link, a folder or anything else that is not a regular file
 // at rel is left where it is, and so is its target. A root, a folder of rel or a file that is not there is nothing to
-// delete, not an error. A delete moves Generation, as Advance does.
+// delete, not an error. A file that answers "access denied" (on Windows, one whose delete is pending) is asked again for up to 0.2 s and is nothing to delete if it settles to not there; one that stays denied is an error. A delete moves Generation, as Advance does.
 //
 // The folders are checked and then the file is deleted, so a folder swapped for a link between the two is followed;
 // the os.Root still keeps that delete inside root.
@@ -103,7 +103,10 @@ func onRegular(root, rel string, act func(*os.Root) error) (bool, error) {
 		}
 		if errors.Is(err, fs.ErrPermission) {
 			// Another delete of the same file may have been in flight: let it settle, and a file that is gone then is not an error.
-			_, err = lstatSettled(folder, rel)
+			// A file that is still there keeps the refusal.
+			if _, again := lstatSettled(folder, rel); errors.Is(again, fs.ErrNotExist) {
+				err = again
+			}
 		}
 	}
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
