@@ -56,7 +56,7 @@ If the check runs again while you look and the evidence changes, the decision is
 The chapter stepper beside the title shows **All chapters** or one chapter. On **All chapters** the notes run in book order, chapter by chapter, and **J**/**K** follow that order. Choose a chapter from it, or step with its
 arrows or the Left and Right keys. From All chapters, a step opens the last chapter you looked at in this project (the
 first chapter until you have looked at one). The list shows how far each chapter is recorded after its name (**45%**, **~30%**
-for an estimate from the track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped). The chapter is in the page's address (`/proof?chapter=<id>`), and Esc goes
+for an estimate from the track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped) (a chapter with a recorded second on its track never reads 0%). The chapter is in the page's address (`/proof?chapter=<id>`), and Esc goes
 back to All chapters. Each change of chapter is a step in the browser's history, so Back returns to the chapter or to All chapters you came from.
 
 On the right of the title, a ring and two counters say how far the notes in view have got: **12 of 14 cleared · 13
@@ -355,7 +355,8 @@ Large model doesn't support Auto).
 
 **Jump to or run** (Ctrl+K) has **Open Compare options**, a dialog with this project's defaults for a run: the **chunk length** a run starts
 with and the colours of the three kinds of marker a comparison exports to REAPER (**misread**, **skipped** and **extra**,
-each a colour picker and six hex digits). A change is saved at once for this project; **Reset** appears on one this project
+each a colour picker and a box of six hex digits). A colour you type is saved when you press Enter or leave the box, and text
+that is not six hex digits stays in the box with a red edge and is not saved; a hint on the box says what it takes. A change is saved at once for this project; **Reset** appears on one this project
 changes and hands it back to the computer-wide value or the built-in default. Settings under **Set on a page** has the same
 values with a **Global** / **This project** switch, and **Compare chunk length** under Speech to text in Settings sets the
 computer-wide value. The setup starts on that chunk length, or on the longest the chosen model can take when it cannot take it. A stored length that is not one of the choices (30 s, 1m, 5m, 10m) is not used: the setup starts on 1m and a notice says so. The transcription model is not here: it is the

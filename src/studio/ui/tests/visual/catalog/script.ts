@@ -83,6 +83,13 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'speaker-suggested-by-model',
+    description:
+      "Script, the Change speaker menu on a line the local model suggested a speaker for (the model turned on in Settings, then Find who speaks each line): Confirm with the model's one-sentence reason beneath it, clamped to three lines, above this chapter's speakers",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'script',
     state: 'skip-to-side-panel',
     description:
       'Script, the "Skip to the side panel" button under the reader header, shown while it has focus: one Tab from the header past every chapter card to the rail',
@@ -142,7 +149,19 @@ export const scriptStates: StateEntry[] = [
     description: 'Script, the mark composer for a selected word: the mark’s type and its note',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
-  { page: 'script', state: 'define-marks', description: 'Script, the Define how you mark up dialog: each mark type with its name, colour and line' },
+  {
+    page: 'script',
+    state: 'define-marks',
+    description: 'Script, the Define how you mark up dialog: each mark type with its swatch, its name, a colour box that names the colour, and its line',
+  },
+  {
+    page: 'script',
+    state: 'define-marks-colour',
+    description:
+      'Script, the Define how you mark up dialog with the colour box of the first mark opened: a row of six swatches in a popover over the dialog, the chosen one ringed and checked',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
+  },
   {
     page: 'script',
     state: 'text-settings',
@@ -173,6 +192,12 @@ export const scriptStates: StateEntry[] = [
     state: 'invalid-payload',
     description:
       'Script, the inline error with Retry when the data it loads could not be read; the error toast Home raised for the same data is taken away, since the page says it; navigation still works',
+  },
+  {
+    page: 'script',
+    state: 'cue-read-failed',
+    description:
+      'Script when the dialogue cues cannot be read (?mockCuesRead=fails): the reader with its text and no speaker chips, and an error toast with the reason ("The dialogue cues could not be read from this project.") and a Retry button that reads the cues again',
   },
   {
     page: 'script',

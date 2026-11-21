@@ -632,3 +632,72 @@ func TestWriteReportsAnEntryFileItCannotWrite(t *testing.T) {
 		t.Fatal("Write with a folder in the file's place: want an error, got nil")
 	}
 }
+
+// The names are pinned: a change to what hash() hashes, or its order, would orphan every analysis cache file on disk.
+func TestAnEntryWrittenBeforeDerivedKeyIsStillFoundByItsName(t *testing.T) {
+	key := CacheEntryKey{
+		Source:          SourceIdentity{Path: "audio/take.wav", Size: 1234, PartialHash: "abc"},
+		AnalyzerID:      "editing.silence",
+		AnalyzerVersion: "1",
+		ParamHash:       "p",
+	}
+	ranged := key
+	ranged.PlayedRange = &PlayedRange{Start: 1.5, End: 2.25}
+	cases := []struct {
+		name string
+		key  CacheEntryKey
+		want string
+	}{
+		{"whole source", key, "b1f9ae73eb442b5cde33b1e39e99e199ce0cbb434ad32efb914229ace40f6a1d"},
+		{"played range", ranged, "71b6726a164c1c8b8bbee0d849bbd6a68f5f5f7a080f2833f8fc7371d933e044"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.key.hash(); got != tc.want {
+				t.Fatalf("hash() = %s, want %s", got, tc.want)
+			}
+			project := t.TempDir()
+			if err := os.MkdirAll(CacheDir(project), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			envelope := `{"schemaVersion":1,"writtenAt":"2026-01-01T00:00:00Z","blob":"b2xk"}`
+			if err := os.WriteFile(filepath.Join(CacheDir(project), tc.want+".json"), []byte(envelope), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			blob, ok := NewCacheStore(project).Read(tc.key)
+			if !ok || string(blob) != "old" {
+				t.Fatalf("Read = %q, %v; want the entry stored under the old name", blob, ok)
+			}
+		})
+	}
+}
+
+// The envelope names the analyzer that wrote the entry, so an entry can be told apart by kind without its key; an
+// entry written before the field reads as it did.
+func TestTheEnvelopeNamesItsAnalyzer(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	key := baseCacheKey()
+	if err := store.Write(key, []byte("x")); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(CacheDir(project), key.hash()+".json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]any
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		t.Fatal(err)
+	}
+	if fields["analyzerId"] != "rc" || fields["schemaVersion"] != float64(1) {
+		t.Fatalf("envelope = %s", raw)
+	}
+
+	if err := os.WriteFile(path, []byte(`{"schemaVersion":1,"writtenAt":"2026-01-02T03:04:05Z","blob":"b2xk"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := store.Read(key); !ok || string(got) != "old" {
+		t.Fatalf("an entry without analyzerId read as %q, found %v", got, ok)
+	}
+}

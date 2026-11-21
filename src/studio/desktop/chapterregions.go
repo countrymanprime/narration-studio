@@ -212,6 +212,9 @@ func createChapterRegions(ctx context.Context, svc hostServices, creator regionC
 		rows = append(rows, bridge.Region{Start: row.Start, End: row.End, Title: row.Title})
 	}
 	answer, err := creator.CreateRegions(ctx, rows, "", update)
+	if errors.Is(err, bridge.ErrAnswerLate) {
+		return chapterRegionsCreated{}, lateAnswerError("REAPER", err)
+	}
 	if err != nil {
 		return chapterRegionsCreated{}, fmt.Errorf("could not create the regions in REAPER: %w", err)
 	}

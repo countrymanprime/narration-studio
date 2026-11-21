@@ -14,6 +14,7 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 ## Used by
 
 - `src/components/booth/voices/WhoIsInDialog.tsx`
+- `src/components/chapterTracks/NewChapterTracks.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/profile/FormatRows.tsx`
 - `src/components/delivery/profile/ProfileCard.tsx`
@@ -67,7 +68,6 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/settings/BackupsSection.tsx`
-- `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`

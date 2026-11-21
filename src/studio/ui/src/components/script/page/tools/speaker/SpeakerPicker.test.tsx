@@ -9,7 +9,7 @@ import { createMockApi } from '../../../../../api/mockApi';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
 import { speakerColorIndex } from '../../../../primitives/speakerColor';
 import type { Phrase } from '../../data/script.selectors';
-import { useChapters, useEntries, useScriptCommands, useSpeakers } from '../../data/useScriptData';
+import { useChapterCues, useChapters, useEntries, useScriptCommands, useSpeakers } from '../../data/useScriptData';
 import { SpeakerPicker } from './SpeakerPicker';
 import { speakerChoices, speakersInChapter } from './speakerChoices';
 
@@ -30,8 +30,9 @@ const entries = [duchess, hatter, gardener];
 const everyone = speakerChoices(entries, TYPES);
 const here = everyone.filter((choice) => choice.entryId !== 'e1');
 
-const suggested: Pick<Phrase, 'speaker' | 'state'> = { speaker: hatter, state: 'suggested' };
-const unknown: Pick<Phrase, 'speaker' | 'state'> = { speaker: null, state: 'unknown' };
+type Picked = Pick<Phrase, 'speaker' | 'state' | 'reason'>;
+const suggested: Picked = { speaker: hatter, state: 'suggested' };
+const unknown: Picked = { speaker: null, state: 'unknown' };
 
 function picker(phrase = suggested, handlers: { onChoose?: (id: string) => void; onClose?: () => void } = {}) {
   const onChoose = handlers.onChoose ?? vi.fn();
@@ -80,6 +81,23 @@ describe('speaker-picker-suggests-this-chapters-people-first', () => {
     expect(screen.queryByRole('option', { name: /Confirm/ })).toBeNull();
     picker(unknown);
     expect(screen.queryAllByRole('option', { name: /Confirm/ })).toHaveLength(0);
+  });
+
+  it("shows a local model's reason beneath Confirm “X” as plain text, and nothing for a rule's suggestion", () => {
+    picker({ ...suggested, reason: 'The Hatter <b>spoke</b> just before.' });
+    const confirm = screen.getAllByRole('option')[0];
+    expect(confirm?.textContent).toContain('Suggested by the local model: The Hatter <b>spoke</b> just before.');
+    expect(confirm?.querySelector('b')).toBeNull();
+    // Clamped to three lines so the speakers below stay in view; the whole sentence is the tooltip.
+    const line = screen.getByText('Suggested by the local model: The Hatter <b>spoke</b> just before.');
+    expect(line.className).toContain('line-clamp-3');
+    expect(line.getAttribute('title')).toBe('Suggested by the local model: The Hatter <b>spoke</b> just before.');
+    cleanup();
+    picker({ ...suggested, reason: '   ' });
+    expect(screen.queryByText(/Suggested by the local model/)).toBeNull();
+    cleanup();
+    picker();
+    expect(screen.queryByText(/Suggested by the local model/)).toBeNull();
   });
 
   it("gives each row the swatch of its entry's colour, a chosen colour winning", async () => {
@@ -157,10 +175,13 @@ describe('choosing confirms the speaker through the data layer', () => {
         <StudioProvider>{children}</StudioProvider>
       </ApiProvider>
     );
-    const { result } = renderHook(() => ({ chapters: useChapters(), speakers: useSpeakers(), entries: useEntries(), commands: useScriptCommands() }), {
-      wrapper,
-    });
-    await waitFor(() => expect(result.current.speakers.value).toBeDefined());
+    const { result } = renderHook(
+      () => ({ chapters: useChapters(), speakers: useSpeakers(), cues: useChapterCues('chapter-1'), entries: useEntries(), commands: useScriptCommands() }),
+      {
+        wrapper,
+      },
+    );
+    await waitFor(() => expect(result.current.speakers.status).toBe('ready'));
     await waitFor(() => expect(result.current.entries.entries.length).toBeGreaterThan(1));
     const cues = result.current.speakers.value as GuideDialogueCue[];
     const cue = cues.find((row) => row.speaker_entity_id && row.speaker_source !== 'correction');
@@ -197,7 +218,9 @@ describe('speakersInChapter over the mock host', () => {
         <StudioProvider>{children}</StudioProvider>
       </ApiProvider>
     );
-    const { result } = renderHook(() => ({ speakers: useSpeakers(), entries: useEntries(), chapters: useChapters() }), { wrapper });
+    const { result } = renderHook(() => ({ speakers: useSpeakers(), cues: useChapterCues('chapter-1'), entries: useEntries(), chapters: useChapters() }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.chapters.value?.length).toBeGreaterThan(0));
     await waitFor(() => expect(result.current.speakers.value?.length).toBeGreaterThan(0));
     await act(async () => {});

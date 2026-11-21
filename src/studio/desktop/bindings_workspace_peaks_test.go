@@ -2,12 +2,19 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"desktop/internal/brand"
+	"desktop/internal/evidence"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"desktop/internal/coverage"
+	"desktop/internal/tracks"
 )
 
 // minimalMonoWAV builds a small real RIFF/WAVE file (16-bit PCM mono, a short tone) that measure.PeaksFile can
@@ -132,5 +139,132 @@ func TestWorkspacePeaksCachesAcrossCalls(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "analysis", "cache")); err != nil {
 		t.Fatalf("expected the evidence cache directory to exist after the first call: %v", err)
+	}
+}
+
+func TestPeaksSourcesReadAFileOnceHoweverManyItemsAsk(t *testing.T) {
+	project := workspacePeaksProject(t)
+	file := filepath.Join(project, "media", "take.wav")
+	whole := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project).whole
+
+	first := whole(file)
+	if first.reason != "" || first.whole.Buckets != 4*50 {
+		t.Fatalf("first = %+v", first)
+	}
+	// The file is gone: an answer now can only be the one kept from the first ask.
+	if err := os.Remove(file); err != nil {
+		t.Fatal(err)
+	}
+	if second := whole(file); second.reason != "" || second.whole.Buckets != first.whole.Buckets {
+		t.Fatalf("second = %+v, want the first ask's peaks without reading the file again", second)
+	}
+	// A new reader (the next call) reads the file as it is now.
+	if next := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project).whole(file); next.reason == "" {
+		t.Fatalf("next = %+v, want a reason for the missing file", next)
+	}
+}
+
+func TestWorkspacePeaksCutsEveryItemOfOneSourceFromItsOwnRange(t *testing.T) {
+	project := workspacePeaksProject(t)
+	// A second item over the same recording, playing its seconds [1, 3).
+	rpp := filepath.Join(project, "book.rpp")
+	saved, err := os.ReadFile(rpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := `    <ITEM
+      POSITION 4
+      LENGTH 2
+      IGUID {ITEM-2}
+      SOFFS 1
+      PLAYRATE 1 1 0 -1 0 0.0025
+      <SOURCE WAVE
+        FILE "media/take.wav"
+      >
+    >
+  >
+>
+`
+	if err := os.WriteFile(rpp, append(bytes.TrimSuffix(saved, []byte("  >\n>\n")), second...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	host := coverageHost(t, project, true, fakeTwoItemCoverageSidecar())
+	if _, err := host.CoverageStart("c-0001", nil); err != nil {
+		t.Fatal(err)
+	}
+	host.services().coverage.Wait()
+
+	got := bindingAnswer[WorkspacePeaksView](t)(host.WorkspacePeaks("c-0001"))
+
+	if len(got.Items) != 2 || got.Items[0].Peaks == nil || got.Items[1].Peaks == nil {
+		t.Fatalf("got = %+v", got)
+	}
+	if p := got.Items[0].Peaks; p.Buckets != 4*50 || p.StartSeconds != 0 {
+		t.Fatalf("first item's peaks = %d buckets from %v", p.Buckets, p.StartSeconds)
+	}
+	if p := got.Items[1].Peaks; p.Buckets != 2*50 || p.StartSeconds != 1 || len(p.MinMax) != 2*2*50 {
+		t.Fatalf("second item's peaks = %d buckets from %v", p.Buckets, p.StartSeconds)
+	}
+}
+
+// An item reads its source in the order it always did: a file that cannot be read says so whatever the range is, and
+// a bad range is refused before the file's peaks are read (so a file that is not a WAV does not answer for it).
+func TestItemPeaksChecksTheFileThenTheRangeThenThePeaks(t *testing.T) {
+	project := coverageProject(t) // its media/take.wav is the bytes "RIFF audio": readable, not a WAV
+	stub := filepath.Join(project, "media", "take.wav")
+	missing := filepath.Join(project, "media", "gone.wav")
+	items := func(file string) tracks.Project {
+		return tracks.Project{Tracks: []tracks.Track{{Items: []tracks.Item{{GUID: "{ITEM-1}", Takes: []tracks.Take{{SourceFile: file, SourceAvailable: true}}}}}}}
+	}
+	item := func(start float64) coverage.AlignmentItem {
+		return coverage.AlignmentItem{Index: 0, ItemGUID: "{ITEM-1}", Live: true, SourceStart: start, Length: 2, PlayRate: 1}
+	}
+	for _, c := range []struct {
+		name, file string
+		start      float64
+		want       string
+	}{
+		{"missing file, bad range", missing, -1, "this item's source audio could not be read"},
+		{"missing file, good range", missing, 0, "this item's source audio could not be read"},
+		{"not a WAV, bad range", stub, -1, "this item's waveform could not be computed"},
+		{"not a WAV, good range", stub, 0, "no waveform"},
+	} {
+		sources := newPeaksSources(context.Background(), evidence.NewCacheStore(project), project)
+		if got := itemPeaks(sources, items(c.file), item(c.start)); got.Reason != c.want || got.Peaks != nil {
+			t.Errorf("%s: got %+v, want reason %q", c.name, got, c.want)
+		}
+		if _, read := sources.peaks[c.file]; read != (c.name == "not a WAV, good range") {
+			t.Errorf("%s: the file's peaks were read = %v", c.name, read)
+		}
+	}
+}
+
+// fakeTwoItemCoverageSidecar is fakeAlignedCoverageSidecar (bindings_workspace_test.go) with a second analyzed item,
+// "{ITEM-2}".
+func fakeTwoItemCoverageSidecar() coverage.Launcher {
+	return func(_ context.Context, _ string, args ...string) (coverage.Child, error) {
+		values := map[string]string{}
+		for i := 0; i+1 < len(args); i++ {
+			if strings.HasPrefix(args[i], "--") {
+				values[args[i]] = args[i+1]
+			}
+		}
+		child := &coverageChild{}
+		func() { // the sidecar has finished by the time the host first looks: the watch waits out no poll (gapSidecar does the same)
+			results := fmt.Sprintf(`COVERAGE|{"schemaVersion":1,"chapterId":%q,"bodyTokens":1,"presentTokens":1,"missingTokens":0,"extraTokens":0,"longestMissingRun":0,"alignment":{"maxMisreadRun":8,"minAnchorRun":3},"items":{"analyzed":2,"muted":0,"playedSeconds":6,"transcribed":2,"reused":0},"analysis":{"model":"small","language":null,"equivalencesHash":null}}`+"\n", values["--chapter-id"])
+			results += `COVERAGE_ITEM|{"index":0,"itemGuid":"{ITEM-1}","status":"analyzed","words":"transcribed","playedSeconds":4,"wordCount":1,"model":"small","language":null}` + "\n"
+			results += `COVERAGE_ITEM|{"index":1,"itemGuid":"{ITEM-2}","status":"analyzed","words":"transcribed","playedSeconds":2,"wordCount":0,"model":"small","language":null}` + "\n"
+			results += `COVERAGE_PARAGRAPH|{"id":"p-000001","tokens":1,"present":1,"longestMissingRun":0}` + "\n"
+			results += `COVERAGE_TOKEN|{"i":0,"p":"p-000001","w":0,"text":"Alice.","status":"read","heard":null,"item":0,"start":0.0,"end":0.5}` + "\n"
+			code := 0
+			if err := os.WriteFile(values["--out"], []byte(results), 0o600); err != nil {
+				code = 1
+			}
+			_ = os.WriteFile(values["--progress"], []byte("DONE|100|Finished\n"), 0o600)
+			child.mu.Lock()
+			child.code = &code
+			child.mu.Unlock()
+		}()
+		return child, nil
 	}
 }

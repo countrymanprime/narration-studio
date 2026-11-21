@@ -27,6 +27,40 @@ afterEach(() => {
 const info = (id: number, text = `Message ${id}`): ToastMessage => ({ id, text, tone: 'info' });
 const failure = (id: number, text = `Failure ${id}`): ToastMessage => ({ id, text, tone: 'error' });
 
+describe('a toast with an action in a window of 24 rem or less (#3322)', () => {
+  it('puts the action row under the text, and takes that row from the text cap so the toast stays inside a short window', () => {
+    const action = { label: 'Check again', onAction: vi.fn() };
+    render(<ToastRegion messages={[{ ...failure(1, 'Long refusal'), action }]} dismiss={vi.fn()} />);
+    const withAction = screen.getByText('Long refusal').closest('[data-tone]') as HTMLElement;
+    expect(withAction.className).toContain('max-[24rem]:flex-wrap');
+    expect(withAction.className).toContain('max-[24rem]:[--toast-action-row:2.75rem]');
+    // The cap subtracts the row (zero where the action sits beside the text).
+    expect(screen.getByText('Long refusal').className).toContain('var(--toast-action-row,0rem)');
+    // The text is capped at what the glyph leaves of the row, not forced to it: a short text stays beside the buttons, a long one fills the row and sends them under it.
+    expect(screen.getByText('Long refusal').className).toContain('max-[24rem]:max-w-[calc(100%-1.75rem)]');
+    expect(screen.getByText('Long refusal').className).not.toContain('basis');
+  });
+});
+
+describe('a stack of toasts keeps every action beside its text (#3322)', () => {
+  it('only a toast that is alone puts its action row under the text: rows under each of several would not fit a short window', () => {
+    const action = { label: 'Retry', onAction: vi.fn() };
+    render(
+      <ToastRegion
+        messages={[
+          { ...failure(1, 'First'), action },
+          { ...failure(2, 'Second'), action },
+        ]}
+        dismiss={vi.fn()}
+      />,
+    );
+    for (const word of ['First', 'Second']) {
+      expect(screen.getByText(word).closest('[data-tone]')!.className).not.toContain('flex-wrap');
+      expect(screen.getByText(word).className).not.toContain('max-[24rem]:max-w');
+    }
+  });
+});
+
 describe('ToastRegion', () => {
   it('is drawn in <body>, outside the isolated #root, so it stacks above a dialog or slide-over raised from the page', () => {
     const { container } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
@@ -708,28 +742,10 @@ describe('the room the toasts take, published for a dialog in a short window', (
   });
 });
 
-// A window 400 px tall or less has no room for a stack of toasts beside a dialog (#3605): the region shows the newest only, and the older ones wait, unmounted, for it to go.
-describe('ToastRegion in a window 400 px tall or less with a dialog open', () => {
-  const realMatchMedia = window.matchMedia;
-  let short = true;
-  let listeners: Array<() => void> = [];
-  beforeEach(() => {
-    short = true;
-    listeners = [];
-    document.documentElement.setAttribute('data-modal-open', '');
-    window.matchMedia = ((query: string) => ({
-      get matches() {
-        return query === '(max-height: 400px)' && short;
-      },
-      media: query,
-      addEventListener: (_: string, listener: () => void) => listeners.push(listener),
-      removeEventListener: (_: string, listener: () => void) => (listeners = listeners.filter((one) => one !== listener)),
-    })) as unknown as typeof window.matchMedia;
-  });
-  afterEach(() => {
-    window.matchMedia = realMatchMedia;
-    document.documentElement.removeAttribute('data-modal-open');
-  });
+// A stack of toasts has no bound and a dialog gives up the room the toasts take (#3605): over a dialog the region shows the newest only, at any window size, and the older ones wait, unmounted, for it to go.
+describe('ToastRegion with a dialog open', () => {
+  beforeEach(() => document.documentElement.setAttribute('data-modal-open', ''));
+  afterEach(() => document.documentElement.removeAttribute('data-modal-open'));
   const three = [info(1, 'First.'), failure(2, 'Second.'), info(3, 'Third.')];
 
   it('shows only the newest of three toasts, and the older ones come back as it goes', () => {
@@ -757,17 +773,20 @@ describe('ToastRegion in a window 400 px tall or less with a dialog open', () =>
     }
   });
 
-  it('follows the window: a taller window shows the whole stack, a shorter one the newest again', () => {
-    render(<ToastRegion messages={three} dismiss={vi.fn()} />);
-    expect(screen.queryByText('First.')).toBeNull();
-    short = false;
-    act(() => listeners.forEach((listener) => listener()));
-    expect(screen.getByText('First.')).toBeTruthy();
-    expect(screen.getByText('Second.')).toBeTruthy();
-    short = true;
-    act(() => listeners.forEach((listener) => listener()));
-    expect(screen.queryByText('First.')).toBeNull();
-    expect(screen.getByText('Third.')).toBeTruthy();
+  it('an older toast with an action keeps its clock while it waits, and goes when its time is up without being shown', () => {
+    vi.useFakeTimers();
+    try {
+      const dismiss = vi.fn();
+      const undo = { ...info(1, 'Removed A.'), action: { label: 'Undo', onAction: vi.fn() } };
+      render(<ToastRegion messages={[undo, info(2, 'Newest.')]} dismiss={dismiss} />);
+      // Mounted for its clock, not drawn, and no tab stop.
+      expect(screen.getByText('Removed A.').closest('[data-tone]')!.hasAttribute('hidden')).toBe(true);
+      expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+      act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1));
+      expect(dismiss).toHaveBeenCalledWith(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows the whole stack when no dialog is open, so a newer message never hides an older error and its Retry', () => {
@@ -781,13 +800,5 @@ describe('ToastRegion in a window 400 px tall or less with a dialog open', () =>
     expect(screen.getByText('Could not save.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(screen.getByText('Saved elsewhere.')).toBeTruthy();
-  });
-
-  it('shows the whole stack in a window over 400 px tall', () => {
-    short = false;
-    render(<ToastRegion messages={three} dismiss={vi.fn()} />);
-    expect(screen.getByText('First.')).toBeTruthy();
-    expect(screen.getByText('Second.')).toBeTruthy();
-    expect(screen.getByText('Third.')).toBeTruthy();
   });
 });

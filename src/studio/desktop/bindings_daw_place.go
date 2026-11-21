@@ -12,7 +12,8 @@ import (
 	"desktop/internal/dawport"
 )
 
-// placeTimeout bounds one read of the narrator's place or one move to a chapter: both are a single quick request to the DAW.
+// placeTimeout bounds one read of the narrator's place, a single quick request to the DAW, and is the wait the "did not answer" sentence
+// names. A move to a chapter, a solo and a release change the DAW, so they get writeCommandTimeout: one the DAW has read is waited for.
 const placeTimeout = 3 * time.Second
 
 // The ways DawGoToChapter puts the cursor on a chapter's track: at the end or the start of what is recorded, or at a time in project seconds.
@@ -104,7 +105,7 @@ func sameTrackID(a, b string) bool {
 func (h *Host) DawGoToChapter(chapterID, where string, seconds float64) (string, error) {
 	svc := h.services()
 	resolver, _ := h.dawResolverFor(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), placeTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), writeCommandTimeout)
 	defer cancel()
 	result, err := dawGoToChapterIn(ctx, svc, readAloudAdapterName(svc), resolver.Support(dawport.CapFollowPosition), svc.placeFollower, chapterID, where, seconds)
 	return encodeBinding(result, err)
@@ -154,6 +155,8 @@ func placeRefusal(name string, moving bool, err error) string {
 	switch {
 	case errors.As(err, &stale):
 		return fmt.Sprintf("The track linked to this chapter is no longer in the %s project. Link it again in the audio engine panel.", name)
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return lateAnswerSentence(name)
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return readAloudConnectionRefusal(name, reaperNotRunning).Message
 	case errors.Is(err, bridge.ErrUnavailable):

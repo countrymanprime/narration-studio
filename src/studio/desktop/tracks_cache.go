@@ -14,12 +14,22 @@ import (
 )
 
 // The live track list is asked for by several pages and bindings in one user action (the Booth's own poll, the voices, the record target, a
-// lane switch: #3647 counted four reads of one list in a lane switch and three in one idle tick). REAPER's list changes only when its edit counter
-// does, and the heartbeat (every 1.5 s, no request) carries that counter, so a read the counter still matches is not asked again.
+// lane switch: #3647 counted four reads of one list in a lane switch and three in one idle tick). The heartbeat (every 1.5 s and at once when
+// the track list changes, no request) carries the list's revision, so a read whose revision the heartbeat still carries is not asked again,
+// however old it is (#3859). A script that sends no revision is judged by the edit counter the heartbeat also carries, and by the ages below.
 
-// liveTracksMaxAge bounds how long an answer is reused when the counter has not moved: a change the counter misses (it restarts when a project
+// liveTracksMaxAge bounds how long an answer with no revision is reused when the counter has not moved: a change the counter misses (it restarts when a project
 // is reopened, and not every REAPER edit raises it) is seen within this long, as the 5 s poll saw it before.
 const liveTracksMaxAge = 10 * time.Second
+
+// liveTracksStaleAge bounds how long an answer past liveTracksMaxAge is still handed out, to the host's own reads only (servingStale), while a fresh one is read behind it (#3752): on a
+// slow DAW every caller used to wait a whole round trip for the list each time the age ran out, and a lane arm spent its own wait on it. The
+// heartbeat must still vouch for the answer (the same counter, project and epoch); only its age is forgiven, and never beyond this.
+const liveTracksStaleAge = 30 * time.Second
+
+// liveTracksRefreshTimeout bounds the read made behind a stale answer as a caller's own read is bounded (tracksLiveTimeout): a caller that
+// arrives past the stale age joins a read in flight, and must not be held by one that outlasts its own wait.
+const liveTracksRefreshTimeout = tracksLiveTimeout
 
 // liveTracksCache holds the last live track list and the one read in flight. It belongs to a project (a project switch makes a new one, as for
 // boothVoices), so another project's list is never served.
@@ -71,12 +81,31 @@ type cachedTrackLister struct {
 	inner     dawport.TrackLister
 	cache     *liveTracksCache
 	heartbeat dawport.Heartbeat
+	// staleOK lets this lister hand out an answer between liveTracksMaxAge and liveTracksStaleAge while it is read again (servingStale). It is
+	// off for every other read (a list a page shows or the narrator asked to refresh, a take, an edit): that read waits for REAPER's own
+	// answer past liveTracksMaxAge, as before.
+	staleOK bool
+}
+
+// servingStale is lister allowed to answer from a list up to liveTracksStaleAge old while REAPER is asked again behind it. It is for
+// liveSelectedProjectForLane alone: which lane a voice choice or the Booth's arm is for, where a round trip on a slow DAW is the narrator's
+// wait and a track that has gone since is refused by its GUID. A lister with no cache is returned as it is.
+func servingStale(lister dawport.TrackLister) dawport.TrackLister {
+	if cached, ok := lister.(cachedTrackLister); ok {
+		cached.staleOK = true
+		return cached
+	}
+	return lister
 }
 
 var _ dawport.TrackLister = cachedTrackLister{}
 
-// The production heartbeat keeps an epoch: without the method the cache would silently stop telling a restarted bridge from a running one.
-var _ interface{ Epoch() uint64 } = (*daw.Reachability)(nil)
+// The production heartbeat keeps an epoch and the track list's revision: without the methods the cache would silently stop telling a
+// restarted bridge from a running one, and would fall back to judging a list by its age.
+var _ interface {
+	Epoch() uint64
+	TracksRevision() (string, bool)
+} = (*daw.Reachability)(nil)
 
 // withTracksCache is lister behind svc's cache, or lister itself when there is no cache or no heartbeat to judge it by.
 func withTracksCache(svc hostServices, lister dawport.TrackLister) dawport.TrackLister {
@@ -90,8 +119,15 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 	c := l.cache
 	for {
 		c.mu.Lock()
-		if c.have && l.fresh(c) {
+		vouched, byRevision := l.vouched(c)
+		// A list the script's revision vouches for is REAPER's list however old it is (#3859): the script says so at once when a track is
+		// added, removed, renamed or moved. Only a list vouched for by the edit counter, from a script that sends no revision, runs out of age.
+		if age := c.now().Sub(c.at); c.have && vouched && (byRevision || age < liveTracksMaxAge || (l.staleOK && age < liveTracksStaleAge)) {
 			answer := cloneTracks(c.answer)
+			if !byRevision && age >= liveTracksMaxAge && c.flight == nil {
+				// Stale while revalidate: this caller has the list now, and the next one has REAPER's answer to the read started here.
+				l.refresh(c)
+			}
 			c.mu.Unlock()
 			return answer, nil
 		}
@@ -115,6 +151,25 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 		c.mu.Unlock()
 		return l.lead(ctx, c, flight, generation, epoch)
 	}
+}
+
+// refresh starts a read of its own behind a stale answer, shared with any caller that needs to wait meanwhile like any other read in flight.
+//
+// +checklocks:c.mu
+func (l cachedTrackLister) refresh(c *liveTracksCache) {
+	epoch := l.epoch()
+	flight := &liveTracksFlight{done: make(chan struct{}), epoch: epoch}
+	c.flight = flight
+	generation := c.generation
+	go func() {
+		// lead wakes the waiters when a read panics and lets the panic go on to its caller; here that is this goroutine, and nobody is
+		// owed the answer, so the panic ends here instead of ending the app.
+		defer func() { _ = recover() }()
+		ctx, cancel := context.WithTimeout(context.Background(), liveTracksRefreshTimeout)
+		defer cancel()
+		// A failed refresh leaves the stale answer to run out of age; the next caller past it reads for itself and gets the error.
+		_, _ = l.lead(ctx, c, flight, generation, epoch)
+	}()
 }
 
 // lead sends the one request of flight, stores its answer when nothing invalidated the list meanwhile, and wakes the callers waiting on it. It
@@ -149,18 +204,37 @@ func cloneTracks(answer dawport.LiveTracks) dawport.LiveTracks {
 	return answer
 }
 
-// fresh reports whether the held answer is still REAPER's list: the heartbeat is fresh and carries a counter equal to the answer's, it names the
-// project the answer is of, the bridge has not started over since (the heartbeat's epoch: a gap, another project, a counter that went down), and
-// the answer is not older than liveTracksMaxAge. A project reopened with an equal counter and no gap is served stale for at most that long.
+// vouched reports whether the heartbeat still vouches for the held answer as REAPER's list, and whether it does so by the track list's
+// revision. In both cases the heartbeat is fresh, names the project the answer is of, and the bridge has not started over since (the
+// heartbeat's epoch: a gap, another project, a counter that went down).
+//
+// By revision (a script since #3859): the heartbeat's revision equals the answer's. The script computes it from the tracks themselves and
+// sends a heartbeat at once when it changes, so nothing about the list can change behind an equal revision, and the answer's age does not
+// matter. Edits that leave the track list alone (a take, a cut) move the edit counter and not the revision, so they cost no read.
+//
+// By the edit counter (an older script, until REAPER is restarted): the counter equals the answer's. Not every edit raises it, so the
+// answer's age is the caller's to judge: under liveTracksMaxAge it is served as it is, under liveTracksStaleAge it is served while a new
+// read runs.
 //
 // +checklocks:c.mu
-func (l cachedTrackLister) fresh(c *liveTracksCache) bool {
-	count, known := l.heartbeat.ChangeCount()
-	if !known {
-		return false
-	}
+func (l cachedTrackLister) vouched(c *liveTracksCache) (vouched, byRevision bool) {
 	open, unsaved := l.heartbeat.CurrentProject()
-	return count == c.answer.ChangeCount && !unsaved && sameLiveProject(open, c.answer.ProjectPath) && l.epoch() == c.epoch && c.now().Sub(c.at) < liveTracksMaxAge
+	if unsaved || !sameLiveProject(open, c.answer.ProjectPath) || l.epoch() != c.epoch {
+		return false, false
+	}
+	if revision, known := l.revision(); known && c.answer.Revision != "" {
+		return revision == c.answer.Revision, true
+	}
+	count, known := l.heartbeat.ChangeCount()
+	return known && count == c.answer.ChangeCount, false
+}
+
+// revision is the track list's revision in the last heartbeat, or not known for a heartbeat that carries none.
+func (l cachedTrackLister) revision() (string, bool) {
+	if h, ok := l.heartbeat.(interface{ TracksRevision() (string, bool) }); ok {
+		return h.TracksRevision()
+	}
+	return "", false
 }
 
 // epoch is the heartbeat's count of times the bridge may have started over (a gap, another project, a counter that went down), or 0 for a

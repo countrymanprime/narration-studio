@@ -21,9 +21,9 @@ import (
 // title through the manuscript, the manuscript's documentId, the compared set read from the run's manifest and the
 // saved project file's time at completion. A record that cannot be written is logged and never fails the comparison
 // the narrator is looking at.
-func comparisonRecorder(folder string, text *manuscript.Service, store *settings.Store, reporter *persist.Reporter) func(transcript.CompletedRun) {
+func comparisonRecorder(folder string, ledger *evidence.LedgerStore, text *manuscript.Service, store *settings.Store, reporter *persist.Reporter) func(transcript.CompletedRun) {
 	recorder := &proofing.ComparisonRecorder{
-		Ledger: evidence.NewLedgerStore(folder), Lookup: text, ProjectFolder: folder,
+		Ledger: ledger, Lookup: text, ProjectFolder: folder,
 		DocumentID:  func() string { return manuscriptDocumentID(text) },
 		ProjectFile: func() (evidence.LedgerProjectFile, error) { return savedProjectFile(folder, store) },
 	}
@@ -39,15 +39,28 @@ func comparisonRecorder(folder string, text *manuscript.Service, store *settings
 	}
 }
 
+// transcriptManuscript is the manuscript a completed comparison's findings are resolved against: one book for the run, so
+// the file is read once and not for each finding. With no readable manuscript it is nil, the interface itself and not a
+// nil book, which is what the findings adapter checks for.
+func transcriptManuscript(text *manuscript.Service) func() transcript.ManuscriptLookup {
+	return func() transcript.ManuscriptLookup {
+		book, err := text.Book()
+		if err != nil {
+			return nil
+		}
+		return book
+	}
+}
+
 // renderMeasurementRecorder is the measurement job's per-file hook: a
 // measured file that is some chapter's chosen render becomes one ledger record per such chapter, keyed by the render's
 // fingerprint, with its Report (or failed, with the error). Nil without a project or a manuscript. A record that cannot
 // be written is logged; the measurement the narrator is looking at is unaffected.
-func renderMeasurementRecorder(folder string, text *manuscript.Service, reporter *persist.Reporter) measuredFileFunc {
-	if folder == "" || text == nil {
+func renderMeasurementRecorder(folder string, ledger *evidence.LedgerStore, text *manuscript.Service, reporter *persist.Reporter) measuredFileFunc {
+	if folder == "" || text == nil || ledger == nil {
 		return nil
 	}
-	ledger, renders := evidence.NewLedgerStore(folder), proofing.NewRenderStore(folder)
+	renders := proofing.NewRenderStore(folder)
 	return func(path string, measured measure.FileMeasurement, measureErr error, began time.Time) {
 		_, err := proofing.RecordRenderMeasurements(ledger, renders, manuscriptDocumentID(text), folder, path,
 			measured.Report, measured.Fingerprint.SHA256, measureErr, began, time.Now().UTC())

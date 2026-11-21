@@ -57,7 +57,9 @@ test('row 2: the text reads whole words, in order', async ({ page }) => {
 });
 
 test('row 3: an unconfirmed speaker is the "?" chip, never a blank one', async ({ page }) => {
-  await open(page);
+  // The demo book's one line with no speaker ("Have some wine") is at the tea-party.
+  await page.goto(`/booth?chapter=chapter-7`);
+  await settlePage(page);
   await expect(page.getByRole('button', { name: /^Speaker \?\. Change speaker/ }).first()).toBeVisible();
   expect(await page.getByRole('button', { name: /^Speaker \.\s/ }).count()).toBe(0);
 });
@@ -359,20 +361,23 @@ test('row 31: right-click offers Start from here, Bookmark here, roll, text size
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   const menu = page.getByRole('menu').last();
-  for (const item of [/Start from here/, /Bookmark here/, /Exit/]) await expect(menu.getByRole('menuitem', { name: item }).first()).toBeVisible();
+  for (const item of [/Mark the start here/, /Bookmark here/, /Exit/]) await expect(menu.getByRole('menuitem', { name: item }).first()).toBeVisible();
 });
 
-// Punch has no switch since #2251: with REAPER linked and answering, Start from here sets the next roll at once.
-test('row 31: Start from here sets the next roll at once, and Space records', async ({ page }) => {
+// Punch has no switch since #2251: with REAPER linked and answering, Mark the start here sets the next roll and nothing else (#3319); Space then records from it.
+test('row 31: Mark the start here only sets the next roll, and Space records from it', async ({ page }) => {
   await open(page);
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
   await expect(page.getByText(/Next roll starts from ¶/).first()).toBeVisible();
   await expect(page.getByText(/The next take starts from the end of what is already there, not from ¶/)).toHaveCount(0);
+  // Nothing was sent to the DAW: no take is running until Record is pressed.
+  await expect(page.getByRole('button', { name: /^Record$/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Stop$/ })).toHaveCount(0);
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
 });

@@ -32,10 +32,12 @@ import (
 	"desktop/internal/dawport/reaper"
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/editing"
+	"desktop/internal/evidence"
 	"desktop/internal/extraction"
 	"desktop/internal/extraction/apply"
 	"desktop/internal/extraction/importer"
 	"desktop/internal/extractionport"
+	"desktop/internal/extractionport/localmodel"
 	"desktop/internal/findings"
 	"desktop/internal/guide"
 	"desktop/internal/hostlog"
@@ -58,6 +60,7 @@ import (
 	"desktop/internal/recordingcoverage"
 	"desktop/internal/renderconfig"
 	"desktop/internal/retakelanes"
+	"desktop/internal/retention"
 	"desktop/internal/roomtone"
 	"desktop/internal/runlog"
 	"desktop/internal/settings"
@@ -78,7 +81,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 166
+const hostAPIVersion = 170
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -163,7 +166,10 @@ type Host struct {
 	// +checklocks:mu
 	removing map[string]bool
 	guide    *guide.Service
-	guideJob *workJob
+	// speakerModel is the local model asked about the lines the rules leave unknown (speaker_fallback_settings.go); nil on this
+	// build, where none ships. Set before the first configure, never after.
+	speakerModel localmodel.Asker
+	guideJob     *workJob
 	// extractionJob is the Story Bible's scan for suggestions (extraction_job.go); h.mu guards the pointer, the job its fields.
 	extractionJob *extractionScanJob
 	// measureJob measures the narrator's picked audio files (measure_job.go); measurePicked is every path the picker
@@ -194,6 +200,15 @@ type Host struct {
 	// runs the Transcript Compare sidecar's --coverage mode. Swapped on every project switch like transcript; the Coverage* bindings
 	// reach it (bindings_coverage.go) and it fills the manuscript chapters' recordedFraction.
 	coverage *coverage.Service
+	// ledger is the open project's analysis ledger: the one store coverage, editing and the proofing recorders read and
+	// write, so a record one of them writes is in the next read of the others and is decoded once (issue 3801). Swapped
+	// with coverage on every project switch.
+	ledger *evidence.LedgerStore
+	// retention keeps the project's derived files bounded in the background (retention_host.go); Closed and replaced on every project switch.
+	// +checklocks:mu
+	retention *retention.Runner
+	// retentionOff keeps the background pass from starting; tests that attach many projects set it, and the retention tests clear it.
+	retentionOff bool
 	// stages is the chapter stage recommendation service (bindings_stages.go, docs/architecture/stage-recommendations.md):
 	// the recording signal over coverage, the decision store and the manuscript's status path. Swapped with coverage on every
 	// project switch; it computes on read and stores no recommendation.
@@ -416,6 +431,8 @@ type Host struct {
 	// chapterSyncEmitMu keeps one emitChapterSyncState at a time: each reads the state and sends it, so two started by quick link changes cannot
 	// send in the opposite order from their reads and leave the UI on the older state (#3416).
 	chapterSyncEmitMu sync.Mutex
+	// chapterSyncEmitWaiting is set while one emitChapterSyncState waits for chapterSyncEmitMu: later requests leave the read to it.
+	chapterSyncEmitWaiting atomic.Bool
 	// background counts the fire-and-forget goroutines the host starts through goBackground (cue refreshes, chapter-sync triggers, the
 	// backups prune, the Audacity probe), so a test can wait for them before it removes the project folder they write into. Nothing in
 	// the app waits on it: a quit or a user action never blocks on this work.
@@ -464,7 +481,9 @@ type Host struct {
 	// scripting on and start Audacity on its own (audacityauto.go); only the app's
 	// real start and the tests that give the seams below set it. reaperResourceSeam is REAPER's resource folder and reaperFilesSeam the
 	// bridge files to install, for tests; nil means the real ones.
-	dawAutoEnabled     atomic.Bool
+	dawAutoEnabled atomic.Bool
+	// solo is what the host knows of the chapter solo it asked the DAW for (bindings_daw_solo.go).
+	solo               soloDebt
 	reaperResourceSeam func() string
 	reaperFilesSeam    fs.FS
 	reaperBridgeOnce   sync.Once
@@ -493,6 +512,8 @@ type Host struct {
 	writableOK bool
 	// persist reports a file that cannot be read: to the host log and, for the narrator's own data, to the narrator.
 	persist *persist.Reporter
+	// reads shares one computation between identical read bindings in flight (readflights.go).
+	reads readFlights
 	// notifySender is a seam for tests: nil means the real Wails notification API. notifyInitOnce guards the lazy
 	// start of the notification service SystemNotify makes on the first qualifying send (notifications.go).
 	notifySender   notificationSender
@@ -555,7 +576,11 @@ func (h *Host) goBackground(work func()) {
 
 // waitForBackground returns once every goBackground goroutine started so far has finished. Tests call it before the project folder goes;
 // the app never does.
-func (h *Host) waitForBackground() { h.background.Wait() }
+// waitForBackground also closes the retention runner for good, so a test that calls it and then expects a pass will not get one.
+func (h *Host) waitForBackground() {
+	h.background.Wait()
+	h.closeRetention()
+}
 
 func NewHost() *Host {
 	workingDirectory, _ := os.Getwd()
@@ -660,6 +685,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
 	go h.cleanStaleDownloads()
+	h.goBackground(h.warmProject) // the read caches, while the window loads (warm.go)
 	return nil
 }
 
@@ -723,6 +749,8 @@ func (h *Host) configureLocked(next config) {
 	h.guide.SetFindings(h.findings)
 	// Asked when a lookup starts, not now: h.mu is held here, and an install made after the project opens counts.
 	h.guide.SetWiktextractIndex(h.wiktextractIndexPath)
+	// Asked at each run, so the narrator's setting as it stands then decides whether a model is asked at all.
+	h.guide.SetSpeakerFallbackProvider(speakerFallbackProvider(h.settings, h.speakerModel))
 	// An older project's Script page words move to their Story Bible names before anything reads either file (scriptwords_migrate.go).
 	migrateScriptWordsOnOpen(h.config.projectFolder, h.manuscript, h.guide, h.persist, h.log)
 	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
@@ -739,6 +767,7 @@ func (h *Host) configureLocked(next config) {
 				_ = h.log.Report(kind, message)
 				h.traceBridgeLog(kind)
 			})
+			client.SlowFromEnv(os.Getenv(bridge.SlowLinkEnv), update.IsDevelopment(h.version))
 		}
 	}
 	h.tracer.SetProjectRoot(h.config.projectFolder)
@@ -748,6 +777,10 @@ func (h *Host) configureLocked(next config) {
 	h.reachability = daw.NewReachability(client)
 	h.boothVoices = newBoothVoiceChoices()
 	h.tracksCache = newLiveTracksCache()
+	if h.bridge != nil {
+		// A replaced client's held commands (a slowed development run) must not land among the new client's.
+		h.bridge.DropHeld()
+	}
 	h.bridge = client
 	// The project's Audacity connection (audacityconn.go) is made before the services that take its roles; a project that records with
 	// anything else has none. The previous project's is closed, which drops its pipe.
@@ -771,10 +804,12 @@ func (h *Host) configureLocked(next config) {
 	}
 	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
 	h.transcript.SetPersist(h.persist)
-	h.transcript.SetFindings(h.findings, h.manuscript)
+	h.transcript.SetFindings(h.findings, transcriptManuscript(h.manuscript))
 	projectFolder, settingsStore, coverageReporter := h.config.projectFolder, h.settings, h.persist
+	h.ledger = evidence.NewLedgerStore(h.config.projectFolder)
+	h.ledger.Reporter = h.persist
 	h.coverage = coverage.New(coverage.Config{
-		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend,
+		Project: h.config.projectFolder, Python: h.config.comparePython, Backend: h.config.compareBackend, Ledger: h.ledger,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		ChapterAudio: func(project tracks.Project) tracks.Project {
 			return chapterAudio(coverageReporter, projectFolder, project)
@@ -806,12 +841,13 @@ func (h *Host) configureLocked(next config) {
 	h.manuscript.SetCredits(h.creditsChapters)
 	h.manuscript.SetCreditsStatusWriter(func(kind, status string) error { _, err := h.setCreditsStatus(kind, status); return err })
 	// A chapter's recordedThrough is how far it is recorded, from its current Proof result, the Booth's takes and that length.
-	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore))
+	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore, h.manuscript))
 	h.editing = editing.New(editing.Config{
 		Project:     h.config.projectFolder,
 		ProjectFile: func() (string, error) { return selectedProjectFile(projectFolder, settingsStore) },
 		Policy:      func() editing.Policy { return editingPolicy(settingsStore) },
 		Reporter:    h.persist,
+		Ledger:      h.ledger,
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: projectFileReader{},
 		// The render association the proofing stage already owns, reused as-is,
@@ -826,7 +862,8 @@ func (h *Host) configureLocked(next config) {
 		ProjectReader: projectFileReader{},
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
-	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.manuscript, settingsStore, h.persist))
+	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist))
+	h.startRetentionLocked(h.coverage)
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
 	h.stages = stagesService(h.config.projectFolder, h.manuscript, h.coverage, h.editing, settingsStore, h.coverageUnavailable(h.config.comparePython, settingsStore), h.persist,
@@ -994,11 +1031,21 @@ func (h *Host) packagedResources() string {
 	if err != nil {
 		return ""
 	}
-	root, err := materializeResources(resources, cache, executablePath())
+	root, err := packagedResourcesIn(resources, cache, executablePath(), func(kind, message string) { _ = h.log.Report(kind, message) })
 	if err != nil {
 		return ""
 	}
 	return root
+}
+
+// packagedResourcesIn is what a launch does with the embedded resources: name their folder by the remembered key of this executable
+// (memoizedResourceKey) and unpack them when that folder is not complete.
+func packagedResourcesIn(source fs.FS, userCache, executable string, report func(kind, message string)) (string, error) {
+	key, err := memoizedResourceKey(source, userCache, executable, report)
+	if err != nil {
+		return "", err
+	}
+	return materializeResourcesAs(key, source, userCache, executable)
 }
 
 // materializeResources unpacks the resources embedded in source into <userCache>/<data>/runtime/<key> and returns that folder.
@@ -1009,6 +1056,11 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err != nil {
 		return "", err
 	}
+	return materializeResourcesAs(key, source, userCache, executable)
+}
+
+// materializeResourcesAs is materializeResources for a caller that already has source's content key (memoizedResourceKey).
+func materializeResourcesAs(key string, source fs.FS, userCache, executable string) (string, error) {
 	target := filepath.Join(userCache, brand.DataFolder, "runtime", key)
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
@@ -1344,6 +1396,10 @@ func (h *Host) ServiceShutdown() error {
 	h.stopReadAloudRecordingOnShutdown()
 	// The input monitoring the Booth turned on is put back, so a closed app leaves the narrator's DAW as it found it (#3428).
 	h.releaseBoothMonitorOnShutdown()
+	// The chapter soloed in the DAW for the Booth is put back (bindings_daw_solo.go); a DAW that cannot be reached has the ledger.
+	h.restoreSoloOnShutdown()
+	// A retention pass is stopped and joined before the app exits (retention_host.go).
+	h.closeRetention()
 	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
 	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,
@@ -1410,6 +1466,7 @@ func (h *Host) onSecondInstance(instance application.SecondInstanceData) {
 		bringWindowForward()
 		if attached {
 			h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
+			h.goBackground(h.warmProject)                                      // the new project's read caches (warm.go)
 			emitEvent("system:attached", map[string]any{"attached": true})
 		} else if reason != "" {
 			emitEvent("system:attached", map[string]any{"attached": false, "reason": reason})
@@ -1794,6 +1851,11 @@ var fieldSchemas = map[string][]fieldSchema{
 		// again". Global only (saveSettings refuses it at project scope): a narrator preference, not a per-project one.
 		{"analysis_prompt", "Offer better analysis tools", "choice", []string{"ask", "basic"}},
 		{"default_pronunciation_source", "Default pronunciation source", "choice", append([]string{""}, pronunciationport.FallbackOrder("")...)},
+		// The local model that suggests a speaker for the lines the rules leave unknown (#3743): off unless the narrator turns it on,
+		// which model, and how many lines one run may put to it (speaker_fallback_settings.go).
+		{"speaker_fallback", "Ask a local model about unknown speakers", "bool", nil},
+		{"speaker_fallback_model", "Local model for unknown speakers", "choice", []string{"qwen3-4b"}},
+		{"speaker_fallback_max_quotes", "Lines the local model may take per run", "number", nil},
 	},
 	// definition_source is where the Script page's Words tab reads a word's definition: web (the dictionary site, nothing inline), local
 	// (the offline dictionary asset) or api (the online pronunciation service). Settings' Definitions panel and the Words tab's source menu
@@ -2044,6 +2106,10 @@ func (h *Host) settingsForScope(scope string) (map[string]any, error) {
 		}
 		for _, schema := range schemas {
 			effective, source := store.Effective(tool, schema.key, "")
+			// A setting that is this computer's only is shown as the host reads it: a project file's value for it counts for nothing.
+			if tool == "ManuscriptGuide" && strings.HasPrefix(schema.key, "speaker_fallback") {
+				effective, source = store.EffectiveGlobal(tool, schema.key, "")
+			}
 			current, set := scoped[schema.key]
 			field := map[string]any{"key": schema.key, "label": schema.label, "kind": schema.kind, "choices": schema.choices, "value": current, "isSet": set, "effectiveValue": effective, "effectiveSource": source}
 			if spec, ok := numberSpecs[tool][schema.key]; ok {
@@ -2086,6 +2152,11 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "ManuscriptGuide" && scope != "global" {
 		if _, ok := values["analysis_prompt"]; ok {
 			return fmt.Errorf("the analysis prompt preference is global: it is the narrator's choice, not this project's")
+		}
+		for _, key := range []string{"speaker_fallback", "speaker_fallback_model", "speaker_fallback_max_quotes"} {
+			if _, ok := values[key]; ok {
+				return fmt.Errorf("the local model for unknown speakers is global: it is installed on this computer, not in this project")
+			}
 		}
 	}
 	valid := map[string]fieldSchema{}

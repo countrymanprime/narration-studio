@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -60,29 +59,23 @@ type CacheEntryKey struct {
 // source file that is merely touched does not invalidate a cache entry
 // whose sampled content is unchanged.
 func (k CacheEntryKey) hash() string {
-	parts := []string{
-		k.Source.Path,
-		strconv.FormatInt(k.Source.Size, 10),
-		k.Source.PartialHash,
-		k.AnalyzerID,
-		k.AnalyzerVersion,
-		k.ParamHash,
-	}
+	scope := []string{"whole-source"}
 	if k.PlayedRange != nil {
-		parts = append(parts, "range", formatSeconds(k.PlayedRange.Start), formatSeconds(k.PlayedRange.End))
-	} else {
-		parts = append(parts, "whole-source")
+		scope = []string{"range", formatSeconds(k.PlayedRange.Start), formatSeconds(k.PlayedRange.End)}
 	}
-	return hashParts(parts...)
+	return DerivedKey(SourceInput(k.Source), k.AnalyzerID, k.AnalyzerVersion, k.ParamHash, scope...)
 }
 
 // cacheEnvelope is the on-disk shape of one cache file: an opaque blob (the
 // analyzer's own format) plus enough metadata for CacheStore.Prune
 // and CacheStore.Read to do their job without ever looking inside Blob.
 // encoding/json encodes a []byte field as base64 automatically, so Blob's
-// bytes round-trip exactly regardless of what they hold.
+// bytes round-trip exactly regardless of what they hold. AnalyzerID is the
+// key's, so an entry says which analyzer wrote it without its key; an entry
+// written before the field has none.
 type cacheEnvelope struct {
 	SchemaVersion int       `json:"schemaVersion"`
+	AnalyzerID    string    `json:"analyzerId,omitempty"`
 	WrittenAt     time.Time `json:"writtenAt"`
 	Blob          []byte    `json:"blob"`
 }
@@ -122,7 +115,7 @@ func (s *CacheStore) Write(key CacheEntryKey, blob []byte) error {
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
 		return fmt.Errorf("could not create the analysis cache: %w", err)
 	}
-	envelope := cacheEnvelope{SchemaVersion: cacheSchemaVersion, WrittenAt: time.Now().UTC(), Blob: blob}
+	envelope := cacheEnvelope{SchemaVersion: cacheSchemaVersion, AnalyzerID: key.AnalyzerID, WrittenAt: time.Now().UTC(), Blob: blob}
 	bytes, err := json.Marshal(envelope)
 	if err != nil {
 		return err
@@ -192,7 +185,7 @@ func (s *CacheStore) Prune(maxBytes int64) ([]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	entries, err := os.ReadDir(s.dir)
+	entries, err := persist.ReadDir(s.dir)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}

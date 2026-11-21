@@ -195,7 +195,9 @@ An entry whose type can speak (Character, unless you change it under **Story Bib
 Personality notes: **Voice samples** ([below](#voice-samples)), **Reference clips** and **Dialogue cues**. None of them judges your reading - they only
 track what you've marked or approved and who a line of dialogue is attributed to; there is no acoustic comparison or "drift" flag in the app yet.
 
-Read-only, an entry shows its speaker colour and each cue's speaker as text, and the reference clips have no approve row or Revoke; press Edit to change any of them. In edit mode the speaker colour, approving or revoking a reference clip and a cue's speaker apply at once, with a message, and **Discard changes** does not undo them; **Save** and **Discard changes** cover the text fields.
+Read-only, an entry shows its speaker colour and each cue's speaker as text, and the reference clips have no approve row or Revoke; press Edit to change any of them. In edit mode **Speaker colour** is a row of swatches: **Auto** first (the colour the app gives this speaker, named in its hint, for example "Automatic (Brown)"), then Green, Blue, Violet, Red, Brown, Teal and Rose. Press one, or move along the row with the arrow keys; the chosen one has a ring and a check. In edit mode the speaker colour, approving or revoking a reference clip and a cue's speaker apply at once, with a message, and **Discard changes** does not undo them; **Save** and **Discard changes** cover the text fields.
+
+![Story Bible - Speaker colour in edit mode: a row of swatches, Auto first, the chosen one ringed and checked](../../images/ui/storybible-speaker-colour.webp)
 
 **Reference clips** lists the REAPER regions you've approved as a voice reference for this
 character. In edit mode, choose a region from the picker (the regions of the saved REAPER project), add an
@@ -208,7 +210,7 @@ hear how you voiced a character in the app, mark a [voice sample](#voice-samples
 
 **Dialogue cues** lists the quoted lines the scan attributed to this character, plus
 any line left unattributed (three or more speakers active in a scene, or no speaker tag at all, are
-left `unknown` rather than guessed). In edit mode, pick a different speaker, or **Unknown**, from the dropdown
+left `unknown` rather than guessed). A line whose speaker a [local model suggested](script.md#a-local-model-for-unknown-speakers) shows **Suggested by the local model:** and the model's reason under it until you confirm or change it. In edit mode, pick a different speaker, or **Unknown**, from the dropdown
 beside a cue to correct it. A correction survives the next scan - it is never
 silently overwritten by a fresh, possibly-wrong, extraction.
 

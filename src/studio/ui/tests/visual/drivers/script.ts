@@ -1,7 +1,18 @@
 // How to reach each `script` state in STATE_CATALOG (see app.drivers.ts): the rebuilt Script page (SN-B77, swapped in by SN-B8).
 import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, clickNav, clickVisible, confirmDialog, goToPage, selectReaderWord, openWithoutManuscript } from './shared';
+import {
+  type Driver,
+  chooseTheme,
+  clickNav,
+  clickVisible,
+  confirmDialog,
+  goToPage,
+  openSettings,
+  selectReaderWord,
+  openWithoutManuscript,
+  showSettingsRow,
+} from './shared';
 
 const RAIL = 'Words, Story Bible and marks';
 
@@ -36,6 +47,13 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Retry' }).waitFor();
     await page.getByText('The app received data it could not read.').waitFor();
     await page.locator('[data-tone]').first().waitFor({ state: 'detached' });
+  },
+  // The cue read fails: the text is drawn without its speaker chips and the toast says why, with Retry.
+  'cue-read-failed': async (page) => {
+    await page.goto('/?mockCuesRead=fails');
+    await settlePage(page);
+    await goToPage(page, 'Script');
+    await page.getByRole('alert').filter({ hasText: 'The dialogue cues could not be read' }).getByRole('button', { name: 'Retry' }).waitFor();
   },
   reader: async (page) => {
     await goToPage(page, 'Script');
@@ -149,6 +167,31 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('combobox', { name: 'Search speakers' }).waitFor();
     await page.getByRole('listbox', { name: 'Speakers in this chapter' }).waitFor();
   },
+  // The local model is off until Settings turns it on; the mock's stand-in then suggests a speaker for the line the rules left unknown.
+  'speaker-suggested-by-model': async (page) => {
+    await openSettings(page, 'Project');
+    const row = await showSettingsRow(page, 'project.speakerFallback');
+    const toggle = row.getByRole('switch', { name: /Ask a local model about unknown speakers/ });
+    await expect(toggle).toBeEnabled();
+    await toggle.click();
+    await expect(toggle).toBeChecked();
+    await goToPage(page, 'Script');
+    // The line the mock's rules leave unknown ("Have some wine") is at the tea-party; Jump to goes there at every width.
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Have some wine');
+    await page
+      .getByRole('option', { name: /Have some wine/ })
+      .first()
+      .click();
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
+    const unknown = await page.locator('button[data-chip][data-state="unknown"]').first().getAttribute('data-chip');
+    await page.getByRole('button', { name: 'Find who speaks each line' }).click();
+    await page.getByText(/The local model suggested 1 of them/).waitFor();
+    const chip = page.locator(`button[data-chip="${unknown}"][data-state="suggested"]`);
+    await chip.scrollIntoViewIfNeeded();
+    await chip.click();
+    await page.getByRole('option', { name: /Confirm .* Suggested by the local model/ }).waitFor();
+  },
   'skip-to-side-panel': async (page) => {
     await goToPage(page, 'Script');
     const skip = page.getByRole('button', { name: 'Skip to the side panel' });
@@ -246,6 +289,19 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Define marks…' }).click();
     await page.getByRole('dialog', { name: 'Define how you mark up' }).waitFor();
+  },
+  // The Colour box of the first mark, opened: its swatches in a popover over the dialog.
+  'define-marks-colour': async (page) => {
+    await goToPage(page, 'Script');
+    await selectReaderWord(page, 'Rabbit');
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Mark', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Define marks…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Define how you mark up' });
+    await dialog
+      .getByRole('button', { name: /^Colour: / })
+      .first()
+      .click();
+    await page.getByRole('radiogroup', { name: 'Colour' }).waitFor();
   },
   'text-settings': async (page) => {
     await goToPage(page, 'Script');

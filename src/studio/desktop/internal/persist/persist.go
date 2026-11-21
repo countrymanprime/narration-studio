@@ -87,6 +87,17 @@ func (r *Reporter) stamp() string {
 // ReadJSON reads path and hands its bytes to decode. `what` names the file for people ("notes", "settings"). A file that is not
 // there is Missing; one that decodes is Loaded; anything else is handled by class as described on the package.
 func (r *Reporter) ReadJSON(path, what string, class Class, decode func([]byte) error) Outcome {
+	return r.read(path, what, class, func(raw []byte) error {
+		decodes.Add(1)
+		return decode(raw)
+	})
+}
+
+// errHealedBefore is a decode's answer for bytes already logged as not decoding (ReadHeld): the read is Healed and says nothing more.
+var errHealedBefore = errors.New("these bytes were already reported")
+
+// read is the read path ReadJSON and ReadHeld share: the path's lock, the outcomes and what happens to a file that does not decode.
+func (r *Reporter) read(path, what string, class Class, decode func([]byte) error) Outcome {
 	// One reader at a time per file: two goroutines that both see a corrupt file must not both move it, and a reader working from
 	// stale bytes must not move the fresh file a save wrote in between.
 	unlock := lockPath(path)
@@ -99,8 +110,12 @@ func (r *Reporter) ReadJSON(path, what string, class Class, decode func([]byte) 
 		r.log("persisted_unreadable", fmt.Sprintf("%s file %s could not be read: %v", what, filepath.Base(path), err))
 		return Unreadable
 	}
-	if decodeErr := decode(bytes); decodeErr == nil {
+	decodeErr := decode(bytes)
+	if decodeErr == nil {
 		return Loaded
+	}
+	if errors.Is(decodeErr, errHealedBefore) {
+		return Healed
 	}
 	if class == Disposable {
 		r.log("persisted_corrupt", fmt.Sprintf("%s file %s is not valid JSON; it starts empty and the next save replaces it", what, filepath.Base(path)))

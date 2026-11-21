@@ -20,7 +20,7 @@
     "id": "local-model",
     "label": "Local model",
     "reason": "No local model is installed.",
-    "runs": true
+    "runs": false
   },
   {
     "available": false,

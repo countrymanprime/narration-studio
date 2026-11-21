@@ -5,6 +5,7 @@ import {
   PANEL_ENTRY_TITLE_CLASS,
   PANEL_FRAME_CLASS,
   PANEL_HEADER_CLASS,
+  PANEL_SCROLL_BODY_CLASS,
   PANEL_SUBTITLE_CLASS,
   PANEL_TITLE_CLASS,
 } from './panelStyles';
@@ -64,7 +65,7 @@ export function Panel({
     >
       {title && <PanelHeader title={title} titleId={titleId} titleStyle={titleStyle} subtitle={subtitle} leading={leading} actions={actions} />}
       <div
-        className={`${flush ? '[--panel-pad:0px]' : PANEL_BODY_CLASS} ${scroll ? 'min-h-0 flex-1 overflow-y-auto' : fill ? 'min-h-0 flex-1' : ''}`}
+        className={`${flush ? '[--panel-pad:0px]' : PANEL_BODY_CLASS} ${scroll ? PANEL_SCROLL_BODY_CLASS : fill ? 'min-h-0 flex-1' : ''}`}
         // A scrolling body is a tab stop, so the keyboard can scroll it when nothing inside it takes focus.
         {...(scroll ? { tabIndex: 0, role: 'group', 'aria-labelledby': title ? titleId : undefined, 'aria-label': title ? undefined : label } : {})}
       >

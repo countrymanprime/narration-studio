@@ -56,12 +56,14 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/voicesample/SampleMark.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
+- `src/components/engine/CapabilityReferenceDialog.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/ToolResult.tsx`
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/engine/audacityLinkText.ts`
 - `src/components/layout/EngineChip.tsx`
 - `src/components/layout/HistoryPanel.tsx`
@@ -100,10 +102,8 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/script/page/rail/threads/NoteCard.tsx`
 - `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/script/page/rail/words/wordStatus.ts`
-- `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
 - `src/components/settings/analysis/ToolRow.tsx`
-- `src/components/settings/controls/CapabilitiesBody.tsx`
 - `src/components/settings/controls/CreditsBody.tsx`
 - `src/components/settings/controls/DefinitionsBody.tsx`
 - `src/components/settings/controls/EngineBody.tsx`

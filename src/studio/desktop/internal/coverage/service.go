@@ -46,6 +46,9 @@ type Config struct {
 	LoadCredits func(kind string) (title, text string, err error)
 	// Reporter logs a stored file that cannot be read; may be nil.
 	Reporter *persist.Reporter
+	// Ledger is the project's analysis ledger, the one store every service of the project reads and writes, so each
+	// record is decoded once for all of them (issue 3801). Nil makes a store of the service's own.
+	Ledger *evidence.LedgerStore
 	// ChapterAudio sets the rule for which tracks inside a chapter's folder are its audio (tracks.Project.WithAudioSkip): the host makes a
 	// track marked as not a voice a non-chapter track (#3557). nil reads every track inside the folder, as a Config built before it did.
 	ChapterAudio func(tracks.Project) tracks.Project
@@ -220,9 +223,13 @@ type Service struct {
 	cache   *evidence.CacheStore
 	mapping *evidence.MappingStore
 	results resultStore
+	// summaries holds the part of each stored result a read of every chapter needs (ResultSummary).
+	summaries *summaryStore
 	// identities remembers each take file's identity, so a lookup that asks again (the Booth's Start from here, on every press) stats the
 	// takes and does not open and read each one (#3221).
 	identities *evidence.IdentityCache
+	// sweepListed, set by a test only, runs between SweepOrphanResults' listing of the stored files and its listing of the ledger.
+	sweepListed func()
 
 	mu sync.Mutex
 	// jobs are the runs in progress by run id. A job's own state is read and written with mu held.
@@ -241,8 +248,11 @@ type Service struct {
 // New builds the service for one project. changed, when not nil, hears every
 // state change.
 func New(config Config, launch Launcher, changed func(State)) *Service {
-	ledger := evidence.NewLedgerStore(config.Project)
-	ledger.Reporter = config.Reporter
+	ledger := config.Ledger
+	if ledger == nil {
+		ledger = evidence.NewLedgerStore(config.Project)
+		ledger.Reporter = config.Reporter
+	}
 	cache := evidence.NewCacheStore(config.Project)
 	cache.Reporter = config.Reporter
 	mapping := evidence.NewMappingStore(config.Project)
@@ -253,9 +263,10 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 	return &Service{
 		config: config, launch: launch, changed: changed, now: time.Now, pollInterval: defaultPollInterval,
 		ledger: ledger, cache: cache, mapping: mapping, identities: &evidence.IdentityCache{},
-		results: resultStore{dir: resultsDir(config.Project), reporter: config.Reporter, cache: newResultCache()},
-		state:   State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
-		jobs:    map[string]*job{}, preparing: map[string]bool{},
+		results:   resultStore{dir: resultsDir(config.Project), reporter: config.Reporter, cache: newResultCache()},
+		summaries: &summaryStore{dir: summariesDir(config.Project), reporter: config.Reporter},
+		state:     State{Phase: PhaseIdle, Message: "Save the REAPER project, then check a chapter's recording."},
+		jobs:      map[string]*job{}, preparing: map[string]bool{},
 	}
 }
 
@@ -426,19 +437,20 @@ func (s *Service) readProject(path string) (tracks.Project, error) {
 }
 
 func (s *Service) chapter(chapterID string) (ChapterBasis, error) {
-	basis, _, err := s.basisAndText(chapterID)
+	basis, _, err := s.basisAndText(s.config.LoadManuscript, chapterID)
 	return basis, err
 }
 
 // basisAndText resolves chapterID's basis, and, for a credits row, the rendered text a run measures against (Phase
 // 3): manuscriptPath (used only by a caller launching the sidecar) stays the real manuscript for a manuscript
 // chapter, and text is empty - the sidecar already reads that file itself. A credits id (CreditsKind) never reaches
-// LoadManuscript at all: credits are not manuscript chapters and must never be looked up as one.
-func (s *Service) basisAndText(chapterID string) (basis ChapterBasis, text string, err error) {
-	if s.config.LoadManuscript == nil {
+// the manuscript's chapters at all: credits are not manuscript chapters and must never be looked up as one. load is the
+// manuscript the caller's read holds, or the store's own (Config.LoadManuscript).
+func (s *Service) basisAndText(load func() (map[string]any, error), chapterID string) (basis ChapterBasis, text string, err error) {
+	if load == nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, "import a manuscript before checking a recording")
 	}
-	data, loadErr := s.config.LoadManuscript()
+	data, loadErr := load()
 	if loadErr != nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, loadErr.Error())
 	}
@@ -479,7 +491,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 	if s.config.Python == "" {
 		return nil, unknown(ReasonSidecarMissing, "configure the Transcript Compare executable before checking a recording")
 	}
-	basis, text, err := s.basisAndText(request.ChapterID)
+	basis, text, err := s.basisAndText(s.config.LoadManuscript, request.ChapterID)
 	if err != nil {
 		return nil, err
 	}

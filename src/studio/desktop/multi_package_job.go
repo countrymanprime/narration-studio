@@ -156,7 +156,7 @@ func (j *multiPackageJobState) succeedResult(index int, outputDir string, manife
 	defer j.mu.Unlock()
 	r := &j.results[index]
 	r.Phase, r.OutputDir = "success", outputDir
-	r.Message = fmt.Sprintf("Built %d files.", len(manifest.Files))
+	r.Message = fmt.Sprintf("Built %d %s.", len(manifest.Files), plural(len(manifest.Files), "file", "files"))
 	for _, file := range manifest.Files {
 		r.Files = append(r.Files, PackageManifestFile{Kind: string(file.Kind), Name: file.Name, DestPath: file.DestPath, Tagged: file.Tagged})
 	}
@@ -234,7 +234,7 @@ func (h *Host) startMultiPackage(req MultiPackageRequest) (MultiPackageJob, erro
 	id := fmt.Sprintf("package-multi-%d", time.Now().UnixNano())
 	ctx = runlog.WithRun(ctx, h.jobRuns.begin(h.runLog, id, jobKindRenderPackageMulti, "selection_count", len(selections)))
 	job := &multiPackageJobState{id: id, phase: "running", started: time.Now(), cancel: cancel, outputDir: rootDir}
-	job.message = fmt.Sprintf("Preparing %d packages.", len(selections))
+	job.message = fmt.Sprintf("Preparing %d %s.", len(selections), plural(len(selections), "package", "packages"))
 	for _, sel := range selections {
 		job.results = append(job.results, MultiPackageResult{Profile: sel.profile.Key(), Platform: sel.profile.Platform, Phase: "pending"})
 	}
@@ -379,13 +379,13 @@ func (h *Host) finishMultiPackage(job *multiPackageJobState, broken error, cance
 		job.message = "The packages could not be built."
 	case cancelled:
 		job.phase = "cancelled"
-		job.message = fmt.Sprintf("Cancelled. %d of %d packages were built.", success, len(job.results))
+		job.message = fmt.Sprintf("Cancelled. %d of %d %s built.", success, len(job.results), plural(len(job.results), "package was", "packages were"))
 	case failed > 0:
 		job.phase = "error"
-		job.message = fmt.Sprintf("%d of %d packages could not be built; the rest are ready.", failed, len(job.results))
+		job.message = fmt.Sprintf("%d of %d %s not be built; the rest are ready.", failed, len(job.results), plural(len(job.results), "package could", "packages could"))
 	default:
 		job.phase = "success"
-		job.message = fmt.Sprintf("Built %d packages.", success)
+		job.message = fmt.Sprintf("Built %d %s.", success, plural(success, "package", "packages"))
 	}
 	id, phase, message, started := job.id, job.phase, job.message, job.started
 	job.mu.Unlock()

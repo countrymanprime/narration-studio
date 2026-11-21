@@ -184,7 +184,13 @@ export function withCoalescedReads(api: NarrationApi): NarrationApi {
           const joined = inFlight.get(key);
           // A kept read joins a read of the same kept epoch (what drops a kept answer is what separates two reads), unless that read has been out longer
           // than the revalidate age: it may never answer. Any other read joins one of the same epoch.
-          if (joined && !joined.closed && (keeps ? joined.keptEpoch === keptEpoch && Date.now() - joined.at < KEPT_REVALIDATE_MS : joined.epoch === epoch)) {
+          if (
+            joined &&
+            !joined.closed &&
+            (keeps ? joined.keptEpoch === keptEpoch : joined.epoch === epoch) &&
+            Date.now() - joined.at >= 0 &&
+            Date.now() - joined.at < KEPT_REVALIDATE_MS
+          ) {
             return new Promise((resolve, reject) => joined.joiners.push({ resolve, reject }));
           }
           const result: unknown = Reflect.apply(value, target, args);

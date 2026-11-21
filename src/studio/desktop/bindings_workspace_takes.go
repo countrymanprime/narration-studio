@@ -5,10 +5,10 @@ import (
 	"desktop/internal/creditsid"
 	"fmt"
 	"strings"
-	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
+	"desktop/internal/evidence"
 	"desktop/internal/passagetakes"
 	"desktop/internal/runlog"
 	"desktop/internal/tracks"
@@ -20,8 +20,8 @@ import (
 // REAPER project (internal/passagetakes), exactly as WorkspaceGoTo does for a word (threat model rows 5l and 4f).
 
 // takeRequestTimeout bounds the wait for REAPER to answer one take request from the Takes panel (and the range
-// requests that share it): long enough for a busy REAPER, short enough that a hung one is reported.
-const takeRequestTimeout = 12 * time.Second
+// requests that share it): an edit REAPER has read is waited for until it lands (writeCommandTimeout).
+const takeRequestTimeout = writeCommandTimeout
 
 // workspaceTakesResolved reads the alternates of the passage [firstToken, lastToken] of chapterID, with the saved
 // project they were resolved against (a choice acts on that project's GUIDs).
@@ -97,22 +97,22 @@ func (h *Host) WorkspaceTakes(chapterID string, firstToken int, lastToken int) (
 	return encodeBinding(resolved.View, err)
 }
 
-// takeEvidenceMeasures keeps every take range's figures while its file is unchanged, for every project: a range is
-// named by its file, so one project's entries never answer another's.
-var takeEvidenceMeasures = passagetakes.NewMeasureCache(passagetakes.MeasureRange)
-
 // WorkspaceTakeEvidence answers, for each take WorkspaceTakes offers for the same passage and in the same order, the
 // share of the passage's script words it read as written (from the stored alignment of its range), what its own
 // source range measures (the longest pause, level, noise floor and breaths, each a value or a reason; clarity is not
 // measured) and where its place came from ("map" for a take the Booth's passage map stamped over the passage, "aligned"
-// for one recorded elsewhere). It reads only and starts no job; a take whose file
+// for one recorded elsewhere). It reads the project and starts no job; each range's measured figures are kept in the
+// project's evidence cache while its file is unchanged, so only the first call for a take decodes it. A take whose file
 // cannot be read has reasons, not an error. A passage WorkspaceTakes refuses is refused with the same sentence.
 func (h *Host) WorkspaceTakeEvidence(chapterID string, firstToken int, lastToken int) (string, error) {
-	resolved, _, err := h.workspaceTakesResolved(h.services(), chapterID, firstToken, lastToken)
+	svc := h.services()
+	resolved, _, err := h.workspaceTakesResolved(svc, chapterID, firstToken, lastToken)
 	if err != nil {
 		return "", err
 	}
-	return encodeBinding(passagetakes.Evidence(resolved, takeEvidenceMeasures), nil)
+	folder := svc.config.projectFolder
+	measures := passagetakes.NewMeasureCache(passagetakes.MeasureRange, evidence.NewCacheStore(folder), folder)
+	return encodeBinding(passagetakes.Evidence(resolved, measures), nil)
 }
 
 // WorkspaceUseTake makes a take of the passage the one that plays (EP7). candidateID is one of the

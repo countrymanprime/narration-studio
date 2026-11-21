@@ -10,6 +10,8 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
+  faArrowUp,
+  faArrowDown,
   faKeyboard,
   faTableList,
   faArrowsRotate,
@@ -121,6 +123,7 @@ import {
   faWaveSquare,
   faXmark,
   faListCheck,
+  faClipboardList,
   faEllipsis,
   faEquals,
   faStar,
@@ -245,6 +248,8 @@ export const CATALOG = {
   find: action(faMagnifyingGlass, 'find', 'Find in the manuscript', 'Ctrl+F'),
   jumpTo: action(faMagnifyingGlass, 'find', 'Jump to a page or run a command', 'Ctrl+K'),
   locate: action(faLocationCrosshairs, 'locate in text', 'Show in text'),
+  showAbove: action(faArrowUp, 'show what is above', 'Show what is above'),
+  showBelow: action(faArrowDown, 'show what is below', 'Show what is below'),
   previous: action(faChevronUp, 'previous item', 'Go to the previous item'),
   next: action(faChevronDown, 'next item', 'Go to the next item'),
   previousChapter: action(faBackwardStep, 'previous chapter', 'Go to the previous chapter', 'Alt+Up'),
@@ -327,6 +332,7 @@ export const CATALOG = {
   undo: action(faRotateLeft, 'undo', 'Undo', 'Ctrl+Z'),
   history: action(faClockRotateLeft, 'undo history', 'Open the undo history', 'Ctrl+Shift+H'),
   retry: action(faRotate, 'try again', 'Retry'),
+  capabilities: action(faClipboardList, 'what a recording tool can do', 'Show what each recording tool can do'),
   openInReaper: action(faArrowUpRightFromSquare, 'go to REAPER', 'Open in REAPER'),
   showInReaper: action(faArrowUpRightFromSquare, 'go to REAPER', 'Show in REAPER'),
   addMarker: action(faFlag, 'REAPER marker', 'Add a marker in REAPER'),

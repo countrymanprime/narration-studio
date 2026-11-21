@@ -2,6 +2,7 @@ import type { DawCapabilities, DawChoice, DawProjectState } from '../../../api/c
 import { recordsInApp } from '../../../studio/dawNames';
 import { destinationFor } from '../../engine/destination';
 import { EngineChipButton } from '../../engine/EngineChipButton';
+import { NOT_FOLLOWED_CLAUSE, type NotFollowedWhy } from './recordCheck';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 
 const UNSAVED = 'unsaved changes in the project';
@@ -40,6 +41,14 @@ function stateDetail(choice: DawChoice): string {
  * `not_connected`, `not_armed` and `recording_elsewhere` what the DAW answered about the chapter. A state in which Record still works
  * (another track armed, say) is not one of them.
  */
+/** Why the Booth does not follow a take the DAW holds (`notFollowed` of the record control). */
+export type { NotFollowedWhy };
+const NOT_FOLLOWED = (why: NotFollowedWhy, name: string) =>
+  why === 'unread'
+    ? `${name} is recording a take the Booth could not match to this chapter yet`
+    : why === 'no_project'
+      ? `${name} is recording, and the Booth is not following it`
+      : `${name} is recording ${NOT_FOLLOWED_CLAUSE[why]}`;
 export type SetupProblem = 'no_track' | 'several_tracks' | 'track_missing' | 'not_connected' | 'recording_elsewhere' | 'not_armed';
 const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks' | 'track_missing'>, { words: string; sentence: (name: string) => string }> = {
   not_connected: { words: 'not connected', sentence: (name) => `${name} is not connected to this app` },
@@ -70,6 +79,7 @@ export function SetupChip({
   choice,
   otherProject = false,
   problem,
+  notFollowed,
 }: {
   capabilities: DawCapabilities;
   standaloneName: string;
@@ -78,6 +88,8 @@ export function SetupChip({
   otherProject?: boolean;
   /** What the Booth knows is wrong with the setup beyond the DAW choice's own state (see `SetupProblem`): connected, or so it reads, but Record will not start. */
   problem?: SetupProblem;
+  /** With `recording_elsewhere`: why the take is not followed, in the tooltip. */
+  notFollowed?: NotFollowedWhy | null;
 }) {
   const dest = destinationFor(useVoiceLayout());
   const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none' || recordsInApp(capabilities.daw);
@@ -94,12 +106,18 @@ export function SetupChip({
         ? 'Recording happens in the app'
         : `${name} linked`;
   const unsaved = capabilities.reachable && !!project?.unsavedChanges;
+  // With no project file linked here the detail would say "linked"; it says what is true.
+  const noProject = issue === 'recording_elsewhere' && notFollowed === 'no_project';
   // The project's DAW short of connected says how far it got in the chip itself, not only in the tooltip.
   const dawShort = choice && !standalone && choice.state !== 'connected' ? (choice.state === 'linked' ? 'not running' : choice.state.replace('_', ' ')) : '';
   const stateWords = otherProject ? 'other project' : dawShort || (issue ? problemOf(issue, dest).words : '');
   const state = stateWords ? `, ${stateWords}` : '';
-  const problemText = otherProject ? ` · ${name} has a different project open` : !dawShort && issue ? ` · ${problemOf(issue, dest).sentence(name)}` : '';
-  const tooltip = `${detail}${problemText}${unsaved ? ` · ${UNSAVED}` : ''}`;
+  const problemText = otherProject
+    ? ` · ${name} has a different project open`
+    : !dawShort && issue
+      ? ` · ${issue === 'recording_elsewhere' && notFollowed ? NOT_FOLLOWED(notFollowed, name) : problemOf(issue, dest).sentence(name)}`
+      : '';
+  const tooltip = `${noProject ? `${name} not linked` : detail}${problemText}${unsaved ? ` · ${UNSAVED}` : ''}`;
   const aria = `Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`;
   // The app's own recorder has no DAW to link, so, as in the header, its chip goes straight to Recording settings.
   const destination = standalone ? 'recording-settings' : 'engine-panel';

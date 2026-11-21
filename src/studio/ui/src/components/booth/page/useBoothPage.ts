@@ -24,7 +24,8 @@ import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type Read
 import type { BrowseView } from '../reading/useBrowseView';
 import { logUi } from '../../../api/uiLog';
 import { apiErrorMessage } from '../../../api/errorMessage';
-import { limited } from '../record/pressLimits';
+import { limited, PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
+import { sentenceOr } from '../record/sentenceOr';
 import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useStopFailedSentence';
 
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
@@ -35,9 +36,12 @@ import {
   appTakeRunIsWritten,
   clearAppTakeRunWritten,
   markAppTakeRunWritten,
+  notWhileRecording,
+  TAKE_TOPIC,
   useRecordControl,
   type RecordBlock,
 } from '../record/useRecordControl';
+import { takeEndedIn, TAKE_SAVED } from '../record/takeWords';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -55,7 +59,6 @@ import { clock } from '../../../clock';
 import { pageNameFor } from '../../layout/railPages';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
-const TAKE_SAVED = 'Take saved';
 const CHECK_OFFER = 'Check this recording against the script?';
 /** The offer stays long enough to Tab to its button, then goes: the narrator is reading on. */
 const CHECK_OFFER_MS = 10_000;
@@ -65,7 +68,6 @@ const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
 const STAYED_MS = 500;
 /** Why Cold read is off during a take (the toggle and its jump-menu entry). */
-const COLD_READ_WHILE_RECORDING = 'Not while recording. Stop the take first.';
 /** The question for a session that only listens: it names the page the move goes to, as the recording question does (#3529). */
 const stopReading = (destination: string | undefined) => ({
   title: 'Stop reading?',
@@ -106,7 +108,7 @@ export type BoothPageOptions = {
    */
   onTakeStopped?: (take: StoppedTake) => void | Promise<number>;
   /**
-   * More right-click items for this target, put after Start from here (the bookmark items). When the target is a bookmark ribbon
+   * More right-click items for this target, put after Mark the start here (the bookmark items). When the target is a bookmark ribbon
    * (`[data-bm]`), they are the whole menu.
    */
   menuItems?: (target: Element) => ContextMenuItem[];
@@ -163,7 +165,26 @@ export function useBoothPage(options: BoothPageOptions) {
     overlay.dismissTopic(CHECK_OFFER_TOPIC);
     return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
   }, [overlay, recordId]);
+  // A message about a press here (a refusal, the note on a start) is no longer true on the next page, where its Check again would do nothing.
+  useEffect(
+    () => () => {
+      overlay.dismissTopic(PRESS_TOPIC);
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
+    },
+    [overlay],
+  );
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
+  // What ends a press without a take (a refusal, a lookup that failed or ran out) is one message that stays until dismissed or its 20 s are up (`PRESS_TOPIC`: a newer one replaces it),
+  // and the press's notes ("Starting from ¶ 3") go with it (`PRESS_NOTE_TOPIC`).
+  const pressRefusal = useCallback(
+    (sentence: string) => {
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
+      // A host that refuses with no words still ends the press with a sentence: the toast service drops a blank one.
+      overlay.toast(sentenceOr(sentence, 'The press was refused, so no take was started.'), { tone: 'error', topic: PRESS_TOPIC });
+    },
+    [overlay],
+  );
+
   useStopFailedSentence(overlay, session);
   // A leave that asked for the stop and was refused twice: said on the page the narrator lands on (this page is gone by then).
   const sayStillOpen = useCallback(() => sayListeningStillOpen(overlay, latest.current.session.subscribeState), [overlay]);
@@ -183,7 +204,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const heardUnit = heard && unitAtPosition(paragraphs, units, heard);
   const at: UnitPosition = heardUnit ?? clampAt(local, units.length);
   // Stop keeps the place: the word the voice reached stays the real cursor once the take's session ends, so the next take, Resume and
-  // Start begin there instead of back where the take began. Going back is the narrator's choice (a click, Start from here, a punch).
+  // Start begin there instead of back where the take began. Going back is the narrator's choice (a click, Mark the start here, a punch).
   const heardCur = heardUnit?.cur;
   const heardWcur = heardUnit?.wcur;
   useEffect(() => {
@@ -199,12 +220,29 @@ export function useBoothPage(options: BoothPageOptions) {
   const ghostAt = ghostHeard && unitAtPosition(paragraphs, units, ghostHeard);
   const ghost: ReadingPosition | undefined = (ghostAt && positionOf(paragraphs, units, ghostAt)) ?? undefined;
   const [browse, setBrowse] = useState(false);
-  const [punchAt, setPunchAt] = useState<number | null>(null);
+  // The chosen start and the place the reading was moved to are mirrored in refs, so a Record pressed in the same task as the move (a pedal or a macro)
+  // reads them before React has rendered the move.
+  type Phrase = number | null;
+  const punchRef = useRef<Phrase>(null);
+  const movedRef = useRef<Phrase>(null);
+  const [punchAt, setPunchAtState] = useState<Phrase>(null);
+  const setPunchAt = useCallback((next: Phrase | ((chosen: Phrase) => Phrase)) => {
+    const value = typeof next === 'function' ? next(punchRef.current) : next;
+    punchRef.current = value;
+    setPunchAtState(value);
+  }, []);
+  // Where the narrator moved the reading before a take (#3858): the take starts there, as it does at a chosen start, but nothing is drawn for it
+  // (the reading's own cursor is the mark). Cleared when the reading goes back to the resume point, when a take ends and with a chosen start.
+  const [movedTo, setMovedToState] = useState<Phrase>(null);
+  const setMovedTo = useCallback((value: Phrase) => {
+    movedRef.current = value;
+    setMovedToState(value);
+  }, []);
   const text = useTextChoices();
   const { setSize } = text;
   const view = useRef<BrowseView>(null);
 
-  const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => notify(b.reason)))(block), [notify]);
+  const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => pressRefusal(b.reason)))(block), [pressRefusal]);
   // A take a DAW stopped is one history entry, so the shell's Undo and the take's toast take it back in the DAW; null once the take is told.
   const takeEntry = useRef<number | null>(null);
   const latestJournal = useRef(options.journal);
@@ -225,13 +263,22 @@ export function useBoothPage(options: BoothPageOptions) {
   const takeAt = useRef(0);
   // Where the take began in the DAW, when it says: the roll counts from there. A plain take starts where the last one stopped, which
   // is not the end of the recording when later audio follows it.
-  const startedAt = useCallback((result: DawRecordStart) => {
-    if (result.position !== undefined) takeAt.current = result.position;
-  }, []);
+  const startedAt = useCallback(
+    (result: DawRecordStart) => {
+      if (result.position !== undefined) takeAt.current = result.position;
+      // A take is running: what an earlier press said about not starting one (and its Retry, which would stop this take) is no longer true.
+      overlay.dismissTopic(PRESS_TOPIC);
+    },
+    [overlay],
+  );
   const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked, onStopped: keepTake, onStarted: startedAt });
   // The press of Record, for a message's Retry that is said before the press itself is defined.
   const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
+  // A take under way has used it: from then on the voice owns the cursor, and R rolls from a start shown by Mark the start here or the current word.
+  useEffect(() => {
+    if (recording) setMovedTo(null);
+  }, [recording, setMovedTo]);
   // The take's length is the wall clock's (`useTakeClock`): a question that holds the reading never holds the clock, the DAW records on.
   const takeClock = useTakeClock(recording);
   const { seconds } = takeClock;
@@ -260,6 +307,8 @@ export function useBoothPage(options: BoothPageOptions) {
     arrival.current = [];
     for (const say of raise) say();
   }, []);
+  // Whether the take that runs (or just ran) was started in the DAW.
+  const takeByDaw = useRef(false);
   const tellStopped = useCallback(
     async (
       quiet: boolean,
@@ -273,7 +322,7 @@ export function useBoothPage(options: BoothPageOptions) {
       const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
       if (began === null) return { marked: 0, take: undo };
       takeBegan.current = null;
-      const take = { quiet, survivesMoves, later: hold, ...undo };
+      const take = { quiet, survivesMoves, later: hold, byDaw: takeByDaw.current, ...undo };
       return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
     },
     [],
@@ -303,6 +352,8 @@ export function useBoothPage(options: BoothPageOptions) {
     coldMode,
     session,
     recording,
+    startedByApp: true,
+    stoppedListening: false,
     takeOut: recording,
     elapsed: takeClock.read,
   });
@@ -319,6 +370,8 @@ export function useBoothPage(options: BoothPageOptions) {
     coldMode,
     session,
     recording,
+    startedByApp: control.startedByApp,
+    stoppedListening: control.stoppedListening,
     takeOut: recording || control.starting,
     elapsed: takeClock.read,
   };
@@ -364,9 +417,11 @@ export function useBoothPage(options: BoothPageOptions) {
     startedFrom.current = true;
     if (!unit) return;
     setLocal(unit);
-    // Record from here chooses the start; a bookmark jump from another chapter only puts the reading there.
-    if (!from.placeOnly) setPunchAt(unit.cur);
-  }, [from, paragraphs, units]);
+    // An explicit entry chooses the start (#3858): Record from here draws its mark; a bookmark jump from another chapter (`placeOnly`) starts there too,
+    // with the cursor as its only mark.
+    if (from.placeOnly) setMovedTo(unit.cur);
+    else setPunchAt(unit.cur);
+  }, [from, paragraphs, units, setMovedTo, setPunchAt]);
 
   // The next listening session starts at the reading position (docs/guides/using-the-app/booth.md#where-you-stopped: a choice only sets where Start begins).
   const startWord = position && !listening ? scriptWordAt(spans, paragraphs, position) : null;
@@ -395,6 +450,12 @@ export function useBoothPage(options: BoothPageOptions) {
   const result = located?.id === recordId ? located.result : null;
   const recordedEnd = result && 'recordedEnd' in result ? (result.recordedEnd?.projectTime ?? 0) : 0;
   const resume = resumeOfferFor({ spans, recording, kept, result, opened });
+  // The unit where the recording ends (or the Booth's own last stop): the resume point. The place a chapter was left with nothing recorded is not one.
+  const resumePhrase = useRef<number | null>(null);
+  resumePhrase.current =
+    resume.kind === 'offer' && resume.offer.source !== 'left'
+      ? (unitAtPosition(paragraphs, units, { paragraphId: resume.offer.paragraphId, word: resume.offer.word })?.cur ?? null)
+      : null;
   // The passage map's run follows the take.
   const writer = usePassageMapWriter({
     chapterId: recordId,
@@ -464,6 +525,8 @@ export function useBoothPage(options: BoothPageOptions) {
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
   const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     stoppedWhileStarting.current = false;
+    // A new press says its own outcome: an earlier press's refusal (and its Retry) goes.
+    overlay.dismissTopic(PRESS_TOPIC);
     const press = ++pressIds;
     newestPress.current = press;
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
@@ -484,7 +547,8 @@ export function useBoothPage(options: BoothPageOptions) {
     // chosen one unplugged): the take does not begin on a guess, and the sentence is the one the host gives (#2810).
     const micProblem = options.micProblem?.();
     if (micProblem) {
-      overlay.toast(micProblem, { tone: 'error' });
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
+      overlay.toast(micProblem, { tone: 'error', topic: PRESS_TOPIC });
       return false;
     }
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
@@ -603,6 +667,7 @@ export function useBoothPage(options: BoothPageOptions) {
       const timedOut = 'timedOut' in heard && heard.timedOut;
       // A listening that never answered is its own sentence: the take ran meanwhile, so it is not said to have not started (the reason goes to the run log).
       if (timedOut) logUi('ui.record', 'Listening did not answer in time; the take it belonged to was dropped.');
+      overlay.dismissTopic(PRESS_NOTE_TOPIC);
       overlay.toast(
         timedOut
           ? kept
@@ -611,6 +676,7 @@ export function useBoothPage(options: BoothPageOptions) {
           : `Recording did not start: the text cannot follow your voice (${(heard.reason || 'listening failed').replace(/[.\s]+$/, '')}).${kept ? '' : ' Nothing was recorded.'}`,
         {
           tone: 'error',
+          topic: PRESS_TOPIC,
           action: retryAction(() => void retryTake.current()),
         },
       );
@@ -648,9 +714,11 @@ export function useBoothPage(options: BoothPageOptions) {
     {
       capabilities: control.capabilities,
       recording,
+      startedByApp: control.startedByApp,
       phraseCount: units.length,
       phrase: at.cur,
-      punchAt,
+      punchAt: punchAt ?? movedTo,
+      chosen: () => punchRef.current ?? movedRef.current,
       paragraphOf: (phrase) => bodyParagraphIndex(paragraphs, units[phrase]?.paragraphIndex ?? 0),
       punchTarget: (phrase) => {
         // The words of the phrase (a sentence) in its paragraph: where the host finds them in the last recording check.
@@ -738,7 +806,10 @@ export function useBoothPage(options: BoothPageOptions) {
           voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null),
         );
         if (chosen.timedOut) {
-          if (token === pressToken.current) overlay.toast('The voice for this passage could not be set in time, so no take was started.', { tone: 'error' });
+          if (token === pressToken.current) {
+            overlay.dismissTopic(PRESS_NOTE_TOPIC);
+            overlay.toast('The voice for this passage could not be set in time, so no take was started.', { tone: 'error', topic: PRESS_TOPIC });
+          }
           return false;
         }
         const answer = chosen.value;
@@ -746,14 +817,18 @@ export function useBoothPage(options: BoothPageOptions) {
         if (token !== pressToken.current) return false;
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
         if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
-          notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
+          pressRefusal(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
           return false;
         }
         return true;
       },
-      clearStart: () => setPunchAt(null),
+      clearStart: () => {
+        setPunchAt(null);
+        setMovedTo(null);
+      },
       chooseStart: (phrase, move) => {
         setPunchAt(phrase);
+        setMovedTo(null);
         if (move) moveTo({ cur: phrase, wcur: 0 });
       },
       moveTo: (phrase) => {
@@ -765,6 +840,7 @@ export function useBoothPage(options: BoothPageOptions) {
       },
       logPunch: (punch) => setPunches((list) => [...list, punch]),
       notify,
+      refuse: pressRefusal,
     },
     { overlay },
   );
@@ -782,17 +858,24 @@ export function useBoothPage(options: BoothPageOptions) {
     return true;
   }, [pressUnderway, notify]);
   const moveReading = useCallback(
-    (next: UnitPosition) => {
+    (next: UnitPosition, choose = true, force = false) => {
       if (moveBlocked()) return;
-      // A move that changes the reading's phrase replaces the chosen start (Record from here, Start from here), so the cursor, the chip and Space
-      // agree. One that lands on the chosen phrase keeps it, and one that does not move the reading (an arrow at the end, the reading following
-      // the voice) replaces nothing.
+      // One rule for where a take starts (#3858): before a take, a move that changes the reading's phrase IS the narrator's choice of start (a click,
+      // an arrow, Next phrase, a find or bookmark jump, a pickup line, Resume at), so Record starts where the text shows. Going back to where the
+      // recording ends chooses nothing: the take simply continues from there. Where the Booth itself puts the reading (`choose` false: the resume
+      // point on opening) nothing is chosen either. During a take the voice owns the cursor: a move there only drops a start chosen earlier. One that
+      // does not move the reading (an arrow at the end) changes nothing, unless `force` (a pickup line is an explicit entry even on the phrase the
+      // cursor is on).
       const now = latest.current;
       const phrase = Math.min(Math.max(next.cur, 0), Math.max(now.units.length - 1, 0));
-      if (phrase !== now.at.cur) setPunchAt((chosen) => (chosen === phrase ? chosen : null));
+      if (phrase !== now.at.cur || force) {
+        setPunchAt((chosen) => (chosen === phrase ? chosen : null));
+        if (choose && !now.recording) setMovedTo(phrase === resumePhrase.current ? null : phrase);
+        else setMovedTo(null);
+      }
       moveTo(next);
     },
-    [moveBlocked, moveTo],
+    [moveBlocked, moveTo, setMovedTo, setPunchAt],
   );
   const chooseResume = useCallback(
     (target: ResumeTarget) => {
@@ -891,6 +974,10 @@ export function useBoothPage(options: BoothPageOptions) {
     if (recording) {
       const take = ++adoptedTakes.current;
       overlay.dismissTopic(CHECK_OFFER_TOPIC);
+      // A take the DAW started is not the app's to have saved: its toasts say it ended, not "Take saved".
+      takeByDaw.current = !now.startedByApp;
+      // The last take's "Take saved" and its Undo are about a take that is over: a take started in the DAW takes them away; the app's own press leaves them to expire.
+      if (!now.startedByApp) overlay.dismissUndo();
       setTakeNote('');
       setPaused(false);
       setBrowse(false);
@@ -930,10 +1017,22 @@ export function useBoothPage(options: BoothPageOptions) {
       endTakeClaim();
       return;
     }
-    // A start chosen with Start from here is for the take that just ended: the next Record press starts where the recording ends, and does not
+    // The Booth only stopped listening to a take the DAW is still recording (another lane or project): it did not end, so nothing is said of an end, no pickup is marked and no
+    // check is offered. What this page wrote of it is closed, and the listening goes; the take is followed again when its lane answers again.
+    if (now.stoppedListening) {
+      if (place) void writer.stop(place, now.elapsed());
+      if (now.session.active) now.session.stop();
+      endTakeClaim();
+      takeBegan.current = null;
+      return;
+    }
+    // A start chosen with Mark the start here is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
     setPunchAt(null);
-    setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
+    setMovedTo(null);
+    // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
+    const followed = takeByDaw.current;
+    setTakeNote(followed ? takeEndedIn(recorderLabel) : `Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     // A take ended by "Stop and leave" ends its listening for the same leave: retried after this page is gone, and said on the next page if refused twice.
     if (now.session.active) {
@@ -946,8 +1045,12 @@ export function useBoothPage(options: BoothPageOptions) {
     const seconds = now.elapsed();
     void tellStopped(false).then(({ marked, take }) => {
       setTakes((all) => [...all, { seconds, entry: take.entry ?? null }]);
-      // A take that marked or added pickups says it was saved in that toast, with its Undo; else the take says so here.
-      if (marked > 0) return;
+      // A take that marked or added pickups says so in that toast, with its Undo; else the take says so here. For a take the DAW started that toast says it ended, so the
+      // record control's own sentence that it ended goes: one message, not two saying the same.
+      if (marked > 0) {
+        if (followed) overlay.dismissTopic(TAKE_TOPIC);
+        return;
+      }
       if (take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
       else if (said) notify(TAKE_SAVED);
       // One low-key offer once the take has stopped, never while one runs (#2833): the same Check recordings the other pages open, off for the same reasons.
@@ -960,7 +1063,7 @@ export function useBoothPage(options: BoothPageOptions) {
       }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, endTakeClaim, recordId, sayStillOpen, recorderLabel, setMovedTo, setPunchAt]);
   // This page's own state at this moment decides (a take recording here, no session following it, no press of its own after the reporting one), and a
   // session still starting or stopping is waited out: the effect runs again when it settles. A report about a take this page never shows is forgotten.
   const { active: sessionActive } = session;
@@ -1146,6 +1249,11 @@ export function useBoothPage(options: BoothPageOptions) {
         });
         return;
       }
+      // A take the DAW started is never the app's to stop, however the page goes (#3666): only what this page saw of it is written.
+      if (!latest.current.startedByApp) {
+        void onGone.current.flush();
+        return;
+      }
       if (!askedByShell.current && !leaving()) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },
@@ -1186,13 +1294,16 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // Cold read (#2251 item 13): listen and follow with the ghost, record nothing. Off by default, unavailable during a take; only this
   // toggle, a take or leaving the Booth ends it (it never stops itself).
-  const coldReadReason = recording ? COLD_READ_WHILE_RECORDING : undefined;
+  const coldWhy = notWhileRecording(control.capabilities?.daw, recording && !control.startedByApp);
+  const coldWhyRef = useRef(coldWhy);
+  coldWhyRef.current = coldWhy;
+  const coldReadReason = recording ? coldWhy : undefined;
   const coldReadStarting = useRef(false);
   // The same fact as a state, so the Main button choice locks from the press, not only once the listening is up.
   const [coldStarting, setColdStarting] = useState(false);
   const toggleColdRead = useCallback(async () => {
     const now = latest.current;
-    if (now.recording) return notify(COLD_READ_WHILE_RECORDING);
+    if (now.recording) return notify(coldWhyRef.current);
     if (now.coldRead) {
       setEndingColdRead(true);
       // The cold read's own stop: its claim ends with it.
@@ -1305,7 +1416,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);
-  // Alt+Space (#3445): the main button's other mode, started at once by the same press Record and Cold read use (toggleTake, toggleColdRead):
+  // Ctrl+Alt+Space (#3445, #3744): the main button's other mode, started at once by the same press Record and Cold read use (toggleTake, toggleColdRead):
   // from Record a cold read, from Cold read a take. Nothing new while a take or a cold read runs or is starting, or while a popup or a question has
   // the keyboard (the router lets an Alt chord through a popup, so this says no to it here).
   const switchMode = useCallback(async () => {
@@ -1356,7 +1467,7 @@ export function useBoothPage(options: BoothPageOptions) {
         // A ribbon and a page marker offer only their own items.
         if (target.closest('[data-bm], [data-page-break]')) return more;
         return [
-          ...(phrase === null ? [] : [{ key: 'start', label: 'Start from here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
+          ...(phrase === null ? [] : [{ key: 'start', label: 'Mark the start here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
           ...more,
           { key: 'next', label: 'Next phrase', onSelect: run(() => moveReading(nextPhrase(latest.current.units, latest.current.at))) },
           { key: 'back', label: 'Back one phrase', onSelect: run(() => moveReading(backPhrase(latest.current.at))) },
@@ -1409,6 +1520,16 @@ export function useBoothPage(options: BoothPageOptions) {
     seek: (paragraphId: string, word: number) => {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
       if (unit) moveReading(unit);
+    },
+    /** A pickup line: an explicit entry, chosen even when the cursor is already on its phrase. */
+    pick: (paragraphId: string, word: number) => {
+      const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
+      if (unit) moveReading(unit, true, true);
+    },
+    /** Where the Booth puts the reading itself (the resume point on opening): nothing is chosen, so the take continues from there. */
+    place: (paragraphId: string, word: number) => {
+      const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
+      if (unit) moveReading(unit, false);
     },
     /** True (and says why, once) while a press is under way: a control that would move the reading or the chosen place asks this first and changes nothing. */
     moveBlocked,

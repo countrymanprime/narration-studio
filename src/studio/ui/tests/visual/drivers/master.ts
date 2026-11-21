@@ -15,6 +15,7 @@ import {
   goToPage,
   panelTitled,
   scrollToTop,
+  scrollToTopHeld,
 } from './shared';
 
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
@@ -98,7 +99,7 @@ export const masterDrivers: Record<string, Driver> = {
     await measurementEnded(page, MEASURED);
     const detail = page.getByRole('table', { name: 'Chapter 01.wav, rule by rule' });
     await detail.waitFor();
-    await scrollToTop(page, panelTitled(page, 'Chapter 01.wav against ACX (September 2026)'));
+    await scrollToTopHeld(page, panelTitled(page, 'Chapter 01.wav against ACX (September 2026)'));
   },
   'book-spread': async (page) => {
     await openMaster(page, '?mockMeasure=spread');

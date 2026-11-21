@@ -31,6 +31,23 @@ export const Off: Story = {};
 export const On: Story = { args: { checked: true } };
 export const Disabled: Story = { args: { disabled: true } };
 
+// Off with a reason (component selection, CS-K3): still a tab stop, announced unavailable with the reason as its description,
+// the reason drawn beside the label, and a press changes nothing.
+export const OffWithAReason: Story = {
+  args: { disabledReason: 'No local model is installed.' },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole('switch', { name: /Notify me when a job finishes/ });
+    await expect(toggle).toHaveAttribute('aria-disabled', 'true');
+    await expect(toggle).toHaveAccessibleDescription('No local model is installed.');
+    await expect(canvas.getByText('No local model is installed.')).toBeVisible();
+    toggle.focus();
+    await expect(toggle).toHaveFocus();
+    // That a click, the label and Space change nothing is proved in Switch.test.tsx (the press builds a PointerEvent jsdom rejects).
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  },
+};
+
 // It is a switch (announced "on"/"off"), named by its label, and pressing it toggles it (pressing the label text is proved
 // in Switch.test.tsx, for the reason given in Checkbox.stories.tsx).
 export const PressToggles: Story = {

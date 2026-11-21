@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 const ProtocolVersion = 1
@@ -57,8 +58,10 @@ type Client struct {
 	sessionDir string
 	// +checklocks:mu
 	counter uint64
-	events  events
-	poll    fastPoll
+	// +checklocks:mu
+	slow   slowState
+	events events
+	poll   fastPoll
 	// remove deletes a command file; os.Remove, except in a test that needs a removal that fails.
 	remove func(string) error
 }
@@ -86,6 +89,18 @@ func (c *Client) Send(action string, fields []string) (string, error) {
 	temporary := target + ".tmp"
 	if err := os.WriteFile(temporary, []byte(EncodeFields(values)+"\n"), 0o600); err != nil {
 		return "", fmt.Errorf("could not write bridge command: %w", err)
+	}
+	release, drop := c.plan(action, c.counter, time.Now())
+	if drop {
+		// A dropped command (SlowLink.Drop) is sent as far as the host can tell and never reaches the DAW.
+		_ = os.Remove(temporary)
+		return target, nil
+	}
+	if !c.slow.closed && (len(c.slow.held) > 0 || time.Until(release) > 0) {
+		if err := c.hold(temporary, target, release); err != nil {
+			return "", fmt.Errorf("could not hold bridge command: %w", err)
+		}
+		return target, nil
 	}
 	if err := persist.Rename(temporary, target); err != nil {
 		return "", fmt.Errorf("could not activate bridge command: %w", err)

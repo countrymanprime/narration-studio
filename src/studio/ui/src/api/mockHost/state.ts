@@ -113,6 +113,8 @@ export type MockApiSeed = {
   assets?: MockAssetSeed;
   /** `?mockAssetsList=`: the list of downloads never answers (`loading`) or fails to read (`fails`), so Models & downloads shows its loading rows or its error. */
   assetsList?: 'loading' | 'fails';
+  /** `?mockLocalModel=none`: no local model for unknown speakers is installed, as in the app today; unset, the mock's stand-in is. */
+  localModel?: 'none';
   /**
    * `?mockAssetsVerify=`: what Check the files answers. `damaged` and `absent` find the asset damaged or gone (and the list then says so),
    * `fails` refuses with the host's sentence, `silent` refuses with no words, `hangs` never answers. Unset, a check finds the files whole.
@@ -137,6 +139,8 @@ export type MockApiSeed = {
   chaptersRead?: 'loading' | 'fails' | 'reread-hangs';
   /** `?mockProfileRead=`: the read of the delivery profiles fails (`fails`), so Master & QC says so and offers Retry. */
   profileRead?: 'fails';
+  /** `?mockCuesRead=`: the read of the dialogue cues of the chapters a reader draws fails (`fails`), so Script says so and offers Retry. */
+  cuesRead?: 'fails';
   /** `?mockSettings=`: how the settings file behaves (see `MockSettingsSeed`). */
   settings?: MockSettingsSeed;
   /** What `teleprompterDevices` reports; defaults to `WIRE_TELEPROMPTER_DEVICES`. An empty array exercises the picker's no-devices fallback. */

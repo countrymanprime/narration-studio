@@ -4,10 +4,11 @@ import { withoutCredits } from '../../../../chapterKinds';
 import { loadSampleScript } from './sampleScript';
 
 describe('loadSampleScript', () => {
-  it('holds every list ready, and the first chapter paragraphs', async () => {
+  it('holds every list ready, and the first chapter paragraphs and cues', async () => {
     const sample = await loadSampleScript();
-    for (const list of [sample.chapters, sample.marks, sample.prep, sample.entries, sample.cues]) expect(list?.status).toBe('ready');
+    for (const list of [sample.chapters, sample.marks, sample.prep, sample.entries]) expect(list?.status).toBe('ready');
     const first = withoutCredits(sample.chapters?.value ?? [])[0];
     expect(sample.paragraphs[first!.id]?.value?.length).toBeGreaterThan(0);
+    expect(sample.cues[first!.id]?.value?.length).toBeGreaterThan(0);
   });
 });

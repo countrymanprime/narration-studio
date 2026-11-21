@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 	"unicode/utf16"
 
 	"desktop/internal/layout"
@@ -84,53 +83,6 @@ func writeManuscript(t *testing.T, project string, paragraphs []map[string]any) 
 		t.Fatal(err)
 	}
 	return path
-}
-
-func TestLoadCachesTheManuscriptUntilTheFileActuallyChanges(t *testing.T) {
-	project := t.TempDir()
-	paragraph := func(text string) []map[string]any {
-		return []map[string]any{{"id": "p0", "chapterId": "c1", "chapter": "Chapter One", "chapterTitle": "Chapter One", "index": 0, "text": text}}
-	}
-	// Same byte length both times, so a same-size rewrite below can be pinned to the exact same
-	// mtime and size as the first write - proving the second Load() came from the cache, not a
-	// coincidence of timing (mtime resolution can be too coarse to tell two quick writes apart).
-	path := writeManuscript(t, project, paragraph("AAAAAAAAAAAAAA"))
-	stamp := time.Now().Truncate(time.Second)
-	if err := os.Chtimes(path, stamp, stamp); err != nil {
-		t.Fatal(err)
-	}
-	service := New(project)
-	first, err := service.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := text(objects(first["paragraphs"])[0], "text"); got != "AAAAAAAAAAAAAA" {
-		t.Fatalf("first paragraph text = %q", got)
-	}
-
-	writeManuscript(t, project, paragraph("BBBBBBBBBBBBBB"))
-	if err := os.Chtimes(path, stamp, stamp); err != nil { // same mtime as before, same size (14 chars either way)
-		t.Fatal(err)
-	}
-	second, err := service.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := text(objects(second["paragraphs"])[0], "text"); got != "AAAAAAAAAAAAAA" {
-		t.Fatalf("Load() re-read an unchanged (by mtime and size) file instead of serving the cache: got %q", got)
-	}
-
-	future := stamp.Add(time.Minute)
-	if err := os.Chtimes(path, future, future); err != nil {
-		t.Fatal(err)
-	}
-	third, err := service.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := text(objects(third["paragraphs"])[0], "text"); got != "BBBBBBBBBBBBBB" {
-		t.Fatalf("Load() kept serving the cache after the file's mtime changed: got %q", got)
-	}
 }
 
 func TestChapterIDByTitleAndParagraphIDResolveAgainstTheImportedManuscript(t *testing.T) {

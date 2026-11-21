@@ -67,14 +67,34 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/studio/store/keyedCache.ts#1':
+    "A chapter text's size measured by a function that threw: the value's JSON is measured instead, so one odd answer cannot stop the cache holding the rest.",
+  'src/studio/store/keyedCache.ts#2':
+    'The read a key gets again when a change was announced while its last read was out and someone shows it: a failure is recorded on the key for the reader that shows it, and the next change or ensure reads it again.',
+  'src/studio/store/keyedCache.ts#3':
+    'The background read of a stale held value (a job ended since it was read): a failure keeps the value that was held, which is what the page shows, and the next change or ensure of the key reads it again.',
+  'src/studio/useChapterText.ts#1':
+    'A reader that mounts on a chapter whose read failed asks once more: a failure is recorded on the key (`error`) for the page that shows it, so the rejection has nobody left to tell.',
+  'src/studio/useChapterText.ts#2':
+    "A chapter's text asked for by a page: the failure is recorded on the key (`error`) for the page that shows it, so the rejection of the shared read has nobody left to tell.",
+  'src/studio/useChapterText.ts#3':
+    "A chapter's text read for a component rendered without the store (a unit render): a failed read shows no text, as the page did before the cache.",
+  'src/studio/useChapters.ts#1':
+    "A reader that mounts on a list whose read failed asks once more: the failure is recorded in the store's `errors` for the page that shows it.",
+  'src/studio/useChapters.ts#2':
+    "The chapter list asked for by a page: the failure is recorded in the store's `errors` for the page that shows it (the callers keep the titles the host kept), so the rejection of the shared read has nobody left to tell.",
+  'src/studio/useChapters.ts#3':
+    "The chapter list read again because the caller asked (a dialog's Check again): the failure is recorded in the store's `errors` for the page that shows it.",
+  'src/studio/useChapters.ts#4':
+    'The chapter list read for a component rendered without the store (a unit render): a failed read leaves no list, and the callers fall back to the titles the host kept.',
   'src/hooks/useDawGoesToChapter.ts#1':
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
+  'src/hooks/useDawSoloesChapter.ts#1':
+    "The DAW's quiet around the chapter the Booth is on (dawSoloChapter and dawSoloRestore, Booth.follow_chapter_in_daw): a call that fails leaves the DAW as it was or leaves the chapter soloed, never anything else, and the DAW's own ledger puts a solo it could not be told to put back at the bridge's next start. The one rejection is swallowed so the next call in the order still runs; the page's own DAW notices say whether the DAW answers, and a narrator's action never waits on it.",
   'src/components/editing/lastChapter.ts#1':
     'Reads the chapter Editing last showed from browser storage: storage that is missing or blocked is the same as nothing kept, and Editing opens on its first chapter as it did before the app remembered one.',
   'src/hooks/useDawPullBack.ts#1':
     "The pull-back to the page's chapter when the app window regains focus (Booth.follow_chapter_in_daw): a read or a move that failed leaves the DAW where the narrator put it, nothing is lost, and the page's own DAW notices say whether the DAW answers. The next focus asks again.",
-  'src/components/chapterTracks/useChapterNameOf.ts#1':
-    'Reads the manuscript\'s chapter headings only to name the chapter that holds a track in a picker\'s "(linked to X)": a failed read leaves the title the host kept with the link, which is a name too, and nothing the narrator pressed depends on it.',
   'src/components/chapterTracks/ChapterTrackState.tsx#1':
     "The quiet re-read of the links detail after a change made on a screen that already has its answer (`applyMappings`): the change itself is shown, and a failed re-read marks the state stale and is retried by the next poll or the screen's own refresh, which reports a failure.",
   'src/components/chapterTracks/ChapterTrackState.tsx#2':
@@ -118,8 +138,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
   'src/components/production/ManuscriptImport.tsx#1':
     "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
-  'src/components/editing/ribbon/useRibbonPeaks.ts#1':
-    "The background read of the other chapters only warms the shared read; a failure is dropped there and not kept, and the chapter's own ribbon asks again and says why it has no waveform.",
+  'src/hooks/useRingPrefetch.ts#1':
+    "A background read only warms the caller's own kept data (Editing: the other chapters' waveforms, a failed one not kept); the run goes on, a later run asks again, and the page that needs the data asks for itself and says why it has none.",
   'src/hooks/useChapterSync.ts#1':
     "Seeds useChapterSync's state before the next chaptersync:state event; a failed seed just leaves the state undefined a moment longer.",
   // useZoom's three call sites, none of which has anywhere better to send a failure -

@@ -24,7 +24,7 @@ date is today or past, no daily pace can reach it, so the pill says how late ins
 
 ## How it is worked out
 
-**How this is worked out** (its **?** gives the arithmetic: words per finished hour, the recording, editing and proofing multiples, and the hours a day it assumes) lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**. Each is hours and minutes with their units ("4h 35m"), as on Production, so a figure of hours is not read as minutes and seconds; each is rounded to the nearest minute, so a sum can differ from its parts by a minute. Like Production, it counts the narration chapters only; a chapter removed from recording is not work.
+**How this is worked out** (its **?** gives the arithmetic: words per finished hour, the recording, editing and proofing multiples, and the hours a day it assumes) lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**. Each is hours and minutes with their units ("4h 35m"), as on Production, so a figure of hours is not read as minutes and seconds; each is floored to the whole minute (under a minute reads "<0h 01m"), and **Work left** is floored from the exact sum of the hours, not added up from the four figures above it, so those four can add up to a minute or two less than **Work left**. Like Production, it counts the narration chapters only; a chapter removed from recording is not work.
 With no due date, **Pace needed for the due date** says **Set a due date**; once the date is today or past, it says **Due today** or **Past the due date**. The numbers behind it are fixed, not measured from your sessions, so the page labels **Your pace** and **At your
 pace, done** as estimates and says what they assume: finished audio is words ÷ 9,300 per hour (or your own measured rate, once you choose **Your pace** in Production's finished-hour target; every hours figure on Production and Schedule follows that choice), recording takes 3×
 the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours (3.6 minutes), and your pace is 1.5 hours a day. **At your
@@ -32,7 +32,7 @@ pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
 the app can read them (otherwise a line under the chart says why it cannot), today and the
-estimated finish as a dotted line. Each label (**due**, **today**, **done … (est.)**) sits beside its point on a side no line or other label crosses, and the last date on the axis ends at the card's edge instead of being cut off. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
+estimated finish as a dotted line. Each label (**due**, **today**, **done … (est.)**) sits beside its point on a side no line or other label crosses, and the last date on the axis ends at the card's edge instead of being cut off. The recorded hours it plots are the same as [Production](production.md)'s **Recorded audio**: a chapter with under one second of audio on its track adds nothing, as it does there. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
 
 ## Contract
 

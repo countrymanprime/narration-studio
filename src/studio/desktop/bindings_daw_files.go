@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
-	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -18,8 +17,8 @@ import (
 // session (measurePicked) and it is an absolute local path to an audio file that is there (bridge.CheckMediaFile), and the
 // DAW's script checks it again (threat-model row 5r). Each answer is a DawResult with no undo step.
 
-// fileActionTimeout bounds one file command: a defer tick or two of the bridge and the host's 150 ms dispatch loop.
-const fileActionTimeout = 5 * time.Second
+// fileActionTimeout bounds one file command: one the DAW has read is waited for until it plays, stops or shows the file (writeCommandTimeout).
+const fileActionTimeout = writeCommandTimeout
 
 const (
 	fileNotPickedSentence      = "Pick the file to measure again: only a file picked in this session can be played or shown."
@@ -131,6 +130,8 @@ func fileRefusal(name string, err error) dawport.Result {
 		return refused
 	}
 	switch {
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return dawport.Refused(lateAnswerSentence(name))
 	case errors.Is(err, bridge.ErrNoAnswer), errors.Is(err, context.DeadlineExceeded):
 		return dawport.Refused(fmt.Sprintf("%s is not answering. Check that %s is open, then try again; the app reconnects by itself.", name, name))
 	case errors.Is(err, bridge.ErrUnavailable):

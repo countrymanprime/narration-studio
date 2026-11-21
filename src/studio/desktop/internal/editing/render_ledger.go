@@ -68,7 +68,7 @@ func WriteRenderRecord(ledger *evidence.LedgerStore, documentID, chapterID, rend
 // not need to distinguish them, since there is no "same file, different
 // fingerprint" case to separate here: a key mismatch always means "not this
 // file's record" - or a decode error.
-func CurrentRenderRecord(ledger *evidence.LedgerStore, documentID, chapterID, currentRenderKey string) (evidence.LedgerRecord, RenderScanPayload, bool, error) {
+func CurrentRenderRecord(ledger evidence.LedgerReader, documentID, chapterID, currentRenderKey string) (evidence.LedgerRecord, RenderScanPayload, bool, error) {
 	records, err := ledger.List(AnalyzerEditingRender, chapterID)
 	if err != nil {
 		return evidence.LedgerRecord{}, RenderScanPayload{}, false, err
@@ -84,6 +84,14 @@ func CurrentRenderRecord(ledger *evidence.LedgerStore, documentID, chapterID, cu
 		return record, payload, true, nil
 	}
 	return evidence.LedgerRecord{}, RenderScanPayload{}, false, nil
+}
+
+// RenderRetentionKey is the evidence.RetentionKey of a render-scan record (AnalyzerEditingRender): its payload's
+// RenderKey, since CurrentRenderRecord takes the newest complete record whose RenderKey is the render's. A record whose
+// payload does not decode is one CurrentRenderRecord passes over, and has no group.
+func RenderRetentionKey(record evidence.LedgerRecord) (string, bool) {
+	payload, ok := decodeRenderScanPayload(record)
+	return payload.RenderKey, ok
 }
 
 func decodeRenderScanPayload(record evidence.LedgerRecord) (RenderScanPayload, bool) {

@@ -161,7 +161,8 @@ func TestAChaptersParagraphsAreThatChaptersOwnInFileOrder(t *testing.T) {
 }
 
 // Asking for every chapter's paragraphs (the pickup list, the preview) walked every paragraph for each chapter, so quadrupling the book took
-// about sixteen times as long (#3560). The median of several runs, against a limit between linear (4) and quadratic (16).
+// about sixteen times as long (#3560). The median of several runs, against a limit between linear (4) and quadratic (16). The loop asks one
+// Book: a Service.Paragraphs call is a read of the whole file, so calling it for every chapter is itself the square (#3896).
 func TestReadingEveryChaptersParagraphsGrowsWithTheBookNotWithItsSquare(t *testing.T) {
 	median := func(chapters int) time.Duration {
 		service := bookOf(t, chapters, 5)
@@ -172,10 +173,12 @@ func TestReadingEveryChaptersParagraphsGrowsWithTheBookNotWithItsSquare(t *testi
 		runs := make([]time.Duration, 7)
 		for i := range runs {
 			start := time.Now()
+			book, err := service.Book()
+			if err != nil {
+				t.Fatal(err)
+			}
 			for _, chapter := range list {
-				if _, err := service.Paragraphs(chapter["id"].(string)); err != nil {
-					t.Fatal(err)
-				}
+				book.Paragraphs(chapter["id"].(string))
 			}
 			runs[i] = time.Since(start)
 		}
@@ -188,8 +191,8 @@ func TestReadingEveryChaptersParagraphsGrowsWithTheBookNotWithItsSquare(t *testi
 	}
 }
 
-// A kind change drops the parse's cache while readers are asking for paragraphs: they must still be answered from the entry they checked, never
-// fail with a cache that was cleared between the check and the read. Run under -race in CI.
+// A kind change replaces the held book while readers are asking for paragraphs: each is answered from the book it took, never from one stored
+// between its check and its read. Run under -race in CI.
 func TestParagraphsAreAnsweredWhileAKindChangeDropsTheCache(t *testing.T) {
 	service, chapterID, _ := importReaderFixture(t)
 	stop := make(chan struct{})

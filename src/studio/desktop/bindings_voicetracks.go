@@ -27,6 +27,15 @@ func (h *Host) VoiceTracksSetNarrator(characterID string) (string, error) {
 	return encodeBinding(h.voiceTracks().SetNarratorCharacter(characterID))
 }
 
+// VoiceTracksSetNotAVoice marks the track with guid as not a voice (a music bed, room tone), or makes it a voice again with false. A
+// marked track is never the recording target and is not a voice in the Booth; it stays in the folder. The chapters' rows follow at once,
+// so chaptersync:state is sent like after a link change.
+func (h *Host) VoiceTracksSetNotAVoice(guid string, notAVoice bool) (string, error) {
+	state, err := h.voiceTracks().SetNotVoice(guid, notAVoice)
+	h.linksChanged(err)
+	return encodeBinding(state, err)
+}
+
 // voiceTracks builds the store over one services() snapshot, so a project switch mid-call never mixes two projects.
 func (h *Host) voiceTracks() *voicetracks.Service {
 	svc := h.services()

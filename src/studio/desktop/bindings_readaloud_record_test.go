@@ -620,6 +620,7 @@ func TestContractReadAloudRecordings(t *testing.T) {
 	record("other_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}}, ids[0])
 	record("several_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 3, Changed: true}}, ids[0])
 	record("recording_elsewhere", &fakeRecorder{armErr: bridge.ErrAlreadyRecording, startErr: bridge.ErrAlreadyRecording}, ids[0])
+	record("recording_here", &fakeRecorder{armErr: bridge.ErrAlreadyRecording, startErr: bridge.ErrAlreadyRecording}, ids[0]) // a press while REAPER records on this lane is refused the same
 	record("track_missing", &fakeRecorder{armErr: &bridge.TrackStaleError{GUID: readAloudTrack}, startErr: &bridge.TrackStaleError{GUID: readAloudTrack}}, ids[0])
 	record("unsupported", nil, ids[0])
 	record("no_link", &fakeRecorder{}, ids[1])

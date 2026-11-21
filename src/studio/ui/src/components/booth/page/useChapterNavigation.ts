@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { HELD_TOPIC } from '../record/useRecordControl';
+import { NOT_WHILE_RECORDING } from '../../voicesamples/samplePlayerStore';
 import { boothQuery, type BoothChapterTarget } from './boothQuery';
 
 /** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
@@ -24,7 +26,9 @@ type Args = {
   choose: (target: BoothChapterTarget) => void;
   /** The chapter list in order, the credits included. */
   chapters: readonly { id: string }[];
-  toast: (text: string) => void;
+  toast: (text: string, topic?: string) => void;
+  /** Why the chapter does not change while a take records (`notWhileRecording`: a take the DAW started is stopped there). */
+  whileRecording?: string;
 };
 
 /**
@@ -32,7 +36,19 @@ type Args = {
  * back), and the picker and Next/Previous go through `changeChapter`. The picker is disabled during a take, so a request in the address is a link
  * from elsewhere (a Script card, a bookmark, a pickup).
  */
-export function useChapterNavigation({ requested, chapterId, recording, starting = false, endUnconfirmed, leave, adopt, choose, chapters, toast }: Args): {
+export function useChapterNavigation({
+  requested,
+  chapterId,
+  recording,
+  starting = false,
+  endUnconfirmed,
+  leave,
+  adopt,
+  choose,
+  chapters,
+  toast,
+  whileRecording,
+}: Args): {
   changeChapter: (target: BoothChapterTarget) => void;
   step: (direction: -1 | 1) => void;
 } {
@@ -95,7 +111,7 @@ export function useChapterNavigation({ requested, chapterId, recording, starting
     // Back onto the chapter on screen while another is still loading is a request too: the address has to go back to it.
     if (sameSource(target, current) && !asked.current) return;
     if (recording) {
-      toast('Stop recording first.');
+      toast(whileRecording ?? NOT_WHILE_RECORDING, HELD_TOPIC);
       return;
     }
     if (starting) {

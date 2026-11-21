@@ -143,7 +143,7 @@ func planItem(item tracks.Item, index int, identify evidence.SourceIdentifier) (
 // file (the sidecar transcribes it once), and the name is always a plain file
 // name the sidecar accepts ([A-Za-z0-9][A-Za-z0-9._-]*), never a path.
 func wordsFileName(identity evidence.SourceIdentity, played evidence.PlayedRange) string {
-	sum := sha256.Sum256([]byte(hashParts(identity.Path, fmt.Sprint(identity.Size), identity.PartialHash,
+	sum := sha256.Sum256([]byte(evidence.HashParts(identity.Path, fmt.Sprint(identity.Size), identity.PartialHash,
 		fmt.Sprintf("%.6f", played.Start), fmt.Sprintf("%.6f", played.End))))
 	return "w-" + hex.EncodeToString(sum[:16]) + ".json"
 }
@@ -167,7 +167,7 @@ func (p plan) itemGUIDs() []string {
 // confirmedTrack is the chapter's one narrator-confirmed track (D5). No link
 // is unmapped and two or more is a multi-track chapter: both are unknown, and
 // an unconfirmed suggestion is never used.
-func confirmedTrack(mapping *evidence.MappingStore, documentID, chapterID string) (string, error) {
+func confirmedTrack(mapping evidence.MappingReader, documentID, chapterID string) (string, error) {
 	links, err := mapping.List(documentID)
 	if err != nil {
 		return "", err

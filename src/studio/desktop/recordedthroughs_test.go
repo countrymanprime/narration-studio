@@ -83,7 +83,25 @@ func TestNoManuscriptGivesNoPlaces(t *testing.T) {
 	if got := recordedThroughsFor(t.TempDir(), []string{"c1"}, nil, nil); len(got) != 0 {
 		t.Fatalf("got %+v, want none", got)
 	}
-	if got := recordedThroughs("", nil, nil)([]string{"c1"}, nil); got != nil {
-		t.Fatalf("with no project got %+v, want nil", got)
+	if got, fractions := recordedThroughs("", nil, nil, nil)([]string{"c1"}, nil); got != nil || fractions != nil {
+		t.Fatalf("with no project got %+v and %v, want nil", got, fractions)
+	}
+}
+
+// The provider reads the manuscript the manuscript service already holds: placing the chapters decodes nothing more
+// (issue 3802). The service still reads and hashes the file, which is how it knows its parse is the file's.
+func TestTheProviderReadsTheManuscriptTheServiceHolds(t *testing.T) {
+	project := throughProject(t, strings.Replace(throughManuscript, `{"documentId"`, `{"schemaVersion":1,"documentId"`, 1))
+	service := manuscript.New(project)
+	if _, err := service.Load(); err != nil {
+		t.Fatal(err)
+	}
+	parsed := manuscript.Parses()
+	lengths := map[string]manuscript.RecordedLength{"c3": {Seconds: 600}}
+	if got, _ := recordedThroughs(project, nil, nil, service)([]string{"c3"}, lengths); len(got) != 1 {
+		t.Fatalf("through the service's manuscript = %v, want c3 placed", got)
+	}
+	if got := manuscript.Parses() - parsed; got != 0 {
+		t.Fatalf("placing the chapters decoded the manuscript %d more times, want the service's one parse", got)
 	}
 }

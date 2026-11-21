@@ -67,7 +67,9 @@ var realEvents = map[string][]string{
 	// src/studio/integrations/reaper/tests/track_select_test.lua (select_track).
 	"TRACK_SELECTED": {"TRACK_SELECTED", "t1", "{00000001-0000-4000-8000-000000000001}"},
 	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create of a chapter folder; a plain track sends the first five).
-	"TRACK_CREATED":    {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm", "{00000004-0000-4000-8000-000000000004}", "3", "Narrator"},
+	"TRACK_CREATED": {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm", "{00000004-0000-4000-8000-000000000004}", "3", "Narrator"},
+	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create of a folder with several children): each child after the first.
+	"TRACK_CHILD":      {"TRACK_CHILD", "c1", "{00000005-0000-4000-8000-000000000005}", "4", "Mara"},
 	"FOLDER_MOVE":      {"FOLDER_MOVE", "p1", "{00000006-0000-4000-8000-000000000006}", "Chapter 4", "{00000003-0000-4000-8000-000000000003}", "Chapter 3", "", ""},
 	"FOLDERS_PLANNED":  {"FOLDERS_PLANNED", "p1", "3"},
 	"FOLDERS_REPAIRED": {"FOLDERS_REPAIRED", "a1", "3"},
@@ -88,6 +90,9 @@ var realEvents = map[string][]string{
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
 	// src/studio/integrations/reaper/tests/monitor_test.lua (monitor_restore; arm_lane with monitor adds the sixth field to ARMED).
 	"MONITOR_RESTORED": {"MONITOR_RESTORED", "m1", "1", "0", "0"},
+	// src/studio/integrations/reaper/tests/solo_chapter_test.lua (solo_chapter, solo_restore).
+	"CHAPTER_SOLOED": {"CHAPTER_SOLOED", "c1", "{00000001-0000-4000-8000-000000000001}", "1", "0"},
+	"SOLO_RESTORED":  {"SOLO_RESTORED", "r1", "1", "0", "0"},
 	// transport_test.lua's switch_voice rows.
 	"VOICE_SWITCHED": {"VOICE_SWITCHED", "v1", "{00000002-0000-4000-8000-000000000002}", "3.600000"},
 	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
@@ -376,5 +381,20 @@ func TestAnOlderScriptsRecordAnswersWithoutTheUndoPointsAreAccepted(t *testing.T
 	}
 	if err := CheckEvent([]string{"RECORD_STOPPED", "s1", "3", "0", "x"}); err == nil {
 		t.Error("undo points that are not a number must be an error")
+	}
+}
+
+// #3859: the eighth heartbeat field and the fifth of TRACKS_READ are the track list's revision, any text; a script from before sends neither.
+func TestTheTrackListRevisionIsAnOptionalFieldOfTheHeartbeatAndOfTheTrackRead(t *testing.T) {
+	for _, fields := range [][]string{
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "", "00c0ffee00c0ffee"},
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "1", "00c0ffee00c0ffee"},
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "", ""},
+		{"TRACKS_READ", "r1", "C:/p/Book.rpp", "0", "12", "00c0ffee00c0ffee"},
+		{"TRACKS_READ", "r1", "C:/p/Book.rpp", "0", "12"},
+	} {
+		if err := CheckEvent(fields); err != nil {
+			t.Errorf("%v must be valid: %v", fields, err)
+		}
 	}
 }

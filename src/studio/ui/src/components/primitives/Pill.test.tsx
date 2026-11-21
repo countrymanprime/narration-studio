@@ -52,4 +52,15 @@ describe('Pill', () => {
     expect(button.className).toContain('active');
     expect(button.className).not.toMatch(/(?:^|\s)border(?:\s|$)/);
   });
+
+  it('an action chip is a plain button with no pressed state, draws its icon, and runs its action', async () => {
+    const onClick = vi.fn();
+    render(<Pill look="filter" action raised icon="showAbove" label="2 effects above" active={false} onClick={onClick} />);
+    const chip = screen.getByRole('button', { name: '2 effects above' });
+    expect(chip.hasAttribute('aria-pressed')).toBe(false);
+    expect(chip.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+    expect(chip.className).toContain('shadow-[var(--shadow-lg)]');
+    await userEvent.click(chip);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
 });

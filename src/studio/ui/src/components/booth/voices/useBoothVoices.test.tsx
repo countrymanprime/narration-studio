@@ -6,6 +6,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { WIRE_CHAPTERS } from '../../../api/mockFixtures';
 import { VoiceSetupProvider } from '../../engine/voiceLayout';
 import { destinationFor } from '../../engine/destination';
+import { LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
 import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
 import { useBoothVoices, type BoothVoices } from './useBoothVoices';
 
@@ -19,6 +20,7 @@ type Extra = {
   startTake?: () => Promise<unknown>;
   onNoTrack?: (key: number) => void;
   asking?: boolean;
+  heldInDaw?: string;
 };
 
 async function mount(seed: Parameters<typeof createMockApi>[1], recording = false, given?: ReturnType<typeof createMockApi>, extra: Extra = {}) {
@@ -180,35 +182,71 @@ describe("the Booth's voices", () => {
 
   // #3271: in a Voice folders project the voice keys never say a chapter records on one track; what they say follows what the chapter is linked to.
   it.each([
-    ['a folder the saved project does not hold yet (just made)', [], 'unknown'],
-    ['a plain track', [{ guid: '{LINKED}', name: 'Chapter', isFolder: false, depth: 0 }], 'track'],
-    ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty'],
-  ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind) => {
-    const api = createMockApi({
-      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }),
-      chapterTrackMapList: async () => ({
-        documentId: 'd',
-        mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
-      }),
-      // The page reads REAPER's live list (#3269), so the stub answers tracksLive.
-      tracksLive: async () => ({
-        source: 'live' as const,
-        reason: '' as const,
-        message: '',
-        readAt: '2026-11-10T00:00:00Z',
-        project: {
-          path: 'a.rpp',
-          tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),
-        },
-      }),
-    });
-    const { notify, hook } = await mount({}, false, api);
-    await act(async () => new Promise((r) => setTimeout(r, 20)));
-    await act(async () => hook.current.byKey(1));
-    expect(hook.current.linkKind).toBe(kind);
-    expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
-    expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
-  });
+    ['a folder the saved project does not hold yet (just made)', [], 'unknown', []],
+    ['a plain track', [{ guid: '{LINKED}', name: 'Chapter', isFolder: false, depth: 0 }], 'track', []],
+    ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty', []],
+    // #3828 finding 5: the fix for a folder whose every track is marked is to turn one back on, not to add a track.
+    [
+      'a folder whose every track is marked as not a voice',
+      [
+        { guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 },
+        { guid: '{BED}', name: 'Music bed', isFolder: false, depth: 1 },
+      ],
+      'marked',
+      ['{bed}'],
+    ],
+    // The host leaves out a child another chapter owns, so a folder of one marked bed and one owned track is still all marked.
+    [
+      'a folder of a marked track and a track another chapter owns',
+      [
+        { guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 },
+        { guid: '{BED}', name: 'Music bed', isFolder: false, depth: 1 },
+        { guid: '{OWNED}', name: 'Chapter 2', isFolder: false, depth: 1 },
+      ],
+      'marked',
+      ['{bed}'],
+      ['{OWNED}'],
+    ],
+  ] as const)(
+    'in a Voice folders project a voice key on a chapter linked to %s says so',
+    async (_what, tracks, kind, marked: readonly string[] = [], owned: readonly string[] = []) => {
+      const api = createMockApi({
+        voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [...marked], tracks: [] }),
+        chapterTrackMapList: async () => ({
+          documentId: 'd',
+          mappings: [
+            { trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null },
+            ...owned.map((trackGuid) => ({
+              trackGuid,
+              chapterId: 'other-chapter',
+              chapterTitle: 'Other',
+              confirmedAt: '',
+              origin: 'manual' as const,
+              match: null,
+            })),
+          ],
+        }),
+        // The page reads REAPER's live list (#3269), so the stub answers tracksLive.
+        tracksLive: async () => ({
+          source: 'live' as const,
+          reason: '' as const,
+          message: '',
+          readAt: '2026-11-10T00:00:00Z',
+          project: {
+            path: 'a.rpp',
+            tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),
+          },
+        }),
+      });
+      const { notify, hook } = await mount({}, false, api);
+      await act(async () => new Promise((r) => setTimeout(r, 20)));
+      await act(async () => hook.current.byKey(1));
+      expect(hook.current.linkKind).toBe(kind);
+      expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
+      if (kind === 'marked') expect(destinationFor('folders').noVoiceKeys(kind)).toContain('Turn one back on in the Voices card');
+      expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
+    },
+  );
 
   it('a voice key with no take running starts the take once the host has accepted the voice; a pick from the list does not (#3430)', async () => {
     const startTake = vi.fn(() => Promise.resolve());
@@ -482,6 +520,44 @@ describe("the Booth's voices", () => {
     }
   });
 
+  // #3828 finding 5: with every track marked the refusal names the fix that works (turn one back on), not "add a track", which does not help.
+  it('says to turn a track back on when every track of the folder is marked, and to add one when the folder is empty', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const first = await mount({}, false, api);
+    await waitFor(() => expect(first.hook.current.voices.length).toBeGreaterThan(1));
+    const everyone = first.hook.current.voices.map((voice) => voice.guid);
+    cleanup();
+    expect((await api.boothVoiceGet(chapterId)).outcome).toBe('selected');
+    for (const guid of everyone) await api.voiceTracksSetNotAVoice(guid, true);
+    const marked = await api.boothVoiceGet(chapterId);
+    expect(marked).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(marked.outcome === 'refused' && marked.message).toContain('Turn one back on in the Voices card');
+    const started = await api.readAloudRecordStart(chapterId);
+    expect(started).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(started.outcome === 'refused' && started.message).toContain('turned off as not a voice');
+  });
+
+  // #3828 blocker 1 (the owner's answer): a Flat chapter whose folder has every child marked is refused, naming the switch, like Voice folders.
+  it('refuses a Flat chapter whose every child of the folder is marked, naming the switch', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.voiceTracksSetLayout('flat');
+    const first = await mount({}, false, api);
+    await waitFor(() => expect(first.hook.current.voices.length).toBeGreaterThan(1));
+    const everyone = first.hook.current.voices.map((voice) => voice.guid);
+    cleanup();
+    for (const guid of everyone) await api.voiceTracksSetNotAVoice(guid, true);
+    const refused = await api.readAloudRecordStart(chapterId);
+    expect(refused).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    expect(refused.outcome === 'refused' && refused.message).toContain('link the chapter to a track of its own');
+    // A punch over a passage recorded before chooses its voice first: it gets the same sentence, not "that track is not a voice".
+    const chosen = await api.boothVoiceSet(chapterId, everyone[0]);
+    expect(chosen).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
+    const { hook, notify } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.linkKind).toBe('marked'));
+    await act(async () => hook.current.byKey(1));
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('Turn one back on in the Voices card'), 'info');
+  });
+
   // A chapter with no one link has no folder, so it lists no voices and the control names no link. Whether the DAW is read at all belongs to
   // the shared state (a project with no linked DAW file is never read: ChapterTrackStateProvider's `enabled`).
   it('lists no voices for a chapter that is not linked', async () => {
@@ -573,25 +649,31 @@ describe("the Booth's voices", () => {
   });
 
   // A read that never answers must not hold every later read back: after the limit it fails with a toast, and the next poll reads again.
-  // (It waits the real limit, 10 s.)
+  // (A fake clock passes the limit, 10 s.)
   it('tells the narrator when a read never answers, and reads again after it', async () => {
-    const api = createMockApi({}, { voiceFolders: true });
-    const real = api.tracksLive.bind(api);
-    let calls = 0;
-    api.tracksLive = async () => {
-      calls += 1;
-      if (calls === 1) return new Promise(() => {});
-      return real();
-    };
-    const { notify, hook } = await mount({}, false, api);
-    await act(async () => new Promise((r) => setTimeout(r, 10500)));
-    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
-    act(() => {
-      window.dispatchEvent(new Event('focus'));
-    });
-    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
-    expect(calls).toBeGreaterThan(1);
-  }, 20_000);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const api = createMockApi({}, { voiceFolders: true });
+      const real = api.tracksLive.bind(api);
+      let calls = 0;
+      api.tracksLive = async () => {
+        calls += 1;
+        if (calls === 1) return new Promise(() => {});
+        return real();
+      };
+      const { notify, hook } = await mount({}, false, api);
+      expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(0);
+      await act(() => vi.advanceTimersByTimeAsync(LIVE_TRACKS_TIMEOUT_MS + 500));
+      expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+      expect(calls).toBeGreaterThan(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   // A run where both reads fail reports one failure, not two toasts.
   it('reports one failure for a run where both reads fail', async () => {
@@ -1216,6 +1298,27 @@ describe('a lane armed in the DAW', () => {
     view.rerender(tree(false));
     await settle();
     expect(set).not.toHaveBeenCalled();
+  });
+});
+
+describe('a voice key during a take the DAW started (#3666)', () => {
+  it('chooses nothing and says where to change the voice; the DAW is not asked', async () => {
+    const { api, hook, notify } = await mount({ voiceFolders: true }, true, undefined, {
+      heldInDaw: 'REAPER started this take, so change the voice in REAPER.',
+    });
+    const set = vi.spyOn(api, 'boothVoiceSet');
+    await act(async () => hook.current.byKey(2));
+    await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(set).not.toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info', undefined, 'daw-held');
+    await act(async () => hook.current.choose(hook.current.voices[1]));
+    expect(set).not.toHaveBeenCalled();
+    // A character with no track is no exception: the stand-in switches the take's voice to the Narrator, which REAPER's take does not allow either (UX 7).
+    notify.mockClear();
+    await act(async () => hook.current.standInFor({ id: 'alice', name: 'Alice' } as never));
+    expect(set).not.toHaveBeenCalled();
+    expect(hook.current.standIn).toBeUndefined();
+    expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info', undefined, 'daw-held');
   });
 });
 

@@ -253,10 +253,46 @@ describe('the remembered position', () => {
     expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
   });
 
+  // The narrator who left within the pause after a scroll (End, then another page or a reload) came back to the place before it (#3821).
+  it('is saved at once when the reader goes away before the pause is over', () => {
+    const { unmount } = render(<Reader {...props()} />);
+    scrollTo(350);
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBeNull();
+    unmount();
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
+  });
+
+  it('is saved at once when the window goes away before the pause is over, and not again when nothing is pending', () => {
+    render(<Reader {...props()} />);
+    scrollTo(350);
+    window.dispatchEvent(new Event('pagehide'));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
+    window.localStorage.clear();
+    window.dispatchEvent(new Event('pagehide'));
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBeNull();
+  });
+
   it('is restored on the first draw', () => {
     window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'c2', offset: 50 }));
     render(<Reader {...props()} />);
     expect(scrolls.get(scroller())).toBe(350);
+  });
+
+  // #3821: the place was saved under the credits' id, which is no chapter, so the reader opened on chapter 1.
+  it.each([
+    ['opening', { before: <div data-bound="" data-ch="credits:opening" /> }, 'credits:opening', 0],
+    ['closing', { after: <div data-bound="" data-ch="credits:closing" /> }, 'credits:closing', 800],
+  ])('opens where the narrator was when that place is the %s credits', (_kind, slot, chapterId, top) => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId, offset: 30 }));
+    render(<Reader {...props(slot)} />);
+    expect(scrolls.get(scroller())).toBe(top + 30);
+  });
+
+  it('opens at the first chapter when the remembered section is not in this book', () => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'credits:"closing', offset: 30 }));
+    render(<Reader {...props({ before: <div data-bound="" data-ch="credits:opening" /> })} />);
+    expect(scrolls.get(scroller())).toBe(92);
   });
 
   it('opens at the given chapter when nothing is remembered', () => {
@@ -413,6 +449,117 @@ describe('Find', () => {
   });
 });
 
+describe('Home and End', () => {
+  const many: ManuscriptChapter[] = Array.from({ length: 60 }, (_, i) => chapter(`k${i}`, i));
+  const card = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);
+  const long = (extra: Partial<Props> = {}) => (
+    <Reader
+      chapters={many}
+      paragraphsOf={() => []}
+      sources={sources}
+      renderChapterCard={card}
+      after={<div data-bound="" data-ch="credits:closing" />}
+      {...extra}
+    />
+  );
+  let height = 0;
+  const sized = (): HTMLElement => {
+    const root = scroller();
+    Object.defineProperty(root, 'scrollHeight', { configurable: true, get: () => height });
+    Object.defineProperty(root, 'clientHeight', { configurable: true, value: 400 });
+    return root;
+  };
+
+  // #3822: the browser's End aims at the end as it was at the key press; the far chapters drawn on the way made the book longer.
+  it('End goes to the end of the book and stays there while the chapters drawn there make the book longer', () => {
+    const { rerender } = render(long());
+    const root = sized();
+    height = 6500;
+    expect(fireEvent.keyDown(root, { key: 'End' })).toBe(false);
+    expect(scrolls.get(root)).toBe(6100);
+    // The scroll draws the last chapters, whose real height is more than the estimate.
+    fireEvent.scroll(root);
+    expect(document.querySelector('[data-bound][data-ch="k59"] [data-card]')).not.toBeNull();
+    height = 9000;
+    rerender(long());
+    expect(scrolls.get(root)).toBe(8600);
+    // The narrator's own scroll lets go of the end.
+    fireEvent.wheel(root);
+    scrollTo(8000);
+    height = 9500;
+    rerender(long());
+    expect(scrolls.get(root)).toBe(8000);
+  });
+
+  // The header gains a line under the closing credits and the reader loses that height, with no draw of the reader.
+  it('stays at the end when a size changes without a draw', () => {
+    const resized: ResizeObserverCallback[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          resized.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    render(long());
+    const root = sized();
+    height = 6500;
+    fireEvent.keyDown(root, { key: 'End' });
+    height = 6512;
+    resized.forEach((callback) => callback([], {} as ResizeObserver));
+    expect(scrolls.get(root)).toBe(6112);
+    vi.unstubAllGlobals();
+  });
+
+  // Shift with End or Home extends a selection of the reader's text, and Alt with Home is the browser's: the reader takes neither.
+  it('leaves End and Home with Shift, Alt or Meta to the browser', () => {
+    render(long());
+    const root = sized();
+    height = 6500;
+    fireEvent.wheel(root); // the narrator's own scroll lets go of the place the reader opened on
+    scrollTo(1000);
+    for (const key of ['End', 'Home']) {
+      for (const modifier of [{ shiftKey: true }, { altKey: true }, { metaKey: true }]) {
+        expect(fireEvent.keyDown(root, { key, ...modifier })).toBe(true);
+        expect(scrolls.get(root)).toBe(1000);
+      }
+    }
+    // Ctrl with End is the same move as End.
+    expect(fireEvent.keyDown(root, { key: 'End', ctrlKey: true })).toBe(false);
+    expect(scrolls.get(root)).toBe(6100);
+  });
+
+  it('Home goes to the top of the book', () => {
+    render(long({ initialChapterId: 'k30' }));
+    const root = sized();
+    expect(scrolls.get(root)).toBeGreaterThan(0);
+    expect(fireEvent.keyDown(root, { key: 'Home' })).toBe(false);
+    expect(scrolls.get(root)).toBe(0);
+  });
+
+  it('leaves Home and End to a text box inside the reader, and to a control that handled the key', () => {
+    render(
+      long({
+        before: (
+          <>
+            <input aria-label="Label" />
+            <button onKeyDown={(event) => event.preventDefault()}>Menu</button>
+          </>
+        ),
+      }),
+    );
+    const root = sized();
+    height = 6500;
+    const before = scrolls.get(root);
+    expect(fireEvent.keyDown(screen.getByLabelText('Label'), { key: 'End' })).toBe(true);
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Menu' }), { key: 'End' });
+    expect(scrolls.get(root)).toBe(before);
+  });
+});
+
 describe('a long book', () => {
   const CHAPTERS = 300;
   const PER_CHAPTER = 34;
@@ -434,9 +581,66 @@ describe('a long book', () => {
     scrollTo(900);
     expect(renderGutter.mock.calls.length).toBeLessThanOrEqual(drawn + 2 * PER_CHAPTER);
   });
+
+  // A card is the page's (a prep control, a Record button, the facts): one for each of 300 chapters was most of the Script page's load (#3766).
+  it("draws the cards of the chapters near the reader only, and a far chapter's when the reader goes to it", () => {
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) =>
+      near ? <h2 data-card={c.id}>{`Card ${c.title}`}</h2> : <h2 data-pending-card="">{c.title}</h2>;
+    const view = (extra: Partial<ComponentProps<typeof Reader>> = {}) => (
+      <Reader chapters={many} paragraphsOf={(id) => bodies.get(id)} sources={sources} renderChapterCard={renderChapterCard} {...extra} />
+    );
+    const { rerender } = render(view());
+    expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(5);
+    // Every chapter keeps its section and its heading, so the header, a jump and a screen reader still find it.
+    expect(document.querySelectorAll('[data-bound]')).toHaveLength(CHAPTERS);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).not.toBeNull();
+    expect(document.querySelector('[data-bound][data-ch="k0"] [data-pending-card]')).toBeNull();
+
+    rerender(view({ pendingJump: 'k200' }));
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-card]')).not.toBeNull();
+    expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).toBeNull();
+    expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(10);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
+  });
+
+  // The closing credits are no chapter, so under them nothing asked for the last chapter: its end, in view above them, was a blank block.
+  it('draws the chapter that ends above the closing credits when they are at the top of the reader', () => {
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);
+    const closing = <div data-bound="" data-ch="credits:closing" />;
+    render(<Reader chapters={many} paragraphsOf={() => []} sources={sources} renderChapterCard={renderChapterCard} after={closing} />);
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(400);
+    scrollTo((document.querySelector('[data-bound][data-ch="credits:closing"]') as HTMLElement).offsetTop - 8);
+    expect(document.querySelector(`[data-bound][data-ch="k${CHAPTERS - 1}"] [data-card]`)).not.toBeNull();
+  });
+
+  // Short chapters, or a tall window: more chapters start inside the reader than two either side of the top one (#3766, the breaker's
+  // 90 one-line chapters at 1440x1400, where chapters 4 and 5 were in view as a heading alone and, before that, with no text).
+  it('draws the card and text of every chapter that starts inside the reader, however many fit', () => {
+    const short = many.slice(0, 40);
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(1000);
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);
+    // Each section is 100 px of the laid-out page here (no paragraphs), so ten start inside a 1000 px reader.
+    render(<Reader chapters={short} paragraphsOf={() => []} sources={sources} renderChapterCard={renderChapterCard} />);
+    scrollTo(0);
+    const cards = () => Array.from(document.querySelectorAll<HTMLElement>('[data-card]')).map((card) => card.dataset.card);
+    expect(cards()).toEqual(short.slice(0, 13).map((c) => c.id));
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(40 - 13);
+    scrollTo(1500);
+    expect(cards()).toContain('k25');
+    expect(cards()).not.toContain('k30');
+  });
 });
 
 describe('the chapter card slot', () => {
+  // Three cards with no text under them fit one screen, so the fourth chapter started inside the reader and was drawn and read on every load.
+  it('holds the estimated height of a drawn chapter until its text is read', () => {
+    const { rerender } = render(<Reader {...props({ paragraphsOf: () => undefined })} />);
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(3);
+    rerender(<Reader {...props()} />);
+    expect(document.querySelectorAll('[data-pending-chapter]')).toHaveLength(0);
+  });
+
   it('leaves the chapter heading to the card when one is given, and draws its own only without one', () => {
     const { unmount } = render(<Reader {...props({ renderChapterCard: (chapter) => <h2>{`Card ${chapter.title}`}</h2> })} />);
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Card Chapter 1', 'Card Chapter 2', 'Card Chapter 3']);

@@ -720,6 +720,30 @@ describe('useBoothLeaveGuard', () => {
       expect(t.dialog()).toBeUndefined();
     });
 
+    // #3752, qa-breaker: Stop was pressed, a slow DAW has taken it, and the narrator leaves. The guard waits for that stop as long as the stop itself may
+    // take, and never says it could not stop a take that then stops.
+    it('a stop already out that lands after 20 s is waited for: no refusal, and the narrator leaves', async () => {
+      vi.useFakeTimers();
+      const t = setup({ settle: () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 20_000)) });
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = t.hook.result.current.leave('/script', t.go);
+      });
+      act(() => t.dialog()!.answer(true));
+      await flush();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(19_000);
+      });
+      expect(t.dialog()).toBeUndefined();
+      expect(t.go).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_000);
+      });
+      await act(() => done);
+      expect(t.dialog()).toBeUndefined();
+      expect(t.go).toHaveBeenCalledWith('/script');
+    });
+
     it('a start that never lands ends the same way', async () => {
       const t = await yesAndWait({ settle: never });
       expect(t.dialog()?.spec.title).toBe('Could not stop the take');
@@ -969,7 +993,7 @@ describe('useBoothLeaveGuard', () => {
         });
         t.hook.unmount();
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(2 * LEAVE_WAIT_MS + 500);
+          await vi.advanceTimersByTimeAsync(Math.max(2 * LEAVE_WAIT_MS, LEAVE_STOP_WAIT_MS) + 500);
         });
         return t;
       };
@@ -1066,5 +1090,30 @@ describe('useBoothLeaveGuard', () => {
       expect(stopRecording).toHaveBeenCalledTimes(1);
       expect(go).toHaveBeenCalledWith('/proof');
     });
+  });
+});
+
+describe('a take the DAW started (#3666)', () => {
+  it('asks Leave the Booth? with Stay (both answers leave the DAW recording) and stops nothing', () => {
+    const { store } = setup({ startedByApp: false });
+    expect(store.checkLeave('/script')).toMatchObject({ ask: { title: 'Leave the Booth?', cancelLabel: 'Stay', confirmLabel: 'Leave' } });
+  });
+
+  it('the foreign claim wins over an unconfirmed end: a take ended in a quiet DAW is still not the one the app stops', () => {
+    const { store } = setup({ startedByApp: false, recording: false, endUnconfirmed: () => true });
+    expect(store.checkLeave('/script')).toMatchObject({ ask: { title: 'Leave the Booth?' } });
+  });
+
+  it('the question goes when that take ends: the DAW no longer keeps recording after the narrator leaves', async () => {
+    const { overlay, go, hook, session, dialog } = setup({ startedByApp: false });
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.leave('/script', go);
+    });
+    expect(dialog()?.spec.title).toBe('Leave the Booth?');
+    hook.rerender({ ...session, recording: false });
+    await act(() => done);
+    expect(overlay.getSnapshot().dialogs).toHaveLength(0);
+    expect(go).not.toHaveBeenCalled();
   });
 });

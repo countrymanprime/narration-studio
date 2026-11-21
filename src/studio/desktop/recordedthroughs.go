@@ -12,26 +12,39 @@ import (
 // recordedThroughs is the manuscript service's recorded-through provider: for every chapter, how far it is recorded
 // (recordedthrough.Resolve) from its current Proof result, the stretches the Booth followed during takes (its reading
 // file) and the recorded length the same payload carries. It only reads; a chapter nothing says is recorded is left out.
-func recordedThroughs(folder string, service *coverage.Service, store *settings.Store) manuscript.RecordedThroughs {
-	return func(chapters []string, lengths map[string]manuscript.RecordedLength) map[string]recordedthrough.Through {
+// The same pass over the Proof results gives the recorded fractions, returned with it so the chapter list reads them once.
+// text, when not nil, is the manuscript service whose loaded manuscript is read, so the file is not decoded again here.
+func recordedThroughs(folder string, service *coverage.Service, store *settings.Store, text *manuscript.Service) manuscript.RecordedThroughs {
+	return func(chapters []string, lengths map[string]manuscript.RecordedLength) (map[string]recordedthrough.Through, map[string]float64) {
 		if folder == "" {
-			return nil
+			return nil, nil
 		}
+		var fractions map[string]float64
 		var proof map[string][]coverage.ParagraphLine
 		if service != nil && store != nil {
-			proof = service.CurrentParagraphs(coverageSettings(store).Alignment)
+			fractions, proof = service.Current(coverageSettings(store).Alignment)
 		}
-		return recordedThroughsFor(folder, chapters, proof, lengths)
+		if text != nil {
+			if data, err := text.Load(); err == nil {
+				return recordedThroughsIn(teleprompter.BookOf(folder, data), chapters, proof, lengths), fractions
+			}
+		}
+		return recordedThroughsFor(folder, chapters, proof, lengths), fractions
 	}
 }
 
 // recordedThroughsFor is the provider's rule over already-read results.
 func recordedThroughsFor(folder string, chapters []string, proof map[string][]coverage.ParagraphLine, lengths map[string]manuscript.RecordedLength) map[string]recordedthrough.Through {
-	result := map[string]recordedthrough.Through{}
 	book, ok := teleprompter.LoadBook(folder)
 	if !ok {
-		return result
+		return map[string]recordedthrough.Through{}
 	}
+	return recordedThroughsIn(book, chapters, proof, lengths)
+}
+
+// recordedThroughsIn is recordedThroughsFor over a manuscript already read.
+func recordedThroughsIn(book teleprompter.Book, chapters []string, proof map[string][]coverage.ParagraphLine, lengths map[string]manuscript.RecordedLength) map[string]recordedthrough.Through {
+	result := map[string]recordedthrough.Through{}
 	for _, id := range chapters {
 		script, ok := book.Script(id)
 		if !ok {

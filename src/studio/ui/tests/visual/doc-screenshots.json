@@ -78,6 +78,13 @@
   },
   {
     "page": "script",
+    "state": "cue-read-failed",
+    "viewport": "desktop",
+    "docName": "script-cue-read-failed",
+    "caption": "Script - the dialogue cues could not be read: the text without speaker chips, and a message that says why, with Retry"
+  },
+  {
+    "page": "script",
     "state": "reader",
     "viewport": "desktop",
     "docName": "script-reader",
@@ -393,6 +400,13 @@
   },
   {
     "page": "booth",
+    "state": "recording-in-daw",
+    "viewport": "desktop",
+    "docName": "booth-take-in-reaper",
+    "caption": "Booth - a take started in REAPER and followed: Stop and the REC · REAPER pill, the Space and R hints struck through, and the message that says to stop it in REAPER"
+  },
+  {
+    "page": "booth",
     "state": "resume",
     "viewport": "desktop",
     "docName": "booth-waiting",
@@ -425,6 +439,13 @@
     "viewport": "desktop",
     "docName": "booth-record-unlinked",
     "caption": "Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-unlinked-folders",
+    "viewport": "desktop",
+    "docName": "booth-record-unlinked-folders",
+    "caption": "Booth - the Chapter 1 is not linked to a folder dialog in a Voice folders project, with the list of what the new folder is made with above Create a new folder"
   },
   {
     "page": "booth",
@@ -511,6 +532,13 @@
     "caption": "Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder"
   },
   {
+    "page": "settings",
+    "state": "recording-new-chapter-folder",
+    "viewport": "desktop",
+    "docName": "settings-new-chapter-folder",
+    "caption": "Settings - Recording & DAW: the New chapter folder row, with the Narrator and the voices and Extras a new chapter folder is made with"
+  },
+  {
     "page": "engine",
     "state": "rpp-picker",
     "viewport": "desktop",
@@ -551,6 +579,13 @@
     "viewport": "desktop",
     "docName": "engine-panel-voices",
     "caption": "The audio engine panel - the Voices card for a Voice folders project: a chapter's voice tracks with their number-pad keys and characters"
+  },
+  {
+    "page": "engine",
+    "state": "voice-folders-marked",
+    "viewport": "desktop",
+    "docName": "engine-panel-voices-marked",
+    "caption": "The audio engine panel - the Voices card with a track turned off by its Voice switch: it keeps no key and says Not a voice"
   },
   {
     "page": "engine",
@@ -613,7 +648,7 @@
     "state": "chapter-folder-created",
     "viewport": "desktop",
     "docName": "engine-panel-chapter-folder-created",
-    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with one voice"
+    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with its Narrator and Extras voices"
   },
   {
     "page": "proof-chapter",
@@ -655,7 +690,14 @@
     "state": "recording-advanced",
     "viewport": "desktop",
     "docName": "settings-daw",
-    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program and the capabilities table"
+    "caption": "Settings - Recording & DAW with Advanced open: the REAPER program path"
+  },
+  {
+    "page": "settings",
+    "state": "app-capabilities",
+    "viewport": "desktop",
+    "docName": "settings-capabilities",
+    "caption": "Settings - App & updates, Capabilities: the dialog that lists what each recording tool can do"
   },
   {
     "page": "settings",
@@ -740,6 +782,13 @@
     "viewport": "desktop",
     "docName": "settings-project",
     "caption": "Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator"
+  },
+  {
+    "page": "settings",
+    "state": "project-type-colour",
+    "viewport": "desktop",
+    "docName": "settings-entry-type-colour",
+    "caption": "Settings - Entry types with the colour box of Place opened: six swatches, Blue ringed and checked"
   },
   {
     "page": "settings",
@@ -908,6 +957,13 @@
     "viewport": "desktop",
     "docName": "storybible-entry-editing",
     "caption": "Story Bible - an entry in edit mode, with Save and Discard changes shown"
+  },
+  {
+    "page": "storybible",
+    "state": "entry-speaker-colour",
+    "viewport": "desktop",
+    "docName": "storybible-speaker-colour",
+    "caption": "Story Bible - Speaker colour in edit mode: a row of swatches, Auto first, the chosen one ringed and checked"
   },
   {
     "page": "storybible",
@@ -1219,6 +1275,13 @@
   },
   {
     "page": "master",
+    "state": "to-spec-approve-chain-off",
+    "viewport": "desktop",
+    "docName": "master-to-spec-approve-pointer",
+    "caption": "Master & QC - the approval with a long FX chain scrolled past its first effect: the chip over the list that names the effects above"
+  },
+  {
+    "page": "master",
     "state": "to-spec-cancelled",
     "viewport": "desktop",
     "docName": "master-to-spec-cancelled",
@@ -1440,6 +1503,27 @@
     "viewport": "desktop",
     "docName": "script-define-marks",
     "caption": "Script - Define how you mark up: each mark type with its name, colour and line"
+  },
+  {
+    "page": "script",
+    "state": "speaker-suggested-by-model",
+    "viewport": "desktop",
+    "docName": "script-speaker-suggested-by-model",
+    "caption": "Script - a line the local model suggested a speaker for: Confirm with the model's reason beneath it"
+  },
+  {
+    "page": "settings",
+    "state": "project-unknown-speakers",
+    "viewport": "desktop",
+    "docName": "settings-unknown-speakers",
+    "caption": "Settings - Project, Unknown speakers: the switch turned on, the model and the lines per run"
+  },
+  {
+    "page": "settings",
+    "state": "project-unknown-speakers-no-model",
+    "viewport": "desktop",
+    "docName": "settings-unknown-speakers-no-model",
+    "caption": "Settings - Project, Unknown speakers with no local model installed: the switch and its two rows off, each saying why"
   },
   {
     "page": "script",

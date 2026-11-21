@@ -53,12 +53,7 @@ function sources(dir: string): string[] {
 describe('every-narrator-check-takes-the-session-route', () => {
   it('the screens that offer a connection check call checkConnection, never refreshCapabilities', () => {
     const root = join(__dirname, '..');
-    const files = [
-      'components/connection/useDawStatus.ts',
-      'components/settings/CapabilitySection.tsx',
-      'components/settings/controls/EngineBody.tsx',
-      'App.tsx',
-    ];
+    const files = ['components/connection/useDawStatus.ts', 'daw/useDawCapabilityReport.ts', 'components/settings/controls/EngineBody.tsx', 'App.tsx'];
     for (const file of files) expect(readFileSync(join(root, file), 'utf8'), file).toContain('checkConnection');
     const callers = sources(root).filter((path) => /\.refreshCapabilities\(\)|session\.refreshCapabilities\b/.test(readFileSync(path, 'utf8')));
     expect(callers.map((path) => path.slice(root.length + 1).replaceAll('\\', '/')).filter((path) => !path.startsWith('daw/'))).toEqual([]);

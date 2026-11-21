@@ -181,7 +181,7 @@ follows you between projects rather than resetting when you switch.
 
 ## The audio engine panel
 
-Click the chip at the right of the header, or the recording-setup chip in the [Booth](booth.md), to open the audio engine panel over whatever page you are on: every chip that names the DAW leads here. Its gear button at the top (**Recording settings**) opens Settings > Recording & DAW, where the project's engine is chosen.
+Click the chip at the right of the header, or the recording-setup chip in the [Booth](booth.md), to open the audio engine panel over whatever page you are on: every chip that names the DAW leads here. Its gear button at the top (**Recording settings**) opens Settings > Recording & DAW, where the project's engine is chosen; **Show what each recording tool can do** (an icon button) opens the [capabilities list](settings.md#capabilities): what each recording tool can do, and what the linked one does now.
 It holds everything about the REAPER project itself rather than one stage of the work: the linked project
 file, the REAPER tools, chapter sync, the project's tracks and each chapter's link to its track. Close it
 with its close button, Escape or a click beside it. Every "Open the audio engine panel" pointer in the app, in a message or a dialog, opens it over the page you are on and closes the dialog it was in. (It replaced the Tracks page; an old link to that page
@@ -220,7 +220,7 @@ and open the panel again.
 
 When the project records with Audacity, the **Audacity project** card replaces the REAPER project section and the REAPER tools are not shown.
 The Chapter links list below it comes from the snapshot the app takes while Audacity answers, and refreshes when the card hears from Audacity (a
-change, or **Check again**). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
+change, or **Check again**, which shows "Checked" with the time beside it once it has asked). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
 
 ### Tracks
 
@@ -312,7 +312,7 @@ message says why. Nothing is added either when the chapter is already linked to 
 name the new one would get: link that one with the track picker instead. While one track is being added, the other rows' buttons are off.
 If the project's last folder was left open in REAPER, that folder is closed on its last track first, so the new track is never inside
 it. With [Voice folders](#voice-folders) the button is **Create a folder for this chapter**: REAPER adds a folder named
-after the chapter with one track inside it, **Narrator**, and the chapter is linked to the folder. The Booth's and Editing's link dialog
+after the chapter with its tracks inside it, the **Narrator** and then the voices and **Extras** you last chose (the Booth's create dialog and the **New chapter folder** row in [Settings](settings.md) set that choice; every known voice and Extras until you choose otherwise), and the chapter is linked to the folder. The Booth's and Editing's link dialog
 says **Create a new folder** in a Voice folders project and makes the same folder.
 
 ![Chapter links after Create a track for this chapter: the first chapter linked to its new track, and a message saying it was made](../../images/ui/engine-panel-chapter-track-created.webp)
@@ -381,7 +381,7 @@ With Voice folders, Chapter links' last column is **Folder**: a chapter links to
 
 ![A chapter's folder picker: the Chapter 1 folder can be chosen, its voice tracks can't](../../images/ui/engine-panel-voices-folder-picker.webp)
 
-![Chapter links after Create a folder for this chapter: the chapter linked to its new folder with one voice, and a message naming the folder and its Narrator track](../../images/ui/engine-panel-chapter-folder-created.webp)
+![Chapter links after Create a folder for this chapter: the chapter linked to its new folder with its Narrator and Extras voices, and a message naming the folder and its Narrator track](../../images/ui/engine-panel-chapter-folder-created.webp)
 
 The **Voices** card, below Chapter links, lists the folder's tracks for the chapter picked in its header, in REAPER's order. The first
 track named **Narrator** gets number-pad key 0 and the others 1 to 9; a track past the ninth gets no key. Each row shows the characters
@@ -392,9 +392,16 @@ Narrator row the list picks the one character the narrator also voices, for a bo
 and holds for every chapter folder with a track of that name. A track with no name, or a name over 120 characters, can't be given
 characters until it is renamed in REAPER.
 
+The card lists the folder's tracks in either layout: in Flat too, when a chapter is linked to a folder with tracks of its own (a track another chapter is linked to is left out), since the Booth records on one of them. Every track in the folder is a voice unless you say it is not. The **Voice** switch on a row is on for each; turn it off for a track that
+is not a voice, such as a music bed or room tone. The row stays in the list, dimmed and marked **Not a voice**, with no key and no
+characters to choose, and the Booth does not offer it: Record never arms it, and a folder whose tracks are all turned off is refused in either layout: Record says to turn one back on in this card (in Flat, or to link the chapter to a track of its own). Turning a voice off or on says so in a message, and when keys moved it names the voices whose key changed ("Keys now: 1 Hatter"), says key 0 has no track when the Narrator goes with no other, and says when no voice is left. Hovering the **i** on the Voice column, the **Not a voice** badge or a marked row's disabled edit button says what each means. The **?** beside the chapter picker says what the switch does (it is there once a chapter is linked to a folder). Turn the switch back on and it is a voice again. The mark follows
+the track if you rename it in REAPER, and it holds for every chapter folder that track is in. In a window 30 rem (480 px) wide or less the Key column goes, a track's characters sit under its name, and the switch sits beside the edit button. While a take is recording the Voice switches are disabled (a tooltip says why): stop the take first.
+
 ![The Voices card for a Voice folders project: Chapter 1's tracks with their keys and characters](../../images/ui/engine-panel-voices.webp)
 
 ![A track's character list open on the Voices card](../../images/ui/engine-panel-voices-picker.webp)
+
+![The Voices card with the Extras track turned off: it has no key and says Not a voice](../../images/ui/engine-panel-voices-marked.webp)
 
 An Audacity project has no folders, so the card is not shown for it.
 

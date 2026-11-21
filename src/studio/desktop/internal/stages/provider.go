@@ -16,15 +16,21 @@ import (
 // exactly what the analysis evidence ledger's staleness evaluator
 // (evidence.EvaluateChapter) needs. ProjectErr is set when the saved project
 // could not be read; a provider then answers unknown with
-// CauseProjectUnreadable.
+// CauseProjectUnreadable. Ledger and Mapping are the stores as one read at the
+// start of the evaluation found them (issue 3801), or the stores themselves:
+// a provider reads them, never changes what they return, and they may be nil.
+// Manuscript is the canonical manuscript, loaded once for the evaluation when a
+// provider first asks, so no provider reads the file for each chapter (issue
+// 3896); it may be nil, and a provider then loads the manuscript itself.
 type EvidenceView struct {
 	DocumentID    string
 	ProjectFolder string
 	Project       tracks.Project
 	ProjectFile   evidence.LedgerProjectFile
 	ProjectErr    error
-	Ledger        *evidence.LedgerStore
-	Mapping       *evidence.MappingStore
+	Ledger        evidence.LedgerReader
+	Mapping       evidence.MappingReader
+	Manuscript    func() (map[string]any, error)
 }
 
 // Provider supplies the signals for one stage. Stage is the stage its

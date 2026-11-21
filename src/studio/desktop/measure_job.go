@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"desktop/internal/deliveryprofile"
+	"desktop/internal/evidence"
 	"desktop/internal/findings"
 	"desktop/internal/measure"
 	"desktop/internal/runlog"
@@ -19,7 +20,10 @@ import (
 // Measuring the narrator's rendered chapter files as a job. The narrator picks WAV files in the operating system's picker (MeasurePickFiles); MeasureAnalyze measures
 // only files picked that way in this session, one after another, with progress from the bytes really read
 // and a cancel that stops mid-file. Each file answers its internal/measure report and the fingerprint of the bytes it
-// was measured from, or why it could not be measured. Nothing is written anywhere: the files are opened read-only.
+// was measured from, or why it could not be measured. The picked files are opened read-only and never written. With a
+// project open, each whole-file measurement is kept in the project's analysis cache (measure.CachedMeasureFile) and
+// answered from there the next time, restarts included, for as long as the file's whole content hashes the same;
+// the job, its logs and its answer are the same either way.
 
 // maxMeasureFiles bounds one measurement: more than any book has chapters, few enough that the job's answer stays small.
 const maxMeasureFiles = 500
@@ -304,7 +308,7 @@ func (h *Host) startMeasure(requested []string) (MeasureJob, error) {
 	job := &measureJob{
 		id: id, phase: "running", started: time.Now(), cancel: cancel,
 		message:  fmt.Sprintf("Measuring %s.", countFiles(len(paths))),
-		measured: renderMeasurementRecorder(svc.config.projectFolder, svc.manuscript, h.persist),
+		measured: renderMeasurementRecorder(svc.config.projectFolder, svc.ledger, svc.manuscript, h.persist),
 		project:  svc.config.projectFolder,
 	}
 	job.logs = []string{job.message}
@@ -330,6 +334,9 @@ func (h *Host) startMeasure(requested []string) (MeasureJob, error) {
 	measureFile := h.measureFile
 	if measureFile == nil {
 		measureFile = measure.MeasureFile
+	}
+	if svc.config.projectFolder != "" {
+		measureFile = measure.CachedMeasureFile(evidence.NewCacheStore(svc.config.projectFolder), svc.config.projectFolder, measureFile)
 	}
 	started := job.snapshot()
 	go h.runMeasure(ctx, job, paths, measureFile)

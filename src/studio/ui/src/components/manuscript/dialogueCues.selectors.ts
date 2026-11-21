@@ -19,3 +19,14 @@ export function cueSpeakerEntries<E extends Pick<GuideEntity, 'category'>>(entri
   const speaking = new Set(types.filter((type) => type.speaks).map((type) => type.name));
   return entries.filter((entry) => speaking.has(entry.category));
 }
+
+/** The sentence a local model gave for the speaker it suggested, for a line still showing that suggestion; nothing for any other
+ * line. It is the model's own words: draw it as plain text, never as markup. */
+export const cueSuggestionReason = (cue: Pick<GuideDialogueCue, 'corrected' | 'speaker_source' | 'evidence'>): string | undefined =>
+  !cueIsConfirmed(cue) && cue.speaker_source === 'local-model' ? cue.evidence.reason?.trim() || undefined : undefined;
+
+/** What every page calls a speaker the local model suggested: a chip's tooltip, and the start of the reason's line. */
+export const SUGGESTED_BY_MODEL = 'Suggested by the local model';
+
+/** The one line every page shows for a local model's reason (`cueSuggestionReason`). */
+export const suggestionReasonLine = (reason: string): string => `${SUGGESTED_BY_MODEL}: ${reason}`;

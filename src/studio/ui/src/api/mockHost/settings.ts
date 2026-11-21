@@ -12,6 +12,9 @@ export type MockSettingsSeed = 'loading' | 'unreadable' | 'save-fails' | 'odd-ch
 
 export const UNREADABLE_SETTINGS = 'The settings file could not be read: it is not valid JSON';
 export const READ_ONLY_SETTINGS = 'The settings file is read-only.';
+/** The host's sentence for a colour that is not six hex digits. */
+export const notAColour = (key: string): string => `setting ${key} must be a six-digit color`;
+const SIX_HEX_DIGITS = /^[0-9a-fA-F]{6}$/;
 
 /** The settings bindings. Saving answers with a fresh bootstrap, as the host does. */
 export function createSettingsMock(
@@ -49,6 +52,15 @@ export function createSettingsMock(
   const bindings = {
     saveSettings: async (tool, scope, values) => {
       if (seed === 'save-fails') throw new Error(READ_ONLY_SETTINGS);
+      // As the host (saveSettings in src/studio/desktop/app.go): the local model for unknown speakers is this computer's, never a project's.
+      if (tool === 'ManuscriptGuide' && scope !== 'global' && Object.keys(values).some((key) => key.startsWith('speaker_fallback')))
+        throw new Error('the local model for unknown speakers is global: it is installed on this computer, not in this project');
+      // The host checks each value against its field's kind before it writes any (`validateSettingValue` in src/studio/desktop/app.go). The
+      // mock holds the colour rule, the one a page can break by sending text as typed; a cleared field (null) is not a value to check.
+      for (const field of settings[scope][tool] || []) {
+        const value = values[field.key];
+        if (field.kind === 'color' && typeof value === 'string' && !SIX_HEX_DIGITS.test(value)) throw new Error(notAColour(field.key));
+      }
       settings[scope][tool] = (settings[scope][tool] || []).map((field) =>
         field.key in values
           ? {

@@ -93,6 +93,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterCreateOptionsSchema,
   chapterTrackCreateSchema,
   chapterFoldersSchema,
   trackSelectResultSchema,
@@ -167,7 +168,7 @@ import type { TeleprompterStartOptions } from './contracts/teleprompter';
 import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsOpenCountSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
@@ -385,6 +386,7 @@ export const wailsClient: NarrationApi = {
   guidePronunciationUseAlternate: (id, aliasIndex) =>
     decode(voidResult, 'GuidePronunciationUseAlternate', host.GuidePronunciationUseAlternate(id, aliasIndex ?? null)),
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
+  guideDialogueCuesIn: (chapterIds) => decode(guideDialogueCuesSchema, 'GuideDialogueCuesIn', host.GuideDialogueCuesIn([...chapterIds])),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
   guideAttributeSpeakers: () => decode(speakerAttributionSchema, 'GuideAttributeSpeakers', host.GuideAttributeSpeakers()),
   // The name's whole pronunciation as Undo writes it back; `status` is read from an older file only and is never written (the host answers the value it stored).
@@ -487,6 +489,7 @@ export const wailsClient: NarrationApi = {
   voiceTracksSetLayout: (layout) => decode(voiceTracksStateSchema, 'VoiceTracksSetLayout', host.VoiceTracksSetLayout(layout)),
   voiceTracksSetCharacters: (track, characterIds) =>
     decode(voiceTracksStateSchema, 'VoiceTracksSetCharacters', host.VoiceTracksSetCharacters(track, characterIds)),
+  voiceTracksSetNotAVoice: (guid, notAVoice) => decode(voiceTracksStateSchema, 'VoiceTracksSetNotAVoice', host.VoiceTracksSetNotAVoice(guid, notAVoice)),
   voiceTracksSetNarrator: (characterId) => decode(voiceTracksStateSchema, 'VoiceTracksSetNarrator', host.VoiceTracksSetNarrator(characterId)),
   boothVoiceSet: (chapterId, trackGuid) => decode(boothVoiceSchema, 'BoothVoiceSet', host.BoothVoiceSet(chapterId, trackGuid)),
   boothVoiceGet: (chapterId) => decode(boothVoiceSchema, 'BoothVoiceGet', host.BoothVoiceGet(chapterId)),
@@ -636,6 +639,7 @@ export const wailsClient: NarrationApi = {
   pickupsCount: () => decode(pickupsStartResultSchema, 'PickupsCount', host.PickupsCount()),
   pickupsState: () => decode(pickupsStateSchema, 'PickupsState', host.PickupsState()),
   pickupsList: () => decode(pickupListSchema, 'PickupsList', host.PickupsList()),
+  pickupsOpenCount: () => decode(pickupsOpenCountSchema, 'PickupsOpenCount', host.PickupsOpenCount()),
   pickupsAdd: (chapterId, time, line) => decode(pickupListSchema, 'PickupsAdd', host.PickupsAdd(chapterId, time, line)),
   pickupsRemove: (id) => decode(pickupListSchema, 'PickupsRemove', host.PickupsRemove(id)),
   pickupsSetIncluded: (id, included) => decode(pickupListSchema, 'PickupsSetIncluded', host.PickupsSetIncluded(id, included)),
@@ -782,6 +786,8 @@ export const wailsClient: NarrationApi = {
   dawGoToChapter: (chapterId, where, seconds) => decode(dawResultSchema, 'DawGoToChapter', host.DawGoToChapter(chapterId, where, seconds)),
   dawArmBoothVoice: (chapterId) => decode(dawResultSchema, 'DawArmBoothVoice', host.DawArmBoothVoice(chapterId)),
   dawReleaseBoothMonitor: () => decode(dawResultSchema, 'DawReleaseBoothMonitor', host.DawReleaseBoothMonitor()),
+  dawSoloChapter: (chapterId) => decode(dawResultSchema, 'DawSoloChapter', host.DawSoloChapter(chapterId)),
+  dawSoloRestore: () => decode(dawResultSchema, 'DawSoloRestore', host.DawSoloRestore()),
   workspaceWordTimes: (chapterId) => decode(wordTimesSchema, 'WorkspaceWordTimes', host.WorkspaceWordTimes(chapterId)),
   subscribeDawRecordEnded: (onUpdate) => subscribeChecked('daw_record_ended', dawRecordEndedSchema, onUpdate),
   subscribeDawProjectEdited: (onUpdate) => subscribeChecked('daw_project_edited', dawProjectEditedSchema, onUpdate),
@@ -802,7 +808,10 @@ export const wailsClient: NarrationApi = {
   tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
-  chapterTrackCreate: (chapterId) => decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId)),
+  chapterTrackCreate: (chapterId, choice) =>
+    decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId, choice ? JSON.stringify(choice) : '')),
+  chapterCreateOptions: () => decode(chapterCreateOptionsSchema, 'ChapterCreateOptions', host.ChapterCreateOptions()),
+  chapterCreateDefaultSet: (choice) => decode(chapterCreateOptionsSchema, 'ChapterCreateDefaultSet', host.ChapterCreateDefaultSet(JSON.stringify(choice))),
   chapterFoldersCheck: () => decode(chapterFoldersSchema, 'ChapterFoldersCheck', host.ChapterFoldersCheck()),
   chapterFoldersRepair: (expected) => decode(chapterFoldersSchema, 'ChapterFoldersRepair', host.ChapterFoldersRepair(expected)),
   chapterTrackUnlink: (chapterId) => decode(chapterTrackMappingSchema, 'ChapterTrackUnlink', host.ChapterTrackUnlink(chapterId)),

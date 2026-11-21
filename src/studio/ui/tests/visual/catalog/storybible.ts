@@ -117,6 +117,13 @@ export const storybibleStates: StateEntry[] = [
   { page: 'storybible', state: 'entry-editing', description: 'Story Bible, an unlocked entry in edit mode (Save and Cancel shown)' },
   {
     page: 'storybible',
+    state: 'entry-speaker-colour',
+    description:
+      'Story Bible, an entry in edit mode scrolled to Speaker colour: a row of eight swatches, Auto first with the hue it resolves to, the chosen one ringed and checked',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'storybible',
     state: 'entry-properties-editing',
     description: 'Story Bible, an entry in edit mode with its properties table: a new row with a value and no name, and the message that says so',
     ...KEEPS_DESKTOP_SCROLL,

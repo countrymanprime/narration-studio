@@ -376,8 +376,8 @@ const hang = (name: 'readAloudRecordStart' | 'readAloudRecordStop' | 'passageMap
     w.__NARRATION_MOCK_OVERRIDES__ = { ...(w.__NARRATION_MOCK_OVERRIDES__ ?? {}), [method]: () => new Promise(() => {}) };
   }, name);
 
-test('a stop the host never answers: after about 10 s the question says so, Keep keeps the Booth, and Leave anyway leaves', async ({ page }) => {
-  test.setTimeout(60_000);
+test('a stop the host never answers: after the stop limit the question says so, Keep keeps the Booth, and Leave anyway leaves', async ({ page }) => {
+  test.setTimeout(100_000);
   await page.addInitScript(() => {
     const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__?: Record<string, unknown> };
     w.__NARRATION_MOCK_OVERRIDES__ = { readAloudRecordStop: () => new Promise(() => {}) };
@@ -392,12 +392,12 @@ test('a stop the host never answers: after about 10 s the question says so, Keep
   await page.keyboard.press('Escape');
   await question(page).getByRole('button', { name: /^Stop/ }).click();
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-  await expect(refused).toBeVisible({ timeout: 12_000 });
+  await expect(refused).toBeVisible({ timeout: 32_000 });
   await refused.getByRole('button', { name: /Keep recording|Cancel/ }).click();
   await page.keyboard.press('Escape');
   await expect(question(page)).toBeVisible();
   await question(page).getByRole('button', { name: /^Stop/ }).click();
-  await expect(refused).toBeVisible({ timeout: 12_000 });
+  await expect(refused).toBeVisible({ timeout: 32_000 });
   await page.waitForTimeout(500);
   await refused.getByRole('button', { name: 'Leave anyway' }).click();
   await expect(page.locator('[data-booth-text]')).toHaveCount(0);
@@ -436,7 +436,7 @@ test('Switch project during a take asks "Stop recording?", and Stop and leave st
 // During the wait of a decided move a second exit is the same exit: it is ignored, and the first decision ends as it would have (the picker never
 // opens over a Booth that is going, and nothing is asked over it).
 test('Switch project one second into the wait for a stop the host never answers is ignored; the refusal then comes in the Booth', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(100_000);
   await hang('readAloudRecordStop')(page);
   await openBooth(page);
   await record(page).click();
@@ -449,7 +449,7 @@ test('Switch project one second into the wait for a stop the host never answers 
   await page.waitForTimeout(500);
   await expect(picker(page)).toHaveCount(0);
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await expect(refused).toBeVisible({ timeout: 32_000 });
   await expect(page.locator('[data-booth-text]')).toHaveCount(1);
   await page.waitForTimeout(500);
   await refused.getByRole('button', { name: 'Leave anyway' }).click();
@@ -475,7 +475,7 @@ test('Switch project one second into the wait for a run that is never written is
 });
 
 test('a start the host never answers: Stop and leave ends in the refusal question, and Leave anyway leaves', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(100_000);
   await hang('readAloudRecordStart')(page);
   await openBooth(page);
   await record(page).click();
@@ -483,7 +483,7 @@ test('a start the host never answers: Stop and leave ends in the refusal questio
   await page.keyboard.press('Escape');
   await question(page).getByRole('button', { name: /^Stop/ }).click();
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await expect(refused).toBeVisible({ timeout: 32_000 });
   await page.waitForTimeout(500);
   await refused.getByRole('button', { name: 'Leave anyway' }).click();
   await expect(page.locator('[data-booth-text]')).toHaveCount(0);
@@ -545,9 +545,10 @@ test('Back while a start is still pending leaves with no question and starts no 
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
-    .getByRole('menuitem', { name: /Start from here/ })
+    .getByRole('menuitem', { name: /Mark the start here/ })
     .first()
     .click();
+  await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await page.evaluate(() => window.history.back());
   await expect(page.getByRole('heading', { level: 1, name: 'Production' })).toBeVisible();

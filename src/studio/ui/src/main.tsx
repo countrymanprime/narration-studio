@@ -12,6 +12,8 @@ import { enableUiLog } from './api/uiLog';
 import { installTracing } from './trace/installTracing';
 import { withTracing } from './api/withTracing';
 import { withCallLog } from './api/withCallLog';
+import { withChapterListWrites } from './api/chapterListWrites';
+import { parseDawLatency, withDawLatency } from './api/dawLatency';
 import { withCoalescedReads } from './api/withCoalescedReads';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
@@ -154,7 +156,7 @@ const mockRoomTone = Number.isFinite(mockRoomToneParam) && mockRoomToneParam >= 
 // suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
 const mockZoom = Number.isFinite(mockZoomParam) && mockZoomParam > 0 ? mockZoomParam / 100 : undefined;
-// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_elsewhere|unavailable` makes
+// `?mockReaperState=ready|not_armed|other_armed|several_armed|no_link|recording_here|recording_elsewhere|unavailable` makes
 // the read-aloud dialog's REAPER state answer that for every chapter.
 const mockReaperState = MOCK_REAPER_SEEDS.find((seed) => seed === mockParams.get('mockReaperState'));
 // `?mockReaperInput=matched|uncertain|no_match|reaper_no_device` makes the microphone REAPER records from
@@ -270,6 +272,8 @@ const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'i
 );
 // `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
 const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
+// `?mockLocalModel=none` is the app as it ships: no local model for unknown speakers is installed, so Settings shows its switch off with the reason.
+const mockLocalModel = mockParams.get('mockLocalModel') === 'none' ? ('none' as const) : undefined;
 // `?mockAssetsVerify=damaged|absent|fails|silent|hangs` sets what Settings > Models & downloads' Check the files answers: the asset damaged,
 // gone, a refusal in the host's words, a refusal with no words, or no answer. `?mockAssetNames=long` gives the Whisper model a long name.
 const mockAssetsVerify = (['damaged', 'absent', 'fails', 'silent', 'hangs'] as const).find((seed) => seed === mockParams.get('mockAssetsVerify'));
@@ -288,6 +292,8 @@ const mockChapters = (['loading', 'fails', 'reread-hangs'] as const).find((seed)
 const mockChapterRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockChapterRead'));
 // `?mockProfileRead=fails` makes the read of the delivery profiles fail, so Master & QC says so and offers Retry.
 const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockProfileRead'));
+// `?mockCuesRead=fails` makes the read of the dialogue cues a reader draws fail, so Script says so and offers Retry.
+const mockCuesRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockCuesRead'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails', 'odd-chunk'] as const).find((seed) => seed === mockParams.get('mockSettings'));
@@ -560,12 +566,14 @@ const mockInitial = {
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
+  ...(mockLocalModel ? { localModel: mockLocalModel } : {}),
   ...(mockAssetsVerify ? { assetsVerify: mockAssetsVerify } : {}),
   ...(mockAssetNames ? { assetNames: mockAssetNames } : {}),
   ...(mockMove ? { assetMove: mockMove } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
+  ...(mockCuesRead ? { cuesRead: mockCuesRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockOpenFolder ? { openFolder: mockOpenFolder } : {}),
@@ -733,13 +741,18 @@ const mockInitial = {
   ),
 };
 if (import.meta.env.VITE_USE_MOCK_API === '1') installMockAudioOutputs(mockAudioOutputs);
-const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
+// `?mockDawLatency=<profile>` puts the mock on a slow DAW link (api/dawLatency.ts, docs/architecture/reaper-bridge.md#a-slow-link-on-demand).
+const mockApi = () => withDawLatency(createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial), parseDawLatency(mockParams.get('mockDawLatency') ?? ''));
+const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? mockApi() : wailsClient;
 if (hostApi === wailsClient) {
   enableUiLog();
   installTracing(wailsClient);
 }
 // Identical reads that are in flight together are one host call (#3560). The call log (mock builds) sits under it, so it counts the calls that reach the host.
-const coalesced = withCoalescedReads(mockCallLog ? withCallLog(hostApi) : hostApi);
+// The calls that change what the chapter list holds announce themselves, so the store's chapter list reads again (#3658).
+// withChapterListWrites sits OUTSIDE the coalescer: its announcement then runs after the coalescer has counted the writer as answered, so the chapter list it
+// triggers is read fresh and never joins a read that began while the writer ran.
+const coalesced = withChapterListWrites(withCoalescedReads(mockCallLog ? withCallLog(hostApi) : hostApi));
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.
 const api = hostApi === wailsClient ? withTracing(coalesced) : (appExtension().wrapApi?.(coalesced) ?? coalesced);
 appExtension().start?.(api);

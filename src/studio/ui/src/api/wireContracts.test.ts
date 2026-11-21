@@ -1,3 +1,4 @@
+import { SOLO_LEFT_SENTENCE } from './dawMock';
 import { readdirSync, readFileSync } from 'node:fs';
 import { DAW_CHOSEN_CHAIN } from './contracts/daw';
 import { fileURLToPath } from 'node:url';
@@ -153,6 +154,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterCreateOptionsSchema,
   chapterTrackCreateSchema,
   chapterFoldersSchema,
   trackMappingSchema,
@@ -221,7 +223,7 @@ import {
 } from './schemas/teleprompter';
 import { equivalenceSchema, hintSuggestionsSchema, hintsSchema, lastCompletedSchema, transcriptStateSchema } from './schemas/transcript';
 import { lineIdentityStartResultSchema, lineIdentityStateSchema } from './schemas/lineidentity';
-import { pickupListSchema, pickupsImportResultSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
+import { pickupListSchema, pickupsImportResultSchema, pickupsOpenCountSchema, pickupsStartResultSchema, pickupsStateSchema } from './schemas/pickups';
 import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSuggestedFolderSchema } from './schemas/renderconfig';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import {
@@ -1143,6 +1145,92 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.guideCorrectCue('not-a-real-cue', 'alice')).rejects.toThrow();
   });
 
+  it('with the local model turned on in Settings, a run fills the lines the rules leave unknown as suggestions with a reason, and undo takes them back', async () => {
+    const api = createMockApi();
+    const unknownBefore = (await api.guideDialogueCues()).filter((cue) => cue.speaker_entity_id === null).map((cue) => cue.id);
+    expect(unknownBefore.length).toBeGreaterThan(0);
+    const off = await api.guideAttributeSpeakers();
+    expect(off).toMatchObject({ modelFilled: 0, modelNote: '' });
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    const on = await api.guideAttributeSpeakers();
+    expectMatches(speakerAttributionSchema, on, 'mock attribution with the local model');
+    expect(on.modelFilled).toBeGreaterThan(0);
+    expect(on.filled).toBeGreaterThanOrEqual(on.modelFilled);
+    const cues = await api.guideDialogueCues();
+    expectMatches(guideDialogueCuesSchema, cues, 'mock dialogue cues with a model suggestion');
+    const suggested = cues.filter((cue) => cue.speaker_source === 'local-model');
+    expect(suggested).toHaveLength(on.modelFilled);
+    expect(suggested.every((cue) => unknownBefore.includes(cue.id) && !cue.corrected && cue.speaker_entity_id && cue.evidence.reason)).toBe(true);
+    expect(on.previous.filter((row) => suggested.some((cue) => cue.id === row.cueId))).toHaveLength(on.modelFilled);
+    await api.guideRestoreSpeakers(on.previous);
+    const undone = await api.guideDialogueCues();
+    expect(undone.filter((cue) => cue.speaker_source === 'local-model')).toEqual([]);
+    expect(undone.every((cue) => cue.evidence.reason === undefined)).toBe(true);
+    // A line the narrator confirmed is never asked about.
+    const first = unknownBefore[0]!;
+    await api.guideCorrectCue(first, '');
+    await api.guideAttributeSpeakers();
+    expect((await api.guideDialogueCues()).find((cue) => cue.id === first)).toMatchObject({
+      speaker_entity_id: null,
+      speaker_source: 'correction',
+      corrected: true,
+    });
+  });
+
+  it('the mock agrees with the host on a re-run, the switch turned off, a confirm and the project scope', async () => {
+    const api = createMockApi();
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    const on = await api.guideAttributeSpeakers();
+    expect(on.modelFilled).toBeGreaterThan(0);
+    const suggested = (await api.guideDialogueCues()).filter((cue) => cue.speaker_source === 'local-model');
+    // A second run with nothing new changes nothing, and the suggestion outlives the switch being turned off.
+    expect(await api.guideAttributeSpeakers()).toMatchObject({ filled: 0, changed: 0, modelFilled: 0, previous: [] });
+    await api.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'false' });
+    expect(await api.guideAttributeSpeakers()).toMatchObject({ filled: 0, changed: 0, modelFilled: 0, previous: [] });
+    expect((await api.guideDialogueCues()).filter((cue) => cue.speaker_source === 'local-model')).toEqual(suggested);
+    // Confirming a suggested line drops the model's reason.
+    const line = suggested[0]!;
+    await api.guideCorrectCue(line.id, line.speaker_entity_id!);
+    const confirmed = (await api.guideDialogueCues()).find((cue) => cue.id === line.id);
+    expect(confirmed).toMatchObject({ speaker_source: 'correction', corrected: true });
+    expect(confirmed?.evidence.reason).toBeUndefined();
+    // The three settings are this computer's: a project cannot hold them.
+    await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback: 'true' })).rejects.toThrow(/global/);
+    await expect(api.saveSettings('ManuscriptGuide', 'project', { speaker_fallback_max_quotes: '200' })).rejects.toThrow(/global/);
+    // A suggestion whose entry is deleted goes back to unknown at the next run, reason gone.
+    const other = createMockApi();
+    await other.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'true' });
+    await other.guideAttributeSpeakers();
+    const filled = (await other.guideDialogueCues()).find((cue) => cue.speaker_source === 'local-model')!;
+    await other.saveSettings('ManuscriptGuide', 'global', { speaker_fallback: 'false' });
+    await other.guideDelete(filled.speaker_entity_id!);
+    await other.guideAttributeSpeakers();
+    const orphan = (await other.guideDialogueCues()).find((cue) => cue.id === filled.id);
+    expect(orphan).toMatchObject({ speaker_entity_id: null, speaker_source: 'unknown' });
+    expect(orphan?.evidence.reason).toBeUndefined();
+    // The local model is never started from a scan.
+    expect((await api.extractionSources()).find((source) => source.id === 'local-model')).toMatchObject({ runs: false, available: true });
+  });
+
+  it("undo never restores a local model's suggestion: the reason is not kept, so the line goes back to unknown, as the host does", async () => {
+    const api = createMockApi();
+    await api.guideRestoreSpeakers([{ cueId: 'cue-1', speakerEntityId: 'alice', speakerSource: 'local-model' }]);
+    const cue = (await api.guideDialogueCues()).find((row) => row.id === 'cue-1');
+    expect(cue).toMatchObject({ speaker_entity_id: null, speaker_source: 'unknown' });
+    expect(cue?.evidence.reason).toBeUndefined();
+  });
+
+  it("the dialogue cues of some chapters are the whole book's cues, filtered", async () => {
+    const api = createMockApi();
+    const all = await api.guideDialogueCues();
+    const chapterId = all[0]?.chapterId ?? '';
+    const some = await api.guideDialogueCuesIn([chapterId, 'not-a-real-chapter']);
+    expectMatches(guideDialogueCuesSchema, some, 'mock dialogue cues of some chapters');
+    expect(some.length).toBeGreaterThan(0);
+    expect(some).toEqual(all.filter((cue) => cue.chapterId === chapterId));
+    expect(await api.guideDialogueCuesIn([])).toEqual([]);
+  });
+
   it('attributing speakers fills only unconfirmed lines, reports what moved, and a re-run changes nothing', async () => {
     const api = createMockApi();
     const cueOf = async (id: string) => (await api.guideDialogueCues()).find((cue) => cue.id === id);
@@ -1706,6 +1794,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(voice).toMatchObject({ outcome: 'selected', trackGuid: created.voice.guid });
   });
 
+  it("ChapterTrackCreate is refused while the DAW records a take, in the host's words: the Audio engine panel offers no create that REAPER would turn away (walkthrough 2)", async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', daw: { transport: { playing: true, recording: true, position: 12 } } });
+    const chapters = await ownChapters(api);
+    const refused = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, refused, 'mock chapter track create, DAW recording');
+    expect(refused).toMatchObject({ outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' });
+  });
+
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
     const api = createMockApi({}, { reaperState: 'no_link' });
     const chapters = await ownChapters(api);
@@ -1739,6 +1835,61 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
       expect(refused.outcome).toBe('refused');
     }
+  });
+
+  it('ChapterCreateOptions lists nothing to choose for a flat project, and the known voices and Extras for a Voice folders project (#3748)', async () => {
+    const flat = createMockApi({}, { reaperState: 'no_link' });
+    const none = await flat.chapterCreateOptions();
+    expectMatches(chapterCreateOptionsSchema, none, 'mock chapter create options, flat');
+    expect(none).toMatchObject({ folders: false, voices: [] });
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    await api.voiceTracksSetCharacters('Dragon 🐉', ['dragon']);
+    const options = await api.chapterCreateOptions();
+    expectMatches(chapterCreateOptionsSchema, options, 'mock chapter create options, folders');
+    expect(options).toMatchObject({
+      folders: true,
+      narrator: 'Narrator',
+      voices: [{ name: 'Dragon 🐉', checked: true }],
+      extras: { name: 'Extras', checked: true },
+    });
+  });
+
+  it('ChapterTrackCreate with a choice makes the folder with the Narrator, the chosen voices and Extras in order, and the next options remember it (#3748)', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    await api.voiceTracksSetCharacters('Dragon', ['dragon']);
+    await api.voiceTracksSetCharacters('Mara', ['mara']);
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id, { voices: ['Mara'], extras: true });
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, folder with a choice');
+    if (created.outcome !== 'created') throw new Error('expected a created folder');
+    expect(created.children?.map((child) => child.name)).toEqual(['Narrator', 'Mara', 'Extras']);
+    const live = await api.tracksLive();
+    const folder = live.project.tracks.find((track) => track.guid === created.track.guid);
+    const names = live.project.tracks
+      .filter((track) => (folder?.index ?? -1) < track.index && track.index <= (folder?.index ?? -1) + 3)
+      .map((track) => track.name);
+    expect(names).toEqual(['Narrator', 'Mara', 'Extras']);
+    const options = await api.chapterCreateOptions();
+    expect(options.voices).toEqual([
+      { name: 'Dragon', checked: false },
+      { name: 'Mara', checked: true },
+    ]);
+  });
+
+  // Walkthrough: the mock marks the Extras track as the host does, so the Booth cannot arm it; a project that gives characters to Extras keeps it a voice.
+  it('a created Extras is marked not-a-voice in the project, unless the project gives characters to a track called Extras (#3748)', async () => {
+    const kept = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const keptChapters = await ownChapters(kept);
+    await kept.chapterTrackCreate(keptChapters[1].id);
+    expect((await kept.voiceTracksGet()).notVoiceGuids).toEqual([]);
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    await api.voiceTracksSetCharacters('Extras', []);
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id);
+    if (created.outcome !== 'created') throw new Error('expected a created folder');
+    const extras = created.children?.find((child) => child.name === 'Extras');
+    expect(extras).toMatchObject({ notVoice: true });
+    expect((await api.voiceTracksGet()).notVoiceGuids).toEqual([extras?.guid.toLowerCase()]);
   });
 
   it('the ChapterTrackCreate answer in a Voice folders project: a folder with a Narrator, both in the live track list at once', async () => {
@@ -3881,6 +4032,29 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await off.dawArmBoothVoice('c-0001')).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
   });
 
+  it('dawSoloChapter and dawSoloRestore: the host goldens parse, and the mock solos one chapter, refuses as the host does and restores without the switch', async () => {
+    for (const name of ['daw-solo-chapter-done.json', 'daw-solo-chapter-refused.json', 'daw-solo-restore-done.json', 'daw-solo-restore-refused.json'])
+      expectMatches(dawResultSchema, readGolden(name), name);
+    const api = createMockApi({}, { daw: {} });
+    expect(await api.dawSoloChapter('c-0001')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawSoloChapter('c-0001')).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
+    expect(await api.dawSoloChapter('c-0002')).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawSoloRestore()).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(await api.dawSoloRestore()).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
+
+    expect(readGolden('daw-solo-restore-refused.json')).toEqual({
+      ok: false,
+      changed: false,
+      message: SOLO_LEFT_SENTENCE,
+      undoSteps: 0,
+      refused: SOLO_LEFT_SENTENCE,
+    });
+    const off = createMockApi({}, { daw: { reachable: false } });
+    const refused = await off.dawSoloChapter('c-0001');
+    expect(refused.ok).toBe(false);
+    expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.follow_position.message);
+  });
+
   it('dawTransportSync and daw_position_changed: the host goldens parse, every key is required, and the mock answers and streams as the host does', async () => {
     for (const name of ['daw-position-playing.json', 'daw-position-recording.json', 'daw-position-stopped-other-project.json'])
       expectMatches(dawPositionSchema, readGolden(name), name);
@@ -4500,6 +4674,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     const listed = await api.pickupsList();
     expectMatches(pickupListSchema, listed, 'mock pickups list');
+    // The open count is the list's own count: the golden's against the merged golden, the mock's against its list.
+    const hostCount = pickupsOpenCountSchema.parse(readGolden('pickups-open-count.json'));
+    expect(hostCount.open).toBe(merged.pickups.filter((pickup) => pickup.done !== true).length);
+    const counted = await api.pickupsOpenCount();
+    expectMatches(pickupsOpenCountSchema, counted, 'mock pickups open count');
+    expect(counted.open).toBe(listed.pickups.filter((pickup) => !pickup.done).length);
     expect(listed.pickups.map((pickup) => pickup.source)).toEqual(['speech', 'speech', 'audio']);
     const added = await api.pickupsAdd('chapter-1', 12, '  A line read again  ');
     expectMatches(pickupListSchema, added, 'mock pickups add');
@@ -4589,6 +4769,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'voiceTracksSetLayout',
       'voiceTracksSetCharacters',
       'voiceTracksSetNarrator',
+      'voiceTracksSetNotAVoice',
       'boothVoiceSet',
       'boothVoiceGet',
       'boothVoiceAdd',
@@ -4664,6 +4845,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideDeleteAll',
       'guidePreview',
       'guideDialogueCues',
+      'guideDialogueCuesIn',
       'guideAttributeSpeakers',
       'guideRestoreSpeakers',
       'guidePronunciationRestore',
@@ -4721,6 +4903,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackMapList',
       'chapterTrackSet',
       'chapterTrackCreate',
+      'chapterCreateOptions',
+      'chapterCreateDefaultSet',
       'chapterFoldersCheck',
       'chapterFoldersRepair',
       'chapterTrackUnlink',
@@ -4744,6 +4928,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pickupsCount',
       'pickupsState',
       'pickupsList',
+      'pickupsOpenCount',
       'pickupsAdd',
       'pickupsRemove',
       'pickupsSetIncluded',
@@ -4797,6 +4982,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawGoToChapter',
       'dawArmBoothVoice',
       'dawReleaseBoothMonitor',
+      'dawSoloChapter',
+      'dawSoloRestore',
       'dawTransportSync',
       'workspaceWordTimes',
       'subscribeDawProjectEdited',
@@ -6511,6 +6698,10 @@ describe('the voice tracks bindings', () => {
     ]);
     const narrator = await api.voiceTracksSetNarrator('alice');
     expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
+    const marked = await api.voiceTracksSetNotAVoice('{AAAAAAAA-0000-4000-8000-000000000010}', true);
+    expectMatches(voiceTracksStateSchema, marked, 'mock voice tracks not a voice');
+    expect(marked.notVoiceGuids).toEqual(['{aaaaaaaa-0000-4000-8000-000000000010}']);
+    expect((await api.voiceTracksSetNotAVoice('{AAAAAAAA-0000-4000-8000-000000000010}', false)).notVoiceGuids).toEqual([]);
     expect((await api.voiceTracksSetCharacters('Queen', [])).tracks.map((entry) => entry.track)).toEqual(['Gardeners']);
   });
 
@@ -6564,6 +6755,23 @@ describe('the voice tracks bindings', () => {
     await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
     expect(await api.boothVoiceGet(first)).toEqual({ outcome: 'selected', trackGuid: '{V01CE-EXTRAS}' });
     expect((await api.boothVoiceGet(second)).trackGuid).not.toBe('{V01CE-EXTRAS}');
+  });
+
+  it('a child marked as not a voice is refused in the mock Booth, and the chapter rows say so, through the schemas', async () => {
+    const [first] = WIRE_CHAPTERS.map((chapter) => chapter.id);
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
+    await api.voiceTracksSetNotAVoice('{V01CE-EXTRAS}', true);
+    const refused = await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
+    expectMatches(boothVoiceSchema, refused, 'mock booth voice (marked child)');
+    expect(refused.reason).toBe('not_a_voice');
+    expect((await api.boothVoiceGet(first)).trackGuid).not.toBe('{V01CE-EXTRAS}');
+    const members = (await api.chapterTrackLinks()).chapters.find((row) => row.chapterId === first)?.members ?? [];
+    expect(members.find((member) => member.guid === '{V01CE-EXTRAS}')).toMatchObject({ isVoice: false, notAVoice: true });
+    await api.voiceTracksSetNotAVoice('{V01CE-EXTRAS}', false);
+    expect((await api.boothVoiceSet(first, '{V01CE-EXTRAS}')).outcome).not.toBe('refused');
+    const unmarked = (await api.chapterTrackLinks()).chapters.find((row) => row.chapterId === first)?.members ?? [];
+    expect(unmarked.find((member) => member.guid === '{V01CE-EXTRAS}')?.notAVoice).toBe(false);
   });
 
   it("the Booth's voice add: a child of the chapter's folder, listed as added until saved, chosen, refused as the host refuses, each through the schema", async () => {

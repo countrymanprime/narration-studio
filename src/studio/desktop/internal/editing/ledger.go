@@ -90,7 +90,7 @@ type ItemStaleness struct {
 // one item, or a different one, is never a match for this item) and
 // compares its fingerprint, analyzer version and parameter hash against
 // in's current ones.
-func CurrentItemRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion, paramHash string, in ItemScopeInput) (ItemStaleness, error) {
+func CurrentItemRecord(ledger evidence.LedgerReader, analyzerID, analyzerVersion, paramHash string, in ItemScopeInput) (ItemStaleness, error) {
 	records, err := ledger.List(analyzerID, in.ChapterID)
 	if err != nil {
 		return ItemStaleness{}, err
@@ -108,6 +108,16 @@ func CurrentItemRecord(ledger *evidence.LedgerStore, analyzerID, analyzerVersion
 // scopesOneItem reports whether scope names exactly one item, key (ItemScopeInput.scopeKey).
 func scopesOneItem(scope evidence.LedgerScope, key string) bool {
 	return len(scope.ItemGUIDs) == 1 && scope.ItemGUIDs[0] == key
+}
+
+// ItemRetentionKey is the evidence.RetentionKey of a per-item record (AnalyzerSilence, AnalyzerClick, AnalyzerBreath):
+// the one item its scope names, since CurrentItemRecord takes the newest complete record that scopesOneItem matches. A
+// record whose scope names no item or several is one CurrentItemRecord never matches, and has no group.
+func ItemRetentionKey(record evidence.LedgerRecord) (string, bool) {
+	if len(record.Scope.ItemGUIDs) != 1 {
+		return "", false
+	}
+	return record.Scope.ItemGUIDs[0], true
 }
 
 // scopeKeys hands out the names the items of one chapter give their records. An item's GUID is its name, so every record written before

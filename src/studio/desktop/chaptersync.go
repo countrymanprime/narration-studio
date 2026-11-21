@@ -9,6 +9,7 @@ import (
 
 	"desktop/internal/chaptermatch"
 	"desktop/internal/chaptersync"
+	"desktop/internal/coverage"
 	"desktop/internal/evidence"
 	"desktop/internal/project"
 	"desktop/internal/tracks"
@@ -123,7 +124,9 @@ type chapterSyncPreview struct {
 type chapterSyncRuns struct{ mu sync.Mutex }
 
 // ChapterSyncState reads the consent, whether to ask, and the last sync. It only reads.
-func (h *Host) ChapterSyncState() (string, error) { return encodeBinding(h.chapterSyncState()) }
+func (h *Host) ChapterSyncState() (string, error) {
+	return h.sharedRead("ChapterSyncState", func() (string, error) { return encodeBinding(h.chapterSyncState()) })
+}
 
 // ChapterSyncPreview plans a sync without writing anything: the consent dialog's preview.
 func (h *Host) ChapterSyncPreview() (string, error) { return encodeBinding(h.chapterSyncPreview()) }
@@ -310,6 +313,10 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 	}
 	check := in.svc.coverage
 	alignment := coverageSettings(in.svc.settings).Alignment
+	var pass coverage.Pass
+	if check != nil {
+		pass = check.Pass() // one listing of the ledger answers every chapter
+	}
 	for _, chapter := range in.chapters {
 		row := chapterSyncChapter{ChapterID: chapter.ID, ChapterTitle: chapter.Title, Freshness: string(evidence.StateNever), Reasons: []string{}}
 		if link, ok := linkOf[chapter.ID]; ok {
@@ -326,7 +333,8 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 		}
 		if check != nil {
 			row.Checking = check.Checking(chapter.ID)
-			if result, err := check.ResultIn(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
+			// The row reads the check's state, reasons and time, none of which is in the stored result: none is decoded.
+			if result, _, err := pass.Summary(in.parsedProject, projectFile, chapter.ID, alignment); err == nil {
 				row.Freshness = string(result.State)
 				if result.Reasons != nil {
 					row.Reasons = result.Reasons

@@ -20,7 +20,7 @@ import { removeFromMyDictionary, saveToMyDictionary } from '../../../../studio/c
 import type { Result } from '../../../../studio/journal/createJournal';
 import * as commands from './scriptCommands';
 import type { LineRange, ScriptCommandEnv } from './scriptCommands';
-import { createScriptData, type Loadable, type ScriptData, type ScriptDataState } from './scriptData';
+import { createScriptData, failedRead, type Loadable, type ScriptData, type ScriptDataState } from './scriptData';
 import { createScriptView, type ScriptView, type ScriptViewState } from './scriptView';
 import * as select from './script.selectors';
 import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
@@ -95,7 +95,24 @@ const NO_MARKS: Mark[] = [];
 const NO_PREP: ScriptPrepChapter[] = [];
 const NO_ENTRIES: GuideEntity[] = [];
 const NO_GUIDE_TYPES: GuideType[] = [];
-const NO_CUES: GuideDialogueCue[] = [];
+
+/** The cues of every chapter read so far as one read: failed when a chapter's read failed, loading while one runs. */
+function allCues(byChapter: ScriptDataState['cues']): Loadable<GuideDialogueCue[]> {
+  const held = Object.values(byChapter);
+  const value = held.flatMap((chapter) => chapter.value ?? []);
+  const failed = held.find((chapter) => chapter.status === 'error');
+  if (failed?.status === 'error') return { status: 'error', message: failed.message, value };
+  return { status: held.some((chapter) => chapter.status === 'loading') ? 'loading' : 'ready', value };
+}
+
+/** A chapter's dialogue cues, asked for in one call with the other chapters wanted in the same tick. */
+export function useChapterCues(chapterId: string): ReadView<GuideDialogueCue[]> {
+  const { data } = useScriptHost();
+  const loaded = useData(data, (state) => state.cues[chapterId]);
+  useEffect(() => data.ensureCues(chapterId), [data, chapterId]);
+  const retry = useCallback(() => void data.loadCues([chapterId]), [data, chapterId]);
+  return useMemo(() => view(loaded, retry), [loaded, retry]);
+}
 
 export type MarksView = ReadView<Marks> & {
   types: MarkType[];
@@ -192,7 +209,7 @@ export function useEntries(): EntriesView {
 }
 
 export type SpeakersView = ReadView<GuideDialogueCue[]> & {
-  /** Every cue the Story Bible found, for a page that draws the quotes itself. */
+  /** The cues read so far (those of the chapters the reader has drawn), for a page that draws the quotes itself. */
   cues: GuideDialogueCue[];
   phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.Phrase[];
   unattributed: (chapterId: string) => number;
@@ -200,15 +217,15 @@ export type SpeakersView = ReadView<GuideDialogueCue[]> & {
   candidates: GuideEntity[];
 };
 
-/** Quoted phrases and their speakers, from the Story Bible's dialogue cues and entries. */
+/** Quoted phrases and their speakers, from the Story Bible's entries and the dialogue cues of the chapters read so far (`useChapterCues` reads them). */
 export function useSpeakers(): SpeakersView {
   const { data } = useScriptHost();
-  const cues = useData(data, (state) => state.cues);
+  const byChapter = useData(data, (state) => state.cues);
+  const cues = useMemo(() => allCues(byChapter), [byChapter]);
   const entries = useEntries();
-  useEffect(() => data.ensure('cues'), [data]);
-  const retry = useCallback(() => void data.load('cues'), [data]);
+  const retry = useCallback(() => void data.loadCues(), [data]);
   return useMemo(() => {
-    const list = cues?.value ?? NO_CUES;
+    const list = cues.value ?? [];
     const candidates = select.speakerCandidates(entries.entries, entries.types);
     const named = cueSpeakerEntries(entries.entries, entries.types);
     return {
@@ -219,6 +236,16 @@ export function useSpeakers(): SpeakersView {
       candidates,
     };
   }, [cues, retry, entries.entries, entries.types]);
+}
+
+/**
+ * Every read of the page's cache as one, for the page to say a failure of any of them: the host's sentence while a read stands failed
+ * (other reads still running do not hide it), and a Retry that reads again each read that failed.
+ */
+export function useFailedReads(): Pick<ReadView<unknown>, 'message' | 'retry'> {
+  const { data } = useScriptHost();
+  const message = useData(data, failedRead);
+  return useMemo(() => ({ message, retry: data.retryFailed }), [data, message]);
 }
 
 /** The chapter card's facts line, from the marks, the Story Bible's names and the phrases with no speaker. */
@@ -405,11 +432,14 @@ export function useScriptCommands() {
       async attributeSpeakers() {
         const done = said(await commands.attributeSpeakers(env));
         if (!done) return false;
-        const { filled, changed, keptConfirmed } = done.value;
+        const { filled, changed, keptConfirmed, modelFilled, modelNote } = done.value;
         const moved = filled + changed;
         const kept = keptConfirmed ? ` ${formatCount(keptConfirmed)} confirmed ${pluralWord(keptConfirmed, 'line')} left as they were.` : '';
-        if (moved === 0) overlay.toast(`No new speakers found.${kept}`);
-        else undoOffer(`Attributed ${plural(moved, 'line')}.${kept}`, done.entryId);
+        // The model's count follows the lines it is a part of, before the confirmed ones, so "of them" has one reading.
+        const model = modelFilled ? ` The local model suggested ${formatCount(modelFilled)} of them.` : '';
+        const note = modelNote ? ` ${modelNote}` : '';
+        if (moved === 0) overlay.toast(`No new speakers found.${kept}${note}`);
+        else undoOffer(`Attributed ${plural(moved, 'line')}.${model}${kept}${note}`, done.entryId);
         return true;
       },
       confirmSpeaker: async (cueId: string, entryId: string) => said(await commands.confirmSpeaker(env, cueId, entryId)) !== null,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
+import { cueSuggestionReason, suggestionReasonLine } from '../manuscript/dialogueCues.selectors';
 import { attributeCue, UNKNOWN_SPEAKER } from '../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../studio/StudioProvider';
 import { usePendingAction } from '../../hooks/usePendingAction';
@@ -79,31 +80,40 @@ export function DialogueCueAttribution({
     <div>
       <div className="mb-1.5 text-[0.82rem] font-medium text-[var(--text-muted)]">Dialogue cues</div>
       <ul className="space-y-1.5">
-        {relevant.map((cue) => (
-          <InsetCard as="li" key={cue.id}>
-            <p className="text-sm">“{cue.quote_text}”</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {cue.corrected ? 'Corrected' : cue.speaker_source === 'unknown' ? 'Unattributed' : 'Attributed'}
-              </span>
-              {readOnly ? (
-                cue.speaker_entity_id && (
-                  <span className="text-sm">
-                    {speakerOptions.find((option) => option.value === (cue.speaker_entity_id ?? UNKNOWN_SPEAKER))?.label ?? 'Unknown'}
-                  </span>
-                )
-              ) : (
-                <Select
-                  label={`Speaker for “${cue.quote_text}”`}
-                  value={cue.speaker_entity_id ?? UNKNOWN_SPEAKER}
-                  disabled={mutation.isBusy}
-                  onChange={(value) => void correct(cue, value)}
-                  options={speakerOptions}
-                />
+        {relevant.map((cue) => {
+          // A reason explains a suggested speaker: none for a line whose entry is gone or no longer speaks.
+          const reason = speakerOptions.some((option) => option.value === cue.speaker_entity_id) ? cueSuggestionReason(cue) : undefined;
+          return (
+            <InsetCard as="li" key={cue.id}>
+              <p className="text-sm">“{cue.quote_text}”</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {cue.corrected ? 'Corrected' : cue.speaker_source === 'unknown' ? 'Unattributed' : 'Attributed'}
+                </span>
+                {readOnly ? (
+                  cue.speaker_entity_id && (
+                    <span className="text-sm">
+                      {speakerOptions.find((option) => option.value === (cue.speaker_entity_id ?? UNKNOWN_SPEAKER))?.label ?? 'Unknown'}
+                    </span>
+                  )
+                ) : (
+                  <Select
+                    label={`Speaker for “${cue.quote_text}”`}
+                    value={cue.speaker_entity_id ?? UNKNOWN_SPEAKER}
+                    disabled={mutation.isBusy}
+                    onChange={(value) => void correct(cue, value)}
+                    options={speakerOptions}
+                  />
+                )}
+              </div>
+              {reason && (
+                <p className="mt-1 text-xs break-words" style={{ color: 'var(--text-muted)' }}>
+                  {suggestionReasonLine(reason)}
+                </p>
               )}
-            </div>
-          </InsetCard>
-        ))}
+            </InsetCard>
+          );
+        })}
       </ul>
     </div>
   );

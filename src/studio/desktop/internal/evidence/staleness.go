@@ -201,7 +201,7 @@ func ComputeChapterFingerprint(items []tracks.Item, identify SourceIdentifier) (
 // into one comparable string for LedgerItemFact, so a merely-touched source
 // file is never mistaken for a replaced one.
 func sourceIdentitySummary(identity SourceIdentity) string {
-	return hashParts(identity.Path, strconv.FormatInt(identity.Size, 10), identity.PartialHash)
+	return HashParts(identity.Path, strconv.FormatInt(identity.Size, 10), identity.PartialHash)
 }
 
 // EvaluateFingerprints is the evaluator's pure comparison: given the
@@ -385,7 +385,7 @@ func BuildBasis(projectFile LedgerProjectFile, newestRecordTime, newestSourceMod
 // req.ChapterID), and returns the EvaluatorResult plus the EvaluationBasis
 // every result states. It reads the ledger and mapping stores; it never writes
 // to either.
-func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEvaluationRequest) (EvaluatorResult, EvaluationBasis, error) {
+func EvaluateChapter(ledger LedgerReader, mapping MappingReader, req ChapterEvaluationRequest) (EvaluatorResult, EvaluationBasis, error) {
 	recordTime, err := newestRecordTime(ledger, req.ChapterID)
 	if err != nil {
 		return EvaluatorResult{}, EvaluationBasis{}, err
@@ -459,7 +459,7 @@ func singleMappingFor(links []TrackMapping, chapterID string) (TrackMapping, boo
 // whose Outcome is LedgerComplete - ledger.List already sorts newest first,
 // so this is the first complete one, skipping any newer partial or failed
 // run (a partial or failed run is never read as current).
-func latestCompleteRecord(ledger *LedgerStore, analyzerID, chapterID string) (LedgerRecord, bool, error) {
+func latestCompleteRecord(ledger LedgerReader, analyzerID, chapterID string) (LedgerRecord, bool, error) {
 	records, err := ledger.List(analyzerID, chapterID)
 	if err != nil {
 		return LedgerRecord{}, false, err
@@ -477,22 +477,26 @@ func latestCompleteRecord(ledger *LedgerStore, analyzerID, chapterID string) (Le
 // analyzer's record for chapterID, for the basis warning - deliberately not
 // scoped to one analyzer, since any recorded evidence after the last save is
 // what the warning cares about, not only the one analyzer currently asking.
-func newestRecordTime(ledger *LedgerStore, chapterID string) (time.Time, error) {
+func newestRecordTime(ledger LedgerReader, chapterID string) (time.Time, error) {
 	records, err := ledger.List("", chapterID)
 	if err != nil {
 		return time.Time{}, err
 	}
 	var newest time.Time
 	for _, record := range records {
-		at := record.CompletedAt
-		if at.IsZero() {
-			at = record.StartedAt
-		}
-		if at.After(newest) {
+		if at := recordEnd(record); at.After(newest) {
 			newest = at
 		}
 	}
 	return newest, nil
+}
+
+// recordEnd is when a record's run ended: CompletedAt, or StartedAt for a run that recorded no end.
+func recordEnd(record LedgerRecord) time.Time {
+	if record.CompletedAt.IsZero() {
+		return record.StartedAt
+	}
+	return record.CompletedAt
 }
 
 // itemKeys hands out the keys items are stored under in a LedgerFingerprint's maps: an item's GUID, so every record written before this

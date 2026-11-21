@@ -364,6 +364,15 @@ func RecordRenderMeasurements(ledger *evidence.LedgerStore, store *RenderStore, 
 	return written, nil
 }
 
+// RenderMeasurementRetentionKey is the evidence.RetentionKey of a render measurement record
+// (AnalyzerRenderMeasurement): its payload's RenderKey, since EvaluateRender takes the newest record of any outcome
+// whose RenderKey is the chosen render's. A record whose payload does not decode is one it passes over, and has no
+// group.
+func RenderMeasurementRetentionKey(record evidence.LedgerRecord) (string, bool) {
+	payload, ok := decodeRenderMeasurement(record)
+	return payload.RenderKey, ok
+}
+
 func decodeRenderMeasurement(record evidence.LedgerRecord) (RenderMeasurementPayload, bool) {
 	var payload RenderMeasurementPayload
 	if len(record.Payload) == 0 || json.Unmarshal(record.Payload, &payload) != nil {

@@ -23,6 +23,8 @@ type Args = {
   listening: boolean;
   refreshRecorded: () => void;
   seek: (paragraphId: string, word: number) => void;
+  /** Puts the reading somewhere without choosing it as the start. */
+  place: (paragraphId: string, word: number) => void;
   setOpened: (opened: OpenedResume | null) => void;
   /** The place is back (or there was none). */
   onReturned: () => void;
@@ -45,6 +47,7 @@ export function useChapterResume({
   listening,
   refreshRecorded,
   seek,
+  place,
   setOpened,
   onReturned,
 }: Args): void {
@@ -59,12 +62,13 @@ export function useChapterResume({
     const start = resumeStart({ paragraphs, explicit, recorded: recordedThrough, kept });
     const opened = openedResume(start);
     if (start.place && opened) {
-      seek(start.place.paragraphId, start.place.word);
+      // The resume point (where the recording ends) is not a choice: the take continues from there. A place the chapter was left at is the narrator's own.
+      (start.reason === 'recorded' ? place : seek)(start.place.paragraphId, start.place.word);
       setOpened(opened);
     }
     setBack(true);
     onReturned();
-  }, [back, returnTo, chapter, unitCount, paragraphs, projectFolder, explicit, recordedThrough, seek, setOpened, onReturned]);
+  }, [back, returnTo, chapter, unitCount, paragraphs, projectFolder, explicit, recordedThrough, seek, place, setOpened, onReturned]);
 
   // A take just ended (its listening session stopped): how far each chapter is recorded is read again, so a chapter the narrator comes
   // back to opens where this take ended.

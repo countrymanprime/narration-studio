@@ -224,7 +224,6 @@ export const settingsDrivers: Record<string, Driver> = {
   'recording-advanced': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);
-    await page.getByRole('table', { name: /^What .* can do$/ }).waitFor();
     await page.getByLabel('REAPER program', { exact: true }).waitFor();
   },
   'recording-chapter-layout': async (page) => {
@@ -236,6 +235,26 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Recording & DAW', '?mockVoiceFolders=1');
     const row = await showSettingsRow(page, 'daw.voices');
     await row.getByRole('table', { name: /^Voices of / }).waitFor();
+  },
+  'recording-new-chapter-folder': async (page) => {
+    // The mock project assigns no voice but Extras, so the host's answer is set to the cast a real project has: three voices, all ticked (the default, so the row is not Changed).
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterCreateOptions: async () => ({
+          folders: true,
+          narrator: 'Narrator',
+          voices: [
+            { name: 'White Rabbit', checked: true },
+            { name: 'Alice', checked: true },
+            { name: 'Cheshire Cat', checked: true },
+          ],
+          extras: { name: 'Extras', checked: true },
+        }),
+      };
+    });
+    await openSettings(page, 'Recording & DAW', '?mockVoiceFolders=1');
+    const row = await showSettingsRow(page, 'daw.newChapter');
+    await row.getByRole('group', { name: 'Tracks in the new folder' }).waitFor();
   },
   'recording-reaper-path-invalid': async (page) => {
     await openSettings(page, 'Recording & DAW');
@@ -434,6 +453,30 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText(/^Imported .* words$/).waitFor();
     await page.getByRole('button', { name: 'Replace manuscript…' }).waitFor();
   },
+  // The local model for unknown speakers, turned on: the three rows of its section at the top of the page area.
+  'project-unknown-speakers': async (page) => {
+    await openSettings(page, 'Project');
+    const row = await showSettingsRow(page, 'project.speakerFallback');
+    const toggle = row.getByRole('switch', { name: /Ask a local model about unknown speakers/ });
+    await expect(toggle).toBeEnabled();
+    await toggle.click();
+    await expect(toggle).toBeChecked();
+    await page.locator('[data-row="project.speakerFallbackLines"]').waitFor();
+  },
+  // No local model is installed, as in the app today: the switch and the two rows it governs are off, each with the host's reason.
+  'project-unknown-speakers-no-model': async (page) => {
+    await openSettings(page, 'Project', '?mockLocalModel=none');
+    const row = await showSettingsRow(page, 'project.speakerFallback');
+    await expect(row.getByRole('switch', { name: 'Ask a local model about unknown speakers:' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByText('No local model is installed.')).toHaveCount(3);
+  },
+  // Entry types with the colour box of Place opened: its swatches in a popover over the row.
+  'project-type-colour': async (page) => {
+    await openSettings(page, 'Project');
+    await showSettingsRow(page, 'project.types');
+    await page.getByRole('button', { name: /^Colour for Place: / }).click();
+    await page.getByRole('radiogroup', { name: 'Colour for Place' }).waitFor();
+  },
   manuscript: async (page) => {
     await openSettings(page, 'Project');
     await page.getByText(/^Imported .* words$/).waitFor();
@@ -592,6 +635,12 @@ export const settingsDrivers: Record<string, Driver> = {
   app: async (page) => {
     await openSettings(page, 'App & updates');
     await page.getByText('Not checked yet.').waitFor();
+  },
+  'app-capabilities': async (page) => {
+    await openSettings(page, 'App & updates');
+    const row = await showSettingsRow(page, 'daw.capabilities');
+    await row.getByRole('button', { name: 'See what each tool can do' }).click();
+    await page.getByRole('table', { name: 'What the recording tools can do' }).waitFor();
   },
   'app-diagnostics': async (page) => {
     await openSettings(page, 'App & updates');

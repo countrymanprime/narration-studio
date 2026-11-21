@@ -47,12 +47,27 @@ describe('OnlinePronunciationLookup', () => {
   it('shows the dictionary’s suggestions for a word it does not have', async () => {
     await setup('quorlen');
     await userEvent.click(screen.getByRole('button', { name: 'Look up online: quorlen in Merriam-Webster' }));
-    expect(await screen.findByText('Merriam-Webster does not have “quorlen”. It suggests: quorum, sorrel.')).toBeTruthy();
+    // The word sits in its own clamped span now, so the sentence is read from the paragraph's text.
+    expect(
+      await screen.findByText(
+        (_, element) => element?.tagName === 'P' && element.textContent === 'Merriam-Webster does not have “quorlen”. It suggests: quorum, sorrel.',
+      ),
+    ).toBeTruthy();
   });
 
   it('tells the narrator to add their own key first', async () => {
     await setup('Alice', { key: false });
     await userEvent.click(screen.getByRole('button', { name: 'Look up online: Alice in Merriam-Webster' }));
     expect(await screen.findByText('Add your own free Merriam-Webster key in Settings > Story Bible first.')).toBeTruthy();
+  });
+});
+
+describe('OnlinePronunciationLookup: a long name stays one line in its sentences (#3382 g)', () => {
+  it('the quoted name has the whole name as its tooltip and the sentence keeps its ending', async () => {
+    const long = 'W'.repeat(10_000);
+    await setup(long);
+    const quoted = screen.getByTitle(long);
+    expect(quoted.className).toContain('truncate');
+    expect(quoted.closest('[data-quoted-name]')?.parentElement?.textContent).toContain('alone to Merriam-Webster, on your own key.');
   });
 });

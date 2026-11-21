@@ -113,9 +113,9 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 	// A chapter the recording reaches part way carries recordedThrough, given the lengths the same payload carries; one with nothing recorded carries none.
 	var given map[string]RecordedLength
 	var asked []string
-	service.SetRecordedThrough(func(ids []string, lengths map[string]RecordedLength) map[string]recordedthrough.Through {
+	service.SetRecordedThrough(func(ids []string, lengths map[string]RecordedLength) (map[string]recordedthrough.Through, map[string]float64) {
 		given, asked = lengths, ids
-		return map[string]recordedthrough.Through{first: {ParagraphID: "p-000002", Paragraph: 2, Word: 3, Percent: 62, Source: recordedthrough.SourceBooth, Confident: true}}
+		return map[string]recordedthrough.Through{first: {ParagraphID: "p-000002", Paragraph: 2, Word: 3, Percent: 62, Source: recordedthrough.SourceBooth, Confident: true}}, nil
 	})
 	through, err := service.Chapters()
 	if err != nil {

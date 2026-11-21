@@ -114,8 +114,9 @@ var eventSpecs = map[string]eventSpec{
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later
 	// optional for the same reason; the script also sends a heartbeat at once when playState changes. timing is 1 while the
 	// bridge timing diagnostic is switched on in REAPER (the host then writes its record-press timeline, internal/presstimeline),
-	// and absent otherwise.
-	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition"), count("timing")}},
+	// and empty or absent otherwise. tracksRevision is the script's one value for the track list (#3859), any text: the host only compares it
+	// with the one TRACKS_READ carried, and a script from before it sends none.
+	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition"), count("timing"), text("tracksRevision")}},
 	// src/studio/integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
 	// action-list name REAPER matched (so the narrator sees what opened).
 	"CLEANUP_LAUNCHED": {required: []fieldSpec{text("run"), text("tool"), text("action")}},
@@ -155,9 +156,11 @@ var eventSpecs = map[string]eventSpec{
 	// opens no undo block.
 	"TRACK_SELECTED": {required: []fieldSpec{text("run"), text("guid")}},
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
-	// was given, in one undo point. A chapter folder (#2840) appends its one child: optional, so a plain track's answer, and an older
-	// script's, still reads.
+	// was given, in one undo point. A chapter folder (#2840) appends its first child: optional, so a plain track's answer, and an older
+	// script's, still reads. The children after the first (#3748) are TRACK_CHILD lines before it.
 	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}, optional: []fieldSpec{text("childGuid"), count("childIndex"), text("childName")}},
+	// track_create with several children (#3748): each child after the first, in the order asked for, before TRACK_CREATED.
+	"TRACK_CHILD": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
 	// chapter_folders (narration_track_create.lua, #2838): each track whose folder a move of nested chapters out of another chapter's
 	// folder changes (the folders' GUIDs and names, '' for the top level), then the closing line with how many chapters move;
 	// FOLDERS_STALE when the moves are not the ones confirmed, so nothing was written.
@@ -167,7 +170,7 @@ var eventSpecs = map[string]eventSpec{
 	"FOLDERS_STALE":    {required: []fieldSpec{text("run")}},
 	// tracks_read (narration_tracks_read.lua): the open project's track list as REAPER has it now, saved or not, read-only. rpp is empty
 	// for a project never saved; one TRACKS_ROW per track (folderDelta is I_FOLDERDEPTH), then TRACKS_READ_END (listed, and the total).
-	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}},
+	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}, optional: []fieldSpec{text("tracksRevision")}},
 	"TRACKS_ROW":      {required: []fieldSpec{text("run"), count("index"), text("guid"), text("name"), count("folderDelta")}},
 	"TRACKS_READ_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	// arm_only, arm_lane, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
@@ -182,6 +185,11 @@ var eventSpecs = map[string]eventSpec{
 	// arm_lane with monitor adds monitored (0 or 1: this call turned the lane's input monitoring on). monitor_restore (narration_monitor.lua):
 	// how many lanes' monitoring it put back and kept; waiting is 1 when REAPER was recording, so the rest is put back after the stop.
 	"MONITOR_RESTORED": {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("waiting")}},
+	// solo_chapter and solo_restore (narration_solo_chapter.lua, #3428): the chapter's folder track soloed in place (changed 0 when the narrator had it
+	// soloed already) and how many chapters were put back and kept; waiting is 1 when REAPER was recording or playing an isolated track, so the rest
+	// is done on REAPER's first tick after. A track that is gone answers TRACK_STALE.
+	"CHAPTER_SOLOED": {required: []fieldSpec{text("run"), text("guid"), count("changed"), count("waiting")}},
+	"SOLO_RESTORED":  {required: []fieldSpec{text("run"), count("restored"), count("kept"), count("waiting")}},
 	// switch_voice (narration_transport.lua, docs/research/2026-10-30-booth-sub-track-recording.md section 6b): the voice track
 	// REAPER records on now and the play position of the switch.
 	"VOICE_SWITCHED": {required: []fieldSpec{text("run"), text("guid"), number("at")}},

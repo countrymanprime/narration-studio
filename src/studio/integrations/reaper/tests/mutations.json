@@ -440,20 +440,98 @@
   {
     "name": "the heartbeat drops the edit counter",
     "file": "narration_ui_bridge.lua",
-    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)",
-    "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', '', play_state, play_position)"
+    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '', revision)",
+    "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', '', play_state, play_position, timing and '1' or '', revision)"
   },
   {
     "name": "the heartbeat drops the transport",
     "file": "narration_ui_bridge.lua",
-    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)",
+    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '', revision)",
     "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count)"
+  },
+  {
+    "name": "the heartbeat drops the track list revision",
+    "file": "narration_ui_bridge.lua",
+    "find": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '', revision)",
+    "replace": "ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, timing and '1' or '')"
+  },
+  {
+    "name": "a track list change waits out the heartbeat interval",
+    "file": "narration_ui_bridge.lua",
+    "find": "if not due and revision == last_revision then",
+    "replace": "if not due then"
+  },
+  {
+    "name": "the revision is read on every tick, not only when the edit counter moved",
+    "file": "narration_ui_bridge.lua",
+    "find": "(due or moved) then",
+    "replace": "true then"
+  },
+  {
+    "name": "the edit counter may ask for the revision on every tick",
+    "file": "narration_ui_bridge.lua",
+    "find": "(now - revision_read_at) >= M.REVISION_MIN_SECONDS)",
+    "replace": "(now - revision_read_at) >= 0)"
+  },
+  {
+    "name": "a revision that cannot be read keeps the last one",
+    "file": "narration_ui_bridge.lua",
+    "find": "revision = ok and value or ''",
+    "replace": "revision = ok and value or last_revision"
+  },
+  {
+    "name": "an edit inside the wait is forgotten when the wait ends",
+    "file": "narration_ui_bridge.lua",
+    "find": "      last_change_count, revision_read_at = change_count, now\n    end\n",
+    "replace": "      revision_read_at = now\n    end\n    last_change_count = change_count\n"
+  },
+  {
+    "name": "a revision that cannot be read stops the heartbeat",
+    "file": "narration_ui_bridge.lua",
+    "find": "local ok, value = pcall(registry.tracks_revision)",
+    "replace": "local ok, value = true, registry.tracks_revision()"
+  },
+  {
+    "name": "the revision leaves out how many tracks there are",
+    "file": "narration_tracks_read.lua",
+    "find": "  mix(tostring(count))\n",
+    "replace": ""
+  },
+  {
+    "name": "tracks_read drops the track list revision",
+    "file": "narration_tracks_read.lua",
+    "find": "reaper.GetProjectStateChangeCount(0), revision())",
+    "replace": "reaper.GetProjectStateChangeCount(0))"
+  },
+  {
+    "name": "the revision leaves out the track names",
+    "file": "narration_tracks_read.lua",
+    "find": "    mix(name or '')\n",
+    "replace": ""
+  },
+  {
+    "name": "the revision leaves out the folder depths",
+    "file": "narration_tracks_read.lua",
+    "find": "    mix(tostring(math.floor(depth)))\n",
+    "replace": ""
+  },
+  {
+    "name": "the revision leaves out the track GUIDs",
+    "file": "narration_tracks_read.lua",
+    "find": "    mix(normalize_guid(reaper.GetTrackGUID(track)))\n",
+    "replace": ""
+  },
+  {
+    "name": "the revision has no separator between its fields",
+    "file": "narration_tracks_read.lua",
+    "find": "    hash = hash * 0x100000001b3 + 256\n",
+    "replace": ""
   },
   {
     "name": "a transport change waits out the heartbeat interval",
     "file": "narration_ui_bridge.lua",
-    "find": " and play_state == last_play_state then",
-    "replace": " then"
+    "find": " or play_state ~= last_play_state",
+    "replace": ""
   },
   {
     "name": "a moving play position breaks the heartbeat throttle",
@@ -2650,16 +2728,46 @@
     "replace": ""
   },
   {
-    "name": "a chapter folder's Narrator child leaves the folder open",
+    "name": "a chapter folder's last child leaves the folder open",
     "file": "narration_track_create.lua",
-    "find": "  reaper.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)\n",
-    "replace": ""
+    "find": "position == #child_names and -1 or 0",
+    "replace": "0"
   },
   {
     "name": "a chapter folder is inserted first instead of last",
     "file": "narration_track_create.lua",
     "find": "  local folder, index = core.append_track()",
     "replace": "  reaper.InsertTrackAtIndex(0, false)\n  local folder, index = reaper.GetTrack(0, 0), 0"
+  },
+  {
+    "name": "a chapter folder's second child closes the folder before the last",
+    "file": "narration_track_create.lua",
+    "find": "position == #child_names and -1 or 0",
+    "replace": "position >= 2 and -1 or 0"
+  },
+  {
+    "name": "a chapter folder accepts a blank child name",
+    "file": "narration_track_create.lua",
+    "find": "    if child_name == '' then\n      return nil, BLANK_CHILD\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a chapter folder accepts two children with the same name",
+    "file": "narration_track_create.lua",
+    "find": "    if seen[key] then\n      return nil, SAME_CHILD\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a chapter folder's further children are one track named with every name",
+    "file": "narration_track_create.lua",
+    "find": "    for line in (more_text .. '\\n'):gmatch('([^\\n]*)\\n') do\n      texts[#texts + 1] = line\n    end\n",
+    "replace": "    texts[#texts + 1] = more_text\n"
+  },
+  {
+    "name": "a chapter folder with a blank first child and more names adds a plain track",
+    "file": "narration_track_create.lua",
+    "find": " or more_text ~= '' then",
+    "replace": " then"
   },
   {
     "name": "a chapter folder's child gets no name",
@@ -3180,8 +3288,8 @@
   {
     "name": "the heartbeat never says the timing diagnostic is on",
     "file": "narration_ui_bridge.lua",
-    "find": "    if timing then\n      ctx.event('PROJECT_STATUS'",
-    "replace": "    if false then\n      ctx.event('PROJECT_STATUS'"
+    "find": "play_position, timing and '1' or '', revision)",
+    "replace": "play_position, '', revision)"
   },
   {
     "name": "an unknown track read option is read as the one-track read",
@@ -4052,6 +4160,372 @@
     "file": "narration_track_state.lua",
     "find": "        guids[#guids + 1] = normalize_guid(reaper.GetTrackGUID(track))",
     "replace": "        guids = { normalize_guid(reaper.GetTrackGUID(track)) }"
+  },
+  {
+    "name": "a folder the narrator soloed is soloed again and put back as if it were ours",
+    "file": "narration_solo_chapter.lua",
+    "find": "    local needs = reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == 0",
+    "replace": "    local needs = true"
+  },
+  {
+    "name": "the chapter is soloed with a different value than solo in place",
+    "file": "narration_solo_chapter.lua",
+    "find": "      reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', SOLO_IN_PLACE)\n      return 1",
+    "replace": "      reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', 1)\n      return 1"
+  },
+  {
+    "name": "a solo the narrator changed meanwhile is put back anyway",
+    "file": "narration_solo_chapter.lua",
+    "find": "    elseif reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == SOLO_IN_PLACE then",
+    "replace": "    elseif true then"
+  },
+  {
+    "name": "a restore writes a value other than the one the chapter had",
+    "file": "narration_solo_chapter.lua",
+    "find": "reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)\n      restored = restored + 1",
+    "replace": "reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', 1)\n      restored = restored + 1"
+  },
+  {
+    "name": "the solo is written while REAPER records",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if recording() then\n      return true\n    end\n    local take",
+    "replace": "    local take"
+  },
+  {
+    "name": "the solo is written while a record_start waits for REAPER",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if take ~= nil and not take.started then\n      return true\n    end",
+    "replace": "    if false then\n      return true\n    end"
+  },
+  {
+    "name": "the solo is read and written under a play's isolation",
+    "file": "narration_solo_chapter.lua",
+    "find": "    return registry.transport_isolated ~= nil and registry.transport_isolated()",
+    "replace": "    return false"
+  },
+  {
+    "name": "a leftover play isolation is not put back before the solo ledger",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if registry.transport_recover then\n      registry.transport_recover()\n    end\n    local input = io.open(ledger_path(), 'r')",
+    "replace": "    local input = io.open(ledger_path(), 'r')"
+  },
+  {
+    "name": "a ledger row with a value other than 0 is accepted from the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "local guid = line:match('^([^\\t]+)\\t0$')",
+    "replace": "local guid = line:match('^([^\\t]+)\\t%-?%d+$')"
+  },
+  {
+    "name": "the chapter is soloed although its ledger cannot be written",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if needs and not mine and not written then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "a chapter already on the ledger is not soloed again when the ledger cannot be rewritten",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if needs and not mine and not written then",
+    "replace": "    if needs and not written then"
+  },
+  {
+    "name": "entering the chapter again loses its own row",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        others[#others + 1] = row",
+    "replace": "      if false then\n        mine = row\n      else\n        others[#others + 1] = row"
+  },
+  {
+    "name": "moving to another chapter leaves the earlier chapter soloed",
+    "file": "narration_solo_chapter.lua",
+    "find": "    local _, _, left = put_back(others)\n    if #left > 0 then",
+    "replace": "    local left = others\n    if #left > 0 then"
+  },
+  {
+    "name": "a restore that waited for a recording is never finished",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if state.waiting then\n      state.waiting = false\n      release()",
+    "replace": "    if false then\n      state.waiting = false\n      release()"
+  },
+  {
+    "name": "a solo that waited is never applied",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if state.pending and not (state.unsaved and (state.wait or 0) > 0) then\n      local track = find_track(state.pending)",
+    "replace": "    if false then\n      local track = find_track(state.pending)"
+  },
+  {
+    "name": "a restore does not drop a solo that is waiting",
+    "file": "narration_solo_chapter.lua",
+    "find": "    state.pending = nil\n    if busy() then\n      state.waiting = #state.rows > 0",
+    "replace": "    if busy() then\n      state.waiting = #state.rows > 0"
+  },
+  {
+    "name": "a solo does not drop a restore that is waiting",
+    "file": "narration_solo_chapter.lua",
+    "find": "    state.waiting = false\n    if busy() then\n      state.pending = guid",
+    "replace": "    if busy() then\n      state.pending = guid"
+  },
+  {
+    "name": "the tick touches the solos while REAPER records",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if busy() then\n      return\n    end\n    state.in_tick = true",
+    "replace": "    state.in_tick = true"
+  },
+  {
+    "name": "a restore runs before a leftover ledger is read",
+    "file": "narration_solo_chapter.lua",
+    "find": "  local function release()\n    recover()",
+    "replace": "  local function release()"
+  },
+  {
+    "name": "a solo runs before a leftover ledger is read",
+    "file": "narration_solo_chapter.lua",
+    "find": "  local function apply(track)\n    recover()",
+    "replace": "  local function apply(track)"
+  },
+  {
+    "name": "the ledger the running bridge wrote is read back as a leftover",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if state.recovered then\n      return\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "the ledger grows without a bound",
+    "file": "narration_solo_chapter.lua",
+    "find": "    while #state.ghosts > 0 and #state.rows + #state.ghosts > MAX_ROWS do",
+    "replace": "    while false do"
+  },
+  {
+    "name": "ghosts are never tried again on a tick",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if place ~= state.tried then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "a row whose track is not there is dropped from the ledger",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if not track then\n      left[#left + 1] = row",
+    "replace": "    if not track then\n      kept = kept"
+  },
+  {
+    "name": "a failed write of the ledger is reported as written",
+    "file": "narration_solo_chapter.lua",
+    "find": "  return out:close() and written and true or false",
+    "replace": "  return true"
+  },
+  {
+    "name": "a ledger that could not be written is never written again",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if state.unsaved then\n      if (state.wait or 0) <= 0 then",
+    "replace": "    if false then\n      if (state.wait or 0) <= 0 then"
+  },
+  {
+    "name": "a ledger that cannot be written is opened on every tick",
+    "file": "narration_solo_chapter.lua",
+    "find": "      state.wait = state.misses <= 1 and 0 or math.min(2 ^ (state.misses - 2), MAX_RETRY_WAIT)",
+    "replace": "      state.wait = 0"
+  },
+  {
+    "name": "a track that is gone is soloed as if it were there",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if not track then\n      -- A chapter that is gone",
+    "replace": "    if false then\n      -- A chapter that is gone"
+  },
+  {
+    "name": "a play isolation is reported as not in place",
+    "file": "narration_transport.lua",
+    "find": "  registry.transport_isolated = function()\n    return state.isolated ~= nil",
+    "replace": "  registry.transport_isolated = function()\n    return false"
+  },
+  {
+    "name": "a leftover row is put back with a value the chapter never had",
+    "file": "narration_solo_chapter.lua",
+    "find": "rows[#rows + 1] = { guid = guid, was = 0 }",
+    "replace": "rows[#rows + 1] = { guid = guid, was = 1 }"
+  },
+  {
+    "name": "a stale answer leaves the chapter that waited for the take pending",
+    "file": "narration_solo_chapter.lua",
+    "find": "      state.pending = nil\n      -- ... and the chapter soloed before",
+    "replace": "      -- ... and the chapter soloed before"
+  },
+  {
+    "name": "a stale answer leaves the chapter soloed before in place",
+    "file": "narration_solo_chapter.lua",
+    "find": "      else\n        release()\n      end\n      event(ctx.session_dir, 'TRACK_STALE'",
+    "replace": "      else\n      end\n      event(ctx.session_dir, 'TRACK_STALE'"
+  },
+  {
+    "name": "a chapter whose project is switched away from is never moved to the ghosts",
+    "file": "narration_solo_chapter.lua",
+    "find": "        if #away > 0 then",
+    "replace": "        if false then"
+  },
+  {
+    "name": "a save leaves the chapter soloed in the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if #state.rows == 0 then\n      save()\n      return true\n    end",
+    "replace": "    if true then\n      save()\n      return true\n    end"
+  },
+  {
+    "name": "a save does not put the chapter back before it writes",
+    "file": "narration_solo_chapter.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)\n        lifted",
+    "replace": "        lifted"
+  },
+  {
+    "name": "a save does not solo the chapter again after it",
+    "file": "narration_solo_chapter.lua",
+    "find": "        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', SOLO_IN_PLACE)\n      end\n    end\n    if not ok then",
+    "replace": "      end\n    end\n    if not ok then"
+  },
+  {
+    "name": "save_project does not go through the solo",
+    "file": "narration_save_project.lua",
+    "find": "  if registry.solo_around_save then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "a ghost entered again stays a ghost beside its live row",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if row.guid == guid then\n        mine = row\n      else\n        kept_ghosts",
+    "replace": "      if false then\n        mine = row\n      else\n        kept_ghosts"
+  },
+  {
+    "name": "a solo is written on top of a play isolation found after the first command",
+    "file": "narration_solo_chapter.lua",
+    "find": "    -- A play's isolation released while another project was in front is put back before this file writes a solo on top of it (idempotent).\n    if registry.transport_recover then\n      registry.transport_recover()\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a ledger that cannot be written is answered as a solo that was already in place",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if not kept then\n      event(ctx.session_dir, 'ERROR', run, NO_LEDGER)\n      return\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a waiting solo whose ledger cannot be written is dropped",
+    "file": "narration_solo_chapter.lua",
+    "find": "        if kept then\n          state.pending = nil\n        end",
+    "replace": "        state.pending = nil"
+  },
+  {
+    "name": "a ledger file that cannot be removed is reported as removed",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if left then\n      left:close()\n      return false\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a stale answer writes a solo while REAPER records or a play isolates",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if busy() then\n        state.waiting = #state.rows > 0\n      else\n        release()\n      end\n      event(ctx.session_dir, 'TRACK_STALE'",
+    "replace": "      release()\n      event(ctx.session_dir, 'TRACK_STALE'"
+  },
+  {
+    "name": "a stale answer during a take forgets the restore that waits",
+    "file": "narration_solo_chapter.lua",
+    "find": "        state.waiting = #state.rows > 0\n      else\n        release()",
+    "replace": "        state.waiting = false\n      else\n        release()"
+  },
+  {
+    "name": "a chapter whose ledger cannot be written leaves the chapter before soloed",
+    "file": "narration_solo_chapter.lua",
+    "find": "      local _, _, away = put_back(before)",
+    "replace": "      local away = {}"
+  },
+  {
+    "name": "a waiting solo whose track is gone leaves the chapter before soloed",
+    "file": "narration_solo_chapter.lua",
+    "find": "        state.pending = nil\n        release()\n",
+    "replace": "        state.pending = nil\n"
+  },
+  {
+    "name": "a restore does not recover a play isolation first",
+    "file": "narration_solo_chapter.lua",
+    "find": "  local function release()\n    recover()\n    if registry.transport_recover then\n      registry.transport_recover()\n    end\n",
+    "replace": "  local function release()\n    recover()\n"
+  },
+  {
+    "name": "a save before the first tick leaves a leftover chapter soloed in the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "    -- A leftover a closed REAPER left is put back first, so the file does not hold it either.\n    recover()\n",
+    "replace": ""
+  },
+  {
+    "name": "a save while the bridge is busy writes the chapter's solo into the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if reads_ours(state.rows) or reads_ours(state.ghosts) or state.pending ~= nil or unread then\n        return false, SAVE_WHILE_BUSY\n      end\n",
+    "replace": ""
+  },
+  {
+    "name": "a save whose write raises leaves the chapter put back",
+    "file": "narration_solo_chapter.lua",
+    "find": "    local ok, err = pcall(save)",
+    "replace": "    local ok, err = true, save()"
+  },
+  {
+    "name": "a save lifts a chapter the narrator unsoloed or changed",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if track and reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == SOLO_IN_PLACE then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)",
+    "replace": "      if track then\n        reaper.SetMediaTrackInfo_Value(track, 'I_SOLO', row.was)"
+  },
+  {
+    "name": "a restore recovers the play isolation only after it writes",
+    "file": "narration_solo_chapter.lua",
+    "find": "  local function release()\n    recover()\n    if registry.transport_recover then\n      registry.transport_recover()\n    end\n    local restored, kept, left = put_back(state.rows)",
+    "replace": "  local function release()\n    recover()\n    local restored, kept, left = put_back(state.rows)\n    if registry.transport_recover then\n      registry.transport_recover()\n    end"
+  },
+  {
+    "name": "a save that raises is not answered as refused",
+    "file": "narration_solo_chapter.lua",
+    "find": "      return false, tostring(err)",
+    "replace": "      return true"
+  },
+  {
+    "name": "a refused save answers as saved",
+    "file": "narration_save_project.lua",
+    "find": "    if saved == false then\n      event(session_dir, 'ERROR', run_id, why)\n      return\n    end",
+    "replace": "    if false then\n      return\n    end"
+  },
+  {
+    "name": "a write is attempted twice in one tick after a failure",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if state.in_tick and state.tick_wrote and state.unsaved then\n      return false\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a save during a wait ignores whether the chapter still reads our solo",
+    "file": "narration_solo_chapter.lua",
+    "find": "      local track = find_track(row.guid)\n      if track and reaper.GetMediaTrackInfo_Value(track, 'I_SOLO') == SOLO_IN_PLACE then\n        return true\n      end",
+    "replace": "      local track = find_track(row.guid)\n      if track then\n        return true\n      end"
+  },
+  {
+    "name": "a save under a play isolation ignores a solo that waits",
+    "file": "narration_solo_chapter.lua",
+    "find": "reads_ours(state.ghosts) or state.pending ~= nil or unread",
+    "replace": "reads_ours(state.ghosts) or unread"
+  },
+  {
+    "name": "a save during a wait ignores a leftover ledger not looked at yet",
+    "file": "narration_solo_chapter.lua",
+    "find": "reads_ours(state.ghosts) or state.pending ~= nil or unread",
+    "replace": "reads_ours(state.ghosts) or state.pending ~= nil"
+  },
+  {
+    "name": "a save leaves a ghost that is back in front soloed in the file",
+    "file": "narration_solo_chapter.lua",
+    "find": "    if #state.ghosts > 0 then\n      local _, _, away = put_back(state.ghosts)\n      if #away ~= #state.ghosts then",
+    "replace": "    if false then\n      local _, _, away = put_back(state.ghosts)\n      if #away ~= #state.ghosts then"
+  },
+  {
+    "name": "a save while the bridge is busy ignores a ghost that still reads our solo",
+    "file": "narration_solo_chapter.lua",
+    "find": "      if reads_ours(state.rows) or reads_ours(state.ghosts) or state.pending ~= nil or unread then",
+    "replace": "      if reads_ours(state.rows) or state.pending ~= nil or unread then"
+  },
+  {
+    "name": "the retry wait of a ledger that cannot be written never counts down",
+    "file": "narration_solo_chapter.lua",
+    "find": "        state.wait = state.wait - 1",
+    "replace": "        state.wait = state.wait"
   },
   {
     "name": "track_create turns monitoring on over a value already set",

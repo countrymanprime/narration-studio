@@ -178,11 +178,10 @@ export function createMockApi(
   const { manuscriptReady: textReady, hasImported: manuscriptImported } = manuscript;
   // A Voice folders project's Chapter 1 also has a line Alice speaks, and no voice records her: the Booth's "No track" row and the
   // speaker "Who is in Num N?" ticks (#2839). The cue is placed in the loaded text, so the manuscript is ready only once it is in.
-  const manuscriptReady = initial.voiceFolders
-    ? textReady.then(() => {
-        s.dialogueCues = [...s.dialogueCues, ...aliceSpeaks(s.paragraphs)];
-      })
-    : textReady;
+  const manuscriptReady = textReady.then(() => {
+    s.dialogueCues = placedInText(s.dialogueCues, s.paragraphs);
+    if (initial.voiceFolders) s.dialogueCues = [...s.dialogueCues, ...aliceSpeaks(s.paragraphs)];
+  });
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
   // Every read of the chapter list holds the credits (a credits file is a chapter): the Production overview, the pages and the host agree.
   const chaptersWithCredits = async () => credits.withCreditsChapters(await manuscript.bindings.manuscriptChapters());
@@ -195,19 +194,35 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     proofNotes: () => proofNotes.read(),
   });
+  const voiceMarks = { markNotVoice: (_guid: string) => {} };
+  const notVoiceMarks: { current: string[] } = { current: [] };
   const voiceTracks = createVoiceTracksMock(
     initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'], guids: [] }] } : undefined,
+    notVoiceMarks,
+    voiceMarks,
   );
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
     voiceLayout: async () => (await voiceTracks.voiceTracksGet()).layout,
+    markNotVoice: (guid) => voiceMarks.markNotVoice(guid),
+    knownVoices: async () => (await voiceTracks.voiceTracksGet()).tracks.map((assignment) => assignment.track),
+    notVoiceGuids: () => notVoiceMarks.current,
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
+    dawRecording: () => dawControl.recording(),
   });
   const merges = createMergeEvents();
-  const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges);
-  const { clearSuggestions, ...extraction } = createExtractionMock(endJob);
+  // The local model's settings as the host reads them: this computer's value only, never a project's.
+  const guideSetting = (key: string) => settings.settings.global.ManuscriptGuide?.find((item) => item.key === key)?.effectiveValue ?? '';
+  const storyBible = createStoryBibleMock(s, initial, manuscriptReady, assets, merges, () => {
+    const lines = Number(guideSetting('speaker_fallback_max_quotes'));
+    return {
+      on: initial.localModel !== 'none' && guideSetting('speaker_fallback') === 'true',
+      maxLines: Number.isInteger(lines) && lines >= 1 && lines <= 200 ? lines : 20,
+    };
+  });
+  const { clearSuggestions, ...extraction } = createExtractionMock(endJob, initial.localModel === 'none' ? 'none' : 'installed');
   const character = createCharacterMock(s);
   const mockStartedAt = Date.now();
   const teleprompter = createTeleprompterMock({
@@ -372,6 +387,11 @@ export function createMockApi(
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
+  // `?mockCuesRead=fails`: the read of the dialogue cues of the chapters a reader draws fails, so Script says so and offers Retry.
+  if (initial.cuesRead === 'fails')
+    storyBible.bindings.guideDialogueCuesIn = async () => {
+      throw new Error('The dialogue cues could not be read from this project.');
+    };
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
   const { saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
@@ -586,8 +606,10 @@ export function createMockApi(
     ...audacityLink,
     ...createHideTakesMock(daw, workspaceTakes),
     // The credits are recorded like a chapter and the host's DawRoll finds their track as it does a chapter's (readaloudreaper.go).
-    ...createRollMock(daw, (chapterId) =>
-      manuscriptReady.then(() => /^credits-(opening|closing)$/.test(chapterId) || s.chapters.some((chapter) => chapter.id === chapterId)),
+    ...createRollMock(
+      daw,
+      (chapterId) => manuscriptReady.then(() => /^credits-(opening|closing)$/.test(chapterId) || s.chapters.some((chapter) => chapter.id === chapterId)),
+      () => dawControl.recording() && !dawControl.ownTake(),
     ),
     ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createFxRangeMock(
@@ -717,7 +739,7 @@ const refusedResult = (sentence: string): DawResult => ({ ok: false, changed: fa
 
 /** DawRoll as bindings_daw_roll.go answers it: the punch capability's sentence first, then the time, the chapter (one the manuscript
  * does not have rejects), and the confirmation where punch is destructive; then what the launch's DAW answers a roll. */
-function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>): DawRollApi {
+function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string) => Promise<boolean>, recordingNotOurs: () => boolean): DawRollApi {
   return {
     dawRoll: async (chapterId, at, confirmed) => {
       const setup = await daw.dawCapabilities();
@@ -726,6 +748,8 @@ function createRollMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: string)
       if (!Number.isFinite(at) || at < 0) return refusedResult(DAW_ANSWERS.rollBadTime);
       if (!(await hasChapter(chapterId))) throw new Error('that chapter is not part of the current manuscript');
       if (support.destructive && !confirmed) return refusedResult(DAW_ANSWERS.rollConfirm);
+      // The bridge rolls only a take it started.
+      if (recordingNotOurs()) return refusedResult('REAPER is not recording anything this app started, so nothing was rolled.');
       const rolled = rolledOf(setup, at);
       return { ok: true, changed: true, message: rolled.message, undoSteps: rolled.undoSteps };
     },
@@ -1122,6 +1146,30 @@ function createBackupsMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: stri
 }
 
 /** Alice's "and even if my head would go through," in Chapter 1, attributed to her, as a cue the Booth reads as one line. */
+/**
+ * The fixture cues, each on a paragraph of the loaded text. A cue whose paragraph the loaded book does not have in its chapter (the
+ * demo book numbers its paragraphs differently from the fixture) moves to the paragraph that holds its words, so the line the rules
+ * leave unknown is a line the reader draws. One whose words the book does not have stays as it was.
+ */
+function placedInText(cues: readonly GuideDialogueCue[], paragraphs: readonly ManuscriptParagraph[]): GuideDialogueCue[] {
+  return cues.map((cue) => {
+    if (paragraphs.some((each) => each.id === cue.paragraphId && each.chapterId === cue.chapterId)) return cue;
+    const words = cue.quote_text.replace(/[.,!?]+$/, '');
+    const paragraph = paragraphs.find((each) => each.text.includes(words));
+    if (!paragraph) return cue;
+    const start = paragraph.text.indexOf(words);
+    return {
+      ...cue,
+      chapterId: paragraph.chapterId,
+      paragraphId: paragraph.id,
+      quote_start: start,
+      quote_end: start + words.length,
+      quote_text: words,
+      evidence: { ...cue.evidence, chapterId: paragraph.chapterId, paragraphId: paragraph.id, excerpt: words },
+    };
+  });
+}
+
 function aliceSpeaks(paragraphs: readonly ManuscriptParagraph[]): GuideDialogueCue[] {
   const words = 'and even if my head would go through,';
   const paragraph = paragraphs.find((each) => each.chapterId === 'chapter-1' && each.text.includes(words));

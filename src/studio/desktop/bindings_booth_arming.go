@@ -11,8 +11,8 @@ import (
 	"desktop/internal/dawport"
 )
 
-// boothArmTimeout bounds one arm or one release: a single quick request to the DAW, as a move to a chapter is.
-const boothArmTimeout = placeTimeout
+// boothArmTimeout bounds one release: a release the DAW has read is waited for, as a move to a chapter is.
+const boothArmTimeout = writeCommandTimeout
 
 // followChapterSetting reports whether Booth.follow_chapter_in_daw is on (it is by default): the one switch for the DAW following the chapter the
 // narrator works on, which includes arming the Booth's voice and turning its input monitoring on (#3428).
@@ -35,9 +35,17 @@ func followChapterSetting(svc hostServices) bool {
 // does not answer, or a track it no longer has, is refused with the sentence and nothing changed. It adds no undo step.
 func (h *Host) DawArmBoothVoice(chapterID string) (string, error) {
 	svc := h.services()
-	ctx, cancel := context.WithTimeout(context.Background(), boothArmTimeout)
+	ctx, cancel := boothArmContext()
 	defer cancel()
 	return encodeBinding(h.dawArmBoothVoiceIn(ctx, svc, recorderFrom(svc), chapterID))
+}
+
+// boothArmContext bounds the Booth's arm as a lane command, like a voice choice (laneCommandTimeout): REAPER may be slow to read the track
+// list or to arm, and an arm it has read is waited for, never reported as failed while it is still landing (#3752: on a link of 1.5 s the
+// old 3 s bound ran out in the track list read, and opening the Booth said "did not confirm within 3 seconds"). The page waits on nothing
+// for it. A REAPER that never reads the command still fails at the usual answer wait.
+func boothArmContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), laneCommandTimeout)
 }
 
 func (h *Host) dawArmBoothVoiceIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (dawport.Result, error) {
@@ -62,7 +70,11 @@ func armBoothVoiceLane(ctx context.Context, svc hostServices, name string, recor
 		// A chapter with no or several tracks has the setup notice the Booth already shows.
 		return dawport.Result{OK: true}, nil
 	}
-	target, noVoices, err := recordTarget(svc, chapterID, link)
+	project, err := liveSelectedProjectForLane(svc)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	target, noVoices, err := recordTargetIn(svc, chapterID, link, &project)
 	if err != nil {
 		return dawport.Result{}, err
 	}
@@ -181,6 +193,9 @@ func monitorUnreachableSentence(svc hostServices) string {
 
 // boothReleaseRefusal words a failed release on leaving the Booth (monitor_restore answers only MONITOR_RESTORED or an error, never a stale track): what failed (putting the input monitoring back), that it may still be on and what to do.
 func boothReleaseRefusal(name string, err error) string {
+	if errors.Is(err, bridge.ErrAnswerLate) {
+		return fmt.Sprintf("%s took the command but did not confirm it in time, so your input monitoring may still be on. Check it in %s.", name, name)
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Sprintf("%s did not answer in time, so your input monitoring may still be on. Turn it off in %s.", name, name)
 	}

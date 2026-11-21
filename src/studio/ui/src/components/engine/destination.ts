@@ -4,7 +4,9 @@ import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackM
 import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 
 /** What the DAW made for a chapter, as `ChapterTrackCreate` answers: `voice` is the Narrator inside a new chapter folder, absent for a plain track. */
-export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice'> & { track: { name: string; index?: number } };
+export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice' | 'children' | 'message'> & {
+  track: { name: string; index?: number };
+};
 
 /** What a chapter's link points at, as far as the project's tracks say: nothing, a plain track, a folder with no voices, or a track they do not hold yet. */
 /** The one sentence for a link to a track the project does not hold; the host (linkGoneSentence in bindings_booth_voice.go) and the Booth mock say the same. */
@@ -14,7 +16,7 @@ export const LINK_GONE =
 /** The sentence while the project's tracks have not been read (the first read has not answered or failed): the chapter's link is not known to be missing. */
 const TRACKS_UNREAD = 'The tracks are still being read, so there is no voice to choose yet. Try again in a moment.';
 
-export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown' | 'unread';
+export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'marked' | 'unknown' | 'unread';
 
 /**
  * The words for where a chapter records, from the project's layout (the Voice folders setting): a chapter is a track in a flat project and a
@@ -71,12 +73,17 @@ export function destinationFor(layout: VoiceTracksLayout) {
     chipSeveral: { words: folders ? 'several folders' : 'several tracks', sentence: `this chapter is linked to several ${noun}s` },
     /**
      * A voice key pressed where no voice is listed, and why, by what the chapter is linked to: nothing (`none`), a track that is not a folder (`track`),
-     * a folder holding no voices yet (`empty`), or a track the project does not hold (`unknown`: deleted in the DAW, or a folder just made that is not saved yet), or tracks not read yet (`unread`).
+     * a folder holding no voices yet (`empty`), a folder whose every track is marked as not a voice (`marked`), or a track the project does not hold (`unknown`: deleted in the DAW, or a folder just made that is not saved yet), or tracks not read yet (`unread`).
      */
     noVoiceKeys: (link: ChapterLinkKind) => {
       // One sentence in either layout for a link to a track the project does not hold, as the host says it and the Engine panel's "Track missing" (#3269).
       if (link === 'unknown') return LINK_GONE;
       if (link === 'unread') return TRACKS_UNREAD;
+      // Every track of the linked folder turned off as not a voice: refused in either layout, naming the switch (#3828).
+      if (link === 'marked')
+        return folders
+          ? 'Every track in this chapter’s folder is turned off as not a voice, so there is no voice to choose. Turn one back on in the Voices card.'
+          : 'Every track in this chapter’s folder is turned off as not a voice, so there is nothing to record on. Turn one back on in the Voices card, or link the chapter to a track of its own.';
       if (!folders) return 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
       switch (link) {
         case 'none':
@@ -92,10 +99,18 @@ export function destinationFor(layout: VoiceTracksLayout) {
   };
 }
 
-/** What the DAW made, named as it was given: a folder with its Narrator, or the track; and that it is not saved yet. */
+/** The names of the tracks a new folder was made with, "Narrator, Alice and Extras", when it has more than the Narrator; null for a plain track or a folder with only its Narrator. */
+export function childNames(created: CreatedDestination): string | null {
+  const names = (created.children ?? []).map((child) => child.name);
+  if (names.length < 2) return null;
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** What the DAW made, named as it was given: a folder with its tracks (the Narrator, and the voices and Extras when it was made with them), or the track; that it is not saved yet; and, when the create was partly done, what is left. */
 export function createdSentence(created: CreatedDestination, chapter: string, dawName: string): string {
+  const named = childNames(created);
   const what = created.voice
-    ? `Folder “${readable(created.track.name, created.track.index)}” with a ${created.voice.name} track`
+    ? `Folder “${readable(created.track.name, created.track.index)}” with ${named ? `${named} tracks` : `a ${created.voice.name} track`}`
     : `Track “${readable(created.track.name, created.track.index)}”`;
-  return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.`;
+  return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.${created.message ? ` ${created.message}` : ''}`;
 }

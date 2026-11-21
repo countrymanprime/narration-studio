@@ -44,7 +44,7 @@ const claimOf = (session: BoothLeaveSession): Claim => (!(session.startedByApp ?
 /** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
 const LEAVE_ANYWAY_ARM_MS = 400;
 
-/** How long the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order); the stop has `LEAVE_STOP_WAIT_MS`. */
+/** How long the wait for a start, the end check and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order); a Stop already pressed and the stop have `LEAVE_STOP_WAIT_MS`. */
 export const LEAVE_WAIT_MS = 8000;
 /**
  * How long the stop itself is given: just above the page's own stop limit (`PRESS_LIMITS_MS.recordStop`), so the page's limit ends a stop that never answers first, with its
@@ -52,7 +52,7 @@ export const LEAVE_WAIT_MS = 8000;
  */
 export const LEAVE_STOP_WAIT_MS = PRESS_LIMITS_MS.recordStop + 1000;
 const STOPPING_TOPIC = 'booth-leave-stopping';
-const STOPPING_TOAST_MS = 2 * LEAVE_WAIT_MS + LEAVE_STOP_WAIT_MS + 1000;
+const STOPPING_TOAST_MS = LEAVE_WAIT_MS + 2 * LEAVE_STOP_WAIT_MS + 1000;
 /**
  * A DAW's own stop pushes its stopped transport before the stop's reply, so a take seen to end while this decision's stop is out is most likely that stop:
  * its reply (which writes the take's undo entry) is waited for this long before the end is believed on its own.
@@ -145,6 +145,11 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   // The DAW went quiet while the question about a running take was open, or answered again with a take of its own: what the question says is no longer true, so it is
   // asked again with what is (`decide` loops on `reask`). A take that merely ended with the DAW answering keeps the question: its Stop and leave then leaves (#3342).
   const claim = claimOf(session);
+  // The question about a take the app did not start says the DAW keeps recording: once that take has ended it is not true, and the narrator is no longer asked.
+  useEffect(() => {
+    const asked = open.current;
+    if (asked && asked.claim === 'foreign' && !recording && !asked.refusal) asked.close.abort();
+  }, [recording]);
   useEffect(() => {
     const asked = open.current;
     // A refusal already reports the DAW's last answer to a stop: it stays as it is.
@@ -213,13 +218,15 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
             return true;
           }
           // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS (the stop's within LEAVE_STOP_WAIT_MS), in the refusal question when it does not.
-          // Up for the whole of the waits (three: two at most LEAVE_WAIT_MS and the stop at most LEAVE_STOP_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
+          // Up for the whole of the waits (three: a Stop still out and the stop at most LEAVE_STOP_WAIT_MS each, the run at most LEAVE_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
           waiting.current = true;
           sayStopping();
           let sentence: string;
           try {
-            // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.
-            const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), LEAVE_WAIT_MS) : { value: true };
+            // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop. A stop the page
+            // already sent is out here too, and a slow DAW that has taken it is waited for as long as the stop itself (LEAVE_STOP_WAIT_MS).
+            const settleWait = now.startPending ? LEAVE_WAIT_MS : LEAVE_STOP_WAIT_MS;
+            const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), settleWait) : { value: true };
             if (gone.current) return false;
             if (!landed) sentence = noAnswerSentence(now.daw.name);
             // `landed.value` false is "no take is running now": for a start that was pending that is nothing to stop. For a take that was running when the

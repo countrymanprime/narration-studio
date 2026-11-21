@@ -32,8 +32,12 @@ const through = (over: Partial<RecordedThrough> = {}): RecordedThrough => ({
   ...over,
 });
 
-const withRecorded = (recorded: Record<string, RecordedThrough>): ManuscriptChapter[] =>
-  CHAPTERS.map((chapter) => (recorded[chapter.id] ? { ...chapter, recordedThrough: recorded[chapter.id] } : chapter));
+const withRecorded = (recorded: Record<string, RecordedThrough>, seconds: Record<string, number> = {}): ManuscriptChapter[] =>
+  CHAPTERS.map((chapter) =>
+    recorded[chapter.id]
+      ? { ...chapter, recordedThrough: recorded[chapter.id], ...(seconds[chapter.id] === undefined ? {} : { recordedSeconds: seconds[chapter.id] }) }
+      : chapter,
+  );
 
 function renderPage({ search = '?chapter=c1', api = pageApi() }: { search?: string; api?: NarrationApi } = {}) {
   return render(
@@ -148,6 +152,7 @@ describe('a chapter with a recording', () => {
     const subscribers = new Set<(state: TeleprompterState) => void>();
     const host = {
       recorded: through(),
+      seconds: undefined as number | undefined,
       held: false,
       stale: [] as Array<() => void>,
     };
@@ -157,7 +162,7 @@ describe('a chapter with a recording', () => {
         return () => subscribers.delete(on);
       },
       manuscriptChapters: () => {
-        const answer = withRecorded({ c1: host.recorded });
+        const answer = withRecorded({ c1: host.recorded }, host.seconds === undefined ? {} : { c1: host.seconds });
         return host.held ? new Promise<ManuscriptChapter[]>((resolve) => host.stale.push(() => resolve(answer))) : Promise.resolve(answer);
       },
     } as Partial<NarrationApi>);
@@ -198,5 +203,132 @@ describe('a chapter with a recording', () => {
     await act(async () => host.stale.forEach((release) => release()));
     await settle();
     expect(chip()).toBe('Recorded 80%');
+  });
+
+  // T1 (qa delta): the chapter's `recordedThrough` and its audio come from ONE read, so after the FIRST take of a chapter (the host still at 0% with 12 s on the track) the chip
+  // and the chapter list read 1% as Production does, not 0%: the refresh after a take replaces the audio with the through, never keeping the first read's audio.
+  it('reads 1% in the chip and the chapter list after the first take of a chapter (host 0 with audio on the track)', async () => {
+    const user = userEvent.setup();
+    const { api, host, take } = takeHost();
+    host.recorded = through({ percent: 0 });
+    host.seconds = 0;
+    renderPage({ api });
+    await waitFor(() => expect(chip()).toBe('Recorded 0%'));
+    host.seconds = 12;
+    await take();
+    await waitFor(() => expect(chip()).toBe('Recorded 1%'));
+    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    const items = await screen.findAllByRole('menuitemradio');
+    expect(items[0]!.querySelector('[data-chapter-detail]')?.textContent).toBe('1%');
+  });
+
+  // A host 100 that is not complete (mock-only) reads 99 on every Booth printer, as Production does.
+  it('reads 99% in the chip and the chapter list for a host 100 that is not complete', async () => {
+    const user = userEvent.setup();
+    const { api, host } = takeHost();
+    host.recorded = through({ percent: 100, complete: false });
+    renderPage({ api });
+    await waitFor(() => expect(chip()).toBe('Recorded 99%'));
+    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    const items = await screen.findAllByRole('menuitemradio');
+    expect(items[0]!.querySelector('[data-chapter-detail]')?.textContent).toBe('99%');
+  });
+});
+
+// One rule for where a take starts (#3858): a place the narrator chose wins; else where the recording ends; else the beginning. Record starts from the
+// cursor, and a lookup of the place is made only for a place that was chosen.
+describe('where Record starts, by entry and by how much of the chapter is recorded (#3858)', () => {
+  const FOUND = { outcome: 'found' as const, start: 12, end: 20 };
+  const punchApi = (recorded: Record<string, RecordedThrough> = {}) => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' as const }));
+    const api = pageApi({ manuscriptChapters: async () => withRecorded(recorded), boothPunchTarget, boothVoiceSet } as Partial<NarrationApi>);
+    return { api, boothPunchTarget };
+  };
+  const record = async () => {
+    await userEvent.keyboard(' ');
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+  };
+
+  it('partly recorded, opened at the resume point: Record continues with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('said'));
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
+  it('partly recorded, then a click elsewhere: Record looks that place up', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('said'));
+    act(() => void screen.getByText('walked').click());
+    await waitFor(() => expect(reading()).toBe('walked'));
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('partly recorded, a click elsewhere and then back to the resume point: Record continues with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('said'));
+    act(() => void screen.getByText('walked').click());
+    await waitFor(() => expect(reading()).toBe('walked'));
+    act(() => void screen.getByText('said').click());
+    await waitFor(() => expect(reading()).toBe('said'));
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
+  it('nothing recorded, opened at the beginning: Record starts there with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi();
+    renderPage({ search: '?chapter=c2', api });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    expect(reading()).toBe('Chapter');
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
+  it('nothing recorded, then a click: Record looks the clicked place up', async () => {
+    const { api, boothPunchTarget } = punchApi();
+    renderPage({ search: '?chapter=c2', api });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    act(() => void screen.getByText('day').click());
+    await waitFor(() => expect(reading()).toBe('day'));
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('a complete chapter opened at the place it was left: that place counts as chosen, so Record looks it up', async () => {
+    window.localStorage.setItem('narration.booth.chapterPlaces./proj', JSON.stringify({ c1: { paragraphId: 'p3', word: 3, at: 1 } }));
+    const { api, boothPunchTarget } = punchApi({ c1: through({ complete: true, percent: 100 }) });
+    renderPage({ api });
+    await waitFor(() => expect(document.body.textContent).toContain('She turned and walked away.'));
+    await waitFor(() => expect(reading()).not.toBe('Chapter'));
+    await settle();
+    boothPunchTarget.mockClear();
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('a complete chapter never left anywhere opens at the top: Record starts there with no lookup', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through({ complete: true, percent: 100 }) });
+    renderPage({ api });
+    await waitFor(() => expect(reading()).toBe('Chapter'));
+    await settle();
+    await record();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+  });
+
+  it('a link to a line (Record from here) wins over the recording: Record looks that line up', async () => {
+    const { api, boothPunchTarget } = punchApi({ c1: through() });
+    renderPage({ search: '?chapter=c1&para=p3&at=9', api });
+    await waitFor(() => expect(reading()).not.toBe('said'));
+    await settle();
+    // Opening at the line moves the DAW to where it was recorded (its own lookup); Record then looks the same place up once more.
+    boothPunchTarget.mockClear();
+    await record();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 });

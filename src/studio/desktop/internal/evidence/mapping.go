@@ -14,14 +14,17 @@
 package evidence
 
 import (
+	"bytes"
 	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"desktop/internal/chaptermatch"
@@ -153,8 +156,31 @@ func MappingFile(project string) string {
 type MappingStore struct {
 	path     string
 	mu       sync.Mutex
-	Reporter *persist.Reporter
+	Reporter *persist.Reporter // +checklocksignore: set once, before the store is used; read under mu by chance
 	now      func() time.Time
+	// last is the file as last decoded, with the bytes it was decoded from (readMappingFile); the zero value is nothing decoded yet.
+	// +checklocks:mu
+	last mappingRead
+	// decodes counts how often a read had to decode the file, for the tests of mappingRead.
+	decodes atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while mu is held
+	// reads counts how often the file was read, for the tests that guard what a pass over a book's chapters costs.
+	reads atomic.Int64 // +checklocksignore: an atomic
+}
+
+// mappingRead is a decoded mapping file and the bytes it came from. A chapter list asks for the links once or twice per chapter, and
+// each read decoded the whole file (#3768); a read still reads the file every time and decodes it only when its bytes differ, so
+// another writer's change is never missed.
+type mappingRead struct {
+	raw  []byte
+	file mappingFileShape
+}
+
+// copyOf is the decoded file with slices of its own: the store's writers sort, append to and filter them in place.
+// A link's Match pointer is shared with the kept decode: nothing writes through it.
+func (r mappingRead) copyOf() mappingFileShape {
+	file := r.file
+	file.Mappings, file.Rejected, file.Previous = slices.Clone(file.Mappings), slices.Clone(file.Rejected), slices.Clone(file.Previous)
+	return file
 }
 
 // NewMappingStore returns a MappingStore rooted at project's mapping file.
@@ -396,7 +422,7 @@ func (s *MappingStore) Carry(documentID string, carry CarryOver) error {
 // to, for a re-import to carry forward before resetDerived deletes it. A
 // missing or unreadable file carries nothing.
 func ReadCarryOver(project string) CarryOver {
-	decoded, ok := readMappingFile(nil, MappingFile(project))
+	decoded, ok := readMappingFile(nil, MappingFile(project), nil, nil)
 	if !ok {
 		return CarryOver{}
 	}
@@ -412,6 +438,50 @@ func (s *MappingStore) List(documentID string) ([]TrackMapping, error) {
 	defer s.mu.Unlock()
 	file := s.readLocked(documentID)
 	return append([]TrackMapping(nil), file.Mappings...), nil
+}
+
+// MappingReader is what an evaluation reads the confirmed links through: the store itself, or one MappingSnapshot shared by
+// a pass over many chapters.
+type MappingReader interface {
+	List(documentID string) ([]TrackMapping, error)
+}
+
+// MappingSnapshot is one document's confirmed links as one read of the file found them. A pass over every chapter of a book
+// takes one, where asking the store reads the file for every chapter (issue 3801). It is for one pass: a link made since is
+// not in it. Its links are shared between the pass's chapters: read them, never change them.
+type MappingSnapshot struct {
+	documentID string
+	links      []TrackMapping
+}
+
+// Snapshot reads documentID's links once.
+func (s *MappingStore) Snapshot(documentID string) MappingSnapshot {
+	links, _ := s.List(documentID) // List has no failing path: an unreadable file reads as no links
+	return MappingSnapshot{documentID: documentID, links: links}
+}
+
+// SnapshotWhenAsked is a reader that takes one Snapshot of documentID's links at its first question and answers every
+// later one from it. A view built before the narrator is asked something (a file picker) therefore reads the links as
+// they are when it is first used, not as they were when it was built.
+func (s *MappingStore) SnapshotWhenAsked(documentID string) MappingReader {
+	return askedMapping(sync.OnceValue(func() MappingSnapshot { return s.Snapshot(documentID) }))
+}
+
+type askedMapping func() MappingSnapshot
+
+func (asked askedMapping) List(documentID string) ([]TrackMapping, error) {
+	return asked().List(documentID)
+}
+
+// Reads is how often the store has read its file, for the tests that guard a read's cost (issue 3801).
+func (s *MappingStore) Reads() int64 { return s.reads.Load() }
+
+// List answers as MappingStore.List does for the document the snapshot was taken for; any other document has no links in it.
+func (snapshot MappingSnapshot) List(documentID string) ([]TrackMapping, error) {
+	if documentID != snapshot.documentID {
+		return nil, nil
+	}
+	return snapshot.links, nil
 }
 
 // Get returns trackGUID's confirmed link for documentID, if any.
@@ -438,8 +508,11 @@ func (s *MappingStore) clock() time.Time {
 // schema version, or a stored DocumentID that does not match documentID all
 // read as an empty shape for documentID - the same "unknown reads as
 // absent" rule LedgerStore.readRecord and CacheStore.readEnvelope follow.
+//
+// +checklocks:s.mu
 func (s *MappingStore) readLocked(documentID string) mappingFileShape {
-	decoded, ok := readMappingFile(s.Reporter, s.path)
+	s.reads.Add(1)
+	decoded, ok := readMappingFile(s.Reporter, s.path, &s.last, &s.decodes)
 	if !ok || decoded.DocumentID != documentID {
 		return mappingFileShape{SchemaVersion: mappingSchemaVersion, DocumentID: documentID}
 	}
@@ -448,10 +521,16 @@ func (s *MappingStore) readLocked(documentID string) mappingFileShape {
 
 // readMappingFile decodes a mapping file of any document, reporting false
 // for a missing, unreadable, corrupt or newer-version one. Links with no
-// origin (version 1) come back manual.
-func readMappingFile(reporter *persist.Reporter, path string) (mappingFileShape, bool) {
+// origin (version 1) come back manual. With last, a file whose bytes are the
+// ones last decoded is answered from it, as a copy, and decodes counts the
+// others; only a file that loaded is kept.
+func readMappingFile(reporter *persist.Reporter, path string, last *mappingRead, decodes *atomic.Int64) (mappingFileShape, bool) {
 	var decoded mappingFileShape
 	outcome := reporter.ReadJSON(path, "chapter-track mapping", persist.Disposable, func(raw []byte) error {
+		if last != nil && last.raw != nil && bytes.Equal(raw, last.raw) {
+			decoded = last.copyOf()
+			return nil
+		}
 		var candidate mappingFileShape
 		if err := json.Unmarshal(raw, &candidate); err != nil {
 			return err
@@ -459,14 +538,19 @@ func readMappingFile(reporter *persist.Reporter, path string) (mappingFileShape,
 		if candidate.SchemaVersion > mappingSchemaVersion {
 			return fmt.Errorf("schema version %d newer than supported %d", candidate.SchemaVersion, mappingSchemaVersion)
 		}
+		normalizeOrigins(candidate.Mappings)
+		normalizeOrigins(candidate.Previous)
 		decoded = candidate
+		if last != nil {
+			decodes.Add(1)
+			*last = mappingRead{raw: raw, file: candidate}
+			decoded = last.copyOf()
+		}
 		return nil
 	})
 	if outcome != persist.Loaded {
 		return mappingFileShape{}, false
 	}
-	normalizeOrigins(decoded.Mappings)
-	normalizeOrigins(decoded.Previous)
 	return decoded, true
 }
 

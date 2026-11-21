@@ -1,5 +1,5 @@
 // The helpers the page drivers (drivers/<page>.ts) share: navigation, waits and the steps more than one state takes.
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { pinTheDay } from '../lib/pinnedDay';
 
@@ -248,6 +248,32 @@ export function panelTitled(page: Page, title: string | RegExp): Locator {
 export async function scrollToTop(page: Page, region: Locator): Promise<void> {
   await region.evaluate((element) => element.scrollIntoView({ block: 'start' }));
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
+}
+
+// scrollToTop for a panel the page lays out while it is being scrolled to (the rest of the measured page - the consistency card,
+// the package aside - draws after the rule list does): a scroll taken before that has settled is clamped and can leave the page where
+// `measured` left it, a capture identical to `measured`'s (CI, #3930). Scrolls again until the page has moved and the panel is at
+// the top of its scroller; it fails with what it saw, not with an identical capture.
+export async function scrollToTopHeld(page: Page, panel: Locator): Promise<void> {
+  const where = () =>
+    panel.evaluate((element) => {
+      let scroller: HTMLElement | null = element.parentElement;
+      while (scroller && !(/auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight))
+        scroller = scroller.parentElement;
+      if (!scroller) return { moved: false, atTop: false, canMove: false };
+      const gap = element.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      return { moved: scroller.scrollTop > 0, atTop: gap <= 4, canMove: true };
+    });
+  await expect
+    .poll(
+      async () => {
+        await scrollToTop(page, panel);
+        const seen = await where();
+        return seen.canMove && seen.moved && seen.atTop;
+      },
+      { message: 'the rule list scrolled to the top of the page, and the page moved off where `measured` leaves it', timeout: 10_000 },
+    )
+    .toBe(true);
 }
 
 // Picks the mock's five files (opening/closing credits, two chapters, a retail sample) with the Master to spec card's own

@@ -1,7 +1,7 @@
 // The `booth` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the rebuilt Booth
 // (docs/research/mockups/research-mock/src/pages/Booth.tsx), mounted at `/booth` by SN-O10, and the Companion, which has its own route.
 import type { StateEntry } from '../lib/types';
-import { COMPANION, FREEZES_THE_CLOCK, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, SIDE_PANEL_DEPENDS_ON_WIDTH } from './shared';
+import { COMPANION, FREEZES_THE_CLOCK, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, REFLOW_AND_SMALL_WINDOW, SIDE_PANEL_DEPENDS_ON_WIDTH } from './shared';
 
 export const boothStates: StateEntry[] = [
   {
@@ -10,6 +10,14 @@ export const boothStates: StateEntry[] = [
     description:
       "Booth, ready to record (REAPER linked and answering, the mock's default): the top bar with the chapter stepper, the progress line, the \"Recorded through …\" chip (Chapter 1 is recorded through ¶ 14, #2633) and the REAPER setup chip, with no resume line since the chapter opens at ¶ 14, where its recording ends; the text full-bleed, scrolled to that paragraph, the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'refused-start',
+    description:
+      'Booth after the DAW refused the start (#3322): one error message with the refusal sentence and Check again above the footer, whole and inside the window (its action row under the text in a window of 24 rem or less); the sentence is not drawn again in the footer, which keeps its size, and no note about the start is beside it',
+    ...SIDE_PANEL_DEPENDS_ON_WIDTH,
+    ...REFLOW_AND_SMALL_WINDOW,
   },
   {
     page: 'booth',
@@ -73,6 +81,13 @@ export const boothStates: StateEntry[] = [
     state: 'record-unlinked',
     description:
       'Booth on a chapter with no linked track (?mockReaperState=no_link, issue 2251 items 3 and 4): the "Chapter 1 is not linked to a track" dialog opens by itself, saying Record cannot start until the chapter has a track, with the project\'s tracks to choose from (best match preselected), Link track, the offer to create a new track named after the chapter, Check again and when it last checked',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-unlinked-folders',
+    description:
+      'The same dialog in a Voice folders project (?mockVoiceFolders=1): "Chapter 1 is not linked to a folder", and above Create a new folder the list of what the folder is made with, the Narrator as always made, the voices (White Rabbit and Alice ticked, Cheshire Cat left out) with All 3 voices, and Extras ticked (#3748)',
     ...REFLOW,
   },
   {
@@ -180,6 +195,14 @@ export const boothStates: StateEntry[] = [
     state: 'recording',
     description:
       'Booth, a take running (Record pressed, the page clock paused so the timer reads 00:00): Stop in place of Record, the REC pill beside the setup chip, the resume line gone, and the session section counting the take',
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'recording-in-daw',
+    description:
+      "Booth, a take the narrator started in REAPER itself (this chapter's track armed, the mock's default; the page clock paused): the Booth follows it, so Stop and the REC pill show, the footer's Record / stop and Punch and roll hints are struck through, and Stop was pressed once: \"REAPER started this take, so stop it in REAPER.\" (#3666)",
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },
@@ -420,7 +443,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'chosen-start',
     description:
-      'Booth (as setup) after right-clicking a word that is in view and choosing Start from here (#3319): the first word of that sentence is underlined with the sentence tinted, so the place the next take starts from shows in the text itself. The take starts there at once (STOP, a few seconds in, so the cursor has moved on from the start word, and the toasts "Starting from ¶ n" and "was not recorded before" are up); the side panel is open at 1440 and shut below that',
+      'Booth (as setup) after right-clicking a word that is in view and choosing Mark the start here (#3319): the first word of that sentence is marked with the sentence tinted, so the place the next take starts from shows in the text itself. Nothing has started: Record is still Record, and the Booth sent the DAW nothing; the side panel is open at 1440 and shut below that',
     ...REFLOW,
   },
   {

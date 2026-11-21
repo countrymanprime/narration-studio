@@ -26,6 +26,7 @@ func TestMain(m *testing.M) {
 		runFakeSidecar(mode)
 		os.Exit(0)
 	}
+	_ = os.Setenv("GORACE", "atexit_sleep_ms=0 "+os.Getenv("GORACE")) // a fake program run from here skips the race runtime's second of sleep at exit
 	os.Exit(m.Run())
 }
 

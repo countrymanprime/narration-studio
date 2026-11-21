@@ -6,6 +6,7 @@ import {
   type PickupItem,
   type PickupLeftOutChapter,
   type PickupList,
+  type PickupsOpenCount,
   type PickupMarker,
   type PickupsImportReport,
   type PickupsImportResult,
@@ -91,3 +92,6 @@ const pickupLeftOutChapterSchema = z
 export const pickupListSchema = z
   .object({ pickups: z.array(pickupItemSchema), leftOut: z.array(pickupLeftOutChapterSchema) })
   .strict() satisfies z.ZodType<PickupList>;
+
+/** `PickupsOpenCount` (`src/studio/desktop/bindings_pickuplist.go`). */
+export const pickupsOpenCountSchema = z.object({ open: z.number().int().nonnegative() }).strict() satisfies z.ZodType<PickupsOpenCount>;
