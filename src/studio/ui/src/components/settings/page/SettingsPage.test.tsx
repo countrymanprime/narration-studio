@@ -883,6 +883,15 @@ describe('Settings: search and filters', () => {
     expect(within(nav()).getByRole('button', { name: /^Delivery/ }).textContent).toMatch(/1/);
   });
 
+  it('a panel in a row has no heading of its own: the row names it, the panel keeps its scope switch', async () => {
+    await renderPage();
+    pick('Speech to text');
+    const entry = await waitForRow('stt.rules');
+    const panel = await within(entry).findByRole('region', { name: 'Recording check' });
+    expect(within(panel).queryAllByRole('heading')).toHaveLength(0);
+    expect(within(panel).getByRole('group', { name: 'Recording check scope' })).toBeTruthy();
+  });
+
   it('lists the favourite effects under Recording & DAW, beside the effects coverage cap', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');

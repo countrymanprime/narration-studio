@@ -43,6 +43,7 @@ export function RecordingRulesBody() {
           tool="RecordingCoverage"
           scopes={scopes}
           pageSaysReadError
+          inRow
           filter={coverageOnly}
           notify={notify}
           before={({ fields, scope }) => <RecordingCheckSummary fields={fields} scope={scope} cascade={false} />}
@@ -63,6 +64,7 @@ export function CompareColoursBody() {
           tool="TranscriptCompare"
           scopes={scopes}
           pageSaysReadError
+          inRow
           filter={colourOnly}
           notify={notify}
         />
@@ -75,7 +77,9 @@ export function FavouriteEffectsBody() {
   const { notify } = useSettingsHost();
   return (
     <Scoped>
-      {(scopes) => <ScopedFieldsPanel id="fx" title="Favourite effects" tool="DAW" scopes={scopes} pageSaysReadError filter={favouritesOnly} notify={notify} />}
+      {(scopes) => (
+        <ScopedFieldsPanel id="fx" title="Favourite effects" tool="DAW" scopes={scopes} pageSaysReadError inRow filter={favouritesOnly} notify={notify} />
+      )}
     </Scoped>
   );
 }
@@ -83,7 +87,9 @@ export function FavouriteEffectsBody() {
 export function SilenceCleanupBody() {
   const { notify } = useSettingsHost();
   return (
-    <Scoped>{(scopes) => <ScopedFieldsPanel id="cleanup" title="Silence cleanup" tool="Cleanup" scopes={scopes} pageSaysReadError notify={notify} />}</Scoped>
+    <Scoped>
+      {(scopes) => <ScopedFieldsPanel id="cleanup" title="Silence cleanup" tool="Cleanup" scopes={scopes} pageSaysReadError inRow notify={notify} />}
+    </Scoped>
   );
 }
 
@@ -91,7 +97,7 @@ export function PreviewSuggestionBody() {
   const { notify } = useSettingsHost();
   return (
     <Scoped>
-      {(scopes) => <ScopedFieldsPanel id="preview" title="Preview suggestion" tool="Preview" scopes={scopes} pageSaysReadError notify={notify} />}
+      {(scopes) => <ScopedFieldsPanel id="preview" title="Preview suggestion" tool="Preview" scopes={scopes} pageSaysReadError inRow notify={notify} />}
     </Scoped>
   );
 }
@@ -101,7 +107,15 @@ export function StageSuggestionsBody() {
   return (
     <Scoped labelWidth="19rem">
       {(scopes) => (
-        <ScopedFieldsPanel id="stage-suggestions" title="Stage suggestions" tool="StageRecommendations" scopes={scopes} pageSaysReadError notify={notify} />
+        <ScopedFieldsPanel
+          id="stage-suggestions"
+          title="Stage suggestions"
+          tool="StageRecommendations"
+          scopes={scopes}
+          pageSaysReadError
+          inRow
+          notify={notify}
+        />
       )}
     </Scoped>
   );
