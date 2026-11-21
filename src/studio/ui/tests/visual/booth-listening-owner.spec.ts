@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
+import { pastStartGuard, slowPageClock } from './helpers/startGuard';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 test.setTimeout(90_000);
@@ -112,6 +113,8 @@ for (const how of ['Stop', 'Stop and leave'] as const) {
   test(`a listening start that answers after its limit for a press the narrator ended with ${how} is stopped when it answers`, async ({ page }) => {
     test.setTimeout(120_000);
     await openBooth(page, 'listeningStartPastLimit');
+    // The page clock runs the press's 45 s limit and the mock's 55 s answer in order, without waiting for them.
+    await page.clock.install();
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 8000 });
     await page.waitForTimeout(1500);
@@ -121,9 +124,10 @@ for (const how of ['Stop', 'Stop and leave'] as const) {
       await page.keyboard.press('Escape');
       await page.getByRole('button', { name: /Stop and leave/ }).click();
     }
-    await page.waitForTimeout(50_000);
+    await page.clock.runFor(50_000);
     const before = (await calls(page)).listeningStops;
     // The start answers at 55 s.
+    await page.clock.runFor(6000);
     await expect.poll(async () => (await calls(page)).listeningStops, { timeout: 15_000 }).toBeGreaterThan(before);
   });
 }
@@ -389,6 +393,7 @@ const installHeldTake = () => {
 // text could not follow it. (The fake DAW reports the project as recording once its start answered; none of this is real REAPER.)
 for (const ending of ['fails', 'comes up and is let go'] as const) {
   test(`a chapter left with a take recording, whose listening then ${ending}, says the text could not follow the take and stops nothing`, async ({ page }) => {
+    await slowPageClock(page);
     await page.addInitScript(installHeldTake);
     await page.goto('/');
     await settlePage(page);
@@ -420,6 +425,8 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
     // Nothing stopped the take behind the narrator; Stop is theirs and works.
     expect((await calls(page)).stops).toBe(1);
     await expect(stop).toBeVisible();
+    // The Booth ignores a Stop within a second of the start; the steps above take about as long, so on a fast machine Stop would be ignored.
+    await pastStartGuard(page);
     await watchAddedText(page);
     const clicked = Date.now();
     await stop.click();
@@ -589,6 +596,7 @@ for (const [name, cold, ignoreStop] of [
   ['with no cold read, the host ignores a stop while starting', false, true],
 ] as const) {
   test(`a take that ends while its adopted listening start is in flight leaves no session running (${name})`, async ({ page }) => {
+    await slowPageClock(page);
     await page.addInitScript(installHeldTake);
     await page.addInitScript((ignore) => void ((window as unknown as { __ignoreStop: boolean }).__ignoreStop = ignore), ignoreStop);
     await page.goto('/');
@@ -625,6 +633,7 @@ for (const [name, cold, ignoreStop] of [
     // The page's own listening for the adopted take is asked for (after the cold read's 2.5 s stop, if there is one) and is held.
     await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 10_000 }).toBe(cold ? 3 : 2);
     // The narrator stops the take while that start is out, and then the host answers it ok.
+    await pastStartGuard(page);
     await page.getByRole('button', { name: /^Stop$/ }).click();
     await expect(page.getByRole('button', { name: /^Stop$/ })).toHaveCount(0, { timeout: 8000 });
     await page.evaluate(() => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[1](true));

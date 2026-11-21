@@ -428,6 +428,21 @@ func TestProjectReaderParsesTheSavedProject(t *testing.T) {
 	}
 }
 
+func TestProjectReaderParsesTheBytesItIsGivenNotTheFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "book.rpp")
+	rpp := "<REAPER_PROJECT 0.1 \"7.0\" 0\n  <TRACK {AAAAAAAA-0000-0000-0000-000000000001}\n    NAME \"On disk\"\n  >\n>\n"
+	if err := os.WriteFile(path, []byte(rpp), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	project, err := ProjectReader{}.ParseProject(path, []byte(strings.Replace(rpp, "On disk", "Given", 1)))
+	if err != nil {
+		t.Fatalf("ParseProject: %v", err)
+	}
+	if len(project.Tracks) != 1 || project.Tracks[0].Name != "Given" || project.Path != path {
+		t.Errorf("ParseProject = %+v, want the track of the bytes it was given, at path", project)
+	}
+}
+
 func TestRuntimeFollowsTheHeartbeat(t *testing.T) {
 	adapter, dir := newAdapter(t, nil)
 	if got := adapter.Runtime(); got != (dawport.Runtime{Bridge: true}) {
