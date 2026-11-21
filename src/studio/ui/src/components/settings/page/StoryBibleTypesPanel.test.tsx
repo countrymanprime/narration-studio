@@ -154,6 +154,25 @@ describe('Story Bible types panel (SN-M53)', () => {
     expect(within(panel()).queryByRole('alert')).toBeNull();
   });
 
+  it('a second press on Remove before the host answers removes nothing more (the next row moves under the pointer)', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRemove.bind(api);
+    let finish: () => void = () => {};
+    const remove = vi.spyOn(api, 'guideTypeRemove').mockImplementation(
+      (name) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name).then(resolve);
+        }),
+    );
+    fireEvent.click(removeButton('Lore'));
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
+    fireEvent.click(removeButton('Organization'));
+    expect(remove).toHaveBeenCalledTimes(1);
+    await act(async () => finish());
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Lore' })).toBeNull());
+    expect(within(panel()).getByRole('textbox', { name: 'Type name: Organization' })).toBeTruthy();
+  });
+
   it('remove is disabled on the last type', async () => {
     const api = createMockApi();
     api.guideTypes = async () => [{ name: 'Character', colour: 'green', speaks: true }];
