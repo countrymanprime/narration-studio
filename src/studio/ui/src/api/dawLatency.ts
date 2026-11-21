@@ -274,8 +274,13 @@ export const DAW_CALLS: Readonly<Record<string, HostCall>> = {
   dawSplitTake: LATE_REFUSAL,
   dawStackTakes: READ_THEN_WRITE,
   dawUnstackTakes: READ_THEN_WRITE,
-  // The roll keeps its 5 s (`rollTimeout`): past it a roll REAPER has read is said as taken, not waited for.
-  dawRoll: { ...READ_THEN_WRITE, deadline: 5_000, overrun: answer(refused(TOOK_NOT_CONFIRMED)) },
+  // The roll keeps its 5 s (`rollTimeout`): past it a roll REAPER has read is said as taken, not waited for. A play-position read that fails
+  // refuses nothing: the roll is sent all the same and answers for itself.
+  dawRoll: {
+    steps: [{ limit: ANSWER_MS }, { limit: LONG_MS, fail: answer(refused(TOOK_NOT_CONFIRMED)) }],
+    deadline: 5_000,
+    overrun: answer(refused(TOOK_NOT_CONFIRMED)),
+  },
   dawApplyFxToRange: READ_THEN_WRITE,
   dawRemoveFxFromRange: LATE_REFUSAL,
   dawFxRangeParams: SHORT_REFUSAL,

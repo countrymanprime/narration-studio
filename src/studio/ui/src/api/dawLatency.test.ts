@@ -85,6 +85,7 @@ describe('withDawLatency', () => {
       tracksList: call('tracksList', { tracks: ['saved'] }),
       readAloudRecordStop: call('readAloudRecordStop', { outcome: 'stopped' }),
       dawFxRangeParams: call('dawFxRangeParams', { ok: true }),
+      dawRoll: call('dawRoll', { ok: true }),
       dawTransportSync: call('dawTransportSync', { ok: true }),
       readAloudReaperState: call('readAloudReaperState', { status: 'ready' }),
       boothVoiceSet: call('boothVoiceSet', { outcome: 'selected' }),
@@ -181,6 +182,17 @@ describe('withDawLatency', () => {
     expect(playing.answer).toBeUndefined();
     await vi.advanceTimersByTimeAsync(7_000);
     expect(playing.answer).toEqual({ ok: true });
+  });
+
+  it('answers a roll as DawRoll does on a 10 s link: the position read fails without refusing, and the roll REAPER took is said as taken at 5 s', async () => {
+    const { api, reached } = host();
+    const roll = watch(slowed(api, '10s').dawRoll('ch1', 12, false));
+    await vi.advanceTimersByTimeAsync(4_999);
+    expect(roll.answer).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(roll.answer).toMatchObject({ ok: false, refused: expect.stringContaining('took the command') });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(reached).toEqual(['dawRoll']);
   });
 
   it('waits the long wait for a voice switch and for the arm, and reads the track list once for both', async () => {

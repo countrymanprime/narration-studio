@@ -12,7 +12,7 @@ import { PortOverrides } from '../../ports/usePort';
 import { DawFileLinkedContext } from '../connection/dawFileLinked';
 import { pickup } from '../pickups/list/pickupFixtures';
 import { TooltipProvider } from '../primitives/Tooltip';
-import { AddMarkersButton, type AddMarkersTarget } from './AddMarkers';
+import { ASK_DEADLINE_MS, AddMarkersButton, type AddMarkersTarget } from './AddMarkers';
 
 afterEach(cleanup);
 
@@ -215,8 +215,13 @@ describe('AddMarkersButton (#2830): one label, one gate and one source for a fin
       const t = setup({ kind: 'finding', id: 'f1' });
       t.addMarker.mockReturnValue(new Promise(() => {}));
       await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(await button('Add marker in REAPER'));
+      // #3752: the host waits 23 s for a move or a marker a slow DAW has taken, and the page says nothing before the host could.
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(20000);
+        await vi.advanceTimersByTimeAsync(24_000);
+      });
+      expect(t.toasts().some((x) => /did not answer/.test(x))).toBe(false);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS - 24_000 + 1000);
       });
       expect(t.toasts().some((x) => /^error:.*did not answer/.test(x))).toBe(true);
       expect((await button('Add marker in REAPER')).getAttribute('aria-busy')).not.toBe('true');
