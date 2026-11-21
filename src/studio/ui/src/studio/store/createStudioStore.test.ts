@@ -491,6 +491,75 @@ describe('a read that never answers does not freeze a slot (#3658)', () => {
     }
   });
 
+  it('an event that arrives while a load is in flight is read after it, even when an earlier refresh never answers', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const gates: Array<ReturnType<typeof deferred<unknown>>> = [];
+      const load = vi.fn(() => {
+        const g = deferred<unknown>();
+        gates.push(g);
+        return g.promise;
+      });
+      const { store, events } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+      store.start();
+      events.emit('sync'); // R1 never answers
+      vi.setSystemTime(Date.now() + 6000);
+      void store.load('jobs').catch(() => undefined); // L
+      vi.setSystemTime(Date.now() + 500);
+      events.emit('sync'); // announced while L is out
+      gates[1]!.resolve({ count: 1 }); // L answers with what it read before the event
+      await vi.advanceTimersByTimeAsync(0);
+      await flush();
+      expect(load).toHaveBeenCalledTimes(3);
+      gates[2]!.resolve({ count: 2 });
+      await vi.advanceTimersByTimeAsync(0);
+      await flush();
+      expect(store.getState().slots.jobs).toEqual({ count: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('an event that arrives while a load is merely slow is read after the load, whatever the refresh before it does', async () => {
+    const gates: Array<ReturnType<typeof deferred<unknown>>> = [];
+    const load = vi.fn(() => {
+      const g = deferred<unknown>();
+      gates.push(g);
+      return g.promise;
+    });
+    const { store, events } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+    store.start();
+    events.emit('sync'); // R1
+    void store.load('jobs').catch(() => undefined); // L
+    events.emit('sync');
+    gates[1]!.resolve({ count: 1 });
+    await flush();
+    expect(load).toHaveBeenCalledTimes(3);
+  });
+
+  it('an ensure does not make a read joinable past the stuck age by joining it late', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const never = new Promise<unknown>(() => undefined);
+      const load = vi.fn().mockReturnValueOnce(never).mockResolvedValue({ count: 6 });
+      const { store } = make({ jobs: { schema: isCount, load, events: ['sync'] } });
+      store.start();
+      void store.load('jobs').catch(() => undefined); // out from 0
+      vi.setSystemTime(Date.now() + 4900);
+      void store.ensure('jobs'); // joins legitimately
+      vi.setSystemTime(Date.now() + 4100); // 9 s after the read started
+      await store.ensure('jobs');
+      expect(load).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('ensure of a name that is not a registered slot rejects, even a name Object.prototype has', async () => {
+    const { store } = make({ jobs: { schema: isCount, load: vi.fn().mockResolvedValue({ count: 1 }) } });
+    await expect((store as unknown as { ensure: (n: string) => Promise<void> }).ensure('constructor')).rejects.toThrow(/no slot/);
+  });
+
   it('a refresh dropped by a reset does not release the refresh of the new project', async () => {
     const first = deferred<unknown>();
     const second = deferred<unknown>();

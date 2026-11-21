@@ -72,4 +72,23 @@ describe('useChapters after a project switch (#3658)', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(read.mock.calls.length).toBe(failed);
   });
+
+  it('reads the list again when a project switch lands while its first read is in flight', async () => {
+    const api = createMockApi();
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    const real = api.manuscriptChapters.bind(api);
+    const read = vi.fn().mockImplementationOnce(async () => {
+      await held;
+      return real();
+    });
+    read.mockImplementation(() => real());
+    api.manuscriptChapters = read;
+    const { result } = renderHook(() => ({ chapters: useChapters().chapters, store: useStoreHandle() }), { wrapper: withProvider(api) });
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    act(() => result.current.store.reset());
+    release();
+    await waitFor(() => expect(result.current.chapters).toBeDefined());
+    expect(read).toHaveBeenCalledTimes(2);
+  });
 });

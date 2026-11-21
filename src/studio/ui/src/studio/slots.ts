@@ -48,7 +48,8 @@ const CHAPTER_TEXT_BUDGET = 8_000_000;
 
 /**
  * The text of each chapter, keyed by chapter id, in the same store as the chapter list: stale when a job ends (an import or a re-split replaced the
- * manuscript) and emptied by a project switch. A page reads it with `useChapterText`; the Script page, the Booth and Proof used to keep a copy each.
+ * manuscript) or a page publishes `MANUSCRIPT_CHANGED`, and emptied by a project switch. `useChapterText` reads it; the Script page, the Booth and Proof
+ * each still keep a copy of their own until their readers move onto it (#3658).
  */
 export function createKeyedSlots(api: Pick<ManuscriptApi, 'manuscriptParagraphs'>) {
   return {
@@ -57,6 +58,7 @@ export function createKeyedSlots(api: Pick<ManuscriptApi, 'manuscriptParagraphs'
       load: (chapterId: string) => api.manuscriptParagraphs(chapterId),
       budget: CHAPTER_TEXT_BUDGET,
       events: ['job:ended'],
+      topics: [MANUSCRIPT_CHANGED],
     },
   };
 }

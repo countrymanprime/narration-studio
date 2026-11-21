@@ -254,4 +254,48 @@ describe('a keyed cache in the store (#3658)', () => {
   it('throws for a name nothing registered', () => {
     expect(() => make().store.keyed('nope')).toThrow('no keyed cache named nope');
   });
+
+  it('an ensure does not join a read out longer than the stuck age, and an older good answer still fills the key', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const first = deferred<unknown>();
+      const load = vi
+        .fn()
+        .mockReturnValueOnce(first.promise)
+        .mockReturnValueOnce(new Promise(() => undefined));
+      const cache = createKeyedCache('text', { schema: textSchema, load, size: length });
+      void cache.ensure('c1').catch(() => undefined);
+      vi.setSystemTime(Date.now() + 5001);
+      void cache.ensure('c1').catch(() => undefined); // a new read: the first is stuck
+      expect(load).toHaveBeenCalledTimes(2);
+      first.resolve('late but good'); // no newer answer yet, so it is written
+      await vi.advanceTimersByTimeAsync(0);
+      expect(cache.get('c1')).toBe('late but good');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a stale key whose re-read never answers is read again once the stuck age has passed', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const load = vi
+        .fn()
+        .mockResolvedValueOnce('v1')
+        .mockReturnValueOnce(new Promise(() => undefined))
+        .mockResolvedValue('v3');
+      const cache = createKeyedCache('text', { schema: textSchema, load, size: length });
+      await cache.ensure('c1');
+      cache.invalidate();
+      await cache.ensure('c1'); // serves v1, reads behind it: hangs
+      vi.setSystemTime(Date.now() + 5001);
+      cache.invalidate();
+      await cache.ensure('c1');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(load).toHaveBeenCalledTimes(3);
+      expect(cache.get('c1')).toBe('v3');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

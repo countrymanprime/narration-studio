@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { ManuscriptChapter } from '../types';
 import { usePort } from '../ports/usePort';
 import { useOptionalStoreHandle } from './StudioProvider';
@@ -30,9 +30,30 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
   const [own, setOwn] = useState<readonly ManuscriptChapter[]>();
   // Ask when the list is not held and no read of it has failed: first mount, a project switch that emptied the slot, a read the switch dropped. A failure is
   // not asked again by this hook (an event or the caller's `refreshKey` does), so a host that is down is not read in a loop.
+  // A read that a project switch dropped answers with nothing held and no failure: ask once more (at most three times in a row, so a slot that keeps
+  // being emptied is not read in a loop).
+  const [again, setAgain] = useState(0);
+  const retries = useRef(0);
   useEffect(() => {
-    if (store && enabled && held === undefined && error === undefined) void store.ensure('chapters').catch(() => undefined);
-  }, [store, enabled, held, error]);
+    if (held !== undefined) retries.current = 0;
+  }, [held]);
+  useEffect(() => {
+    if (!store || !enabled || held !== undefined || error !== undefined) return;
+    let live = true;
+    void store
+      .ensure('chapters')
+      .catch(() => undefined)
+      .then(() => {
+        const now = store.getState();
+        if (live && now.slots.chapters === undefined && now.errors.chapters === undefined && retries.current < 3) {
+          retries.current += 1;
+          setAgain((n) => n + 1);
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, [store, enabled, held, error, again]);
   useEffect(() => {
     if (store && enabled && refreshKey > 0) void store.load('chapters').catch(() => undefined);
   }, [store, enabled, refreshKey]);

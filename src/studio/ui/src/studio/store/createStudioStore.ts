@@ -110,17 +110,23 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   /** The newest read of each slot whose answer or failure was written: an older read that answers later writes nothing, a read that was merely slower than a newer one's start still does. */
   const applied = new Map<string, number>();
   const flights = new Map<string, { promise: Promise<Error | undefined>; at: number }>();
+  // Slots an event arrived for while a read was in flight: read once more when that read ends (whoever started it), so what the event announced is read.
+  const again = new Set<string>();
   function attempt(name: keyof R & string): Promise<Error | undefined> {
+    // Events that came before this read starts are read by it.
+    again.delete(name);
     const flight = run(name);
     flights.set(name, { promise: flight, at: Date.now() });
     void flight.finally(() => {
-      if (flights.get(name)?.promise === flight) flights.delete(name);
+      if (flights.get(name)?.promise !== flight) return;
+      flights.delete(name);
+      if (again.delete(name)) refresh(name);
     });
     return flight;
   }
 
   async function run(name: keyof R & string): Promise<Error | undefined> {
-    const config = registry[name];
+    const config = Object.hasOwn(registry, name) ? registry[name] : undefined;
     if (!config) return new Error(`studio: no slot named ${name}`);
     const myEpoch = epoch;
     const request = (requests.get(name) ?? 0) + 1;
@@ -151,30 +157,20 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   }
 
   // A burst of events (a sync that updates many times, a write and the event it raises) is one read in flight and at most one trailing read: what the slot
-  // holds is read after the last of them, and the ones between add nothing.
-  const refreshing = new Map<string, { again: boolean; at: number }>();
+  // holds is read after the last of them, and the ones between add nothing. A read that is out longer than the stuck age does not hold the next one back.
   function refresh(name: keyof R & string): void {
-    const running = refreshing.get(name);
-    // A refresh is held back by the read in flight, judged by that read's own age (an ensure may have replaced the refresh's read since).
     const flight = flights.get(name);
-    if (running && flight && young(flight.at)) {
-      running.again = true;
+    if (flight && young(flight.at)) {
+      again.add(name);
       return;
     }
-    const entry = { again: false, at: Date.now() };
-    refreshing.set(name, entry);
-    void attempt(name).finally(() => {
-      // Only the refresh that is current clears itself: one that a reset or a newer refresh replaced must not release its successor.
-      if (refreshing.get(name) !== entry) return;
-      refreshing.delete(name);
-      if (entry.again) refresh(name);
-    });
+    void attempt(name);
   }
 
   // A load an `ensure` started or joined: the one read in flight for the slot, so callers that mount together share it.
   const ensuring = new Map<string, { promise: Promise<void>; at: number }>();
   function ensure(name: keyof R & string): Promise<void> {
-    if (state.slots[name] !== undefined) return Promise.resolve();
+    if (Object.hasOwn(state.slots, name) && state.slots[name] !== undefined) return Promise.resolve();
     const running = ensuring.get(name);
     if (running && young(running.at)) return running.promise;
     // A read already in flight (a load, an event, a refresh) is joined, not repeated.
@@ -186,7 +182,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     const settled = read.finally(() => {
       if (ensuring.get(name)?.promise === settled) ensuring.delete(name);
     });
-    ensuring.set(name, { promise: settled, at: Date.now() });
+    ensuring.set(name, { promise: settled, at: joinable && flight ? flight.at : Date.now() });
     return settled;
   }
 
@@ -233,7 +229,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       ensuring.clear();
       applied.clear();
       flights.clear();
-      refreshing.clear();
+      again.clear();
       caches.forEach((cache) => cache.clear());
       state = empty;
       emit();

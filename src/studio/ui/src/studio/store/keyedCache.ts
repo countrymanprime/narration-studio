@@ -75,7 +75,19 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
   const pins = new Map<string, number>();
   /** The newest read asked for each key: an older read that answers after it writes nothing. */
   const requests = new Map<string, number>();
-  const inFlight = new Map<string, Promise<void>>();
+  /** The newest read of each key whose answer or failure was written: an older read that answers after it writes nothing; one merely slower than a newer read's start still does. */
+  const applied = new Map<string, number>();
+  const inFlight = new Map<string, { promise: Promise<void>; at: number }>();
+  /** A read out longer than this is not joined and does not stop a stale key being read again (a host call that never answers must not freeze a key). */
+  const STUCK_READ_MS = 5000;
+  const young = (at: number) => {
+    const age = Date.now() - at;
+    return age >= 0 && age < STUCK_READ_MS;
+  };
+  const youngFlight = (key: string) => {
+    const flight = inFlight.get(key);
+    return flight && young(flight.at) ? flight : undefined;
+  };
   const listeners = new Set<() => void>();
   let total = 0;
   let epoch = 0;
@@ -116,11 +128,12 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
     const startedAt = changed;
     const request = (requests.get(key) ?? 0) + 1;
     requests.set(key, request);
-    const current = () => mine === epoch && requests.get(key) === request;
+    const current = () => mine === epoch && request > (applied.get(key) ?? 0);
     const read = (async () => {
       try {
         const value = parseWire(config.schema, await config.load(key), { boundary: 'studio keyed cache', payload: `${name}:${key}` }) as V;
         if (!current()) return;
+        applied.set(key, request);
         const previous = entries.get(key);
         if (previous) {
           total -= previous.size;
@@ -134,14 +147,15 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
         emitKey(key);
       } catch (e) {
         if (!current()) return;
+        applied.set(key, request);
         errors.set(key, toError(e));
         emitKey(key);
         throw errors.get(key);
       }
     })().finally(() => {
-      if (inFlight.get(key) === read) inFlight.delete(key);
+      if (inFlight.get(key)?.promise === read) inFlight.delete(key);
     });
-    inFlight.set(key, read);
+    inFlight.set(key, { promise: read, at: Date.now() });
     return read;
   };
 
@@ -163,10 +177,10 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
       const entry = entries.get(key);
       if (entry) {
         touch(key);
-        if (entry.freshAt < changed && !inFlight.has(key)) void attempt(key).catch(() => undefined);
+        if (entry.freshAt < changed && !youngFlight(key)) void attempt(key).catch(() => undefined);
         return Promise.resolve();
       }
-      return inFlight.get(key) ?? attempt(key);
+      return youngFlight(key)?.promise ?? attempt(key);
     },
     load: (key) => attempt(key),
     pin(key) {
@@ -194,6 +208,7 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
       errors.clear();
       inFlight.clear();
       requests.clear();
+      applied.clear();
       total = 0;
       emit();
     },
