@@ -16,7 +16,7 @@ Closes #
 
 ## Reuse
 
-The rule is [one thing per job](../.claude/rules/product-rules.md): a new thing is allowed only when it replaces the old one with a better one.
+The rule is [one thing per job](https://github.com/countrymanprime/narration-studio/blob/main/.claude/rules/product-rules.md): a new thing is allowed only when it replaces the old one with a better one.
 
 Existing thing searched: <path, or none found + the searches run>
 

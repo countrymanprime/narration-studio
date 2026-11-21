@@ -48,7 +48,7 @@ If you cannot write a criterion as something observable, the intent is not clear
 2. **For each criterion**, find the evidence and judge it: **met** (the evidence shows the behaviour), **partly** (say which part), **not met**, or **pending** (needs the owner, REAPER or audio hardware; never counted as met). A passing test counts only if its assertion is the criterion. Open the screenshots; a path to a PNG is not evidence.
 3. **For each hunk in the diff**, name the criterion it serves. A hunk that serves none is **unrequested**: new behaviour, a changed default, a removed feature, a rename, a new dependency. Refactors needed to make the change possible are fine if you can say why.
 4. **Check the non-goals.** Anything the diff does that a non-goal rules out is a **contradiction**.
-5. **One thing per job.** Apply [the rule](../../rules/product-rules.md): a new primitive, component, helper, cache, test utility or package that does what an existing thing does, without `Replaces: <path>` and that path deleted in the diff, is **contradicted** and fails the review.
+5. **One thing per job.** Apply [the rule](../../rules/product-rules.md): a new thing (the rule lists them) that does what an existing thing does, without `Replaces: <path>` and that path deleted in the diff, is **contradicted** and fails the review.
 6. **Look for weaker than asked:** a stub, a hard-coded value, a feature behind a switch that is off with no plan, an error path that swallows, a UI state that is only reachable in a test. Each is a gap even when the criterion's test passes.
 7. **Report**, in this form:
 
