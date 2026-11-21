@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertPartition, assign, describeTest, groupKey, loaderLines, planTests, testsOfReport, weightsOf } from './visual-shards.mjs';
+import {
+  PAGES,
+  assertPartition,
+  assign,
+  describeScope,
+  describeTest,
+  groupKey,
+  inScope,
+  loaderLines,
+  planTests,
+  scopeOf,
+  testsOfReport,
+  weightsOf,
+} from './visual-shards.mjs';
 
 const spec = (file, title, duration) => ({ file, title, tests: [{ results: duration === undefined ? [] : [{ duration }] }] });
 const report = (...suites) => ({ suites });
@@ -125,4 +138,91 @@ test('weightsOf averages per group and per file, ignoring tests with no time', (
   assert.equal(weights.groups['a.spec.ts|Q / t'], 9);
   assert.equal(weights.files['a.spec.ts'], 5);
   assert.equal(weights.fallback, 5);
+});
+
+const UI = 'src/studio/ui/';
+const matrix = { file: 'app.spec.ts', loadFile: 'app.spec.ts', titlePath: ['booth / default'] };
+const boothSpec = { file: 'booth-keys.spec.ts', loadFile: 'booth-keys.spec.ts', titlePath: ['Booth keys', 'Space rolls'] };
+const proofSpec = { file: 'proof-notes.spec.ts', loadFile: 'proof-notes.spec.ts', titlePath: ['a note'] };
+const dialogSpec = { file: 'dialog-early-escape.spec.ts', loadFile: 'dialog-early-escape.spec.ts', titlePath: ['Escape closes'] };
+const editingOverlay = { file: 'helpers/overlayGuardFor.ts', loadFile: 'overlays.spec.ts', titlePath: ['Editing / row menu / desktop'] };
+const scriptOverlay = { file: 'helpers/overlayGuardFor.ts', loadFile: 'overlays.spec.ts', titlePath: ['Script / context menu on the page / tablet'] };
+const suite = [matrix, boothSpec, proofSpec, dialogSpec, editingOverlay, scriptOverlay];
+const owed = (changed) => suite.filter((item) => inScope(item, scopeOf(changed)));
+
+test('a run that is not a pull request owes the whole suite', () => {
+  assert.equal(scopeOf(null).everything, true);
+  assert.deepEqual(owed(null), suite);
+});
+
+test('the state matrix runs on every pull request, whatever it changed', () => {
+  for (const changed of [[], ['docs/x.md'], [`${UI}src/components/booth/page/BoothNextPage.tsx`], [`${UI}src/styles.css`]]) {
+    assert.ok(owed(changed).includes(matrix), JSON.stringify(changed));
+  }
+});
+
+test('a change inside one page owes that page’s specs and overlay rows, and no other page’s', () => {
+  assert.deepEqual(owed([`${UI}src/components/booth/page/BoothNextPage.tsx`]), [matrix, boothSpec]);
+  assert.deepEqual(owed([`${UI}src/components/editing/EditingPage.tsx`]), [matrix, editingOverlay]);
+  assert.deepEqual(owed([`${UI}src/components/masterqc/page/Page.tsx`]).length, 1);
+});
+
+test('a change to shared code owes the specs named for no page, and leaves the page specs to main', () => {
+  assert.deepEqual(owed([`${UI}src/styles.css`]), [matrix, dialogSpec]);
+  assert.deepEqual(owed([`${UI}src/components/primitives/Button.tsx`]), [matrix, dialogSpec]);
+  assert.deepEqual(owed([`${UI}src/components/tracks/TrackRow.tsx`]), [matrix, dialogSpec]);
+});
+
+test('a change to an overlay primitive or the shell owes every overlay guard row', () => {
+  for (const file of [
+    'src/components/primitives/Popover.tsx',
+    'src/components/primitives/dialogClosed.ts',
+    'src/overlay/layer.ts',
+    'src/components/layout/AppShell.tsx',
+  ]) {
+    assert.deepEqual(owed([`${UI}${file}`]), [matrix, dialogSpec, editingOverlay, scriptOverlay], file);
+  }
+});
+
+test('a changed spec file owes itself', () => {
+  assert.deepEqual(owed([`${UI}tests/visual/proof-notes.spec.ts`]), [matrix, proofSpec]);
+});
+
+test('a unit test, a story or a doc draws nothing, so it owes only the matrix', () => {
+  assert.deepEqual(owed([`${UI}src/components/booth/page/BoothNextPage.test.tsx`, `${UI}src/components/primitives/Button.stories.tsx`, 'README.md']), [matrix]);
+});
+
+test('anything else owes the whole suite: the suite’s own machinery, a config, a lockfile, a workflow, another project', () => {
+  for (const file of [
+    `${UI}tests/visual/lib/capture.ts`,
+    `${UI}tests/visual/helpers/overlayGuardFor.ts`,
+    `${UI}tests/visual/overlays/pages.ts`,
+    `${UI}tests/visual/catalog/booth.ts`,
+    `${UI}playwright.config.ts`,
+    `${UI}package.json`,
+    `${UI}index.html`,
+    'pnpm-lock.yaml',
+    '.github/workflows/_quality.yml',
+    'scripts/ci/visual-shards.mjs',
+    'config/defaults.json',
+    'src/studio/desktop/app.go',
+  ]) {
+    assert.equal(scopeOf([file, `${UI}src/components/booth/x.tsx`]).everything, true, file);
+  }
+});
+
+test('every page names folders that exist nowhere twice, and a spec word of its own', () => {
+  const folders = PAGES.flatMap((page) => page.folders);
+  assert.equal(new Set(folders).size, folders.length);
+  assert.equal(new Set(PAGES.map((page) => page.spec)).size, PAGES.length);
+});
+
+test('describeScope counts what runs and what is left to main', () => {
+  const scope = scopeOf([`${UI}src/components/booth/x.tsx`]);
+  const kept = suite.filter((item) => inScope(item, scope));
+  assert.equal(
+    describeScope(scope, kept, suite),
+    'visual scope: 2 of 6 tests (the state matrix; pages touched: booth; shared code: no). 4 tests of 3 spec files run on main after the merge.',
+  );
+  assert.match(describeScope(scopeOf(null), suite, suite), /the whole suite \(not a pull request/);
 });

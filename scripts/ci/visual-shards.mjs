@@ -12,6 +12,12 @@
 //   node scripts/ci/visual-shards.mjs weights report.json [more.json ...] [--out src/studio/ui/tests/visual/shard-weights.json]
 //       Rebuilds the weights from Playwright JSON reports (`--reporter=json`; CI uploads one per shard as ui-visual-timings-<i>).
 //
+// On a pull request `split` narrows the suite to what the change touches (`scopeOf`, below; docs/research/test-speed-plan-2026-11.md):
+// the state matrix always runs whole, and a behaviour spec or an overlay guard row runs when the change reaches its page. Every other
+// run (Main health on `main`, a manual run) splits the whole suite, so a test left off a pull request runs on `main` after the merge,
+// where a red run ticks HOLD and opens the main-red issue. The shards' manifests count the narrowed list, so the gate still proves
+// that the shards ran every test the pull request owed.
+//
 // Every test is in exactly one shard: the split is a pure function of the listed tests and the weights file, every shard job computes
 // the same split, and `split` fails if the lists do not add up. A test the weights have never seen is estimated from its spec file.
 // The weights only steer the balance. A stale weight makes a shard slower, never a test unrun.
@@ -21,6 +27,8 @@ import { createHash } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { changedFiles } from './pr-scope.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const UI = join(HERE, '..', '..', 'src', 'studio', 'ui');
@@ -122,6 +130,88 @@ export function assertPartition(items, loads) {
   if (wrong.length > 0 || seen.size !== items.length) throw new Error(`the shards do not hold every test exactly once: ${wrong.slice(0, 5).join('; ')}`);
 }
 
+const UI_ROOT = 'src/studio/ui/';
+const COMPONENTS = `${UI_ROOT}src/components/`;
+const SPECS = `${UI_ROOT}tests/visual/`;
+/** The state matrix: every catalogued page and state at every viewport. It draws every page, so it runs on every pull request. */
+const MATRIX_SPEC = 'app.spec.ts';
+const OVERLAY_GUARD = 'helpers/overlayGuardFor.ts';
+
+/**
+ * A page: its folders under src/components, the first word of its behaviour specs' file names (`booth-keys.spec.ts`), and its name in
+ * the overlay guard's titles. A component folder that is not listed here (primitives, layout, tracks) is shared code.
+ */
+export const PAGES = [
+  { folders: ['booth'], spec: 'booth' },
+  { folders: ['delivery'], spec: 'delivery', overlay: 'Delivery' },
+  { folders: ['editing'], spec: 'editing', overlay: 'Editing' },
+  { folders: ['engine'], spec: 'engine' },
+  { folders: ['master', 'masterqc'], spec: 'master', overlay: 'Master & QC' },
+  { folders: ['pickups'], spec: 'pickups', overlay: 'Pickups' },
+  { folders: ['production'], spec: 'production', overlay: 'Production' },
+  { folders: ['project'], spec: 'project' },
+  { folders: ['proof'], spec: 'proof', overlay: 'Proof' },
+  { folders: ['schedule'], spec: 'schedule', overlay: 'Schedule' },
+  { folders: ['script'], spec: 'script', overlay: 'Script' },
+  { folders: ['settings'], spec: 'settings', overlay: 'Settings' },
+  { folders: ['storybible'], spec: 'storybible', overlay: 'Story Bible' },
+];
+/** The overlay primitives and the shell that draws overlays over every page: a change here runs every overlay guard row. */
+const OVERLAY_CODE = new RegExp(
+  `^${UI_ROOT}src/(overlay/|components/layout/|components/primitives/(ConfirmDialog|ContextMenu|Dialog|Menu|NavDrawer|Popover|Tooltip|WorkDialog|dialog|overlay|inputModality)[^/]*$)`,
+);
+/** A unit test or a story draws nothing in the app. */
+const NOT_THE_APP = /\.(test|stories)\.[cm]?[jt]sx?$/;
+
+const pageOfFolder = (file) => PAGES.find((page) => page.folders.some((folder) => file.startsWith(`${COMPONENTS}${folder}/`)));
+const isDoc = (file) => file.startsWith('docs/') || file.endsWith('.md');
+
+/**
+ * What a change reaches in the visual suite. `changed` is the pull request's files (pr-scope.mjs), or null when the run is not a pull
+ * request or its base cannot be read: then, and whenever a file could change the suite itself or the build (anything that is not app
+ * source, one spec file or a doc), the answer is everything. That is the strict direction: a file this does not recognise runs the
+ * whole suite.
+ */
+export function scopeOf(changed) {
+  if (changed === null) return { everything: true, reason: 'not a pull request, or its base cannot be read' };
+  const scope = { everything: false, pages: new Set(), specs: new Set(), shared: false, overlays: false };
+  for (const file of changed) {
+    if (isDoc(file)) continue;
+    if (file.startsWith(SPECS) && file.endsWith('.spec.ts') && !file.slice(SPECS.length).includes('/')) {
+      scope.specs.add(file.slice(SPECS.length));
+      continue;
+    }
+    if (!file.startsWith(`${UI_ROOT}src/`)) return { everything: true, reason: `${file} is outside the app's source` };
+    if (NOT_THE_APP.test(file)) continue;
+    if (OVERLAY_CODE.test(file)) scope.overlays = true;
+    const page = pageOfFolder(file);
+    if (page) scope.pages.add(page.spec);
+    else scope.shared = true;
+  }
+  return scope;
+}
+
+/** Whether a pull request with this scope owes this test. Everything it does not owe runs on `main`. */
+export function inScope(test, scope) {
+  if (scope.everything || test.loadFile === MATRIX_SPEC || scope.specs.has(test.loadFile)) return true;
+  if (test.file === OVERLAY_GUARD) {
+    const page = PAGES.find((candidate) => candidate.overlay === test.titlePath[0]?.split(' / ')[0]);
+    return scope.overlays || (page ? scope.pages.has(page.spec) : scope.shared);
+  }
+  const first = test.loadFile.split(/[-.]/)[0];
+  // A spec named for no page (dialog-*, toast-*, crossPage) exercises shared code.
+  return PAGES.some((page) => page.spec === first) ? scope.pages.has(first) : scope.shared;
+}
+
+/** One line for the log and the job summary: what the pull request runs and what it leaves to `main`. */
+export function describeScope(scope, kept, all) {
+  if (scope.everything) return `visual scope: the whole suite (${scope.reason})`;
+  const left = all.filter((test) => !kept.includes(test));
+  const files = [...new Set(left.map((test) => test.loadFile))].sort();
+  const touched = [...scope.pages].sort().join(', ') || 'no page';
+  return `visual scope: ${kept.length} of ${all.length} tests (the state matrix; pages touched: ${touched}; shared code: ${scope.shared ? 'yes' : 'no'}). ${left.length} tests of ${files.length} spec files run on main after the merge.`;
+}
+
 /** Weights from run reports: the mean seconds of a test per group, and per spec file for a test not seen before. */
 export function weightsOf(reports) {
   const groups = new Map();
@@ -175,8 +265,14 @@ function split(argv) {
   if (!(current >= 1 && of >= current)) throw new Error('usage: visual-shards.mjs split --shard i/n --out file');
   const out = option(argv, '--out');
   const weights = JSON.parse(readFileSync(WEIGHTS_FILE, 'utf8'));
-  const items = planTests(testsOfReport(listSuite()), weights);
-  if (items.length === 0) throw new Error('Playwright listed no tests');
+  const listed = planTests(testsOfReport(listSuite()), weights);
+  if (listed.length === 0) throw new Error('Playwright listed no tests');
+  const scope = scopeOf(changedFiles());
+  const items = listed.filter((test) => inScope(test, scope));
+  const said = describeScope(scope, items, listed);
+  console.log(said);
+  // Shard 1 alone writes the line into the run's summary; every shard computes the same scope.
+  if (current === 1 && process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${said}\n`);
   // --reserve-first <seconds>: wall seconds shard 1's job spends on other steps; every shard job passes the same value, so all derive one split.
   const reserve = Number(option(argv, '--reserve-first') ?? 0);
   if (!(reserve >= 0)) throw new Error('--reserve-first takes a number of seconds');

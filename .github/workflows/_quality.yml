@@ -241,6 +241,8 @@ jobs:
         with:
           # No shard installs the GTK and WebKit libraries first (Test (Linux quick) does, and runs no browser), so every shard shares one cache.
           variant: plain
+      # On a pull request the split first narrows the suite to what the change touches (the whole state matrix, and the behaviour specs and
+      # overlay guard rows of the touched pages; scripts/ci/visual-shards.mjs `scopeOf`); every other run splits the whole suite.
       # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
       # hold every test exactly once. The reserve, in the split's estimated seconds, gives shard 1 fewer visual tests. It was sized for the
       # quick tests and the rename rehearsal shard 1 ran until #3836 (about 280 s; 300 s on a pull request, 380 elsewhere for the mutation
