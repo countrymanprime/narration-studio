@@ -220,7 +220,7 @@ and open the panel again.
 
 When the project records with Audacity, the **Audacity project** card replaces the REAPER project section and the REAPER tools are not shown.
 The Chapter links list below it comes from the snapshot the app takes while Audacity answers, and refreshes when the card hears from Audacity (a
-change, or **Check again**). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
+change, or **Check again**, which shows "Checked" with the time beside it once it has asked). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
 
 ### Tracks
 

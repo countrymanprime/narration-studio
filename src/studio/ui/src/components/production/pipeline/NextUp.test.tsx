@@ -25,10 +25,11 @@ const inputsFor = (recorded: ReturnType<typeof chapter>) => ({
 // #3443: Next up and the Record cell say the same percent for one chapter, at both ends: from the first second of audio, to a length that has reached or passed its estimate
 // (the cell never says 100 for a measured length, only the host's "complete" does, so Next up must not either).
 describe('Next up says the Record cell’s percent', () => {
-  // [seconds recorded of a 3600 s estimate, the percent both say]: any measured audio is at least 1% (0.001 s too), none is 0%, and a measured length is never 100.
+  // [seconds recorded of a 3600 s estimate, the percent both say]: any recorded second is at least 1%, under a second (it prints 0:00) is 0%, and a measured length is never 100.
   it.each([
     [0, 0],
-    [0.5, 1],
+    [0.5, 0],
+    [0.99, 0],
     [1, 1],
     [18, 1],
     [35.99, 1],

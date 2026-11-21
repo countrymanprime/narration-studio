@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { startDaw } from '../connection/startDaw';
 import { Button } from '../primitives/Button';
+import { CheckedStamp, useCheckedAt } from '../primitives/CheckedStamp';
 import { IconButton } from '../primitives/IconButton';
 import { Icon } from '../primitives/Icon';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -37,6 +38,9 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
   const { link, error, receivedAt, check, adopt } = view;
   const [busy, setBusy] = useState<string>();
   const [problem, setProblem] = useState<string>();
+  const [checkedAt, markChecked, reads] = useCheckedAt();
+  // A background read (focus, a pushed change) can clear the error line; the stamp from before a failed press must not come back with it.
+  const [failedAt, setFailedAt] = useState(0);
   const now = useNow(link !== undefined && link.state !== 'answering');
 
   if (!link) {
@@ -127,16 +131,20 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             </IconButton>
           </TooltipTarget>
         )}
-        <IconButton
-          action="checkAgain"
-          size="sm"
-          pending={busy === 'check'}
-          disabled={busy !== undefined && busy !== 'check'}
-          onClick={() => void run('check', () => check())}
-        />
+        <>
+          <IconButton
+            action="checkAgain"
+            size="sm"
+            pending={busy === 'check'}
+            disabled={busy !== undefined && busy !== 'check'}
+            onClick={() => void run('check', async () => void ((await check()) ? markChecked() : setFailedAt(Date.now())))}
+          />
+          {/* The stamp is a sibling of the button, not its group: when it does not fit it wraps alone and the button stays under the pointer. A failure shown beside the stamp would read as a good check followed by noise, so the stamp waits for the next good read. */}
+          <CheckedStamp at={error || (checkedAt ?? 0) <= failedAt ? null : checkedAt} reads={reads} />
+        </>
       </div>
       {(problem ?? error) && (
-        <p role="alert" className="text-[var(--danger-text)]">
+        <p role="alert" className="[overflow-wrap:anywhere] text-[var(--danger-text)]">
           {problem ?? error}
         </p>
       )}

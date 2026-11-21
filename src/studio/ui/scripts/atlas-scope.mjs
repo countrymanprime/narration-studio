@@ -14,7 +14,7 @@
 // shortcut: the stylesheet is built from the class names Tailwind finds in every file under src/studio/ui, so a class name added or
 // removed in a file that reaches no story changes the CSS of a story that builds the same name at run time; main draws it. Upgrade
 // by treating a changed class name as reaching every story if that is ever seen.
-// A pull request that reaches no story builds no Storybook and starts no browser.
+// A pull request that reaches no story starts no browser and builds no Storybook in the shard (lint builds one for the run).
 //
 // Usage: node scripts/atlas-scope.mjs [playwright arguments, e.g. --shard=1/6]   (from src/studio/ui)
 import { spawnSync } from 'node:child_process';

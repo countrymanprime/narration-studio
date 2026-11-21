@@ -194,6 +194,7 @@ func coverageRecordedFractions(service *coverage.Service, store *settings.Store)
 func (h *Host) emitCoverage(state coverage.State) {
 	if event, ended := h.coverageRuns.observe(state); ended {
 		h.publishJobEnded(event)
+		h.kickRetention("check-ended")
 		// The chapter's status on chaptersync:state changes with its check: the ledger record and
 		// the stored result are written before this state is sent, so the status read now is the new one.
 		h.chapterSyncEmits.Add(1)

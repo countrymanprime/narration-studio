@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -25,7 +25,10 @@ import {
   raiseFloors,
   RAISE_MARGIN,
   report,
+  packageFolder,
+  raceScope,
   splitRacePackages,
+  touchedPackages,
   TARGET,
   validateFloors,
 } from './coverage-gate.mjs';
@@ -321,6 +324,56 @@ test('the command line refuses a vitest option it does not know before running a
 const MODULE = 'example.com/shell';
 const layout = { race: [MODULE, `${MODULE}/internal/a`, `${MODULE}/internal/b`], plain: [`${MODULE}/internal/c`, `${MODULE}/cmd/d`] };
 
+const FOLDERS = { 'src/app': MODULE, 'src/app/internal/a': `${MODULE}/internal/a`, 'src/app/internal/ab': `${MODULE}/internal/ab` };
+
+test('a pull request touches the package whose folder is the nearest above each changed file', () => {
+  const touched = (files) => [...touchedPackages(FOLDERS, files)].sort();
+  assert.deepEqual(touched(['src/app/internal/a/a.go']), [`${MODULE}/internal/a`]);
+  assert.deepEqual(touched(['src/app/internal/a/testdata/case.json']), [`${MODULE}/internal/a`], 'a fixture counts for its package');
+  assert.deepEqual(touched(['src/app/internal/ab/x_test.go']), [`${MODULE}/internal/ab`], 'a folder that only starts with another package name is its own');
+  assert.deepEqual(touched(['src/app/main.go', 'src/app/internal/a/a.go']), [MODULE, `${MODULE}/internal/a`]);
+  assert.deepEqual(touched(['src/app/internal/gone/old.go']), [MODULE], 'a file of a package that no longer exists counts for the nearest one above');
+  assert.deepEqual(touched(['src\\app\\internal\\a\\a.go']), [`${MODULE}/internal/a`], 'a path with backslashes');
+  assert.deepEqual(touched(['src/studio/ui/src/App.tsx', 'docs/guides/a.md', 'docs/README.md', 'README.md', 'tools/docs-site/x.py', 'docs/images/ui/a.png']), [], 'a change in a place no Go test reads touches no Go package');
+  assert.deepEqual(touched([]), []);
+});
+
+test('a change the rule cannot place, or a run that is not a pull request, touches every package', () => {
+  assert.equal(touchedPackages(FOLDERS, null), null, 'not a pull request, or its base could not be read');
+  for (const file of ['src/app/go.mod', 'src/app/go.sum', 'go.work', '.github/workflows/_quality.yml', '.github/actions/nx-run/action.yml', 'scripts/ci/coverage-gate.mjs', 'scripts/ci/pr-scope.mjs', 'scripts/toolchain.json', 'scripts/quality.mjs', 'src/studio/desktop/project.json', 'config/defaults.json', 'tests/fixtures/a.json', 'src/studio/integrations/reaper/x.lua', 'src/studio/sidecars/manuscript-guide/x.py', 'src/studio/sidecars/manuscript-teleprompter/x.py', 'src/studio/sidecars/transcript-compare/x.py', 'src/studio/libs/python/narration_common/x.py', 'scripts/research/bridge-fake-driver.py', 'src/studio/tests/audacity3/real/foundation/golden/a.json', 'docs/reference/storybible-import-format.md', 'docs/architecture/provider-ports.md', 'nx.json', 'package.json', 'pnpm-lock.yaml', 'scripts/release/reaper-files.mjs', 'something-new/file.txt']) {
+    assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', file]), null, file);
+  }
+});
+
+test('a package folder is spelled from the project root and the import path, however the root is written', () => {
+  for (const root of ['src/app', './src/app', 'src/app/', 'src\\app']) {
+    assert.equal(packageFolder(root, MODULE, MODULE), 'src/app', root);
+    assert.equal(packageFolder(root, MODULE, `${MODULE}/internal/a`), 'src/app/internal/a', root);
+  }
+  assert.equal(packageFolder('.', MODULE, MODULE), '');
+  assert.equal(packageFolder('.', MODULE, `${MODULE}/internal/a`), 'internal/a');
+  assert.deepEqual([...touchedPackages({ '': MODULE, 'internal/a': `${MODULE}/internal/a` }, ['main.go', 'internal/a/a.go'])].sort(), [MODULE, `${MODULE}/internal/a`], 'a module at the repository root');
+});
+
+test('on a pull request only the touched concurrent packages are raced; the others run without the detector, none is dropped', () => {
+  const groups = groupPackages(layout, MODULE);
+  const everything = [...layout.race, ...layout.plain].sort();
+  const ran = (scope) => [...scope.raced, ...scope.later, ...scope.plain].sort();
+  const all = raceScope(groups, ['root', 'race', 'plain'], null);
+  assert.deepEqual(all, { raced: layout.race, later: [], plain: layout.plain }, 'not a pull request: every concurrent package is raced');
+  const one = raceScope(groups, ['root', 'race', 'plain'], new Set([`${MODULE}/internal/a`, `${MODULE}/internal/c`]));
+  assert.deepEqual(one.raced, [`${MODULE}/internal/a`]);
+  assert.deepEqual(one.later, [MODULE, `${MODULE}/internal/b`]);
+  assert.deepEqual(one.plain, layout.plain, 'a touched package with no concurrency stays unraced: the detector finds nothing in it');
+  assert.deepEqual(ran(one), everything);
+  const none = raceScope(groups, ['root', 'race', 'plain'], new Set());
+  assert.deepEqual(none.raced, []);
+  assert.deepEqual(ran(none), everything, 'a pull request that touches no Go package still runs every test');
+  assert.deepEqual(raceScope(groups, ['root'], new Set()), { raced: [], later: [MODULE], plain: [] }, 'the root job with the root untouched');
+  assert.deepEqual(raceScope(groups, ['root'], new Set([MODULE])), { raced: [MODULE], later: [], plain: [] });
+  assert.deepEqual(raceScope(groups, ['race', 'plain'], new Set([MODULE])).raced, [], 'the root is the other job\'s');
+});
+
 test('--group names the root, the other raced and the plain packages, once each', () => {
   assert.deepEqual(parseGroups('root'), ['root']);
   assert.deepEqual(parseGroups('race,plain'), ['race', 'plain']);
@@ -377,4 +430,50 @@ test('on a pull request a floor missed in a directory the change does not touch 
   assert.ok(!touches(other, ['src/studio/desktop/internal/c/c.go']));
   assert.equal(evaluate([mine], () => 80, 'linux', { mode: 'strict' }).failures.length, 1);
   assert.equal(evaluate([mine], () => null, 'linux', { mode: 'scoped', files: [] }).failures.length, 1, 'no data always fails');
+});
+
+test('narrowing the docs folders: only files no Go test reads are Go-free', () => {
+  const goFree = (file) => touchedPackages(FOLDERS, ['src/app/internal/a/a.go', file]) !== null;
+  for (const free of ['docs/architecture/threat-model.md', 'docs/architecture/diagrams/a.mmd', 'docs/reference/data-files.md', 'docs/reference/schemas/a.md']) {
+    assert.equal(goFree(free), true, `${free} is read by no Go test`);
+  }
+  for (const read of ['docs/architecture/provider-ports.md', 'docs/reference/storybible-import-format.md', 'docs/reference/daw/matrix.md', 'docs/reference/daw', 'docs/reference/daw/x/y.md']) {
+    assert.equal(goFree(read), false, `${read} is read by a Go test and races everything`);
+  }
+});
+
+// The list above is only as good as its upkeep: this finds the repository files the Go tests read through `docs/` and fails when one is
+// in a place the rule treats as Go-free, which is how a test that starts reading another doc gets noticed. It reads each line of the
+// tests as text, so it cannot see a path held in a variable or constant, a path on a line apart from its read, a raw string, or a read
+// through a command.
+test('no Go test reads a file under docs/ that the race scope treats as Go-free', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const goTests = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      if (entry.isDirectory()) walk(join(dir, entry.name));
+      else if (entry.name.endsWith('_test.go')) goTests.push(join(dir, entry.name));
+    }
+  };
+  walk(join(root, 'src/studio/desktop'));
+  assert.ok(goTests.length > 100, 'found the Go tests');
+  const reads = [];
+  for (const file of goTests) {
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      if (/^\s*\/\//.test(line)) continue;
+      for (const joined of line.matchAll(/"docs"((?:\s*,\s*"[^"]*")+)/g)) {
+        const parts = [...joined[1].matchAll(/"([^"]*)"/g)].map((part) => part[1]).filter((part) => part !== '..');
+        reads.push(['docs', ...parts].join('/'));
+      }
+      if (/ReadFile|ReadDir|Open|Glob|RepoFile|WalkDir|Stat/.test(line)) for (const literal of line.matchAll(/"(?:\.\.\/)*(docs\/[^"]+)"/g)) reads.push(literal[1]);
+    }
+  }
+  assert.ok(reads.length > 0, 'found the reads that exist today (dawportdoc, importer, extractionport)');
+  for (const read of reads) {
+    const isFolder = !/\.[a-z]+$/.test(read);
+    for (const probe of isFolder ? [read, `${read}/x.md`] : [read]) {
+      assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', probe]), null, `a Go test reads ${read}, which the race scope treats as Go-free: take it out of GO_FREE in coverage-gate.mjs`);
+    }
+  }
 });
