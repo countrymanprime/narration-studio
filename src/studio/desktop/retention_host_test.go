@@ -63,9 +63,12 @@ func TestAFinishedCheckStartsARetentionPassAndAReadDoesNot(t *testing.T) {
 	if _, err := host.CoverageResult("c-0001"); err != nil {
 		t.Logf("CoverageResult: %v", err) // reading must not start a pass, whatever it answers
 	}
-	time.Sleep(100 * time.Millisecond)
-	if hostLogHas(host, "check-ended") {
-		t.Fatal("reading a chapter's check started a retention pass")
+	passes := host.retention.Passes()
+	if _, err := host.WorkspaceAlignment("c-0001"); err != nil {
+		t.Logf("WorkspaceAlignment: %v", err)
+	}
+	if got := host.retention.Passes(); got != passes {
+		t.Fatalf("a read binding started a retention pass: %d passes, was %d", got, passes)
 	}
 	if _, err := host.CoverageStart("c-0001", nil); err != nil {
 		t.Fatal(err)

@@ -207,6 +207,8 @@ type Host struct {
 	// retention keeps the project's derived files bounded in the background (retention_host.go); Closed and replaced on every project switch.
 	// +checklocks:mu
 	retention *retention.Runner
+	// retentionOff keeps the background pass from starting; tests that attach many projects set it, and the retention tests clear it.
+	retentionOff bool
 	// stages is the chapter stage recommendation service (bindings_stages.go, docs/architecture/stage-recommendations.md):
 	// the recording signal over coverage, the decision store and the manuscript's status path. Swapped with coverage on every
 	// project switch; it computes on read and stores no recommendation.
@@ -574,6 +576,7 @@ func (h *Host) goBackground(work func()) {
 
 // waitForBackground returns once every goBackground goroutine started so far has finished. Tests call it before the project folder goes;
 // the app never does.
+// waitForBackground also closes the retention runner for good, so a test that calls it and then expects a pass will not get one.
 func (h *Host) waitForBackground() {
 	h.background.Wait()
 	h.closeRetention()

@@ -15,7 +15,11 @@ import (
 
 // startRetentionLocked replaces the project's retention runner with one over the stores of the project just configured, and
 // kicks it. The previous runner is stopped first, so a pass never outlives its project. Call it with h.mu held.
+// +checklocksignore: called only from configureLocked, whose callers hold h.mu.
 func (h *Host) startRetentionLocked() {
+	if h.retentionOff {
+		return
+	}
 	h.retention.Close()
 	h.retention = nil
 	project := h.config.projectFolder
@@ -45,7 +49,14 @@ func (h *Host) kickRetention(reason string) {
 func (h *Host) logRetention(reason string, reports []retention.Report) {
 	var lines []string
 	for _, report := range reports {
-		lines = append(lines, fmt.Sprintf("%s: %d files %d bytes, then %d files %d bytes (removed %d)", report.Kind, report.FilesBefore, report.BytesBefore, report.FilesAfter, report.BytesAfter, report.Removed))
+		line := fmt.Sprintf("%s: %d files %d bytes, then %d files %d bytes (removed %d)", report.Kind, report.FilesBefore, report.BytesBefore, report.FilesAfter, report.BytesAfter, report.Removed)
+		if report.Stopped {
+			line += " [stopped]"
+		}
+		if report.Err != nil {
+			line += " [error: " + report.Err.Error() + "]"
+		}
+		lines = append(lines, line)
 	}
 	if len(lines) > 0 {
 		_ = h.log.Report("retention_pass", reason+" | "+strings.Join(lines, "; "))

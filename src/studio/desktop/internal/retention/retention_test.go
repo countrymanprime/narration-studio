@@ -67,16 +67,18 @@ func TestNoPassStartsWhileBusy(t *testing.T) {
 func TestACheckStartingMidPassStopsIt(t *testing.T) {
 	var busy atomic.Bool
 	started := make(chan struct{})
+	stopped := make(chan bool, 1)
 	var second atomic.Int32
 	var reports []Report
 	var mu sync.Mutex
 	runner := New([]Step{
 		stepFunc{"first", func(_ context.Context, stop func() bool) Report {
 			close(started)
-			waitFor(t, "the check to start", busy.Load)
-			if !stop() {
-				t.Error("stop answered false while a check runs")
+			deadline := time.Now().Add(5 * time.Second)
+			for !busy.Load() && time.Now().Before(deadline) {
+				time.Sleep(time.Millisecond)
 			}
+			stopped <- stop()
 			return Report{Removed: 1}
 		}},
 		stepFunc{"second", func(context.Context, func() bool) Report { second.Add(1); return Report{} }},
@@ -85,11 +87,33 @@ func TestACheckStartingMidPassStopsIt(t *testing.T) {
 	<-started
 	busy.Store(true)
 	runner.Close()
+	if !<-stopped {
+		t.Error("stop answered false while a check runs")
+	}
 	mu.Lock()
 	defer mu.Unlock()
-	if second.Load() != 0 || len(reports) != 1 || reports[0].Kind != "first" {
-		t.Fatalf("second ran %d times, reports = %+v; want the first step only", second.Load(), reports)
+	if second.Load() != 0 || len(reports) != 2 || reports[0].Kind != "first" || !reports[1].Stopped {
+		t.Fatalf("second ran %d times, reports = %+v; want the first step, then the second marked stopped", second.Load(), reports)
 	}
+}
+
+// A trigger that comes while a pass runs is not lost: the pass runs once more when it ends.
+func TestAKickDuringAPassRunsAnotherWhenItEnds(t *testing.T) {
+	var passes atomic.Int32
+	block := make(chan struct{})
+	started := make(chan struct{}, 2)
+	runner := New([]Step{stepFunc{"a", func(context.Context, func() bool) Report {
+		passes.Add(1)
+		started <- struct{}{}
+		<-block
+		return Report{}
+	}}}, nil, nil)
+	runner.Kick("open")
+	<-started
+	runner.Kick("check-ended") // while the first pass is blocked
+	close(block)
+	waitFor(t, "the second pass", func() bool { return passes.Load() == 2 })
+	runner.Close()
 }
 
 func TestCloseCancelsThePassAndWaitsForIt(t *testing.T) {
@@ -151,5 +175,50 @@ func TestThePackageCallsNoDelete(t *testing.T) {
 				t.Errorf("%s calls %s", file, call)
 			}
 		}
+	}
+}
+
+func TestADirStepCountsFilesPassesOverAnUnlistableFolderAndNamesTheError(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.json"), []byte("12345"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	locked := filepath.Join(dir, "locked")
+	if err := os.Mkdir(locked, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(locked, "b.json"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(locked, 0); err != nil {
+		t.Skipf("cannot lock a folder here: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(locked, 0o755) })
+	if _, err := os.ReadDir(locked); err == nil {
+		t.Skip("the folder can be listed here (running as root)")
+	}
+	report := DirStep("kind", dir).Run(t.Context(), func() bool { return false })
+	if report.FilesBefore != 1 || report.BytesBefore != 5 || report.FilesAfter != 1 || report.Stopped {
+		t.Fatalf("report = %+v, want the one readable file", report)
+	}
+	if report.Err == nil {
+		t.Fatal("the unlistable folder was passed over without an error")
+	}
+}
+
+func TestADirStepOverAFolderThatIsNotThereIsEmptyWithNoError(t *testing.T) {
+	report := DirStep("kind", filepath.Join(t.TempDir(), "none")).Run(t.Context(), func() bool { return false })
+	if report.FilesBefore != 0 || report.Err != nil {
+		t.Fatalf("report = %+v, want empty and no error", report)
+	}
+}
+
+func TestADirStepThatIsToldToStopSaysSo(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.json"), []byte("1"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if report := DirStep("kind", dir).Run(t.Context(), func() bool { return true }); !report.Stopped {
+		t.Fatalf("report = %+v, want Stopped", report)
 	}
 }
