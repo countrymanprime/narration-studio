@@ -3,7 +3,11 @@ import { act, cleanup, render, renderHook, waitFor } from '@testing-library/reac
 import { StrictMode, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
-import type { DawPlace } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawPlace } from '../../../api/contracts/daw';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import type { DawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
+import { dawClientFor } from '../record/fixtures';
 import type { ScopedSettingField } from '../../../api/contracts/system';
 import { createDawMock } from '../../../api/dawMock';
 import { createMockApi } from '../../../api/mockApi';
@@ -62,46 +66,93 @@ describe('useFollowDawOnOpen', () => {
     expect(dawPlace).not.toHaveBeenCalled();
   });
 
-  it('asks again while the DAW has not answered, then follows it once it does', async () => {
+  /** A DAW client whose capabilities event the test sends by hand (the host's `daw_capabilities_changed`). */
+  function dawEvents() {
+    let emit: (next: DawCapabilities) => void = () => {};
+    const off = vi.fn();
+    const client: DawClient = { ...dawClientFor('reaper'), subscribeCapabilities: (listener) => ((emit = listener), off) };
+    const wrapper =
+      (api: ReturnType<typeof createMockApi>) =>
+      ({ children }: { children: ReactNode }) => (
+        <ApiProvider api={api}>
+          <PortOverrides clients={{ daw: client }}>{children}</PortOverrides>
+        </ApiProvider>
+      );
+    return { off, emit: (next: DawCapabilities) => emit(next), wrapper };
+  }
+  const reachable = DAW_SETUPS.reaper;
+  const quiet: DawCapabilities = { ...DAW_SETUPS.reaper, reachable: false };
+
+  it('asks again when the DAW says it is reachable, then follows it once it answers: not on a timer', async () => {
     vi.useFakeTimers();
     const onChapter = vi.fn();
     let calls = 0;
-    const dawPlace = vi.fn(async () => (++calls < 3 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
-    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: wrapperFor({ dawPlace }) });
+    const dawPlace = vi.fn(async () => (++calls < 2 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
     await act(async () => {});
     expect(onChapter).not.toHaveBeenCalled();
-    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
-    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+    // Nothing asks while the DAW stays quiet, however long, and a picture that says it is not reachable asks nothing.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(15_000)));
+    act(() => events.emit(quiet));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    act(() => events.emit(reachable));
+    await act(async () => {});
     expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-1');
-    expect(dawPlace).toHaveBeenCalledTimes(3);
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+    // Followed: later events ask nothing.
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    expect(dawPlace).toHaveBeenCalledTimes(2);
   });
 
-  it('gives up silently when the DAW never answers, and treats a failed read as no answer', async () => {
+  it('a DAW that connects after the time is up is not followed, and one that never answers is asked once', async () => {
     vi.useFakeTimers();
     const onChapter = vi.fn();
     const dawPlace = vi.fn(async () => {
       throw new Error('boom');
     });
-    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: wrapperFor({ dawPlace }) });
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
     await act(async () => void (await vi.advanceTimersByTimeAsync(60_000)));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    expect(dawPlace).toHaveBeenCalledTimes(1);
     expect(onChapter).not.toHaveBeenCalled();
-    const calls = dawPlace.mock.calls.length;
-    expect(calls).toBeGreaterThan(1);
-    expect(calls).toBeLessThanOrEqual(12);
   });
 
-  it('stops asking once the narrator or the address chooses a chapter', async () => {
-    vi.useFakeTimers();
+  it('events heard while an ask is out are answered by one more ask, not one each', async () => {
+    const onChapter = vi.fn();
+    let release: (place: DawPlace) => void = () => {};
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => (release = resolve)));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    act(() => {
+      events.emit(reachable);
+      events.emit(reachable);
+      events.emit(reachable);
+    });
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    await act(async () => release(refusal));
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops listening once the narrator or the address chooses a chapter', async () => {
     const dawPlace = vi.fn(async () => refusal);
     const onChapter = vi.fn();
+    const events = dawEvents();
     const { rerender } = renderHook(({ enabled }) => useFollowDawOnOpen({ enabled, chapterIds, onChapter }), {
       initialProps: { enabled: true },
-      wrapper: wrapperFor({ dawPlace }),
+      wrapper: events.wrapper(createMockApi({ dawPlace })),
     });
     await act(async () => {});
     rerender({ enabled: false });
+    expect(events.off).toHaveBeenCalled();
     const before = dawPlace.mock.calls.length;
-    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    act(() => events.emit(reachable));
+    await act(async () => {});
     expect(dawPlace).toHaveBeenCalledTimes(before);
   });
 });

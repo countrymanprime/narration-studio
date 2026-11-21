@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 
-/** How often the DAW is asked where the narrator is while it has not answered yet (it may still be connecting), and how long the Booth keeps asking. */
-const ASK_EVERY_MS = 2000;
+/** How long after the Booth opens a DAW that connects is still followed: one that connected later is not, since the narrator has been working by then. */
 const ASK_FOR_MS = 20_000;
 
 /**
  * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW may not have
- * connected yet (the app connects on its own a few seconds after it opens), so an unanswered ask is repeated for a short while; an answer that names
+ * connected yet (the app connects on its own a few seconds after it opens), so an ask the DAW did not answer is repeated when it says it is reachable (its capabilities event), for a short while after the Booth opened, with no timer; an answer that names
  * no chapter (no track selected, several, or a track no chapter is linked to) leaves the Booth where it opens anyway. It is asked once per
  * Booth, never once the narrator or the address has chosen a chapter, and never while a take runs. Any DAW whose `follow_position`
  * capability answers is followed the same way.
@@ -24,6 +23,7 @@ export function useFollowDawOnOpen({
   onChapter: (chapterId: string) => void;
 }) {
   const place = usePort('dawPlace');
+  const daw = usePort('daw');
   const settled = useRef(false);
   const onChapterRef = useRef(onChapter);
   onChapterRef.current = onChapter;
@@ -33,31 +33,41 @@ export function useFollowDawOnOpen({
   useEffect(() => {
     if (!ready || settled.current) return;
     let live = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let inFlight = false;
+    let owed = false;
     const deadline = Date.now() + ASK_FOR_MS;
     const ask = () => {
+      // One ask at a time: an event heard while one is out is answered by one more when it ends.
+      if (inFlight) {
+        owed = true;
+        return;
+      }
+      inFlight = true;
       void place
         .dawPlace()
         .then((answer) => {
-          if (!live) return;
-          if (answer.ok) {
-            settled.current = true;
-            if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
-            return;
-          }
-          if (Date.now() < deadline) timer = setTimeout(ask, ASK_EVERY_MS);
+          if (!live || !answer.ok) return;
+          settled.current = true;
+          if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
         })
-        // A read that failed is the same as one the DAW has not answered: it is asked again until the time is up, and the Booth opens as it would have.
-        .catch(() => {
-          if (live && Date.now() < deadline) timer = setTimeout(ask, ASK_EVERY_MS);
+        // A read that failed is the same as one the DAW has not answered: it is asked again when the DAW says it is reachable, until the time is up, and the Booth opens as it would have.
+        .catch(() => {})
+        .finally(() => {
+          inFlight = false;
+          const again = owed;
+          owed = false;
+          if (live && again && !settled.current && Date.now() < deadline) ask();
         });
     };
     ask();
+    const off = daw.subscribeCapabilities?.((next) => {
+      if (live && next.reachable && !settled.current && Date.now() < deadline) ask();
+    });
     return () => {
       live = false;
-      if (timer !== undefined) clearTimeout(timer);
+      off?.();
     };
-  }, [ready, place]);
+  }, [ready, place, daw]);
 }
 
 /**
