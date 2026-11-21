@@ -343,7 +343,7 @@ export const ROWS: readonly SettingMeta[] = [
     desc: 'How long a piece a compare run transcribes at a time.',
     more: 'The length of the pieces a Proof compare run cuts a chapter’s recording into before transcribing it. It is the length the run’s setup shows first; you can still change it for one run. The recording check keeps its own, set under Recording check in Advanced.',
     used: ['proof'],
-    also: 'Proof › Jump to or run › Open Compare options',
+    also: 'Proof › Compare options',
     advanced: true,
     syn: 'compare run proof pieces seconds transcribe split',
   },
@@ -357,7 +357,7 @@ export const ROWS: readonly SettingMeta[] = [
     desc: 'The colours a compare run marks a finding with.',
     more: 'The colours of the markers a Proof compare run puts on misread, skipped and extra words. Chosen when starting a compare run; set here they are the computer’s values, and a project may use its own.',
     used: ['proof'],
-    also: 'Proof › Jump to or run › Open Compare options',
+    also: 'Proof › Compare options',
     syn: 'misread skipped extra colour color compare marker',
   },
   {
