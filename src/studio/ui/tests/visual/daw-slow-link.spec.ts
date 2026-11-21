@@ -115,6 +115,29 @@ for (const { name, text, ms } of PROFILES) {
       expect(await errorToasts(page)).toEqual([]);
     });
 
+    test('Stop ends the take and never says the DAW is not answering', async ({ page }) => {
+      await collectErrorToasts(page);
+      await page.goto('/?mockVoiceFolders=1');
+      await settlePage(page);
+      await goToPage(page, 'Booth');
+      await boothChapterReady(page);
+      await expect(record(page)).toBeEnabled();
+      await record(page).click();
+      await expect(stop(page)).toBeVisible({ timeout: 10_000 });
+      expect(await dawRecording(page)).toBe(true);
+      // A Stop pressed within a second of the start is taken for a double click and ignored (START_GUARD_MS).
+      await page.waitForTimeout(1_200);
+      // The link turns slow under a take that is running; a stall starts here.
+      await page.evaluate((profile) => window.__NARRATION_MOCK_DAW_LATENCY__?.(profile), text);
+      await forgetErrorToasts(page);
+      await stop(page).click();
+      // The host waits for a stop the DAW has read, so the take ends when the stop lands and nothing says it failed on the way.
+      await expect.poll(() => dawRecording(page), { timeout: ms + 5_000 }).toBe(false);
+      await expect(record(page)).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/not answering|did not confirm/)).toHaveCount(0);
+      expect(await errorToasts(page)).toEqual([]);
+    });
+
     test('the engine panel lists the tracks', async ({ page }) => {
       known('the engine panel lists the tracks', name);
       await collectErrorToasts(page);

@@ -83,7 +83,7 @@ func fakeCoverageSidecar(present int) coverage.Launcher {
 			}
 		}
 		child := &coverageChild{}
-		go func() {
+		func() { // the sidecar has finished by the time the host first looks: the watch waits out no poll (gapSidecar does the same)
 			missing := 10 - present
 			results := fmt.Sprintf(`COVERAGE|{"schemaVersion":1,"chapterId":%q,"bodyTokens":10,"presentTokens":%d,"missingTokens":%d,"extraTokens":0,"longestMissingRun":%d,"alignment":{"maxMisreadRun":8,"minAnchorRun":3},"items":{"analyzed":1,"muted":0,"playedSeconds":4,"transcribed":1,"reused":0},"analysis":{"model":"small","language":null,"equivalencesHash":null}}`+"\n", values["--chapter-id"], present, missing, missing)
 			results += fmt.Sprintf(`COVERAGE_PARAGRAPH|{"id":"p-000001","tokens":10,"present":%d,"longestMissingRun":%d}`+"\n", present, missing)

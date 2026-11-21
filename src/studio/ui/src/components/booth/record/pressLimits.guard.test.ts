@@ -122,8 +122,28 @@ describe('each limit is above the host call it waits for', () => {
     const host = seconds('internal/teleprompter/service.go', 'defaultGrace') + 2_000 + seconds('bindings.go', 'listeningWait');
     expect(PRESS_LIMITS_MS.listening).toBeGreaterThanOrEqual(host + MARGIN_MS);
   });
+  // #3752: a write the DAW has read is waited for LateAnswerWait past the usual wait, and a binding with one read before it bounds both.
+  const answerWait = () => seconds('internal/bridge/navigation.go', 'DefaultAnswerTimeout');
+  const lateWait = () => seconds('internal/bridge/actions.go', 'LateAnswerWait');
+  const is = (file: string, name: string, value: string) =>
+    expect(readFileSync(join(GO, file), 'utf8'), `${name} is not ${value} in ${file} any more: update this test`).toContain(`${name} = ${value}\n`);
+  const writeCommand = () => {
+    is('bindings_readaloud_record.go', 'writeCommandTimeout', '2*bridge.DefaultAnswerTimeout + bridge.LateAnswerWait');
+    return 2 * answerWait() + lateWait();
+  };
+  it('a stop: the usual wait, then the late wait for a stop the DAW has read', () => {
+    expect(PRESS_LIMITS_MS.recordStop).toBeGreaterThanOrEqual(answerWait() + lateWait() + MARGIN_MS);
+  });
   it('a roll: rollTimeout', () => {
     expect(PRESS_LIMITS_MS.roll).toBeGreaterThanOrEqual(seconds('bindings_daw_roll.go', 'rollTimeout') + MARGIN_MS);
+  });
+  it('an undo: undoLastTimeout, which is writeCommandTimeout through the take request limit', () => {
+    is('bindings_daw_undo_last.go', 'undoLastTimeout', 'splitTakeTimeout');
+    is('bindings_daw_split.go', 'splitTakeTimeout', 'stackTakesTimeout');
+    is('bindings_daw_stack.go', 'stackTakesTimeout', 'deleteRangeTimeout');
+    is('bindings_daw_range.go', 'deleteRangeTimeout', 'takeRequestTimeout');
+    is('bindings_workspace_takes.go', 'takeRequestTimeout', 'writeCommandTimeout');
+    expect(PRESS_LIMITS_MS.undoLast).toBeGreaterThanOrEqual(writeCommand() + MARGIN_MS);
   });
   it('the Booth voice choice: laneCommandTimeout (the answer wait, the late wait and two live track list reads)', () => {
     expect(PRESS_LIMITS_MS.voiceChoice).toBeGreaterThanOrEqual(
