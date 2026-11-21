@@ -437,19 +437,20 @@ func (s *Service) readProject(path string) (tracks.Project, error) {
 }
 
 func (s *Service) chapter(chapterID string) (ChapterBasis, error) {
-	basis, _, err := s.basisAndText(chapterID)
+	basis, _, err := s.basisAndText(s.config.LoadManuscript, chapterID)
 	return basis, err
 }
 
 // basisAndText resolves chapterID's basis, and, for a credits row, the rendered text a run measures against (Phase
 // 3): manuscriptPath (used only by a caller launching the sidecar) stays the real manuscript for a manuscript
 // chapter, and text is empty - the sidecar already reads that file itself. A credits id (CreditsKind) never reaches
-// LoadManuscript at all: credits are not manuscript chapters and must never be looked up as one.
-func (s *Service) basisAndText(chapterID string) (basis ChapterBasis, text string, err error) {
-	if s.config.LoadManuscript == nil {
+// the manuscript's chapters at all: credits are not manuscript chapters and must never be looked up as one. load is the
+// manuscript the caller's read holds, or the store's own (Config.LoadManuscript).
+func (s *Service) basisAndText(load func() (map[string]any, error), chapterID string) (basis ChapterBasis, text string, err error) {
+	if load == nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, "import a manuscript before checking a recording")
 	}
-	data, loadErr := s.config.LoadManuscript()
+	data, loadErr := load()
 	if loadErr != nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, loadErr.Error())
 	}
@@ -490,7 +491,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 	if s.config.Python == "" {
 		return nil, unknown(ReasonSidecarMissing, "configure the Transcript Compare executable before checking a recording")
 	}
-	basis, text, err := s.basisAndText(request.ChapterID)
+	basis, text, err := s.basisAndText(s.config.LoadManuscript, request.ChapterID)
 	if err != nil {
 		return nil, err
 	}

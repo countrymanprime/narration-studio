@@ -69,6 +69,8 @@ type reading struct {
 	mapping evidence.MappingReader
 	// manuscript is nil when each chapter loads the manuscript itself.
 	manuscript *manuscriptIndex
+	// load is the manuscript a stage evaluation's view loaded once; nil loads it from the store for each chapter.
+	load func() (map[string]any, error)
 }
 
 // asked is the reading of one chapter on its own: every question goes to the stores.
@@ -83,6 +85,7 @@ func (s *Service) viewed(view stages.EvidenceView) reading {
 	if view.Mapping != nil {
 		read.mapping = view.Mapping
 	}
+	read.load = view.Manuscript
 	return read
 }
 
@@ -111,7 +114,12 @@ func (s *Service) shared() reading {
 // goes the way a single read does.
 func (s *Service) basis(read reading, chapterID string) (ChapterBasis, error) {
 	if _, isCredits := creditsid.Kind(chapterID); isCredits || read.manuscript == nil {
-		return s.chapter(chapterID)
+		load := read.load
+		if load == nil {
+			load = s.config.LoadManuscript
+		}
+		basis, _, err := s.basisAndText(load, chapterID)
+		return basis, err
 	}
 	return read.manuscript.basis(chapterID)
 }
