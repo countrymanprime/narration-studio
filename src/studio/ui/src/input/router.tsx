@@ -132,13 +132,14 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         !event.target.closest(EDITABLE) &&
         !KEY_ROLE_TARGET(event.target) &&
         !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code);
-      if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && !onlyButton) return;
+      const guarded = isGuardedTarget(event.target) && !event.context?.targetClosing;
+      if (event.gesture.modifiers.length === 0 && guarded && !onlyButton) return;
       // A key a button's own list already used (the Story Bible's rows walk with the arrows) is not also the page's.
-      if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && event.consumed?.()) return;
+      if (event.gesture.modifiers.length === 0 && guarded && event.consumed?.()) return;
 
       // A popup that owns the keyboard (a popover, a menu, a dialog) is on top of the page: a key meant for it, a foot pedal's Space
       // included, must never reach the page behind it. Only a command of the `dialog` scope, or one with Ctrl, Alt or Meta held, still runs.
-      const behindLayer = keyLayerOpen() && !event.gesture.modifiers.some((modifier) => modifier !== 'Shift');
+      const behindLayer = (event.context?.layerOpen ?? keyLayerOpen()) && !event.gesture.modifiers.some((modifier) => modifier !== 'Shift');
       const active = activeScopes(scopeStack.current);
       for (const scope of SCOPE_PRIORITY) {
         if (!active.has(scope)) continue;

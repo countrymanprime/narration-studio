@@ -153,6 +153,22 @@ test.describe('a lane key then Enter', () => {
     await expect(page.getByText(/Choose Record to pick one/)).toHaveCount(0);
   });
 
+  // #3931, #3906: a popover stays in the page until its exit has run, and the exit waits for a frame. On a loaded runner that frame comes late, and a voice
+  // key pressed in the meantime reached a router that took the closing popover for a layer that still owns the keys. Frames are held back here the way a loaded
+  // runner holds them back, so the window is always open.
+  test('a voice key pressed while the Record options popover is still closing is not lost', async ({ page }) => {
+    await page.addInitScript(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (callback) => raf((time) => void window.setTimeout(() => callback(time), 400));
+    });
+    await openBooth(page);
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Numpad1');
+    await expect(page.getByText('A cold read needs no voice. Choose Record to pick one.')).toBeVisible({ timeout: 2000 });
+  });
+
   test('a key with no track asks who is in it, and focus is on the dialog, then back on the page when it closes', async ({ page }) => {
     await openBooth(page);
     await page.keyboard.press('Numpad7');
