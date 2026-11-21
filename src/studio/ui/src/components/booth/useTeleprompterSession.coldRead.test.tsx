@@ -16,7 +16,9 @@ const IDLE: TeleprompterState = { phase: 'idle', message: '', engine: null, chap
 const FLAG: TeleprompterEvent = { type: 'flag', id: 1, kind: 'skipped', start: 3, end: 5, heard: '' };
 
 function setup() {
-  let onState: (state: TeleprompterState) => void = () => {};
+  // Every subscriber hears a state: the hook's own listener and the one a stop keeps while it waits.
+  const onStates = new Set<(state: TeleprompterState) => void>();
+  const onState = (next: TeleprompterState) => onStates.forEach((listener) => listener(next));
   let onEvent: (event: TeleprompterEvent) => void = () => {};
   const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
   const teleprompterStop = vi.fn(async () => {});
@@ -25,8 +27,8 @@ function setup() {
     teleprompterStop,
     teleprompterState: async () => IDLE,
     subscribeTeleprompterState: (listener: (state: TeleprompterState) => void) => {
-      onState = listener;
-      return () => {};
+      onStates.add(listener);
+      return () => onStates.delete(listener);
     },
     subscribeTeleprompterEvent: (listener: (event: TeleprompterEvent) => void) => {
       onEvent = listener;
