@@ -11,6 +11,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { numberProblem } from '../numberSetting';
 import { ScopedSetting } from '../ScopedSetting';
 import { useScopedFields, useSettingsForms } from '../data/settingsForms';
+import { isHexColour } from '../../primitives/colourHex';
 
 // Two tools share the key `chunk_seconds`, and the host words their labels alike ("Default chunk length", "Chunk length in seconds"). The page names
 // each for what it chunks (issue 2980); the host's label is the fallback for every other field.
@@ -37,11 +38,16 @@ function changedValues(fields: readonly ScopedSettingField[], values: Record<str
   );
 }
 
-/** The first number the form holds that its own range refuses (the box marks it): Save does not send it, and the narrator is told why. */
-function firstNumberProblem(fields: readonly ScopedSettingField[], values: Record<string, string>): string | undefined {
+/** The first number the form holds that its own range refuses, or colour that is no colour (the box marks it): Save does not send it, and the narrator is told why. */
+function firstFieldProblem(fields: readonly ScopedSettingField[], values: Record<string, string>): string | undefined {
   for (const field of fields) {
+    const value = values[field.key] ?? field.value;
+    if (field.kind === 'color') {
+      if (value !== '' && !isHexColour(value)) return `${field.label}: enter a colour as six hex digits, like #3c7a5c.`;
+      continue;
+    }
     if (field.kind !== 'number' || !field.number) continue;
-    const problem = numberProblem(field.number, values[field.key] ?? field.value);
+    const problem = numberProblem(field.number, value);
     if (problem) return `${field.label}: ${problem}`;
   }
   return undefined;
@@ -123,7 +129,7 @@ export function ScopedFieldsPanel({
     [read, filter, tool],
   );
   const [values, setValues] = useState<Record<string, string>>({});
-  const saveProblem = firstNumberProblem(fields, values);
+  const saveProblem = firstFieldProblem(fields, values);
   const [dirty, setDirtyState] = useState(false);
   // The flag as of now, not as of the last render: an edit typed before this panel copied a fresh read into the form
   // runs ahead of that render's effect, which must then leave the edit alone.
@@ -160,7 +166,12 @@ export function ScopedFieldsPanel({
     const send = async (): Promise<boolean> => {
       if (!tool || !readNow) return true;
       // A number its own box refuses is not sent: the form keeps it, marked, and Save says why it waits.
-      if (firstNumberProblem(fieldsNow.current, sent)) return false;
+      // The Save button is already off for it; the leave dialog's Save & continue reaches here, so it says why nothing was saved.
+      const problem = firstFieldProblem(fieldsNow.current, sent);
+      if (problem) {
+        notify(problem, 'error');
+        return false;
+      }
       try {
         const changed = changedValues(heldByHost(readNow, taken.current), sent);
         // An edit that was put back leaves nothing to save: the host is not asked, and "Unsaved changes" clears.

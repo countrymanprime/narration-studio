@@ -69,14 +69,15 @@ it('names the two chunk_seconds fields for what each one chunks, whatever the ho
 // B7 (#3680): text left in a colour box that is not a colour was dropped without a word on leaving, and was drawn under the other scope.
 function drawCompare(api = createMockApi()) {
   const onDirtyChange = vi.fn();
+  const notify = vi.fn();
   render(
     <ApiProvider api={api}>
       <SettingsFormsProvider notify={vi.fn()} onDirtyChange={onDirtyChange} registerActions={vi.fn()}>
-        <ScopedFieldsPanel id="compare" title="Compare" tool="TranscriptCompare" scopes={['global', 'project']} notify={vi.fn()} />
+        <ScopedFieldsPanel id="compare" title="Compare" tool="TranscriptCompare" scopes={['global', 'project']} notify={notify} />
       </SettingsFormsProvider>
     </ApiProvider>,
   );
-  return { api, onDirtyChange };
+  return { api, onDirtyChange, notify };
 }
 const misread = () => screen.findByRole<HTMLInputElement>('textbox', { name: 'Misread marker color hex' });
 
@@ -108,24 +109,32 @@ it('Discard & continue drops the refused draft: the other scope shows its own co
   expect(screen.queryByText('Unsaved changes')).toBeNull();
 });
 
-it('Save & continue that the host refuses stays in the scope, with the draft still in its box', async () => {
+// Changed with the qa-breaker's B4 on #3877: this test used to expect the colour '4D5E6' to be sent and the host to refuse it with its key name
+// ("setting color_misread must be..."). The form now holds a colour its own box refuses, as it holds a number out of range, so nothing is sent.
+it('Save & continue with a colour the box refuses sends nothing, says why, and stays in the scope with the draft still in its box', async () => {
   const api = createMockApi();
-  // The host's own sentence for a colour that is not six hex digits (validateSettingValue in app.go).
-  const saved = vi.fn(async () => {
-    throw new Error('setting color_misread must be a six-digit color');
-  });
+  const saved = vi.fn(async () => undefined);
   api.saveSettings = saved;
-  drawCompare(api);
+  const { notify } = drawCompare(api);
   const box = await misread();
   fireEvent.change(box, { target: { value: '4D5E6' } });
   fireEvent.blur(box);
   fireEvent.click(screen.getByRole('button', { name: 'This project' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Save & continue' }));
   await act(async () => undefined);
-  expect(saved).toHaveBeenCalledExactlyOnceWith('TranscriptCompare', 'global', { color_misread: '4D5E6' });
+  expect(saved).not.toHaveBeenCalled();
+  expect(notify).toHaveBeenCalledWith(expect.stringContaining('enter a colour as six hex digits'), 'error');
   expect(screen.getByText('Global defaults')).toBeTruthy();
   expect((await misread()).value).toBe('4D5E6');
   expect(screen.getByText('Unsaved changes')).toBeTruthy();
+});
+
+it('Save waits while a colour box holds text that is no colour (found by the qa-breaker)', async () => {
+  drawCompare();
+  const box = await misread();
+  fireEvent.change(box, { target: { value: 'zzzzzz' } });
+  fireEvent.blur(box);
+  expect((await screen.findByRole('button', { name: 'Save' })).getAttribute('aria-disabled')).toBe('true');
 });
 
 /** A host that answers a save only when told to, with the saves it was sent. */
