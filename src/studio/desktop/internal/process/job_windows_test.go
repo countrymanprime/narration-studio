@@ -11,8 +11,8 @@ import (
 )
 
 // A program that exits before the host reaches the job assignment is not a failed start: Windows refuses to put an ended process in a
-// job, and Start used to answer "could not supervise sidecar process: Access is denied" for a program that had simply finished (one
-// start in a few hundred of TestStartKeepsAnExitingChildsLastStderrLine on a loaded runner). Here the program has ended for certain.
+// job, and Start used to answer "could not supervise sidecar process: Access is denied" for a program that had simply finished (seen
+// once, in TestStartKeepsAnExitingChildsLastStderrLine on a CI runner). Here the program has ended for certain.
 func TestAssigningAProgramThatHasAlreadyEndedIsNotAnError(t *testing.T) {
 	jobs := newJobSet()
 	t.Cleanup(func() { _ = jobs.close() })
