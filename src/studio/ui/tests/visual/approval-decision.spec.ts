@@ -56,7 +56,7 @@ for (const state of APPROVALS) {
     expect(await topLineInView(page, '[role="alertdialog"] [data-decision-critical] p'), 'the chain count is in view').toBe(true);
     expect(await topLineInView(page, '[role="alertdialog"] [data-decision-critical] tbody tr'), 'the first effect is in view').toBe(true);
     await expect(dialog.getByRole('button', { name: 'Approve and master' }), 'with the chain in view, Approve is on').toBeEnabled();
-    await expect(dialog.getByRole('button', { name: /^See the \d+ effects? above/ }), 'no pointer when the chain is in view').toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: /^\d+ effects? (above|below)/ }), 'no pointer when the chain is in view').toHaveCount(0);
   });
 
   // Too small to show the chain under the question (320x300, and 400% zoom at 275x200): Approve is never held, which at 400% zoom
@@ -72,7 +72,7 @@ for (const state of APPROVALS) {
       await masterDrivers[state]!(page);
       const dialog = page.getByRole('alertdialog', { name: 'Approve this render?' });
       if (!(await topLineInView(page, '[role="alertdialog"] [data-decision-critical] tbody tr'))) {
-        await expect(dialog.getByRole('button', { name: /^See the \d+ effects? above/ }), 'a pointer names the chain above').toHaveCount(1);
+        await expect(dialog.getByRole('button', { name: /^\d+ effects? (above|below)/ }), 'a pointer names the chain above').toHaveCount(1);
       }
       await expect(dialog.getByRole('button', { name: 'Approve and master' }), 'Approve is never held').toBeEnabled();
     });
@@ -86,7 +86,7 @@ test('Master / the pointer counts a switched-off effect above / 320x300', async 
   await settlePage(page);
   await masterDrivers['to-spec-approve-long-chain']!(page);
   const dialog = page.getByRole('alertdialog', { name: 'Approve this render?' });
-  const pointer = dialog.getByRole('button', { name: 'See the 23 effects above, 1 switched off' });
+  const pointer = dialog.getByRole('button', { name: /^23 effects (above|below), 1 off$/ });
   await expect(pointer).toBeVisible();
   await pointer.click();
   // Ported for round 4 (N2): the press brings the first effect into view, not the count line above it. At 320x300 the dialog's
@@ -125,7 +125,7 @@ const expectFirstRowShown = (page: Page) =>
       return shown >= height - 1;
     }, 'the whole first effect row shows')
     .toBe(true);
-const POINTER = /^See the (\d+ effects? above|chain above)/;
+const POINTER = /^(\d+ effects? (above|below)|Chain (above|below))/;
 
 // Pressing the pointer brings an effect itself into view, not only the chain's count line above it (round 4, N2).
 for (const size of [

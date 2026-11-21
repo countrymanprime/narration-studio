@@ -12,15 +12,23 @@
 //   node scripts/ci/visual-shards.mjs weights report.json [more.json ...] [--out src/studio/ui/tests/visual/shard-weights.json]
 //       Rebuilds the weights from Playwright JSON reports (`--reporter=json`; CI uploads one per shard as ui-visual-timings-<i>).
 //
+// On a pull request `split` narrows the suite to what the change touches (`scopeOf`, below; docs/research/test-speed-plan-2026-11.md):
+// the state matrix always runs whole, and a behaviour spec or an overlay guard row runs when the change reaches its page. Every other
+// run (Main health on `main`, a manual run) splits the whole suite, so a test left off a pull request runs on `main` after the merge,
+// where a red run ticks HOLD and opens the main-red issue. The shards' manifests count the narrowed list, so the gate still proves
+// that the shards ran every test the pull request owed.
+//
 // Every test is in exactly one shard: the split is a pure function of the listed tests and the weights file, every shard job computes
 // the same split, and `split` fails if the lists do not add up. A test the weights have never seen is estimated from its spec file.
 // The weights only steer the balance. A stale weight makes a shard slower, never a test unrun.
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { appendFileSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, posix } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { changedFiles } from './pr-scope.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const UI = join(HERE, '..', '..', 'src', 'studio', 'ui');
@@ -122,6 +130,176 @@ export function assertPartition(items, loads) {
   if (wrong.length > 0 || seen.size !== items.length) throw new Error(`the shards do not hold every test exactly once: ${wrong.slice(0, 5).join('; ')}`);
 }
 
+const UI_ROOT = 'src/studio/ui/';
+const COMPONENTS = `${UI_ROOT}src/components/`;
+const SPECS = `${UI_ROOT}tests/visual/`;
+/** The state matrix: every catalogued page and state at every viewport. It draws every page, so it runs on every pull request. */
+const MATRIX_SPEC = 'app.spec.ts';
+const OVERLAY_GUARD = 'helpers/overlayGuardFor.ts';
+const APP_ENTRY = `${UI_ROOT}src/main.tsx`;
+/** The page at `/`. */
+const LANDING_PAGE = 'production';
+
+/**
+ * A page: its folders under src/components, the first word of its behaviour specs' file names (`booth-keys.spec.ts`), and its name in
+ * the overlay guard's titles. A component folder that is not listed here (primitives, layout, tracks) is shared code. So is `engine`: it is
+ * a panel that other pages draw, and its specs (`engine-link-closes-overlay`) drive Proof and Production.
+ */
+export const PAGES = [
+  { folders: ['booth'], spec: 'booth' },
+  { folders: ['delivery'], spec: 'delivery', overlay: 'Delivery' },
+  { folders: ['editing'], spec: 'editing', overlay: 'Editing' },
+  { folders: ['master', 'masterqc'], spec: 'master', overlay: 'Master & QC' },
+  { folders: ['pickups'], spec: 'pickups', overlay: 'Pickups' },
+  { folders: ['production'], spec: 'production', overlay: 'Production' },
+  { folders: ['project'], spec: 'project' },
+  { folders: ['proof'], spec: 'proof', overlay: 'Proof' },
+  { folders: ['schedule'], spec: 'schedule', overlay: 'Schedule' },
+  { folders: ['script'], spec: 'script', overlay: 'Script' },
+  { folders: ['settings'], spec: 'settings', overlay: 'Settings' },
+  { folders: ['storybible'], spec: 'storybible', overlay: 'Story Bible' },
+];
+/** The overlay primitives and the shell that draws overlays over every page: a change here runs every overlay guard row. */
+const OVERLAY_CODE = new RegExp(
+  `^${UI_ROOT}src/(overlay/|components/layout/|components/primitives/(ConfirmDialog|ContextMenu|Dialog|Menu|NavDrawer|Popover|Tooltip|WorkDialog|dialog|overlay|inputModality)[^/]*$)`,
+);
+/** A unit test or a story draws nothing in the app. */
+const NOT_THE_APP = /\.(test|stories)\.[cm]?[jt]sx?$/;
+
+/**
+ * The pages a spec's text names, by any of a page's words (its spec word, its folders, its name in the overlay guard). A spec named for one
+ * page often drives another (a Booth spec that opens Pickups or reads a Settings card), so a spec is owed by every page it names, not only
+ * by the page in its file name. A word in a comment or inside a longer name (`openSettings`) counts too: naming a page too often runs a spec
+ * more, never less.
+ */
+export function pagesNamedIn(text) {
+  return PAGES.filter((page) =>
+    [page.spec, ...page.folders, page.overlay ?? page.spec].some((word) => new RegExp(word.replace(/[^a-z]+/gi, '\\W*'), 'i').test(text)),
+  ).map((page) => page.spec);
+}
+
+const pageOfFolder = (file) => PAGES.find((page) => page.folders.some((folder) => file.startsWith(`${COMPONENTS}${folder}/`)));
+const isDoc = (file) => file.startsWith('docs/') || file.endsWith('.md');
+
+const IMPORT = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
+
+/**
+ * Every source file that imports one of `changed`, directly or through other files, with the changed files themselves. `sources` maps a
+ * repository path to its text. A page folder is not a boundary: the Booth draws the Script page's reader fonts and bookmark editor, so a
+ * change inside `components/script/` reaches Booth files, and the Booth's specs are owed. Imports here are relative paths.
+ */
+/** The app's import graph: for each source file, the source files it imports. */
+function importsOf(sources) {
+  const imports = new Map();
+  for (const [file, text] of sources) {
+    const targets = new Set();
+    for (const [, specifier] of text.matchAll(IMPORT)) {
+      const base = posix.join(posix.dirname(file), specifier);
+      const target = [base, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`].find((path) => sources.has(path));
+      if (target) targets.add(target);
+    }
+    imports.set(file, targets);
+  }
+  return imports;
+}
+
+export function importersOf(changed, sources) {
+  const importers = new Map();
+  for (const [file, targets] of importsOf(sources)) for (const target of targets) importers.set(target, (importers.get(target) ?? new Set()).add(file));
+  const reached = new Set(changed);
+  const queue = [...changed];
+  while (queue.length > 0) {
+    for (const importer of importers.get(queue.pop()) ?? []) {
+      if (!reached.has(importer)) {
+        reached.add(importer);
+        queue.push(importer);
+      }
+    }
+  }
+  return reached;
+}
+
+/**
+ * What the app runs on whatever page is open: every module the entry (`main.tsx`) reaches without going through a page's folder. The
+ * entry wires things in that no page imports (the mock host behind `ApiContext`, the shell, the key handling in `App.tsx`), so the
+ * importers of such a module name no page although every page runs on it. A change to one owes the whole suite.
+ */
+export function underEveryPage(sources, entry = APP_ENTRY) {
+  const imports = importsOf(sources);
+  const reached = new Set([entry]);
+  const queue = [entry];
+  while (queue.length > 0) {
+    for (const target of imports.get(queue.pop()) ?? []) {
+      if (!reached.has(target) && !pageOfFolder(target)) {
+        reached.add(target);
+        queue.push(target);
+      }
+    }
+  }
+  return reached;
+}
+
+/**
+ * What a change reaches in the visual suite. `changed` is the pull request's files (pr-scope.mjs), or null when the run is not a pull
+ * request or its base cannot be read: then, and whenever a file could change the suite itself or the build (anything that is not app
+ * source, one spec file or a doc), the answer is everything. That is the strict direction: a file this does not recognise runs the
+ * whole suite. With `sources` (the app's source files and their text), a page is also touched when one of its files imports a changed
+ * file, however far down: without it only the changed files' own folders count.
+ */
+export function scopeOf(changed, sources) {
+  if (changed === null) return { everything: true, reason: 'not a pull request, or its base cannot be read' };
+  const scope = { everything: false, pages: new Set(), specs: new Set(), shared: false, overlays: false };
+  const app = [];
+  for (const file of changed) {
+    if (isDoc(file)) continue;
+    if (file.startsWith(SPECS) && file.endsWith('.spec.ts') && !file.slice(SPECS.length).includes('/')) {
+      scope.specs.add(file.slice(SPECS.length));
+      continue;
+    }
+    if (!file.startsWith(`${UI_ROOT}src/`)) return { everything: true, reason: `${file} is outside the app's source` };
+    if (NOT_THE_APP.test(file)) continue;
+    // A stylesheet, a font or a data file reaches pages through no import this can follow.
+    if (!/\.tsx?$/.test(file)) return { everything: true, reason: `${file} is not a module whose importers can be followed` };
+    app.push(file);
+    if (!pageOfFolder(file)) scope.shared = true;
+  }
+  const everywhere = sources ? underEveryPage(sources) : new Set();
+  const root = app.find((file) => everywhere.has(file));
+  if (root) return { everything: true, reason: `${root} runs under every page` };
+  for (const file of sources ? importersOf(app, sources) : app) {
+    if (OVERLAY_CODE.test(file)) scope.overlays = true;
+    const page = pageOfFolder(file);
+    if (page) scope.pages.add(page.spec);
+  }
+  return scope;
+}
+
+/** Whether a pull request with this scope owes this test. Everything it does not owe runs on `main`. */
+export function inScope(test, scope) {
+  if (scope.everything || test.loadFile === MATRIX_SPEC || scope.specs.has(test.loadFile)) return true;
+  if (test.file === OVERLAY_GUARD) {
+    const page = PAGES.find((candidate) => candidate.overlay === test.titlePath[0]?.split(' / ')[0]);
+    return scope.overlays || (page ? scope.pages.has(page.spec) : scope.shared);
+  }
+  // Production is where the app opens (`/`), so a spec can stand on it without naming it: a change to it owes every behaviour spec.
+  if (scope.pages.has(LANDING_PAGE)) return true;
+  const first = test.loadFile.split(/[-.]/)[0];
+  // `names`: the pages the spec's text names (split reads the file); without it, the page in the file name.
+  if ((test.names ?? []).some((name) => scope.pages.has(name))) return true;
+  // A spec named for no page (dialog-*, toast-*, crossPage, colour-field, reader-*) exercises shared code, and some drive one page under
+  // another name, so any change to the app's source owes it: shared code or a page's folder.
+  return PAGES.some((page) => page.spec === first) ? scope.pages.has(first) : scope.shared || scope.pages.size > 0;
+}
+
+/** One line for the log and the job summary: what the pull request runs and what it leaves to `main`. */
+export function describeScope(scope, kept, all) {
+  if (scope.everything) return `visual scope: the whole suite (${scope.reason})`;
+  const left = all.filter((test) => !kept.includes(test));
+  const files = [...new Set(left.map((test) => test.loadFile))].sort();
+  const touched = [...scope.pages].sort().join(', ') || 'no page';
+  return `visual scope: ${kept.length} of ${all.length} tests (the state matrix; pages touched: ${touched}; shared code: ${scope.shared ? 'yes' : 'no'}). ${left.length} tests of ${files.length} spec files run on main after the merge.`;
+}
+
 /** Weights from run reports: the mean seconds of a test per group, and per spec file for a test not seen before. */
 export function weightsOf(reports) {
   const groups = new Map();
@@ -165,6 +343,19 @@ function listSuite() {
   return JSON.parse(out);
 }
 
+/** The app's source files (no tests, no stories) by repository path, with their text. */
+function appSources() {
+  const sources = new Map();
+  const walk = (dir, path) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(join(dir, entry.name), `${path}${entry.name}/`);
+      else if (/\.tsx?$/.test(entry.name) && !NOT_THE_APP.test(entry.name)) sources.set(`${path}${entry.name}`, readFileSync(join(dir, entry.name), 'utf8'));
+    }
+  };
+  walk(join(UI, 'src'), `${UI_ROOT}src/`);
+  return sources;
+}
+
 function option(argv, name) {
   const at = argv.indexOf(name);
   return at >= 0 ? argv[at + 1] : undefined;
@@ -175,8 +366,16 @@ function split(argv) {
   if (!(current >= 1 && of >= current)) throw new Error('usage: visual-shards.mjs split --shard i/n --out file');
   const out = option(argv, '--out');
   const weights = JSON.parse(readFileSync(WEIGHTS_FILE, 'utf8'));
-  const items = planTests(testsOfReport(listSuite()), weights);
-  if (items.length === 0) throw new Error('Playwright listed no tests');
+  const listed = planTests(testsOfReport(listSuite()), weights);
+  if (listed.length === 0) throw new Error('Playwright listed no tests');
+  const scope = scopeOf(changedFiles(), appSources());
+  const namesOf = new Map();
+  for (const file of new Set(listed.map((test) => test.loadFile))) namesOf.set(file, pagesNamedIn(readFileSync(join(UI, 'tests', 'visual', file), 'utf8')));
+  const items = listed.filter((test) => inScope({ ...test, names: namesOf.get(test.loadFile) }, scope));
+  const said = describeScope(scope, items, listed);
+  console.log(said);
+  // Shard 1 alone writes the line into the run's summary; every shard computes the same scope.
+  if (current === 1 && process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${said}\n`);
   // --reserve-first <seconds>: wall seconds shard 1's job spends on other steps; every shard job passes the same value, so all derive one split.
   const reserve = Number(option(argv, '--reserve-first') ?? 0);
   if (!(reserve >= 0)) throw new Error('--reserve-first takes a number of seconds');
