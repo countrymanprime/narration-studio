@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { TargetPopover } from './TargetPopover';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -81,8 +82,18 @@ describe('popover-shows-both-rates-and-the-breakdown', () => {
     expect(within(pop).getByText('9,300')).toBeTruthy();
     expect(pop.querySelector('[data-basis="standard"]')?.textContent).toContain('Target 1h 10m');
     expect(pop.querySelector('[data-basis="yours"]')?.textContent).toContain('Target 0h 58m');
-    expect(pop.textContent).toContain('Ch 1, Ch 2 and Ch 4 have a measured length: 6,851 words in 37:03.');
+    expect(pop.textContent).toContain('Ch 1, Ch 2 and Ch 4 have a measured length: 6,851 words in 0h 37m');
+    // The marked figure has a spoken form, as the Target figures beside it do ("0h 37m" is read letter by letter).
+    expect(pop.textContent).toContain('6,851 words in 0h 37m37 minutes.');
     expect(within(pop).getByRole('button', { name: 'Standard' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('writes a measured length under a minute as "<0h 01m", with its spoken form, and one word as "1 word"', () => {
+    const own = { ok: true as const, value: { wph: 9300, words: 1, seconds: 42, chapters: [{ id: 'c1', tag: 'Ch 1' }] } };
+    render(<TargetPopover own={own as never} hours={{ standard: 1, own: 1 }} basis="standard" onBasis={() => undefined} />);
+    const text = document.body.textContent ?? '';
+    expect(text).toContain('Ch 1 has a measured length: 1 word in <0h 01m');
+    expect(text).toContain('less than a minute');
   });
 
   it('shows a dash and the reason while nothing is measured, and offers no Your pace', async () => {

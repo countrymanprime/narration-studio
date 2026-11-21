@@ -52,6 +52,10 @@ type tracksLive struct {
 	Message string         `json:"message"`
 	ReadAt  string         `json:"readAt"`
 	Project tracks.Project `json:"project"`
+	// Revision is the revision REAPER's own answer gave the live list (the heartbeat's when it is current), the value daw_tracks_changed carries
+	// (bindings_daw_trackschanged.go); "" for the saved file's tracks and for a bridge that sends none. A page holding a non-empty one
+	// waits for the event instead of reading on a timer.
+	Revision string `json:"revision"`
 }
 
 func (h *Host) tracksLive() (tracksLive, error) {
@@ -59,7 +63,17 @@ func (h *Host) tracksLive() (tracksLive, error) {
 	lister, support := trackListerFrom(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
 	defer cancel()
-	return tracksLiveIn(ctx, svc, lister, support, time.Now())
+	return h.tracksLiveWith(ctx, svc, lister, support)
+}
+
+// tracksLiveWith is tracksLiveIn with the revision held to what the page may rely on: it stops its timer on a revision, so it holds one only
+// where the tick that sends daw_tracks_changed would send it too.
+func (h *Host) tracksLiveWith(ctx context.Context, svc hostServices, lister dawport.TrackLister, support dawport.Support) (tracksLive, error) {
+	answer, err := tracksLiveIn(ctx, svc, lister, support, time.Now())
+	if revision, _ := h.heartbeatTracks(svc); revision == "" {
+		answer.Revision = ""
+	}
+	return answer, err
 }
 
 // trackListerFrom asks svc's DAW port resolver for the tracks_read role and says why when it is not available now, as
@@ -93,16 +107,39 @@ func tracksLiveIn(ctx context.Context, svc hostServices, lister dawport.TrackLis
 		saved = tracks.Project{Path: selected}
 	}
 	answer := tracksLive{Source: tracksSourceLive, ReadAt: now.UTC().Format(time.RFC3339)}
+	// The revision is the read list's own, never the heartbeat's at this moment: a list read before a change must not be stamped with the
+	// revision after it, or the page would take that change's event for a list it already shows.
+	read := &revisionLister{TrackLister: lister}
+	if lister != nil {
+		lister = read
+	}
 	project, reason, message := liveProject(ctx, readAloudAdapterName(svc), lister, support, selected, saved)
 	if reason != "" {
 		if savedErr != nil {
 			return tracksLive{}, savedErr
 		}
 		answer.Source, answer.Reason, answer.Message = tracksSourceSaved, reason, message
+	} else if _, known := wireTracksRevisionOf(svc.reachability); known {
+		// Only with a heartbeat that names a revision: the page stops its timer on one, and with no heartbeat nothing sends it the next event.
+		answer.Revision = read.revision
 	}
 	answer.Project = project
 	rememberVoiceTracks(svc, project)
 	return answer, nil
+}
+
+// revisionLister remembers the revision of the last list its lister answered.
+type revisionLister struct {
+	dawport.TrackLister
+	revision string
+}
+
+func (r *revisionLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, error) {
+	live, err := r.TrackLister.ReadTracks(ctx)
+	if err == nil {
+		r.revision = wireRevision(live.Revision)
+	}
+	return live, err
 }
 
 // liveProject is saved with the engine's live track list laid over it (mergeLiveTracks), or saved itself with the reason the live

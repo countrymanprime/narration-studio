@@ -8,6 +8,7 @@ import type { FxList } from '../../../ports/daw';
 import type { NarrationApi } from '../../../types';
 import { AddEffect } from './AddEffect';
 import { favouritesFirst, parseFavourites, toggledFavourites } from './favourites';
+import { QUIET_MS } from '../../../quietWindow';
 import { useFxFavourites } from './useFxFavourites';
 
 afterEach(cleanup);
@@ -78,6 +79,71 @@ describe('useFxFavourites', () => {
     act(() => result.current.toggle('Warm.RfxChain'));
     await waitFor(() => expect(save).toHaveBeenCalledWith('DAW', 'global', { fx_favourites: 'Air.RfxChain,Warm.RfxChain' }));
     await waitFor(() => expect(result.current.names).toEqual(['Air.RfxChain', 'Warm.RfxChain']));
+  });
+
+  // qa-breaker: a double click stars a chain, the list moves it to the top, and the second click lands on the chain that moved under the pointer.
+  it('a second press within the quiet window is a double press and changes nothing', async () => {
+    const save = vi.fn(async () => {});
+    const wrapper = withApi({
+      saveSettings: save as unknown as NarrationApi['saveSettings'],
+      settingsForScope: async () => ({
+        DAW: [
+          {
+            key: 'fx_favourites',
+            label: 'Favourite effects',
+            kind: 'tags',
+            choices: [],
+            value: '',
+            isSet: false,
+            effectiveValue: '',
+            effectiveSource: 'default',
+          },
+        ],
+      }),
+    } as Partial<NarrationApi>);
+    const { result } = renderHook(() => useFxFavourites(), { wrapper });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    act(() => {
+      result.current.toggle('Warm.RfxChain');
+      result.current.toggle('Air.RfxChain');
+    });
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    expect(save).toHaveBeenCalledWith('DAW', 'global', { fx_favourites: 'Warm.RfxChain' });
+  });
+
+  it('a press just outside the quiet window is a new press', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const save = vi.fn(async () => {});
+      const wrapper = withApi({
+        saveSettings: save as unknown as NarrationApi['saveSettings'],
+        settingsForScope: async () => ({
+          DAW: [
+            {
+              key: 'fx_favourites',
+              label: 'Favourite effects',
+              kind: 'tags',
+              choices: [],
+              value: '',
+              isSet: false,
+              effectiveValue: '',
+              effectiveSource: 'default',
+            },
+          ],
+        }),
+      } as Partial<NarrationApi>);
+      const { result } = renderHook(() => useFxFavourites(), { wrapper });
+      await waitFor(() => expect(result.current.ready).toBe(true));
+      act(() => result.current.toggle('Warm.RfxChain'));
+      await act(async () => vi.advanceTimersByTime(QUIET_MS - 1));
+      act(() => result.current.toggle('Air.RfxChain'));
+      expect(save).toHaveBeenCalledTimes(1);
+      await act(async () => vi.advanceTimersByTime(1));
+      act(() => result.current.toggle('Air.RfxChain'));
+      await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('says why when the setting cannot be read or saved, and keeps the last list', async () => {

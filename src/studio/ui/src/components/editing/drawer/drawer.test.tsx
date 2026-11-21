@@ -261,6 +261,22 @@ describe('found-list-steps-through-never-edits', () => {
 });
 
 describe('sections-register-by-tab-and-order', () => {
+  // A page registers its section in an effect, after its own render: the open drawer must draw what it registered, not the registration before.
+  it('draws a section a page registers again while the drawer is open, with no other render', async () => {
+    let off = registerDrawerSection({ tab: 'effects', order: 10, label: 'Live', render: () => <p>before</p> });
+    mount(1280);
+    await open();
+    await userEvent.click(screen.getByRole('tab', { name: /Effects/ }));
+    expect(screen.getByText('before')).toBeTruthy();
+    act(() => {
+      off();
+      off = registerDrawerSection({ tab: 'effects', order: 10, label: 'Live', render: () => <p>after</p> });
+    });
+    expect(screen.getByText('after')).toBeTruthy();
+    expect(screen.queryByText('before')).toBeNull();
+    off();
+  });
+
   it('draws sections in order inside their tab, removes one, and drops a throwing one', async () => {
     const off = [
       registerDrawerSection({ tab: 'effects', order: 20, label: 'Second', render: () => <p>second</p> }),

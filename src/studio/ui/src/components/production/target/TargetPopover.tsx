@@ -1,11 +1,12 @@
 import type { ProductionRateBasis } from '../../../api/contracts/production';
 import type { Measured } from '../../../api/schemas/base';
 import { SpokenFigure } from '../../primitives/SpokenFigure';
-import { hm, num } from '../../schedule/dates';
+import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import type { OwnRate } from './pace.selectors';
 import { clock } from '../../../clock';
+import { formatCount, plural, pluralWord } from '../../../plural';
 
 const DASH = '—';
 
@@ -52,13 +53,18 @@ export function TargetPopover({
     <div className="flex w-80 max-w-full flex-col gap-2.5">
       <div className="text-xs font-semibold text-[var(--text-muted)] uppercase">Finished-hour target</div>
       <div className="grid grid-cols-2 gap-2">
-        <Cell name="Standard" rate={num(WPH)} target={hm(hours.standard)} on={basis === 'standard'} />
-        <Cell name="Yours" rate={own.ok ? num(own.value.wph) : DASH} target={hours.own === null ? DASH : hm(hours.own)} on={basis === 'own'} />
+        <Cell name="Standard" rate={formatCount(WPH)} target={hm(hours.standard)} on={basis === 'standard'} />
+        <Cell name="Yours" rate={own.ok ? formatCount(own.value.wph) : DASH} target={hours.own === null ? DASH : hm(hours.own)} on={basis === 'own'} />
       </div>
       <p className="text-xs text-[var(--text-muted)]">
-        {own.ok
-          ? `${joinTags(own.value.chapters.map((c) => c.tag))} ${own.value.chapters.length === 1 ? 'has' : 'have'} a measured length: ${num(own.value.words)} words in ${clock(own.value.seconds)}.`
-          : `Your rate is not measured yet. ${own.reason}`}
+        {own.ok ? (
+          <>
+            {joinTags(own.value.chapters.map((c) => c.tag))} {pluralWord(own.value.chapters.length, 'has', 'have')} a measured length:{' '}
+            {plural(own.value.words, 'word')} in <SpokenFigure className="whitespace-nowrap" text={clock(own.value.seconds, { marked: true })} />.
+          </>
+        ) : (
+          `Your rate is not measured yet. ${own.reason}`
+        )}
       </p>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Schedule basis</span>

@@ -6,22 +6,23 @@ import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable, UNPLAYABLE } from './ChapterLinksTable';
-import { CREATE_QUIET_MS, useChapterLinks } from './useChapterLinks';
+import { QUIET_MS } from '../../quietWindow';
+import { useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
 import { overlay } from '../../overlay/overlayService';
 
-// The quiet after a link or a create (CREATE_QUIET_MS) is passed on a fake clock, not waited for.
+// The quiet after a link or a create (QUIET_MS) is passed on a fake clock, not waited for.
 beforeEach(() => void vi.useFakeTimers({ shouldAdvanceTime: true }));
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
 });
 
-// A narrator takes longer than this between linking and pressing Change; a double click does not (CREATE_QUIET_MS).
-const pastQuiet = () => act(() => vi.advanceTimersByTimeAsync(CREATE_QUIET_MS + 30));
+// A narrator takes longer than this between linking and pressing Change; a double click does not (QUIET_MS).
+const pastQuiet = () => act(() => vi.advanceTimersByTimeAsync(QUIET_MS + 30));
 
 const notify = vi.fn();
 
