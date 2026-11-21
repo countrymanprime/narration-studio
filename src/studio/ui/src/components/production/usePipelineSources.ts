@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Finding } from '../../api/contracts/findings';
-import type { ManuscriptChapter, MeasureFileResult } from '../../types';
+import type { ManuscriptChapter, MeasureFileResult, MeasureJob } from '../../types';
 import { usePort } from '../../ports/usePort';
-import { useChapters } from '../../studio/useChapters';
+import { useOptionalStoreHandle } from '../../studio/StudioProvider';
 import { chapterIdOfPrepId } from '../credits/creditsEntries';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
@@ -46,8 +46,11 @@ export function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' 
 /**
  * The Proof and Master cells' sources for the pipeline, read through the ports the Proof and Master & QC pages use. A source the host
  * cannot answer, or that has no reading for a chapter, stays absent so its cell reads "Not measured yet". It reads again when
- * `refreshKey` changes. Prep is the Script page's prep record. `failing` is Next up's first chapter that fails the delivery check, from the same measured files.
+ * `refreshKey` changes, and the chapter list is read with the measurement under that key (from the store's shared list, which is not read again while it is held), so Master and Next up
+ * pair a list and a measurement read for the same book. Prep is the Script page's prep record. `failing` is Next up's first chapter that fails the delivery check, from the same measured files.
  */
+const noSubscribe = () => () => undefined;
+
 export function usePipelineSources(
   active: boolean,
   refreshKey: string,
@@ -55,57 +58,57 @@ export function usePipelineSources(
   const findings = usePort('findings');
   const measure = usePort('measure');
   const scriptPrep = usePort('scriptPrep');
-  const [proofRead, setProofRead] = useState<{ value: Proof | undefined; epoch: number }>();
-  const [read, setRead] = useState<{ state: Awaited<ReturnType<typeof measure.measureState>> | undefined; epoch: number; key: string }>();
-  const [prepRead, setPrepRead] = useState<{ value: Prep | undefined; epoch: number }>();
-  // The chapter list is the store's, shared with every page: mounting does not read it again. A new `refreshKey` (an import, a project switch) asks the
-  // store for it now, as it re-reads the measurement, so a lost `job:ended` or a first failed read does not leave the list behind.
-  const refreshes = useRef({ key: refreshKey, count: 0 });
-  const lastList = useRef<readonly ManuscriptChapter[] | undefined>(undefined);
-  const staleList = useRef<readonly ManuscriptChapter[] | undefined>(undefined);
-  if (refreshes.current.key !== refreshKey) {
-    refreshes.current = { key: refreshKey, count: refreshes.current.count + 1 };
-    staleList.current = lastList.current;
-  }
-  const { chapters, error: listError } = useChapters(active, refreshes.current.count);
-  lastList.current = chapters;
-  // A project switch empties the list; the measurement read before it is the old project's. Each emptying starts a new epoch: the measurement is read
-  // again in it, and one read in an earlier epoch is never paired with the new list.
-  const listSeen = useRef({ held: false, epoch: 0 });
-  if (chapters) listSeen.current.held = true;
-  else if (listSeen.current.held) listSeen.current = { held: false, epoch: listSeen.current.epoch + 1 };
-  const epoch = listSeen.current.epoch;
+  const manuscript = usePort('manuscript');
+  const store = useOptionalStoreHandle();
+  // Each reset of the store is a project switch: what was read before it is the old project's, whatever the refresh key says.
+  const generation = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.generation() ?? 0,
+    () => 0,
+  );
+  const [proofRead, setProofRead] = useState<{ value: Proof | undefined; generation: number }>();
+  const [prepRead, setPrepRead] = useState<{ value: Prep | undefined; generation: number }>();
+  // The list and the measurement answer together under one tag, and only that pair is shown: never a list from one read with a measurement from another.
+  const [pair, setPair] = useState<{ tag: string; chapters: readonly ManuscriptChapter[] | undefined; job: MeasureJob | undefined }>();
+  const asked = useRef<{ generation: number; key: string }>(undefined);
 
   useEffect(() => {
     if (!active) return;
     let live = true;
     findings.findingsList({}).then(
-      (page) => live && setProofRead({ value: proofByChapter(page.findings), epoch }),
-      () => live && setProofRead({ value: undefined, epoch }),
-    );
-    measure.measureState().then(
-      (state) => live && setRead({ state, epoch, key: refreshKey }),
-      () => live && setRead({ state: undefined, epoch, key: refreshKey }),
+      (page) => live && setProofRead({ value: proofByChapter(page.findings), generation }),
+      () => live && setProofRead({ value: undefined, generation }),
     );
     scriptPrep.scriptPrepList().then(
       (record) =>
-        live && setPrepRead({ value: Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state])), epoch }),
-      () => live && setPrepRead({ value: undefined, epoch }),
+        live && setPrepRead({ value: Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state])), generation }),
+      () => live && setPrepRead({ value: undefined, generation }),
+    );
+    // A held list is served on a first ask and in a new project (the store was emptied: it reads); a new refresh key in the same project reads it now.
+    const previous = asked.current;
+    asked.current = { generation, key: refreshKey };
+    const readList = async () => {
+      if (!store) return manuscript.manuscriptChapters();
+      if (previous && previous.generation === generation && previous.key !== refreshKey) await store.load('chapters');
+      else await store.ensure('chapters');
+      return store.getState().slots.chapters;
+    };
+    const tag = `${generation}:${refreshKey}`;
+    void Promise.all([readList().catch(() => undefined), measure.measureState().catch(() => undefined)]).then(
+      ([chapters, job]) => live && setPair({ tag, chapters, job }),
     );
     return () => {
       live = false;
     };
-  }, [active, refreshKey, epoch, findings, measure, scriptPrep]);
-  // Only what was read in this project (epoch) counts, and the measurement must also be the one asked for under this refresh key.
-  const proof = proofRead?.epoch === epoch ? proofRead.value : undefined;
-  const prep = prepRead?.epoch === epoch ? prepRead.value : undefined;
-  const job = read?.epoch === epoch && read.key === refreshKey ? read.state : undefined;
+  }, [active, refreshKey, generation, store, findings, measure, scriptPrep, manuscript]);
 
-  // A list whose last read failed may not match the measurement: no pairing then, never a stale fact.
-  // After a new key the list the store still holds is the old one until its read answers: it is not paired with the new measurement.
-  const list = listError || chapters === staleList.current ? undefined : chapters;
-  const master = useMemo<Master | undefined>(() => (list && job?.files.length ? masterByChapter(list, job.files) : undefined), [list, job]);
-  const failing = useMemo<NextUpInputs['failing']>(() => (list && job ? failingChapter(list, job.files, job.profile ?? null) : null), [list, job]);
+  const proof = proofRead?.generation === generation ? proofRead.value : undefined;
+  const prep = prepRead?.generation === generation ? prepRead.value : undefined;
+  const current = pair?.tag === `${generation}:${refreshKey}` ? pair : undefined;
+  const chapters = current?.chapters;
+  const job = current?.job;
+  const master = useMemo<Master | undefined>(() => (chapters && job?.files.length ? masterByChapter(chapters, job.files) : undefined), [chapters, job]);
+  const failing = useMemo<NextUpInputs['failing']>(() => (chapters && job ? failingChapter(chapters, job.files, job.profile ?? null) : null), [chapters, job]);
 
   return { proof, master, prep, failing };
 }

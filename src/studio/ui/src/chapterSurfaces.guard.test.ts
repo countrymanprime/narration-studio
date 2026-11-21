@@ -22,8 +22,9 @@ const COVERED: Record<string, readonly string[]> = {
   'components/production/useChapterTools.tsx': ['components/production/ProductionPage.test.tsx'],
   'components/masterqc/page/MasterPage.tsx': ['components/masterqc/page/Page.test.tsx'],
   'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
-  // A surface that reads the list through the hook is covered here: the pipeline's cells (usePipelineSources) are checked in ProductionPage.test.tsx.
-  'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx', 'components/production/ProductionPage.test.tsx'],
+  // The pipeline's cells take the list from the store (ensure/load) and fall back to the port with no store; the credits pairing is checked in ProductionPage.test.tsx.
+  'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
+  'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],
   'studio/slots.ts': ['components/layout/useGoToCommands.test.tsx', 'components/layout/AddressGate.test.tsx', 'components/delivery/page/DeliveryPage.test.tsx'],

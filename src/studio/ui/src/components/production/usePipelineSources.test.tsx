@@ -280,4 +280,67 @@ describe('usePipelineSources under the store (#3658)', () => {
     release();
     await waitFor(() => expect(result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
   });
+  it("reads everything again after a second switch made before the first switch's list arrived, with the same key", async () => {
+    let project: 'a' | 'b' | 'c' = 'a';
+    const measured = { a: 'Alpha.wav', b: 'Alpha.wav', c: 'Gamma.wav' } as const;
+    const calls: string[] = [];
+    const api = {
+      ...createMockApi(),
+      findingsList: async () => {
+        calls.push(project);
+        return { findings: [finding(`${project}1`, 'dismissed')], total: 1 };
+      },
+      measureState: () => Promise.resolve({ phase: 'success', files: [file(measured[project], 'met')] } as unknown as MeasureJob),
+      manuscriptChapters: async () => {
+        if (project === 'b') throw new Error('offline');
+        return [chapter('c1', 0, 'Alpha')];
+      },
+      scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
+    } as unknown as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result } = renderHook(() => ({ pipeline: usePipelineSources(true, 'same'), store: useStoreHandle() }), { wrapper });
+    await waitFor(() => expect(result.current.pipeline.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+    project = 'b';
+    act(() => result.current.store.reset());
+    await waitFor(() => expect(calls).toContain('b'));
+    project = 'c';
+    act(() => result.current.store.reset());
+    // Project C's file (Gamma.wav) matches none of its chapters; project B's Alpha.wav is never paired with C's Alpha chapter, and B's proof is gone.
+    await waitFor(() => expect(result.current.pipeline.master).toEqual({}));
+    await waitFor(() => expect(result.current.pipeline.proof).toEqual({ c1: { cleared: 1, total: 1 } }));
+    expect(calls).toContain('c');
+  });
+
+  it('pairs only what was read under the current key when keys change quickly', async () => {
+    let key = 'a';
+    const api = {
+      ...createMockApi(),
+      findingsList: () => Promise.resolve({ findings: [], total: 0 }),
+      measureState: async () => {
+        const mine = key;
+        await new Promise((resolve) => setTimeout(resolve, mine === 'b' ? 80 : 5));
+        return { phase: 'success', files: [file(mine === 'c' ? 'Gamma.wav' : 'Alpha.wav', 'met')] } as unknown as MeasureJob;
+      },
+      manuscriptChapters: async () => [chapter('c1', 0, key === 'c' ? 'Gamma' : 'Alpha')],
+      scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
+    } as unknown as NarrationApi;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result, rerender } = renderHook(({ k }) => usePipelineSources(true, k), { wrapper, initialProps: { k: 'a' } });
+    await waitFor(() => expect(result.current.master).toBeDefined());
+    key = 'b';
+    rerender({ k: 'b' });
+    key = 'c';
+    rerender({ k: 'c' });
+    await waitFor(() => expect(result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } }));
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(result.current.master).toEqual({ c1: { mastered: true, qc: 'PASS' } });
+  });
 });
