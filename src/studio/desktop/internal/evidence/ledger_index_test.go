@@ -151,6 +151,21 @@ func TestARecordTheStoreWroteIsReadBackWithoutADecode(t *testing.T) {
 	}
 }
 
+// The store holds what it wrote as the file reads, so a caller that goes on using its record changes nothing a read answers.
+func TestWhatAWriterDoesToItsRecordAfterWriteIsNotSeenByAll(t *testing.T) {
+	store := NewLedgerStore(t.TempDir())
+	record := baseLedgerRecord("rc", "c-0001", time.Now(), LedgerComplete)
+	record.Counts = map[string]int{"items": 3}
+	if _, err := store.Write(record); err != nil {
+		t.Fatal(err)
+	}
+	record.Counts["items"] = 99
+	all, err := store.All()
+	if err != nil || len(all) != 1 || all[0].Counts["items"] != 3 {
+		t.Fatalf("All = %+v, %v; want the record as written, with 3 items", all, err)
+	}
+}
+
 func TestACorruptRecordFileIsReadOnceAndItsRepairIsSeen(t *testing.T) {
 	reader, writer, project := ledgerOf(t, 2)
 	corrupt := filepath.Join(LedgerDir(project), "broken.json")

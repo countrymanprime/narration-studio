@@ -190,7 +190,11 @@ func (s *LedgerStore) Write(record LedgerRecord) (LedgerRecord, error) {
 	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return LedgerRecord{}, fmt.Errorf("could not write the analysis ledger record: %w", err)
 	}
-	s.index.put(record.ID, persist.Sum(bytes), record)
+	// What is held is the written bytes decoded, not the caller's record: a later read answers what the file holds, and
+	// nothing the caller does to its record afterwards reaches it.
+	if held, err := decodeRecord(path, bytes); err == nil {
+		s.index.put(record.ID, persist.Sum(bytes), held)
+	}
 	return record, nil
 }
 
@@ -305,8 +309,8 @@ func (snapshot LedgerSnapshot) List(analyzerID, chapterID string) ([]LedgerRecor
 }
 
 // All returns every readable record in the store, in no particular order. A record is decoded once and kept while its file's
-// bytes are unchanged (ledgerIndex), and a record this store wrote is kept as it was given to Write, so the records share their
-// maps and slices with later reads and with Write's caller: read them, never change them.
+// bytes are unchanged (ledgerIndex), so the records share their maps and slices with later reads: read them,
+// never change them.
 // An unreadable or wrong-schema file is skipped, not reported as an error:
 // the store is meant to survive a corrupt neighbour (these are derived
 // facts a re-analysis can always replace, persist.Disposable's class).

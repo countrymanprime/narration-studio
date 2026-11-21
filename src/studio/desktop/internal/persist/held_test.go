@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"desktop/internal/filetest"
@@ -139,5 +140,24 @@ func TestDropForgetsWhatIsHeldSoTheNextReadDecodes(t *testing.T) {
 	}
 	if _, outcome := ReadHeld(nil, path, "note", Disposable, &held, countingDecode(&calls)); outcome != Loaded || calls != 2 {
 		t.Fatalf("after a drop: %v, %d decodes; want Loaded, 2", outcome, calls)
+	}
+}
+
+// ReadFile reads into one buffer of the file's size: a megabyte file read through a growing buffer was copied several times over.
+func TestReadFileOfALargeFileAllocatesOneBufferOfItsSize(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "large.json")
+	if err := os.WriteFile(path, make([]byte, 1<<20), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	raw, err := ReadFile(path)
+	runtime.ReadMemStats(&after)
+	if err != nil || len(raw) != 1<<20 {
+		t.Fatalf("ReadFile = %d bytes, %v", len(raw), err)
+	}
+	allocated := after.TotalAlloc - before.TotalAlloc
+	if allocated > 3<<19 {
+		t.Fatalf("one read of a 1 MiB file allocated %d bytes, want about its size", allocated)
 	}
 }
