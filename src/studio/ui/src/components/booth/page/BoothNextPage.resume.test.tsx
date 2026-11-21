@@ -32,8 +32,12 @@ const through = (over: Partial<RecordedThrough> = {}): RecordedThrough => ({
   ...over,
 });
 
-const withRecorded = (recorded: Record<string, RecordedThrough>): ManuscriptChapter[] =>
-  CHAPTERS.map((chapter) => (recorded[chapter.id] ? { ...chapter, recordedThrough: recorded[chapter.id] } : chapter));
+const withRecorded = (recorded: Record<string, RecordedThrough>, seconds: Record<string, number> = {}): ManuscriptChapter[] =>
+  CHAPTERS.map((chapter) =>
+    recorded[chapter.id]
+      ? { ...chapter, recordedThrough: recorded[chapter.id], ...(seconds[chapter.id] === undefined ? {} : { recordedSeconds: seconds[chapter.id] }) }
+      : chapter,
+  );
 
 function renderPage({ search = '?chapter=c1', api = pageApi() }: { search?: string; api?: NarrationApi } = {}) {
   return render(
@@ -140,6 +144,7 @@ describe('a chapter with a recording', () => {
     const subscribers = new Set<(state: TeleprompterState) => void>();
     const host = {
       recorded: through(),
+      seconds: undefined as number | undefined,
       held: false,
       stale: [] as Array<() => void>,
     };
@@ -149,7 +154,7 @@ describe('a chapter with a recording', () => {
         return () => subscribers.delete(on);
       },
       manuscriptChapters: () => {
-        const answer = withRecorded({ c1: host.recorded });
+        const answer = withRecorded({ c1: host.recorded }, host.seconds === undefined ? {} : { c1: host.seconds });
         return host.held ? new Promise<ManuscriptChapter[]>((resolve) => host.stale.push(() => resolve(answer))) : Promise.resolve(answer);
       },
     } as Partial<NarrationApi>);
@@ -190,6 +195,35 @@ describe('a chapter with a recording', () => {
     await act(async () => host.stale.forEach((release) => release()));
     await settle();
     expect(chip()).toBe('Recorded 80%');
+  });
+
+  // T1 (qa delta): the chapter's `recordedThrough` and its audio come from ONE read, so after the FIRST take of a chapter (the host still at 0% with 12 s on the track) the chip
+  // and the chapter list read 1% as Production does, not 0%: the refresh after a take replaces the audio with the through, never keeping the first read's audio.
+  it('reads 1% in the chip and the chapter list after the first take of a chapter (host 0 with audio on the track)', async () => {
+    const user = userEvent.setup();
+    const { api, host, take } = takeHost();
+    host.recorded = through({ percent: 0 });
+    host.seconds = 0;
+    renderPage({ api });
+    await waitFor(() => expect(chip()).toBe('Recorded 0%'));
+    host.seconds = 12;
+    await take();
+    await waitFor(() => expect(chip()).toBe('Recorded 1%'));
+    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    const items = await screen.findAllByRole('menuitemradio');
+    expect(items[0]!.querySelector('[data-chapter-detail]')?.textContent).toBe('1%');
+  });
+
+  // A host 100 that is not complete (mock-only) reads 99 on every Booth printer, as Production does.
+  it('reads 99% in the chip and the chapter list for a host 100 that is not complete', async () => {
+    const user = userEvent.setup();
+    const { api, host } = takeHost();
+    host.recorded = through({ percent: 100, complete: false });
+    renderPage({ api });
+    await waitFor(() => expect(chip()).toBe('Recorded 99%'));
+    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    const items = await screen.findAllByRole('menuitemradio');
+    expect(items[0]!.querySelector('[data-chapter-detail]')?.textContent).toBe('99%');
   });
 });
 

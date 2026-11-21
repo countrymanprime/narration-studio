@@ -156,6 +156,26 @@ describe('saving the voice setup', () => {
     expect(hook.current.setup.notVoiceGuids).toEqual([]);
   });
 
+  it('says what a change moved once it is saved, and says nothing when the save is refused', async () => {
+    const api = createMockApi();
+    api.guideEntities = async () => [];
+    api.voiceTracksGet = async () => state({});
+    api.voiceTracksSetNotAVoice = vi.fn(async (guid: string) => {
+      if (guid === '{BAD}') throw new Error('could not save the voice setup');
+      return state({ notVoiceGuids: [guid.toLowerCase()] });
+    });
+    const notify = vi.fn();
+    const stable = (message: string, tone?: string) => notify(message, tone);
+    const hook = mount(api, stable);
+    await act(async () => {});
+    await act(async () => hook.current.setNotAVoice('{BAD}', true, 'Keys moved.'));
+    await act(async () => {});
+    expect(notify).not.toHaveBeenCalledWith('Keys moved.', 'info');
+    await act(async () => hook.current.setNotAVoice('{GOOD}', true, 'Keys moved.'));
+    await act(async () => {});
+    expect(notify).toHaveBeenCalledWith('Keys moved.', 'info');
+  });
+
   it('marking a child shows the lower-case GUID at once, and unmarking removes it', async () => {
     const { api, pending } = slowHost();
     api.voiceTracksSetNotAVoice = vi.fn(
