@@ -74,8 +74,8 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
         )}
         {result && !result.found && (
           <p className="text-[var(--text-muted)]">
-            {result.label} does not have <QuotedName name={result.word} />
-            {result.suggestions.length > 0 ? `. It suggests: ${result.suggestions.join(', ')}.` : '.'}
+            {result.label} does not have <QuotedName name={result.word} after="." />
+            {result.suggestions.length > 0 ? ` It suggests: ${result.suggestions.join(', ')}.` : ''}
           </p>
         )}
       </div>

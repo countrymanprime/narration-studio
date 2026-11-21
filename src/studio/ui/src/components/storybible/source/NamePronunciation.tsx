@@ -215,7 +215,7 @@ export function NamePronunciation({
               <CandidatesCheckAgain view={candidates} />
             ) : candidates.status === 'ready' && candidates.answer.candidates.length === 0 ? (
               <p className="m-0 text-xs text-[var(--text-muted)]">
-                No dictionary has <QuotedName name={name} />.
+                No dictionary has <QuotedName name={name} after="." />
               </p>
             ) : (
               <PronunciationCandidateList

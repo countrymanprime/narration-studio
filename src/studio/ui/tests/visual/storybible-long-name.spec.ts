@@ -55,6 +55,8 @@ for (const size of SIZES) {
     const none = item.getByText(/^No dictionary has/);
     await none.waitFor({ timeout: 8000 });
     expect.soft(await none.evaluate((element) => element.scrollWidth <= element.clientWidth + 1), 'the dictionaries note breaks inside its box').toBe(true);
+    // The closing quote and full stop travel with the name: at most two lines, never a full stop alone on a third.
+    expect.soft(await none.evaluate((element) => element.getBoundingClientRect().height), 'the dictionaries note is at most two lines').toBeLessThan(40);
     const opened = await item.evaluate((element) => element.getBoundingClientRect().height);
     expect.soft(opened, 'the row with the dictionaries note open is still a few lines, not a screen').toBeLessThan(size.width < 480 ? 400 : 300);
     await item.getByRole('button', { name: 'Look up elsewhere' }).click();
