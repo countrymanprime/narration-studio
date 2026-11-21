@@ -472,7 +472,7 @@ jobs:
     # the CPUs and a timing test failed (run 42403486674), so each shard runs one group.
     # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result. Windows is the only supported
     # platform and Linux's native libraries are not installed on the Linux runners, so Go is tested and linted here.
-    # 40 min: a main-health run's mutation checks add up to 15 to shard 1 (about 27 min with the root tests, lint and test-schedules).
+    # 40 min: a main-health run's mutation checks take about 17 min (1,024 s in docs/research/test-speed-plan-2026-11.md) and sit on shard 1, which then runs about 34 min with the root tests, lint and test-schedules; they sat on shard 2 before, with about the same total.
     needs: lint
     if: needs.lint.outputs.shell == 'true'
     name: Test (Windows ${{ matrix.shard }}/2)

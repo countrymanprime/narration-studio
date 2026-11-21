@@ -913,7 +913,7 @@ finished run. The schedule alone was too slow: GitHub ran it 2 to 3 times a day 
 
 The push trigger does not cancel the run in progress. A cancelled run judges nothing, and 38 merges landed on 2026-11-07, as little as 1 to 60 minutes apart, so a cancelling group would
 have produced no verdict through a busy afternoon. The group runs one at a time and keeps at most one newer run waiting (GitHub replaces an older waiting run), so a burst costs the run in
-progress plus one. A run takes about 35 minutes and 165 job-minutes (run 42628881648, 2026-11-09; the critical path is `Test (Windows 2/2)`), so a regression shows 35 to 70 minutes after the merge that
+progress plus one. A run takes about 35 minutes and 165 job-minutes (run 42628881648, 2026-11-09; the critical path was `Test (Windows 2/2)`, before `test-schedules` and the harness moved to `Test (Windows 1/2)`), so a regression shows 35 to 70 minutes after the merge that
 causes it and the cost is bounded by one run per 35 minutes while merges keep landing. A red run on an older commit can tick `HOLD` after a later merge has already fixed it; clear it as usual once `main` is green.
 Run 42628881648 was not queued: every job started within 2 seconds, and its 35 minutes were the run itself.
 
