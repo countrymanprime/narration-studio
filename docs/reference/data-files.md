@@ -21,7 +21,7 @@ On read, the host checks the file before using it: its shape, its version where 
 | Refused | The binding returns an error and the file is left as it is |
 | Read as absent | The reader starts empty without a log line, and the next save replaces the file |
 
-A file that exists but cannot be opened at all (a sharing violation, a permission problem) is logged and left in place by `ReadJSON`. A writer that calls `persist.CanOverwrite` first then refuses to save; the rows say where a writer does not.
+A file that exists but cannot be opened at all (a sharing violation, a permission problem) is logged and left in place by `ReadJSON`. A named pipe, socket or device where a file belongs is not read: `persist.ReadFile` opens without waiting for a writer and refuses it as a file that cannot be read. A writer that calls `persist.CanOverwrite` first then refuses to save; the rows say where a writer does not.
 
 Every write is a temp file in the same folder renamed over the old one, unless the row says otherwise. Writers that have moved onto `persist.WriteFile` (settings and recent projects so far) also flush the temp file and the folder to disk, and on Windows retry a rename that fails with "Access is denied" or a sharing violation for about half a second, because a scanner or a reader can hold the old file open.
 
