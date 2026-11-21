@@ -56,9 +56,26 @@ export type ScriptData = {
   loadCues(chapterIds?: readonly string[]): Promise<void>;
   /** Reads a chapter's cues unless they are held or asked for; the chapters asked in one tick share one call. */
   ensureCues(chapterId: string): void;
+  /** Reads again every read that failed: the lists, the chapters' paragraphs, and the cues of the chapters whose read failed in one call. */
+  retryFailed(): void;
   /** Wires the host's job and project events while a page reads; returns the stop function. Counted, so several readers share one wiring. */
   start(): () => void;
 };
+
+const LISTS: readonly ScriptList[] = ['chapters', 'marks', 'prep', 'entries', 'types'];
+
+/**
+ * The host's sentence of a read that failed, or nothing when none did. Nothing while a read runs: it may be the retry, and a read that
+ * fails after it is said again even in the same words.
+ */
+export function failedRead(state: ScriptDataState): string {
+  const reads = [...LISTS.map((list) => state[list]), ...Object.values(state.cues), ...Object.values(state.paragraphs)];
+  if (reads.some((read) => read?.status === 'loading')) return '';
+  const failed = reads.find((read) => read?.status === 'error');
+  return failed?.status === 'error' ? failed.message : '';
+}
+
+const failedIn = (reads: Readonly<Record<string, Loadable<unknown>>>) => Object.keys(reads).filter((id) => reads[id].status === 'error');
 
 /** The lists the Story Bible page also edits. */
 const STORY_BIBLE_LISTS: readonly ScriptList[] = ['entries', 'types'];
@@ -157,6 +174,12 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
         });
       }
       asked.add(chapterId);
+    },
+    retryFailed() {
+      const { paragraphs, cues } = state;
+      LISTS.filter((list) => state[list]?.status === 'error').forEach((list) => void load(list));
+      failedIn(paragraphs).forEach((chapterId) => void loadParagraphs(chapterId));
+      void loadCues(failedIn(cues));
     },
     start() {
       if (started++ === 0) {

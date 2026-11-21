@@ -2,7 +2,7 @@
 // Audit cluster 14 (docs/research/ui-function-audit.md): the Script page keeps its Story Bible lists for as long as the app runs, so an entry edited in the
 // Story Bible stayed old on Script until a job ended. Opening Script reads the lists it already holds again.
 import { describe, expect, it, vi } from 'vitest';
-import { createScriptData } from './scriptData';
+import { createScriptData, failedRead } from './scriptData';
 
 function ports() {
   let name = 'Alice';
@@ -136,5 +136,51 @@ describe('the dialogue cues on Script', () => {
     await old;
     expect(cueIds(data, 'a')).toEqual(['cue-a']);
     stop();
+  });
+});
+
+describe('a failed read of the dialogue cues (#3824)', () => {
+  const SENTENCE = 'The dialogue cues could not be read.';
+  const tick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
+
+  it('of a chapter drawn later is the failure while the chapters read before keep their cues, and Retry asks for that chapter alone', async () => {
+    const { data, storyBible } = ports();
+    await data.loadCues(['c1', 'c2']);
+    expect(failedRead(data.getState())).toBe('');
+    let refuse: (reason: Error) => void = () => {};
+    storyBible.guideDialogueCuesIn.mockImplementationOnce(() => new Promise((_, reject) => (refuse = reject)));
+    data.ensureCues('c3');
+    await tick();
+    // Nothing is said while the read runs.
+    expect(data.getState().cues.c3?.status).toBe('loading');
+    expect(failedRead(data.getState())).toBe('');
+    refuse(new Error(SENTENCE));
+    await vi.waitFor(() => expect(failedRead(data.getState())).toBe(SENTENCE));
+    expect(data.getState().cues.c1).toEqual({ status: 'ready', value: [{ id: 'cue-c1', chapterId: 'c1' }] });
+
+    storyBible.guideDialogueCuesIn.mockClear();
+    data.retryFailed();
+    expect(storyBible.guideDialogueCuesIn.mock.calls).toEqual([[['c3']]]);
+    await vi.waitFor(() => expect(data.getState().cues.c3?.status).toBe('ready'));
+    expect(failedRead(data.getState())).toBe('');
+  });
+
+  it('is no longer the failure once a change to the cues reads them again and the host answers', async () => {
+    const { data, storyBible } = ports();
+    storyBible.guideDialogueCuesIn.mockRejectedValueOnce(new Error(SENTENCE));
+    await data.loadCues(['c1']);
+    expect(failedRead(data.getState())).toBe(SENTENCE);
+    // What a command that changes the cues does after its write (scriptCommands.ts).
+    await data.loadCues();
+    expect(failedRead(data.getState())).toBe('');
+    expect(data.getState().cues.c1?.status).toBe('ready');
+  });
+
+  it('with nothing failed, Retry asks the host for nothing', async () => {
+    const { data, storyBible } = ports();
+    await data.loadCues(['c1']);
+    storyBible.guideDialogueCuesIn.mockClear();
+    data.retryFailed();
+    expect(storyBible.guideDialogueCuesIn).not.toHaveBeenCalled();
   });
 });
