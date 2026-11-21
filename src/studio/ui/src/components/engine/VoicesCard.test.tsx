@@ -253,13 +253,13 @@ describe('the Voices card', () => {
       expect(handlers.onNotAVoice).toHaveBeenLastCalledWith('t1', true, `${iso('Hatter')} is turned off as a voice.`);
     });
 
-    it('turning off the last voice says no voice is left (Voice folders), and not in Flat, where the host records on the folder', async () => {
+    it('turning off the last voice says no voice is left, in either layout (Flat refuses Record too, #3828)', async () => {
       const folders = drawFolder(['Queen']);
       await press('Queen');
       expect(folders.onNotAVoice).toHaveBeenCalledWith('t0', true, expect.stringContaining('No voice is left'));
       const flat = drawFolder(['Queen'], [], 'flat');
       await press('Queen');
-      expect(flat.onNotAVoice).toHaveBeenCalledWith('t0', true, `${iso('Queen')} is turned off as a voice.`);
+      expect(flat.onNotAVoice).toHaveBeenCalledWith('t0', true, expect.stringContaining('No voice is left'));
     });
 
     it('turning off the first of two tracks named Narrator says the second now holds key 0', async () => {

@@ -6,7 +6,7 @@ import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
 test.use({ viewport: { width: 1440, height: 900 } });
-test.setTimeout(90_000);
+test.setTimeout(120_000);
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
@@ -32,7 +32,7 @@ async function openAnyway(page: Page): Promise<void> {
   await chapterQuestion(page)
     .getByRole('button', { name: /^Stop and (open|leave)$/ })
     .click();
-  await expect(refusedQuestion(page)).toBeVisible({ timeout: 14_000 });
+  await expect(refusedQuestion(page)).toBeVisible({ timeout: 32_000 });
   // "Leave anyway" ignores a press for its first 0.4 s (a double click on the button it replaced).
   await page.waitForTimeout(600);
   await refusedQuestion(page)

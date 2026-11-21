@@ -79,14 +79,17 @@ export function destinationFor(layout: VoiceTracksLayout) {
       // One sentence in either layout for a link to a track the project does not hold, as the host says it and the Engine panel's "Track missing" (#3269).
       if (link === 'unknown') return LINK_GONE;
       if (link === 'unread') return TRACKS_UNREAD;
+      // Every track of the linked folder turned off as not a voice: refused in either layout, naming the switch (#3828).
+      if (link === 'marked')
+        return folders
+          ? 'Every track in this chapter’s folder is turned off as not a voice, so there is no voice to choose. Turn one back on in the Voices card.'
+          : 'Every track in this chapter’s folder is turned off as not a voice, so there is nothing to record on. Turn one back on in the Voices card, or link the chapter to a track of its own.';
       if (!folders) return 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
       switch (link) {
         case 'none':
           return 'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.';
         case 'track':
           return 'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.';
-        case 'marked':
-          return 'Every track in this chapter’s folder is turned off as not a voice, so there is no voice to choose. Turn one back on in the Voices card.';
         case 'empty':
           return 'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.';
       }

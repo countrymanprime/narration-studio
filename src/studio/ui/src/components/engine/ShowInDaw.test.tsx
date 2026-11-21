@@ -9,7 +9,7 @@ import { overlay } from '../../overlay/overlayService';
 import { createMockDawClient } from '../../ports/daw';
 import { PortOverrides } from '../../ports/usePort';
 import { TooltipProvider } from '../primitives/Tooltip';
-import { ShowInDawButton, type ShowInDawTarget } from './ShowInDaw';
+import { ASK_DEADLINE_MS, ShowInDawButton, type ShowInDawTarget } from './ShowInDaw';
 
 afterEach(() => {
   cleanup();
@@ -151,8 +151,13 @@ describe('ShowInDawButton hostile cases (qa-breaker #2826)', () => {
       const t = setup({ kind: 'finding', id: 'f1' });
       t.findingGoTo.mockReturnValue(new Promise(() => {}));
       await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(await button('Show in REAPER'));
+      // #3752: the host waits 23 s for a move or a marker a slow DAW has taken, and the page says nothing before the host could.
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(20000);
+        await vi.advanceTimersByTimeAsync(24_000);
+      });
+      expect(t.toast).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS - 24_000 + 1000);
       });
       expect(t.toast).toHaveBeenCalledWith(expect.stringMatching(/did not answer/), { tone: 'error' });
       expect((await button('Show in REAPER')).getAttribute('aria-busy')).not.toBe('true');

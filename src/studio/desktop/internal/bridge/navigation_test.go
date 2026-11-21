@@ -10,12 +10,25 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
 // fakeAnswersWithin is the deadline for a test whose fake REAPER always answers. It only catches a hang, so it is far above how long a
 // starved CI runner stalled the fake (3.35 s observed, with every command answered); a test of the no-answer path sets its own short one.
 const fakeAnswersWithin = 30 * time.Second
+
+// onVirtualClock runs body in a synctest bubble: every timer, ticker, sleep and time.Now in it is on a clock that jumps ahead whenever
+// all its goroutines wait, so a test of a wait (a timeout, a stall, a slow link) takes no wall-clock time and gives the same result on any
+// runner. Files are real. The bubble may not end while a goroutine still waits on the clock, and the client's own poller (Expect) ends
+// only on its next tick after the last answer, so the bubble waits that tick out.
+func onVirtualClock(t *testing.T, body func(t *testing.T)) {
+	t.Helper()
+	synctest.Test(t, func(t *testing.T) {
+		defer time.Sleep(2 * fastPollInterval)
+		body(t)
+	})
+}
 
 // noLateAnswerWithin is the late wait (SetLateWait) for a test whose fake REAPER reads a command that may run long and never answers it:
 // the test is about what the request reports when that wait ends, so it does not sit out LateAnswerWait (20 s) to get there.
@@ -398,11 +411,13 @@ func TestAnAnswerThisAppCannotReadIsAnErrorNotAZeroValue(t *testing.T) {
 }
 
 func TestNoAnswerInTimeIsErrNoAnswer(t *testing.T) {
-	navigator, _, _ := newNavigatorSession(t)
-	navigator.SetTimeout(30 * time.Millisecond)
-	if _, err := navigator.Ping(context.Background()); !errors.Is(err, ErrNoAnswer) {
-		t.Fatalf("got %v", err)
-	}
+	onVirtualClock(t, func(t *testing.T) {
+		navigator, _, _ := newNavigatorSession(t)
+		navigator.SetTimeout(30 * time.Millisecond)
+		if _, err := navigator.Ping(context.Background()); !errors.Is(err, ErrNoAnswer) {
+			t.Fatalf("got %v", err)
+		}
+	})
 }
 
 func TestACancelledRequestStopsWaiting(t *testing.T) {

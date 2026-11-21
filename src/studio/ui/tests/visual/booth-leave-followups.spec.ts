@@ -7,7 +7,7 @@ import { goToPage, openSettings } from './drivers/shared';
 import { DAW_SETUPS } from '../../src/fixtures/daw';
 
 test.use({ viewport: { width: 1440, height: 900 } });
-test.setTimeout(60_000);
+test.setTimeout(120_000);
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
@@ -175,7 +175,7 @@ test('a DAW that goes quiet while the stop is pending is not an ended take: "Cou
   await page.waitForTimeout(1000);
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await expect(refused).toBeVisible({ timeout: 32_000 });
   await expect(refused).toContainText('may keep recording');
   expect(await onBooth(page)).toBe(true);
 });
@@ -195,7 +195,7 @@ for (const gap of [100, 1500]) {
     // The question follows the DAW (#3555): a quiet DAW may still be recording, so it is asked again as the unconfirmed question, with the same Stop and leave.
     await quietQuestion(page).getByRole('button', { name: /^Stop/ }).click();
     const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-    await expect(refused).toBeVisible({ timeout: 14_000 });
+    await expect(refused).toBeVisible({ timeout: 32_000 });
     await expect(refused).toContainText('may keep recording');
     expect(await onBooth(page)).toBe(true);
   });
@@ -314,7 +314,7 @@ for (const route of chapterRoutes) {
     await expect(chapterQuestion).toBeVisible();
     await chapterQuestion.getByRole('button', { name: 'Stop and open' }).click();
     const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-    await expect(refused).toBeVisible({ timeout: 14_000 });
+    await expect(refused).toBeVisible({ timeout: 32_000 });
     // "Leave anyway" ignores a press for its first 0.4 s (a double click on the button it replaced).
     await page.waitForTimeout(600);
     await refused.getByRole('button', { name: 'Open anyway' }).click();
@@ -347,7 +347,7 @@ test('a stale yes does not open a chapter without asking: after Leave anyway, la
   await link('chapter-2');
   await chapterQuestion.getByRole('button', { name: 'Stop and open' }).click();
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-  await expect(refused).toBeVisible({ timeout: 14_000 });
+  await expect(refused).toBeVisible({ timeout: 32_000 });
   await page.waitForTimeout(600);
   await refused.getByRole('button', { name: 'Open anyway' }).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -401,7 +401,7 @@ test('a hung capabilities read after the take ended: Stop and leave ends in the 
   await expect(quietQuestion(page)).toBeVisible();
   await quietQuestion(page).getByRole('button', { name: /^Stop/ }).click();
   const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
-  await expect(refused).toBeVisible({ timeout: 25_000 });
+  await expect(refused).toBeVisible({ timeout: 70_000 });
   await refused.getByRole('button', { name: /Stay/ }).click();
   await expect(refused).toHaveCount(0);
   expect(await onBooth(page)).toBe(true);
