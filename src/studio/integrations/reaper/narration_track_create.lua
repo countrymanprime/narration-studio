@@ -33,7 +33,7 @@
 --
 -- Every track a narrator records on (the plain track, the voice inside a folder, each child of a new chapter folder) is created with its input monitoring
 -- on (I_RECMON 1) when it reads off, so the narrator hears themself the moment it is armed, from any page that creates it (#3670, #3333; the owner:
--- REAPER monitors only the armed track either way). A value the narrator or REAPER's own template set (1 or 2) is left as it is.
+-- REAPER monitors only the armed track either way). A value of 1 or 2 is left as it is (what REAPER gives an inserted track is pending a recorded run).
 --
 -- Events: TRACK_CREATED|run|guid|index|name[|childGuid|childIndex|childName], TRACK_CHILD|run|guid|index|name, TRACK_STALE|run|parentGuid, or
 -- ERROR|run|message.
