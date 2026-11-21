@@ -332,12 +332,16 @@ func (s *Service) RemoveStoredResult(recordID string) error {
 // ledger folder that is a link, or is below one, is an error before anything is deleted (persist.RealFolder): it would
 // list another folder's files.
 func (s *Service) SweepOrphanResults() ([]string, error) {
+	// The ledger must be this project's: another project's ledger holds none of this project's records, so every result here would be an orphan.
+	if filepath.Clean(s.ledger.Project()) != filepath.Clean(s.config.Project) {
+		return nil, fmt.Errorf("could not sweep the stored coverage results: the ledger belongs to another project (%s)", s.ledger.Project())
+	}
 	stored := map[string]bool{}
-	for _, folder := range []string{resultsFolder, summariesFolder} {
-		if _, err := persist.RealFolder(s.config.Project, folder); err != nil {
+	for _, dir := range []string{resultsFolder, summariesFolder} {
+		if _, err := persist.RealFolder(s.config.Project, dir); err != nil {
 			return nil, fmt.Errorf("could not list the stored coverage results: %w", err)
 		}
-		entries, err := persist.ReadDir(filepath.Join(s.config.Project, folder))
+		entries, err := persist.ReadDir(filepath.Join(s.config.Project, dir))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("could not list the stored coverage results: %w", err)
 		}
@@ -385,8 +389,8 @@ func (s *Service) SweepOrphanResults() ([]string, error) {
 // removeOrphan deletes the file kept for record id in one of the two stores' folders when it is a regular file that
 // stored says is that store's own, and reports whether it deleted one. The file is opened only once it is known to be
 // a regular file in real folders, so nothing that is not one (a named pipe, a link) is read.
-func (s *Service) removeOrphan(folder, id string, stored func(raw []byte, id string) bool) (bool, error) {
-	file := filepath.Join(folder, id+".json")
+func (s *Service) removeOrphan(dir, id string, stored func(raw []byte, id string) bool) (bool, error) {
+	file := filepath.Join(dir, id+".json")
 	regular, err := persist.IsRegular(s.config.Project, file)
 	if err != nil || !regular {
 		return false, err

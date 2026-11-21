@@ -66,12 +66,17 @@ func realFolder(folder *os.Root, rel string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if info.Mode().Type() != fs.ModeDir {
+		if !isRealFolder(info.Mode()) {
 			return false, fmt.Errorf("%s is a link or a file, not a folder: nothing is listed or deleted through it", dir)
 		}
 	}
 	return true, nil
 }
+
+// isRealFolder reports whether an Lstat mode is a folder itself. A link or junction is reported without ModeDir; a folder
+// that Windows tags with a reparse point that is not a link (OneDrive's cloud files) is reported as ModeDir|ModeIrregular,
+// and is a folder.
+func isRealFolder(mode fs.FileMode) bool { return mode&fs.ModeSymlink == 0 && mode.IsDir() }
 
 // beforeAct runs between onRegular's checks and its act; tests swap it.
 var beforeAct = func() {}

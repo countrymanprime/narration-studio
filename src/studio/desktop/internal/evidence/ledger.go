@@ -170,6 +170,9 @@ func NewLedgerStore(project string) *LedgerStore {
 	return &LedgerStore{project: project, dir: LedgerDir(project)}
 }
 
+// Project is the project folder this store keeps its records under.
+func (s *LedgerStore) Project() string { return s.project }
+
 // Write assigns record an ID when it has none, stamps its schema version,
 // and writes it to its own file via a temp file plus rename. It returns the
 // record as written (with ID and SchemaVersion filled in). A LedgerRecord

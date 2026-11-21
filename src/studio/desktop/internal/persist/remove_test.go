@@ -1,6 +1,7 @@
 package persist
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -315,4 +316,22 @@ func TestIsRegularAnswersWhatRemoveRegularWouldActOn(t *testing.T) {
 		})
 	}
 	stillThere(t, file)
+}
+
+func TestOnlyAFolderItselfIsARealFolder(t *testing.T) {
+	for name, tc := range map[string]struct {
+		mode fs.FileMode
+		want bool
+	}{
+		"a folder":                   {fs.ModeDir, true},
+		"a folder with a cloud tag":  {fs.ModeDir | fs.ModeIrregular, true},
+		"a symlink":                  {fs.ModeSymlink, false},
+		"a junction (no folder bit)": {fs.ModeIrregular, false},
+		"a symlink to a folder":      {fs.ModeSymlink | fs.ModeDir, false},
+		"a file":                     {0, false},
+	} {
+		if got := isRealFolder(tc.mode); got != tc.want {
+			t.Errorf("%s: isRealFolder(%v) = %v, want %v", name, tc.mode, got, tc.want)
+		}
+	}
 }

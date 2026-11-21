@@ -1104,3 +1104,24 @@ func TestRetainAndTheSweepRunBesideReadsAndWrites(t *testing.T) {
 		}
 	}
 }
+
+// A ledger that belongs to another project holds none of this project's records, so a sweep that trusted it would treat every
+// stored result as an orphan.
+func TestTheSweepRefusesALedgerOfAnotherProject(t *testing.T) {
+	f, _, _, _ := checkedTwiceThenFailed(t)
+	writeStored(t, f.service, "orphan")
+	before := f.stored("orphan")
+	other := t.TempDir()
+	foreign := evidence.NewLedgerStore(other)
+	if _, err := foreign.Write(evidence.LedgerRecord{AnalyzerID: "coverage"}); err != nil {
+		t.Fatal(err)
+	}
+	f.service.ledger = foreign
+	swept, err := f.service.SweepOrphanResults()
+	if err == nil || len(swept) != 0 {
+		t.Fatalf("SweepOrphanResults = %v, %v; want an error and nothing removed", swept, err)
+	}
+	if got := f.stored("orphan"); got != before {
+		t.Fatalf("the sweep touched the results: %q", got)
+	}
+}
