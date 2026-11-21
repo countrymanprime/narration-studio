@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { PronunciationOnlineResult } from '../../types';
 import { Button } from '../primitives/Button';
+import { QuotedName } from './QuotedName';
 
 /**
  * Look one name up in Merriam-Webster's online dictionary: the narrator's own press, sending that
@@ -40,8 +41,8 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
         >
           Look up online
         </Button>
-        <span className="line-clamp-3 min-w-0 text-[0.8125rem] [overflow-wrap:anywhere] text-[var(--text-muted)]" title={name}>
-          Sends “{name}” alone to Merriam-Webster, on your own key.
+        <span className="min-w-0 text-[0.8125rem] text-[var(--text-muted)]">
+          Sends <QuotedName name={name} /> alone to Merriam-Webster, on your own key.
         </span>
       </div>
       {/* Body-size text beside the 36 px Use this, not 12 px (SBX-8). */}
@@ -73,7 +74,8 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
         )}
         {result && !result.found && (
           <p className="text-[var(--text-muted)]">
-            {result.label} does not have “{result.word}”{result.suggestions.length > 0 ? `. It suggests: ${result.suggestions.join(', ')}.` : '.'}
+            {result.label} does not have <QuotedName name={result.word} />
+            {result.suggestions.length > 0 ? `. It suggests: ${result.suggestions.join(', ')}.` : '.'}
           </p>
         )}
       </div>

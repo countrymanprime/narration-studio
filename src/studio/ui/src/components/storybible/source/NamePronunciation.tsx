@@ -17,6 +17,7 @@ import type { PronunciationCandidateRow } from '../../../api/contracts/pronuncia
 import { CandidatesCheckAgain, PronunciationCandidateList, usePronunciationCandidates } from './PronunciationCandidates';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
+import { QuotedName } from '../QuotedName';
 
 const OWN_SOURCES: readonly string[] = ['manual', 'user'];
 
@@ -213,8 +214,8 @@ export function NamePronunciation({
             {candidates.status === 'error' ? (
               <CandidatesCheckAgain view={candidates} />
             ) : candidates.status === 'ready' && candidates.answer.candidates.length === 0 ? (
-              <p className={`m-0 line-clamp-3 text-xs text-[var(--text-muted)] ${NAME_WRAP}`} title={name}>
-                No dictionary has “{name}”.
+              <p className="m-0 text-xs text-[var(--text-muted)]">
+                No dictionary has <QuotedName name={name} />.
               </p>
             ) : (
               <PronunciationCandidateList
