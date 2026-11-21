@@ -57,7 +57,7 @@ export function TargetPopover({
       </div>
       <p className="text-xs text-[var(--text-muted)]">
         {own.ok
-          ? `${joinTags(own.value.chapters.map((c) => c.tag))} ${own.value.chapters.length === 1 ? 'has' : 'have'} a measured length: ${num(own.value.words)} words in ${clock(own.value.seconds)}.`
+          ? `${joinTags(own.value.chapters.map((c) => c.tag))} ${own.value.chapters.length === 1 ? 'has' : 'have'} a measured length: ${num(own.value.words)} words in ${clock(own.value.seconds, { marked: true })}.`
           : `Your rate is not measured yet. ${own.reason}`}
       </p>
       <div className="flex items-center justify-between gap-2">
