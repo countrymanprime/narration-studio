@@ -11,8 +11,8 @@ import (
 	"desktop/internal/dawport"
 )
 
-// boothArmTimeout bounds one release: a single quick request to the DAW, as a move to a chapter is.
-const boothArmTimeout = placeTimeout
+// boothArmTimeout bounds one release: a release the DAW has read is waited for, as a move to a chapter is.
+const boothArmTimeout = writeCommandTimeout
 
 // followChapterSetting reports whether Booth.follow_chapter_in_daw is on (it is by default): the one switch for the DAW following the chapter the
 // narrator works on, which includes arming the Booth's voice and turning its input monitoring on (#3428).

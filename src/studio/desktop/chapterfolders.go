@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -23,7 +22,8 @@ const (
 	chapterFoldersRepaired = "repaired"
 	chapterFoldersStale    = "stale"
 	chapterFoldersRefused  = "refused"
-	chapterFoldersTimeout  = 15 * time.Second
+	// chapterFoldersTimeout bounds a check or a repair: a repair the DAW has read is waited for until the tracks have moved.
+	chapterFoldersTimeout = writeCommandTimeout
 )
 
 // chapterFolderMove is one track whose folder the repair changes, with the chapter it is linked to ("" for a voice or other track).
@@ -94,6 +94,8 @@ func chapterFoldersError(name string, err error) chapterFolders {
 		return chapterFoldersRefusedWith(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then move the chapters.", name))
 	case errors.Is(err, bridge.ErrUnavailable):
 		return chapterFoldersUnavailable(name, dawport.Support{Reason: dawport.ReasonStandalone})
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return chapterFoldersRefusedWith(refusedFailed, lateAnswerSentence(name))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return chapterFoldersUnavailable(name, dawport.Support{Reason: dawport.ReasonNotRunning})
 	}

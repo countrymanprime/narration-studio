@@ -5,15 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
 )
 
 // rollTimeout bounds one roll: the stop, the cursor move and REAPER reporting that it records again (narration_roll.lua
-// waits about a second for that), plus the play-position read before it.
-const rollTimeout = 5 * time.Second
+// waits about a second for that), plus the play-position read before it. A roll the DAW has read is waited for (writeCommandTimeout).
+const rollTimeout = writeCommandTimeout
 
 const (
 	// rollConfirmSentence is the one refusal of an unconfirmed roll where the punch capability is destructive (SND-6a).
@@ -98,6 +97,8 @@ func rollRefusal(name string, err error) dawport.Result {
 		return refused
 	}
 	switch {
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return dawport.Refused(lateAnswerSentence(name))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperNotRunning).Message)
 	case errors.Is(err, bridge.ErrUnavailable):

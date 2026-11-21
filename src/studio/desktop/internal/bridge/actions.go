@@ -225,10 +225,9 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 		// stand between the timeout and taking the command back.
 		back := a.client.retract(target)
 		watch.retracted(back)
-		if back != retractRemoved && mayRunLong[command] {
-			// REAPER already read this command (or the file could not be taken back), so it is at work on it (a create or an arm in a big
-			// project can take longer than the usual wait): keep waiting for its answer rather than report a failure for a change that is
-			// about to land.
+		if back != retractRemoved && waitsLate(command, args) {
+			// REAPER already read this command (or the file could not be taken back), so it is at work on it or its answer is on a slow way
+			// back: keep waiting for its answer rather than report a failure for a change that is about to land.
 			return a.waitLate(ctx, command, runID, run, started, watch, back)
 		}
 		a.report(command, "no_answer", started, watch)
@@ -239,7 +238,7 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 		watch.retracted(back)
 		a.report(command, "cancelled", started, watch)
 		a.logFailure(command, runID, "cancelled"+retractNote(back))
-		if back != retractRemoved && mayRunLong[command] {
+		if back != retractRemoved && waitsLate(command, args) {
 			// The caller's deadline ended after REAPER read the command: it may have done it, as for a late answer.
 			return nil, fmt.Errorf("%w: %w", ErrAnswerLate, ctx.Err())
 		}
@@ -247,19 +246,54 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	}
 }
 
-// LateAnswerWait is how much longer a command in mayRunLong is waited for once REAPER has read it and has not answered in
-// DefaultAnswerTimeout. A command REAPER never read is taken back and fails at DefaultAnswerTimeout, as before.
+// LateAnswerWait is how much longer a command is waited for once REAPER has read it and has not answered in DefaultAnswerTimeout
+// (waitsLate says which commands). A command REAPER never read is taken back and fails at DefaultAnswerTimeout.
 const LateAnswerWait = 20 * time.Second
 
-// mayRunLong are the commands REAPER can take longer than DefaultAnswerTimeout to finish once it has read them, and whose abandoned wait
-// does harm (#3645): track_create and the two arms report a failure for a change that still lands (a lane made and then "not found", a
-// retry that makes a second one), and tracks_read answers the saved project, without the lane just made, in place of the live list.
-// Other commands keep the short wait.
-var mayRunLong = map[string]bool{"track_create": true, "arm_only": true, "arm_lane": true, "tracks_read": true, "switch_voice": true}
+// keepsShortWait are the commands that change nothing in REAPER, so an abandoned wait leaves nothing to land: the reads a page polls
+// (a late answer to a poll would only hold the next one) and the reads asked once. watch_transport is here too: it is a lease the
+// host renews every few seconds, and a renewal that is lost is made good by the next. tracks_read is not: its late answer is the live
+// track list, where the short wait answers the saved project without the lane just made (#3645).
+var keepsShortWait = map[string]bool{
+	"chapter_track_state": true, "read_place": true, "daw_meters": true, "play_position": true, "watch_transport": true,
+	"last_action": true, "list_fx_chains": true, "master_chain_read": true, "punch_preroll": true, "range_fx_chosen": true,
+	"fx_range_params": true, "read_voice_samples": true, "ping": true,
+}
+
+// waitsLate reports whether command, once REAPER has read it, is waited for past DefaultAnswerTimeout: every command that changes
+// something in REAPER (#3752). Abandoned at the usual wait, a stop, a cut or a move is reported as "not answering" and then lands.
+// monitor_level with no level and chapter_folders in preview are the reads of commands that also write.
+func waitsLate(command string, args []string) bool {
+	switch {
+	case keepsShortWait[command]:
+		return false
+	case command == "monitor_level":
+		return len(args) > 0 && args[0] != ""
+	case command == "chapter_folders":
+		return len(args) > 0 && args[0] != "preview"
+	}
+	return true
+}
 
 // ErrAnswerLate is ErrNoAnswer for a command REAPER had read: it may still have done what it was asked, so the caller reads back
 // before saying it failed or sending it again. errors.Is(err, ErrNoAnswer) holds.
 var ErrAnswerLate = fmt.Errorf("%w: REAPER took the command but has not confirmed it yet", ErrNoAnswer)
+
+// awaitLate waits up to wait more for done, the answer of a command REAPER has read. With no answer it is ErrAnswerLate, wrapping the
+// context's error when the caller's deadline ended first.
+func awaitLate[T any](ctx context.Context, done <-chan T, wait time.Duration) (T, error) {
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	var none T
+	select {
+	case got := <-done:
+		return got, nil
+	case <-timer.C:
+		return none, ErrAnswerLate
+	case <-ctx.Done():
+		return none, fmt.Errorf("%w: %w", ErrAnswerLate, ctx.Err())
+	}
+}
 
 // waitLate waits up to LateAnswerWait more for the answer of a command REAPER has read.
 func (a *Actions) waitLate(ctx context.Context, command, runID string, run *actionRun, started time.Time, watch *takenWatch, back retractResult) ([]Event, error) {
@@ -288,7 +322,7 @@ func (a *Actions) waitLate(ctx context.Context, command, runID string, run *acti
 	}
 }
 
-// SetLateWait changes how long a command in mayRunLong is waited for after REAPER has read it.
+// SetLateWait changes how long a command is waited for after REAPER has read it.
 func (a *Actions) SetLateWait(wait time.Duration) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
