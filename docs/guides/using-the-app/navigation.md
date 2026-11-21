@@ -320,7 +320,9 @@ says **Create a new folder** in a Voice folders project and makes the same folde
 The tracks here are REAPER's own, saved or not, while REAPER has the linked project open: a track or folder you add in REAPER shows
 without saving. Chapter links' header says in one line whose tracks they are and when they were read (**REAPER now · read 3 s ago**);
 point at it for the whole sentence. The panel reads them again when it opens, after **Check again**, when you come back to the window
-and every few seconds while it is in front; the **Refresh** button beside the header (also in the Link chapters dialog) reads them at
+and when a track is added, removed, renamed or moved in REAPER, so the time in the header grows while nothing changes there. With a
+REAPER script loaded before this version (until REAPER is restarted), or while REAPER is not answering, it reads every few seconds
+while it is in front instead. The **Refresh** button beside the header (also in the Link chapters dialog) reads them at
 once and answers each press with a message ("Read 5 tracks from REAPER.", or "Read the tracks in the saved project."), even when nothing changed. While REAPER is closed, not answering or has another project open, the header reads **Saved project** and the tracks are as of
 the project's last save; its sentence says why. Save the project in REAPER after adding a track: Chapter links sees it at once, but
 Editing, Proof and Pickups read the same tracks, and while they are the saved project's each shows a **Saved project** mark.
