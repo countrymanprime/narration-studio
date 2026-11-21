@@ -181,12 +181,22 @@ describe("the Booth's voices", () => {
 
   // #3271: in a Voice folders project the voice keys never say a chapter records on one track; what they say follows what the chapter is linked to.
   it.each([
-    ['a folder the saved project does not hold yet (just made)', [], 'unknown'],
-    ['a plain track', [{ guid: '{LINKED}', name: 'Chapter', isFolder: false, depth: 0 }], 'track'],
-    ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty'],
-  ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind) => {
+    ['a folder the saved project does not hold yet (just made)', [], 'unknown', []],
+    ['a plain track', [{ guid: '{LINKED}', name: 'Chapter', isFolder: false, depth: 0 }], 'track', []],
+    ['a folder with no voices', [{ guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 }], 'empty', []],
+    // #3828 finding 5: the fix for a folder whose every track is marked is to turn one back on, not to add a track.
+    [
+      'a folder whose every track is marked as not a voice',
+      [
+        { guid: '{LINKED}', name: 'Chapter', isFolder: true, depth: 0 },
+        { guid: '{BED}', name: 'Music bed', isFolder: false, depth: 1 },
+      ],
+      'marked',
+      ['{bed}'],
+    ],
+  ] as const)('in a Voice folders project a voice key on a chapter linked to %s says so', async (_what, tracks, kind, marked = []) => {
     const api = createMockApi({
-      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] }),
+      voiceTracksGet: async () => ({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [...marked], tracks: [] }),
       chapterTrackMapList: async () => ({
         documentId: 'd',
         mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
@@ -208,6 +218,7 @@ describe("the Booth's voices", () => {
     await act(async () => hook.current.byKey(1));
     expect(hook.current.linkKind).toBe(kind);
     expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
+    if (kind === 'marked') expect(destinationFor('folders').noVoiceKeys(kind)).toContain('Turn one back on in the Voices card');
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
   });
 

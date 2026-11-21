@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { useIsRecording } from '../../daw/useIsRecording';
-import { assignmentOf, folderChildren, folderVoices, type Voice } from './voices';
+import { assignmentOf, folderChildren, folderVoices, same, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 import { chapterLink } from '../chapterTracks/chapterLink';
 
@@ -34,7 +34,7 @@ const DIMMED = 'text-[var(--text-muted)]';
 const RECORDING_REASON = 'A take is recording. Stop it before you change which tracks are voices.';
 /** What the switch says it does, short: a hint wider or taller than this hides the switches of the rows above it. */
 const SWITCH_HINT = 'Counts as a voice. Turn off for a track that is not one (a music bed).';
-/** The explanation behind the card's help button, as the Settings row's "?" gives it (one place for the rule, two places to read it). */
+/** The explanation behind the card's help button: a shorter form of the Settings row's "?" text. */
 const SWITCH_HELP =
   'Each switch says whether a track of the folder counts as a voice. Turn it off for a track that is not one, such as a music bed or room tone: it gets no number key, records no character, and the Booth does not list it. The keys of the voices after it move up by one.';
 /** A window of 30 rem or less has no room for five columns: the Key column goes (the number pad is not what a narrow window is for) and the switch shares the last cell with the edit button. */
@@ -47,14 +47,18 @@ const subscribeNarrow = (notify: () => void) => {
 const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 
 /** What turning a voice off or on does beyond its row, so it is not a surprise in the Booth: the Narrator's key 0 goes (the Booth records on the next voice), or the keys of the voices after it move by one. Empty when nothing moves. */
-function switchConsequence(voice: Voice, voices: readonly Voice[], counts: boolean): string | undefined {
-  if (voice.narrator && !counts)
-    return 'The Narrator is turned off as a voice. Key 0 has no track, and the Booth records on the next voice until you turn it back on.';
+function switchConsequence(voice: Voice, voices: readonly Voice[], counts: boolean, place: number): string | undefined {
+  // A marked Narrator row is not flagged `narrator` (it has no key), so it is known by its name.
+  if (voice.narrator || same(voice.name, 'narrator'))
+    return counts
+      ? 'The Narrator is a voice again. Key 0 is back, and the Booth may record on it.'
+      : 'The Narrator is turned off as a voice. Key 0 has no track, and the Booth records on the next voice until you turn it back on.';
   const at = voices.findIndex((other) => other.guid === voice.guid);
-  if (voice.narrator || !voices.slice(at + 1).some((other) => other.key !== '' && !other.narrator)) return undefined;
+  if (!voices.slice(at + 1).some((other) => other.key !== '' && !other.narrator)) return undefined;
+  const name = shortName(trackName(voice.name, place));
   return counts
-    ? `${shortName(voice.name.trim() || 'The track')} is a voice again. The keys of the voices after it moved down one.`
-    : `${shortName(voice.name.trim() || 'The track')} is turned off as a voice. The keys of the voices after it moved up one.`;
+    ? `${name} is a voice again. The keys of the voices after it moved down one.`
+    : `${name} is turned off as a voice. The keys of the voices after it moved up one.`;
 }
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
@@ -119,7 +123,11 @@ export function VoicesCard({
   const recording = useIsRecording();
   const voiceSwitch = (voice: Voice) => (
     <TooltipTarget text={recording ? RECORDING_REASON : SWITCH_HINT}>
-      <Switch checked={!voice.notVoice} disabled={recording} onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, counts))}>
+      <Switch
+        checked={!voice.notVoice}
+        disabled={recording}
+        onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, counts, projectPlace(voice.guid)))}
+      >
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>
     </TooltipTarget>

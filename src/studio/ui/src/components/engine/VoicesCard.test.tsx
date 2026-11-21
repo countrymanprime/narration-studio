@@ -217,6 +217,12 @@ describe('the Voices card', () => {
     expect(handlers.onNotAVoice).toHaveBeenCalledWith('nar', true, expect.stringContaining('the Booth records on the next voice'));
   });
 
+  it('turning a marked Narrator back on says key 0 is back, not that other keys moved', async () => {
+    const handlers = draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: ['nar'], tracks: [] });
+    await userEvent.setup().click(screen.getByRole('switch', { name: 'Narrator counts as a voice' }));
+    expect(handlers.onNotAVoice).toHaveBeenCalledWith('nar', false, expect.stringContaining('Key 0 is back'));
+  });
+
   it('turning a voice off or on says the keys after it move, and says nothing when none follows', async () => {
     const withAfter = [track('c8', 'Ch 8', 0, true), track('queen', 'Queen', 1), track('hatter', 'Hatter', 1), track('c9', 'Chapter 9', 0)];
     cleanup();
