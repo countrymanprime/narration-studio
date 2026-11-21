@@ -179,6 +179,11 @@ func newestRecord(ledger evidence.LedgerReader, chapterID string) (*evidence.Led
 	return &records[0], nil
 }
 
+// RetentionKey is the evidence.RetentionKey of a coverage record (AnalyzerID): the readers match on the chapter and
+// nothing more, so every record of a chapter is one group. It has to agree with evidence.EvaluateChapter (the chapter's
+// newest complete record), newestRecord (its newest of any outcome) and checkedChapters (whether it has a complete one).
+func RetentionKey(evidence.LedgerRecord) (string, bool) { return "", true }
+
 // Checking reports whether a check of chapterID is running now.
 func (s *Service) Checking(chapterID string) bool {
 	s.mu.Lock()

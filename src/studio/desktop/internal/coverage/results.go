@@ -3,9 +3,14 @@ package coverage
 import (
 	"desktop/internal/brand"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,12 +27,19 @@ const storedResultVersion = 1
 // it with the ledger and cache, since results name chapter and paragraph ids a
 // re-import resets.
 func Dir(project string) string {
-	return filepath.Join(project, brand.ProjectFolder, "analysis", "coverage")
+	return filepath.Join(project, folder)
 }
 
-func resultsDir(project string) string { return filepath.Join(Dir(project), "results") }
+// folder is Dir below the project folder, and resultsFolder and summariesFolder are the two stores' folders there.
+var (
+	folder          = filepath.Join(brand.ProjectFolder, "analysis", "coverage")
+	resultsFolder   = filepath.Join(folder, "results")
+	summariesFolder = filepath.Join(folder, "summaries")
+)
 
-func summariesDir(project string) string { return filepath.Join(Dir(project), "summaries") }
+func resultsDir(project string) string { return filepath.Join(project, resultsFolder) }
+
+func summariesDir(project string) string { return filepath.Join(project, summariesFolder) }
 
 func runsDir(project string) string { return filepath.Join(Dir(project), "runs") }
 
@@ -267,6 +279,80 @@ func (s resultStore) decode(path, recordID string) (StoredResult, persist.Outcom
 		s.cache.decoded.Add(1)
 	}
 	return result, outcome
+}
+
+// RemoveStoredResult deletes what coverage stored for the ledger record recordID: its stored result, then that
+// result's summary, from disk and from memory. It is for evidence.LedgerStore.Retain's beforeDelete, which calls it
+// before the record's own file goes, so the order for each dropped record is result, summary, record. The result goes
+// first because a summary whose result is there is rebuilt by a read (Service.summary); a read that was already
+// rebuilding it may store the summary again afterwards, and SweepOrphanResults finds that file once the record is
+// gone. A step that fails leaves the later ones undone, and the record with them, so the next pass starts again here.
+// Each delete is persist.RemoveRegular rooted at the project folder: a file that is not there is done already, and a
+// link or folder in its place is left alone.
+func (s *Service) RemoveStoredResult(recordID string) error {
+	_, err := s.removeStored(recordID)
+	return err
+}
+
+// removeStored is RemoveStoredResult, reporting whether it deleted a file.
+func (s *Service) removeStored(recordID string) (bool, error) {
+	name, ok := evidence.RecordFileName(recordID)
+	if !ok {
+		return false, fmt.Errorf("%q is not a ledger record id", recordID)
+	}
+	result, err := persist.RemoveRegular(s.config.Project, filepath.Join(resultsFolder, name))
+	if err != nil {
+		return false, fmt.Errorf("could not remove the coverage result of record %s: %w", recordID, err)
+	}
+	s.results.cache.drop(recordID)
+	s.summaries.forget(recordID)
+	summary, err := persist.RemoveRegular(s.config.Project, filepath.Join(summariesFolder, name))
+	if err != nil {
+		return result, fmt.Errorf("could not remove the coverage result summary of record %s: %w", recordID, err)
+	}
+	return result || summary, nil
+}
+
+// SweepOrphanResults deletes every stored result and summary whose record has no file in the ledger folder, and returns
+// the record ids it deleted for. It finishes what a pass of evidence.LedgerStore.Retain left when it stopped between
+// a record's steps or a read stored a summary behind it. A record file that is there protects its result whether or
+// not it can be read (evidence.LedgerStore.RecordFileIDs), and a ledger folder that is missing or cannot be listed
+// protects everything. The stored files are listed before the ledger: a run writes its record before its result, so
+// the record of every result listed is in the later ledger listing unless it has been deleted.
+func (s *Service) SweepOrphanResults() ([]string, error) {
+	stored := map[string]bool{}
+	for _, dir := range []string{s.results.dir, s.summaries.dir} {
+		entries, err := persist.ReadDir(dir)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("could not list the stored coverage results: %w", err)
+		}
+		for _, entry := range entries {
+			if id, isJSON := strings.CutSuffix(entry.Name(), ".json"); isJSON {
+				stored[id] = true
+			}
+		}
+	}
+	recorded, err := s.ledger.RecordFileIDs()
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var removed []string
+	for _, id := range slices.Sorted(maps.Keys(stored)) {
+		if _, isRecordID := evidence.RecordFileName(id); !isRecordID || recorded[id] {
+			continue
+		}
+		deleted, err := s.removeStored(id)
+		if err != nil {
+			return removed, err
+		}
+		if deleted {
+			removed = append(removed, id)
+		}
+	}
+	return removed, nil
 }
 
 // ChapterResult is what the result reader answers for a chapter: whether the
