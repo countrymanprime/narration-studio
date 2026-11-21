@@ -80,7 +80,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 170
+const hostAPIVersion = 171
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -128,6 +128,14 @@ type Host struct {
 	dawEditCount int
 	// +checklocks:mu
 	dawEditSeen bool
+	// dawTracksRevision is the track-list revision the last daw_tracks_changed carried (bindings_daw_trackschanged.go), and dawTracksSeen whether one was sent.
+	// +checklocks:mu
+	dawTracksRevision string
+	// dawTracksEpoch is the heartbeat's epoch when that revision was sent: the same revision after a restart or another project is sent again.
+	// +checklocks:mu
+	dawTracksEpoch uint64
+	// +checklocks:mu
+	dawTracksSeen bool
 	// dawUnsavedTracker is the edit-counter baseline DawProjectState's unsavedChanges is read against
 	// (bindings_daw_projectstate.go), fed on every transcriptLoop tick.
 	// +checklocks:mu
@@ -1361,6 +1369,7 @@ func (h *Host) pollTranscript() {
 	h.pollDawTransport()
 	h.observeDawProjectState()
 	h.pollDawProjectEdited()
+	h.pollDawTracksChanged()
 	h.pollAudacityLink()
 }
 

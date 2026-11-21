@@ -225,7 +225,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           try {
             // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop. A stop the page
             // already sent is out here too, and a slow DAW that has taken it is waited for as long as the stop itself (LEAVE_STOP_WAIT_MS).
-            const settleWait = now.startPending ? LEAVE_WAIT_MS : LEAVE_STOP_WAIT_MS;
+            // Read now, not when the question opened: a start that landed while the narrator read it leaves a stop, not a start, to wait for.
+            const settleWait = sessionRef.current.startPending ? LEAVE_WAIT_MS : LEAVE_STOP_WAIT_MS;
             const landed = sessionRef.current.settle ? await within(sessionRef.current.settle(), settleWait) : { value: true };
             if (gone.current) return false;
             if (!landed) sentence = noAnswerSentence(now.daw.name);

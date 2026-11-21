@@ -11,6 +11,7 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
+	"desktop/internal/daw"
 	"desktop/internal/dawport"
 	"desktop/internal/dawport/dawporttest"
 )
@@ -286,9 +287,21 @@ func TestContractTracksLive(t *testing.T) {
 		}
 		contractfile.Check(t, name, stable)
 	}
-	pin("tracks-live-live", readLive(t, host, listerFor(rpp, dawport.LiveTrack{Index: 3, GUID: liveAdded, Name: "Chapter III", FolderDelta: 1},
-		dawport.LiveTrack{Index: 4, GUID: liveVoice, Name: "Guard", FolderDelta: -1}), dawport.Support{Available: true}))
-	pin("tracks-live-saved", readLive(t, host, nil, dawport.Support{Reason: dawport.ReasonNotRunning}))
+	// The list REAPER answered carries its revision and the heartbeat is already one change ahead: the live answer repeats the list's own, so
+	// the page reads again on that change's event. The saved one never carries one.
+	reach := daw.NewReachability(nil)
+	reach.Record(tracksBeat("ffffffffffffffff"))
+	host.reachability = reach
+	lister := listerFor(rpp, dawport.LiveTrack{Index: 3, GUID: liveAdded, Name: "Chapter III", FolderDelta: 1},
+		dawport.LiveTrack{Index: 4, GUID: liveVoice, Name: "Guard", FolderDelta: -1})
+	lister.read.Revision = "00c3a1f29b7d4e58"
+	live := readLive(t, host, lister, dawport.Support{Available: true})
+	saved := readLive(t, host, nil, dawport.Support{Reason: dawport.ReasonNotRunning})
+	if live.Revision != "00c3a1f29b7d4e58" || saved.Revision != "" {
+		t.Fatalf("revision: live %q, saved %q; want the read list's own for REAPER's list and none for the saved file's", live.Revision, saved.Revision)
+	}
+	pin("tracks-live-live", live)
+	pin("tracks-live-saved", saved)
 }
 
 func TestTracksLiveBindingAnswersJSON(t *testing.T) {
