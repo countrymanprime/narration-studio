@@ -311,3 +311,26 @@ func TestReferencedRecordIDsStillStopsAfterTheStagesServiceMovedTheFileAside(t *
 		})
 	}
 }
+
+func TestReferencedRecordIDsOfAFolderThatCannotBeListedIsAnError(t *testing.T) {
+	project := t.TempDir()
+	writeRaw(t, project, `{"schemaVersion": 1, "documentId": "d", "decisions": []}`)
+	was := listFolder
+	listFolder = func(string) ([]os.DirEntry, error) { return nil, errors.New("access is denied") }
+	t.Cleanup(func() { listFolder = was })
+	got, err := NewDecisionStore(project, nil).ReferencedRecordIDs()
+	if err == nil || got != nil || !strings.Contains(err.Error(), "could not be listed") {
+		t.Fatalf("ReferencedRecordIDs = %v, %v; want the listing error and no set", got, err)
+	}
+}
+
+func TestReferencedRecordIDsOfAPathThatIsNotAFileIsAnError(t *testing.T) {
+	project := t.TempDir()
+	// A directory where the file should be cannot be read as a file; it is not "no decisions".
+	if err := os.MkdirAll(DecisionsFile(project), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := NewDecisionStore(project, nil).ReferencedRecordIDs(); err == nil || got != nil {
+		t.Fatalf("a directory at the decisions path: %v, %v; want an error and no set", got, err)
+	}
+}

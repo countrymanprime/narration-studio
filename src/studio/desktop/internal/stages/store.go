@@ -263,10 +263,13 @@ func (s *DecisionStore) ReferencedRecordIDs() (map[string]bool, error) {
 	return ids, nil
 }
 
+// listFolder lists a folder; a variable so a test can make the listing fail on every platform.
+var listFolder = os.ReadDir
+
 // keptAside is the name of a copy of the decisions file that was moved aside as unreadable ("<name>.corrupt-<stamp>"), or "" when
 // there is none. A folder that is not there holds none.
 func keptAside(path string) (string, error) {
-	entries, err := os.ReadDir(filepath.Dir(path))
+	entries, err := listFolder(filepath.Dir(path))
 	if errors.Is(err, os.ErrNotExist) {
 		return "", nil
 	}
