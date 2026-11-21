@@ -24,7 +24,7 @@ const result = (patch: Partial<MultiPackageResult>): MultiPackageResult => ({
 });
 
 const jobs = (results: MultiPackageResult[], running = false): MultiPackageSource => ({
-  job: { id: 'j', phase: running ? 'running' : 'success', message: running ? '' : 'Built 1 packages.', results } as unknown as MultiPackageJob,
+  job: { id: 'j', phase: running ? 'running' : 'success', message: running ? '' : 'Built 1 package.', results } as unknown as MultiPackageJob,
   running,
   starting: false,
   problem: undefined,
