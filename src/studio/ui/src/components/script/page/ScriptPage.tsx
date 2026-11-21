@@ -14,6 +14,7 @@ import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark } from '../../../api/contracts/marks';
 import { chapterName } from '../../../chapterName';
 import { isNarrationChapter, withoutCredits } from '../../../chapterKinds';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { useLayoutClass } from '../../../hooks/useLayoutClass';
 import { CommandScope } from '../../../input/router';
 import { useUserKeymap } from '../../../input/useUserKeymap';
@@ -36,7 +37,17 @@ import { dictionaryInstallPrompt } from '../dictionaryInstall';
 import { useScriptCredits, useSaveMarkTypes, useWordsHost } from '../scriptPageHost';
 import { ChapterCard, HeldChapterCard } from './chapters/ChapterCard';
 import { ChapterList } from './chapters/ChapterList';
-import { useChapters, useEntries, useManuscriptSearch, useMarks, useScriptCommands, useScriptPrep, useScriptView, useSpeakers } from './data/useScriptData';
+import {
+  useChapters,
+  useEntries,
+  useFailedReads,
+  useManuscriptSearch,
+  useMarks,
+  useScriptCommands,
+  useScriptPrep,
+  useScriptView,
+  useSpeakers,
+} from './data/useScriptData';
 import { BookmarkGutter, GutterContext, type GutterState } from './layout/BookmarkGutter';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import { FirstUseTip } from '../../../tips/FirstUseTip';
@@ -132,6 +143,9 @@ function ScriptWorkspace({
   const entries = useEntries();
   const kinds = useBibleKinds();
   const speakers = useSpeakers();
+  // The text is drawn without what a failed read would add (speaker chips, marks, names, prep), so the page says the failure and offers Retry.
+  const failedReads = useFailedReads();
+  useErrorToast(failedReads.message, failedReads.retry);
   const commands = useScriptCommands();
   const bookmarks = useBookmarks();
   const credits = useScriptCredits();

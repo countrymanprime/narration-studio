@@ -9,6 +9,7 @@ Storybook title: `Production/StageBar`. Source: `src/components/production/overv
 - Mid Way
 - Finished
 - Nothing Recorded
+- Under A Minute
 
 ## Used by
 

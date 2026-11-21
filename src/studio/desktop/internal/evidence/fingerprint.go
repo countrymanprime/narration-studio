@@ -68,7 +68,7 @@ type AnalysisKey string
 // item length 2: both consume the same width of source content but play it
 // at a different speed, which is a different analysis input.
 func ComputeAnalysisKey(identity SourceIdentity, played PlayedRange, playRate float64) AnalysisKey {
-	return AnalysisKey(hashParts(
+	return AnalysisKey(HashParts(
 		identity.Path,
 		strconv.FormatInt(identity.Size, 10),
 		identity.PartialHash,
@@ -93,7 +93,7 @@ type ItemFingerprint string
 // looks results up by AnalysisKey before it ever needs the fingerprint)
 // pays for the hash once.
 func ComputeItemFingerprint(key AnalysisKey, item tracks.Item) ItemFingerprint {
-	return ItemFingerprint(hashParts(
+	return ItemFingerprint(HashParts(
 		string(key),
 		item.GUID,
 		formatSeconds(item.Position),
@@ -128,7 +128,7 @@ func ComputeTrackFingerprint(entries []TrackFingerprintEntry) TrackFingerprint {
 		}
 		parts = append(parts, string(entry.Fingerprint))
 	}
-	return TrackFingerprint(hashParts(parts...))
+	return TrackFingerprint(HashParts(parts...))
 }
 
 // secondsPrecision is the canonical encoding's fixed decimal precision for
@@ -152,11 +152,11 @@ func formatBool(value bool) string {
 	return "0"
 }
 
-// hashParts hashes parts into one deterministic hex digest, each
+// HashParts hashes parts into one deterministic hex digest, each
 // length-prefixed (as findings.StableID already does,
 // src/studio/desktop/internal/findings/findings.go) so that, for instance,
 // ("ab", "c") and ("a", "bc") never collide.
-func hashParts(parts ...string) string {
+func HashParts(parts ...string) string {
 	hash := sha256.New()
 	for _, part := range parts {
 		// hash.Hash.Write never returns an error (crypto/sha256, like every

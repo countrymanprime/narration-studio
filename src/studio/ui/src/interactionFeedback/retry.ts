@@ -48,6 +48,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   ),
   'src/components/editing/page/useSaveInDaw.ts#1': no(BT),
   'src/components/editing/page/useRereadFeedback.ts#1': no(BT),
+  'src/components/script/page/ScriptPage.tsx#1': yes(
+    "A failed read of the Script page's data (the dialogue cues, marks, prep, Story Bible lists, a chapter's text) changes nothing; Retry reads again what failed.",
+  ),
   'src/components/script/page/data/useScriptData.ts#2': no(ED),
   'src/components/script/page/data/useScriptData.ts#3': no(ED),
   'src/components/settings/controls/ProjectBodies.tsx#1': no(
