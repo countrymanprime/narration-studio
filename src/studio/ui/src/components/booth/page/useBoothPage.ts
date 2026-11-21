@@ -268,8 +268,11 @@ export function useBoothPage(options: BoothPageOptions) {
   const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
   // A take under way has used it: from then on the voice owns the cursor, and R rolls from the word the voice is on.
-  // A take the Booth takes back (its listening failed) gives the chosen start back, so `startAtPress` keeps it.
+  // A take the Booth takes back (its listening failed) gives the chosen start back, so `startAtPress` keeps the start the take used; null when
+  // the press never recorded (its start was never used up) and once a take has ended.
   const startAtPress = useRef<number | null>(null);
+  // The phrase a failed lookup let go: choosing it again (a click on it, though the reading is already there) is the retry the message offers.
+  const letGoPhrase = useRef<number | null>(null);
   useEffect(() => {
     if (!recording) return;
     startAtPress.current = movedRef.current;
@@ -651,7 +654,7 @@ export function useBoothPage(options: BoothPageOptions) {
     }
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
-      if (!kept) setMovedTo(startAtPress.current);
+      if (!kept && startAtPress.current !== null) setMovedTo(startAtPress.current);
       // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
       const timedOut = 'timedOut' in heard && heard.timedOut;
       // A listening that never answered is its own sentence: the take ran meanwhile, so it is not said to have not started (the reason goes to the run log).
@@ -811,7 +814,10 @@ export function useBoothPage(options: BoothPageOptions) {
         }
         return true;
       },
-      clearStart: () => setMovedTo(null),
+      clearStart: () => {
+        letGoPhrase.current = movedRef.current;
+        setMovedTo(null);
+      },
       moveTo: (phrase) => {
         const now = latest.current;
         const to = placeOf(now.paragraphs, now.units, { cur: phrase, wcur: 0 });
@@ -848,7 +854,9 @@ export function useBoothPage(options: BoothPageOptions) {
       // cursor is on).
       const now = latest.current;
       const phrase = Math.min(Math.max(next.cur, 0), Math.max(now.units.length - 1, 0));
-      if (phrase !== now.at.cur || force) setMovedTo(choose && !now.recording ? phrase : null);
+      const retry = letGoPhrase.current === phrase;
+      letGoPhrase.current = null;
+      if (phrase !== now.at.cur || force || retry) setMovedTo(choose && !now.recording ? phrase : null);
       moveTo(next);
     },
     [moveBlocked, moveTo, setMovedTo],
@@ -998,6 +1006,7 @@ export function useBoothPage(options: BoothPageOptions) {
     // A start chosen before the take is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
     setMovedTo(null);
+    startAtPress.current = null;
     // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
     const followed = takeByDaw.current;
     setTakeNote(followed ? takeEndedIn(recorderLabel) : `Stopped. Recorded ${timerText(now.elapsed())}.`);
