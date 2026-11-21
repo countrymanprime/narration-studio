@@ -270,6 +270,8 @@ describe('where Record starts, by entry and by how much of the chapter is record
     await waitFor(() => expect(reading()).toBe('said'));
     await record();
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    // The lookup is for the phrase the reading is on (the resume point, paragraph p2), not any phrase.
+    expect((boothPunchTarget.mock.calls as unknown[][])[0]?.slice(0, 2)).toEqual(['c1', 'p2']);
   });
 
   it('nothing recorded, opened at the beginning: Record starts there with no lookup', async () => {

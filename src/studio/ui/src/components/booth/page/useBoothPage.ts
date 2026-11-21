@@ -222,7 +222,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const [browse, setBrowse] = useState(false);
   // Where the reading was moved before a take (#3858): the take starts there. It is the only start there is; the reading's own cursor is its mark. It is
   // mirrored in a ref so a Record pressed in the same task as the move (a pedal or a macro) reads it before React has rendered the move, cleared when
-  // the reading goes back to the resume point and when a take begins or ends.
+  // a take begins or ends (and by a move during a take).
   type Phrase = number | null;
   const movedRef = useRef<Phrase>(null);
   const [movedTo, setMovedToState] = useState<Phrase>(null);

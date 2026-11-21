@@ -139,7 +139,7 @@ for (const [width, height] of [
       });
     const idle = await measure();
     // Move the reading with the keyboard (a window too small for the menu), which chooses the start; R before a take is Record, so it looks that place up.
-    // Two phrases down: past the resume point, which chooses nothing.
+    // Two phrases down from the resume point.
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('r');

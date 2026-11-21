@@ -57,7 +57,7 @@ test('repro B: Record from here on the Script, the arrow keys move the start to 
   expect(await lookups(page)).toBe(before + 1);
 });
 
-test('after a take, going back to the phrase the chapter opened on chooses it, as the take now continues from where it stopped (#3858)', async ({ page }) => {
+test('after a take, going back to the phrase the chapter opened on chooses it, like any phrase the reading moves onto (#3858)', async ({ page }) => {
   await page.goto('/?mockCallLog=1');
   await settlePage(page);
   await goToPage(page, 'Booth');
