@@ -322,7 +322,7 @@ jobs:
         if: ${{ !cancelled() && steps.split.outputs.aria == 'true' }}
         run: pnpm --dir src/studio/ui run aria
       # On a pull request the atlas draws the stories the change reaches (the import graph, src/studio/ui/scripts/atlas-scope.mjs) and
-      # builds no Storybook when it reaches none; every other run draws all of them. `atlas docs` below always checks every page.
+      # starts no browser when it reaches none (lint built Storybook once for the run, above); every other run draws all of them. `atlas docs` below always checks every page.
       - name: storybook download
         id: storybook-download
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' && needs.lint.outputs.storybook == 'true' }}

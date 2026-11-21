@@ -25,7 +25,7 @@ function main() {
     console.error('storybook: UI_STORYBOOK_PREBUILT=1 but storybook-static/index.json is missing; the `storybook-static` artifact was not downloaded.');
     return 1;
   }
-  return spawnSync('pnpm', ['run', 'build-storybook'], { stdio: 'inherit' }).status ?? 1;
+  return spawnSync('pnpm', ['run', 'build-storybook'], { stdio: 'inherit', shell: process.platform === 'win32' }).status ?? 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) process.exit(main());
