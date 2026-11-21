@@ -220,7 +220,7 @@ and open the panel again.
 
 When the project records with Audacity, the **Audacity project** card replaces the REAPER project section and the REAPER tools are not shown.
 The Chapter links list below it comes from the snapshot the app takes while Audacity answers, and refreshes when the card hears from Audacity (a
-change, or **Check again**). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
+change, or **Check again**, which shows "Checked" with the time beside it once it has asked). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
 
 ### Tracks
 
@@ -320,7 +320,9 @@ says **Create a new folder** in a Voice folders project and makes the same folde
 The tracks here are REAPER's own, saved or not, while REAPER has the linked project open: a track or folder you add in REAPER shows
 without saving. Chapter links' header says in one line whose tracks they are and when they were read (**REAPER now · read 3 s ago**);
 point at it for the whole sentence. The panel reads them again when it opens, after **Check again**, when you come back to the window
-and every few seconds while it is in front; the **Refresh** button beside the header (also in the Link chapters dialog) reads them at
+and when a track is added, removed, renamed or moved in REAPER, so the time in the header grows while nothing changes there. With a
+REAPER script loaded before this version (until REAPER is restarted), or while REAPER is not answering, it reads every few seconds
+while it is in front instead. The **Refresh** button beside the header (also in the Link chapters dialog) reads them at
 once and answers each press with a message ("Read 5 tracks from REAPER.", or "Read the tracks in the saved project."), even when nothing changed. While REAPER is closed, not answering or has another project open, the header reads **Saved project** and the tracks are as of
 the project's last save; its sentence says why. Save the project in REAPER after adding a track: Chapter links sees it at once, but
 Editing, Proof and Pickups read the same tracks, and while they are the saved project's each shows a **Saved project** mark.
@@ -394,7 +396,7 @@ characters until it is renamed in REAPER.
 
 The card lists the folder's tracks in either layout: in Flat too, when a chapter is linked to a folder with tracks of its own (a track another chapter is linked to is left out), since the Booth records on one of them. Every track in the folder is a voice unless you say it is not. The **Voice** switch on a row is on for each; turn it off for a track that
 is not a voice, such as a music bed or room tone. The row stays in the list, dimmed and marked **Not a voice**, with no key and no
-characters to choose, and the Booth does not offer it: Record never arms it, and a folder whose tracks are all turned off is refused in either layout: Record says to turn one back on in this card (in Flat, or to link the chapter to a track of its own). Turning a voice off or on says so in a message, and when keys moved it names the voices whose key changed ("Keys now: 1 Hatter"), says key 0 has no track when the Narrator goes with no other, and says when no voice is left. The **?** beside the chapter picker says what the switch does (it is there once a chapter is linked to a folder). Turn the switch back on and it is a voice again. The mark follows
+characters to choose, and the Booth does not offer it: Record never arms it, and a folder whose tracks are all turned off is refused in either layout: Record says to turn one back on in this card (in Flat, or to link the chapter to a track of its own). Turning a voice off or on says so in a message, and when keys moved it names the voices whose key changed ("Keys now: 1 Hatter"), says key 0 has no track when the Narrator goes with no other, and says when no voice is left. Hovering the **i** on the Voice column, the **Not a voice** badge or a marked row's disabled edit button says what each means. The **?** beside the chapter picker says what the switch does (it is there once a chapter is linked to a folder). Turn the switch back on and it is a voice again. The mark follows
 the track if you rename it in REAPER, and it holds for every chapter folder that track is in. In a window 30 rem (480 px) wide or less the Key column goes, a track's characters sit under its name, and the switch sits beside the edit button. While a take is recording the Voice switches are disabled (a tooltip says why): stop the take first.
 
 ![The Voices card for a Voice folders project: Chapter 1's tracks with their keys and characters](../../images/ui/engine-panel-voices.webp)

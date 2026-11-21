@@ -152,12 +152,11 @@ export function CheckCard({
   const listed = state === 'current' && all.length > 0;
   const shown = all.filter((finding) => finding.status === filter);
 
-  const whyNot =
-    chapter.recordedSeconds === undefined || chapter.recordedSeconds <= 0
-      ? 'This chapter has no recording to check.'
-      : chapter.wordCount <= 0
-        ? 'This chapter has no text to check against.'
-        : '';
+  const whyNot = !hasRecording(chapter.recordedSeconds)
+    ? 'This chapter has no recording to check.'
+    : chapter.wordCount <= 0
+      ? 'This chapter has no text to check against.'
+      : '';
 
   const noRecording = !hasRecording(chapter.recordedSeconds) && chapter.recordedUnavailable ? noRecordingWhy(chapter.recordedUnavailable, layout) : undefined;
 

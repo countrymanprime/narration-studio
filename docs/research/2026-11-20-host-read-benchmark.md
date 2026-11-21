@@ -163,6 +163,26 @@ The slowest call of each first visit, in seconds as the page waited for it:
 
 A first change of 0 in three warm cells means the script saw no change of the page after its measurement began in most of the five runs; it prints 0 for that. A page's own cost stays under one second at every size; what a narrator waits for on a real book is the host reads above.
 
+## The track list: a 5 s poll against REAPER's change event
+
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 1. Before it, every page that shows the project's tracks (`useLiveTracks`, behind the engine panel, Link chapters, Editing, Proof, Pickups and the Booth's voices) read `TracksLive`, `ChapterTrackLinks` and `VoiceTracksGet` every 5 s while the window was visible. With a revision from REAPER's heartbeat it reads on `daw_tracks_changed`, on focus and on Refresh, and every 30 s for a save in REAPER, which sends no event. Same rig and method as [above](#host-reads): `host-read-bench.mjs seed` then `reads --runs 3` (three processes, medians), here with `--tracks N` for the extra empty tracks. The three reads' warm medians are one tick; the poll is 12 ticks a minute, the event idle 2 (the 30 s read), a change 1.
+
+| Book | One tick, warm, ms (`TracksLive` + `ChapterTrackLinks` + `VoiceTracksGet`) | Answers in one tick | Poll, per minute | Event, idle, per minute | Event, per change |
+| --- | --- | --- | --- | --- | --- |
+| 3 chapters, 3 tracks | 1.9 (0.9 + 1.0 + 0.0) | 115 KB | 23 ms, 1.38 MB | 3.8 ms, 0.23 MB | 1.9 ms, 115 KB |
+| 3 chapters, 203 tracks | 5.5 (1.1 + 4.4 + 0.0) | 199 KB | 66 ms, 2.39 MB | 11 ms, 0.40 MB | 5.5 ms, 199 KB |
+| 3 chapters, 2,003 tracks | 62 (2.4 + 59.7 + 0.0) | 956 KB | 745 ms, 11.5 MB | 124 ms, 1.91 MB | 62 ms, 956 KB |
+| 44 chapters (17 h) | 27 (12.5 + 14.9 + 0.0) | 1.69 MB | 329 ms, 20.3 MB | 55 ms, 3.38 MB | 27 ms, 1.69 MB |
+| 300 chapters | 288 (91.7 + 196.1 + 0.0) | 11.6 MB | 3,454 ms, 139 MB | 576 ms, 23.1 MB | 288 ms, 11.6 MB |
+
+- Idle, the page asks 6 times less than the poll did, at every size: the same tick, 2 a minute instead of 12. At 300 chapters that is 2.9 s of host work and 116 MB of answers a minute not done. The cold first tick is 11, 19, 101, 81 and 647 ms, for a page that opens.
+- A change in REAPER costs one tick at the moment it happens, where the poll found it up to 5 s late and read every 5 s whether anything changed.
+- The size that grows is `TracksLive` with the chapters (every item of the saved project: 1.6 MB at 44 chapters, 11.2 MB at 300) and `ChapterTrackLinks` with the tracks (0.52 MB and 60 ms at 2,003 tracks).
+- With no revision (a script from before #3859, REAPER not answering, the saved file's tracks) the page still reads every 5 s, so those rows of the table are the poll's column.
+- A host that heard nothing needs no work for the event itself: `pollDawTracksChanged` compares two strings on the existing 150 ms tick.
+
+**Not measured here:** the live path through REAPER (the `tracks_read` round trip in a real REAPER, which these runs have no DAW for: `TracksLive` here is the saved file's answer); the webview's cost of receiving and decoding the answers; Windows; the axes of audio length and take count, which the tick's reads do not depend on beyond the items the saved project holds (the 17 h and 300 chapter books carry 4,400 and 30,000 items). The event's own latency in REAPER is in [the bridge performance note](reaper-bridge-performance.md) (0.05 s after an edit).
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.

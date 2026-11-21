@@ -483,33 +483,39 @@ func TestConcurrentRequestsEachGetTheirOwnAnswer(t *testing.T) {
 }
 
 func TestALateAnswerForARequestThatTimedOutIsDroppedAndTheNextRequestStillWorks(t *testing.T) {
-	navigator, client, dir := newNavigatorSession(t)
-	navigator.SetTimeout(30 * time.Millisecond)
-	// REAPER reads the command and never answers in time, so there is nothing left to take back.
-	var mu sync.Mutex
-	var stale []string
-	startFakeReaper(t, client, dir, func(command []string) [][]string {
-		mu.Lock()
-		defer mu.Unlock()
-		if stale == nil {
-			stale = command
-			return nil
+	onVirtualClock(t, func(t *testing.T) {
+		navigator, client, dir := newNavigatorSession(t)
+		navigator.SetTimeout(30 * time.Millisecond)
+		// REAPER reads the command and never answers in time, so there is nothing left to take back.
+		var mu sync.Mutex
+		var stale []string
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			mu.Lock()
+			defer mu.Unlock()
+			if stale == nil {
+				stale = command
+				return nil
+			}
+			return [][]string{{"PONG", run(command), "1", "1", "1"}}
+		})
+		if _, err := navigator.Ping(context.Background()); !errors.Is(err, ErrNoAnswer) {
+			t.Fatalf("got %v", err)
 		}
-		return [][]string{{"PONG", run(command), "1", "1", "1"}}
+		mu.Lock()
+		if stale == nil {
+			mu.Unlock()
+			t.Fatal("the fake REAPER never read the first request, so there is no late answer to send")
+		}
+		appendEvents(t, dir, []string{"PONG", run(stale), "1", "0", "0"})
+		if err := client.Dispatch(); err != nil {
+			t.Fatal(err)
+		}
+		mu.Unlock()
+		navigator.SetTimeout(2 * time.Second)
+		if pong, err := navigator.Ping(context.Background()); err != nil || !pong.Looping {
+			t.Fatalf("got %+v, %v: the late answer must not be taken for the new request", pong, err)
+		}
 	})
-	if _, err := navigator.Ping(context.Background()); !errors.Is(err, ErrNoAnswer) {
-		t.Fatalf("got %v", err)
-	}
-	mu.Lock()
-	appendEvents(t, dir, []string{"PONG", run(stale), "1", "0", "0"})
-	if err := client.Dispatch(); err != nil {
-		t.Fatal(err)
-	}
-	mu.Unlock()
-	navigator.SetTimeout(2 * time.Second)
-	if pong, err := navigator.Ping(context.Background()); err != nil || !pong.Looping {
-		t.Fatalf("got %+v, %v: the late answer must not be taken for the new request", pong, err)
-	}
 }
 
 func TestEveryRequestRefusesAnAnswerOfTheWrongKindAndReturnsREAPERsError(t *testing.T) {

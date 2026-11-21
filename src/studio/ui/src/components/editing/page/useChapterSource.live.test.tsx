@@ -45,7 +45,7 @@ describe('the Editing page follows the shared track state while it is open', () 
       chapterTrackMapList: async () => ({ documentId: 'doc', mappings: [{ trackGuid: 'T', chapterId: 'c1', chapterTitle: 'One', confirmedAt: '' }] }),
       tracksLive: async () => {
         const project: TracksProject = { path: 'Book.rpp', tracks };
-        return { source: 'live' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', project };
+        return { source: 'live' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', revision: '', project };
       },
       workspaceAlignment: async () => heard(),
       editingCutsList: async () => {

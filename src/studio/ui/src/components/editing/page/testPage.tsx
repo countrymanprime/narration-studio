@@ -179,7 +179,7 @@ export function pageApi({ heard = true, ...overrides }: Partial<NarrationApi> & 
     workspaceAlignment: async (chapterId: string) => alignmentOf(chapterId, heard),
     workspaceTakes: async (chapterId: string, firstToken: number, lastToken: number) => takesOf(chapterId, firstToken, lastToken),
     chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ chapterId: 'c1', trackGuid: TRACK_GUID }] }),
-    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', project: PROJECT }),
+    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', revision: '', project: PROJECT }),
     findingsGet: async (id: string) => (id === FINDING.id ? FINDING : Promise.reject(new Error('no such finding'))),
     ...overrides,
   } as Partial<NarrationApi>);
@@ -206,6 +206,7 @@ export function noAudioApi(kind: 'unlinked' | 'missing' | 'empty'): Partial<Narr
             reason: '' as const,
             message: '',
             readAt: '2026-11-11T00:00:00Z',
+            revision: '',
             project: { ...PROJECT, tracks: PROJECT.tracks.map((t) => ({ ...t, items: [] })) },
           }),
         }

@@ -147,6 +147,9 @@ func WriteSnapshot(path string, snap Snapshot) error {
 // maxSnapshotBytes bounds what the reader takes: a long book is some thousand clips and labels, far under this.
 const maxSnapshotBytes = 32 << 20
 
+// MaxSnapshotBytes is the largest snapshot file the reader takes, for a caller that reads the bytes itself.
+const MaxSnapshotBytes = maxSnapshotBytes
+
 // ReadSnapshot reads and checks a snapshot file: a newer version, a non-finite time or an inverted range is refused.
 func ReadSnapshot(path string) (Snapshot, error) {
 	info, err := os.Stat(path)
@@ -159,6 +162,14 @@ func ReadSnapshot(path string) (Snapshot, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return Snapshot{}, err
+	}
+	return parseSnapshot(data)
+}
+
+// parseSnapshot is ReadSnapshot's checks over the bytes of a snapshot file.
+func parseSnapshot(data []byte) (Snapshot, error) {
+	if len(data) > maxSnapshotBytes {
+		return Snapshot{}, fmt.Errorf("the Audacity snapshot is too large to read (%d bytes)", len(data))
 	}
 	var snap Snapshot
 	if err := json.Unmarshal(data, &snap); err != nil {
@@ -243,6 +254,19 @@ func (SnapshotReader) ReadProject(path string) (tracks.Project, error) {
 	if err != nil {
 		return tracks.Project{}, err
 	}
+	return snapshotProject(path, snap), nil
+}
+
+// ParseProject is ReadProject over raw, the bytes of the snapshot at path the caller has already read.
+func (SnapshotReader) ParseProject(path string, raw []byte) (tracks.Project, error) {
+	snap, err := parseSnapshot(raw)
+	if err != nil {
+		return tracks.Project{}, err
+	}
+	return snapshotProject(path, snap), nil
+}
+
+func snapshotProject(path string, snap Snapshot) tracks.Project {
 	names := make([]string, len(snap.Tracks))
 	for i, t := range snap.Tracks {
 		names[i] = t.Name
@@ -286,5 +310,5 @@ func (SnapshotReader) ReadProject(path string) (tracks.Project, error) {
 			project.Markers = append(project.Markers, tracks.Marker{Index: markerIndex, Name: name, Position: l.Start})
 		}
 	}
-	return project, nil
+	return project
 }

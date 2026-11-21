@@ -18,6 +18,8 @@ import (
 func newTestHost(t *testing.T) *Host {
 	t.Helper()
 	host := NewHost()
+	// A retention pass walks the project's folders in the background; the tests that exercise it turn it on (coverageHost).
+	host.retentionOff = true
 	t.Cleanup(host.waitForBackground)
 	return host
 }
