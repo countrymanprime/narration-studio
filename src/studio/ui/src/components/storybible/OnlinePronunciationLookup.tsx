@@ -40,7 +40,9 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
         >
           Look up online
         </Button>
-        <span className="text-[0.8125rem] text-[var(--text-muted)]">Sends “{name}” alone to Merriam-Webster, on your own key.</span>
+        <span className="line-clamp-3 min-w-0 text-[0.8125rem] [overflow-wrap:anywhere] text-[var(--text-muted)]" title={name}>
+          Sends “{name}” alone to Merriam-Webster, on your own key.
+        </span>
       </div>
       {/* Body-size text beside the 36 px Use this, not 12 px (SBX-8). */}
       <div role="status" className="text-sm">

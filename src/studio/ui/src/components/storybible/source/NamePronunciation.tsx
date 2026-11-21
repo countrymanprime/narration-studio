@@ -213,7 +213,9 @@ export function NamePronunciation({
             {candidates.status === 'error' ? (
               <CandidatesCheckAgain view={candidates} />
             ) : candidates.status === 'ready' && candidates.answer.candidates.length === 0 ? (
-              <p className={`m-0 text-xs text-[var(--text-muted)] ${NAME_WRAP}`}>No dictionary has “{name}”.</p>
+              <p className={`m-0 line-clamp-3 text-xs text-[var(--text-muted)] ${NAME_WRAP}`} title={name}>
+                No dictionary has “{name}”.
+              </p>
             ) : (
               <PronunciationCandidateList
                 word={name}

@@ -53,16 +53,19 @@ for (const size of SIZES) {
     expect.soft(measured.pageScroll, 'the page does not scroll sideways').toBeLessThanOrEqual(0);
     await item.getByRole('button', { name: 'From the dictionaries' }).click();
     const none = item.getByText(/^No dictionary has/);
-    await none.waitFor({ timeout: 8000 }).catch(() => undefined);
-    if (await none.count()) {
-      const fits = await none.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
-      expect.soft(fits, 'the dictionaries note breaks inside its box').toBe(true);
-      const sideways = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('*')).some(
-          (node) => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX === 'auto' && node.clientWidth > 0 && node.scrollWidth > 5000,
-        ),
-      );
-      expect.soft(sideways, 'no panel scrolls sideways').toBe(false);
-    }
+    await none.waitFor({ timeout: 8000 });
+    expect.soft(await none.evaluate((element) => element.scrollWidth <= element.clientWidth + 1), 'the dictionaries note breaks inside its box').toBe(true);
+    const opened = await item.evaluate((element) => element.getBoundingClientRect().height);
+    expect.soft(opened, 'the row with the dictionaries note open is still a few lines, not a screen').toBeLessThan(size.width < 480 ? 400 : 300);
+    await item.getByRole('button', { name: 'Look up elsewhere' }).click();
+    await item.getByText(/^Sends “/).waitFor({ timeout: 8000 });
+    const both = await item.evaluate((element) => element.getBoundingClientRect().height);
+    expect.soft(both, 'the row with both lookups open is still a few lines, not a screen').toBeLessThan(size.width < 480 ? 600 : 420);
+    const sideways = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('*')).some(
+        (node) => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX === 'auto' && node.clientWidth > 0 && node.scrollWidth > 5000,
+      ),
+    );
+    expect.soft(sideways, 'no panel scrolls sideways').toBe(false);
   });
 }
