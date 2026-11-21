@@ -4,7 +4,7 @@ Loaded from [the index](../SKILL.md). The coordinator and every worker are bound
 
 ## Owner standing rules
 
-Decisions the owner made while the train ran (logged on issue #509 of the 2026-09-24 train). D67, D69 and D70 to D72 are product rules and live in [`.claude/rules/product-rules.md`](../../../rules/product-rules.md), which loads when the code is edited. The rest bind the coordinator and every worker.
+Decisions the owner made while the train ran (logged on issue #509 of the 2026-09-24 train). D67, D69, D70 to D72 and the two #3962 rules (one thing per job, the design system) are product rules and live in [`.claude/rules/product-rules.md`](../../../rules/product-rules.md), which loads when the code is edited. The rest bind the coordinator and every worker.
 
 | Rule | What it says |
 | --- | --- |
