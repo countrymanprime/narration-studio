@@ -990,16 +990,23 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     ['/schedule', 'Schedule'],
     ['/editing', 'Editing'],
   ])('shows the import-a-manuscript state on %s and stays there when there is no manuscript', async (path, title) => {
-    window.history.replaceState(null, '', `${path}?mockNoManuscript=1`);
-    const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
-    expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
-    // Schedule's title is drawn while it reads its plan, so the heading is not proof the empty state has arrived: wait for its text.
-    expect((await screen.findAllByText(/no manuscript yet/i)).length).toBeGreaterThan(0);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    expect(window.location.pathname).toBe(path);
-    expect(window.location.search).toBe('?mockNoManuscript=1');
-    expect(screen.queryByRole('heading', { level: 1, name: 'Production' })).toBeNull();
+    // The 700 ms in which a redirect would come pass on a fake clock.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      window.history.replaceState(null, '', `${path}?mockNoManuscript=1`);
+      const source = createMockApi();
+      renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+      expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
+      // Schedule's title is drawn while it reads its plan, so the heading is not proof the empty state has arrived: wait for its text.
+      expect((await screen.findAllByText(/no manuscript yet/i)).length).toBeGreaterThan(0);
+      await act(() => vi.advanceTimersByTimeAsync(700));
+      expect(window.location.pathname).toBe(path);
+      expect(window.location.search).toBe('?mockNoManuscript=1');
+      expect(screen.queryByRole('heading', { level: 1, name: 'Production' })).toBeNull();
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
   });
 
   it('draws no Proof or Pickups count on the rail when there is no manuscript, whatever the host still holds', async () => {

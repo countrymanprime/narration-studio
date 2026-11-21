@@ -146,8 +146,12 @@ func pickupChapters(service *manuscript.Service) func() ([]pickuplist.Chapter, e
 		if err != nil {
 			return nil, nil
 		}
+		// One book gives every chapter's lines: each load of the manuscript reads and hashes the whole file (issue 3896).
+		book, err := service.Book()
+		if err != nil {
+			return nil, err
+		}
 		lengths := service.RecordedLengths()
-		paragraphs := manuscriptLines(service)
 		chapters := make([]pickuplist.Chapter, 0, len(rows))
 		for _, row := range rows {
 			id, _ := row["id"].(string)
@@ -159,11 +163,7 @@ func pickupChapters(service *manuscript.Service) func() ([]pickuplist.Chapter, e
 				seconds := length.Seconds
 				chapter.Seconds = &seconds
 			}
-			lines, err := paragraphs(id)
-			if err != nil {
-				return nil, err
-			}
-			for _, line := range lines {
+			for _, line := range manuscriptLines(book, id) {
 				chapter.Paragraphs = append(chapter.Paragraphs, pickuplist.Paragraph{ID: line.ID, Index: line.Index, Text: line.Text})
 			}
 			chapters = append(chapters, chapter)

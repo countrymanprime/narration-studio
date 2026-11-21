@@ -346,3 +346,27 @@ func TestReachabilityEpochIgnoresACaseOnlyPathChange(t *testing.T) {
 		t.Fatalf("epoch %d after the same path in another case, want 0", got)
 	}
 }
+
+// #3859: the heartbeat's eighth field is the track list's revision. It is known only from a fresh heartbeat that carried one.
+func TestReachabilityKnowsTheTrackListRevisionOfAFreshHeartbeatThatCarriedOne(t *testing.T) {
+	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
+	reach := NewReachabilityWithClock(nil, func() time.Time { return now })
+	if _, known := reach.TracksRevision(); known {
+		t.Fatal("a revision is known before any heartbeat")
+	}
+	reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "0", "0.000000"}})
+	if _, known := reach.TracksRevision(); known {
+		t.Fatal("a heartbeat from a script that sends no revision gave one")
+	}
+	reach.Record(bridge.Event{Tag: "PROJECT_STATUS", Fields: []string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "0", "0.000000", "", "00c0ffee00c0ffee"}})
+	if revision, known := reach.TracksRevision(); !known || revision != "00c0ffee00c0ffee" {
+		t.Fatalf("got %q, %v", revision, known)
+	}
+	if reach.TimingOn() {
+		t.Fatal("an empty timing field before the revision reads as the diagnostic on")
+	}
+	now = now.Add(heartbeatTimeout + time.Second)
+	if _, known := reach.TracksRevision(); known {
+		t.Fatal("a revision from a heartbeat that has gone stale is still vouched for")
+	}
+}

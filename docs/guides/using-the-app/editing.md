@@ -144,7 +144,7 @@ line** (on a line with more than one take) and **Delete**; the bar offers the sa
 audio** in full on a wide window. In a narrow window the bar keeps them at the right of the transport and moves what is
 selected to a line of its own under it. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (it is not answering, or it cannot do that edit); a line above the bar then says so
-and why, the same sentence is in each button's hint, and the key hints leave out Delete and Add FX. The chapter's audio is the waveform docked above the bar, always in view (see [The waveform](#the-waveform)). Right-click a word for its
+and why, the same sentence is in each button's hint, and the key hints leave out Delete and Add FX. An edit a slow DAW has taken is waited for, up to about 25 seconds; if the DAW still has not confirmed it, the app says "REAPER took the command but did not confirm it in time, so what it did may not match. Check REAPER." and the edit may still land, so look in the DAW before trying again. The chapter's audio is the waveform docked above the bar, always in view (see [The waveform](#the-waveform)). Right-click a word for its
 menu, in groups under headings: the word count over play the selection; **Edit** (**Add FX**, which opens a list beside it,
 mute, delete or replace the words, remove an effect); **Mark** (**Mark as**, add a note, mark them for a pickup, **Mark as
 voice sample…**); **Takes** (show or keep the line's takes, hide the others, and **Split into takes** on a line whose one

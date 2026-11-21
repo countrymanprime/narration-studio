@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/extraction"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -44,6 +45,16 @@ type Service struct {
 	findingsStore atomic.Pointer[findings.Store]
 	// wiktextractIndex answers the installed Wiktextract index's path, or "" (SetWiktextractIndex); nil until app.go sets it.
 	wiktextractIndex atomic.Pointer[func() string]
+	// speakerFallback answers, at each run, the fallback that suggests speakers for the lines the rules leave unknown
+	// (SetSpeakerFallbackProvider); nil, the default, is none.
+	speakerFallback atomic.Pointer[func() SpeakerFallback]
+	fallbackMu      sync.Mutex
+	// fallbackDeclined is the lines the fallback was asked about and gave no kept answer for (rememberDeclined).
+	// +checklocks:fallbackMu
+	fallbackDeclined map[string]bool
+	// fallbackRetry is the lines the fallback broke on: asked again, after the lines it has not seen (rememberDeclined).
+	// +checklocks:fallbackMu
+	fallbackRetry map[string]bool
 	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
 	editMu sync.Mutex
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
@@ -411,6 +422,22 @@ type DialogueCueEvidence struct {
 	ParagraphID string `json:"paragraphId"`
 	Excerpt     string `json:"excerpt"`
 	Tag         string `json:"tag"`
+	// Reason is the sentence a local model gave for its suggested speaker (speaker_source "local-model"); no other cue has one.
+	Reason CueReason `json:"reason,omitempty"`
+}
+
+// CueReason is a cue's evidence.reason. A value in the file that is not text (a hand-edited number) reads as none, so one bad
+// row does not make every quoted line unreadable.
+type CueReason string
+
+// UnmarshalJSON reads a JSON string; anything else is no reason.
+func (r *CueReason) UnmarshalJSON(raw []byte) error {
+	var text string
+	if json.Unmarshal(raw, &text) == nil {
+		// The file may have come from someone else: whatever it holds is read as one cleaned line of capped length.
+		*r = CueReason(extraction.CleanSentence(text, maxFallbackReasonRunes))
+	}
+	return nil
 }
 
 // DialogueCues returns the Story Bible's extracted dialogue cues,

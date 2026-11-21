@@ -439,6 +439,8 @@ func refusal(err error) FindingNavigation {
 		return refused(refusedRecording, messageRecording)
 	case errors.Is(err, bridge.ErrScriptOutdated):
 		return refused(refusedScriptOutdated, messageScriptOutdated)
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return refused(refusedFailed, lateAnswerSentence("REAPER"))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return refused(reaperNotRunning, messageNotRunning)
 	case errors.Is(err, bridge.ErrUnavailable):

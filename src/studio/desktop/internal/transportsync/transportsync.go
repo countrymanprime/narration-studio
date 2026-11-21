@@ -14,7 +14,8 @@ import (
 	"desktop/internal/dawport"
 )
 
-// Timeout bounds one call to the DAW: each is a single quick request.
+// Timeout is the usual wait for one call to the DAW and the wait the "did not answer" sentence names. The host gives a play, a stop or a
+// cursor move longer, so that one the DAW has read is waited for; the watch keeps this.
 const Timeout = 3 * time.Second
 
 // Lease is the position-stream lease one "watch" asks for. The page renews it every Lease/2, so one missed renewal is tolerated and a closed page
@@ -41,6 +42,8 @@ const (
 	recording    = "%s is recording. Stop recording first."
 	failed       = "%s could not do that: %s."
 	noAnswer     = "%s did not answer within %d seconds."
+	// tookNotConfirmed is for a play, a stop or a cursor move the DAW read and had not confirmed when the wait ended (bridge.ErrAnswerLate).
+	tookNotConfirmed = "%s took the command but did not confirm it in time, so what it did may not match. Check %s."
 )
 
 // Do runs one action on syncer. support is the transport_sync capability's answer and is checked first, with nothing asked of the DAW when it
@@ -96,6 +99,8 @@ func refusal(name string, err error) string {
 	switch {
 	case errors.Is(err, bridge.ErrRecording):
 		return fmt.Sprintf(recording, name)
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return fmt.Sprintf(tookNotConfirmed, name, name)
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return fmt.Sprintf(notAnswering, name, name)
 	case errors.Is(err, bridge.ErrUnavailable):
