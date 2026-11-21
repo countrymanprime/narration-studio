@@ -4,7 +4,16 @@ import type { RecordedThrough } from './api/contracts/manuscript';
 import { buildPipelineRows } from './components/production/pipeline/pipelineRows';
 import { chapter as productionChapter } from './components/production/pipeline/pipelineFixtures';
 import { recordedStart } from './components/booth/companion/companionResume';
-import { chapterRecordedDetail, recordedAtDetail, recordedAtOf, recordedPercent, recordedThroughLabel, throughPercent } from './recordedThrough';
+import {
+  chapterRecordedDetail,
+  recordedAtDetail,
+  recordedAtOf,
+  recordedAudioHours,
+  recordedPercent,
+  recordedThroughLabel,
+  throughPercent,
+  recordedShare,
+} from './recordedThrough';
 
 const PARAGRAPHS = [
   { id: 'p1', text: 'Alice was beginning to get very tired.' },
@@ -170,5 +179,23 @@ describe('a recorded length and its percent agree about audio under one second',
       expect(recordedPercent(row(seconds, through({ percent: 1 })), 9300), `host 1, ${seconds} s`).toBe(1);
       expect(recordedPercent(row(seconds, through({ complete: true, percent: 100 })), 9300), `complete, ${seconds} s`).toBe(100);
     }
+  });
+});
+
+// #3869 (delta intent F1): the plan chart and the Schedule read the same hours; a length under a second adds nothing, one second adds its hour share.
+describe('recordedAudioHours', () => {
+  it('counts nothing under a second and the whole length from one second', () => {
+    expect(recordedAudioHours([{ recordedSeconds: 0.5 }, { recordedSeconds: 0.99 }, { recordedSeconds: null }])).toBe(0);
+    expect(recordedAudioHours([{ recordedSeconds: 0.99 }, { recordedSeconds: 3600 }, { recordedSeconds: 1800 }])).toBe(1.5);
+  });
+});
+
+// #3869 (delta qa N1): the share the book totals are made of reads a length under a second as nothing.
+describe('recordedShare is 0 under one second', () => {
+  const row = (recordedSeconds: number | null) => ({ recordedSeconds, wordCount: 9300 });
+  it('is 0 for 0.001, 0.5 and 0.999999 s as at 0 s, and the length over the finished length from one second', () => {
+    for (const seconds of [0, 0.001, 0.5, 0.999999]) expect(recordedShare(row(seconds), 9300), `${seconds} s`).toBe(0);
+    expect(recordedShare(row(36), 9300)).toBe(0.01);
+    expect(recordedShare(row(null), 9300)).toBeNull();
   });
 });

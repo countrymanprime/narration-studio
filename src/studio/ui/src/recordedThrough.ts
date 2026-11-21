@@ -15,6 +15,10 @@ export type RecordedAt = { through: RecordedThrough; audio: boolean };
  */
 export const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;
 
+/** The hours of audio recorded across chapters, as the plan chart and the Schedule read them: a length under a second adds nothing, as it does everywhere else. */
+export const recordedAudioHours = (chapters: readonly { recordedSeconds: number | null }[]): number =>
+  chapters.reduce((total, chapter) => total + (audibleSeconds(chapter.recordedSeconds) ?? 0), 0) / 3600;
+
 /** A measured length as every page reads it: audio under a second is nothing recorded (0 s), whatever else is null or not. */
 export const audibleSeconds = (seconds: number | null): number | null => (seconds === null || hasAudio(seconds) ? seconds : 0);
 
@@ -72,7 +76,7 @@ export function recordedThroughLabel(at: RecordedAt | undefined, paragraphs: rea
 export function recordedShare(chapter: { recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number }, wph: number): number | null {
   if (chapter.recordedThrough) return chapter.recordedThrough.complete ? 1 : chapter.recordedThrough.percent / 100;
   if (chapter.recordedSeconds === null || chapter.wordCount <= 0) return null;
-  return Math.min(1, chapter.recordedSeconds / ((chapter.wordCount / wph) * 3600));
+  return Math.min(1, (audibleSeconds(chapter.recordedSeconds) ?? 0) / ((chapter.wordCount / wph) * 3600));
 }
 
 /**

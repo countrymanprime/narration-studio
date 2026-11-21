@@ -1,6 +1,6 @@
 import type { CoverageEngine, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import { hasAudio } from '../../recordedThrough';
+import { audibleSeconds, hasAudio } from '../../recordedThrough';
 import { plural } from '../../plural';
 
 /**
@@ -28,7 +28,7 @@ export function audioToCheck(chapters: readonly ManuscriptChapter[], ticked: Rea
   for (const chapter of chapters) {
     if (!ticked.has(chapter.id)) continue;
     if (chapter.recordedSeconds === undefined) unmeasured += 1;
-    else seconds += chapter.recordedSeconds;
+    else seconds += audibleSeconds(chapter.recordedSeconds) ?? 0;
   }
   return { seconds, unmeasured };
 }
