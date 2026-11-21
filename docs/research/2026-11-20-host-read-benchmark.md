@@ -183,6 +183,21 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 
 **Not measured here:** the live path through REAPER (the `tracks_read` round trip in a real REAPER, which these runs have no DAW for: `TracksLive` here is the saved file's answer); the webview's cost of receiving and decoding the answers; Windows; the axes of audio length and take count, which the tick's reads do not depend on beyond the items the saved project holds (the 17 h and 300 chapter books carry 4,400 and 30,000 items). The event's own latency in REAPER is in [the bridge performance note](reaper-bridge-performance.md) (0.05 s after an edit).
 
+## The Booth's idle read: every 15 s against once a minute
+
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 2. While Record is ready and idle the record control read the DAW's capabilities, the link facts (`Bootstrap`), the project's play state and the chapter's track state (`ReadAloudReaperState`) every 15 s. When the shared track state follows REAPER's revision ([above](#the-track-list-a-5-s-poll-against-reapers-change-event)) another project or a track change arrives as `daw_tracks_changed`, which reads at once, and the timer is a 60 s backstop. A notice or a take keeps its 4 s timer; with no revision the idle timer stays 15 s. Same rig and method (`reads --runs 3`, medians, warm), four reads added to its list (`DawCapabilities`, `DawProjectState`, `ReadAloudReaperState(c-0001)`; `Bootstrap` was there). The rig has no DAW, so the three DAW reads answer that REAPER is not running: this is the host's work for a tick, not the round trip to a live REAPER.
+
+| Book | One tick, warm, ms (`Bootstrap` + capabilities + play state + `ReadAloudReaperState`) | Before, per minute (4 ticks) | After, idle, per minute (1 tick) | Per change |
+| --- | --- | --- | --- | --- |
+| 3 chapters, 3 tracks | 1.6 (0.5 + 0.1 + 0.0 + 1.0) | 6.4 ms | 1.6 ms | 1.6 ms |
+| 3 chapters, 2,003 tracks | 1.9 (0.5 + 0.1 + 0.0 + 1.3) | 7.6 ms | 1.9 ms | 1.9 ms |
+| 44 chapters (17 h) | 16.6 (5.7 + 0.1 + 0.0 + 10.8) | 66 ms | 16.6 ms | 16.6 ms |
+| 300 chapters | 66.6 (6.4 + 0.1 + 0.0 + 60.1) | 266 ms | 66.6 ms | 66.6 ms |
+
+- Four times fewer ticks when idle at every size: 3 of 4 a minute not done, 200 ms a minute at 300 chapters. A tick's answers are 8.8 KB at every size, so the saving is the host's work and the bridge calls (four a tick), not bytes.
+- `ReadAloudReaperState` is the cost that grows (60 ms at 300 chapters, with no DAW: it reads the chapter's link and the manuscript); with a live REAPER it also reads the track state through the bridge, which this rig cannot time.
+- The slow timer is the only way the Booth learns that a track was armed or disarmed in REAPER while idle (no event carries it); Record's press checks again, so a stale "ready" is at most a minute old and never reaches a take. A take started in the DAW is heard from the transport at once, as before.
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.
