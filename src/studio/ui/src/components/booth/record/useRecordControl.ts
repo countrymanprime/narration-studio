@@ -697,6 +697,11 @@ export function useRecordControl({
   const dawAnswersStopped = () => {
     if (!recordingRef.current && !busy.current && reachableRef.current === true) dropClaim();
   };
+  // An answer about the transport counts as heard only while the last picture says the DAW answers. Taken as heard from a quiet DAW, the effect below took it
+  // back at once: the play state kept from before read as a held take and then not, each turn asked the DAW again, and its answer began the next turn (#3840).
+  const hearProject = () => {
+    if (capabilitiesRef.current?.reachable !== false) setProjectHeard(true);
+  };
   // Where the DAW's take began, as its transport event said it: the play head a later read finds has moved on.
   const transportRecording = useRef(false);
   const seenStart = useRef<number | undefined>(undefined);
@@ -704,7 +709,7 @@ export function useRecordControl({
   useEffect(
     () =>
       daw.subscribeTransport?.((transport) => {
-        setProjectHeard(true);
+        hearProject();
         if (transport.recording && !transportRecording.current) seenStart.current = transport.position;
         if (!transport.recording) {
           seenStart.current = undefined;
@@ -737,7 +742,7 @@ export function useRecordControl({
         if (!current) return;
         setProject(state);
         setProjectFailed(false);
-        setProjectHeard(true);
+        hearProject();
         if (state.playState !== 'recording') dawAnswersStopped();
       })
       .catch(() => {
