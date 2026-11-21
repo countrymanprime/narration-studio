@@ -61,7 +61,7 @@ func TestContractWorkspaceUseTake(t *testing.T) {
 // nothing was heard on.
 func TestContractWorkspaceTakeEvidence(t *testing.T) {
 	dir := t.TempDir()
-	cache := NewMeasureCache(MeasureRange)
+	cache := NewMeasureCache(MeasureRange, nil, "")
 	full := evidenceOf(t, cache, fourWords, recorded(t, dir), func(in *Input) {
 		in.View.Items = append(in.View.Items, coverage.AlignmentItem{Index: 1, ItemGUID: guidA, Live: true, TakeGUID: take2})
 		in.View.Tokens[3].Item = intptr(1)

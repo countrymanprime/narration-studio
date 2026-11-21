@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -8,6 +10,7 @@ import (
 	"desktop/internal/bridge"
 	"desktop/internal/daw"
 	"desktop/internal/dawport"
+	"desktop/internal/evidence"
 	"desktop/internal/findings"
 )
 
@@ -180,5 +183,57 @@ func TestWorkspaceTakeEvidenceListsTheTakesWorkspaceTakesOffers(t *testing.T) {
 	list, ok := evidence["takes"].([]any)
 	if !ok || len(list) != len(candidates) || evidence["chapterId"] != "c-0001" {
 		t.Fatalf("evidence = %v, takes = %v", evidence, takes)
+	}
+}
+
+// takeMeasureEntries counts the take-measurement entries of project's evidence cache.
+func takeMeasureEntries(t *testing.T, project string) int {
+	t.Helper()
+	files, err := os.ReadDir(evidence.CacheDir(project))
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	count := 0
+	for _, file := range files {
+		raw, err := os.ReadFile(filepath.Join(evidence.CacheDir(project), file.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(raw), `"analyzerId":"passagetakes.measure"`) {
+			count++
+		}
+	}
+	return count
+}
+
+// The binding keeps what it measures in the project's evidence cache, so the next call (and the next run of the app)
+// answers the same figures from it.
+func TestWorkspaceTakeEvidenceKeepsItsMeasurementsInTheProject(t *testing.T) {
+	project := twoTakeCoverageProject(t)
+	host := coverageHost(t, project, true, fakeAlignedCoverageSidecarWithSkip())
+	if _, err := host.CoverageStart("c-0001", nil); err != nil {
+		t.Fatal(err)
+	}
+	host.services().coverage.Wait()
+	for _, name := range []string{"a.wav", "b.wav"} {
+		if err := os.WriteFile(filepath.Join(project, "media", name), sineWAV(4), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	first, err := host.WorkspaceTakeEvidence("c-0001", 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored := takeMeasureEntries(t, project)
+	if stored != 2 {
+		t.Fatalf("%d measurements stored, want one for each take; evidence = %s", stored, first)
+	}
+	second, err := host.WorkspaceTakeEvidence("c-0001", 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second != first || takeMeasureEntries(t, project) != stored {
+		t.Fatalf("the second answer differs or stored more:\n%s\n%s", first, second)
 	}
 }

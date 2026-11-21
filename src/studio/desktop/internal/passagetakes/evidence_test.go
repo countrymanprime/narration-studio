@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/coverage"
+	"desktop/internal/evidence"
 )
 
 const rate = 16000
@@ -117,7 +119,7 @@ func isFigure(f Figure) bool {
 
 func TestOneEntryPerOfferedTake(t *testing.T) {
 	resolved := resolve(t, nil)
-	got := Evidence(resolved, NewMeasureCache(func(Range) TakeMeasure { return unmeasured("spy") }))
+	got := Evidence(resolved, NewMeasureCache(func(Range) (TakeMeasure, bool) { return unmeasured("spy"), false }, nil, ""))
 	if len(got.Takes) != len(resolved.View.Candidates) || len(got.Takes) < 2 {
 		t.Fatalf("takes = %d, candidates = %d", len(got.Takes), len(resolved.View.Candidates))
 	}
@@ -142,7 +144,7 @@ func TestMatchedShareIsComputedFromTheTakeRange(t *testing.T) {
 func TestFiguresAreValuesOrReasons(t *testing.T) {
 	dir := t.TempDir()
 	short := writeWAV(t, dir, "short.wav", tone(0.3, -12))
-	got := evidenceOf(t, NewMeasureCache(MeasureRange), recorded(t, dir), func(in *Input) {
+	got := evidenceOf(t, NewMeasureCache(MeasureRange, nil, ""), recorded(t, dir), func(in *Input) {
 		in.Project.Tracks[1].Items[1].Takes[0].SourceFile = filepath.Join(dir, "gone.wav") // lane C: deleted after the project was saved
 	})
 	measured := got.Takes[0].Measure
@@ -166,11 +168,11 @@ func TestFiguresAreValuesOrReasons(t *testing.T) {
 		}
 	}
 
-	unreadable := NewMeasureCache(MeasureRange).Get(Range{File: filepath.Join(dir, "gone.wav"), Kind: "WAVE", Start: 0, Length: 2})
+	unreadable := NewMeasureCache(MeasureRange, nil, "").Get(Range{File: filepath.Join(dir, "gone.wav"), Kind: "WAVE", Start: 0, Length: 2})
 	if unreadable.RMS.OK || unreadable.RMS.Reason == "" {
 		t.Errorf("an unreadable file = %+v", unreadable)
 	}
-	tiny := NewMeasureCache(MeasureRange).Get(Range{File: short, Kind: "WAVE", Start: 0, Length: 0.3})
+	tiny := NewMeasureCache(MeasureRange, nil, "").Get(Range{File: short, Kind: "WAVE", Start: 0, Length: 0.3})
 	if tiny.NF.OK || tiny.NF.Reason == "" {
 		t.Errorf("a take shorter than the noise window = %+v", tiny.NF)
 	}
@@ -181,7 +183,7 @@ func TestFiguresAreValuesOrReasons(t *testing.T) {
 }
 
 func TestLevelIsComparableBetweenTakes(t *testing.T) {
-	got := evidenceOf(t, NewMeasureCache(MeasureRange), recorded(t, t.TempDir()))
+	got := evidenceOf(t, NewMeasureCache(MeasureRange, nil, ""), recorded(t, t.TempDir()))
 	loud, quiet := got.Takes[0].Measure.RMS, got.Takes[1].Measure.RMS
 	if !loud.OK || !quiet.OK {
 		t.Fatalf("levels = %+v, %+v", loud, quiet)
@@ -220,9 +222,9 @@ func TestATakeTheBoothMappedIsPlacedExactly(t *testing.T) {
 }
 
 func TestReadOnlyAndCached(t *testing.T) {
-	dir := t.TempDir()
+	dir, project := t.TempDir(), t.TempDir()
 	decodes := 0
-	cache := NewMeasureCache(func(r Range) TakeMeasure { decodes++; return MeasureRange(r) })
+	cache := NewMeasureCache(func(r Range) (TakeMeasure, bool) { decodes++; return MeasureRange(r) }, evidence.NewCacheStore(project), project)
 	setup := recorded(t, dir)
 	before, _ := os.ReadDir(dir)
 	first := evidenceOf(t, cache, setup)
@@ -237,12 +239,12 @@ func TestReadOnlyAndCached(t *testing.T) {
 		t.Fatal("the cached answer differs")
 	}
 	if after, _ := os.ReadDir(dir); len(after) != len(before) {
-		t.Fatalf("the call wrote files: %d before, %d after", len(before), len(after))
+		t.Fatalf("the call wrote files beside the audio: %d before, %d after", len(before), len(after))
 	}
 }
 
 func TestEvidenceHoldsNoPathOrGUID(t *testing.T) {
-	encoded, err := json.Marshal(evidenceOf(t, NewMeasureCache(MeasureRange), recorded(t, t.TempDir())))
+	encoded, err := json.Marshal(evidenceOf(t, NewMeasureCache(MeasureRange, nil, ""), recorded(t, t.TempDir())))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,5 +255,303 @@ func TestEvidenceHoldsNoPathOrGUID(t *testing.T) {
 	}
 	if strings.Contains(string(encoded), ".wav") || strings.Contains(string(encoded), string(os.PathSeparator)+"loud") {
 		t.Errorf("the answer names a file: %s", encoded)
+	}
+}
+
+// The stored figures of a take range (MeasureCache). The spies below answer figures without decoding, so the source is
+// any bytes: sourceBytes long enough that its first, middle and last 64 KiB (the blocks the source identity hashes)
+// leave unsampled bytes between them.
+const (
+	sourceBytes     = 400 * 1024
+	sampledOffset   = 10
+	unsampledOffset = 100 * 1024
+)
+
+var sourceTime = time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+
+// source writes a file of sourceBytes into dir, last modified at sourceTime, and answers a two second range of it.
+func source(t *testing.T, dir string) Range {
+	t.Helper()
+	path := filepath.Join(dir, "take.wav")
+	if err := os.WriteFile(path, bytes.Repeat([]byte{7}, sourceBytes), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	setModified(t, path, sourceTime)
+	return Range{File: path, Kind: "WAVE", Start: 1, Length: 2}
+}
+
+func setModified(t *testing.T, path string, when time.Time) {
+	t.Helper()
+	if err := os.Chtimes(path, when, when); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// overwriteByte changes one byte of path in place, keeping its size.
+func overwriteByte(t *testing.T, path string, offset int64) {
+	t.Helper()
+	file, err := os.OpenFile(path, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteAt([]byte{9}, offset); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// counted is a cache over project whose measurer counts its calls into calls and answers the call's number as the
+// pause, so a figure says which measurement made it.
+func counted(project string, calls *int) *MeasureCache {
+	return NewMeasureCache(func(Range) (TakeMeasure, bool) {
+		*calls++
+		return measuredAs(float64(*calls)), true
+	}, evidence.NewCacheStore(project), project)
+}
+
+func measuredAs(pause float64) TakeMeasure {
+	return TakeMeasure{
+		Pause: valueOf(pause), RMS: valueOf(-18.3), NF: reasonOf("Too short."),
+		Clarity: reasonOf(ReasonClarityNotMeasured), Breaths: valueOf(2),
+	}
+}
+
+func pauseOf(t *testing.T, m TakeMeasure) float64 {
+	t.Helper()
+	if !m.Pause.OK {
+		t.Fatalf("no pause: %+v", m)
+	}
+	return *m.Pause.Value
+}
+
+// storedKey is the entry of r in project's cache, and the store to read it from.
+func storedKey(t *testing.T, project string, r Range) (*evidence.CacheStore, evidence.CacheEntryKey) {
+	t.Helper()
+	identity, err := evidence.Identify(r.File, project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := evidence.NewCacheStore(project)
+	return store, NewMeasureCache(nil, store, project).key(identity, r)
+}
+
+func TestARestartAnswersFromTheStoredFigures(t *testing.T) {
+	dir, project := t.TempDir(), t.TempDir()
+	setup := recorded(t, dir)
+	first := evidenceOf(t, NewMeasureCache(MeasureRange, evidence.NewCacheStore(project), project), setup)
+
+	decodes := 0
+	restarted := NewMeasureCache(func(r Range) (TakeMeasure, bool) { decodes++; return MeasureRange(r) }, evidence.NewCacheStore(project), project)
+	second := evidenceOf(t, restarted, setup)
+	if decodes != 0 {
+		t.Fatalf("a new cache over the same project decoded %d takes", decodes)
+	}
+	a, _ := json.Marshal(first)
+	b, _ := json.Marshal(second)
+	if !bytes.Equal(a, b) {
+		t.Fatalf("the stored answer differs:\n%s\n%s", a, b)
+	}
+	if !first.Takes[0].Measure.Pause.OK {
+		t.Fatalf("the stored take was not measured: %+v", first.Takes[0].Measure)
+	}
+}
+
+func TestAnEditedSourceIsMeasuredAgain(t *testing.T) {
+	for name, edit := range map[string]func(*testing.T, string){
+		"bytes of a sampled block rewritten, size and time kept": func(t *testing.T, path string) {
+			overwriteByte(t, path, sampledOffset)
+			setModified(t, path, sourceTime)
+		},
+		"bytes between the sampled blocks rewritten, time moved": func(t *testing.T, path string) {
+			overwriteByte(t, path, unsampledOffset)
+			setModified(t, path, sourceTime.Add(time.Minute))
+		},
+		"only the time moved": func(t *testing.T, path string) {
+			setModified(t, path, sourceTime.Add(time.Minute))
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			project, calls := t.TempDir(), 0
+			r := source(t, t.TempDir())
+			cache := counted(project, &calls)
+			cache.Get(r)
+			edit(t, r.File)
+			if got := pauseOf(t, cache.Get(r)); got != 2 || calls != 2 {
+				t.Fatalf("after the edit: measurement %v of %d, want the second", got, calls)
+			}
+			if got := pauseOf(t, counted(project, &calls).Get(r)); got != 2 || calls != 2 {
+				t.Fatalf("the new measurement was not stored: measurement %v of %d", got, calls)
+			}
+		})
+	}
+}
+
+func TestAnotherAnalyzerVersionMisses(t *testing.T) {
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	counted(project, &calls).Get(r)
+	newer := counted(project, &calls)
+	newer.version = "2"
+	if got := pauseOf(t, newer.Get(r)); got != 2 {
+		t.Fatalf("a newer analyzer was answered measurement %v, made by the older one", got)
+	}
+}
+
+func TestEachRangeAndSourceKindHasItsOwnEntry(t *testing.T) {
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	cache := counted(project, &calls)
+	trimmed, moved, otherKind := r, r, r
+	trimmed.Length, moved.Start, otherKind.Kind = 1.5, 1.25, "MP3"
+	for i, asked := range []Range{r, trimmed, moved, otherKind} {
+		if got := pauseOf(t, cache.Get(asked)); got != float64(i+1) {
+			t.Fatalf("range %d (%+v) was answered measurement %v", i+1, asked, got)
+		}
+	}
+	for i, asked := range []Range{r, trimmed, moved, otherKind} {
+		if got := pauseOf(t, cache.Get(asked)); got != float64(i+1) || calls != 4 {
+			t.Fatalf("range %d asked again was answered measurement %v of %d", i+1, got, calls)
+		}
+	}
+}
+
+func TestAnEntryThatCannotBeUsedIsDeletedAndMeasuredAgain(t *testing.T) {
+	for name, blob := range map[string]string{
+		"not JSON":                 `{"schemaVersion":1,"measure":`,
+		"a newer blob version":     `{"schemaVersion":2,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"no blob version":          `{"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"a figure with no value":   `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"a figure with no reason":  `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false},"breaths":{"ok":true,"value":9}}}`,
+		"a value beside a reason":  `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":false,"value":9,"reason":"x"},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
+		"figures left out":         `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{}}`,
+		"another analyzer's shape": `{"schemaVersion":1,"durationSeconds":4,"silences":[]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			project := t.TempDir()
+			r := source(t, t.TempDir())
+			store, key := storedKey(t, project, r)
+			if err := store.Write(key, []byte(blob)); err != nil {
+				t.Fatal(err)
+			}
+			// The measurer fails, so nothing is written over the entry: only a delete removes it.
+			failing := NewMeasureCache(func(Range) (TakeMeasure, bool) { return unmeasured("spy"), false }, store, project)
+			if got := failing.Get(r); got.Pause.OK || got.Pause.Reason != "spy" {
+				t.Fatalf("the entry was answered: %+v", got)
+			}
+			if _, found := store.Read(key); found {
+				t.Fatal("the entry was left in the cache")
+			}
+			calls := 0
+			if got := pauseOf(t, counted(project, &calls).Get(r)); got != 1 {
+				t.Fatalf("measurement %v", got)
+			}
+		})
+	}
+}
+
+func TestFiguresNotFromDecodedAudioAreNotStored(t *testing.T) {
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	failing := NewMeasureCache(func(Range) (TakeMeasure, bool) { calls++; return unmeasured("spy"), false }, evidence.NewCacheStore(project), project)
+	failing.Get(r)
+	if got := failing.Get(r); calls != 2 || got.RMS.Reason != "spy" {
+		t.Fatalf("a failed measurement was asked for %d times and answered %+v", calls, got)
+	}
+	if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 0 {
+		t.Fatalf("a failed measurement left %d cache entries", len(entries))
+	}
+
+	// MeasureRange itself: bytes that are no WAV, and a format that is not measured.
+	for _, unread := range []Range{r, {File: r.File, Kind: "MP3", Start: 0, Length: 2}} {
+		if got, decoded := MeasureRange(unread); decoded || got.RMS.OK {
+			t.Errorf("%s: MeasureRange = %+v, decoded %v", unread.Kind, got, decoded)
+		}
+	}
+	wav := writeWAV(t, t.TempDir(), "read.wav", noisy(concat(gap(0.5), tone(2, -12), gap(0.5)), -60))
+	if got, decoded := MeasureRange(Range{File: wav, Kind: "WAVE", Start: 0, Length: 3}); !decoded || !got.RMS.OK || !got.Pause.OK {
+		t.Errorf("a readable WAV: MeasureRange = %+v, decoded %v", got, decoded)
+	}
+}
+
+func TestASourceSavedWhileItIsMeasuredIsNotStored(t *testing.T) {
+	for name, save := range map[string]func(*testing.T, string){
+		"its bytes changed": func(t *testing.T, path string) {
+			overwriteByte(t, path, sampledOffset)
+			setModified(t, path, sourceTime)
+		},
+		"its time moved": func(t *testing.T, path string) { setModified(t, path, sourceTime.Add(time.Minute)) },
+		"it was removed": func(t *testing.T, path string) {
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			project := t.TempDir()
+			r := source(t, t.TempDir())
+			saving := NewMeasureCache(func(r Range) (TakeMeasure, bool) { save(t, r.File); return measuredAs(1), true }, evidence.NewCacheStore(project), project)
+			if got := pauseOf(t, saving.Get(r)); got != 1 {
+				t.Fatalf("the measurement was not answered: %v", got)
+			}
+			if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 0 {
+				t.Fatalf("figures of a file that changed under them were stored (%d entries)", len(entries))
+			}
+		})
+	}
+}
+
+func TestWithoutAStoreEveryCallMeasures(t *testing.T) {
+	calls := 0
+	r := source(t, t.TempDir())
+	cache := NewMeasureCache(func(Range) (TakeMeasure, bool) { calls++; return measuredAs(float64(calls)), true }, nil, "")
+	cache.Get(r)
+	if got := pauseOf(t, cache.Get(r)); got != 2 {
+		t.Fatalf("the second call was answered measurement %v", got)
+	}
+}
+
+func TestAFileThatCannotBeReadIsAReasonWithOrWithoutAStore(t *testing.T) {
+	dir, project := t.TempDir(), t.TempDir()
+	for name, cache := range map[string]*MeasureCache{
+		"stored":   NewMeasureCache(MeasureRange, evidence.NewCacheStore(project), project),
+		"unstored": NewMeasureCache(MeasureRange, nil, ""),
+	} {
+		for _, file := range []string{filepath.Join(dir, "gone.wav"), dir} {
+			got := cache.Get(Range{File: file, Kind: "WAVE", Start: 0, Length: 2})
+			if got != unmeasured(reasonUnreadable) {
+				t.Errorf("%s, %s: %+v", name, file, got)
+			}
+		}
+	}
+	if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 0 {
+		t.Fatalf("an unreadable file left %d cache entries", len(entries))
+	}
+}
+
+// The stored blob, byte for byte: an entry this build writes is one a later build must still read.
+func TestTheStoredBlobShape(t *testing.T) {
+	const blob = `{"schemaVersion":1,"sourceModTime":"2026-01-02T03:04:05Z","measure":{"pause":{"ok":true,"value":1},"rms":{"ok":true,"value":-18.3},"nf":{"ok":false,"reason":"Too short."},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":2}}}`
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	counted(project, &calls).Get(r)
+	store, key := storedKey(t, project, r)
+	written, found := store.Read(key)
+	if !found || string(written) != blob {
+		t.Fatalf("stored blob (found %v):\n%s\nwant:\n%s", found, written, blob)
+	}
+	if key.AnalyzerID != "passagetakes.measure" || key.AnalyzerVersion != "1" || *key.PlayedRange != (evidence.PlayedRange{Start: 1, End: 3}) {
+		t.Fatalf("key = %+v over %+v", key, *key.PlayedRange)
+	}
+
+	// Read back from the literal, not from what this build wrote.
+	other := t.TempDir()
+	otherStore, otherKey := storedKey(t, other, r)
+	if err := otherStore.Write(otherKey, []byte(blob)); err != nil {
+		t.Fatal(err)
+	}
+	if got := counted(other, &calls).Get(r); calls != 1 || pauseOf(t, got) != 1 || got.NF.Reason != "Too short." {
+		t.Fatalf("the literal blob was not answered: %+v after %d measurements", got, calls)
 	}
 }
