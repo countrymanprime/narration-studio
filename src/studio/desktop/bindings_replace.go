@@ -648,6 +648,8 @@ func replaceRefusal(daw string, err error) dawport.Result {
 		return refused
 	}
 	switch {
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return dawport.Refused(lateAnswerSentence(daw))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return dawport.Refused(fmt.Sprintf("%s is not answering. Check that %s is open, then try again; the app reconnects by itself.", daw, daw))
 	case errors.Is(err, bridge.ErrUnavailable):

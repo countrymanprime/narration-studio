@@ -24,6 +24,8 @@ type Navigator struct {
 	// +checklocks:mu
 	timeout time.Duration
 	// +checklocks:mu
+	lateWait time.Duration
+	// +checklocks:mu
 	pending map[string]chan answer
 	// +checklocks:mu
 	next uint64
@@ -116,7 +118,7 @@ type answer struct {
 
 // NewNavigator subscribes to the navigation answers on client. With a nil client every request is ErrUnavailable.
 func NewNavigator(client *Client) *Navigator {
-	n := &Navigator{client: client, timeout: DefaultAnswerTimeout, pending: map[string]chan answer{}}
+	n := &Navigator{client: client, timeout: DefaultAnswerTimeout, lateWait: LateAnswerWait, pending: map[string]chan answer{}}
 	if client != nil {
 		client.Subscribe(Subscription{
 			Tags:    []string{"NAVIGATED", "LOOP_STARTED", "LOOP_STOPPED", "PONG", "FINDING_MARKER", "FINDING_STALE", "ERROR"},
@@ -126,6 +128,13 @@ func NewNavigator(client *Client) *Navigator {
 		})
 	}
 	return n
+}
+
+// SetLateWait changes how long a command is waited for after REAPER has read it.
+func (n *Navigator) SetLateWait(wait time.Duration) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.lateWait = wait
 }
 
 // SetTimeout changes how long a request waits for its answer.
@@ -220,7 +229,7 @@ func (n *Navigator) request(ctx context.Context, command string, args ...string)
 	if n.client == nil {
 		return Event{}, ErrUnavailable
 	}
-	runID, reply, timeout := n.open()
+	runID, reply, timeout, lateWait := n.open()
 	defer n.close(runID)
 	defer n.client.Expect()()
 	target, err := n.client.Send(command, append([]string{runID}, args...))
@@ -233,23 +242,32 @@ func (n *Navigator) request(ctx context.Context, command string, args ...string)
 	case got := <-reply:
 		return got.event, got.err
 	case <-timer.C:
-		n.client.Retract(target)
-		return Event{}, ErrNoAnswer
+		if n.client.Retract(target) || !waitsLate(command, args) {
+			return Event{}, ErrNoAnswer
+		}
+		// REAPER read the command, so the move, the loop or the marker is about to land: wait for its answer, as Actions does.
+		got, err := awaitLate(ctx, reply, lateWait)
+		if err != nil {
+			return Event{}, err
+		}
+		return got.event, got.err
 	case <-ctx.Done():
-		n.client.Retract(target)
-		return Event{}, ctx.Err()
+		if n.client.Retract(target) || !waitsLate(command, args) {
+			return Event{}, ctx.Err()
+		}
+		return Event{}, fmt.Errorf("%w: %w", ErrAnswerLate, ctx.Err())
 	}
 }
 
 // open registers a new run and the channel its one answer arrives on.
-func (n *Navigator) open() (string, chan answer, time.Duration) {
+func (n *Navigator) open() (string, chan answer, time.Duration, time.Duration) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.next++
 	runID := fmt.Sprintf("nav%d-%d", time.Now().UnixNano(), n.next)
 	reply := make(chan answer, 1)
 	n.pending[runID] = reply
-	return runID, reply, n.timeout
+	return runID, reply, n.timeout, n.lateWait
 }
 
 // close forgets a run, so a late answer (after a timeout) is dropped.

@@ -66,6 +66,9 @@ func trackSelectRefusal(err error) TrackSelectResult {
 	if errors.As(err, &stale) {
 		return trackSelectRefused(readAloudTrackMissing, "This track is no longer in the REAPER project. Link it again in the audio engine panel.")
 	}
+	if errors.Is(err, bridge.ErrAnswerLate) {
+		return trackSelectRefused(refusedFailed, lateAnswerSentence("REAPER"))
+	}
 	return trackSelectRefused(refusedFailed, "REAPER could not do that: "+err.Error()+".")
 }
 

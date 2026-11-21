@@ -418,6 +418,32 @@ describe('attribute-speakers', () => {
     expect(await hook.result.current.journal.entries()).toHaveLength(entries);
   });
 
+  it('says how many lines the local model suggested, and why it stopped when it did', async () => {
+    const hook = setup();
+    await ready(hook);
+    const result = {
+      cues: 3,
+      attributed: 2,
+      filled: 2,
+      changed: 0,
+      keptConfirmed: 0,
+      previous: [{ cueId: 'cue-1', speakerEntityId: null, speakerSource: 'unknown' as const }],
+    };
+    const run = vi.spyOn(api, 'guideAttributeSpeakers');
+    run.mockResolvedValueOnce({ ...result, keptConfirmed: 3, modelFilled: 1, modelNote: 'The local model stopped before it finished.' });
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    // "of them" follows the attributed lines, never the confirmed ones.
+    expect(toastUndo).toHaveBeenLastCalledWith(
+      'Attributed 2 lines. The local model suggested 1 of them. 3 confirmed lines left as they were. The local model stopped before it finished.',
+      expect.any(Function),
+      { entry: expect.any(Number) },
+    );
+    run.mockResolvedValueOnce({ ...result, filled: 0, previous: [], modelFilled: 0, modelNote: 'The local model could not be asked.' });
+    await act(async () => void (await hook.result.current.commands.attributeSpeakers()));
+    expect(toast).toHaveBeenLastCalledWith('No new speakers found. The local model could not be asked.');
+    run.mockRestore();
+  });
+
   it('Undo puts the earlier suggestion back but never overwrites a line confirmed since', async () => {
     const hook = setup();
     await ready(hook);
