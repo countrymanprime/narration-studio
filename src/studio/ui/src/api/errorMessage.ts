@@ -18,3 +18,11 @@ export function apiErrorMessage(error: unknown): string {
   if (isWireError(error)) return error.userMessage;
   return error instanceof Error ? error.message : String(error);
 }
+
+/** A failed host call as one sentence a narrator can read: the host's own words, or `fallback` when it gave none. Never "Error: ...". */
+export function readableFailure(error: unknown, fallback: string): string {
+  const text = apiErrorMessage(error)
+    .replace(/^(?:\w*Error:\s*)+/, '')
+    .trim();
+  return text && text !== '[object Object]' && text !== 'undefined' && text !== 'null' ? text : fallback;
+}

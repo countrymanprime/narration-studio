@@ -61,7 +61,11 @@ type AddedTrack = { track: Track; answeredAt: number };
 function createdTracks(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, answeredAt: number): AddedTrack[] {
   const base = { color: '', muted: false, soloed: false, items: [] };
   const folder: Track = { ...base, ...result.track, depth: 0, isFolder: Boolean(result.voice) };
-  const made = result.voice ? [folder, { ...base, ...result.voice, depth: 1, isFolder: false }] : [folder];
+  // A folder made with its Narrator, and the voices and Extras it was made with (#3748): every child is a track of the folder.
+  const children = result.children?.length ? result.children : result.voice ? [result.voice] : [];
+  const made = result.voice
+    ? [folder, ...children.map((child) => ({ ...base, guid: child.guid, name: child.name, index: child.index, depth: 1, isFolder: false }))]
+    : [folder];
   return made.map((track) => ({ track, answeredAt }));
 }
 

@@ -283,8 +283,12 @@ export function useBoothVoices({
   const linkKind: ChapterLinkKind = useMemo(() => {
     if (!link) return trackState.reading && !answered && chapterId ? 'unread' : 'none';
     const linked = tracks.find((track) => track.guid.toLowerCase() === link.toLowerCase());
-    return !linked ? 'unknown' : linked.isFolder ? 'empty' : 'track';
-  }, [link, tracks, trackState.reading, answered, chapterId]);
+    if (!linked) return 'unknown';
+    if (!linked.isFolder) return 'track';
+    // A folder with tracks, every one marked as not a voice, needs one turned back on; an empty one needs a track.
+    const children = folderChildren(tracks, link);
+    return children.length > 0 && children.every((child) => setup.notVoiceGuids.includes(child.guid.toLowerCase())) ? 'marked' : 'empty';
+  }, [link, tracks, trackState.reading, answered, chapterId, setup.notVoiceGuids]);
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
   const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
   const current = fromHost ?? voices.find((voice) => voice.narrator) ?? voices[0];

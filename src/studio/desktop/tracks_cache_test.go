@@ -535,7 +535,7 @@ func TestCreatingAChapterTrackDropsTheCachedTrackList(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			host, ids := newTestHostForChapterMatch(t)
 			svc, inner := warmedServices(t, host)
-			_, _ = chapterTrackCreateIn(context.Background(), svc, creator, createAvailable(), ids[0])
+			_, _ = chapterTrackCreateIn(context.Background(), svc, creator, createAvailable(), ids[0], nil)
 			lister, _ := trackListerFrom(svc)
 			before := inner.calls.Load()
 			read(t, lister)

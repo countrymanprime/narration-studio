@@ -15,6 +15,8 @@ export function createVoiceTracksMock(
   initial?: Partial<VoiceTracksState>,
   /** Where the marked tracks are published as they change, so the chapters' rows (`members[].notAVoice`) follow them as the host's do. */
   marks?: { current: string[] },
+  /** Filled in with the way a create marks a track as not a voice (the host's SetNotVoice), which is not a call of the API. */
+  control?: { markNotVoice: (guid: string) => void },
 ): Omit<VoiceTracksApi, 'boothVoiceSet' | 'boothVoiceGet' | 'boothVoiceAdd' | 'boothPunchTarget'> {
   let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], narratorGuids: [], notVoiceGuids: [], ...initial };
   if (marks) marks.current = [...state.notVoiceGuids];
@@ -24,6 +26,13 @@ export function createVoiceTracksMock(
     narratorGuids: [...state.narratorGuids],
     notVoiceGuids: [...state.notVoiceGuids],
   });
+  if (control) {
+    control.markNotVoice = (guid) => {
+      const id = guid.toLowerCase();
+      if (!state.notVoiceGuids.includes(id)) state = { ...state, notVoiceGuids: [...state.notVoiceGuids, id].sort() };
+      if (marks) marks.current = [...state.notVoiceGuids];
+    };
+  }
   return {
     voiceTracksGet: async () => snapshot(),
     voiceTracksSetLayout: async (layout) => {
