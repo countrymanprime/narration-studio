@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"time"
 	"unicode"
 
 	"desktop/internal/bridge"
@@ -42,8 +41,9 @@ type RegionRemover interface {
 	DeleteVoiceSampleRegion(ctx context.Context, number int) (dawport.VoiceSampleRegionRemoved, error)
 }
 
-// regionDeleteTimeout is how long the DAW has to answer a delete before the region is left where it is.
-const regionDeleteTimeout = 10 * time.Second
+// regionDeleteTimeout is how long the DAW has to answer a delete before the region is left where it is: the read before it, then the
+// delete's usual wait and the late wait once the DAW has read it.
+const regionDeleteTimeout = 2*bridge.DefaultAnswerTimeout + bridge.LateAnswerWait
 
 // DawState says what the DAW's saved project holds for a sample kept in the DAW. Computed on every read, never stored.
 type DawState string
@@ -298,6 +298,8 @@ func whyRegionStays(err error) string {
 	switch {
 	case errors.Is(err, bridge.ErrStale):
 		return ""
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return "because the DAW did not confirm deleting it in time"
 	case errors.Is(err, bridge.ErrRecording):
 		return "because the DAW is recording"
 	case errors.Is(err, dawport.ErrNotSupported):

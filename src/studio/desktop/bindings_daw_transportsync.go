@@ -35,7 +35,12 @@ func (h *Host) DawTransportSync(action string, seconds, until float64, chapterID
 		trackGUID = guid
 	}
 	resolver, _ := h.dawResolverFor(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), transportsync.Timeout)
+	// A play, a stop or a cursor move the DAW has read is waited for; the watch is a lease renewed every few seconds and keeps the short wait.
+	timeout := writeCommandTimeout
+	if action == transportsync.ActionWatch {
+		timeout = transportsync.Timeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	same := func() bool {
 		path := h.rememberSyncProject(svc)

@@ -48,18 +48,10 @@ const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 
 /** What turning a voice off or on did, worked out from the keys before and after (never from a track's name): the voice's own state, and where the keys stand
  * now when any moved. Every press says something, so a notice never stays up under a row it no longer describes. */
-function switchConsequence(
-  voice: Voice,
-  before: readonly Voice[],
-  after: readonly Voice[],
-  counts: boolean,
-  placeOf: (guid: string) => number,
-  layout: VoiceTracksLayout,
-): string {
+function switchConsequence(voice: Voice, before: readonly Voice[], after: readonly Voice[], counts: boolean, placeOf: (guid: string) => number): string {
   const name = bidiIsolated(shortName(trackName(voice.name, placeOf(voice.guid))));
   const lead = counts ? `${name} is a voice again.` : `${name} is turned off as a voice.`;
-  if (!counts && layout === 'folders' && !after.some((other) => !other.notVoice))
-    return `${lead} No voice is left, so the Booth cannot record until you turn one back on.`;
+  if (!counts && !after.some((other) => !other.notVoice)) return `${lead} No voice is left, so the Booth cannot record until you turn one back on.`;
   const keyBefore = new Map(before.map((other) => [other.guid, other.key]));
   const moved = after.some((other) => other.guid !== voice.guid && keyBefore.get(other.guid) !== other.key);
   const ownKey = after.find((other) => other.guid === voice.guid)?.key ?? '';
@@ -144,9 +136,7 @@ export function VoicesCard({
       <Switch
         checked={!voice.notVoice}
         disabled={recording}
-        onChange={(counts) =>
-          onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace, setup.layout))
-        }
+        onChange={(counts) => onNotAVoice(voice.guid, !counts, switchConsequence(voice, voices, voicesAfter(voice.guid, !counts), counts, projectPlace))}
       >
         <span className="sr-only">{`${shortName(trackName(voice.name, projectPlace(voice.guid)))} counts as a voice`}</span>
       </Switch>

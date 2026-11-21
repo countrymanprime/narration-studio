@@ -95,9 +95,9 @@ func TestTheHostMakesOneLedgerStorePerProject(t *testing.T) {
 	}
 }
 
-// A record any part of the host writes goes through the project's one store, so the next read of a page decodes that one
-// file and nothing else, and sees it.
-func TestARecordWrittenThroughTheProjectsStoreIsDecodedOnceByTheNextRead(t *testing.T) {
+// A record any part of the host writes goes through the project's one store, which holds it as written, so the next read of a
+// page decodes no ledger file, and sees it.
+func TestARecordWrittenThroughTheProjectsStoreIsSeenByTheNextReadWithoutADecode(t *testing.T) {
 	host := coverageHost(t, coverageProject(t), true, fakeCoverageSidecar(8))
 	checkRecording(t, host)
 	host.chapterSyncEmits.Wait() // the finished check's own chaptersync:state read lists the ledger too: let it end before counting
@@ -114,8 +114,8 @@ func TestARecordWrittenThroughTheProjectsStoreIsDecodedOnceByTheNextRead(t *test
 	if _, err := host.ManuscriptChapters(); err != nil {
 		t.Fatal(err)
 	}
-	if _, after := svc.coverage.LedgerReads(); after-decodes != 1 {
-		t.Errorf("the read after one write decoded %d ledger files, want 1", after-decodes)
+	if _, after := svc.coverage.LedgerReads(); after-decodes != 0 {
+		t.Errorf("the read after one write decoded %d ledger files, want 0", after-decodes)
 	}
 	if listings, total := svc.ledger.Reads(); func() bool { l, d := svc.coverage.LedgerReads(); return l != listings || d != total }() {
 		t.Error("the coverage service reads a ledger store of its own, not the project's")

@@ -37,7 +37,7 @@ A Story Bible suggestion records the source it came from. The host's rows and Py
 | --- | --- | --- | --- | --- | --- |
 | `rules` | Rules | `auto` | yes | none | built: `internal/extractionport/rules` runs the host's `guide.RuleSuggestions` |
 | `imported` | Imported file | `import` | no | none | built in the host only (`internal/extraction/importer`); a scan never runs it |
-| `local-model` | Local model | `globe` | yes | none | never on this build: "No local model is installed." |
+| `local-model` | Local model | `globe` | no | none | never on this build: "No local model is installed." |
 | `gliner` | GLiNER | `locate` | yes | `gliner` | adapter built and installable; "GLiNER is not downloaded." until its asset is installed |
 | `booknlp` | BookNLP | `dictionary` | yes | `booknlp-small`, `booknlp-big` | adapter built, not installable yet; "BookNLP is not downloaded." until either asset is installed |
 

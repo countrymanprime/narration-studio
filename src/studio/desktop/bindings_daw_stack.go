@@ -193,6 +193,8 @@ func stackRefusal(name string, err error) dawport.Result {
 	switch {
 	case errors.As(err, &trackStale):
 		return dawport.RefusedStale(fmt.Sprintf(stackTrackStaleSentence, name))
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return dawport.Refused(lateAnswerSentence(name))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperNotRunning).Message)
 	case errors.Is(err, bridge.ErrUnavailable):
