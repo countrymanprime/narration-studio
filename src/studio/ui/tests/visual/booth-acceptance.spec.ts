@@ -57,7 +57,9 @@ test('row 2: the text reads whole words, in order', async ({ page }) => {
 });
 
 test('row 3: an unconfirmed speaker is the "?" chip, never a blank one', async ({ page }) => {
-  await open(page);
+  // The demo book's one line with no speaker ("Have some wine") is at the tea-party.
+  await page.goto(`/booth?chapter=chapter-7`);
+  await settlePage(page);
   await expect(page.getByRole('button', { name: /^Speaker \?\. Change speaker/ }).first()).toBeVisible();
   expect(await page.getByRole('button', { name: /^Speaker \.\s/ }).count()).toBe(0);
 });

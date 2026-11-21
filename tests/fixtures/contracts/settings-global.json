@@ -418,6 +418,44 @@
       "kind": "choice",
       "label": "Default pronunciation source",
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "false",
+      "isSet": false,
+      "key": "speaker_fallback",
+      "kind": "bool",
+      "label": "Ask a local model about unknown speakers",
+      "value": ""
+    },
+    {
+      "choices": [
+        "qwen3-4b"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "qwen3-4b",
+      "isSet": false,
+      "key": "speaker_fallback_model",
+      "kind": "choice",
+      "label": "Local model for unknown speakers",
+      "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "20",
+      "isSet": false,
+      "key": "speaker_fallback_max_quotes",
+      "kind": "number",
+      "label": "Lines the local model may take per run",
+      "number": {
+        "max": 200,
+        "min": 1,
+        "step": 1,
+        "unit": "lines"
+      },
+      "value": ""
     }
   ],
   "Piper": [

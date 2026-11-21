@@ -151,7 +151,10 @@ const guideDialogueCueEvidenceSchema = z.object({
   paragraphId: z.string(),
   excerpt: z.string(),
   tag: z.string(),
+  reason: z.string().optional(),
 }) satisfies z.ZodType<GuideDialogueCueEvidence>;
+
+const speakerSourceSchema = z.enum(['tag', 'continuation', 'proximity', 'unknown', 'correction', 'local-model']);
 
 const guideDialogueCueSchema = z.object({
   id: z.string(),
@@ -161,7 +164,7 @@ const guideDialogueCueSchema = z.object({
   quote_end: z.number(),
   quote_text: z.string(),
   speaker_entity_id: z.string().nullable(),
-  speaker_source: z.enum(['tag', 'continuation', 'proximity', 'unknown', 'correction']),
+  speaker_source: speakerSourceSchema,
   evidence: guideDialogueCueEvidenceSchema,
   corrected: z.boolean(),
 }) satisfies z.ZodType<GuideDialogueCue>;
@@ -172,7 +175,7 @@ export const guideDialogueCuesSchema = listFromNull(guideDialogueCueSchema);
 const cueSpeakerSchema = z.object({
   cueId: z.string(),
   speakerEntityId: z.string().nullable(),
-  speakerSource: z.enum(['tag', 'continuation', 'proximity', 'unknown', 'correction']),
+  speakerSource: speakerSourceSchema,
 }) satisfies z.ZodType<CueSpeaker>;
 
 /** What an attribution run did; `previous` is every filled or changed line's earlier suggestion. */
@@ -183,6 +186,8 @@ export const speakerAttributionSchema = z.object({
   changed: z.number(),
   keptConfirmed: z.number(),
   previous: listFromNull(cueSpeakerSchema),
+  modelFilled: z.number(),
+  modelNote: z.string(),
 }) satisfies z.ZodType<SpeakerAttribution>;
 
 /** How many lines an undo restored. */

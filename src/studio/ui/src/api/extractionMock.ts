@@ -165,11 +165,13 @@ const SEEDS: Seed[] = [
   },
 ];
 
-/** The sources of a fresh install, as the host's extraction-sources golden has them. */
+/** The sources of a fresh install, as the host's extraction-sources golden has them, but for the local model: here a deterministic
+ * stand-in is installed (mockHost/speakerFallbackFake.ts), so its row is available and Settings can turn it on. It is not started
+ * from a scan on either side. */
 const SOURCES: ExtractionSource[] = [
   { id: 'rules', label: 'Rules', icon: 'auto', runs: true, available: true },
   { id: 'imported', label: 'Imported file', icon: 'import', runs: false, available: false, reason: 'Imported file is not available yet.' },
-  { id: 'local-model', label: 'Local model', icon: 'globe', runs: true, available: false, reason: 'No local model is installed.' },
+  { id: 'local-model', label: 'Local model', icon: 'globe', runs: false, available: true },
   { id: 'gliner', label: 'GLiNER', icon: 'locate', runs: true, available: false, reason: 'GLiNER is not downloaded.' },
   { id: 'booknlp', label: 'BookNLP', icon: 'dictionary', runs: true, available: false, reason: 'BookNLP is not downloaded.' },
 ];
@@ -408,7 +410,7 @@ function withText(p: SuggestionPayload, text: string): SuggestionPayload {
  * suggestions and the mock's copy of the entries, answers how many suggestions there were, and refuses while a scan runs. */
 export type ExtractionMock = ExtractionApi & { clearSuggestions(): number };
 
-export function createExtractionMock(publish: (event: JobEnded) => void = () => undefined): ExtractionMock {
+export function createExtractionMock(publish: (event: JobEnded) => void = () => undefined, localModel: 'installed' | 'none' = 'installed'): ExtractionMock {
   const seeds = seeded();
   let suggestions = seeds.suggestions;
   let entries = wireClone(ENTRIES);
@@ -690,7 +692,15 @@ export function createExtractionMock(publish: (event: JobEnded) => void = () => 
       const prompt = `You are helping an audiobook narrator prepare a Story Bible from a book manuscript.\nAnswer with ${format.toUpperCase()} only, in exactly this format.\n\nExample:\n${example}\n\nMANUSCRIPT\n`;
       return Promise.resolve({ format, prompt, example, maxBytes: IMPORT_MAX_BYTES });
     },
-    extractionSources: () => Promise.resolve(wireClone(SOURCES)),
+    // With no local model installed the row is the host's own: unavailable, with its sentence.
+    extractionSources: () =>
+      Promise.resolve(
+        wireClone(
+          localModel === 'none'
+            ? SOURCES.map((source) => (source.id === 'local-model' ? { ...source, available: false, reason: 'No local model is installed.' } : source))
+            : SOURCES,
+        ),
+      ),
     extractionScan: (sourceIds) => {
       const runnable = SOURCES.filter((s) => s.runs).map((s) => s.id);
       const refused = sourceIds.find((id) => !runnable.includes(id));
