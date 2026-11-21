@@ -396,7 +396,8 @@ func TestAnEditedSourceIsMeasuredAgain(t *testing.T) {
 			cache := counted(project, &calls)
 			cache.Get(r)
 			edit(t, r.File)
-			if got := pauseOf(t, cache.Get(r)); got != 2 || calls != 2 {
+			// A cache lives for one call of the binding and hashes a file once, so the edit is seen by the next call's cache.
+			if got := pauseOf(t, counted(project, &calls).Get(r)); got != 2 || calls != 2 {
 				t.Fatalf("after the edit: measurement %v of %d, want the second", got, calls)
 			}
 			if got := pauseOf(t, counted(project, &calls).Get(r)); got != 2 || calls != 2 {
@@ -438,7 +439,6 @@ func TestEachRangeAndSourceKindHasItsOwnEntry(t *testing.T) {
 func TestAnEntryThatCannotBeUsedIsDeletedAndMeasuredAgain(t *testing.T) {
 	for name, blob := range map[string]string{
 		"not JSON":                 `{"schemaVersion":1,"measure":`,
-		"a newer blob version":     `{"schemaVersion":2,"sourceSha256":"00","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
 		"no blob version":          `{"sourceSha256":"00","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
 		"a figure with no value":   `{"schemaVersion":1,"sourceSha256":"00","measure":{"pause":{"ok":true},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`,
 		"a figure with no reason":  `{"schemaVersion":1,"sourceSha256":"00","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false},"breaths":{"ok":true,"value":9}}}`,
@@ -725,5 +725,61 @@ func TestTheStoredBlobShape(t *testing.T) {
 	}
 	if got := counted(other, &calls).Get(r); calls != 1 || pauseOf(t, got) != 1 || got.NF.Reason != "Too short." {
 		t.Fatalf("the literal blob was not answered: %+v after %d measurements", got, calls)
+	}
+}
+
+func TestAnEntryOfANewerBuildIsAMissAndStays(t *testing.T) {
+	project, calls := t.TempDir(), 0
+	r := source(t, t.TempDir())
+	store, key := storedKey(t, project, r)
+	sum, err := sha256File(r.File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := `{"schemaVersion":2,"sourceSha256":"` + sum + `","measure":{"pause":{"ok":true,"value":9},"rms":{"ok":true,"value":9},"nf":{"ok":true,"value":9},"clarity":{"ok":false,"reason":"Not measured"},"breaths":{"ok":true,"value":9}}}`
+	if err := store.Write(key, []byte(blob)); err != nil {
+		t.Fatal(err)
+	}
+	if got := pauseOf(t, counted(project, &calls).Get(r)); got != 1 || calls != 1 {
+		t.Fatalf("a newer build's entry was answered %v after %d measurements, want a miss", got, calls)
+	}
+	if _, found := store.Read(key); !found {
+		t.Fatal("the entry of a newer build was deleted")
+	}
+}
+
+func TestTheTakesOfOneRecordingHashItOnce(t *testing.T) {
+	project, calls, hashes := t.TempDir(), 0, 0
+	r := source(t, t.TempDir())
+	cache := counted(project, &calls)
+	cache.hash = func(path string) (string, error) { hashes++; return sha256File(path) }
+	for i := range 3 {
+		ask := r
+		ask.Start = float64(i)
+		cache.Get(ask)
+	}
+	if hashes != 1 || calls != 3 {
+		t.Fatalf("%d hashes and %d measurements over three ranges of one file, want 1 and 3", hashes, calls)
+	}
+}
+
+func TestAnIncompleteAnswerIsNotStored(t *testing.T) {
+	project := t.TempDir()
+	r := source(t, t.TempDir())
+	cache := NewMeasureCache(func(Range) (TakeMeasure, bool) { return TakeMeasure{Pause: Figure{OK: true}}, true }, evidence.NewCacheStore(project), project)
+	cache.Get(r)
+	if store, key := storedKey(t, project, r); func() bool { _, found := store.Read(key); return found }() {
+		t.Fatal("an answer with an incomplete figure was stored")
+	}
+}
+
+func TestACacheOverNoProjectFolderWritesNothing(t *testing.T) {
+	cwd := t.TempDir()
+	t.Chdir(cwd)
+	r := source(t, t.TempDir())
+	NewMeasureCache(func(Range) (TakeMeasure, bool) { return measuredAs(1), true }, evidence.NewCacheStore(""), "").Get(r)
+	entries, err := os.ReadDir(cwd)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("the working directory holds %v (%v), want nothing", entries, err)
 	}
 }

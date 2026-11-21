@@ -9,6 +9,8 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"sync"
+	"time"
 
 	"desktop/internal/coverage"
 	"desktop/internal/evidence"
@@ -308,12 +310,43 @@ type MeasureCache struct {
 	version       string
 	// identify is evidence.Identify; a test replaces it to answer a file that cannot be opened.
 	identify func(path, projectFolder string) (evidence.SourceIdentity, error)
+	// hash is sha256File; a test replaces it to count the hashes.
+	hash func(path string) (string, error)
+	// sums holds the hash of each file as identity describes it, so the takes of one recording hash it once.
+	mu   sync.Mutex
+	sums map[sumKey]string
+}
+
+// sumKey is a file as Identify sees it: another size, sampled hash or modification time is another file to hash.
+type sumKey struct {
+	path, partial string
+	size          int64
+	modTime       time.Time
 }
 
 // NewMeasureCache is a cache over measure (MeasureRange in the host, a spy in tests) that keeps its entries in store,
 // the evidence cache of the project in projectFolder. A nil store keeps nothing: every Get measures.
 func NewMeasureCache(measure Measure, store *evidence.CacheStore, projectFolder string) *MeasureCache {
-	return &MeasureCache{measure: measure, store: store, projectFolder: projectFolder, version: measureAnalyzerVersion, identify: evidence.Identify}
+	if projectFolder == "" {
+		// A store over no folder would write under the working directory.
+		store = nil
+	}
+	return &MeasureCache{measure: measure, store: store, projectFolder: projectFolder, version: measureAnalyzerVersion, identify: evidence.Identify, hash: sha256File, sums: map[sumKey]string{}}
+}
+
+// sum is the SHA-256 of the file identity describes, hashed once for as long as the cache lives.
+func (c *MeasureCache) sum(path string, identity evidence.SourceIdentity) (string, error) {
+	k := sumKey{path: path, partial: identity.PartialHash, size: identity.Size, modTime: identity.ModTime}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if sum, ok := c.sums[k]; ok {
+		return sum, nil
+	}
+	sum, err := c.hash(path)
+	if err == nil {
+		c.sums[k] = sum
+	}
+	return sum, err
 }
 
 // Get is r's figures, measured once per version of its file. A path that is not a file is a reason of this package's;
@@ -335,7 +368,7 @@ func (c *MeasureCache) Get(r Range) TakeMeasure {
 		measured, _ := c.measure(r)
 		return measured
 	}
-	sum, err := sha256File(r.File)
+	sum, err := c.sum(r.File, identity)
 	if err != nil {
 		// Unreadable now: the measurer says why, and nothing is stored under a content nobody could hash.
 		measured, _ := c.measure(r)
@@ -373,6 +406,10 @@ func (c *MeasureCache) read(key evidence.CacheEntryKey, sum string) (TakeMeasure
 		return TakeMeasure{}, false
 	}
 	var blob measureBlob
+	if err := json.Unmarshal(raw, &blob); err == nil && blob.SchemaVersion > measureBlobVersion {
+		// A newer build wrote it: it is a miss here, and stays for that build.
+		return TakeMeasure{}, false
+	}
 	if err := json.Unmarshal(raw, &blob); err != nil || blob.SchemaVersion != measureBlobVersion || !blob.Measure.complete() {
 		// The entry is replaced by the measurement that follows; one that cannot be removed only costs that measurement again.
 		_ = c.store.Delete(key)
@@ -388,6 +425,9 @@ func (c *MeasureCache) read(key evidence.CacheEntryKey, sum string) (TakeMeasure
 // identity over the later audio. A failure to store is not reported, because the figures just measured are still
 // answered and the next call measures again.
 func (c *MeasureCache) write(key evidence.CacheEntryKey, identity evidence.SourceIdentity, sum, file string, measured TakeMeasure) {
+	if !measured.complete() {
+		return // read would delete it
+	}
 	after, err := c.identify(file, c.projectFolder)
 	if err != nil || after.Size != identity.Size || after.PartialHash != identity.PartialHash || !after.ModTime.Equal(identity.ModTime) {
 		return
