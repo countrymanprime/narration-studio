@@ -15,6 +15,7 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import { plural } from '../../../plural';
 import { shortName } from '../../../studio/drafts/draftSentence';
 import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
+import { hasVisibleText } from '../../../visibleText';
 
 const COLOUR_LABELS: Record<GuideTypeColour, string> = { green: 'Green', blue: 'Blue', violet: 'Violet', amber: 'Amber', teal: 'Teal', rose: 'Rose' };
 // A type's hue is drawn from the token its chips use (`typeHueColour`), so the choice and the chip cannot differ.
@@ -170,7 +171,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
   // A name whose add is on its way is not an unsaved draft, and is added once: a Save & continue over it would send a second add that the host refuses as a duplicate (#3457 B12).
   const [adding, setAdding] = useState(false);
   const add = () => {
-    if (!name.trim()) return onRefuse(NEW_NAME);
+    if (!hasVisibleText(name)) return onRefuse(NEW_NAME);
     if (adding) return;
     setAdding(true);
     void onAdd(name)
@@ -181,7 +182,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
   };
   // A name typed in New type is added by Enter or the Add type button, not by leaving the box: blurring commits nothing, so leaving the page asks, and Save & continue adds it (#3457).
   useUnsavedDraft('story-bible-new-type', {
-    dirty: name.trim() !== '' && !adding,
+    dirty: hasVisibleText(name) && !adding,
     label: `the new type “${shortName(name, 18)}”`,
     brief: 'a new type',
     save: async () => {

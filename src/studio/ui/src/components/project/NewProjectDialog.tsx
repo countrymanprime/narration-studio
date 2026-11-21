@@ -8,6 +8,7 @@ import { Field } from '../primitives/Field';
 import { projectNameError } from '../../projectName';
 import { confirmDiscard } from '../../studio/drafts/confirmDiscard';
 import type { ProjectSwitchResult } from '../../types';
+import { hasVisibleText } from '../../visibleText';
 
 // What project.ValidateName (src/studio/desktop/internal/project/validate.go) refuses, said before Create rather than after it.
 const NAME_RULES = 'A name can\'t contain < > : " / \\ | ? *, end with a period, or be a reserved Windows name such as CON, NUL or COM1.';
@@ -30,7 +31,8 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   const [hostError, setError] = useState('');
   // The host's own name rule, said under the Name field while typing; an empty name is only a disabled Create, not an error. Not live: the narrator
   // is typing in the field it describes, and it is the field's `aria-describedby`.
-  const rule = name.trim() ? projectNameError(name) : null;
+  // A name of only invisible characters (zero-width, fillers) is as good as none: it says so, like the host's "required" rule (#3382 f).
+  const rule = name.trim() ? (hasVisibleText(name) ? projectNameError(name) : 'a project name is required') : null;
   // The host's words start with a lower-case letter; the dialog says them as a sentence, like the rules line above them.
   const nameError = rule && rule.charAt(0).toUpperCase() + rule.slice(1);
   // The projects directory, shown while no other location is chosen; empty until read, or when it cannot be.
