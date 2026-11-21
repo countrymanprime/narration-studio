@@ -99,6 +99,7 @@ func (r *Reporter) ReadJSON(path, what string, class Class, decode func([]byte) 
 		r.log("persisted_unreadable", fmt.Sprintf("%s file %s could not be read: %v", what, filepath.Base(path), err))
 		return Unreadable
 	}
+	decodes.Add(1)
 	if decodeErr := decode(bytes); decodeErr == nil {
 		return Loaded
 	}

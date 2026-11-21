@@ -9,6 +9,7 @@ const voice = (key: string, name: string, characters: string[] = [], narrator = 
   name,
   key,
   narrator,
+  notVoice: false,
   characters: characters.map((id) => ({ id, name: id, source: 'assigned' as const })),
 });
 
