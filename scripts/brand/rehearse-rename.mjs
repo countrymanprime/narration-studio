@@ -76,7 +76,7 @@ export function steps(root, full = false) {
 
 /**
  * Starts a check beside the others. Its output goes to the file `log`, since nothing reads a pipe while a synchronous check runs.
- * Returns a function that waits for it, prints its group and says whether it passed.
+ * Returns a function that waits for it, prints its group and says whether it passed; its `kill` stops the check.
  */
 export function startBeside([label, command, commandArgs, cwd = '.'], root, log, print = console.log) {
   const out = openSync(log, 'w');
@@ -85,13 +85,16 @@ export function startBeside([label, command, commandArgs, cwd = '.'], root, log,
     child.on('error', () => resolve(false));
     child.on('close', (code) => resolve(code === 0));
   });
-  return async () => {
+  const finish = async () => {
     const passed = await done;
     closeSync(out);
     print(`\n::group::${label}\n${readFileSync(log, 'utf8')}::endgroup::`);
     rmSync(log, { force: true });
     return passed;
   };
+  // For a run that stops early: nothing may still run in a worktree that is about to be removed. A no-op once the check has ended.
+  finish.kill = () => child.kill();
+  return finish;
 }
 
 async function main(args) {
@@ -101,6 +104,7 @@ async function main(args) {
   const work = mkdtempSync(join(tmpdir(), 'rename-rehearsal-'));
   run('git', ['worktree', 'add', '--detach', work, 'HEAD'], REPOSITORY_ROOT);
   const failed = [];
+  let uiTests;
   try {
     // The copy's own dependencies, from the store and cache the checkout's setup filled; no install script runs.
     run('pnpm', ['install', '--frozen-lockfile', '--prefer-offline', '--ignore-scripts', '--filter', 'workspace', '--filter', 'ui', '--filter', 'web'], work);
@@ -108,7 +112,7 @@ async function main(args) {
     const result = renameApp(REHEARSAL_NAME, { root: work });
     console.log(`Renamed the copy at ${work} from "${result.oldName}" to "${result.newName}": ${result.changed.length} files.`);
     const all = steps(work, full);
-    const uiTests = startBeside(all.find(([label]) => label === UI_TESTS), work, `${work}-ui-tests.log`);
+    uiTests = startBeside(all.find(([label]) => label === UI_TESTS), work, `${work}-ui-tests.log`);
     for (const [label, command, commandArgs, cwd = '.'] of all.filter(([name]) => name !== UI_TESTS)) {
       console.log(`\n::group::${label}`);
       try {
@@ -120,6 +124,7 @@ async function main(args) {
     }
     if (!(await uiTests())) failed.push(UI_TESTS);
   } finally {
+    uiTests?.kill();
     if (args.includes('--keep')) console.log(`The renamed copy is at ${work} (git worktree remove --force ${work} removes it).`);
     else run('git', ['worktree', 'remove', '--force', work], REPOSITORY_ROOT);
   }

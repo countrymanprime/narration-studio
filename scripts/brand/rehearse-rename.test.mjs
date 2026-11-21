@@ -61,3 +61,10 @@ test('a check that cannot start has failed', async () => {
   const root = mkdtempSync(join(tmpdir(), 'rehearsal-beside-'));
   assert.equal(await startBeside(['a check', 'no-such-command-here', []], root, join(root, 'check.log'), () => {})(), false);
 });
+
+test('a check started beside the others can be stopped, and then has failed', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'rehearsal-beside-'));
+  const check = startBeside(['a check', 'node', ['-e', 'setTimeout(() => {}, 60000)']], root, join(root, 'check.log'), () => {});
+  check.kill();
+  assert.equal(await check(), false);
+});
