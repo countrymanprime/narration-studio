@@ -81,7 +81,7 @@ The Booth's behaviour specs are 3,042 s of the 6,895. The costliest single tests
 
 ### The atlas
 
-`pnpm atlas` builds Storybook in every shard (36 s locally, six times a run), then draws 1,262 stories in two themes at two widths (5,048 captures) with their `play()` interactions and axe. `src/stories.test.tsx` already renders the same 1,262 stories, with `play()`, in jsdom in the Vitest run (35.9 s locally).
+`pnpm atlas` builds Storybook in every shard, and `atlas docs` builds it once more on shard 1 (36 s locally, seven times a run). It then draws 1,262 stories in two themes at two widths (about 5,030 captures; seven Toast stories run at one size) in a real browser, with their `play()` interactions, axe, sideways overflow, broken images and console errors. `src/stories.test.tsx` already renders the same 1,262 stories, with `play()`, in jsdom in the Vitest run (35.9 s locally).
 
 ### Vitest: 15,561 tests in 984 files
 
@@ -93,17 +93,17 @@ The Booth's behaviour specs are 3,042 s of the 6,895. The costliest single tests
 
 ### Go: 6,688 tests in 138 packages
 
-197 s wall clock locally without the race detector, against 529 to 710 s (`root`) and 499 to 791 s (`rest`) on the Windows runners with it. The median test takes under 10 ms; 310 take over 200 ms and hold 315 of the 389 test seconds.
+197 s wall clock locally without the race detector, against 529 to 710 s (`root`) and 499 to 791 s (`rest`) on the Windows runners, where the packages with concurrency run under it (`coverage-gate.mjs` chooses them). The median test takes under 10 ms; 310 take over 200 ms and hold 315 of the 389 test seconds.
 
 - **Four tests of `internal/bridge` wait out the real answer limits: 110 s.** `TestReadTracksThatNeverAnswersIsErrNoAnswer` 50.0 s, and `TestACommandReadBeforeTheFolderVanishedIsStillTaken`, `TestACommandFolderThatVanishesIsNotREAPERReadingTheCommand` and `TestACommandREAPERReadButAnsweredLateIsTaken` 20 s each. The package takes 138.6 s; the root package 134.3 s.
 - **Tests that start a real program:** `TestPronounceMatchesTheSidecar`, `TestBuildMatchesTheSidecar` and `TestPronounceWritesWindowsLineEnds` in `internal/guide` (4.6 to 5.4 s each, the Python sidecar), `TestTheStampedVersionIsWhatTheProgramReports` (5.0 s, builds the program), `TestTheRealSidecarReadsTheHostsManifestAndCachedWords` (2.5 s).
 - **Long by design:** `TestTheSlowReadsStayInsideTheirBudgetsOnA44ChapterBook` 13.6 s, `TestEveryPlacementGivesThePinnedLocateOrWordTime` 7.2 s, `TestBindingsSurviveProjectSwitchesUnderLoad` 4.1 s.
 - **Fixed sleeps:** 235 `time.Sleep` calls in test files, 68 of them 20 ms; `tracks_cache_test.go` holds 16.
-- **`go test-schedules`** repeats the teleprompter and shutdown tests five times on one and on four CPUs (119 to 181 s). The same tests run once in `go test (root)` and `go test (rest)`.
+- **`go test-schedules`** repeats the teleprompter, shutdown and `CanAttach` tests five times on one and on four CPUs (119 to 181 s). The same tests run once in `go test (root)` and `go test (rest)`.
 
 ### The other suites
 
-Python 2 s, the Lua harness 1 s (its mutation checks already run on `main` only), the Node script tests 14 s, the docs-site tests 24 s. The rename rehearsal (124 to 222 s) renames a throwaway copy of the repository and runs the tests that read the name; `scripts/ci/brand-name.mjs` and `old-name.mjs`, the guards that fail on a spelled name, also run in `repo-scripts`.
+Python 2 s, the Lua harness 1 s (its mutation checks already run on `main` only), the Node script tests 14 s, the docs-site tests 24 s. The rename rehearsal (124 to 222 s) renames a throwaway copy of the repository and runs the tests that read the name; `scripts/ci/brand-name.mjs` and `old-name.mjs`, the guards that fail on a spelled name, have their own tests in `repo-scripts`, which runs on the tree as it is. Only the rehearsal runs the rename itself, the brand sync and both guards on the renamed copy, `go vet`, and the Go, Python, Lua and UI tests that read the name.
 
 ## Tiers
 
@@ -111,7 +111,7 @@ Python 2 s, the Lua harness 1 s (its mutation checks already run on `main` only)
 | --- | --- | --- | --- |
 | **Pull request** | every push to a pull request | lint and typecheck; every unit test (Vitest, Go, Python, Lua, Node); the UI bundle and `Build (Windows)`; the visual state matrix with its whole-run checks and `aria`; the behaviour specs, overlay guard rows and stories of what the change touches | the merge: `CI passed` |
 | **Main** | every push to `main`, and every three hours when `main` has a commit not yet judged (`main-health.yml`) | everything in the pull request tier with nothing narrowed: all 3,227 visual tests, the whole atlas, `go test-schedules`, the Lua mutation checks, the rename rehearsal `--full`, the strict coverage floors | the next merge and the next launch: a red run ticks `HOLD` on every open train issue (today) and opens a blocking issue (pull request 2) |
-| **Release** | promoting a release candidate (`promote-release.yml`) | a green `Main health` run on the candidate's commit (pull request 2; `promote-release.yml` checks today that the tag is a pre-release and an ancestor of `main`). `windows-release-checks.yml` is a manual run that gates nothing, and the owner's release checklist is a person's step | the stable release |
+| **Release** | promoting a release candidate (`promote-release.yml`) | a green `Main health` run on the candidate's commit or on a later commit of `main` that contains it, since one run can judge several merges (its own pull request, for the owner to approve; `promote-release.yml` checks today that the tag is a pre-release and an ancestor of `main`). `windows-release-checks.yml` is a manual run that gates nothing, and the owner's release checklist is a person's step | the stable release |
 
 The draft tier (`CI light passed`) stays as it is: the pull request tier without Playwright and without the Windows build.
 
@@ -135,7 +135,9 @@ A change to shared UI code (`primitives/`, `styles.css`, `App.tsx`, `api/`) runs
 1. **A blocking issue.** The failing run opens an issue labelled `main-red` (or comments on the open one) naming the failed jobs, the run and the commits merged since the last green run. The first green run closes it. While it is open, the merge procedure treats `main` as closed to everything except the fix or the revert.
 2. **A release gate.** `promote-release.yml` refuses a candidate whose commit has no successful `Main health` run.
 
-Both are to add (pull request 2); `HOLD` exists.
+The blocking issue is pull request 2. The release gate changes the release path, so it is its own pull request and waits for the owner. `HOLD` exists.
+
+`post-merge.yml` stays as it is: on a push to `main` that touches the bridge it runs the Lua mutation checks on Windows and Linux, ahead of the `Main health` run that also holds them. The real-REAPER and real-Audacity workflows are manual runs that gate nothing, before a release as at any other time.
 
 `scripts/ci/check-manifest.json` records each moved check with `tier: post-merge` and its `safety_net`; `check-manifest.test.mjs` fails when a check leaves the pull request without one.
 
@@ -149,7 +151,7 @@ Made under the owner's words of 2026-11-21 on #3860 ("i want reasonable setup ..
 | M2. Overlay guard rows of pages the change does not touch (up to 629 tests, 20%) | the rows of touched pages; all rows when `primitives/` overlay code changes | every push to `main` | as M1 |
 | M3. Atlas captures of stories the change does not touch (up to 5,048 captures, 18 to 22 runner minutes) | touched stories in both themes and widths; `atlas docs`; every story's jsdom render and `play()` in `stories.test.tsx` | every push to `main` | a token or primitive change shifts an untouched story's axe or overflow result and is found one run after the merge |
 | M4. `go test-schedules` (119 to 181 s) | the same tests, once, in `go test` | every push to `main` | an ordering bug that shows only on one CPU or on repetition is found one run after the merge |
-| M5. The rename rehearsal (124 to 222 s) | the two name guards in `repo-scripts` | every push to `main`, `--full` | a test that spells the name in a way the guards miss is found one run after the merge |
+| M5. The rename rehearsal (124 to 222 s) | the name guards' own tests in `repo-scripts`, on the tree as it is; `docs.yml`'s layout check | every push to `main`, `--full` | a file or test that spells the name instead of reading it is found one run after the merge. Nothing on the pull request renames a copy, so this is a whole check moving, not a narrowed one |
 | M6. Only if the Windows shards still pass 10 minutes after the Go fixes: the race detector on packages the change does not touch | the race detector on changed packages; every test without it | every push to `main` | a race in an untouched package is found one run after the merge |
 
 Staying on the pull request with nothing narrowed: lint, typecheck, Knip, every Vitest, Go, Python, Lua and Node test, the coverage merge, the state matrix, the whole-run checks, `aria`, `atlas docs`, the UI bundle and `Build (Windows)`.
@@ -187,12 +189,12 @@ With `lint` (3 min) before and `CI passed` (1 min) after, a shared-UI pull reque
 
 ## Pull requests, in order
 
-Each is one small change with its own measurement in the body; the workflow changes go one at a time.
+Each is one small change with its own measurement in the body; the workflow changes go one at a time. Pull request 3 is the largest win and waits for pull request 2, its safety net; pull request 1 goes first because it moves nothing and so waits for nothing.
 
 1. **Visual: no trace on the first pass, failed tests re-run with a trace.** 19% of `visual`, nothing moved. The second run only records: the first pass alone decides the step, so a test that passes the second time is still red.
 2. **Main health: a red run opens a blocking `main-red` issue; `promote-release.yml` requires a green run on the candidate.** The safety net, before any move.
 3. **Visual scope on a pull request (M1, M2):** `visual-shards.mjs split --changed`, the manifest rows, the whole-run check proven to judge the same records. The largest win: up to 54% of `visual`.
-4. **Atlas scope on a pull request (M3)** and one Storybook build per run.
+4. **Atlas scope on a pull request (M3)** and one Storybook build per run, shared by the six shards and `atlas docs`.
 5. **Go: the bridge tests take their limits as parameters** (110 s), then the largest sleeps.
 6. **Go: `go test-schedules` to `main` (M4); the root package's tests shared between the two Windows shards.**
 7. **Vitest: the real-time waits to fake timers; `App.test.tsx` and `BoothNextPage.hugeChapter` investigated; `isolate: false` folder by folder.** A folder shares a jsdom only once its tests pass in shuffled order, and the `main` tier keeps running the isolated configuration, so a test that passes only in one of the two turns `main` red.
@@ -206,7 +208,8 @@ Where each check runs. "touched" is the scope rule above.
 
 | Check | Draft pull request | Ready pull request today | Ready pull request after | Push to `main` | Before a release |
 | --- | --- | --- | --- | --- | --- |
-| lint, typecheck, Knip | yes | yes | yes | yes | through `Main health` |
+| lint, Knip | yes | yes | yes | yes | through `Main health` |
+| UI typecheck (`tsc --noEmit` in the UI bundle step) | | yes | yes | yes | through `Main health` |
 | Vitest, coverage merge | yes | yes | yes | yes, strict floors | through `Main health` |
 | Go tests, race detector | yes | yes | yes (M6: touched packages) | yes | through `Main health` |
 | `go test-schedules` | yes | yes | M4: `main` | yes | through `Main health` |
@@ -223,5 +226,4 @@ Where each check runs. "touched" is the scope rule above.
 
 - Per-test times on the CI runners (the log and artifact host is blocked here); the Go times under the race detector on Windows.
 - Why `Main health` failed three times on 2026-11-20 (runs 44774716130, 44810193548, 44831990211). A main tier that is often red for reasons other than a regression blocks more than it should, so pull request 2 reads those runs first.
-- Whether any behaviour spec writes capture records that the whole-run check reads; pull request 3 proves it before narrowing.
 - The split between context creation, page load and driving inside one visual test.

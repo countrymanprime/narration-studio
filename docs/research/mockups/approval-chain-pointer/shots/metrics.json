@@ -1,0 +1,110 @@
+{
+  "none 1440x900": {
+    "actionRow": 67,
+    "body": 587,
+    "buttonLines": 1,
+    "firstEffectInView": true
+  },
+  "c 1440x900": {
+    "actionRow": 109,
+    "body": 545,
+    "buttonLines": 2,
+    "firstEffectInView": false
+  },
+  "a 1440x900": {
+    "actionRow": 67,
+    "body": 587,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  },
+  "b 1440x900": {
+    "actionRow": 67,
+    "body": 587,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  },
+  "none 768x1024": {
+    "actionRow": 67,
+    "body": 632,
+    "buttonLines": 1,
+    "firstEffectInView": true
+  },
+  "c 768x1024": {
+    "actionRow": 109,
+    "body": 632,
+    "buttonLines": 2,
+    "firstEffectInView": false
+  },
+  "a 768x1024": {
+    "actionRow": 67,
+    "body": 632,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  },
+  "b 768x1024": {
+    "actionRow": 67,
+    "body": 632,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  },
+  "none 320x436": {
+    "actionRow": 67,
+    "body": 192,
+    "buttonLines": 1,
+    "firstEffectInView": true
+  },
+  "c 320x436": {
+    "actionRow": 109,
+    "body": 150,
+    "buttonLines": 2,
+    "firstEffectInView": false
+  },
+  "a 320x436": {
+    "actionRow": 67,
+    "body": 192,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  },
+  "b 320x436": {
+    "actionRow": 109,
+    "body": 150,
+    "buttonLines": 2,
+    "firstEffectInView": false
+  },
+  "b-hint 320x436": {
+    "actionRow": 109,
+    "body": 150,
+    "buttonLines": 2,
+    "firstEffectInView": false
+  },
+  "none 320x400": {
+    "actionRow": 49,
+    "body": 192,
+    "buttonLines": 1,
+    "firstEffectInView": true
+  },
+  "c 320x400": {
+    "actionRow": 93,
+    "body": 148,
+    "buttonLines": 2,
+    "firstEffectInView": false
+  },
+  "a 320x400": {
+    "actionRow": 49,
+    "body": 192,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  },
+  "b 320x400": {
+    "actionRow": 49,
+    "body": 192,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  },
+  "b-hint 320x400": {
+    "actionRow": 49,
+    "body": 192,
+    "buttonLines": 1,
+    "firstEffectInView": false
+  }
+}
