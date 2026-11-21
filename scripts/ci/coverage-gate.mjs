@@ -16,6 +16,12 @@
  * up: `--update` rewrites them to the rounded-down measurement and never lowers one. The floor for
  * a new logic directory is TARGET (80); a lower floor needs a written `reason` in the file.
  *
+ * Race scope (M6 of docs/research/test-speed-plan-2026-11.md, #3860). On a pull request `-race` applies to the raced packages the change
+ * touches (touchedPackages: a changed file in the package's own folder); the other raced packages still run every test, without the
+ * detector. Every other run (main-health on each push to `main` and every three hours, a push, `pnpm check`) races all of them, and a red
+ * main-health run ticks HOLD on every open train issue. A change the rule cannot place (go.mod, this script, a workflow)
+ * races everything.
+ *
  * `--group` (with `-race`) runs only some of the packages, so CI can run them as parallel jobs: `root` is the module's root
  * package, which the race detector slows to 405 s of the 622 s it spent on all the others together, `race` is the other
  * packages with concurrency, `plain` the rest. A job checks the floors of the packages it ran and no others; the jobs
@@ -92,6 +98,29 @@ export function splitRacePackages(packages, readFile = (path) => readFileSync(pa
     (concurrent ? race : plain).push(pkg.ImportPath);
   }
   return { race, plain };
+}
+
+/** Changed files outside any one package that put every raced package under the detector: the module, the toolchain, this gate and the workflows. */
+const RACE_EVERYTHING = [/(^|\/)go\.(mod|sum|work)$/, /^\.github\//, /^scripts\/ci\//, /^scripts\/toolchain\.json$/, /^scripts\/quality\.mjs$/];
+
+/**
+ * The import paths of the packages a pull request touches, or null for "all of them" (`changed` is null: not a pull request, or its base
+ * could not be read; or a changed file is one of RACE_EVERYTHING). A file belongs to the package whose folder is its nearest ancestor,
+ * so a fixture under `testdata/` counts for its package; `dirs` maps each package's folder, relative to the repository root with
+ * forward slashes, to its import path. A changed file outside the module (the UI, a document, a sidecar) touches no Go package.
+ */
+export function touchedPackages(dirs, changed) {
+  if (changed === null) return null;
+  const touched = new Set();
+  for (const file of changed.map(slash)) {
+    if (RACE_EVERYTHING.some((pattern) => pattern.test(file))) return null;
+    let nearest = null;
+    for (const dir of Object.keys(dirs)) {
+      if (file.startsWith(`${dir}/`) && (nearest === null || dir.length > nearest.length)) nearest = dir;
+    }
+    if (nearest !== null) touched.add(dirs[nearest]);
+  }
+  return touched;
 }
 
 const GROUPS = ['root', 'race', 'plain'];
@@ -277,7 +306,7 @@ function listGoPackages(projectRoot) {
  * `-race` runs only on the packages splitRacePackages picks; every package is still tested and measured. With `groups`
  * only those groups' packages run, and `ran` names them (all of them when there are none).
  */
-function goTestRuns(projectRoot, modulePath, extra, groups) {
+function goTestRuns(projectRoot, modulePath, extra, groups, changed = changedFiles()) {
   if (!extra.includes('-race')) {
     if (groups) {
       console.error('coverage: --group needs -race, which is what divides the packages.');
@@ -285,13 +314,20 @@ function goTestRuns(projectRoot, modulePath, extra, groups) {
     }
     return { runs: [{ args: extra, packages: ['./...'] }], ran: null, all: [] };
   }
-  const split = splitRacePackages(listGoPackages(projectRoot));
+  const listed = listGoPackages(projectRoot);
+  const split = splitRacePackages(listed);
   const all = [...split.race, ...split.plain];
   const byGroup = groupPackages(split, modulePath);
   const wanted = groups ?? GROUPS;
-  const raced = wanted.filter((name) => name !== 'plain').flatMap((name) => byGroup[name]);
-  const plain = wanted.includes('plain') ? byGroup.plain : [];
-  if (plain.length) console.log(`coverage: ${plain.length} packages with no concurrency run without -race: ${plain.join(', ')}`);
+  const concurrent = wanted.filter((name) => name !== 'plain').flatMap((name) => byGroup[name]);
+  // A package's folder is spelled from its import path, not from its path on disk: the changed files are repository-relative.
+  const folder = (pkg) => slash(projectRoot).replace(/\/+$/, '') + pkg.slice(modulePath.length);
+  const touched = touchedPackages(Object.fromEntries(all.map((pkg) => [folder(pkg), pkg])), changed);
+  const raced = touched === null ? concurrent : concurrent.filter((pkg) => touched.has(pkg));
+  const later = concurrent.filter((pkg) => !raced.includes(pkg));
+  const plain = [...(wanted.includes('plain') ? byGroup.plain : []), ...later];
+  if (later.length) console.log(`coverage: ${later.length} packages with concurrency that this pull request does not touch run without -race here and with it on main: ${later.join(', ')}`);
+  if (plain.length > later.length) console.log(`coverage: ${plain.length - later.length} packages with no concurrency run without -race: ${plain.slice(0, plain.length - later.length).join(', ')}`);
   if (groups) console.log(`coverage: group ${groups.join(',')}: ${raced.length} packages with -race, ${plain.length} without; the rest run in other jobs.`);
   return {
     runs: [

@@ -26,6 +26,7 @@ import {
   RAISE_MARGIN,
   report,
   splitRacePackages,
+  touchedPackages,
   TARGET,
   validateFloors,
 } from './coverage-gate.mjs';
@@ -320,6 +321,27 @@ test('the command line refuses a vitest option it does not know before running a
 
 const MODULE = 'example.com/shell';
 const layout = { race: [MODULE, `${MODULE}/internal/a`, `${MODULE}/internal/b`], plain: [`${MODULE}/internal/c`, `${MODULE}/cmd/d`] };
+
+const FOLDERS = { 'src/app': MODULE, 'src/app/internal/a': `${MODULE}/internal/a`, 'src/app/internal/ab': `${MODULE}/internal/ab` };
+
+test('a pull request touches the package whose folder is the nearest above each changed file', () => {
+  const touched = (files) => [...touchedPackages(FOLDERS, files)].sort();
+  assert.deepEqual(touched(['src/app/internal/a/a.go']), [`${MODULE}/internal/a`]);
+  assert.deepEqual(touched(['src/app/internal/a/testdata/case.json']), [`${MODULE}/internal/a`], 'a fixture counts for its package');
+  assert.deepEqual(touched(['src/app/internal/ab/x_test.go']), [`${MODULE}/internal/ab`], 'a folder that only starts with another package name is its own');
+  assert.deepEqual(touched(['src/app/main.go', 'src/app/internal/a/a.go']), [MODULE, `${MODULE}/internal/a`]);
+  assert.deepEqual(touched(['src/app/internal/gone/old.go']), [MODULE], 'a file of a package that no longer exists counts for the nearest one above');
+  assert.deepEqual(touched(['src\\app\\internal\\a\\a.go']), [`${MODULE}/internal/a`], 'a path with backslashes');
+  assert.deepEqual(touched(['src/ui/App.tsx', 'docs/a.md']), [], 'a change outside the module touches no Go package');
+  assert.deepEqual(touched([]), []);
+});
+
+test('a change the rule cannot place, or a run that is not a pull request, touches every package', () => {
+  assert.equal(touchedPackages(FOLDERS, null), null, 'not a pull request, or its base could not be read');
+  for (const file of ['src/app/go.mod', 'src/app/go.sum', 'go.work', '.github/workflows/_quality.yml', '.github/actions/nx-run/action.yml', 'scripts/ci/coverage-gate.mjs', 'scripts/ci/pr-scope.mjs', 'scripts/toolchain.json', 'scripts/quality.mjs']) {
+    assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', file]), null, file);
+  }
+});
 
 test('--group names the root, the other raced and the plain packages, once each', () => {
   assert.deepEqual(parseGroups('root'), ['root']);
