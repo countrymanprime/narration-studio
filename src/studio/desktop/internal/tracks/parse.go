@@ -27,6 +27,12 @@ func Parse(path string) (Project, error) {
 	if err != nil {
 		return Project{}, err
 	}
+	return ParseBytes(path, raw)
+}
+
+// ParseBytes is Parse for a caller that has already read the file: raw is the content of the .rpp at path, and nothing is read
+// from path itself.
+func ParseBytes(path string, raw []byte) (Project, error) {
 	root := parseChunks(string(raw))
 	reaperProject := root.firstChild("REAPER_PROJECT")
 	if reaperProject == nil {
