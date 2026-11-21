@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tooltip } from '../primitives/Tooltip';
 import { fileName } from './useExportJobs';
 import { plural } from '../../plural';
+import { hasVisibleText } from '../../visibleText';
 
 const CHAIN_LABEL = 'FX chain this render runs';
 const MUTED = { color: 'var(--text-muted)' };
@@ -30,9 +31,6 @@ function chainCount(chain: ExportPlan['chain']): string {
   return `Signal order: ${plural(effects, 'effect')} on ${on}${off > 0 ? `, ${off} switched off` : ''}`;
 }
 
-/** chain.go's blankLooking: letters and symbols that draw nothing (the Hangul fillers, the braille blank). */
-const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0xfffc, 0x1d159]);
-
 /**
  * A name from the narrator's project as the dialog draws it: a format or control character (a bidirectional override, a zero-width
  * space) is shown as its code, so a name cannot reverse or hide what it says (the host drops them too, chain.go's chainName). A name
@@ -41,8 +39,7 @@ const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0xfffc, 0
  */
 function visibleName(raw: string | null | undefined, blank: string): string {
   const shown = (raw ?? '').replace(/[\p{Cf}\p{Cc}]/gu, (char) => `<U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}>`);
-  const readable = [...shown].some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!));
-  return readable ? shown : blank;
+  return hasVisibleText(shown) ? shown : blank;
 }
 
 /** How much of a tall first row must show for it to count as in view: a couple of lines of its text. */

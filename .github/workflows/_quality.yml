@@ -457,21 +457,22 @@ jobs:
     # go-test (rest); the shards keep that split of the Go packages (scripts/ci/coverage-gate.mjs --group) and share the other steps
     # between them by time.
     #   - Shard 1: go test (root), the module's root package with the race detector (the `ci-root` configuration of the test target), then
-    #     go lint (gofmt, go vet, golangci-lint and checklocks, the `ci` configuration of the lint target; here because it needs the
-    #     Windows build tags).
-    #   - Shard 2: go test (rest), the other packages, the race detector on those with concurrency (`ci-rest`); then go test-schedules
-    #     (the teleprompter and shutdown tests on one and on four CPUs: an ordering bug between goroutines that hides on the default
-    #     scheduler fails there on demand); then reaper (Lua), the bridge harness under Lua 5.4 on Windows, because the bridge builds paths
-    #     from package.config and REAPER's own Lua writes CRLF. A pull request runs the harness's `pr` configuration (the characterization
-    #     tests, about a minute) here and in Test (Linux quick); every other run (main-health, a manual run) and post-merge.yml run the mutation
-    #     checks on both.
+    #     go test-schedules (the teleprompter and shutdown tests on one and on four CPUs: an ordering bug between goroutines that hides on
+    #     the default scheduler fails there on demand), then go lint (gofmt, go vet, golangci-lint and checklocks, the `ci` configuration
+    #     of the lint target; here because it needs the Windows build tags); then reaper (Lua), the bridge harness under Lua 5.4 on
+    #     Windows, because the bridge builds paths from package.config and REAPER's own Lua writes CRLF. A pull request runs the harness's
+    #     `pr` configuration (the characterization tests, about a minute) here and in Test (Linux quick); every other run (main-health, a
+    #     manual run) and post-merge.yml run the mutation checks on both. Those two steps were on shard 2, which then ran 17.4 min against
+    #     shard 1's 9.2 (run 44927109376, #3860); moving them gives about 14.2 and 12.4.
+    #   - Shard 2: go test (rest), the other packages, the race detector on those with concurrency (`ci-rest`), then the guard that lists
+    #     the permission and link tests that skipped.
     #   Each go test step checks the coverage floors of the packages it ran; together they run every package once.
     # Measured on one runner (run 42405595296): root 10.6, rest 10.7, schedules 2.7, lint 1.25, harness 0.6 min, 28.2 with setup, past
     # the shards of Test (Linux). Root and rest in one `go test` was faster but the root package slowed from 405 s to 539 s competing for
     # the CPUs and a timing test failed (run 42403486674), so each shard runs one group.
     # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result. Windows is the only supported
     # platform and Linux's native libraries are not installed on the Linux runners, so Go is tested and linted here.
-    # 40 min: a main-health run's mutation checks add up to 15 to shard 2.
+    # 40 min: a main-health run's mutation checks take about 17 min (1,024 s in docs/research/test-speed-plan-2026-11.md) and sit on shard 1, which then runs about 34 min with the root tests, lint and test-schedules; they sat on shard 2 before, with about the same total.
     needs: lint
     if: needs.lint.outputs.shell == 'true'
     name: Test (Windows ${{ matrix.shard }}/2)
@@ -511,7 +512,7 @@ jobs:
           configuration: ci-rest
       - name: go test-schedules
         id: schedules
-        if: ${{ !cancelled() && matrix.shard == 2 }}
+        if: ${{ !cancelled() && matrix.shard == 1 }}
         uses: ./.github/actions/nx-run
         with:
           targets: test-schedules
@@ -534,7 +535,7 @@ jobs:
           projects: desktop
           configuration: ci
       - name: Python and StyLua for the Lua harness
-        if: ${{ !cancelled() && matrix.shard == 2 }}
+        if: ${{ !cancelled() && matrix.shard == 1 }}
         uses: ./.github/actions/setup-toolchain
         with:
           need-node: 'false'
@@ -544,7 +545,7 @@ jobs:
           python-sync-args: --only-group lua
       - name: reaper (Lua)
         id: reaper
-        if: ${{ !cancelled() && matrix.shard == 2 }}
+        if: ${{ !cancelled() && matrix.shard == 1 }}
         uses: ./.github/actions/nx-run
         with:
           targets: lint test
