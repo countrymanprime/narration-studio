@@ -219,3 +219,45 @@ func (s *DecisionStore) writeLocked(file decisionsFile) error {
 	}
 	return nil
 }
+
+// ReferencedRecordIDs is every ledger record id any decision's basis names, whichever document the file was kept for: a record a
+// confirmation or a dismissal stands on is kept by the ledger's retention. A missing file names none. A file that cannot be read,
+// is corrupt or was written by a newer app is an error, never an empty set: a caller that deletes by it must stop.
+func (s *DecisionStore) ReferencedRecordIDs() (map[string]bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var decoded decisionsFile
+	newer := 0
+	outcome := s.reporter.ReadJSON(s.path, decisionsWhat, persist.NarratorData, func(raw []byte) error {
+		var candidate decisionsFile
+		if err := json.Unmarshal(raw, &candidate); err != nil {
+			return err
+		}
+		if candidate.SchemaVersion > decisionsSchemaVersion {
+			newer = candidate.SchemaVersion
+			return nil
+		}
+		decoded = candidate
+		return nil
+	})
+	switch outcome {
+	case persist.Missing:
+		return map[string]bool{}, nil
+	case persist.Quarantined, persist.Healed:
+		return nil, fmt.Errorf("your %s file could not be read; it was kept aside and a fresh one is started", decisionsWhat)
+	case persist.Unreadable:
+		return nil, fmt.Errorf("your %s file could not be read", decisionsWhat)
+	}
+	if err := persist.CheckVersion(newer, decisionsSchemaVersion, decisionsWhat); err != nil {
+		return nil, err
+	}
+	ids := map[string]bool{}
+	for _, decision := range decoded.Decisions {
+		for _, signal := range decision.Basis {
+			for _, id := range signal.LedgerRecordIDs {
+				ids[id] = true
+			}
+		}
+	}
+	return ids, nil
+}

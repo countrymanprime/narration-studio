@@ -245,3 +245,33 @@ func TestDecisionStoreReportsEachWriteFailure(t *testing.T) {
 		}
 	})
 }
+
+func TestReferencedRecordIDsNamesEveryRecordADecisionStandsOnWhicheverDocument(t *testing.T) {
+	project := t.TempDir()
+	store := NewDecisionStore(project, nil)
+	first := decisionAt("c-0001", DecisionConfirmed, 1)
+	second := decisionAt("c-0002", DecisionDismissed, 2)
+	second.Basis = []SignalBasis{{ID: "x", LedgerRecordIDs: []string{"rec-2", "rec-3"}}, {ID: "y", LedgerRecordIDs: []string{"rec-1"}}}
+	for _, decision := range []Decision{first, second} {
+		if err := store.Append("doc-1", decision); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := store.ReferencedRecordIDs() // asked with no document: the file is kept for doc-1
+	if err != nil || len(got) != 3 || !got["rec-1"] || !got["rec-2"] || !got["rec-3"] {
+		t.Fatalf("ReferencedRecordIDs = %v, %v; want rec-1, rec-2 and rec-3", got, err)
+	}
+}
+
+func TestReferencedRecordIDsOfNoFileIsEmptyAndOfAnUnreadableFileIsAnError(t *testing.T) {
+	if got, err := NewDecisionStore(t.TempDir(), nil).ReferencedRecordIDs(); err != nil || got == nil || len(got) != 0 {
+		t.Fatalf("a missing file: %v, %v; want an empty set and no error", got, err)
+	}
+	for name, content := range map[string]string{"corrupt": "{not json", "newer": `{"schemaVersion": 99, "documentId": "d", "decisions": []}`} {
+		project := t.TempDir()
+		writeRaw(t, project, content)
+		if got, err := NewDecisionStore(project, nil).ReferencedRecordIDs(); err == nil || got != nil {
+			t.Fatalf("%s file: %v, %v; want an error and no set", name, got, err)
+		}
+	}
+}
