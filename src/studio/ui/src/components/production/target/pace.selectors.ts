@@ -20,7 +20,10 @@ export type OwnRate = {
   chapters: PaceChapter[];
 };
 
-/** Words per finished hour over the chapters that have words and a measured length, or the reason there is none. */
+/**
+ * Words per finished hour over the chapters that have words and a measured length, or the reason there is none. A length of 0 is none: the measurements port reads audio under a
+ * second as 0 s (`audibleSeconds`), so a chapter the board says has "None yet" does not count here.
+ */
 export function ownRate(chapters: readonly PaceChapter[], lengths: Measured<Readonly<Record<string, number>>>, minChapters: number): Measured<OwnRate> {
   if (!lengths.ok) return lengths;
   const have = chapters.filter((c) => c.words > 0 && (lengths.value[c.id] ?? 0) > 0);
