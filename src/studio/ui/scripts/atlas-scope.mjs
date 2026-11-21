@@ -2,7 +2,7 @@
 /* global console, process */
 // The atlas step of CI (_quality.yml, Test (Linux)): on a pull request it runs only the stories the change reaches, and every
 // other run (Main health on `main`, a manual run, `pnpm atlas`) runs all of them (docs/research/test-speed-plan-2026-11.md, M3).
-// So a story left off a pull request runs on `main` after the merge, where a red run ticks HOLD on the train issue.
+// So a story left off a pull request runs on `main` after the merge, where a red run opens the blocking main-red issue and ticks HOLD on the train issue.
 //
 // A story is reached when its story file imports a changed file, directly or through other modules (the import graph of
 // dependency-cruiser, type-only imports included). A changed file the graph does not hold reaches nothing when Storybook cannot
