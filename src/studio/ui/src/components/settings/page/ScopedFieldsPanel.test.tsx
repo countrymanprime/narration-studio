@@ -113,8 +113,7 @@ it('Discard & continue drops the refused draft: the other scope shows its own co
 // ("setting color_misread must be..."). The form now holds a colour its own box refuses, as it holds a number out of range, so nothing is sent.
 it('Save & continue with a colour the box refuses sends nothing, says why, and stays in the scope with the draft still in its box', async () => {
   const api = createMockApi();
-  const saved = vi.fn(async () => undefined);
-  api.saveSettings = saved;
+  const saved = vi.spyOn(api, 'saveSettings');
   const { notify } = drawCompare(api);
   const box = await misread();
   fireEvent.change(box, { target: { value: '4D5E6' } });
