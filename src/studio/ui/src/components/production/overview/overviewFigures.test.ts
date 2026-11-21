@@ -20,12 +20,20 @@ describe('a chapter with under a second of audio adds nothing to the recorded ho
   // #3869 (delta qa N6): a chapter whose row reads 1% (a host 0 with a second or more on the track) adds to the recorded hours, so the tile and the stage bar agree with the row.
   describe('a chapter its row shows at 1% adds to the recorded hours', () => {
     const zero = { paragraphId: 'p1', paragraph: 1, word: 0, percent: 0, complete: false, source: 'booth' as const, confident: true };
-    it('adds 1% of its finished hours for a host 0 with audio, and nothing without', () => {
+    it('adds the measured hours for a host 0 with audio (as with no host percent), and nothing without', () => {
       const book = (recordedSeconds: number) =>
         bookFigures([chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds, recordedThrough: zero })], WPH);
-      expect(book(12).recordedHours).toBeCloseTo(0.01, 6);
+      expect(book(36).recordedHours).toBeCloseTo(0.01, 6);
+      expect(book(12).recordedHours).toBeCloseTo(12 / 3600, 6);
+      expect(book(1).recordedHours).toBeGreaterThan(0);
       expect(book(0).recordedHours).toBe(0);
       expect(book(0.5).recordedHours).toBe(0);
+    });
+    it('one second on a ten-hour chapter adds the same hours with the host at 0 and with no host percent (qa B1)', () => {
+      const hours = (recordedThrough?: typeof zero) =>
+        bookFigures([chapter('c1', { status: 'recording', wordCount: WPH * 10, recordedSeconds: 1, recordedThrough })], WPH).recordedHours;
+      expect(hours(zero)).toBe(hours(undefined));
+      expect(hours(zero)).toBeLessThan(1 / 60);
     });
   });
 });
