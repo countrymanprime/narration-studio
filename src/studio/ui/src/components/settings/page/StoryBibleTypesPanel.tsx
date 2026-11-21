@@ -25,8 +25,8 @@ const COLOUR_CHOICES: readonly ColourChoice<GuideTypeColour>[] = GUIDE_TYPE_COLO
 }));
 const NEW_NAME = 'Give the type a new name.';
 
-/** A removal pressed again this soon is the same press twice: the row below has moved up under the pointer. */
-const REMOVE_AGAIN_MS = 600;
+/** How long the controls stay off after a removal: the row below has moved up under the pointer. */
+const SETTLE_AFTER_REMOVE_MS = 600;
 
 export type StoryBibleTypesViewProps = {
   /** The host's types, in order; absent while they are read. */
@@ -289,13 +289,12 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
   // A second press before the first answer would land on whatever row moved under the pointer, so one change is in flight at a time.
   const inFlight = useRef<string | undefined>(undefined);
   const settled = useRef<Promise<boolean>>(Promise.resolve(true));
-  // A removal's answer comes back and the next row moves up under the pointer: a second press of the same spot just after it is the same
-  // double press, not a second choice (#3674, found by the qa-breaker).
-  const removedAt = useRef(0);
-  const change = (kind: string, call: () => Promise<void>): Promise<boolean> => {
-    if (inFlight.current) return Promise.resolve(false);
+  const change = async (kind: string, call: () => Promise<void>): Promise<boolean> => {
+    // A rename is committed by leaving its box, often by pressing another control: that press is one press, so it waits for the rename and then goes ahead.
+    if (inFlight.current === 'rename') await settled.current;
+    if (inFlight.current) return false;
     inFlight.current = kind;
-    // A rename is committed by leaving its box, often by pressing another control: that control must stay live to receive the press (it waits, in `remove`).
+    // A rename keeps the other controls live, so the press that took the focus out of its box still reaches them (above).
     if (kind !== 'rename') setBusy(true);
     const done = (async () => {
       try {
@@ -309,17 +308,14 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
         return false;
       } finally {
         inFlight.current = undefined;
-        setBusy(false);
+        // After a removal the row below has moved up under the pointer: the controls stay off (drawn busy, so the press is answered) for a moment, so a
+        // second press of the same spot is not taken for a second choice (#3674, qa-breaker B-N1).
+        if (kind === 'remove') setTimeout(() => setBusy(false), SETTLE_AFTER_REMOVE_MS);
+        else setBusy(false);
       }
     })();
     settled.current = done;
     return done;
-  };
-  const remove = async (name: string) => {
-    // The press that took the focus out of a name box starts that rename first; it is one press, so the removal waits for it and goes ahead.
-    if (inFlight.current === 'rename') await settled.current;
-    if (Date.now() - removedAt.current < REMOVE_AGAIN_MS) return;
-    if (await change('remove', () => port.guideTypeRemove(name))) removedAt.current = Date.now();
   };
 
   return {
@@ -330,7 +326,7 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
     onRename: (name, to) => change('rename', () => port.guideTypeRename(name, to)),
     onColour: (name, colour) => void change('colour', () => port.guideTypeSetColour(name, colour)),
     onSpeaks: (name, speaks) => void change('speaks', () => port.guideTypeSetSpeaks(name, speaks)),
-    onRemove: (name) => void remove(name),
+    onRemove: (name) => void change('remove', () => port.guideTypeRemove(name)),
     onAdd: (name) => change('add', () => port.guideTypeAdd(name)),
     onRefuse: setError,
   };

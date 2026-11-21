@@ -138,6 +138,8 @@ describe('Story Bible types panel (SN-M53)', () => {
     // Adding needs a new name: an empty or taken one is refused and the field keeps what was typed.
     const newType = within(panel()).getByRole('textbox', { name: 'New type' }) as HTMLInputElement;
     const addButton = within(panel()).getByRole('button', { name: 'Add type' });
+    // The controls are drawn busy for a moment after a removal (#3674), so this press waits for them.
+    await waitFor(() => expect(addButton.getAttribute('aria-disabled')).toBeNull(), { timeout: 3000 });
     fireEvent.click(addButton);
     expect(add).not.toHaveBeenCalled();
     expect((await within(panel()).findByRole('alert')).textContent).toContain('Give the type a new name.');
@@ -210,6 +212,37 @@ describe('Story Bible types panel (SN-M53)', () => {
   it("a type's name box takes the name's own direction", async () => {
     await renderPanel();
     expect(nameField('Character').getAttribute('dir')).toBe('auto');
+  });
+
+  // The ux-reviewer's second pass on #3902: after a removal the controls are drawn busy for a moment (so a press is answered), not silently dropped.
+  it('right after a removal the other Remove buttons are drawn busy, and are live again after the moment', async () => {
+    const api = await renderPanel();
+    fireEvent.click(removeButton('Lore'));
+    await waitFor(() => expect(within(panel()).queryByRole('textbox', { name: 'Type name: Lore' })).toBeNull());
+    expect(removeButton('Item').getAttribute('aria-disabled')).toBe('true');
+    await waitFor(() => expect(removeButton('Item').getAttribute('aria-disabled')).toBeNull(), { timeout: 3000 });
+    const remove = vi.spyOn(api, 'guideTypeRemove');
+    fireEvent.click(removeButton('Item'));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('Item'));
+  });
+
+  it('Can speak pressed while another type is being renamed is applied once the rename is done, not dropped', async () => {
+    const api = await renderPanel();
+    const real = api.guideTypeRename.bind(api);
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeRename').mockImplementation(
+      (name, to) =>
+        new Promise<void>((resolve) => {
+          finish = () => void real(name, to).then(resolve);
+        }),
+    );
+    const speaks = vi.spyOn(api, 'guideTypeSetSpeaks');
+    fireEvent.change(nameField('Lore'), { target: { value: 'Lore renamed' } });
+    fireEvent.blur(nameField('Lore'));
+    fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
+    expect(speaks).not.toHaveBeenCalled();
+    await act(async () => finish());
+    await waitFor(() => expect(speaks).toHaveBeenCalledTimes(1));
   });
 
   it('remove is disabled on the last type', async () => {
