@@ -4052,5 +4052,11 @@
     "file": "narration_track_state.lua",
     "find": "        guids[#guids + 1] = normalize_guid(reaper.GetTrackGUID(track))",
     "replace": "        guids = { normalize_guid(reaper.GetTrackGUID(track)) }"
+  },
+  {
+    "name": "track_create turns monitoring on over a value already set",
+    "file": "narration_track_create.lua",
+    "find": "  if reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0 then",
+    "replace": "  if true then"
   }
 ]

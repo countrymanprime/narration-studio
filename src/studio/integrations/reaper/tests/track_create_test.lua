@@ -602,3 +602,18 @@ H.test('track_create of a folder turns input monitoring on for its child, not th
   s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator')
   H.eq({ s.fake.tracks[3].rec_mon, s.fake.tracks[4].rec_mon }, { nil, 1 })
 end)
+
+H.test('track_create leaves a new track whose monitoring already reads on or auto as it is', function()
+  local s = new_session()
+  s.fake.new_track_rec_mon = 2
+  s:send('track_create', 'c1', 'Chapter 2')
+  H.eq(s.fake.tracks[3].rec_mon, 2)
+end)
+
+H.test('track_create puts the monitoring in the one add-track undo point, for a voice in a folder too', function()
+  local s, t = folder_session()
+  s:send('track_create', 'c1', 'Veyra', t.folder.guid)
+  H.eq(#s.fake.undo, 1)
+  H.eq(s.fake.open_undo_blocks, 0)
+  H.eq(s.fake.tracks[6].rec_mon, 1)
+end)
