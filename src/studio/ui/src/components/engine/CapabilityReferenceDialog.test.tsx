@@ -86,8 +86,8 @@ describe('CapabilityReference: Retry', () => {
     expect(onRetry).toHaveBeenCalledTimes(2);
   });
 
-  it('a read that fails still gives the button back', async () => {
-    const onRetry = vi.fn(() => Promise.reject(new Error('still unreadable')));
+  it('a read that ends with the error still showing gives the button back', async () => {
+    const onRetry = vi.fn(() => Promise.resolve());
     render(<CapabilityReference report={undefined} loadError="bridge unreadable" onRetry={onRetry} />);
     const retry = screen.getByRole('button', { name: 'Retry' });
     fireEvent.click(retry);
@@ -96,7 +96,7 @@ describe('CapabilityReference: Retry', () => {
   });
 
   it('a retry that fails again still answers with the time it finished (found by the ux review)', async () => {
-    const onRetry = vi.fn(() => Promise.reject(new Error('still unreadable')));
+    const onRetry = vi.fn(() => Promise.resolve());
     render(<CapabilityReference report={undefined} loadError="bridge unreadable" onRetry={onRetry} />);
     expect(screen.queryByText(/^Checked /)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));

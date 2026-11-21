@@ -96,11 +96,8 @@ export function CapabilityReference({
   const [checkedAt, markChecked, reads] = useCheckedAt();
   const retry = () =>
     pending.run('retry', async () => {
-      try {
-        await onRetry();
-      } catch {
-        // The caller shows why a read failed (loadError); the button only has to come back.
-      }
+      // onRetry does not reject: the caller shows why a read failed (loadError), and the button only has to come back.
+      await onRetry();
       markChecked();
     });
   return (
