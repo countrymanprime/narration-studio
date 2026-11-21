@@ -61,6 +61,16 @@ func newFolderHost(t *testing.T, rpp, layout string, notVoices ...string) (*Host
 	return host, ids
 }
 
+// refusedNoVoices asserts Record on chapterID is refused as a folder with no voices, with nothing armed.
+func refusedNoVoices(t *testing.T, host *Host, chapterID, when string) {
+	t.Helper()
+	fake := &fakeRecorder{}
+	result := recordStartWithVoice(t, host, fake, chapterID)
+	if result.Outcome != "refused" || result.Reason != boothVoiceNoVoices || fake.armGUID != "" {
+		t.Fatalf("%s: got %+v, armed %q, want refused with no voices and nothing armed", when, result, fake.armGUID)
+	}
+}
+
 func armedOn(t *testing.T, host *Host, chapterID string) string {
 	t.Helper()
 	fake := &fakeRecorder{}
@@ -68,11 +78,58 @@ func armedOn(t *testing.T, host *Host, chapterID string) string {
 	return fake.armGUID
 }
 
-// The reproduction: a folder that holds only a music bed recorded on the music bed under Flat, because voiceFor falls back to voices[0].
-func TestAFolderHoldingOnlyAMarkedMusicBedRecordsOnTheFolder(t *testing.T) {
+// A Flat folder that holds only a marked music bed is refused at Record, naming the switch (#3828; it used to record on the folder itself).
+func TestAFlatFolderWhoseEveryChildIsMarkedIsRefusedNotRecordedOnTheFolder(t *testing.T) {
 	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
+	fake := &fakeRecorder{}
+	result := recordStartWithVoice(t, host, fake, ids[0])
+	if result.Outcome != "refused" || result.Reason != boothVoiceNoVoices || len(fake.calls) != 0 {
+		t.Fatalf("got %+v, calls %v, want refused with nothing armed (#3828: the owner chose a refusal over recording on the folder)", result, fake.calls)
+	}
+	if !strings.Contains(result.Message, "turned off as not a voice") || !strings.Contains(result.Message, "Voices card") || !strings.Contains(result.Message, "link the chapter to a track of its own") {
+		t.Fatalf("message %q does not name the switch and the Flat fix", result.Message)
+	}
+	// The voice list says the same, so the Booth hides the control for a reason it can show.
+	if got := boothVoiceGet(t, host, ids[0]); got.Outcome != "refused" || got.Reason != boothVoiceNoVoices {
+		t.Fatalf("BoothVoiceGet gave %+v, want refused with no voices", got)
+	}
+}
+
+// The edges of "every child marked" (#3828): a child another chapter owns is that chapter's own, so it neither makes the folder a voice folder nor counts
+// as a voice, and an unmarked child of the folder is still a voice.
+func TestAFlatFolderOfOnlyAnotherChaptersTrackStillRecordsOnTheFolder(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{voiceQueenTrack, "Queen"}), voicetracks.LayoutFlat)
+	linkChapter(t, host, ids[1], voiceQueenTrack)
 	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
-		t.Fatalf("armed %q, want the folder %q: the marked music bed is not a voice", got, voiceFolderTrack)
+		t.Fatalf("armed %q, want the folder %q: its only child is another chapter's track", got, voiceFolderTrack)
+	}
+}
+
+func TestAFlatFolderOfAMarkedChildAndAnotherChaptersTrackIsRefused(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{voiceQueenTrack, "Queen"}, [2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
+	linkChapter(t, host, ids[1], voiceQueenTrack)
+	refusedNoVoices(t, host, ids[0], "marked child plus another chapter's track")
+}
+
+// A punch over a passage recorded before chooses the voice it was recorded on first: with nothing to choose from the answer is the record start's sentence,
+// not "that track is not a voice" (qa-breaker on #3874), in both layouts.
+func TestChoosingAVoiceInAFolderWithNoVoicesSaysWhyInBothLayouts(t *testing.T) {
+	for _, layout := range []string{voicetracks.LayoutFlat, voicetracks.LayoutFolders} {
+		host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), layout, musicBedTrack)
+		got := boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], musicBedTrack)
+		if got.Outcome != "refused" || got.Reason != boothVoiceNoVoices || !strings.Contains(got.Message, "turned off as not a voice") {
+			t.Fatalf("%s: got %+v, want refused with the no-voices sentence", layout, got)
+		}
+	}
+}
+
+// A voice track added to a Flat folder whose every child is marked would be its only voice: the add is refused, naming the switch, as Record is.
+func TestAVoiceIsNotAddedBesideEveryChildMarkedUnderFlat(t *testing.T) {
+	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
+	creator := &fakeChildCreator{}
+	got := boothVoiceAdd(t, host, creator, ids[0], "King", nil)
+	if got.Outcome != "refused" || got.Reason != boothVoiceNoVoices || !strings.Contains(got.Message, "Voices card") {
+		t.Fatalf("got %+v, want refused with no voices naming the Voices card", got)
 	}
 }
 
@@ -123,9 +180,8 @@ func TestAFolderWithOnlyMarkedChildrenIsRefusedUnderVoiceFolders(t *testing.T) {
 
 func TestUnmarkingMakesTheChildAVoiceAgain(t *testing.T) {
 	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)
-	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
-		t.Fatalf("marked: armed %q, want the folder", got)
-	}
+	// Every child marked: Record is refused and nothing is armed (#3828; it used to record on the folder).
+	refusedNoVoices(t, host, ids[0], "marked")
 	if _, err := voicetracks.New(voicetracks.Config{Project: host.config.projectFolder}).SetNotVoice(musicBedTrack, false); err != nil {
 		t.Fatal(err)
 	}
@@ -226,9 +282,7 @@ func TestTheBindingMarksAndUnmarksAChildAndRefusesABadGUID(t *testing.T) {
 	if err := json.Unmarshal([]byte(payload), &state); err != nil || len(state.NotVoiceGUIDs) != 1 {
 		t.Fatalf("marked answer = %s (%v), want the one GUID", payload, err)
 	}
-	if got := armedOn(t, host, ids[0]); got != voiceFolderTrack {
-		t.Fatalf("after marking: armed %q, want the folder", got)
-	}
+	refusedNoVoices(t, host, ids[0], "after marking")
 	if _, err := host.VoiceTracksSetNotAVoice(musicBedTrack, false); err != nil {
 		t.Fatal(err)
 	}

@@ -142,7 +142,10 @@ for (const [width, height] of [
         };
       });
     const idle = await measure();
-    // R chooses the phrase the reading is on and starts the take there: the same start as Start from here, from the keyboard, in a window too small for the menu.
+    // Move the reading with the keyboard (a window too small for the menu), which chooses the start; R before a take is Record, so it looks that place up.
+    // Two phrases down: past the resume point, which chooses nothing.
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
     await page.keyboard.press('r');
     await expect(record(page)).toHaveAttribute('aria-busy', 'true');
     expect(await measure()).toEqual(idle);

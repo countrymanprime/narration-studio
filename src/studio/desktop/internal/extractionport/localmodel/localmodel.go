@@ -131,51 +131,96 @@ func (s Source) Extractor() (extractionport.Extractor, error) {
 	return s, nil
 }
 
-// Extract asks the model about each question, up to MaxQuotes, and returns the answers that pass the checks above. It writes
-// nothing. A model that fails ends the run early and says so through in.Note; what it had answered is kept, and the run does
-// not fail, so the rules' result stands. A cancelled ctx returns ctx.Err(), also when it is cancelled during the last question.
+// Answered is one suggestion and the place, in the list Questions gave, of the question it answers: what ties a suggestion
+// back to its quote when two quotes read the same.
+type Answered struct {
+	Question int
+	Raw      extractionport.Raw
+}
+
+// Answers is what one run gave: the suggestions that passed the checks, and Asked, how many questions, counted from the first,
+// were put to the model and came back, with an answer (kept or not) or with the failure that ended the run.
+type Answers struct {
+	Kept  []Answered
+	Asked int
+	// Failed is true when the last question counted in Asked ended the run by failing: the model did not decline it, it broke on it.
+	Failed bool
+}
+
+// Extract is Answer without the questions' places. A cancelled ctx returns ctx.Err() and nothing else.
 func (s Source) Extract(ctx context.Context, in extractionport.Input) ([]extractionport.Raw, error) {
-	if _, err := s.Extractor(); err != nil {
+	answers, err := s.Answer(ctx, in)
+	if err != nil {
 		return nil, err
 	}
+	raws := make([]extractionport.Raw, len(answers.Kept))
+	for i, a := range answers.Kept {
+		raws[i] = a.Raw
+	}
+	return raws, nil
+}
+
+// Answer asks the model about each question, up to MaxQuotes, and returns the answers that pass the checks above. It writes
+// nothing. A model that fails ends the run early and says so through in.Note; what it had answered is kept, and the run does
+// not fail, so the rules' result stands. A ctx that ends, also during the last question, returns ctx.Err() together with what
+// the model had answered before it ended, so a caller with a deadline can keep that.
+func (s Source) Answer(ctx context.Context, in extractionport.Input) (Answers, error) {
+	if _, err := s.Extractor(); err != nil {
+		return Answers{}, err
+	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return Answers{}, err
 	}
 	questions, err := s.Questions()
 	if err != nil {
-		return nil, fmt.Errorf("reading the quotes the rules left unknown: %w", err)
+		return Answers{}, fmt.Errorf("reading the quotes the rules left unknown: %w", err)
 	}
 	limit := 0
 	if s.MaxQuotes != nil {
 		limit = s.MaxQuotes()
 	}
-	raws := []extractionport.Raw{}
+	answers := Answers{Kept: []Answered{}}
 	for i, q := range questions {
 		if i >= limit {
 			break
 		}
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return answers, err
 		}
-		answer, err := s.Ask.Ask(ctx, q)
+		answer, err := s.ask(ctx, q)
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return nil, ctxErr
+			return answers, ctxErr
 		}
 		if err != nil {
 			s.log(fmt.Sprintf("the local model failed after %d of %d answers: %v", i, min(len(questions), limit), err))
 			if in.Note != nil {
 				in.Note("The local model stopped before it finished, so the lines after it keep the rules' answer.")
 			}
+			// The question it failed on counts as asked, so a caller that remembers what was asked does not put the same
+			// question first on every later run and never reach the ones after it.
+			answers.Asked, answers.Failed = i+1, true
 			break
 		}
+		answers.Asked = i + 1
 		if raw, ok := accept(q, answer); ok {
-			raws = append(raws, raw)
+			answers.Kept = append(answers.Kept, Answered{Question: i, Raw: raw})
 		}
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return answers, err
 	}
-	return raws, nil
+	return answers, nil
+}
+
+// ask is Ask with a panic in the model turned into its error, so what the model answered before it broke is kept like after
+// any other failure.
+func (s Source) ask(ctx context.Context, q Question) (answer Answer, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			answer, err = Answer{}, fmt.Errorf("the model panicked: %v", recovered)
+		}
+	}()
+	return s.Ask.Ask(ctx, q)
 }
 
 func (s Source) log(line string) {
@@ -329,22 +374,5 @@ func withoutQuote(text, quote string) string {
 	return text
 }
 
-// cleanReason is a model's reason as one line of valid text: control characters and runs of white space become one space, format
-// characters (a right-to-left override among them) are removed, and the rest is cut at MaxReasonRunes.
-func cleanReason(s string) string {
-	s = strings.ToValidUTF8(s, "")
-	s = strings.Map(func(r rune) rune {
-		switch {
-		case unicode.IsControl(r):
-			return ' '
-		case unicode.Is(unicode.Cf, r):
-			return -1
-		}
-		return r
-	}, s)
-	s = strings.Join(strings.Fields(s), " ")
-	if r := []rune(s); len(r) > MaxReasonRunes {
-		s = string(r[:MaxReasonRunes])
-	}
-	return s
-}
+// cleanReason is a model's reason as one line the narrator can be shown (extraction.CleanSentence), at most MaxReasonRunes.
+func cleanReason(s string) string { return extraction.CleanSentence(s, MaxReasonRunes) }

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"desktop/internal/evidence"
 	"desktop/internal/persist"
@@ -73,9 +72,9 @@ type resultStore struct {
 // resultCacheSize is how many decoded results stay in memory: the chapters the Editing and Booth pages switch between.
 const resultCacheSize = 4
 
-// resultCache keeps the decoded stored results of the latest reads, each valid for the file's size and modification time. A stored result is
-// written once, atomically, under its record's id, so a read of an unchanged file is the same answer; decoding it is most of the cost of
-// reading a chapter's alignment (about 23 of the 25 ms for a 9,000-word chapter), and the Editing page reads it again for every edit in the DAW.
+// resultCache keeps the decoded stored results of the latest reads, each held by the hash of the bytes it was decoded from: a read reads and
+// hashes the file and decodes it only when its bytes changed. Decoding is most of the cost of reading a chapter's alignment (about 23 of the
+// 25 ms for a 9,000-word chapter), and the Editing page reads it again for every edit in the DAW.
 type resultCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
@@ -88,34 +87,33 @@ type resultCache struct {
 
 type resultCacheEntry struct {
 	recordID string
-	modTime  time.Time
-	size     int64
-	result   StoredResult
+	held     persist.Held[StoredResult]
 }
 
 func newResultCache() *resultCache { return &resultCache{} }
 
-func (c *resultCache) get(recordID string, info os.FileInfo) (StoredResult, bool) {
+// get is what is held for the record, for the reader to check against the file's bytes (persist.ReadHeld), and nothing when there is none.
+// The entry moves to the end, the one kept longest: a sweep over other chapters must not push out the one the page is on.
+func (c *resultCache) get(recordID string) persist.Held[StoredResult] {
 	if c == nil {
-		return StoredResult{}, false
+		return persist.Held[StoredResult]{}
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for i, entry := range c.entries {
-		if entry.recordID == recordID && entry.modTime.Equal(info.ModTime()) && entry.size == info.Size() {
-			// The entry read last is the one kept longest: a sweep over other chapters must not push out the one the page is on.
+		if entry.recordID == recordID {
 			reordered := make([]resultCacheEntry, 0, resultCacheSize+1)
 			reordered = append(reordered, c.entries[:i]...)
 			reordered = append(reordered, c.entries[i+1:]...)
 			c.entries = append(reordered, entry)
-			return entry.result.cloned(), true
+			return entry.held
 		}
 	}
-	return StoredResult{}, false
+	return persist.Held[StoredResult]{}
 }
 
 // now is the cache's epoch, which every drop moves: a reader takes it before it decodes, and put refuses a result decoded across a drop
-// (a write of that record, or another reader's miss), so content read before a write is never stored after it.
+// (a write of that record, or another reader's decode), so content read before a write is never stored after it.
 func (c *resultCache) now() uint64 {
 	if c == nil {
 		return 0
@@ -125,7 +123,7 @@ func (c *resultCache) now() uint64 {
 	return c.epoch
 }
 
-func (c *resultCache) put(recordID string, info os.FileInfo, result StoredResult, epoch uint64) {
+func (c *resultCache) put(recordID string, held persist.Held[StoredResult], epoch uint64) {
 	if c == nil {
 		return
 	}
@@ -135,7 +133,7 @@ func (c *resultCache) put(recordID string, info os.FileInfo, result StoredResult
 		return
 	}
 	c.dropLocked(recordID)
-	entries := append(c.entries, resultCacheEntry{recordID: recordID, modTime: info.ModTime(), size: info.Size(), result: result.cloned()})
+	entries := append(c.entries, resultCacheEntry{recordID: recordID, held: held})
 	if len(entries) > resultCacheSize {
 		entries = entries[len(entries)-resultCacheSize:]
 	}
@@ -215,26 +213,29 @@ func (s resultStore) exists(recordID string) bool {
 }
 
 // read returns the stored result for a record, or false when it is missing,
-// unreadable, or of another version: derived data a new run replaces.
+// unreadable, or of another version: derived data a new run replaces. The file is read and hashed on every call and decoded
+// only when its bytes are not the ones the cached result came from.
 func (s resultStore) read(recordID string) (StoredResult, bool) {
 	path, err := s.path(recordID)
 	if err != nil {
 		return StoredResult{}, false
 	}
-	info, statErr := os.Stat(path)
-	if statErr == nil {
-		if cached, ok := s.cache.get(recordID, info); ok {
-			return cached, true
-		}
-	}
-	// The file is gone or is not the one cached: what was cached for the record is not served again, whatever the file now holds.
-	s.cache.drop(recordID)
 	epoch := s.cache.now()
-	result, outcome := s.decode(path, recordID)
-	if outcome == persist.Loaded && statErr == nil {
-		s.cache.put(recordID, info, result, epoch)
+	held := s.cache.get(recordID)
+	decoded := false
+	result, outcome := persist.ReadHeld(s.reporter, path, resultFileName, persist.Disposable, &held, func(raw []byte) (StoredResult, error) {
+		decoded = true
+		return decodeResult(raw, recordID)
+	})
+	switch {
+	case outcome != persist.Loaded:
+		// The file is gone or does not decode: what was cached for the record is not served again.
+		s.cache.drop(recordID)
+	case decoded:
+		s.countDecode()
+		s.cache.put(recordID, held, epoch)
 	}
-	return result, outcome == persist.Loaded
+	return result.cloned(), outcome == persist.Loaded
 }
 
 // readUncached is read past the decoded-result cache, for a caller that reads many results once each (the summaries'
@@ -245,28 +246,37 @@ func (s resultStore) readUncached(recordID string) (StoredResult, bool) {
 	if err != nil {
 		return StoredResult{}, false
 	}
-	result, outcome := s.decode(path, recordID)
-	return result, outcome == persist.Loaded
+	var result StoredResult
+	outcome := s.reporter.ReadJSON(path, resultFileName, persist.Disposable, func(raw []byte) (err error) {
+		result, err = decodeResult(raw, recordID)
+		return err
+	})
+	if outcome != persist.Loaded {
+		return StoredResult{}, false
+	}
+	s.countDecode()
+	return result, true
 }
 
-// decode reads and checks one result file.
-func (s resultStore) decode(path, recordID string) (StoredResult, persist.Outcome) {
-	var result StoredResult
-	outcome := s.reporter.ReadJSON(path, "coverage result", persist.Disposable, func(raw []byte) error {
-		var decoded StoredResult
-		if err := json.Unmarshal(raw, &decoded); err != nil {
-			return err
-		}
-		if decoded.SchemaVersion != storedResultVersion || decoded.RecordID != recordID {
-			return fmt.Errorf("coverage result %s is version %d", recordID, decoded.SchemaVersion)
-		}
-		result = decoded
-		return nil
-	})
-	if outcome == persist.Loaded && s.cache != nil {
+// resultFileName names a result file in the host log.
+const resultFileName = "coverage result"
+
+// decodeResult decodes and checks one result file's bytes.
+func decodeResult(raw []byte, recordID string) (StoredResult, error) {
+	var decoded StoredResult
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return StoredResult{}, err
+	}
+	if decoded.SchemaVersion != storedResultVersion || decoded.RecordID != recordID {
+		return StoredResult{}, fmt.Errorf("coverage result %s is version %d", recordID, decoded.SchemaVersion)
+	}
+	return decoded, nil
+}
+
+func (s resultStore) countDecode() {
+	if s.cache != nil {
 		s.cache.decoded.Add(1)
 	}
-	return result, outcome
 }
 
 // ChapterResult is what the result reader answers for a chapter: whether the

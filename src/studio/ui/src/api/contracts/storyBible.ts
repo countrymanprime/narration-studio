@@ -78,8 +78,9 @@ export type GuideDeleted = { entries: number; suggestions: number };
 
 /** One entry of the Story Bible's dialogue_cues: a quoted span with
  * its resolved (or unknown) speaker. A document-level list, a sibling of the entity list, not per-entity data. */
-export type GuideDialogueCueEvidence = { chapterId: string; paragraphId: string; excerpt: string; tag: string };
-export type GuideDialogueCueSpeakerSource = 'tag' | 'continuation' | 'proximity' | 'unknown' | 'correction';
+/** `reason` is the sentence a local model gave for the speaker it suggested (`speaker_source` `local-model`); no other cue has one. */
+export type GuideDialogueCueEvidence = { chapterId: string; paragraphId: string; excerpt: string; tag: string; reason?: string };
+export type GuideDialogueCueSpeakerSource = 'tag' | 'continuation' | 'proximity' | 'unknown' | 'correction' | 'local-model';
 export type GuideDialogueCue = {
   id: string;
   chapterId: string;
@@ -98,7 +99,9 @@ export type CueSpeaker = { cueId: string; speakerEntityId: string | null; speake
 /**
  * What one attribution run did to the quoted lines. `filled` lines had no speaker and now have a suggested one, `changed` lines had
  * a suggested speaker and now have another (or none), and `keptConfirmed` lines are ones the narrator confirmed or edited, which a
- * run never touches. `previous` holds the earlier suggestion of every filled and changed line.
+ * run never touches. `previous` holds the earlier suggestion of every filled and changed line. `modelFilled` of the filled lines
+ * were left unknown by the rules and carry a local model's suggestion; `modelNote` is a sentence for the narrator when the model
+ * stopped early or could not be asked, and empty otherwise.
  */
 export type SpeakerAttribution = {
   cues: number;
@@ -107,6 +110,8 @@ export type SpeakerAttribution = {
   changed: number;
   keptConfirmed: number;
   previous: CueSpeaker[];
+  modelFilled: number;
+  modelNote: string;
 };
 
 export interface StoryBibleApi {

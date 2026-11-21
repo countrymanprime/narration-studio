@@ -111,6 +111,27 @@ describe('Para', () => {
       expect(first.className).not.toContain('ring-[var(--warn)]');
     });
 
+    it("says on the chip when the local model suggested the speaker, and not for the search's own suggestion", () => {
+      const model = cue('q1', 'p1', 'c1', at('"Come'), 'e1', 'local-model');
+      const { container } = render(
+        <Para
+          paragraph={para}
+          layers={layersOf({
+            ...base,
+            entries: [entry('e1', 'Mina', 'Character')],
+            cues: [{ ...model, evidence: { ...model.evidence, reason: 'Mina was named last.' } }, cue('q2', 'p1', 'c1', at('along,"'), 'e1', 'tag')],
+          })}
+        />,
+      );
+      const byModel = container.querySelector<HTMLElement>('[data-chip="q1"]')!;
+      expect(byModel.getAttribute('aria-label')).toBe('Speaker: Mina, suggested by the local model. Change speaker');
+      expect(byModel.title).toBe('Suggested by the local model');
+      expect(byModel.dataset.state).toBe('suggested');
+      const byRule = container.querySelector<HTMLElement>('[data-chip="q2"]')!;
+      expect(byRule.getAttribute('aria-label')).toBe('Speaker: Mina, suggested. Change speaker');
+      expect(byRule.hasAttribute('title')).toBe(false);
+    });
+
     it('draws a suggested speaker dashed in its colour and an unknown one dashed and neutral', () => {
       const { container } = render(
         <Para

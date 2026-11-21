@@ -138,7 +138,8 @@ func (h *Host) resolvePin(svc hostServices) pinnedPreviewView {
 		view.StaleReason = string(reason)
 	}
 
-	candidate, evaluated := preview.EvaluateRange(chapter, paragraphs, pin.ParagraphIDs, nil, previewOpenFindings(svc.findings), previewSettings(svc.settings), previewAudioEvidence(svc, []preview.Chapter{chapter}, svc.manuscript)[chapter.ID])
+	book, _ := svc.manuscript.Book() // a manuscript that cannot be read leaves the audio evidence unknown
+	candidate, evaluated := preview.EvaluateRange(chapter, paragraphs, pin.ParagraphIDs, nil, previewOpenFindings(svc.findings), previewSettings(svc.settings), previewAudioEvidence(svc, []preview.Chapter{chapter}, book)[chapter.ID])
 	if !evaluated {
 		// Every paragraph id is individually missing (not merely re-worded), the same condition CheckStale would
 		// already have called StaleParagraphMissing - reached here only if the manuscript changed between the two

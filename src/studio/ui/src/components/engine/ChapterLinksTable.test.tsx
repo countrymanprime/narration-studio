@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChapterLinksTable, UNPLAYABLE } from './ChapterLinksTable';
 import { CREATE_QUIET_MS, useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
@@ -13,10 +13,15 @@ import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixt
 import { headingName } from '../../chapterHeading';
 import { overlay } from '../../overlay/overlayService';
 
-afterEach(cleanup);
+// The quiet after a link or a create (CREATE_QUIET_MS) is passed on a fake clock, not waited for.
+beforeEach(() => void vi.useFakeTimers({ shouldAdvanceTime: true }));
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 // A narrator takes longer than this between linking and pressing Change; a double click does not (CREATE_QUIET_MS).
-const pastQuiet = () => new Promise((resolve) => setTimeout(resolve, CREATE_QUIET_MS + 30));
+const pastQuiet = () => act(() => vi.advanceTimersByTimeAsync(CREATE_QUIET_MS + 30));
 
 const notify = vi.fn();
 
@@ -62,7 +67,7 @@ describe('ChapterLinksTable', () => {
   // The owner could not link the opening or closing credits to a track: the table listed only the manuscript's chapters. The credits are
   // chapters of that list, and the host takes their ids (credits-opening, credits-closing) in chapterTrackSet like a chapter's.
   it('lists the opening credits first and the closing credits last, and links them to a track', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     await waitFor(() => expect(within(table).getByRole('cell', { name: 'Opening credits' })).toBeTruthy());
@@ -79,7 +84,7 @@ describe('ChapterLinksTable', () => {
 
   // qa-breaker, #3053: Opening credits took Chapter 1's track from this list and nothing on the page said Chapter 1 was now unlinked.
   it('says which chapter lost a track when a pick here takes it from another chapter', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const toast = vi.spyOn(overlay, 'toast');
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -100,7 +105,7 @@ describe('ChapterLinksTable', () => {
 
   // The owner's answer on #3398: the toast leaves no notice in view state to lose, so closing the panel between the pick and the host's answer still says who lost the track.
   it('toasts a takeover even when the panel closed before the host answered', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const toast = vi.spyOn(overlay, 'toast');
     const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
     const api = createMockApi();
@@ -143,7 +148,7 @@ describe('ChapterLinksTable', () => {
 
   // The takeover is toasted once, where the host answers, whichever view started the change (the table and the dialog both draw from this hook).
   it('toasts a takeover made from elsewhere exactly once', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const toast = vi.spyOn(overlay, 'toast');
     const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
     function Harness() {
@@ -181,7 +186,7 @@ describe('ChapterLinksTable', () => {
 
   // The breaker double-clicked Confirm: the second press arrived before the row re-rendered busy and unlinked both rows.
   it('links once when Confirm is pressed twice in a row', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = renderTable();
     const set = vi.spyOn(api, 'chapterTrackSet');
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -195,7 +200,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('opens a linked credits chapter in Editing or Proof like any chapter', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = await waitFor(() => chapterRow(table, 'Opening credits'));
@@ -219,7 +224,7 @@ describe('ChapterLinksTable', () => {
 
   // Alignment audit R3EN2-1 and R3EN1-4: every unlinked row opened on the first track with a live Confirm, so one press linked the wrong track.
   it('opens every unlinked row on "Choose a track" with Confirm off until a track is picked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const secondRow = chapterRow(table, headingName(WIRE_CHAPTERS[1]));
@@ -234,7 +239,7 @@ describe('ChapterLinksTable', () => {
 
   // #3275: Confirm on the track the chapter already has looked enabled and did nothing, so the narrator could not tell a resync from a dead button.
   it('acts when Confirm is pressed on the track the chapter already has: says nothing changed, writes nothing, leaves the picker', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     notify.mockClear();
     const onChanged = vi.fn();
     const api = renderTable(onChanged);
@@ -265,7 +270,7 @@ describe('ChapterLinksTable', () => {
 
   // UX review: the re-read closes the picker, so Change takes the check's place; a double click's second press must not reopen it.
   it('ignores a fast second press on Change right after the check closed the picker', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -286,7 +291,7 @@ describe('ChapterLinksTable', () => {
 
   // #3274: the status word took the room the track's name needed; the status is an icon with its words in a tooltip and as its name.
   it('shows a chapter\u2019s status as an icon named by its words, not as a word that takes the row\u2019s width', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -298,7 +303,7 @@ describe('ChapterLinksTable', () => {
 
   // #3274: "i have no fucking idea if this relink is going to work": before it is pressed the check says what it will do.
   it('says before the check is pressed what the pick will do: the track and what it is, what it replaces, and which chapter loses it', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const [first, second] = WIRE_TRACKS_PROJECT.tracks;
@@ -329,7 +334,7 @@ describe('ChapterLinksTable', () => {
 
   // qa-breaker (#3281): a double click on Change puts the check under the second press; it must not read and toast then.
   it('ignores a fast press on the check right after Change opened the picker', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     notify.mockClear();
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -350,7 +355,7 @@ describe('ChapterLinksTable', () => {
 
   // Narrator walkthrough: after Clear the select still held the old track and the check looked ready, one press from linking it again.
   it('opens a cleared row on "Choose a track" with the check off', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -370,7 +375,7 @@ describe('ChapterLinksTable', () => {
 
   // The removed Tracks card flagged a track with a missing or unsupported item; a chapter must never be silently linked to one that cannot play.
   it('warns on a linked track whose audio cannot play, and only on that one', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -403,7 +408,7 @@ describe('ChapterLinksTable', () => {
 
   // QA breaker B1: Change, pick, Cancel, Change again brought back the abandoned pick, and the check linked it in one press.
   it('reopens Change on the linked track after a Cancel, not on the abandoned pick', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -421,7 +426,7 @@ describe('ChapterLinksTable', () => {
 
   // #3376: Cancel and Clear take their button away; focus went to the dialog, so the next Tab began at the top of the panel.
   it("puts focus on the Change that takes Cancel's place, and on Create after Clear", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -441,7 +446,7 @@ describe('ChapterLinksTable', () => {
 
   // #3376 (qa-breaker B1): a Clear that is still waiting for the host leaves its note; it must not move focus in a panel opened after the table went away.
   it('drops a pending hand-back note when the table goes away', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = renderTable();
     vi.spyOn(api, 'chapterTrackUnlink').mockReturnValue(new Promise(() => {}));
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -460,7 +465,7 @@ describe('ChapterLinksTable', () => {
 
   // QA breaker B2: the second press of a double click on the check lands on the Change that takes its place. Press the replacement at once.
   it("ignores a press on the Change that takes the check's place right after a link", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = renderTable();
     const set = vi.spyOn(api, 'chapterTrackSet');
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -478,7 +483,7 @@ describe('ChapterLinksTable', () => {
 
   // Intent review M3: the second press of a double click on Cancel lands on the Clear that takes its place.
   it("ignores a press on the Clear that takes Cancel's place right after a Cancel", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -498,7 +503,7 @@ describe('ChapterLinksTable', () => {
 
   // The second press of a double click on Clear lands on the Create that takes its place, which would add a track in REAPER.
   it("ignores a press on the Create that takes Clear's place right after a Clear", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = renderTable();
     const create = vi.spyOn(api, 'chapterTrackCreate');
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -524,7 +529,7 @@ describe('ChapterLinksTable', () => {
         </ChapterTrackStateProvider>
       </ApiProvider>,
     );
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await waitFor(() => expect(within(firstRow).getByRole('img', { name: 'Track missing' })).toBeTruthy());
@@ -579,7 +584,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('opens a linked chapter in Editing or Proof from the row’s More actions menu', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
@@ -595,7 +600,7 @@ describe('ChapterLinksTable', () => {
 
   // ENX-10: the editing check opened from here covers the wide engine panel whole and offers Back, rather than a 20 rem panel cutting it.
   it('opens the editing check as wide as the engine panel, with Back to it', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
@@ -608,7 +613,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('tells the panel when a link changes, so the panel re-reads it', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const onChanged = vi.fn();
     renderTable(onChanged);
     const table = await screen.findByRole('table', { name: 'Chapter links' });
@@ -620,7 +625,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('confirms a link, then shows it as Linked with the track name', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
@@ -633,7 +638,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('clears a confirmed link back to Not linked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
@@ -649,7 +654,7 @@ describe('ChapterLinksTable', () => {
 
   // #3272: the row must not wait for the re-read of the chapters and links to show Not linked; Unlink's own answer carries the links that remain.
   it('shows Not linked as soon as Unlink answers, before the links are read again', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const real = createMockApi();
     let hold = false;
     const api = { ...real, chapterTrackMapList: () => (hold ? new Promise<never>(() => {}) : real.chapterTrackMapList()) };
@@ -677,7 +682,7 @@ describe('ChapterLinksTable', () => {
 
   // qa-breaker B5 (#2836): ten rows each offered the same "Change the track" and "Clear the link"; the name now says which chapter.
   it('names the chapter in a linked row’s Change and Clear icons', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
@@ -693,7 +698,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('Change to another track leaves one link, not two', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = renderTable();
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
@@ -714,7 +719,7 @@ describe('ChapterLinksTable', () => {
   });
 
   it('Clear removes every link a chapter holds, including a double link left by an older Change', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = createMockApi(
       {},
       {
@@ -748,7 +753,7 @@ describe('ChapterLinksTable', () => {
   // #3363 (intent review): on a chapter with several links the first one was the row's "linked" track, so choosing it only re-read, and choosing
   // the second did nothing because that pair was already held: neither resolved it.
   it.each([0, 1])('Change on a chapter with several links replaces them with the track chosen, whichever of the two it is (%i)', async (which) => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = createMockApi(
       {},
       {
@@ -783,7 +788,7 @@ describe('ChapterLinksTable', () => {
 
   // #3363: a pick on a several row replaces every link the chapter holds, and the hint said it replaced only the first track's name.
   it('says before the check is pressed that a pick on a chapter with several links replaces all of them', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = createMockApi(
       {},
       {
@@ -818,7 +823,7 @@ describe('ChapterLinksTable', () => {
   // #3363 (qa-breaker): the second press of a double click on Change lands on the confirm, which used to open on the first track and replace
   // the chapter's other link at once. A several row opens on "Choose a track", so that press has nothing to confirm.
   it('Change on a chapter with several links opens on no track, so a double click writes nothing', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     const api = createMockApi(
       {},
       {

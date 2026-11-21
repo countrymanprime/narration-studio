@@ -263,10 +263,6 @@ jobs:
           UI_VISUAL_SHARDED: '1'
           PLAYWRIGHT_JSON_OUTPUT_NAME: ${{ runner.temp }}/timings.json
         run: pnpm --dir src/studio/ui run screenshots --test-list "$RUNNER_TEMP/shard.txt" --reporter=list,json
-      - name: aria
-        id: aria
-        if: ${{ !cancelled() && steps.split.outputs.aria == 'true' }}
-        run: pnpm --dir src/studio/ui run aria
       # The manifest goes in the records directory, so it is uploaded with them. `mkdir`: a shard that failed before its first test has none.
       - if: ${{ !cancelled() && steps.split.outcome == 'success' }}
         env:
@@ -291,6 +287,22 @@ jobs:
           path: ${{ runner.temp }}/timings.json
           if-no-files-found: ignore
           retention-days: 14
+      # The visual suite records no trace on its first pass (playwright.config.ts: recording every test cost 19% of the step). After a red
+      # `visual` step this runs only the tests that failed, with a trace, for the upload below. It decides nothing: the `visual` step has
+      # already failed the job, and a test that passes here was still red (a flaky capture; its trace is kept all the same, `--trace on`).
+      # After the two uploads above on purpose: the suite's global setup empties `screenshots/.run`, and the gate judges the first pass.
+      - name: visual (the failed tests again, with a trace)
+        if: ${{ !cancelled() && steps.visual.outcome == 'failure' }}
+        continue-on-error: true
+        env:
+          UI_VISUAL_SHARDED: '1'
+        run: pnpm --dir src/studio/ui run screenshots --last-failed --trace on --reporter=list
+      # After the step above, which empties `test-results` as every Playwright run empties its output folder: aria writes to
+      # `test-results/aria` and the atlas to `test-results/atlas`, so the upload at the end finds the traces of all three.
+      - name: aria
+        id: aria
+        if: ${{ !cancelled() && steps.split.outputs.aria == 'true' }}
+        run: pnpm --dir src/studio/ui run aria
       - name: atlas
         id: atlas
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
@@ -315,8 +327,8 @@ jobs:
           path: src/studio/ui/screenshots/atlas
           if-no-files-found: ignore
           retention-days: 7
-      # Playwright keeps a trace only for a failing test (`trace: 'retain-on-failure'`), so a green run has nothing to upload and a red one
-      # ships a trace.zip per failing test. Open it with `playwright show-trace`.
+      # The traces of the failed visual tests (the step above) and of a failing aria test (`trace: 'retain-on-failure'` in its config), so a
+      # green run has nothing to upload and a red one ships a trace.zip per failing test. Open it with `playwright show-trace`.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:

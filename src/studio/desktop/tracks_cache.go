@@ -14,10 +14,11 @@ import (
 )
 
 // The live track list is asked for by several pages and bindings in one user action (the Booth's own poll, the voices, the record target, a
-// lane switch: #3647 counted four reads of one list in a lane switch and three in one idle tick). REAPER's list changes only when its edit counter
-// does, and the heartbeat (every 1.5 s, no request) carries that counter, so a read the counter still matches is not asked again.
+// lane switch: #3647 counted four reads of one list in a lane switch and three in one idle tick). The heartbeat (every 1.5 s and at once when
+// the track list changes, no request) carries the list's revision, so a read whose revision the heartbeat still carries is not asked again,
+// however old it is (#3859). A script that sends no revision is judged by the edit counter the heartbeat also carries, and by the ages below.
 
-// liveTracksMaxAge bounds how long an answer is reused when the counter has not moved: a change the counter misses (it restarts when a project
+// liveTracksMaxAge bounds how long an answer with no revision is reused when the counter has not moved: a change the counter misses (it restarts when a project
 // is reopened, and not every REAPER edit raises it) is seen within this long, as the 5 s poll saw it before.
 const liveTracksMaxAge = 10 * time.Second
 
@@ -99,8 +100,12 @@ func servingStale(lister dawport.TrackLister) dawport.TrackLister {
 
 var _ dawport.TrackLister = cachedTrackLister{}
 
-// The production heartbeat keeps an epoch: without the method the cache would silently stop telling a restarted bridge from a running one.
-var _ interface{ Epoch() uint64 } = (*daw.Reachability)(nil)
+// The production heartbeat keeps an epoch and the track list's revision: without the methods the cache would silently stop telling a
+// restarted bridge from a running one, and would fall back to judging a list by its age.
+var _ interface {
+	Epoch() uint64
+	TracksRevision() (string, bool)
+} = (*daw.Reachability)(nil)
 
 // withTracksCache is lister behind svc's cache, or lister itself when there is no cache or no heartbeat to judge it by.
 func withTracksCache(svc hostServices, lister dawport.TrackLister) dawport.TrackLister {
@@ -114,9 +119,12 @@ func (l cachedTrackLister) ReadTracks(ctx context.Context) (dawport.LiveTracks, 
 	c := l.cache
 	for {
 		c.mu.Lock()
-		if age := c.now().Sub(c.at); c.have && l.vouched(c) && (age < liveTracksMaxAge || (l.staleOK && age < liveTracksStaleAge)) {
+		vouched, byRevision := l.vouched(c)
+		// A list the script's revision vouches for is REAPER's list however old it is (#3859): the script says so at once when a track is
+		// added, removed, renamed or moved. Only a list vouched for by the edit counter, from a script that sends no revision, runs out of age.
+		if age := c.now().Sub(c.at); c.have && vouched && (byRevision || age < liveTracksMaxAge || (l.staleOK && age < liveTracksStaleAge)) {
 			answer := cloneTracks(c.answer)
-			if age >= liveTracksMaxAge && c.flight == nil {
+			if !byRevision && age >= liveTracksMaxAge && c.flight == nil {
 				// Stale while revalidate: this caller has the list now, and the next one has REAPER's answer to the read started here.
 				l.refresh(c)
 			}
@@ -196,20 +204,37 @@ func cloneTracks(answer dawport.LiveTracks) dawport.LiveTracks {
 	return answer
 }
 
-// vouched reports whether the heartbeat still vouches for the held answer as REAPER's list: it is fresh and carries a counter equal to the
-// answer's, it names the project the answer is of, and the bridge has not started over since (the heartbeat's epoch: a gap, another project, a
-// counter that went down). The answer's age is the caller's to judge: under liveTracksMaxAge it is served as it is, under liveTracksStaleAge it
-// is served while a new read runs. A project reopened with an equal counter and no gap is served stale for at most liveTracksStaleAge, and
-// corrected by the read the first call past liveTracksMaxAge starts.
+// vouched reports whether the heartbeat still vouches for the held answer as REAPER's list, and whether it does so by the track list's
+// revision. In both cases the heartbeat is fresh, names the project the answer is of, and the bridge has not started over since (the
+// heartbeat's epoch: a gap, another project, a counter that went down).
+//
+// By revision (a script since #3859): the heartbeat's revision equals the answer's. The script computes it from the tracks themselves and
+// sends a heartbeat at once when it changes, so nothing about the list can change behind an equal revision, and the answer's age does not
+// matter. Edits that leave the track list alone (a take, a cut) move the edit counter and not the revision, so they cost no read.
+//
+// By the edit counter (an older script, until REAPER is restarted): the counter equals the answer's. Not every edit raises it, so the
+// answer's age is the caller's to judge: under liveTracksMaxAge it is served as it is, under liveTracksStaleAge it is served while a new
+// read runs.
 //
 // +checklocks:c.mu
-func (l cachedTrackLister) vouched(c *liveTracksCache) bool {
-	count, known := l.heartbeat.ChangeCount()
-	if !known {
-		return false
-	}
+func (l cachedTrackLister) vouched(c *liveTracksCache) (vouched, byRevision bool) {
 	open, unsaved := l.heartbeat.CurrentProject()
-	return count == c.answer.ChangeCount && !unsaved && sameLiveProject(open, c.answer.ProjectPath) && l.epoch() == c.epoch
+	if unsaved || !sameLiveProject(open, c.answer.ProjectPath) || l.epoch() != c.epoch {
+		return false, false
+	}
+	if revision, known := l.revision(); known && c.answer.Revision != "" {
+		return revision == c.answer.Revision, true
+	}
+	count, known := l.heartbeat.ChangeCount()
+	return known && count == c.answer.ChangeCount, false
+}
+
+// revision is the track list's revision in the last heartbeat, or not known for a heartbeat that carries none.
+func (l cachedTrackLister) revision() (string, bool) {
+	if h, ok := l.heartbeat.(interface{ TracksRevision() (string, bool) }); ok {
+		return h.TracksRevision()
+	}
+	return "", false
 }
 
 // epoch is the heartbeat's count of times the bridge may have started over (a gap, another project, a counter that went down), or 0 for a
