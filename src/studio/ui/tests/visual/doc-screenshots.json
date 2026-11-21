@@ -435,6 +435,13 @@
   },
   {
     "page": "booth",
+    "state": "record-unlinked-folders",
+    "viewport": "desktop",
+    "docName": "booth-record-unlinked-folders",
+    "caption": "Booth - the Chapter 1 is not linked to a folder dialog in a Voice folders project, with the list of what the new folder is made with above Create a new folder"
+  },
+  {
+    "page": "booth",
     "state": "record-unlinked-closed",
     "viewport": "desktop",
     "docName": "booth-record-unlinked-closed",
@@ -516,6 +523,13 @@
     "viewport": "desktop",
     "docName": "settings-chapter-voices",
     "caption": "Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder"
+  },
+  {
+    "page": "settings",
+    "state": "recording-new-chapter-folder",
+    "viewport": "desktop",
+    "docName": "settings-new-chapter-folder",
+    "caption": "Settings - Recording & DAW: the New chapter folder row, with the Narrator and the voices and Extras a new chapter folder is made with"
   },
   {
     "page": "engine",
@@ -627,7 +641,7 @@
     "state": "chapter-folder-created",
     "viewport": "desktop",
     "docName": "engine-panel-chapter-folder-created",
-    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with one voice"
+    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with its Narrator and Extras voices"
   },
   {
     "page": "proof-chapter",

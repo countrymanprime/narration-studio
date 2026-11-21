@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type {
+  ChapterCreateOptions,
   ChapterRegionPlan,
   ChapterRegionsCreated,
   ChapterTrackCandidate,
@@ -95,11 +96,23 @@ export const chapterTrackSetSchema = z.object({
 
 const createdTrackSchema = z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) });
 
+const chapterCreateVoiceSchema = z.object({ name: z.string(), checked: z.boolean() });
+
+export const chapterCreateOptionsSchema = z.object({
+  folders: z.boolean(),
+  narrator: z.string().min(1),
+  voices: z.array(chapterCreateVoiceSchema),
+  extras: chapterCreateVoiceSchema,
+  omitted: z.number().int().min(0).optional(),
+}) satisfies z.ZodType<ChapterCreateOptions>;
+
 export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
   chapterTrackSetSchema.extend({
     outcome: z.literal('created'),
     track: createdTrackSchema,
     voice: createdTrackSchema.optional(),
+    children: z.array(createdTrackSchema.extend({ notVoice: z.boolean() })).optional(),
+    message: z.string().optional(),
   }),
   z.object({
     outcome: z.literal('refused'),

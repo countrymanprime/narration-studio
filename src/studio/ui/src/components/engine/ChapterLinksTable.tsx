@@ -22,7 +22,7 @@ import { addressPath } from '../../navigation/address';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { useVoiceLayout, useVoiceSetup } from './voiceLayout';
-import { destinationFor } from './destination';
+import { childNames, destinationFor } from './destination';
 import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
@@ -220,11 +220,13 @@ export function recheckSentence(
   return how === 'saved' ? `${linked}, as the saved project has it.` : `${linked}.`;
 }
 
-/** The done toast: what the DAW made, named as it was given, and that it is not saved yet. */
+/** The done toast: what the DAW made, named as it was given (a folder with the Narrator, and the voices and Extras it was made with), that it is not saved yet, and what is left when the create was partly done. */
 function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
+  const named = childNames(result);
+  const rest = result.message ? ` ${result.message}` : '';
   return result.voice
-    ? `Created the folder “${trackName(result.track.name, result.track.index)}” with a ${result.voice.name} track and linked ${short} to it. Save the project to keep it.`
-    : `Created the track “${trackName(result.track.name, result.track.index)}” and linked ${short} to it. Save the project to keep it.`;
+    ? `Created the folder “${trackName(result.track.name, result.track.index)}” with ${named ? `${named} tracks` : `a ${result.voice.name} track`} and linked ${short} to it. Save the project to keep it.${rest}`
+    : `Created the track “${trackName(result.track.name, result.track.index)}” and linked ${short} to it. Save the project to keep it.${rest}`;
 }
 
 /** How long a Cancel or Clear keeps its note of where focus goes: a Clear waits for the host to answer, and a slow answer is no reason to leave focus on the page. */

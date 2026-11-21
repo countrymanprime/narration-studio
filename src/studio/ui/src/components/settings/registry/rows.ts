@@ -236,6 +236,20 @@ export const ROWS: readonly SettingMeta[] = [
     needs: 'reaper',
     syn: 'narrator character voice tracks characters per track who records voice folders cast',
   },
+  {
+    id: 'daw.newChapter',
+    cat: 'recording',
+    section: 'Chapter sync',
+    label: 'New chapter folder',
+    scope: 'project',
+    def: '',
+    desc: 'The voices and Extras made with a new chapter folder.',
+    more: 'With the Voice folders layout, creating a chapter’s folder also makes the Narrator, the project’s known voices and an Extras track for sound that is not a voice (a crowd, a door, music), in that order, so nothing needs setting up later. Untick a voice or Extras to leave it out; the create dialog shows the same list and remembers what you leave out. A voice that appears later starts ticked. Extras is marked as not a voice, so the Booth never arms it and record progress does not ask for a take on it; a project that already gives characters to a track named Extras keeps it as a voice.',
+    used: ['booth', 'editing'],
+    also: 'Create a new folder dialog',
+    needs: 'reaper',
+    syn: 'new chapter folder voices extras track create tick checkbox lanes open in order known voices',
+  },
 
   // ---- Speech to text
   {

@@ -19,6 +19,7 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 ## Used by
 
 - `src/components/booth/voices/WhoIsInDialog.tsx`
+- `src/components/chapterTracks/NewChapterTracks.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/devtools/MockStatesPanel.tsx`
 - `src/components/editing/cleanup/CleanupList.tsx`
