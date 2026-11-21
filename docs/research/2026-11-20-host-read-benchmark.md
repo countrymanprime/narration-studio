@@ -196,7 +196,7 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 
 - Four times fewer ticks when idle at every size: 3 of 4 a minute not done, 200 ms a minute at 300 chapters. A tick's answers are 8.8 KB at every size, so the saving is the host's work and the bridge calls (four a tick), not bytes.
 - `ReadAloudReaperState` is the cost that grows (60 ms at 300 chapters, with no DAW: it reads the chapter's link and the manuscript); with a live REAPER it also reads the track state through the bridge, which this rig cannot time.
-- A track armed or disarmed in REAPER has no event (the recorded runs say arming leaves REAPER's change counter alone: [recording and undo](reaper-recording-undo-2026-10-23.md), [arms and monitors](2026-11-16-booth-arms-and-monitors.md)), so the 60 s timer, focus and a press are how the Booth learns of it while idle; the script's `record_start` refuses a wrong arming whatever the page showed. A take started in the DAW is heard from the transport at once, as before.
+- A track armed or disarmed in REAPER has no event that is known to carry it (the recorded runs say arming through the bridge leaves REAPER's change counter alone; a narrator's click on the arm button is not recorded: [recording and undo](reaper-recording-undo-2026-10-23.md), [arms and monitors](2026-11-16-booth-arms-and-monitors.md)), so the 60 s timer, focus and a press are how the Booth learns of it while idle; the script's `record_start` refuses a wrong arming whatever the page showed. A take started in the DAW is heard from the transport at once, as before.
 
 ## Not measured
 

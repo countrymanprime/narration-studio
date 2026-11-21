@@ -257,7 +257,9 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(record(page)).toBeEnabled();
   });
 
-  test('the DAW opens another project while Record is ready and no event says so: focus, Check again and the timer find it', async ({ page }) => {
+  test('the DAW opens another project while Record is ready: focus and Check again find it too, and the notice clears by itself once it is the linked one again', async ({
+    page,
+  }) => {
     await toRecordReady(page);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
