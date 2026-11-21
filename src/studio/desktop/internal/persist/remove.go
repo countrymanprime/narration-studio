@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"time"
 )
 
 // IsRegular reports whether rel beneath the folder root is a regular file, by RemoveRegular's rules: the answer a
@@ -22,7 +23,7 @@ func IsRegular(root, rel string) (bool, error) {
 // it leads, because a folder linked to another folder of the project would have a delete by name take that folder's
 // files. The root itself may be reached through a link. A link, a folder or anything else that is not a regular file
 // at rel is left where it is, and so is its target. A root, a folder of rel or a file that is not there is nothing to
-// delete, not an error. A delete moves Generation, as Advance does.
+// delete, not an error. A file that answers "access denied" (on Windows, one whose delete is pending) is asked again for up to 0.2 s and is nothing to delete if it settles to not there; one that stays denied is an error. A delete moves Generation, as Advance does.
 //
 // The folders are checked and then the file is deleted, so a folder swapped for a link between the two is followed;
 // the os.Root still keeps that delete inside root.
@@ -94,15 +95,47 @@ func onRegular(root, rel string, act func(*os.Root) error) (bool, error) {
 	if within, err := realFolder(folder, filepath.Dir(rel)); err != nil || !within {
 		return false, err
 	}
-	info, err := folder.Lstat(rel)
+	info, err := lstatSettled(folder, rel)
 	if err == nil && info.Mode().IsRegular() {
 		beforeAct()
 		if err = act(folder); err == nil {
 			return true, nil
+		}
+		if errors.Is(err, fs.ErrPermission) {
+			// Another delete of the same file may have been in flight: let it settle, and a file that is gone then is not an error.
+			// A file that is still there keeps the refusal.
+			if _, again := lstatSettled(folder, rel); errors.Is(again, fs.ErrNotExist) {
+				err = again
+			}
 		}
 	}
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, err
 	}
 	return false, nil
+}
+
+// lstatRoot and settleWait are seams for the tests of lstatSettled.
+var (
+	lstatRoot  = func(folder *os.Root, name string) (fs.FileInfo, error) { return folder.Lstat(name) }
+	settleWait = 10 * time.Millisecond
+)
+
+// settleTries is how often lstatSettled asks again of a file that answers "access denied".
+const settleTries = 20
+
+// lstatSettled is Lstat of rel that waits out a delete in flight. On Windows a file whose delete is pending (another handle still
+// open) answers a stat or an open with "access is denied" and not "not exist", until the delete completes a moment later; two
+// stores pruning one project meet this. An access-denied answer is therefore asked again for up to a fifth of a second, and
+// what it settles to (the file, or not there) is returned; one that never settles is a permission problem and is returned as is.
+func lstatSettled(folder *os.Root, rel string) (fs.FileInfo, error) {
+	info, err := lstatRoot(folder, rel)
+	for range settleTries {
+		if !errors.Is(err, fs.ErrPermission) {
+			break
+		}
+		time.Sleep(settleWait)
+		info, err = lstatRoot(folder, rel)
+	}
+	return info, err
 }
