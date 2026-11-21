@@ -1,4 +1,5 @@
 import { clock } from '../../clock';
+import { formatCount } from '../../plural';
 
 /** Calendar dates as the plan writes them, "YYYY-MM-DD", worked on as local dates so a day is a day in every time zone. */
 const DAY = 86_400_000;
@@ -26,7 +27,8 @@ export const isIsoDate = (s: string): boolean => /^[1-9]\d{3}-\d{2}-\d{2}$/.test
 /** Hours as hours and minutes with their units, "5h 40m" (the one marked form, `clock`'s `marked` option, which floors to the whole minute): every Production and Schedule hours figure (#3443). */
 export const hm = (h: number): string => clock(h * 3600, { marked: true });
 
-export const num = (n: number): string => n.toLocaleString('en-US');
+/** A count with thousands separators: `formatCount`, the one definition (a non-finite count reads 0). */
+export const num = formatCount;
 
 /** "Oct 14" in the year of `ref`, "Oct 14, 2031" in any other, so a date years away is not read as this year's. */
 export const fmtDY = (d: Date, ref: Date): string =>
