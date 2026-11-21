@@ -63,7 +63,7 @@ export function SpeakerPicker({
   const choose = (row: Row | undefined) => row && onChoose(row.entryId);
 
   return (
-    <div className="flex min-w-[280px] flex-col gap-1.5">
+    <div className="flex w-[280px] max-w-full flex-col gap-1.5">
       <TextField
         ref={field}
         label="Search speakers"

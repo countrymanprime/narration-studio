@@ -4,10 +4,10 @@ import { selectReaderWord } from '../drivers/shared';
 import { clickCase, contextMenuCase, fromState, type OverlayCase } from '../helpers/overlayGuardFor';
 
 // The Script page's own overlays (components/script/): the reader's selection toolbar and the Mark menu under it, the text
-// settings popover, the Mark and Define marks dialogs, the colour swatches a mark's colour box opens over that dialog, and the chapter
-// and rail drawers the narrower layouts open over the reader.
-// Not driven: the speaker picker, the bookmark editor and the definition source menu (each needs a state the mock reaches only
-// through a long chain of steps).
+// settings popover, the speaker picker a chip in the reader opens, the Mark and Define marks dialogs, the colour swatches a mark's
+// colour box opens over that dialog, and the chapter and rail drawers the narrower layouts open over the reader.
+// Not driven: the bookmark editor and the definition source menu (each needs a state the mock reaches only through a long chain of
+// steps).
 
 const toolbar = (page: Page) => page.getByRole('toolbar', { name: 'Selection tools' });
 const selectRabbit = async (page: Page) => {
@@ -15,6 +15,17 @@ const selectRabbit = async (page: Page) => {
   await toolbar(page).waitFor();
 };
 const textSettings = (page: Page) => page.getByRole('button', { name: /^Text settings: / });
+// The speaker picker opens at the chip pressed (#3823: it ran off the bottom of the window). The mock book has one chip, at the start of
+// a line, so the reader is scrolled to put it against the top or the bottom of the window, where the picker has room on one side only.
+const speakerPicker = (page: Page) => page.getByRole('dialog', { name: 'Who says this' });
+const pressChip =
+  (edge?: 'start' | 'end') =>
+  async (page: Page): Promise<void> => {
+    const chip = page.locator('button[data-chip]').first();
+    if (edge) await chip.evaluate((element, block) => element.scrollIntoView({ block }), edge);
+    await chip.click();
+    await speakerPicker(page).waitFor();
+  };
 const RAIL = 'Words, Story Bible and marks';
 // A drawer is a panel of the page, not a dialog: it takes Escape while focus is inside it, and a press on its scrim otherwise
 // (ScriptColumns.tsx). The scrim's top-left corner is clear of a drawer, which sits 8 px in from its side.
@@ -47,6 +58,19 @@ export const scriptCases: OverlayCase[] = [
   contextMenuCase('context menu over the text settings popover', {
     over: { name: 'text settings popover', open: async (page) => textSettings(page).click() },
   }),
+  { name: 'speaker picker', kind: 'popover', root: speakerPicker, open: pressChip() },
+  { name: 'speaker picker, chip at the top of the reader', kind: 'popover', root: speakerPicker, scrolled: false, open: pressChip('start') },
+  { name: 'speaker picker, chip at the bottom of the reader', kind: 'popover', root: speakerPicker, scrolled: false, open: pressChip('end') },
+  {
+    name: 'speaker picker over the text settings popover',
+    kind: 'popover',
+    root: speakerPicker,
+    scrolled: false,
+    over: { name: 'text settings popover', open: async (page) => textSettings(page).click() },
+    open: pressChip(),
+    // In a 320x300 window the text settings popover lies over the chip, so there is no chip to press while it is open.
+    viewports: ({ height }) => height > 300,
+  },
   // The first-use tip floats over the reader's top edge; it must stay on screen and above the reader's text at every window size.
   fromState('script', 'first-use-tip', 'popover', { root: (page) => page.getByRole('complementary', { name: 'Tip' }) }),
   fromState('script', 'mark-composer'),
