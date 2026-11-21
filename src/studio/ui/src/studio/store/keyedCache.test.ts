@@ -298,4 +298,19 @@ describe('a keyed cache in the store (#3658)', () => {
       vi.useRealTimers();
     }
   });
+
+  it('a key invalidated while it is being read is read again when that read ends, if someone shows it', async () => {
+    const first = deferred<unknown>();
+    const load = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue('v2');
+    const cache = createKeyedCache('text', { schema: textSchema, load, size: length });
+    const stop = cache.subscribe(() => void cache.ensure('c1').catch(() => undefined), 'c1');
+    void cache.ensure('c1');
+    cache.invalidate();
+    first.resolve('v1');
+    await flush();
+    await flush();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(cache.get('c1')).toBe('v2');
+    stop();
+  });
 });

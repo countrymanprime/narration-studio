@@ -36,6 +36,10 @@ export function useChapterText(chapterId: string | undefined): {
     if (!cache || chapterId === undefined) return;
     return cache.pin(chapterId);
   }, [cache, chapterId]);
+  // A reader that mounts (or moves to another chapter) on a chapter whose read failed asks once more; the effect below does not, so a failure is not looped on.
+  useEffect(() => {
+    if (cache && chapterId !== undefined && cache.error(chapterId) !== undefined) void cache.ensure(chapterId).catch(() => undefined);
+  }, [cache, chapterId]);
   useEffect(() => {
     if (chapterId === undefined) return;
     if (cache) {

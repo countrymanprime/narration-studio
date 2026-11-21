@@ -37,6 +37,11 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
   useEffect(() => {
     if (held !== undefined) retries.current = 0;
   }, [held]);
+  // A reader that mounts on a list whose read failed asks once more.
+  useEffect(() => {
+    if (store && enabled && store.getState().errors.chapters !== undefined && store.getState().slots.chapters === undefined)
+      void store.load('chapters').catch(() => undefined);
+  }, [store, enabled]);
   useEffect(() => {
     if (!store || !enabled || held !== undefined || error !== undefined) return;
     let live = true;

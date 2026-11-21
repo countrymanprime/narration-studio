@@ -23,7 +23,8 @@ export type HostEventApi = Pick<SystemApi, 'subscribeJobEnded'> & { subscribeRec
   >;
 
 /**
- * The chapter list: stale when a job ends (an import, a re-split) or a page publishes `MANUSCRIPT_CHANGED`, and reloaded when the window regains focus. The bookmarks:
+ * The chapter list: stale when a job ends (an import, a re-split), a call that changes a recorded field settles (`chapters:written`), a DAW record ends,
+ * a chapter sync updates, or a page publishes `MANUSCRIPT_CHANGED`, and reloaded when the window regains focus. The bookmarks:
  * every bookmark in reading order, reloaded on focus and by the bookmark commands after each change and each undo.
  */
 export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, bookmarks: Pick<BookmarksApi, 'bookmarksList'>) {

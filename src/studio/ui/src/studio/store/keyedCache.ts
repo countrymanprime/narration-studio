@@ -153,7 +153,12 @@ export function createKeyedCache<S extends StandardSchemaV1>(name: string, confi
         throw errors.get(key);
       }
     })().finally(() => {
-      if (inFlight.get(key)?.promise === read) inFlight.delete(key);
+      if (inFlight.get(key)?.promise !== read) return;
+      inFlight.delete(key);
+      // A change announced while this read was out left what it wrote stale: read once more when someone shows the key (the reader's own ask came while this
+      // read was in flight and joined it).
+      const shown = pins.has(key) || (keyListeners.get(key)?.size ?? 0) > 0;
+      if (shown && mine === epoch && changed > startedAt) void attempt(key).catch(() => undefined);
     });
     inFlight.set(key, { promise: read, at: Date.now() });
     return read;

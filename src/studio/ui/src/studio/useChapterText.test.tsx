@@ -165,6 +165,41 @@ describe('useChapterText with a store of its own (#3658)', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(result.current.loading).toBe(false);
   });
+  it('a reader that mounts on a chapter whose read failed reads it again', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const real = api.manuscriptParagraphs.bind(api);
+    const spy = vi
+      .spyOn(api, 'manuscriptParagraphs')
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockImplementation((id) => real(id));
+    const { wrapper } = harness(api);
+    const first = renderHook(() => useChapterText(chapter!.id), { wrapper });
+    await waitFor(() => expect(first.result.current.error).toBeDefined());
+    const second = renderHook(() => useChapterText(chapter!.id), { wrapper });
+    await waitFor(() => expect(second.result.current.paragraphs).toBeDefined());
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the new text when a job ended while the chapter was being read', async () => {
+    const api = createMockApi();
+    const [chapter] = await api.manuscriptChapters();
+    const real = api.manuscriptParagraphs.bind(api);
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const spy = vi.spyOn(api, 'manuscriptParagraphs').mockImplementationOnce(async (id) => {
+      await gate;
+      return real(id);
+    });
+    spy.mockImplementation((id) => real(id));
+    const { wrapper, store } = harness(api);
+    const { result } = renderHook(() => useChapterText(chapter!.id), { wrapper });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    act(() => store.publish('manuscript:changed'));
+    release();
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.paragraphs).toBeDefined());
+  });
 });
 
 describe('useChapterText with many readers and swaps (#3658)', () => {

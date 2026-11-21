@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { announceChapterListWritten } from '../api/chapterListWrites';
-import { createHostEvents, createSlots } from './slots';
+import { createHostEvents, createKeyedSlots, createSlots, MANUSCRIPT_CHANGED } from './slots';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -95,5 +95,13 @@ describe('the chapter list is stale on what changes its recorded fields (#3658)'
   it('a DAW port without a record-ended subscription gives a no-op', () => {
     const subscribe = createHostEvents({ subscribeJobEnded: vi.fn(), subscribeChapterSync: vi.fn() } as never);
     expect(() => subscribe('daw:record-ended', vi.fn())()).not.toThrow();
+  });
+});
+
+describe('the chapter text cache is stale on what replaces the manuscript (#3658)', () => {
+  it('lists the job end and the manuscript topic', () => {
+    const { chapterText } = createKeyedSlots({ manuscriptParagraphs: vi.fn() });
+    expect(chapterText.events).toContain('job:ended');
+    expect(chapterText.topics).toContain(MANUSCRIPT_CHANGED);
   });
 });
