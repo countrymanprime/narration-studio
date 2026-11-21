@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -167,6 +168,38 @@ func TestWorkspaceTakeEvidenceRefusesWhatWorkspaceTakesRefuses(t *testing.T) {
 		if err == nil || takesErr == nil || err.Error() != takesErr.Error() || payload != "" {
 			t.Errorf("%v: evidence %q, %v; takes %v", args, payload, err, takesErr)
 		}
+	}
+}
+
+// evidence.NewCacheStore("") would keep its entries under the working directory. The binding never builds one for no
+// project: a host that has not started answers that no project is open, and one started with no project is refused by
+// the read of the project's tracks, both before the store is made.
+func TestWorkspaceTakeEvidenceWithNoProjectWritesNothing(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	working := t.TempDir()
+	t.Chdir(working)
+
+	notStarted := newTestHost(t)
+	if _, err := notStarted.WorkspaceTakeEvidence("c-0001", 0, 0); !errors.Is(err, errNoProject) {
+		t.Errorf("a host that has not started: %v, want %v", err, errNoProject)
+	}
+	started := newTestHost(t)
+	started.mu.Lock()
+	started.configureLocked(started.config)
+	started.mu.Unlock()
+	if started.services().config.projectFolder != "" || started.services().coverage == nil {
+		t.Fatal("the started host is not one with its services built over no project")
+	}
+	if payload, err := started.WorkspaceTakeEvidence("c-0001", 0, 0); err == nil || payload != "" {
+		t.Errorf("a host started with no project: %q, %v", payload, err)
+	}
+
+	left, err := os.ReadDir(working)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range left {
+		t.Errorf("the working directory holds %s", entry.Name())
 	}
 }
 

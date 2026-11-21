@@ -303,16 +303,19 @@ type MeasureCache struct {
 	store         *evidence.CacheStore
 	projectFolder string
 	version       string
+	// identify is evidence.Identify; a test replaces it to answer a file that cannot be opened.
+	identify func(path, projectFolder string) (evidence.SourceIdentity, error)
 }
 
 // NewMeasureCache is a cache over measure (MeasureRange in the host, a spy in tests) that keeps its entries in store,
 // the evidence cache of the project in projectFolder. A nil store keeps nothing: every Get measures.
 func NewMeasureCache(measure Measure, store *evidence.CacheStore, projectFolder string) *MeasureCache {
-	return &MeasureCache{measure: measure, store: store, projectFolder: projectFolder, version: measureAnalyzerVersion}
+	return &MeasureCache{measure: measure, store: store, projectFolder: projectFolder, version: measureAnalyzerVersion, identify: evidence.Identify}
 }
 
-// Get is r's figures, measured once per version of its file. A file that cannot be read is a reason, and neither it
-// nor figures that did not come from decoded audio are stored.
+// Get is r's figures, measured once per version of its file. A path that is not a file is a reason of this package's;
+// a file that cannot be opened is measured, so it answers the measurer's own reason. Neither is stored, nor are
+// figures that did not come from decoded audio.
 func (c *MeasureCache) Get(r Range) TakeMeasure {
 	info, err := os.Stat(r.File)
 	if err != nil || !info.Mode().IsRegular() {
@@ -322,9 +325,12 @@ func (c *MeasureCache) Get(r Range) TakeMeasure {
 		measured, _ := c.measure(r)
 		return measured
 	}
-	identity, err := evidence.Identify(r.File, c.projectFolder)
+	identity, err := c.identify(r.File, c.projectFolder)
 	if err != nil {
-		return unmeasured(reasonUnreadable)
+		// A file that is there but cannot be opened (no permission, locked by another program) has no identity to
+		// store under; the measurer cannot open it either, and its reason is the one that names why.
+		measured, _ := c.measure(r)
+		return measured
 	}
 	key := c.key(identity, r)
 	if cached, found := c.read(key, identity); found {
@@ -373,7 +379,7 @@ func (c *MeasureCache) read(key evidence.CacheEntryKey, identity evidence.Source
 // identity over the later audio. A failure to store is not reported, because the figures just measured are still
 // answered and the next call measures again.
 func (c *MeasureCache) write(key evidence.CacheEntryKey, identity evidence.SourceIdentity, file string, measured TakeMeasure) {
-	after, err := evidence.Identify(file, c.projectFolder)
+	after, err := c.identify(file, c.projectFolder)
 	if err != nil || after.Size != identity.Size || after.PartialHash != identity.PartialHash || !after.ModTime.Equal(identity.ModTime) {
 		return
 	}

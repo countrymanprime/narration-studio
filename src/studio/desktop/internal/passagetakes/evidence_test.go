@@ -4,15 +4,20 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"desktop/internal/coverage"
 	"desktop/internal/evidence"
+	"desktop/internal/measure"
 )
 
 const rate = 16000
@@ -527,6 +532,156 @@ func TestAFileThatCannotBeReadIsAReasonWithOrWithoutAStore(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 0 {
 		t.Fatalf("an unreadable file left %d cache entries", len(entries))
+	}
+}
+
+// A source that is there but cannot be opened answers what MeasureRange says of it, as it did before the figures were
+// stored. A mode binds neither root nor Windows, so the test skips where the file opens anyway;
+// TestAFileWithNoIdentityIsMeasuredAndNotStored proves the same path on every platform and account.
+func TestAFileThatCannotBeOpenedKeepsTheMeasurersReason(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a file mode does not stop a read on Windows")
+	}
+	project := t.TempDir()
+	wav := writeWAV(t, t.TempDir(), "locked.wav", noisy(concat(gap(0.5), tone(2, -12), gap(0.5)), -60))
+	if err := os.Chmod(wav, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(wav, 0o600) })
+	if file, err := os.Open(wav); err == nil {
+		_ = file.Close()
+		t.Skip("this user (root) reads a file of mode 000")
+	}
+	r := Range{File: wav, Kind: "WAVE", Start: 0, Length: 3}
+	want, decoded := MeasureRange(r)
+	if decoded || want.RMS.Reason != "The take's source could not be read: permission denied." {
+		t.Fatalf("MeasureRange = %+v, decoded %v", want, decoded)
+	}
+	for name, cache := range map[string]*MeasureCache{
+		"stored":   NewMeasureCache(MeasureRange, evidence.NewCacheStore(project), project),
+		"unstored": NewMeasureCache(MeasureRange, nil, ""),
+	} {
+		if got := cache.Get(r); got != want {
+			t.Errorf("%s: %+v, want the measurer's %+v", name, got, want)
+		}
+	}
+	if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 0 {
+		t.Fatalf("a file that cannot be opened left %d cache entries", len(entries))
+	}
+}
+
+// The same on any platform and as any user: a file whose identity cannot be read is handed to the measurer, whose
+// answer is given whatever it is and never stored.
+func TestAFileWithNoIdentityIsMeasuredAndNotStored(t *testing.T) {
+	for name, measured := range map[string]struct {
+		figures TakeMeasure
+		decoded bool
+	}{
+		"the measurer cannot read it either": {unmeasured("spy"), false},
+		"the measurer reads it":              {measuredAs(7), true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			project, calls := t.TempDir(), 0
+			r := source(t, t.TempDir())
+			cache := NewMeasureCache(func(Range) (TakeMeasure, bool) { calls++; return measured.figures, measured.decoded }, evidence.NewCacheStore(project), project)
+			cache.identify = func(string, string) (evidence.SourceIdentity, error) {
+				return evidence.SourceIdentity{}, fs.ErrPermission
+			}
+			cache.Get(r)
+			if got := cache.Get(r); calls != 2 || !sameMeasure(got, measured.figures) {
+				t.Fatalf("after %d measurements: %+v, want the measurer's %+v", calls, got, measured.figures)
+			}
+			if entries, _ := os.ReadDir(evidence.CacheDir(project)); len(entries) != 0 {
+				t.Fatalf("a file with no identity left %d cache entries", len(entries))
+			}
+		})
+	}
+}
+
+func sameMeasure(a, b TakeMeasure) bool {
+	x, errA := json.Marshal(a)
+	y, errB := json.Marshal(b)
+	return errors.Join(errA, errB) == nil && bytes.Equal(x, y)
+}
+
+// The parameters of the key, spelled out: an entry is of one source kind, one set of diagnostic thresholds and one
+// version of the measure package, so a change to any of them misses every entry stored before it.
+func TestTheKeyNamesTheKindTheDiagnosticOptionsAndTheMeasureVersion(t *testing.T) {
+	project := t.TempDir()
+	r := source(t, t.TempDir())
+	_, key := storedKey(t, project, r)
+	options, err := json.Marshal(measure.DefaultDiagnosticOptions())
+	if err != nil {
+		t.Fatal(err)
+	}
+	version := strconv.Itoa(measure.AnalyzerVersion)
+	if want := evidence.HashParts("WAVE", string(options), version); key.ParamHash != want {
+		t.Fatalf("parameters hash %s, want that of the kind, the options and the version, %s", key.ParamHash, want)
+	}
+	for name, without := range map[string]string{
+		"the options": evidence.HashParts("WAVE", version),
+		"the version": evidence.HashParts("WAVE", string(options)),
+		"the kind":    evidence.HashParts(string(options), version),
+	} {
+		if key.ParamHash == without {
+			t.Errorf("the parameters hash leaves out %s", name)
+		}
+	}
+}
+
+// copyTree copies the folder from to the new folder to, keeping each file's modification time.
+func copyTree(t *testing.T, from, to string) {
+	t.Helper()
+	err := filepath.WalkDir(from, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relative, err := filepath.Rel(from, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(to, relative)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0o750)
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(target, raw, 0o600); err != nil {
+			return err
+		}
+		return os.Chtimes(target, info.ModTime(), info.ModTime())
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// An entry names its source by its path inside the project, so a project copied or moved whole (another disk, another
+// computer) still answers from the cache that travelled with it.
+func TestACopiedProjectAnswersFromTheCacheItCarries(t *testing.T) {
+	original, calls := filepath.Join(t.TempDir(), "book"), 0
+	media := filepath.Join(original, "media")
+	if err := os.MkdirAll(media, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	r := source(t, media)
+	counted(original, &calls).Get(r)
+	if calls != 1 {
+		t.Fatalf("%d measurements of the original", calls)
+	}
+
+	copied := filepath.Join(t.TempDir(), "elsewhere", "book")
+	copyTree(t, original, copied)
+	moved := r
+	moved.File = filepath.Join(copied, "media", filepath.Base(r.File))
+	if got := pauseOf(t, counted(copied, &calls).Get(moved)); calls != 1 || got != 1 {
+		t.Fatalf("the copy was answered measurement %v after %d measurements, want the stored first", got, calls)
 	}
 }
 
