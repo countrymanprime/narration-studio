@@ -11,3 +11,9 @@ const DRAWS = /[\p{L}\p{N}\p{P}\p{S}]/u;
 
 /** True when the text has at least one character that draws. A value that is not a string has none. */
 export const hasVisibleText = (text: unknown): boolean => typeof text === 'string' && DRAWS.test(text.replace(FILLERS, ''));
+
+/**
+ * The text with everything that draws nothing taken out, for comparing two names: "Mad Hatter with a zero-width space after Mad" and "Mad Hatter" look alike, so they are the same name.
+ * Not for storing or showing: a zero-width joiner inside an emoji or a Persian word is part of that text.
+ */
+export const visibleKey = (text: string): string => text.replace(/[\p{Cf}\p{Cc}\p{Default_Ignorable_Code_Point}]/gu, '').replace(FILLERS, '');

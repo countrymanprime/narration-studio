@@ -71,7 +71,7 @@ import {
 import { Relationships, type RelationRow } from './Relationships';
 import type { Notify } from '../primitives/Toast';
 import { useErrorToast } from '../../hooks/useErrorToast';
-import { hasVisibleText } from '../../visibleText';
+import { hasVisibleText, visibleKey } from '../../visibleText';
 
 // What the form holds while an entry is being edited: the entry's own values, until the narrator changes them.
 // The says, does and knows properties of an entry whose type can speak are fields of their own (`talk`), so `properties` holds the rest.
@@ -122,7 +122,7 @@ function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; 
 
 /** Why Add name is off, and what Enter says on a box with nothing in it to add. */
 const ADD_NAME_FIRST = 'Type a name to add first.';
-const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+const sameName = (a: string, b: string) => visibleKey(a).trim().toLowerCase() === visibleKey(b).trim().toLowerCase();
 const hasName = (entry: GuideEntity, text: string) => sameName(entry.canonical_name, text) || entry.aliases.some((alias) => sameName(alias.text, text));
 /** The other entry that already has `text` as its name or one of its names, ignoring case; a draft is not an entry yet. */
 const nameOwner = (entries: readonly GuideEntity[], text: string, exceptId: string) =>
@@ -270,6 +270,8 @@ export function GuideDetail({
   const [editing, setEditing] = useState(false);
   const [aliasQuery, setAliasQuery] = useState('');
   // A name the narrator asked to add that the entry or another entry already has: the Names box says so, and for another entry's offers to merge it in.
+  /** True from an add until the box is typed in again: the Enter that follows is the same press, not an empty name (#3382 f). */
+  const justAdded = useRef(false);
   const [nameNote, setNameNote] = useState<{ text: string; ownerId?: string; blank?: boolean }>();
   const [nameError, setNameError] = useState<string>();
   useErrorToast(nameError);
@@ -472,7 +474,10 @@ export function GuideDetail({
     const sent = JSON.stringify(draft);
     const done = await save('save', values, 'Entry saved.');
     // Text typed while the request was in flight was not in it: the editor stays open with it, as an edit still to save, rather than closing over it (#3457).
-    if (done && JSON.stringify(draftNow.current) === sent) setEditing(false);
+    if (done && JSON.stringify(draftNow.current) === sent) {
+      setEditing(false);
+      setNameNote(undefined);
+    }
     return done;
   };
   saveEntryRef.current = saveEntry;
@@ -512,9 +517,10 @@ export function GuideDetail({
     const value = aliasQuery.trim();
     // Another action is running: keep what was typed instead of clearing it and adding nothing.
     if (mutation.isBusy) return;
-    // Enter on nothing, or on a name that draws nothing, says so (the button is off with the same reason).
+    // Enter on nothing, or on a name that draws nothing, says so (the button is off with the same reason). A second Enter straight after an
+    // add finds the box it just emptied: that is the same press twice, not a blank name.
     if (!hasVisibleText(value)) {
-      setNameNote({ text: '', blank: true });
+      if (!justAdded.current) setNameNote({ text: '', blank: true });
       return;
     }
     const taken = typedOwner();
@@ -523,6 +529,7 @@ export function GuideDetail({
       return;
     }
     clearAliasMatch();
+    justAdded.current = true;
     void setAliasTexts([...entity.aliases.map((alias) => alias.text), value]);
   };
   const closeVoicePrompt = () => {
@@ -1058,6 +1065,7 @@ export function GuideDetail({
                   onChange={(value) => {
                     setAliasQuery(value);
                     setNameNote(undefined);
+                    justAdded.current = false;
                   }}
                   onKeyDown={onAliasKeyDown}
                   placeholder="Add a name"
