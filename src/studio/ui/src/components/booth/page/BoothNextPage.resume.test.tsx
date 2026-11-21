@@ -88,6 +88,8 @@ describe('a chapter with a recording', () => {
     await waitFor(() => expect(reading()).toBe('said'));
     const chip = screen.getByRole('group', { name: 'Recorded through ““Off with her head,”” (45%)' });
     expect(chip.textContent).toBe('Recorded 45%');
+    // The progress chips carry no percent of their own beside the Recorded chip's (#3970).
+    expect(document.querySelector('#bprog')?.textContent).not.toMatch(/%/);
     // The chip says how far it is recorded; no green rail runs down the page beside the text (owner report, #2251).
     expect(document.querySelector('[data-recorded-extent], [data-recorded-rail]')).toBeNull();
   });

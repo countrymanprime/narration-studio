@@ -682,13 +682,16 @@ function BoothSession({
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;
   // The heading's words count toward the chapter's, but the paragraph numbers are the manuscript's: the heading is on paragraph 1.
   const lastParagraph = Math.max(0, paragraphs.length - 1);
-  const progress = progressLine({
-    paragraph: bodyParagraphIndex(paragraphs, units[at.cur]?.paragraphIndex ?? 0) + 1,
-    paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
-    wordsRead,
-    words,
-    complete: recordedLabel?.complete,
-  });
+  const progress = progressLine(
+    {
+      paragraph: bodyParagraphIndex(paragraphs, units[at.cur]?.paragraphIndex ?? 0) + 1,
+      paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
+      wordsRead,
+      words,
+      complete: recordedLabel?.complete,
+    },
+    !recordedLabel,
+  );
   const capabilities = control.capabilities;
   // The tracks the dialog for an unlinked chapter offers are read here, in the background, as soon as the chapter is known: the
   // dialog then opens with them (#3669). A read that fails leaves the dialog to read for itself.
@@ -1037,6 +1040,8 @@ function BoothSession({
                   setVoiceListOpen(next);
                 }}
                 noTrack={cast.noTrack}
+                cast={cast}
+                onAddLane={() => askWho({ kind: 'key', key: voices.voices.filter((voice) => !voice.narrator).length + 1 })}
                 // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
                 onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : askWho({ kind: 'character', character }))}
                 standIn={voices.standIn}
