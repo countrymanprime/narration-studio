@@ -1,12 +1,14 @@
 package persist
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func writeIn(t *testing.T, path string) string {
@@ -333,5 +335,50 @@ func TestOnlyAFolderItselfIsARealFolder(t *testing.T) {
 		if got := isRealFolder(tc.mode); got != tc.want {
 			t.Errorf("%s: isRealFolder(%v) = %v, want %v", name, tc.mode, got, tc.want)
 		}
+	}
+}
+
+// On Windows a file whose delete is pending answers a stat with "access is denied" until the delete completes; a pass that meets
+// it while another store prunes the same record must read it as gone, not as a record that stayed (#3947).
+func TestAFileWhoseDeleteIsPendingIsGoneOnceItSettles(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	defer func(old func(*os.Root, string) (fs.FileInfo, error), wait time.Duration) {
+		lstatRoot, settleWait = old, wait
+	}(lstatRoot, settleWait)
+	settleWait = time.Microsecond
+	denied := 3
+	lstatRoot = func(folder *os.Root, name string) (fs.FileInfo, error) {
+		if denied > 0 {
+			denied--
+			return nil, &fs.PathError{Op: "statat", Path: name, Err: fs.ErrPermission}
+		}
+		return nil, &fs.PathError{Op: "statat", Path: name, Err: fs.ErrNotExist}
+	}
+	regular, err := IsRegular(dir, "a.json")
+	if err != nil || regular {
+		t.Fatalf("IsRegular = %v, %v; want false and no error for a file that settles to gone", regular, err)
+	}
+	denied = 3
+	removed, err := RemoveRegular(dir, "a.json")
+	if err != nil || removed {
+		t.Fatalf("RemoveRegular = %v, %v; want false and no error for a file that settles to gone", removed, err)
+	}
+}
+
+// A file that stays denied is a real permission problem: it is reported, not read as gone.
+func TestAFileThatStaysDeniedIsAnError(t *testing.T) {
+	dir := t.TempDir()
+	defer func(old func(*os.Root, string) (fs.FileInfo, error), wait time.Duration) {
+		lstatRoot, settleWait = old, wait
+	}(lstatRoot, settleWait)
+	settleWait = time.Microsecond
+	lstatRoot = func(folder *os.Root, name string) (fs.FileInfo, error) {
+		return nil, &fs.PathError{Op: "statat", Path: name, Err: fs.ErrPermission}
+	}
+	if _, err := IsRegular(dir, "a.json"); !errors.Is(err, fs.ErrPermission) {
+		t.Fatalf("err = %v, want the permission error", err)
 	}
 }
