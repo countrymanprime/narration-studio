@@ -118,6 +118,9 @@ export type PickupList = {
   leftOut: PickupLeftOutChapter[];
 };
 
+/** `PickupsOpenCount`: how many pickups of the list are not done. */
+export type PickupsOpenCount = { open: number };
+
 export interface PickupsApi {
   /** Parses and validates csvText (columns start,note,tag; an optional header row) in Go and, if any row is
    * usable, writes the payload and asks REAPER to import it. Throws when every row is unusable. */
@@ -136,6 +139,9 @@ export interface PickupsApi {
   subscribePickups(onUpdate: (state: PickupsState) => void): () => void;
   /** The merged pickup list. With the DAW answering, done states that waited are written to the markers first. */
   pickupsList(): Promise<PickupList>;
+  /** How many pickups of the list are still open, for a reader that shows the number only (the navigation's badge). The host
+   * builds the list as `pickupsList` does but does not send it, and writes nothing to the DAW. */
+  pickupsOpenCount(): Promise<PickupsOpenCount>;
   /** Adds a line by hand at `time` seconds into the chapter's recording. Refuses an empty line, a line over 500 characters or
    * with control characters, an unknown chapter and a time outside the chapter. The same line twice is one pickup. */
   pickupsAdd(chapterId: string, time: number, line: string): Promise<PickupList>;

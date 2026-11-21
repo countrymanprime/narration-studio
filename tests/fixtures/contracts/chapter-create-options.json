@@ -1,0 +1,18 @@
+{
+  "extras": {
+    "checked": true,
+    "name": "Extras"
+  },
+  "folders": true,
+  "narrator": "Narrator",
+  "voices": [
+    {
+      "checked": true,
+      "name": "Dragon 🐉"
+    },
+    {
+      "checked": false,
+      "name": "Mara"
+    }
+  ]
+}

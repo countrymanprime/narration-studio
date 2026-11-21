@@ -143,6 +143,10 @@ the Narrator, the one character it also voices. The **Voice** switch on a voice'
 
 ![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
 
+**New chapter folder** (REAPER only, under **Chapter sync**, with the **Voice folders** layout) lists what creating a chapter's folder also makes: the **Narrator**, always, then the project's known voices and **Extras**, a track for sound that is not a voice (the Booth never arms it and record progress does not ask for a take on it; a project that already gives characters to a track named Extras keeps it as a voice). Untick a voice or Extras to leave it out; a change is kept as you tick it, and the create dialog in the [Booth](booth.md) shows the same list and remembers what you leave out. A voice that appears later starts ticked. With the **Flat** layout the row is empty. It counts as changed while a voice or Extras is left out, and **Reset to defaults** ticks them all again.
+
+![Settings - Recording & DAW: the New chapter folder row, with the Narrator and the voices and Extras a new chapter folder is made with](../../images/ui/settings-new-chapter-folder.webp)
+
 **Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own. The Effects tab's cap box always sets the project's own value, so typing there creates that override; **Use computer setting** removes it. The **?** says more.
 
 ![Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box](../../images/ui/settings-effects-cap.webp)

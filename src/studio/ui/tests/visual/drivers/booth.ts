@@ -217,6 +217,28 @@ export const boothDrivers: Record<string, Driver> = {
     await dialog.getByRole('combobox', { name: /^Track for / }).waitFor();
     await dialog.getByRole('button', { name: 'Create a new track' }).waitFor();
   },
+  // A Voice folders project: the dialog says folder and lists what the new folder is made with, the Narrator as a fact and Extras ticked (#3748).
+  'record-unlinked-folders': async (page) => {
+    // The mock project assigns no voice but Extras, so the host's answer is set to the cast a real project has: three voices, one left out last time.
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        chapterCreateOptions: async () => ({
+          folders: true,
+          narrator: 'Narrator',
+          voices: [
+            { name: 'White Rabbit', checked: true },
+            { name: 'Alice', checked: true },
+            { name: 'Cheshire Cat', checked: false },
+          ],
+          extras: { name: 'Extras', checked: true },
+        }),
+      };
+    });
+    await openBooth(page, `${UNLINKED}&mockVoiceFolders=1`);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a folder$/ });
+    await dialog.getByRole('button', { name: 'Create a new folder' }).waitFor();
+    await dialog.getByRole('group', { name: 'Tracks in the new folder' }).waitFor();
+  },
   // Closed with its X: the chip above the footer and the footer's sentence say what Record waits for; a press of Record reopens the dialog.
   'record-unlinked-closed': async (page) => {
     await openBooth(page, UNLINKED);

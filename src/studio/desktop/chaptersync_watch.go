@@ -161,9 +161,17 @@ func (h *Host) chapterSyncConsentOn(folder string) bool {
 }
 
 // emitChapterSyncState sends the current state without syncing; a state that cannot be read is logged.
+// Requests that arrive while one is already waiting its turn are answered by that one, which reads the state after them: a
+// run of finished checks costs one read in progress and one waiting, not one read per check (issue 3804). Such a request
+// returns before the state it asked for is sent.
 func (h *Host) emitChapterSyncState() {
+	if !h.chapterSyncEmitWaiting.CompareAndSwap(false, true) {
+		return
+	}
 	h.chapterSyncEmitMu.Lock()
 	defer h.chapterSyncEmitMu.Unlock()
+	// From here a new request waits for a read of its own: this one may have read the state before the request's change.
+	h.chapterSyncEmitWaiting.Store(false)
 	state, err := h.chapterSyncState()
 	if err != nil {
 		if h.log != nil {

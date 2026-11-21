@@ -3,6 +3,7 @@ package coverage
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -58,9 +59,51 @@ type summaryStore struct {
 	mu       sync.Mutex
 	// +checklocks:mu
 	held map[string]ResultSummary
-	// writing keeps one file write at a time: a finished check and a read that rebuilds the same summary would share
-	// writeAtomically's temporary file.
-	writing sync.Mutex
+	// +checklocks:mu
+	building map[string]*summaryBuild
+}
+
+// summaryBuild is one rebuild of a record's summary in progress: readers that arrive meanwhile wait for it.
+type summaryBuild struct {
+	done    chan struct{}
+	summary ResultSummary
+	ok      bool
+	// finished is false when the rebuild panicked: it has no answer, and a waiter rebuilds for itself.
+	finished bool
+}
+
+// build runs rebuild for recordID once however many readers ask at the same time: the first runs it, the others wait for
+// its answer. A background fill and a page's read that meet on one record therefore decode its result once.
+func (s *summaryStore) build(recordID string, rebuild func() (ResultSummary, bool)) (ResultSummary, bool) {
+	s.mu.Lock()
+	if running, found := s.building[recordID]; found {
+		s.mu.Unlock()
+		<-running.done
+		if !running.finished {
+			return s.build(recordID, rebuild)
+		}
+		return running.summary, running.ok
+	}
+	if held, found := s.held[recordID]; found { // built between the caller's miss and here
+		s.mu.Unlock()
+		return held, true
+	}
+	if s.building == nil {
+		s.building = map[string]*summaryBuild{}
+	}
+	running := &summaryBuild{done: make(chan struct{})}
+	s.building[recordID] = running
+	s.mu.Unlock()
+
+	defer func() {
+		s.mu.Lock()
+		delete(s.building, recordID)
+		s.mu.Unlock()
+		close(running.done)
+	}()
+	running.summary, running.ok = rebuild()
+	running.finished = true
+	return running.summary, running.ok
 }
 
 func (s *summaryStore) path(recordID string) (string, bool) {
@@ -76,13 +119,16 @@ func (s *summaryStore) write(summary ResultSummary) error {
 	}
 	summary.SchemaVersion, summary.ResultVersion = resultSummaryVersion, storedResultVersion
 	s.hold(summary)
-	s.writing.Lock()
-	defer s.writing.Unlock()
 	encoded, err := json.Marshal(summary)
 	if err != nil {
 		return err
 	}
-	if err := writeAtomically(path, encoded); err != nil {
+	if err := os.MkdirAll(s.dir, 0o755); err != nil {
+		return fmt.Errorf("could not store the coverage result summary: %w", err)
+	}
+	// persist.WriteFile writes through a temporary file of its own name: a fill still running for a project that was
+	// closed and opened again writes the same path through another store.
+	if err := persist.WriteFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("could not store the coverage result summary: %w", err)
 	}
 	return nil
@@ -139,13 +185,15 @@ func (s *Service) summary(recordID string) (ResultSummary, bool) {
 	if summary, ok := s.summaries.read(recordID); ok {
 		return summary, true
 	}
-	stored, ok := s.results.read(recordID)
-	if !ok {
-		return ResultSummary{}, false
-	}
-	summary := summarize(stored)
-	if err := s.summaries.write(summary); err != nil {
-		s.config.Reporter.Warn("coverage_summary_not_stored", err.Error())
-	}
-	return summary, true
+	return s.summaries.build(recordID, func() (ResultSummary, bool) {
+		stored, ok := s.results.readUncached(recordID)
+		if !ok {
+			return ResultSummary{}, false
+		}
+		summary := summarize(stored)
+		if err := s.summaries.write(summary); err != nil {
+			s.config.Reporter.Warn("coverage_summary_not_stored", err.Error())
+		}
+		return summary, true
+	})
 }

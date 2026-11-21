@@ -96,6 +96,22 @@ describe('destinationFor names where a chapter records from the project layout',
     expect(all.filter((sentence) => /records on one track/.test(sentence))).toEqual([]);
   });
 
+  it('a folder made with voices and Extras names every track, and a partly done create says what is left (#3748)', () => {
+    const made = (name: string, index: number) => ({ guid: `{${index}}`, name, index, notVoice: name === 'Extras' });
+    const folder = {
+      track: { name: 'Opening' },
+      voice: { guid: '{4}', name: 'Narrator', index: 4 },
+      children: [made('Narrator', 4), made('Alice', 5), made('Extras', 6)],
+    };
+    expect(createdSentence(folder, 'Opening', 'REAPER')).toBe(
+      'Folder “Opening” with Narrator, Alice and Extras tracks added in REAPER and linked to Opening. Save the REAPER project to keep it.',
+    );
+    const partial = { ...folder, children: [made('Narrator', 4)], message: 'REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.' };
+    expect(createdSentence(partial, 'Opening', 'REAPER')).toBe(
+      'Folder “Opening” with a Narrator track added in REAPER and linked to Opening. Save the REAPER project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
+    );
+  });
+
   it('what the DAW made is named from its answer: a folder with its Narrator, or a plain track (an engine with no folders makes one in a folders project)', () => {
     const folder = { track: { name: 'Opening' }, voice: { guid: '{N}', name: 'Narrator', index: 4 } };
     const plain = { track: { name: 'Opening' } };

@@ -109,11 +109,12 @@ pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts -g "
 
 ## Slow DAW link suite
 
-`src/studio/ui/tests/visual/daw-slow-link.spec.ts` holds the rule that the narrator does not notice a slow DAW (#3752). It puts the mock's DAW link on six profiles (0 ms, 300 ms, 1 s, 3 s, 10 s, and a stall of 8 s that recovers; [A slow link on demand](../architecture/reaper-bridge.md#a-slow-link-on-demand)) and runs four scenarios on each:
+`src/studio/ui/tests/visual/daw-slow-link.spec.ts` holds the rule that the narrator does not notice a slow DAW (#3752). It puts the mock's DAW link on six profiles (0 ms, 300 ms, 1 s, 3 s, 10 s, and a stall of 8 s that recovers; [A slow link on demand](../architecture/reaper-bridge.md#a-slow-link-on-demand)) and runs five scenarios on each:
 
 | Scenario | Fails when |
 | --- | --- |
-| The Booth opens ready | The voice or Record is not on screen within 1.5 s, or opening the page raises an error toast |
+| The Booth opens with its voice at once | The voice or Record is not on screen within 1.5 s |
+| Opening the Booth raises no error | An error toast appears while the page's reads and its arm come back |
 | A lane key shows its lane at once and its take starts | The lane is not shown within 1.5 s of the key, the lane is lost, the take does not start, or an error toast is raised |
 | The engine panel lists the tracks | The tracks are not on screen within 2.5 s, the saved-project fallback is shown for a REAPER that is only slow, or the panel does not close at once |
 | Check recordings opens | The dialog is not usable within 1.5 s, or it reports the links unread or REAPER not answering |
@@ -121,7 +122,7 @@ pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts -g "
 - A cell that fails today is listed in the spec's `KNOWN` table with what the narrator gets, and runs as an expected failure (`test.fail`): the change that fixes it must remove the entry, because an expected failure that passes fails the run. Add no entry for new work.
 - The profile is set in the address (`?mockDawLatency=3s`) for a page that opens on a slow link, and from the test (`window.__NARRATION_MOCK_DAW_LATENCY__`) for a link that turns slow under a page that is up.
 - It does not cover Editing's follow, Pickups or the Script page; those are still to add.
-- Run it alone: `pnpm --dir src/studio/ui exec playwright test tests/visual/daw-slow-link.spec.ts --trace off` (about 30 s).
+- Run it alone: `pnpm --dir src/studio/ui exec playwright test tests/visual/daw-slow-link.spec.ts --trace off` (about 45 s).
 
 ## Mock match
 

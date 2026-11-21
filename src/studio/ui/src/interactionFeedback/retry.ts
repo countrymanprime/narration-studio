@@ -57,15 +57,22 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/controls/SyncEnabledBody.tsx#1': no(BT),
   'src/components/settings/controls/DiagnosticsSection.tsx#1': no(BT),
   'src/components/settings/controls/DiagnosticsSection.tsx#2': no(BT),
+  'src/components/settings/controls/NewChapterTracksBody.tsx#1': no(
+    'The list is read when the row opens and again when voice assignments change; the narrator is in Settings and opens the row again when it matters.',
+  ),
+  'src/components/settings/controls/NewChapterTracksBody.tsx#2': no(BT),
   'src/components/settings/controls/VoicesBody.tsx#1': no(
     'The chapter list is read when the row opens; the narrator is in Settings and opens the row again when it matters.',
   ),
   'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
     'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',
   ),
-  'src/components/connection/ChapterLinkDialog.tsx#1': no(ED),
-  'src/components/connection/ChapterLinkDialog.tsx#2': no(RF),
-  'src/components/connection/ChapterLinkDialog.tsx#3': no(ED),
+  'src/components/connection/ChapterLinkDialog.tsx#1': no(
+    'The list is read again by Check again and on every window focus, and Create works without it (with the last choice the host remembers), so a button here would have nothing more to retry.',
+  ),
+  'src/components/connection/ChapterLinkDialog.tsx#2': no(ED),
+  'src/components/connection/ChapterLinkDialog.tsx#3': no(RF),
+  'src/components/connection/ChapterLinkDialog.tsx#4': no(ED),
   'src/components/mapping/ChapterTrackLinkFix.tsx#1': no(ED),
   'src/components/chapterTracks/ChapterTrackState.tsx#2': yes(
     'The links read of the check on a link the chapter already has changes nothing; Retry reads the tracks and the links again.',
