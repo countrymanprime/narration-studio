@@ -204,4 +204,18 @@ describe('BackupsSection', () => {
     await waitFor(() => expect((box as HTMLInputElement).value).toBe(''));
     expect(registry.heldNow()).toEqual([]);
   });
+
+  // #3877 B1 of the second qa pass: a save re-read the rows and cleared every box's value, so a refused value held in the other box vanished.
+  it('a held out-of-range value survives a save of the other box', async () => {
+    const { saveSettings } = renderSection();
+    const window = await windowBox();
+    fireEvent.change(window, { target: { value: '5' } });
+    const days = await retentionBox();
+    fireEvent.change(days, { target: { value: '30' } });
+    fireEvent.blur(days);
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'backups.retention_days': '30' }));
+    await act(async () => undefined);
+    expect((window as HTMLInputElement).value).toBe('5');
+    expect(registry.heldNow().map((held) => held.label)).toEqual(['a backups value outside its range']);
+  });
 });

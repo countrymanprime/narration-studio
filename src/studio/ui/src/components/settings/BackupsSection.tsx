@@ -143,7 +143,6 @@ export function BackupsSection() {
   const readSettings = useCallback(async () => {
     const [global, project] = await Promise.all([system.settingsForScope('global'), system.settingsForScope('project')]);
     setRows(rowsOf(global[TOOL] ?? [], project[TOOL] ?? []));
-    setDrafts({});
   }, [system]);
 
   useEffect(() => {
@@ -170,6 +169,8 @@ export function BackupsSection() {
         await system.saveSettings(TOOL, scope, values);
         setSaveError('');
         await readSettings();
+        // Only what was saved leaves the form: a value held in the other box because its range refuses it stays (#3877 B1).
+        setDrafts((current) => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in values))));
       } catch (error) {
         setSaveError(describeApiError(error));
       }

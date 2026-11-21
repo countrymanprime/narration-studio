@@ -231,7 +231,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'both',
     def: '',
     desc: 'How far back and how long Audacity backups are kept.',
-    more: 'The window and the retention of the audio copies the app keeps while Audacity records, A value saved here is kept for every project unless the project already has its own. Editing’s Backups tab is a shortcut to the same keys.',
+    more: 'The window and the retention of the audio copies the app keeps while Audacity records. A value saved here is kept for every project unless the project already has its own. Editing’s Backups tab is a shortcut to the same keys.',
     used: ['editing'],
     also: 'Editing › Backups',
     syn: 'window days retention audacity backup',
