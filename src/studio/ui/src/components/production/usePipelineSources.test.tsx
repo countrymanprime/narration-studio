@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { StudioProvider } from '../../studio/StudioProvider';
+import { useChapters } from '../../studio/useChapters';
 import { ApiProvider } from '../../api/ApiContext';
 import type { Finding } from '../../api/contracts/findings';
 import type { ScriptPrep } from '../../api/contracts/scriptPrep';
@@ -117,5 +119,21 @@ describe('usePipelineSources', () => {
     down = true;
     view.rerender({ key: 'b' });
     await waitFor(() => expect(view.result.current.prep).toBeUndefined());
+  });
+});
+
+describe('usePipelineSources under the store (#3658)', () => {
+  it('shares the chapter list with the other readers instead of reading it again', async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'manuscriptChapters');
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result } = renderHook(() => ({ chapters: useChapters(), pipeline: usePipelineSources(true, 'a') }), { wrapper });
+    await waitFor(() => expect(result.current.chapters.chapters).toBeDefined());
+    await waitFor(() => expect(result.current.pipeline.prep).toBeDefined());
+    expect(read).toHaveBeenCalledTimes(1);
   });
 });
