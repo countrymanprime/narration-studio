@@ -239,6 +239,19 @@ describe('a new entry', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it('a name that draws nothing is refused like an empty one and creates nothing (#3382 f)', async () => {
+    const api = createMockApi();
+    const create = vi.spyOn(api, 'guideCreate');
+    mount(api);
+    await screen.findAllByText('Alice');
+    const field = await addEntity();
+    await userEvent.clear(field);
+    await userEvent.type(field, String.fromCodePoint(0x200b, 0x200d));
+    await chooseCharacter();
+    expect(await screen.findByText('Give this entry a name.')).toBeTruthy();
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('a name another entry has is refused naming that entry', async () => {
     const api = createMockApi();
     const create = vi.spyOn(api, 'guideCreate');
