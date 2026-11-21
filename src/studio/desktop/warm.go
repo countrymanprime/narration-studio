@@ -11,8 +11,8 @@ import "fmt"
 func (h *Host) warmProject() {
 	// The fill is a convenience: whatever goes wrong in it, the pages read the same things themselves and report it there.
 	defer func() {
-		if failure := recover(); failure != nil && h.log != nil {
-			_ = h.log.Report("project_warm_failed", fmt.Sprint(failure))
+		if failure := recover(); failure != nil {
+			h.reportWarmFailure(failure)
 		}
 	}()
 	svc := h.services()
@@ -24,4 +24,10 @@ func (h *Host) warmProject() {
 	}
 	replaced := func() bool { return h.services().coverage != svc.coverage }
 	svc.coverage.Warm(coverageSettings(svc.settings).Alignment, replaced)
+}
+
+// reportWarmFailure writes what a fill panicked with to the host log. A panic in one of the fill's workers arrives as a
+// coverage.WarmFailure, which prints as its value and the worker's stack; any other panic is logged as its value.
+func (h *Host) reportWarmFailure(failure any) {
+	_ = h.log.Report("project_warm_failed", fmt.Sprint(failure))
 }
