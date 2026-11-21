@@ -23,6 +23,7 @@ import { MANUSCRIPT_CHANGED } from './studio/slots';
 import type { ContextMenuItem } from './components/primitives/ContextMenu';
 import type { ManuscriptChapter } from './api/contracts/manuscript';
 import { useDawKind } from './useDawKind';
+import { useProjectDaw } from './components/settings/data/useProjectDaw';
 import { useTheme } from './theme/ThemeContext';
 import { useUserKeymap } from './input/useUserKeymap';
 import { useNavCounts } from './components/layout/useNavCounts';
@@ -334,6 +335,9 @@ function AppRoutes() {
   const journal = useJournal();
   const overlay = useOverlay();
   const dawKind = useDawKind();
+  // The tool the project records with. The capability report's `daw` stays REAPER until Audacity answers, so the header chip follows this instead (#3382 d).
+  const chosenDaw = useProjectDaw(dawKind ?? '');
+  const chipDaw = chosenDaw === 'Audacity' || chosenDaw === 'REAPER' ? chosenDaw : dawKind;
   // Audacity's link state (null-safe: `chosen` is false for a project that records elsewhere); the header chip reads it for an Audacity project.
   const audacityLink = useAudacityLink();
   const theme = useTheme();
@@ -1420,7 +1424,7 @@ function AppRoutes() {
                     dawProjectMatches={data.dawProjectMatches}
                     linkingDawFile={dawLink.isBusy}
                     engine={engine}
-                    daw={dawKind}
+                    daw={chipDaw}
                     audacity={audacityLink.link}
                     navCounts={navCounts}
                     onOpenJump={() => openJump()}
