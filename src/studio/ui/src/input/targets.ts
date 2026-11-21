@@ -61,6 +61,37 @@ export function keyLayerOpen(root: ParentNode = document): boolean {
 }
 
 const HIDDEN = '[hidden], [inert], [aria-hidden="true"]';
+// A Base UI popup stays in the page, marked `data-ending-style`, until its exit has run, and the exit waits for a frame (late on a loaded machine). The
+// popup that closed on a key still owns that key (the pedal's Space closes it and must not also reach the page), but a key pressed after it has closed
+// owns nothing: it belongs to the page, and focus is still on a control inside the popup until the popup is gone (#3906, #3931).
+const CLOSING = '[data-ending-style]';
+
+/** What a keydown met when it began, before anything it triggered could close a popup: whether a popup that has not begun closing owns the keys, and whether its target is inside one that has. */
+export type KeyContext = { layerOpen: boolean; targetClosing: boolean };
+
+const keyContexts = new WeakMap<Event, KeyContext>();
+let watching = false;
+
+/** Notes each keydown's `KeyContext` at the window's capture phase, ahead of every listener that could close a popup. Once; a no-op without a window. */
+export function watchKeyContext(): void {
+  if (watching || typeof window === 'undefined') return;
+  watching = true;
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      const target = event.target;
+      const open = Array.from(document.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest(`${HIDDEN}, ${CLOSING}`));
+      keyContexts.set(event, { layerOpen: open, targetClosing: target instanceof Element && target.closest(CLOSING) !== null });
+    },
+    true,
+  );
+}
+
+/** The `KeyContext` noted for a keydown, or undefined for one the watch did not see. */
+export function keyContextOf(event: Event): KeyContext | undefined {
+  return keyContexts.get(event);
+}
+
 const SOFT_LAYER = '[role="menu"], [data-popover-popup]';
 const MODAL_LAYER = '[role="alertdialog"], [role="dialog"]:not([data-popover-popup])';
 
