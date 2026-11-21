@@ -1,4 +1,4 @@
-import { handFocusToPage } from './focusReturn';
+import { focusIsInAnotherPopup, handFocusToPage } from './focusReturn';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
@@ -106,7 +106,12 @@ export function Popover({
           <BasePopover.Popup
             ref={popup}
             initialFocus={focusPopup ? popup : undefined}
-            finalFocus={() => (focusPageOnClose?.() ? handFocusToPage() : true)}
+            finalFocus={() => {
+              // Another popup that opened while this one was leaving has the focus now (its exit waits a frame): giving focus back to this one's trigger would
+              // take it from the new popup, and Escape would no longer close that (#3949).
+              if (focusIsInAnotherPopup(popup.current)) return false;
+              return focusPageOnClose?.() ? handFocusToPage() : true;
+            }}
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
             className={`max-h-[var(--available-height)] w-max ${compact ? COMPACT_WIDTH : WIDTH} overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}

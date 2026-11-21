@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import { rememberClosedTarget } from './dialogClosed';
-import { escapeClosesPanel, focusPageMain, useReturnFocusTarget } from './focusReturn';
+import { escapeClosesPanel, focusIsInAnotherPopup, focusPageMain, useReturnFocusTarget } from './focusReturn';
 
 afterEach(cleanup);
 
@@ -215,5 +215,46 @@ describe('focusPageMain with a <main> inside an inert subtree', () => {
       </div>,
     );
     expect(focusPageMain()).toBe(false);
+  });
+});
+
+describe('focusIsInAnotherPopup', () => {
+  const page = (html: string) => {
+    document.body.innerHTML = html;
+    return {
+      own: document.getElementById('own'),
+      mine: document.getElementById('mine'),
+      other: document.getElementById('other'),
+      ending: document.getElementById('ending'),
+    };
+  };
+
+  it('is false with focus on the body or on a control of the page', () => {
+    const { own } = page('<button id="page">x</button><div id="own" data-popover-popup=""></div>');
+    expect(focusIsInAnotherPopup(own)).toBe(false);
+    document.getElementById('page')!.focus();
+    expect(focusIsInAnotherPopup(own)).toBe(false);
+  });
+
+  it('is false with focus inside the leaving popup itself', () => {
+    const { own, mine } = page('<div id="own" data-popover-popup="" data-ending-style=""><input id="mine" /></div>');
+    mine!.focus();
+    expect(focusIsInAnotherPopup(own)).toBe(false);
+  });
+
+  it('is true with focus inside a popup that opened while this one was leaving', () => {
+    const { own, other } = page(
+      '<div id="own" data-popover-popup="" data-ending-style=""></div><div role="dialog" data-popover-popup=""><input id="other" /></div>',
+    );
+    other!.focus();
+    expect(focusIsInAnotherPopup(own)).toBe(true);
+  });
+
+  it('is false with focus inside another popup that is itself leaving', () => {
+    const { own, ending } = page(
+      '<div id="own" data-popover-popup="" data-ending-style=""></div><div role="dialog" data-popover-popup="" data-ending-style=""><input id="ending" /></div>',
+    );
+    ending!.focus();
+    expect(focusIsInAnotherPopup(own)).toBe(false);
   });
 });
