@@ -40,3 +40,41 @@ func TestSaveSucceedsWhileAReaderHoldsTheFileOpen(t *testing.T) {
 		t.Fatalf("content = %q, want new", got)
 	}
 }
+
+func TestReadFileMaxStopsAtTheLimitWhateverTheSizeSaid(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "f")
+	if err := os.WriteFile(path, make([]byte, 100), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if raw, err := ReadFileMax(path, 100); err != nil || len(raw) != 100 {
+		t.Fatalf("a file at the limit: %d bytes, %v", len(raw), err)
+	}
+	if _, err := ReadFileMax(path, 99); !errors.Is(err, ErrTooLarge) {
+		t.Fatalf("a file over the limit: err = %v, want ErrTooLarge", err)
+	}
+	if raw, err := ReadFileMax(filepath.Join(dir, "none"), 10); err == nil || raw != nil {
+		t.Fatalf("a missing file answered %d bytes and %v", len(raw), err)
+	}
+}
+
+// The refusal is by mode, so it is tested on every platform, not only where a named pipe can be made.
+func TestRefuseNonFileByMode(t *testing.T) {
+	for name, tc := range map[string]struct {
+		mode    fs.FileMode
+		refused bool
+	}{
+		"a regular file":     {0o644, false},
+		"a folder":           {fs.ModeDir, false},
+		"an irregular file":  {fs.ModeIrregular, false},
+		"a named pipe":       {fs.ModeNamedPipe, true},
+		"a socket":           {fs.ModeSocket, true},
+		"a device":           {fs.ModeDevice, true},
+		"a character device": {fs.ModeDevice | fs.ModeCharDevice, true},
+	} {
+		err := refuseNonFile("x", tc.mode)
+		if tc.refused != errors.Is(err, ErrNotAFile) {
+			t.Errorf("%s: refuseNonFile = %v, want refused %v", name, err, tc.refused)
+		}
+	}
+}

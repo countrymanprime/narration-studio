@@ -213,6 +213,67 @@ describe('CommandRouter', () => {
     input.remove();
   });
 
+  it('a control left in a popup that has begun to close no longer owns a plain key (#3906, #3931)', () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    render(
+      <CommandRouter source={source} catalog={[PAGE_COMMAND]} keymap={keymapFor(PAGE_COMMAND)}>
+        <CommandScope kind="page">
+          <Registrar id="test.page" onFire={onFire} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+    const radio = document.createElement('span');
+    radio.setAttribute('role', 'radio');
+    document.body.appendChild(radio);
+
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: radio }));
+    expect(onFire).not.toHaveBeenCalled();
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: radio, context: { layerOpen: false, targetClosing: true } }));
+    expect(onFire).toHaveBeenCalledTimes(1);
+    radio.remove();
+  });
+
+  it.each(['Space', 'Enter', 'NumpadEnter'])(
+    "%s on a control left in a popup that has begun to close is still the control's, not the page's (#3931)",
+    (code) => {
+      const source = fakeSource();
+      const onFire = vi.fn();
+      const keymap: Keymap = { 'test.page': [gesture('keyboard', code)] };
+      render(
+        <CommandRouter source={source} catalog={[PAGE_COMMAND]} keymap={keymap}>
+          <CommandScope kind="page">
+            <Registrar id="test.page" onFire={onFire} />
+          </CommandScope>
+        </CommandRouter>,
+      );
+      const radio = document.createElement('span');
+      radio.setAttribute('role', 'radio');
+      document.body.appendChild(radio);
+
+      act(() => source.emit({ gesture: gesture('keyboard', code), target: radio, context: { layerOpen: false, targetClosing: true } }));
+      expect(onFire).not.toHaveBeenCalled();
+      radio.remove();
+    },
+  );
+
+  it("a key that began while a popup was open stays behind it, whatever has closed it since (the pedal's Space closes the popup before the router reads the key)", () => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    render(
+      <CommandRouter source={source} catalog={[PAGE_COMMAND]} keymap={keymapFor(PAGE_COMMAND)}>
+        <CommandScope kind="page">
+          <Registrar id="test.page" onFire={onFire} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+    // No popup is in the page now; the note says one was open when the key began.
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: document.body, context: { layerOpen: true, targetClosing: false } }));
+    expect(onFire).not.toHaveBeenCalled();
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyP'), target: document.body, context: { layerOpen: false, targetClosing: false } }));
+    expect(onFire).toHaveBeenCalledTimes(1);
+  });
+
   it('does not apply the target guard to a gesture with a modifier held', () => {
     const source = fakeSource();
     const onFire = vi.fn();

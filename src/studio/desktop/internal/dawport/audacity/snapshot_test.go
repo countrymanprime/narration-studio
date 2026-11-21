@@ -1,6 +1,7 @@
 package audacity
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -138,6 +139,37 @@ func TestSnapshotRefusesWhatItCannotTrust(t *testing.T) {
 	}
 	if _, err := (SnapshotReader{}).ReadProject(filepath.Join(dir, "none.json")); err == nil {
 		t.Error("a missing file was read as a project")
+	}
+}
+
+func TestSnapshotReaderParsesTheBytesItIsGivenNotTheFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), SnapshotFile)
+	if err := os.WriteFile(path, []byte(`{"version": 1, "tracks": [{"name": "On disk", "start": 0, "end": 10}], "labels": []}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	project, err := SnapshotReader{}.ParseProject(path, []byte(`{"version": 1, "tracks": [{"name": "Given", "start": 0, "end": 10}], "labels": []}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(project.Tracks) != 1 || project.Tracks[0].Name != "Given" || project.Path != path {
+		t.Errorf("ParseProject = %+v, want the track of the bytes it was given, at path", project)
+	}
+}
+
+func TestSnapshotReaderRefusesAnOversizedFileFromItsSize(t *testing.T) {
+	path := filepath.Join(t.TempDir(), SnapshotFile)
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Truncate(path, maxSnapshotBytes+1); err != nil { // sparse: nothing is written
+		t.Fatal(err)
+	}
+	want := fmt.Sprintf("the Audacity snapshot is too large to read (%d bytes)", maxSnapshotBytes+1)
+	if _, err := (SnapshotReader{}).ReadProject(path); err == nil || err.Error() != want {
+		t.Errorf("ReadProject: err = %v, want %q", err, want)
+	}
+	if _, err := (SnapshotReader{}).ParseProject(path, make([]byte, maxSnapshotBytes+1)); err == nil || err.Error() != want {
+		t.Errorf("ParseProject: err = %v, want %q", err, want)
 	}
 }
 

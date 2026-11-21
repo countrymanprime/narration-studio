@@ -1,5 +1,6 @@
 import { gestureFromKeyboardEvent } from './gestures';
 import type { GestureEvent, InputSource } from './InputSource';
+import { keyContextOf, watchKeyContext } from './targets';
 
 /**
  * The Must input source (Solution Detail): a `keydown` listener on `document`, normalising modifiers through
@@ -13,6 +14,7 @@ import type { GestureEvent, InputSource } from './InputSource';
 export function createKeyboardSource(target: Pick<Document, 'addEventListener' | 'removeEventListener'> = document): InputSource {
   return {
     subscribe(onGesture: (event: GestureEvent) => void): () => void {
+      watchKeyContext();
       const onKeyDown = (event: Event) => {
         const keyboardEvent = event as KeyboardEvent;
         onGesture({
@@ -21,6 +23,7 @@ export function createKeyboardSource(target: Pick<Document, 'addEventListener' |
           target: keyboardEvent.target,
           preventDefault: () => keyboardEvent.preventDefault(),
           consumed: () => keyboardEvent.defaultPrevented,
+          ...(keyContextOf(keyboardEvent) ? { context: keyContextOf(keyboardEvent)! } : {}),
         });
       };
       target.addEventListener('keydown', onKeyDown);
