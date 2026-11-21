@@ -331,7 +331,9 @@ test('row 28: Alt+[ and Alt+] step between bookmarks', async ({ page }) => {
 test('row 29: the footer lists the Booth keys from the catalogue', async ({ page }) => {
   await open(page);
   const hints = page.getByRole('note', { name: 'Keyboard shortcuts' });
-  for (const label of [/Record \/ stop/, /Roll again/, /Phrase/, /Word/, /Bookmark/, /Full screen/, /Exit/]) await expect(hints).toContainText(label);
+  for (const label of [/Record \/ stop/, /Phrase/, /Word/, /Bookmark/, /Full screen/, /Exit/]) await expect(hints).toContainText(label);
+  // R is Record until a take runs, so its Roll again hint is not listed before one.
+  await expect(hints).not.toContainText(/Roll again/);
 });
 
 test('row 30: F11 asks for full screen', async ({ page }) => {
