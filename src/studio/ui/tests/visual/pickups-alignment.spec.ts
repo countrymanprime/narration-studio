@@ -20,6 +20,40 @@ const headings = (page: Page) =>
     .locator('thead th')
     .evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().left)));
 
+// #3590: the time is written to the millisecond (00:02:11.000), so the Time column must hold all of it, and the Type chip must not sit on it.
+for (const size of [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'small-desktop', width: 1024, height: 768 },
+]) {
+  test(`Pickups / the whole time fits its cell, clear of the type chip / ${size.name}`, async ({ page }) => {
+    await open(page, 'list', size.width, size.height);
+    const cells = await card(page)
+      .locator('tr[data-pk]')
+      .evaluateAll((rows) =>
+        rows.map((row) => {
+          const [, time, type] = [...row.children] as HTMLElement[];
+          const text = time!.querySelector('span,div') ?? time!;
+          const range = document.createRange();
+          range.selectNodeContents(time!);
+          return {
+            text: time!.textContent,
+            textRight: range.getBoundingClientRect().right,
+            cellRight: time!.getBoundingClientRect().right,
+            typeLeft: type!.getBoundingClientRect().left,
+            clipped: time!.scrollWidth > time!.clientWidth,
+            hasSpan: Boolean(text),
+          };
+        }),
+      );
+    expect(cells.length).toBeGreaterThan(0);
+    for (const cell of cells) {
+      expect(cell.text, 'a full-form time').toMatch(/00:\d\d:\d\d\.\d{3}/);
+      expect(cell.clipped, cell.text ?? '').toBe(false);
+      expect(cell.textRight, cell.text ?? '').toBeLessThanOrEqual(cell.typeLeft);
+    }
+  });
+}
+
 for (const size of [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'small-desktop', width: 1024, height: 768 },

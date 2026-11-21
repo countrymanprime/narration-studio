@@ -7,7 +7,7 @@ import { statusLabel, statusTone } from '../../../kinds/statusTone';
 import { registerBoothSection } from '../side/sections';
 import { DIM_CLASS, SideSection } from '../side/SideSection';
 import type { PickupSessionModel } from './usePickupSession';
-import { clock } from '../../../clock';
+import { clock } from '../../pickups/list/pickupRows';
 
 const rowLabel = (line: PickupItem, chapterLabel: (chapterId: string) => string): string =>
   [chapterLabel(line.chapterId), line.time === null ? '' : clock(line.time)].filter(Boolean).join(' · ');

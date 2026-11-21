@@ -36,7 +36,7 @@ const ROW_HEIGHT = '[&>td]:h-[57px]';
  * Fixed columns, so a Recorded line, a left-out line or a chapter switch never moves them (alignment audit XPK-3): include, Time, Type,
  * the line (the rest), From, Status (the pill and "Not in the DAW yet" under it) and the four actions with Remove set apart.
  */
-const COLUMNS = ['2.625rem', '4.75rem', '6.5rem', 'auto', '4.5rem', '6.25rem', '12rem'] as const;
+const COLUMNS = ['2.625rem', '7.25rem', '6.5rem', 'auto', '4.5rem', '6.25rem', '12rem'] as const;
 /**
  * Every cell starts at the row's top, 10 px in, and each one-line cell is a 36 px box (the icon buttons' height) centring what it holds,
  * so the checkbox, time, chip, source, status and buttons sit on the line's first text line in a tall row as in a short one (XPK-1).
