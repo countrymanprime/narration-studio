@@ -104,6 +104,8 @@ function TypeRow({
           choices={COLOUR_CHOICES}
           value={type.colour}
           pending={busy}
+          // `pending` alone leaves the box looking live and lets the swatches open, where a pick is then dropped; disabled is the visible refusal.
+          disabled={busy}
           onChange={(colour) => {
             if (colour) onColour(type.name, colour);
           }}

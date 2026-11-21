@@ -271,6 +271,24 @@ describe('Story Bible types panel (SN-M53)', () => {
     await waitFor(() => expect(within(panel()).getByRole('button', { name: 'Add type' }).getAttribute('aria-disabled')).toBeNull());
   });
 
+  // The ux-reviewer's fifth pass on #3674: while a change was out the colour box looked live and its swatches opened, then a pick was dropped.
+  it('the colour box is disabled while a change is out, so no swatch can be picked and dropped', async () => {
+    const api = await renderPanel();
+    let finish: () => void = () => {};
+    vi.spyOn(api, 'guideTypeSetSpeaks').mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    fireEvent.click(within(panel()).getAllByRole('checkbox', { name: /Can speak/ })[3]!);
+    await act(async () => undefined);
+    const box = within(panel()).getByRole('button', { name: /^Colour for Place/ });
+    expect((box as HTMLButtonElement).disabled).toBe(true);
+    await act(async () => finish());
+    await waitFor(() => expect((within(panel()).getByRole('button', { name: /^Colour for Place/ }) as HTMLButtonElement).disabled).toBe(false));
+  });
+
   it('remove is disabled on the last type', async () => {
     const api = createMockApi();
     api.guideTypes = async () => [{ name: 'Character', colour: 'green', speaks: true }];
