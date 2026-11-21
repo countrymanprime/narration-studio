@@ -326,3 +326,37 @@ H.test('a revision that cannot be read is sent empty and the heartbeat goes on',
   H.eq(event[9], '')
   H.eq(later, 1, 'the next heartbeat is sent too')
 end)
+
+H.test('one edit just after a heartbeat is read when the wait ends, not at the next interval', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake.clock_step = 0.01
+  s.fake:add_track('Chapter 1')
+  local before = revision_after_tick(s)
+  s.fake.tracks[1].name = 'Prologue'
+  s.fake.change_count = s.fake.change_count + 1 -- once: the counter is still from here on
+  local sent, after = 0, nil
+  for _ = 1, 40 do -- 0.4 s, well inside the 1.5 s interval
+    s:tick()
+    for _, event in ipairs(s:all_events()) do
+      sent, after = sent + 1, event[9]
+    end
+  end
+  H.eq(sent, 1, 'the rename is sent once the tenth of a second has passed')
+  H.eq(after ~= before, true)
+end)
+
+H.test('a revision that can no longer be read replaces the last one with an empty one at once', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  local before = revision_after_tick(s)
+  H.eq(#before, 16)
+  local real = reaper.GetTrackGUID
+  reaper.GetTrackGUID = function()
+    error('REAPER raised')
+  end
+  s.fake.change_count = s.fake.change_count + 1
+  local after, sent = revision_after_tick(s)
+  reaper.GetTrackGUID = real
+  H.eq(sent, 1, 'a heartbeat is sent at once: the host must not keep a list on a revision REAPER no longer confirms')
+  H.eq(after, '')
+end)

@@ -163,7 +163,8 @@ def list_edits_change_the_revision(env: Env) -> str:
             # The read above took a round trip; the heartbeat with the new revision must already be there or arrive well inside the interval.
             heartbeat_carries(env, after, timeout=5.0)
             row["seconds_from_edit"] = round(time.monotonic() - sent, 3)
-            if after == before or row["seconds_from_edit"] > 1.0:
+            # Well under the 1.5 s interval: a heartbeat that only came on its interval would pass a looser bound by chance.
+            if after == before or row["seconds_from_edit"] > 0.3:
                 failed.append(name)
         elif after != before:
             failed.append(name)

@@ -474,6 +474,18 @@
     "replace": "(now - revision_read_at) >= 0)"
   },
   {
+    "name": "a revision that cannot be read keeps the last one",
+    "file": "narration_ui_bridge.lua",
+    "find": "revision = ok and value or ''",
+    "replace": "revision = ok and value or last_revision"
+  },
+  {
+    "name": "an edit inside the wait is forgotten when the wait ends",
+    "file": "narration_ui_bridge.lua",
+    "find": "      last_change_count, revision_read_at = change_count, now\n    end\n",
+    "replace": "      revision_read_at = now\n    end\n    last_change_count = change_count\n"
+  },
+  {
     "name": "a revision that cannot be read stops the heartbeat",
     "file": "narration_ui_bridge.lua",
     "find": "local ok, value = pcall(registry.tracks_revision)",
