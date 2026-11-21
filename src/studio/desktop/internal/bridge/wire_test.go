@@ -383,3 +383,18 @@ func TestAnOlderScriptsRecordAnswersWithoutTheUndoPointsAreAccepted(t *testing.T
 		t.Error("undo points that are not a number must be an error")
 	}
 }
+
+// #3859: the eighth heartbeat field and the fifth of TRACKS_READ are the track list's revision, any text; a script from before sends neither.
+func TestTheTrackListRevisionIsAnOptionalFieldOfTheHeartbeatAndOfTheTrackRead(t *testing.T) {
+	for _, fields := range [][]string{
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "", "00c0ffee00c0ffee"},
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "1", "00c0ffee00c0ffee"},
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "", ""},
+		{"TRACKS_READ", "r1", "C:/p/Book.rpp", "0", "12", "00c0ffee00c0ffee"},
+		{"TRACKS_READ", "r1", "C:/p/Book.rpp", "0", "12"},
+	} {
+		if err := CheckEvent(fields); err != nil {
+			t.Errorf("%v must be valid: %v", fields, err)
+		}
+	}
+}

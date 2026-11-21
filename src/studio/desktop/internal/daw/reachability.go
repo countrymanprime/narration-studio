@@ -32,6 +32,8 @@ type Reachability struct {
 	// the last heartbeat did not carry one (an older script, or a REAPER without GetProjectStateChangeCount).
 	// +checklocks:mu
 	changeCount int
+	// tracksRevision is the track list's revision from the heartbeat's optional eighth field, "" when the script sent none.
+	tracksRevision string
 	// +checklocks:mu
 	hasChangeCount bool
 	// transport is the heartbeat's optional fifth and sixth fields; hasTransport is false
@@ -106,6 +108,10 @@ func (r *Reachability) Record(event bridge.Event) {
 		hasTransport = true
 	}
 	timing := len(event.Fields) > 7 && event.Fields[7] == "1"
+	tracksRevision := ""
+	if len(event.Fields) > 8 {
+		tracksRevision = event.Fields[8]
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := r.now()
@@ -118,6 +124,19 @@ func (r *Reachability) Record(event bridge.Event) {
 	r.changeCount, r.hasChangeCount = changeCount, hasChangeCount
 	r.transport, r.hasTransport = transport, hasTransport
 	r.timing = timing
+	r.tracksRevision = tracksRevision
+}
+
+// TracksRevision returns the track list's revision from the last heartbeat, and whether it is known: the heartbeat must be fresh and must
+// have carried one (a script from before #3859 sends none). The script computes it from the tracks in order (GUID, name, folder depth) and
+// sends a heartbeat at once when it changes, so a track list read whose own revision equals it is still REAPER's list.
+func (r *Reachability) TracksRevision() (string, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.reachableLocked() || r.tracksRevision == "" {
+		return "", false
+	}
+	return r.tracksRevision, true
 }
 
 // TimingOn reports whether the last heartbeat, still fresh, said the bridge timing diagnostic is switched on in REAPER:

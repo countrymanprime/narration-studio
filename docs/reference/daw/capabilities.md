@@ -112,7 +112,7 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Intent:** know without asking whether the engine is answering, which project it has open, whether that project has unsaved changes, its change count, and the transport state.
 - **Role:** `Heartbeat`, synchronous reads of what the engine last reported.
 - **Result:** `Reachable`, `CurrentProject`, `Matches`, `ChangeCount` and `Transport`. The heartbeat carries the transport and is sent at once when it changes ([The REAPER bridge and its test harness](../../architecture/reaper-bridge.md)).
-- **REAPER:** the bridge's reachability heartbeat ([the bridge](../../architecture/reaper-bridge.md#reachability-heartbeat)).
+- **REAPER:** the bridge's reachability heartbeat ([the bridge](../../architecture/reaper-bridge.md#reachability-heartbeat)). It also carries the track list's revision and is sent at once when the list changes, which is how the host knows to read [`tracks_read`](#tracks_read) again; that is REAPER's own (`Reachability.TracksRevision`), outside the role.
 - **Audacity:** not built.
 - **Checked:** expected result is row A1 of [the verification pass](../../operations/reaper-verification-pass.md#the-rows): the change count is present, whole, and rises after a move, a marker and a save; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-studio/issues/510)).
 
