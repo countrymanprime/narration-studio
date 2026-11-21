@@ -176,11 +176,13 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'added', trackGuid: voice.guid, name: clean };
     },
     async boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice> {
-      const { links, voices, gone } = await voicesOf(chapterId);
+      const { links, voices, gone, allMarked, flat } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
       if (notOne) return notOne;
       if (gone) return refused('track_missing', LINK_GONE);
       if (!voices) return refused('flat', FLAT);
+      // As the host: a folder with no voice to choose from says why (the record start's sentence), not that the track is not a voice.
+      if (voices.length === 0) return refused('no_voices', noVoicesMessage(allMarked, flat));
       const target = voices.find((voice) => voice.guid.toLowerCase() === trackGuid.toLowerCase());
       if (!target) return refused('not_a_voice', NOT_A_VOICE);
       chosen.set(chapterId, target.guid);

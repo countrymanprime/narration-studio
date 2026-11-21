@@ -111,6 +111,18 @@ func TestAFlatFolderOfAMarkedChildAndAnotherChaptersTrackIsRefused(t *testing.T)
 	refusedNoVoices(t, host, ids[0], "marked child plus another chapter's track")
 }
 
+// A punch over a passage recorded before chooses the voice it was recorded on first: with nothing to choose from the answer is the record start's sentence,
+// not "that track is not a voice" (qa-breaker on #3874), in both layouts.
+func TestChoosingAVoiceInAFolderWithNoVoicesSaysWhyInBothLayouts(t *testing.T) {
+	for _, layout := range []string{voicetracks.LayoutFlat, voicetracks.LayoutFolders} {
+		host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), layout, musicBedTrack)
+		got := boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], musicBedTrack)
+		if got.Outcome != "refused" || got.Reason != boothVoiceNoVoices || !strings.Contains(got.Message, "turned off as not a voice") {
+			t.Fatalf("%s: got %+v, want refused with the no-voices sentence", layout, got)
+		}
+	}
+}
+
 // A voice track added to a Flat folder whose every child is marked would be its only voice: the add is refused, naming the switch, as Record is.
 func TestAVoiceIsNotAddedBesideEveryChildMarkedUnderFlat(t *testing.T) {
 	host, ids := newFolderHost(t, folderRpp([2]string{musicBedTrack, "Music bed"}), voicetracks.LayoutFlat, musicBedTrack)

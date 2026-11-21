@@ -548,6 +548,9 @@ describe("the Booth's voices", () => {
     const refused = await api.readAloudRecordStart(chapterId);
     expect(refused).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
     expect(refused.outcome === 'refused' && refused.message).toContain('link the chapter to a track of its own');
+    // A punch over a passage recorded before chooses its voice first: it gets the same sentence, not "that track is not a voice".
+    const chosen = await api.boothVoiceSet(chapterId, everyone[0]);
+    expect(chosen).toMatchObject({ outcome: 'refused', reason: 'no_voices' });
     const { hook, notify } = await mount({}, false, api);
     await waitFor(() => expect(hook.current.linkKind).toBe('marked'));
     await act(async () => hook.current.byKey(1));

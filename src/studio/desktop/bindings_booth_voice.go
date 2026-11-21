@@ -231,14 +231,22 @@ func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Pr
 	// A setup that cannot be read leaves the Narrator to be found by name, as before.
 	setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	if len(voices) == 0 {
-		title, _, err := chapterLinksFor(svc, chapterID)
+		refused, err := noVoicesRefusal(svc, chapterID, link, project, setup.Layout)
 		if err != nil {
 			return "", nil, err
 		}
-		refused := readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. %s", title, noVoicesFix(svc, link, project, setup.Layout)))
 		return "", &refused, nil
 	}
 	return voiceFor(voices, svc.boothVoices.For(chapterID), setup), nil, nil
+}
+
+// noVoicesRefusal is the refusal for a chapter linked to a folder with no voices, the one sentence Record, the voice list and a voice choice all give.
+func noVoicesRefusal(svc hostServices, chapterID, link string, project *tracks.Project, layout string) (ReadAloudRecording, error) {
+	title, _, err := chapterLinksFor(svc, chapterID)
+	if err != nil {
+		return ReadAloudRecording{}, err
+	}
+	return readAloudRefused(boothVoiceNoVoices, fmt.Sprintf("%q is linked to a folder with no voice tracks in it. %s", title, noVoicesFix(svc, link, project, layout))), nil
 }
 
 // noVoicesFix is the second half of the refusal for a folder with no voices, naming the fix that works. Under Flat a folder with no voices is
@@ -459,6 +467,16 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		return boothVoiceRefused(boothVoiceFlat, notAFolderSentence(svc,
 			"This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).",
 			noFolderForVoiceKeys)), nil
+	}
+	if len(voices) == 0 {
+		// A folder with no voice to choose from says why, as Record does, not that the track "is not a voice" (a punch over a recorded passage
+		// chooses the voice it was recorded on first).
+		setup, _ := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
+		refused, err := noVoicesRefusal(svc, chapterID, link, &project, setup.Layout)
+		if err != nil {
+			return BoothVoice{}, err
+		}
+		return boothVoiceRefused(refused.Reason, refused.Message), nil
 	}
 	target := ""
 	for _, voice := range voices {
