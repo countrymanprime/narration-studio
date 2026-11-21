@@ -342,7 +342,7 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows 1/2) runs it (`go test (root)`), with go lint, instead of a job of its own."
+      "note": "Test (Windows 1/2) runs it (`go test (root)`), with go lint, test-schedules and the Windows harness, instead of a job of its own."
     },
     {
       "id": "go-test/root-race-untouched",
@@ -374,7 +374,7 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows 2/2) runs it (`go test (rest)`), with test-schedules and the Windows harness."
+      "note": "Test (Windows 2/2) runs it (`go test (rest)`), with the skipped-tests guard."
     },
     {
       "id": "go-test/rest-race-untouched",
