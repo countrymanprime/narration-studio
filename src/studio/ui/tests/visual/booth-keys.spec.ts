@@ -40,11 +40,23 @@ async function focusSettled(page: Page, popup: Locator): Promise<void> {
  * the guard under load and call a settled trap a leak. Poll for a moment; a guard that never hands focus back is still reported, with its markup.
  */
 async function focusInside(page: Page, popup: Locator): Promise<{ inside: boolean; active: string }> {
-  const read = () =>
-    popup.evaluate((el) => {
-      const active = document.activeElement as HTMLElement | null;
-      return { inside: el.contains(active), active: active ? active.outerHTML.slice(0, 240) : 'none' };
-    });
+  // A popup that closes between the caller's visibility check and this read (a Tab out of it closes it) is gone, which is an answer too: a read that waited
+  // for it would wait for the whole test's time (#3931).
+  const read = async () => {
+    try {
+      return await popup.evaluate(
+        (el) => {
+          const active = document.activeElement as HTMLElement | null;
+          return { inside: el.contains(active), active: active ? active.outerHTML.slice(0, 240) : 'none' };
+        },
+        undefined,
+        { timeout: 2000 },
+      );
+    } catch (error) {
+      if ((await popup.count()) === 0) return { inside: true, active: 'the popup closed' };
+      throw error;
+    }
+  };
   const deadline = Date.now() + 1500;
   let where = await read();
   while (!where.inside && (await popup.isVisible()) && Date.now() < deadline) {
@@ -213,6 +225,17 @@ const OVERLAYS: Overlay[] = [
     },
   },
 ];
+
+// #3931: the read of where focus is must not wait for a popup that has just closed.
+test('focusInside answers for a popup that is gone, instead of waiting out the test', async ({ page }) => {
+  await page.setContent('<div role="dialog" aria-label="Gone" tabindex="-1">x</div>');
+  const popup = page.getByRole('dialog', { name: 'Gone' });
+  await expect(popup).toBeVisible();
+  await page.evaluate(() => document.querySelector('[role="dialog"]')?.remove());
+  const started = Date.now();
+  expect(await focusInside(page, popup)).toEqual({ inside: true, active: 'the popup closed' });
+  expect(Date.now() - started).toBeLessThan(5000);
+});
 
 for (const overlay of OVERLAYS) {
   test.describe(`Booth keys with the ${overlay.name} open`, () => {
