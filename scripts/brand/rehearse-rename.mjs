@@ -5,7 +5,8 @@
 //
 // The copy is a detached git worktree of HEAD in the system temp folder (so uncommitted changes are not in it), with its own
 // node_modules and .venv installed from the pnpm store and uv cache the checkout already filled. The checkout itself is never
-// written to. Every check runs, the worktree is removed, and the run fails at the end if any check did.
+// written to. Every check runs, the worktree is removed, and the run fails at the end if any check did. The UI tests, the longest
+// check (120 of 193 s on 4 CPUs, 2026-11-21), run beside the others, which run one after another; their output is printed last.
 //
 //   node scripts/brand/rehearse-rename.mjs [--full] [--keep]
 //     (default)  the per-pull-request run (the rename rehearsal step of _quality.yml's Test (Linux quick)): the guards, the Node script tests, the site build's
@@ -17,8 +18,8 @@
 //                and test-quality failures (the seven-day summary on #3078).
 //     --keep     leaves the worktree in place and prints where it is
 
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +31,7 @@ const REHEARSAL_NAME = ['Zebra', 'Audio', 'Lab'].join(' ');
 
 const DESKTOP = 'src/studio/desktop';
 const UI = 'src/studio/ui';
+const UI_TESTS = 'UI tests that read the brand';
 const node = (...args) => ['node', args];
 const python = (...args) => ['node', ['scripts/quality.mjs', 'python', ...args]];
 
@@ -59,7 +61,7 @@ export function steps(root, full = false) {
     ['Go tests that read the brand', 'go', ['test', './internal/brand/...', './internal/contractfile/...', './internal/deliveryreport/...', './internal/productionreport/...'], DESKTOP],
     ['Python brand tests', ...python('-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'src/studio/libs/python/tests/test_brand.py', 'src/studio/libs/python/tests/test_config_audacity.py')],
     ['Lua bridge harness', ...python('src/studio/integrations/reaper/tests/run_lua_tests.py')],
-    ['UI tests that read the brand', 'pnpm', ['exec', 'vitest', 'run', ...uiBrandTests(root)], UI],
+    [UI_TESTS, 'pnpm', ['exec', 'vitest', 'run', ...uiBrandTests(root)], UI],
   ];
   if (!full) return [...always, ...brandTests];
   // The docs-site tests above already build the docs strictly, so --full adds no docs build of its own.
@@ -72,7 +74,27 @@ export function steps(root, full = false) {
   ];
 }
 
-function main(args) {
+/**
+ * Starts a check beside the others. Its output goes to the file `log`, since nothing reads a pipe while a synchronous check runs.
+ * Returns a function that waits for it, prints its group and says whether it passed.
+ */
+export function startBeside([label, command, commandArgs, cwd = '.'], root, log, print = console.log) {
+  const out = openSync(log, 'w');
+  const child = spawn(command, commandArgs, { cwd: join(root, cwd), stdio: ['ignore', out, out], shell: process.platform === 'win32' });
+  const done = new Promise((resolve) => {
+    child.on('error', () => resolve(false));
+    child.on('close', (code) => resolve(code === 0));
+  });
+  return async () => {
+    const passed = await done;
+    closeSync(out);
+    print(`\n::group::${label}\n${readFileSync(log, 'utf8')}::endgroup::`);
+    rmSync(log, { force: true });
+    return passed;
+  };
+}
+
+async function main(args) {
   const full = args.includes('--full');
   const run = (command, commandArgs, cwd) =>
     execFileSync(command, commandArgs, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
@@ -85,7 +107,9 @@ function main(args) {
     run('uv', ['sync', '--locked', '--group', 'docs'], work);
     const result = renameApp(REHEARSAL_NAME, { root: work });
     console.log(`Renamed the copy at ${work} from "${result.oldName}" to "${result.newName}": ${result.changed.length} files.`);
-    for (const [label, command, commandArgs, cwd = '.'] of steps(work, full)) {
+    const all = steps(work, full);
+    const uiTests = startBeside(all.find(([label]) => label === UI_TESTS), work, `${work}-ui-tests.log`);
+    for (const [label, command, commandArgs, cwd = '.'] of all.filter(([name]) => name !== UI_TESTS)) {
       console.log(`\n::group::${label}`);
       try {
         run(command, commandArgs, join(work, cwd));
@@ -94,6 +118,7 @@ function main(args) {
       }
       console.log('::endgroup::');
     }
+    if (!(await uiTests())) failed.push(UI_TESTS);
   } finally {
     if (args.includes('--keep')) console.log(`The renamed copy is at ${work} (git worktree remove --force ${work} removes it).`);
     else run('git', ['worktree', 'remove', '--force', work], REPOSITORY_ROOT);
@@ -107,4 +132,4 @@ function main(args) {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main(process.argv.slice(2));
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main(process.argv.slice(2));
