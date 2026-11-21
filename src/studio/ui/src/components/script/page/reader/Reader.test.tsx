@@ -259,6 +259,22 @@ describe('the remembered position', () => {
     expect(scrolls.get(scroller())).toBe(350);
   });
 
+  // #3821: the place was saved under the credits' id, which is no chapter, so the reader opened on chapter 1.
+  it.each([
+    ['opening', { before: <div data-bound="" data-ch="credits:opening" /> }, 'credits:opening', 0],
+    ['closing', { after: <div data-bound="" data-ch="credits:closing" /> }, 'credits:closing', 800],
+  ])('opens where the narrator was when that place is the %s credits', (_kind, slot, chapterId, top) => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId, offset: 30 }));
+    render(<Reader {...props(slot)} />);
+    expect(scrolls.get(scroller())).toBe(top + 30);
+  });
+
+  it('opens at the first chapter when the remembered section is not in this book', () => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'credits:"closing', offset: 30 }));
+    render(<Reader {...props({ before: <div data-bound="" data-ch="credits:opening" /> })} />);
+    expect(scrolls.get(scroller())).toBe(92);
+  });
+
   it('opens at the given chapter when nothing is remembered', () => {
     render(<Reader {...props({ initialChapterId: 'c3' })} />);
     expect(scrolls.get(scroller())).toBe(592);
@@ -455,6 +471,16 @@ describe('a long book', () => {
     expect(document.querySelector('[data-bound][data-ch="k200"] [data-pending-card]')).toBeNull();
     expect(document.querySelectorAll('[data-card]').length).toBeLessThanOrEqual(10);
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(CHAPTERS);
+  });
+
+  // The closing credits are no chapter, so under them nothing asked for the last chapter: its end, in view above them, was a blank block.
+  it('draws the chapter that ends above the closing credits when they are at the top of the reader', () => {
+    const renderChapterCard = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);
+    const closing = <div data-bound="" data-ch="credits:closing" />;
+    render(<Reader chapters={many} paragraphsOf={() => []} sources={sources} renderChapterCard={renderChapterCard} after={closing} />);
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(400);
+    scrollTo((document.querySelector('[data-bound][data-ch="credits:closing"]') as HTMLElement).offsetTop - 8);
+    expect(document.querySelector(`[data-bound][data-ch="k${CHAPTERS - 1}"] [data-card]`)).not.toBeNull();
   });
 
   // Short chapters, or a tall window: more chapters start inside the reader than two either side of the top one (#3766, the breaker's

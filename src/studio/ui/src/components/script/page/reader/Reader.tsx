@@ -323,11 +323,11 @@ export function Reader(props: ReaderProps) {
 
   /* The spy: the last chapter heading at or above the top of the reader, and the paragraph at its top. */
   /* It answers with the last section that starts inside the reader: short chapters, or a tall window, put more than one in view. */
-  const measure = useCallback((): string | undefined => {
+  const measure = useCallback((): { above?: string; lastInView?: string } => {
     const root = scroller.current;
-    if (!root) return undefined;
+    if (!root) return {};
     const bounds = Array.from(root.querySelectorAll<HTMLElement>('[data-bound]'));
-    if (!bounds.length) return undefined;
+    if (!bounds.length) return {};
     let at = 0;
     let last = 0;
     bounds.forEach((bound, i) => {
@@ -346,17 +346,20 @@ export function Reader(props: ReaderProps) {
       if (row.offsetTop - root.scrollTop <= 80) n = i + 1;
     });
     spy.set({ chapterId, para: rows.length ? `¶ ${Math.max(1, n)} of ${rows.length}` : '' });
-    return bounds[Math.max(at, last)].dataset.ch;
+    // The section before the one at the top is in view, or a short scroll up from it, while that one starts less than a reader's height above the top.
+    const above = bounds[at].offsetTop - root.scrollTop > -root.clientHeight ? bounds[at - 1]?.dataset.ch : undefined;
+    return { above, lastInView: bounds[Math.max(at, last)].dataset.ch };
   }, [spy]);
   const lastReported = useRef<string | null>(null);
   const onSpy = useCallback(() => {
-    const lastInView = measure();
+    const { above, lastInView } = measure();
     const id = spy.get().chapterId;
     if (id && id !== lastReported.current) {
       lastReported.current = id;
       onChapterInView?.(id);
     }
-    const idx = id ? indexOf.get(id) : undefined;
+    // Under a section after a chapter (the closing credits), the chapter that ends above it is the one in view.
+    const idx = (id ? indexOf.get(id) : undefined) ?? (above ? indexOf.get(above) : undefined);
     const to = lastInView ? indexOf.get(lastInView) : undefined;
     if (idx !== undefined) reach(idx, to ?? idx);
     // Under a section that is not a chapter (the opening credits), the chapters in view start at the first.
@@ -402,7 +405,9 @@ export function Reader(props: ReaderProps) {
     restored.current = true;
     const root = scroller.current;
     if (!root || pendingJump || pendingPid || pendingBm || !startChapter) return;
-    held.current = { chapterId: startChapter, offset: remembered && startChapter === remembered.chapterId ? remembered.offset : -8 };
+    // The remembered place can be a section that is not a chapter (the credits, #3821): any boundary drawn in the reader counts.
+    const known = remembered && Array.from(root.querySelectorAll<HTMLElement>('[data-bound]')).some((bound) => bound.dataset.ch === remembered.chapterId);
+    held.current = known ? remembered : { chapterId: startChapter, offset: -8 };
     hold();
     // The first draw only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
