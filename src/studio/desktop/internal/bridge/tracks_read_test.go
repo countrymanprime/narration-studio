@@ -132,7 +132,7 @@ func TestReadTracksPassesOnREAPERsOwnRefusal(t *testing.T) {
 func TestReadTracksThatNeverAnswersIsErrNoAnswer(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	actions.SetTimeout(50 * time.Millisecond)
+	actions.SetTimeout(200 * time.Millisecond) // long enough for the fake to read the command, so the wait that ends is the late one
 	actions.SetLateWait(noLateAnswerWithin)
 	if _, err := actions.ReadTracks(context.Background()); !errors.Is(err, ErrNoAnswer) {
 		t.Fatalf("err = %v, want ErrNoAnswer", err)
