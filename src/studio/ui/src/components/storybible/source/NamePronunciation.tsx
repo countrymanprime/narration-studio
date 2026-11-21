@@ -34,7 +34,7 @@ export const NAMES_GRID = {
 };
 
 /** The three columns of the names grid this row fills; below a 32 rem card the row wraps as a flex line instead. */
-const NAME_CELLS = 'col-span-3 grid grid-cols-subgrid gap-y-2 @max-[32rem]:col-span-1 @max-[32rem]:flex @max-[32rem]:flex-wrap @max-[32rem]:gap-2';
+const NAME_CELLS = 'col-span-3 grid grid-cols-subgrid items-start gap-y-2 @max-[32rem]:col-span-1 @max-[32rem]:flex @max-[32rem]:flex-wrap @max-[32rem]:gap-2';
 /** One cell on the name's line: as tall as the row's 36 px buttons, its text on their middle. */
 const CELL = 'flex min-h-9 items-center';
 /** A name with no spaces (a pasted line, a 10,000-character run) breaks anywhere instead of running under the row's buttons (#3382 g). */
@@ -164,7 +164,14 @@ export function NamePronunciation({
     // every row, so a name, a pronunciation and a source button start at one x down the list whatever each row holds; the row's
     // action buttons are the fourth cell. In a narrow card the cells wrap instead, the name on a line of its own.
     <div className={NAME_CELLS} data-name={name}>
-      {showName && <span className={`${CELL} min-w-0 ${NAME_WRAP} ${primary ? 'font-semibold' : 'font-medium'} @max-[32rem]:basis-full`}>{name}</span>}
+      {showName && (
+        <span className={`${CELL} min-w-0 ${primary ? 'font-semibold' : 'font-medium'} @max-[32rem]:basis-full`}>
+          {/* Three lines at most, the whole name on hover: a pasted line is not a reason for a screen of rows (#3382 g). */}
+          <span dir="auto" title={name} className={`line-clamp-3 min-w-0 ${NAME_WRAP}`}>
+            {name}
+          </span>
+        </span>
+      )}
       {editing ? (
         <div className={`${CELL} min-w-[8rem] @max-[32rem]:flex-1`}>
           <TextField
@@ -206,7 +213,7 @@ export function NamePronunciation({
             {candidates.status === 'error' ? (
               <CandidatesCheckAgain view={candidates} />
             ) : candidates.status === 'ready' && candidates.answer.candidates.length === 0 ? (
-              <p className="m-0 text-xs text-[var(--text-muted)]">No dictionary has “{name}”.</p>
+              <p className={`m-0 text-xs text-[var(--text-muted)] ${NAME_WRAP}`}>No dictionary has “{name}”.</p>
             ) : (
               <PronunciationCandidateList
                 word={name}
