@@ -13,7 +13,6 @@ Report a finding only with a file and line.
 
 0. **Design system.** Where a change carries a UI string or a contract the UI draws, the report has `Design system: used <primitive> / hand-rolled <what>` ([rule](../rules/product-rules.md)), or `no UI in this change`.
 1. **One thing per job.** [The rule](../rules/product-rules.md): a new command, event, helper or fake that does what an existing one does is a **blocking** finding unless the PR says `Replaces: <path>` and deletes it.
-
 2. **Harness coverage.** Every new or changed command has a harness test in `src/studio/integrations/reaper/tests` covering the happy path, an error, a stale target, a conflict and a repeat of the same request. A guard that protects data (stale GUID, overwrite without asking, duplicate marker, spurious undo point) has an entry in `src/studio/integrations/reaper/tests/mutations.json` whose removal fails the suite.
 3. **Registration.** The command lives in its own feature file that returns `function(registry)` and calls `registry.register(name, handler)`; the file is in `FEATURE_FILES` of `src/studio/integrations/reaper/narration_ui_bridge.lua` and in `scripts/release/reaper-files.mjs`; the name list in `src/studio/integrations/reaper/tests/registry_test.lua` is updated; a duplicate name is an error.
 4. **Lua 5.4 subset.** No `goto`, no integer division, no bit operators, nothing REAPER's Lua and the harness do not both have. A newer REAPER call is guarded by an existence check, since the script may run on an older REAPER than the app expects.

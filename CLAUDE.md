@@ -21,7 +21,7 @@ Rules for one area live in `.claude/rules/` and load when Claude reads or edits 
 
 | Rule file | Holds |
 | - | - |
-| `.claude/rules/product-rules.md` | The owner's product rules for any app change: one thing per job (search before building; a new thing replaces the old), mock-first behind ports, one theme, development data, outbound data, Settings keeps every setting |
+| `.claude/rules/product-rules.md` | The owner's product rules for any app change: one thing per job (search before building; a new thing replaces the old), the design system as the only source of UI, mock-first behind ports, one theme, development data, outbound data, Settings keeps every setting |
 | `.claude/rules/ui-spec-and-screenshots.md` | What a page builds to; a UI change updates its page's how-to guide and screenshots |
 | `.claude/rules/ui-visual-verification.md` | Visual bug fixes require screenshot verification; the atlas, axe, aria and visual-suite gate rules |
 | `.claude/rules/wire-contracts.md` | Wire contracts |

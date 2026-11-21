@@ -42,7 +42,7 @@ The owner's rule, [one thing per job](../../../rules/product-rules.md), binds ev
 Before building any UI, or any logic a page already has:
 
 - Load `frontend-primitives` first.
-- Find the existing page, modal, panel, primitive or Tailwind class that already does it, and reuse it. A second window, modal or interface for something another page has is a bug.
+- Find the existing page, modal, panel, primitive or Tailwind class that already does it, and reuse it (the rule above).
 - Write no custom CSS or logic where an existing component, hook or utility class covers it. When the existing one falls short, change it so every consumer gets the change, and say so in the PR.
 - A change to a label, message or format greps for every other place that builds the same string, and reads the display rule in `docs/design/design-system.md`.
 - Name, in the PR body, every call site the change shares: each page or component that uses what you changed, and each one the issue says should share it.
