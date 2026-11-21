@@ -830,8 +830,21 @@ a state with extra viewports is more, and the `aria` step ran on the shard that 
   time of tests with the same spec file and the same first two parts of the title (page and state, or page and overlay), else the mean of its spec file.
 - It gives each test, longest first, to the shard with the least estimated time so far, with `aria` (49 s) placed like one more test. The result depends only
   on the listed tests and the weights file, so the shard jobs agree without talking to each other. It fails if the shards do not hold every test exactly once.
+- On a pull request it first narrows the list to what the change touches (`scopeOf`, `importersOf` and `inScope` in the script; [the test speed plan](../research/test-speed-plan-2026-11.md)).
+  The state matrix (`app.spec.ts`, every catalogued page and state at every viewport) always runs whole. A page is touched when a changed module is in
+  its folder under `src/components/`, or when one of the page's files imports the changed module, however far down: the script reads the app's imports,
+  because pages draw each other's code (the Booth uses the Script page's reader fonts). A behaviour spec runs when a touched page is one its text names
+  anywhere (`pagesNamedIn`: a Booth spec that opens Pickups is owed by both); a change that touches Production, the page the app opens on, owes every
+  behaviour spec; a spec named for no page (`dialog-*`, `toast-*`, `crossPage`) runs on any change to the app's source. A page's overlay guard rows run
+  when the page is touched, and every row when an overlay primitive or the shell is reached. A changed spec file runs. A unit test, a story or a doc
+  changes nothing. A module the entry (`main.tsx`) reaches without going through a page's folder runs under every page (the mock host, `App.tsx`,
+  the shell, the key handling), so a change to one runs the whole suite (`underEveryPage`). Any other changed file (a stylesheet or data file in the app, the suite's helpers, catalog or configs, a lockfile, a workflow, a
+  script, another project) runs the whole suite. So a change to a widely used primitive runs everything, and a change to one page's own component
+  runs that page's specs. The step prints the scope, and shard 1 writes it into the run's summary: how many tests run and how many are left. Every
+  run that is not a pull request (`Main health` on `main`, a manual run of `CI` on the branch) splits the whole suite, so a test left off a pull
+  request runs on `main` after the merge, where a red run ticks `HOLD` and opens the `main-red` issue.
 - A shard runs its list with `playwright test --test-list`. Each shard records `shard-<i>.json` (its count, the suite's total, a digest of the list) in the records
-  it uploads, and `CI passed` fails unless all of them exist, split the same list and add up to it. A test that fell between shards would otherwise only be missed
+  it uploads, and `CI passed` fails unless all of them exist, split the same list and add up to it (on a pull request, the narrowed list). A test that fell between shards would otherwise only be missed
   if it wrote a capture record, which the overlay guard and the other specs do not.
 - Six shards, the six of `Test (Linux)` (#3065, #3327). Each also runs a sixth of the Vitest run and of the atlas, so a shard holds about 21 minutes of work under the
   30-minute limit, with room for a slow `setup-playwright` (9 to 11 minutes seen). `split --reserve-first <seconds>` starts shard 1 with that much load
