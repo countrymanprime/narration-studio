@@ -253,6 +253,26 @@ describe('the remembered position', () => {
     expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
   });
 
+  // The narrator who left within the pause after a scroll (End, then another page or a reload) came back to the place before it (#3821).
+  it('is saved at once when the reader goes away before the pause is over', () => {
+    const { unmount } = render(<Reader {...props()} />);
+    scrollTo(350);
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBeNull();
+    unmount();
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
+  });
+
+  it('is saved at once when the window goes away before the pause is over, and not again when nothing is pending', () => {
+    render(<Reader {...props()} />);
+    scrollTo(350);
+    window.dispatchEvent(new Event('pagehide'));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
+    window.localStorage.clear();
+    window.dispatchEvent(new Event('pagehide'));
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBeNull();
+  });
+
   it('is restored on the first draw', () => {
     window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'c2', offset: 50 }));
     render(<Reader {...props()} />);
@@ -495,14 +515,14 @@ describe('Home and End', () => {
   });
 
   // Shift with End or Home extends a selection of the reader's text, and Alt with Home is the browser's: the reader takes neither.
-  it('leaves End and Home with Shift or Alt to the browser', () => {
+  it('leaves End and Home with Shift, Alt or Meta to the browser', () => {
     render(long());
     const root = sized();
     height = 6500;
     fireEvent.wheel(root); // the narrator's own scroll lets go of the place the reader opened on
     scrollTo(1000);
     for (const key of ['End', 'Home']) {
-      for (const modifier of [{ shiftKey: true }, { altKey: true }]) {
+      for (const modifier of [{ shiftKey: true }, { altKey: true }, { metaKey: true }]) {
         expect(fireEvent.keyDown(root, { key, ...modifier })).toBe(true);
         expect(scrolls.get(root)).toBe(1000);
       }

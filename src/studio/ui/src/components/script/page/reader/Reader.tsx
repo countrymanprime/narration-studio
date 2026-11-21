@@ -503,17 +503,34 @@ export function Reader(props: ReaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [findState.currentPid, findState.currentLocal, findState.request, drawn, paragraphsOf]);
 
-  useEffect(() => () => clearTimeout(saveTimer.current), []);
+  /** Saves where the reader is. A scroll asks for it after a pause; leaving the page before the pause is over saves at once. */
+  const savePlace = (): void => {
+    clearTimeout(saveTimer.current);
+    saveTimer.current = undefined;
+    const root = scroller.current;
+    const id = spy.get().chapterId;
+    const bound = id ? root?.querySelector<HTMLElement>(`[data-bound][data-ch="${id}"]`) : null;
+    if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, positionKey);
+  };
+  const savePlaceNow = useRef(savePlace);
+  savePlaceNow.current = savePlace;
+  /* A place not saved yet is saved when the reader goes away (another page) or the window does (a reload, the app closing): the narrator
+     who leaves within the pause after a scroll came back to the place before it. A layout effect, so the reader is still in the page. */
+  useLayoutEffect(() => {
+    const flush = (): void => {
+      if (saveTimer.current !== undefined) savePlaceNow.current();
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, []);
 
   const onScroll = (): void => {
     onSpy();
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      const root = scroller.current;
-      const id = spy.get().chapterId;
-      const bound = id ? root?.querySelector<HTMLElement>(`[data-bound][data-ch="${id}"]`) : null;
-      if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, positionKey);
-    }, SAVE_DELAY_MS);
+    saveTimer.current = setTimeout(savePlace, SAVE_DELAY_MS);
   };
 
   /* Home and End go to the true ends at once. The browser's own scroll aims at the end as it was when the key went down, and the far
@@ -557,8 +574,8 @@ export function Reader(props: ReaderProps) {
         onTouchStart={release}
         onKeyDownCapture={release}
         onKeyDown={(event) => {
-          // With Shift the key extends a selection of the text and with Alt it is the browser's or the system's: both are left alone.
-          if ((event.key === 'Home' || event.key === 'End') && !event.shiftKey && !event.altKey) return onHomeEnd(event);
+          // With Shift the key extends a selection of the text, and with Alt or the Meta key it is the browser's or the system's: those are left alone.
+          if ((event.key === 'Home' || event.key === 'End') && !event.shiftKey && !event.altKey && !event.metaKey) return onHomeEnd(event);
           if (event.target !== event.currentTarget || (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')) return;
           const id = spy.get().chapterId ?? chapters[0]?.id;
           if (!id) return;
