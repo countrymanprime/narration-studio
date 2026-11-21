@@ -444,18 +444,6 @@ export function useBoothPage(options: BoothPageOptions) {
   const result = located?.id === recordId ? located.result : null;
   const recordedEnd = result && 'recordedEnd' in result ? (result.recordedEnd?.projectTime ?? 0) : 0;
   const resume = resumeOfferFor({ spans, recording, kept, result, opened });
-  // The unit where the recording ends (or the Booth's own last stop): the resume point. The place a chapter was left with nothing recorded is not one.
-  const resumePhrase = useRef<number | null>(null);
-  // The phrase the Booth last placed the reading on by itself (opening a chapter), cleared with the chapter.
-  const openedPhrase = useRef<number | null>(null);
-  useEffect(() => {
-    openedPhrase.current = null;
-  }, [recordId]);
-  // After a take the place a take continues from is where it stopped, not the phrase the chapter opened on.
-  resumePhrase.current =
-    resume.kind === 'offer' && resume.offer.source !== 'left'
-      ? (unitAtPosition(paragraphs, units, { paragraphId: resume.offer.paragraphId, word: resume.offer.word })?.cur ?? null)
-      : null;
   // The passage map's run follows the take.
   const writer = usePassageMapWriter({
     chapterId: recordId,
@@ -854,18 +842,13 @@ export function useBoothPage(options: BoothPageOptions) {
     (next: UnitPosition, choose = true, force = false) => {
       if (moveBlocked()) return;
       // One rule for where a take starts (#3858): before a take, a move that changes the reading's phrase IS the narrator's choice of start (a click,
-      // an arrow, Next phrase, a find or bookmark jump, a pickup line), so Record starts where the text shows. Going back to where the
-      // recording ends chooses nothing: the take simply continues from there. Where the Booth itself puts the reading (`choose` false: the resume
-      // point on opening) nothing is chosen either. During a take the voice owns the cursor: a move there only drops a start chosen earlier. One that
+      // an arrow, Next phrase, a find or bookmark jump, a pickup line), so Record starts where the text shows, also on the phrase where the
+      // recording ends. Where the Booth itself puts the reading (`choose` false: the resume point on opening) nothing is chosen. During a take the voice owns the cursor: a move there only drops a start chosen earlier. One that
       // does not move the reading (an arrow at the end) changes nothing, unless `force` (a pickup line is an explicit entry even on the phrase the
       // cursor is on).
       const now = latest.current;
       const phrase = Math.min(Math.max(next.cur, 0), Math.max(now.units.length - 1, 0));
-      // The phrase the Booth itself put the reading on is where a take continues, so coming back to it chooses nothing; before the Booth placed
-      // anything, the resume point stands in.
-      if (!choose) openedPhrase.current = phrase;
-      const home = openedPhrase.current ?? resumePhrase.current;
-      if (phrase !== now.at.cur || force) setMovedTo(choose && !now.recording && phrase !== home ? phrase : null);
+      if (phrase !== now.at.cur || force) setMovedTo(choose && !now.recording ? phrase : null);
       moveTo(next);
     },
     [moveBlocked, moveTo, setMovedTo],
@@ -1015,8 +998,6 @@ export function useBoothPage(options: BoothPageOptions) {
     // A start chosen before the take is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
     setMovedTo(null);
-    // The next take continues from where this one stopped, not from the phrase the chapter opened on.
-    openedPhrase.current = null;
     // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
     const followed = takeByDaw.current;
     setTakeNote(followed ? takeEndedIn(recorderLabel) : `Stopped. Recorded ${timerText(now.elapsed())}.`);

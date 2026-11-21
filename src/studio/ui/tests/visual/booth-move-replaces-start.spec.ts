@@ -93,7 +93,7 @@ async function failListeningOnce(page: Page): Promise<void> {
   });
 }
 
-test('a take the Booth took back (its listening failed) leaves the start where the chapter opened: going back there chooses nothing (#3858)', async ({
+test('a take the Booth took back (its listening failed): going back to the phrase the chapter opened on chooses it, as any explicit move does (#3858)', async ({
   page,
 }) => {
   await failListeningOnce(page);
@@ -112,7 +112,7 @@ test('a take the Booth took back (its listening failed) leaves the start where t
   const before = await lookups(page);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
-  expect(await lookups(page)).toBe(before);
+  expect(await lookups(page)).toBe(before + 1);
 });
 
 test('a chosen start survives a take the Booth took back: Record looks it up again (#3858)', async ({ page }) => {
