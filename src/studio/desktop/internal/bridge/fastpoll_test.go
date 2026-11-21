@@ -9,6 +9,7 @@ import (
 	"sort"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -125,20 +126,21 @@ func TestFastPollingStopsWhenTheAnswerArrives(t *testing.T) {
 }
 
 // With no answer coming, fast polling stops at its window instead of running until the request's timeout: a hung script costs a bounded
-// number of dispatches, never a hot loop.
+// number of dispatches, never a hot loop. It runs on synctest's clock, so the count is the same on any runner: a tick every 10 ms of a 100 ms
+// window, where a poll to the 500 ms timeout would make 50.
 func TestFastPollingIsBoundedWhenNoAnswerComes(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	client.poll.interval, client.poll.window = 10*time.Millisecond, 100*time.Millisecond
-	actions.SetTimeout(500 * time.Millisecond)
-	startQuietReaper(t, dir, func([]string) [][]string { return nil })
+	synctest.Test(t, func(t *testing.T) {
+		actions, client, _ := newActionsSession(t, true)
+		client.poll.interval, client.poll.window = 10*time.Millisecond, 100*time.Millisecond
+		actions.SetTimeout(500 * time.Millisecond)
 
-	if _, err := actions.PlayPosition(context.Background()); !errors.Is(err, ErrNoAnswer) {
-		t.Fatalf("PlayPosition: %v, want ErrNoAnswer", err)
-	}
-	calls := client.events.dispatches.Load()
-	if calls < 3 || calls > 15 {
-		t.Errorf("fast polling made %d dispatches in a 100 ms window at 10 ms, want about 10 and never the 50 a poll to the 500 ms timeout would make", calls)
-	}
+		if _, err := actions.PlayPosition(context.Background()); !errors.Is(err, ErrNoAnswer) {
+			t.Fatalf("PlayPosition: %v, want ErrNoAnswer", err)
+		}
+		if calls := client.events.dispatches.Load(); calls < 9 || calls > 11 {
+			t.Errorf("fast polling made %d dispatches in a 100 ms window at 10 ms, want 10 and never the 50 a poll to the 500 ms timeout would make", calls)
+		}
+	})
 }
 
 // A request that is cancelled stops its fast polling.
