@@ -353,6 +353,13 @@ func TestRemovingEverySampleStopsAskingADawThatSaidNoAndTellsOnce(t *testing.T) 
 	}
 }
 
+// A delete the DAW took and had not confirmed may still land: the sentence does not say the DAW did not answer.
+func TestADeleteTheDawTookAndDidNotConfirmIsWordedAsThat(t *testing.T) {
+	if got := whyRegionStays(fmt.Errorf("%w: %w", bridge.ErrAnswerLate, context.DeadlineExceeded)); got != "because the DAW did not confirm deleting it in time" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestAnInvalidRegionNumberIsWordedLikeARefusal(t *testing.T) {
 	if got := whyRegionStays(bridge.ErrBadVoiceSampleRegion); got != "because the DAW would not delete it" {
 		t.Fatalf("got %q", got)

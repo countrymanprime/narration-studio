@@ -68,7 +68,7 @@ type Service struct {
 	// +checklocks:mu
 	findingsStore *findings.Store
 	// +checklocks:mu
-	manuscriptLookup ManuscriptLookup
+	manuscriptLookup func() ManuscriptLookup
 	// runRecorder is told how each comparison ended (runrecord.go); nil until
 	// app.go opts in with SetRunRecorder.
 	// +checklocks:mu
@@ -99,11 +99,13 @@ func NewWithReview(config Config, review dawport.ReviewSession, store *settings.
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.files.Store(reporter) }
 
 // SetFindings opts this service into producing findings.Finding records on
-// every completed comparison. store persists them; lookup resolves manuscript chapter and
-// paragraph ids and may be nil (every finding then falls back to its raw
-// chapter title, flagged unresolved). Called once at service construction,
+// every completed comparison. store persists them; lookup is asked once for each
+// completed comparison for the manuscript that resolves its chapter and paragraph
+// ids, so a lookup that reads the manuscript reads it once for a run and not for
+// each finding. lookup, or what it returns, may be nil (every finding then falls
+// back to its raw chapter title, flagged unresolved). Called once at service construction,
 // the same way SetPersist is; never called means findings are never built.
-func (s *Service) SetFindings(store *findings.Store, lookup ManuscriptLookup) {
+func (s *Service) SetFindings(store *findings.Store, lookup func() ManuscriptLookup) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.findingsStore, s.manuscriptLookup = store, lookup
@@ -600,7 +602,7 @@ func (s *Service) Handle(fields []string) {
 // opts in with SetFindings.
 func (s *Service) saveFindings() {
 	s.mu.RLock()
-	store, lookup := s.findingsStore, s.manuscriptLookup
+	store, takeLookup := s.findingsStore, s.manuscriptLookup
 	rows, _ := s.state["rows"].([]map[string]any)
 	output, _ := s.state["output"].(string)
 	runID, _ := s.state["runId"].(string)
@@ -611,6 +613,10 @@ func (s *Service) saveFindings() {
 	s.mu.RUnlock()
 	if store == nil || output == "" {
 		return
+	}
+	var lookup ManuscriptLookup
+	if takeLookup != nil {
+		lookup = takeLookup()
 	}
 	if len(rows) == 0 {
 		s.saveCleanRun(store, lookup, runChapterTitle(nil, summary, options))

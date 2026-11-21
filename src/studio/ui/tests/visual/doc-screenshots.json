@@ -1492,6 +1492,27 @@
   },
   {
     "page": "script",
+    "state": "speaker-suggested-by-model",
+    "viewport": "desktop",
+    "docName": "script-speaker-suggested-by-model",
+    "caption": "Script - a line the local model suggested a speaker for: Confirm with the model's reason beneath it"
+  },
+  {
+    "page": "settings",
+    "state": "project-unknown-speakers",
+    "viewport": "desktop",
+    "docName": "settings-unknown-speakers",
+    "caption": "Settings - Project, Unknown speakers: the switch turned on, the model and the lines per run"
+  },
+  {
+    "page": "settings",
+    "state": "project-unknown-speakers-no-model",
+    "viewport": "desktop",
+    "docName": "settings-unknown-speakers-no-model",
+    "caption": "Settings - Project, Unknown speakers with no local model installed: the switch and its two rows off, each saying why"
+  },
+  {
+    "page": "script",
     "state": "credits-cards",
     "viewport": "desktop",
     "docName": "script-credits",

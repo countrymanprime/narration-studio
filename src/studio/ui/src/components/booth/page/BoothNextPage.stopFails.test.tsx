@@ -15,15 +15,30 @@ import { forgetAppTake } from '../record/useRecordControl';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
 
+// The stop is retried after 1.5 s and the way out waits longer: the tests step a fake clock past those limits and wait for none of them.
 beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
   forgetAppTake();
   forgetListeningClaims();
 });
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.clearAllMocks();
   window.localStorage.clear();
 });
+
+/** `waitFor` on the fake clock: steps the time until the assertion holds, and fails with the assertion's own message once `ms` have passed. */
+async function onTheClock(assertion: () => void, ms: number) {
+  for (let passed = 0; passed < ms; passed += 50) {
+    try {
+      return assertion();
+    } catch {
+      await act(() => vi.advanceTimersByTimeAsync(50));
+    }
+  }
+  assertion();
+}
 
 const IDLE: TeleprompterState = { phase: 'idle', message: '', engine: null, chapter: null, paused: false, coldRead: false, script: null, position: null };
 const SCRIPT: TeleprompterEvent = {
@@ -152,14 +167,14 @@ describe('a listening stop the host refuses', () => {
   it('is sent once more and nothing is said when the second is taken', async () => {
     const page = mountBooth(1);
     await coldReadThenStop();
-    await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(2), { timeout: 4000 });
+    await onTheClock(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(2), 4000);
     expect(toasts(page)).toHaveLength(0);
   });
 
   it('is said once, in plain words with Retry, when the second is refused too, and Retry stops it', async () => {
     const page = mountBooth(2);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     expect(page.teleprompterStop).toHaveBeenCalledTimes(2);
     const [toast] = toasts(page);
     expect(toast.tone).toBe('error');
@@ -172,24 +187,24 @@ describe('a listening stop the host refuses', () => {
   it('is said again when Retry is refused twice too, and Retry pressed twice at once stops once', async () => {
     const page = mountBooth(4);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     await act(async () => {
       toasts(page)[0].action?.onAction();
       toasts(page)[0]?.action?.onAction();
     });
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     expect(page.teleprompterStop).toHaveBeenCalledTimes(4);
   });
 
   it('takes the sentence down when the Booth that said it is left, and a Retry from it sends nothing', async () => {
     const page = mountBooth(2);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const [toast] = toasts(page);
     page.view.unmount();
     expect(toasts(page)).toHaveLength(0);
     // The way out sends its own stop(s); what the old Retry does after those is nothing more.
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 2500))));
+    await act(() => vi.advanceTimersByTimeAsync(2500));
     const calls = page.teleprompterStop.mock.calls.length;
     await act(async () => toast.action?.onAction());
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
@@ -198,13 +213,14 @@ describe('a listening stop the host refuses', () => {
   it('says on the page the narrator lands on that the microphone may still be open, when the Booth is left with the sentence up (no Retry there)', async () => {
     const page = mountBooth(9);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     expect(toasts(page)[0].durationMs).toBe(60_000);
     page.view.unmount();
     // The way out tries the stop once more (and again after 1.5 s) before it says so.
-    await waitFor(() => expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1), {
-      timeout: 5000,
-    });
+    await onTheClock(
+      () => expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1),
+      5000,
+    );
     const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
     expect(left[0].tone).toBe('error');
     expect(left[0].action).toBeUndefined();
@@ -229,7 +245,7 @@ describe('a listening stop the host refuses', () => {
       await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
       await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalled());
       page.view.unmount();
-      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3000))));
+      await act(() => vi.advanceTimersByTimeAsync(3000));
       const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
       expect(left).toHaveLength(said ? 1 : 0);
       if (said) expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(2);
@@ -248,7 +264,7 @@ describe('a listening stop the host refuses', () => {
       await ready();
       await act(async () => void fireEvent.click(main()));
       await waitFor(() => expect(main().textContent).toBe('Stop'));
-      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+      await act(() => vi.advanceTimersByTimeAsync(1500));
       await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
       const question = await waitFor(() => {
         const dialog = page.overlay.getSnapshot().dialogs[0];
@@ -258,9 +274,9 @@ describe('a listening stop the host refuses', () => {
       await act(async () => {
         if (question.kind === 'confirm') question.answer(true);
       });
-      await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalled(), { timeout: 5000 });
+      await onTheClock(() => expect(page.teleprompterStop).toHaveBeenCalled(), 5000);
       page.view.unmount();
-      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+      await act(() => vi.advanceTimersByTimeAsync(3500));
       const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
       expect(left).toHaveLength(said ? 1 : 0);
       // The leave's own stop is retried after the page is gone.
@@ -282,7 +298,7 @@ describe('a listening stop the host refuses', () => {
     await ready();
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(main().textContent).toBe('Stop'));
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    await act(() => vi.advanceTimersByTimeAsync(1500));
     const answer = async (yes: boolean) => {
       const dialog = await waitFor(() => {
         const entry = page.overlay.getSnapshot().dialogs[0];
@@ -302,19 +318,19 @@ describe('a listening stop the host refuses', () => {
     await answer(false);
     // The narrator ends the take themselves; the listening stop is refused twice and the sentence shows.
     await act(async () => void fireEvent.click(main()));
-    await waitFor(() => expect(toasts(page).length).toBeGreaterThan(0), { timeout: 6000 });
+    await onTheClock(() => expect(toasts(page).length).toBeGreaterThan(0), 6000);
     page.view.unmount();
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    await act(() => vi.advanceTimersByTimeAsync(3500));
     expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1);
   });
 
   it('leaves no state listener behind after a stop refused twice, and says the leave stop it sent when the Booth goes with the sentence up (Ctrl+Alt+C, a link)', async () => {
     const page = mountBooth(99);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const calls = page.teleprompterStop.mock.calls.length;
     page.view.unmount();
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    await act(() => vi.advanceTimersByTimeAsync(3500));
     // The way out tried the stop once more (and once more after 1.5 s), then said it.
     expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(calls + 2);
     expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1);
@@ -327,9 +343,9 @@ describe('a listening stop the host refuses', () => {
   it('takes the leave sentence down on the next page when a stop is taken there', async () => {
     const first = mountBooth(99);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(first)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(first)).toHaveLength(1), 4000);
     first.view.unmount();
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    await act(() => vi.advanceTimersByTimeAsync(3500));
     expect(first.overlay.getSnapshot().toasts.some((toast) => /Quit and reopen/.test(toast.text))).toBe(true);
     // The host recovers: a take in a new Booth on the same overlay ends and its stop is taken.
     cleanup();
@@ -339,7 +355,7 @@ describe('a listening stop the host refuses', () => {
     await ready();
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(main().textContent).toBe('Stop'));
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    await act(() => vi.advanceTimersByTimeAsync(1500));
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(second.teleprompterStop).toHaveBeenCalled());
     await waitFor(() => expect(second.overlay.getSnapshot().toasts.some((toast) => /Quit and reopen|could not stop listening/.test(toast.text))).toBe(false));
@@ -348,27 +364,28 @@ describe('a listening stop the host refuses', () => {
   it('says on the next page that the microphone may be open when the Booth is left while a refused Retry is out', async () => {
     const page = mountBooth(99);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const [toast] = toasts(page);
     await act(async () => toast.action?.onAction());
     // The Retry is out (its second stop waits 1.5 s) and the narrator leaves.
     page.view.unmount();
-    await waitFor(() => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1), {
-      timeout: 6000,
-    });
+    await onTheClock(
+      () => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1),
+      6000,
+    );
   });
 
   it('sends no stop at all when the host ended the session and another started in the same moment the Booth was left with the sentence up', async () => {
     const page = mountBooth(99);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const calls = page.teleprompterStop.mock.calls.length;
     act(() => {
       page.publish({ phase: 'stopped' });
       page.publish({ phase: 'running' });
       page.view.unmount();
     });
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
+    await act(() => vi.advanceTimersByTimeAsync(3500));
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
     expect(page.overlay.getSnapshot().toasts.some((item) => /Quit and reopen/.test(item.text))).toBe(false);
   });
@@ -376,13 +393,14 @@ describe('a listening stop the host refuses', () => {
   it('a state read that never answers at the leave still sends the stop and says the sentence', async () => {
     const page = mountBooth(99);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const calls = page.teleprompterStop.mock.calls.length;
     stateRead.mode = 'hang';
     page.view.unmount();
-    await waitFor(() => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1), {
-      timeout: 15_000,
-    });
+    await onTheClock(
+      () => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1),
+      15_000,
+    );
     // Both stops of the way out were sent although neither look at the host was ever answered.
     expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(calls + 2);
   }, 25_000);
@@ -390,7 +408,7 @@ describe('a listening stop the host refuses', () => {
   it("the session ends and a new one starts while the leave's state read is out: no stop is sent", async () => {
     const page = mountBooth(99);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     stateRead.mode = 'late';
     page.view.unmount();
     // What the page's own release sent at the moment it went (the session was still the old one then) is not counted.
@@ -403,7 +421,7 @@ describe('a listening stop the host refuses', () => {
     });
     await act(async () => {
       stateRead.release();
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await vi.advanceTimersByTimeAsync(3000);
     });
     expect(page.teleprompterStop).toHaveBeenCalledTimes(calls);
     expect(page.overlay.getSnapshot().toasts.some((item) => /Quit and reopen/.test(item.text))).toBe(false);
@@ -412,7 +430,7 @@ describe('a listening stop the host refuses', () => {
   it('keeps one toast up while Retry is out, says "Listening stopped." when the host takes it, and returns focus to Record', async () => {
     const page = mountBooth(2);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const [toast] = toasts(page);
     const topicToasts = () => page.overlay.getSnapshot().toasts.filter((item) => item.topic === 'booth-listening-stop-failed');
     // What the narrator sees from the press on: never nothing in between, so a Retry does not read as a flicker or a false success.
@@ -428,13 +446,13 @@ describe('a listening stop the host refuses', () => {
     await waitFor(() => expect(topicToasts().map((item) => item.text)).toEqual(['Listening stopped.']));
     expect(seen.flat()).toContain('Trying to stop listening again…');
     expect(seen.filter((texts) => texts.length === 0)).toEqual([]);
-    await waitFor(() => expect(document.activeElement).toBe(main()), { timeout: 2000 });
+    await onTheClock(() => expect(document.activeElement).toBe(main()), 2000);
   });
 
   it('takes the sentence down when the next press starts listening, and a Retry from it stops nothing', async () => {
     const page = mountBooth(2);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const [toast] = toasts(page);
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(toasts(page)).toHaveLength(0));
@@ -448,13 +466,13 @@ describe('a listening stop the host refuses', () => {
     await ready();
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(main().textContent).toBe('Stop'));
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    await act(() => vi.advanceTimersByTimeAsync(1500));
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(main().textContent).toMatch(/Record|Stop/));
     await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
     const starts = page.teleprompterStart.mock.calls.length;
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 2500))));
+    await act(() => vi.advanceTimersByTimeAsync(2500));
     // The press joined the running session (no new start) and the automatic retry was not sent under it.
     expect(page.teleprompterStart).toHaveBeenCalledTimes(starts);
     expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
@@ -464,7 +482,7 @@ describe('a listening stop the host refuses', () => {
   it("a sentence of an earlier Booth goes when that Booth is left, so a later session's Retry is never its Retry", async () => {
     const page = mountBooth(2);
     await coldReadThenStop();
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 4000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 4000);
     const [old] = toasts(page);
     page.view.unmount();
     await act(async () => void page.publish({ phase: 'stopped' }));
@@ -479,9 +497,9 @@ describe('a listening stop the host refuses', () => {
     await ready();
     await act(async () => void fireEvent.click(main()));
     await waitFor(() => expect(main().textContent).toBe('Stop'));
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 1500))));
+    await act(() => vi.advanceTimersByTimeAsync(1500));
     await act(async () => void fireEvent.click(main()));
-    await waitFor(() => expect(toasts(page)).toHaveLength(1), { timeout: 5000 });
+    await onTheClock(() => expect(toasts(page)).toHaveLength(1), 5000);
     await act(async () => page.pushTransport({ recording: true }));
     // The page did not adopt it (no Stop button): the take is REAPER's own, the Booth follows nothing, and the open microphone is still the Booth's to close.
     await waitFor(() => expect(document.body.textContent).toMatch(/already recording/i));
@@ -495,9 +513,9 @@ describe('a listening stop the host refuses', () => {
     await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalledTimes(1));
     page.view.unmount();
     // Leaving may send a stop of its own; whatever it sends is not sent again, and its refusal is not said.
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    await act(() => vi.advanceTimersByTimeAsync(100));
     const afterLeaving = page.teleprompterStop.mock.calls.length;
-    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 2200))));
+    await act(() => vi.advanceTimersByTimeAsync(2200));
     expect(page.teleprompterStop).toHaveBeenCalledTimes(afterLeaving);
     expect(toasts(page)).toHaveLength(0);
   });

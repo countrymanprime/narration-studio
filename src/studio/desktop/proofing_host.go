@@ -39,6 +39,19 @@ func comparisonRecorder(folder string, ledger *evidence.LedgerStore, text *manus
 	}
 }
 
+// transcriptManuscript is the manuscript a completed comparison's findings are resolved against: one book for the run, so
+// the file is read once and not for each finding. With no readable manuscript it is nil, the interface itself and not a
+// nil book, which is what the findings adapter checks for.
+func transcriptManuscript(text *manuscript.Service) func() transcript.ManuscriptLookup {
+	return func() transcript.ManuscriptLookup {
+		book, err := text.Book()
+		if err != nil {
+			return nil
+		}
+		return book
+	}
+}
+
 // renderMeasurementRecorder is the measurement job's per-file hook: a
 // measured file that is some chapter's chosen render becomes one ledger record per such chapter, keyed by the render's
 // fingerprint, with its Report (or failed, with the error). Nil without a project or a manuscript. A record that cannot

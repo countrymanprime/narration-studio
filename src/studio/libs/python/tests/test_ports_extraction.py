@@ -101,7 +101,7 @@ def test_the_five_sources_are_built_in_in_order_with_rules_the_default():
     assert rows == [
         ("rules", "Rules", "auto", True, ()),
         ("imported", "Imported file", "import", False, ()),
-        ("local-model", "Local model", "globe", True, ()),
+        ("local-model", "Local model", "globe", False, ()),
         ("gliner", "GLiNER", "locate", True, ("gliner",)),
         ("booknlp", "BookNLP", "dictionary", True, ("booknlp-small", "booknlp-big")),
     ]
@@ -118,8 +118,8 @@ def test_the_fallback_order_is_every_source_the_narrator_can_start_in_registrati
         sources.register(FakeSource(descriptor))
     sources.register(FakeSource(ExtractionDescriptor("win", "Windows only", platforms=("windows",), modes=(EXTRACT,), icon="list")))
 
-    assert sources.fallback_order() == ["rules", "local-model", "gliner", "booknlp", "win"]
-    assert sources.fallback_order("linux") == ["rules", "local-model", "gliner", "booknlp"]
+    assert sources.fallback_order() == ["rules", "gliner", "booknlp", "win"]
+    assert sources.fallback_order("linux") == ["rules", "gliner", "booknlp"]
 
 
 def _docs_rows() -> list[list[str]]:

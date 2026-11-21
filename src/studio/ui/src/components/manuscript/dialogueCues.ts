@@ -4,7 +4,7 @@ import type { GuideEntity, ManuscriptParagraph } from '../../types';
 // (src/studio/desktop/internal/guide/cues.go, `RefreshCues`): one entry per
 // quoted span, served by the host's `GuideDialogueCues` binding. `recordedDemoDialogueCues` builds the same shape from a
 // recorded fixture, so the reader below can run without a second extractor.
-type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'proximity' | 'unknown' | 'correction';
+type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'proximity' | 'unknown' | 'correction' | 'local-model';
 
 export type DialogueCue = {
   id: string;
@@ -15,7 +15,7 @@ export type DialogueCue = {
   quote_text: string;
   speaker_entity_id: string | null;
   speaker_source: DialogueCueSpeakerSource;
-  evidence: { chapterId: string; paragraphId: string; excerpt: string; tag: string };
+  evidence: { chapterId: string; paragraphId: string; excerpt: string; tag: string; reason?: string };
   corrected: boolean;
 };
 

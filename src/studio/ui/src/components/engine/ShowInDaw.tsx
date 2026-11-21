@@ -30,8 +30,11 @@ const CHECKING = 'Checking what the DAW can do.';
 const ASK_FAILED = 'Could not ask the DAW what it can do.';
 const NO_WORDS = 'These words are not in the script, so the DAW cannot be asked about them.';
 const NO_RECORDING = 'This line has no recording to show.';
-/** How long a press waits for the DAW before it says so and frees the button. */
-const ASK_DEADLINE_MS = 15000;
+/**
+ * How long a press waits for the DAW before it says so and frees the button: above the host's own wait for a move or a marker the DAW has taken
+ * (3 s, then 20 s more, `LateAnswerWait`), so the page never says the DAW did not answer before the host does (`lateWaitLimits.guard.test.ts`).
+ */
+export const ASK_DEADLINE_MS = 26_000;
 const NO_TRACK = 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
 
 /** The DAW the setup names, for a control's label, or "the DAW" while it has not answered or names none. */

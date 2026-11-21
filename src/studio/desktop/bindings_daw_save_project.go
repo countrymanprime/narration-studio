@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
 )
 
-// saveProjectTimeout bounds one save_project request: REAPER writing the project file, with no track read before it.
-const saveProjectTimeout = 15 * time.Second
+// saveProjectTimeout bounds one save_project request: REAPER writing the project file, with no track read before it. A save REAPER has
+// read is waited for (writeCommandTimeout).
+const saveProjectTimeout = writeCommandTimeout
 
 const (
 	saveProjectUnwritableSentence = "The project file is read-only or missing, so %s was not asked to save it: it would stop on an error dialog. Make the file writable, then try again."
@@ -72,6 +72,8 @@ func saveProjectRefusal(name string, err error) dawport.Result {
 		return refused
 	}
 	switch {
+	case errors.Is(err, bridge.ErrAnswerLate):
+		return dawport.Refused(lateAnswerSentence(name))
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return dawport.Refused(fmt.Sprintf(saveProjectNotAnsweringFormat, name, name))
 	case errors.Is(err, bridge.ErrUnavailable):
