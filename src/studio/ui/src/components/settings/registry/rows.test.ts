@@ -254,6 +254,13 @@ describe('a panel draws only settings a narrator chooses', () => {
   });
 });
 
+describe('the mock host sends every field a panel row draws (found by the narrator walkthrough)', () => {
+  it('the DAW fields hold the Audacity backup window and retention, so that row has controls in the mock', () => {
+    const keys = (wireSettings().DAW ?? []).map((field) => field.key);
+    expect(keys).toEqual(expect.arrayContaining(['backups.window_seconds', 'backups.retention_days']));
+  });
+});
+
 describe('panel rows are found by the words the panels themselves use', () => {
   it('finds the favourite effects by "favorite" and the compare marker colours by "color"', () => {
     expect(search('favorite').some((hit) => hit.row.id === 'daw.fxFavourites')).toBe(true);

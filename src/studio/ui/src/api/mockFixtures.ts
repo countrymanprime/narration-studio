@@ -902,6 +902,9 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '',
       effectiveSource: 'repo default',
     },
+    // The Audacity backup window and retention, as src/studio/desktop/app.go's fieldSchemas send them (Settings > Recording & DAW > Audacity backups).
+    recordingCheck('backups.window_seconds', 'Audio kept either side of a punch or an edit (s)', '120', { min: 10, max: 300, step: 10, unit: 's' }),
+    recordingCheck('backups.retention_days', 'Keep backups for (days)', '7', { min: 1, max: 365, step: 1, unit: 'days' }),
   ],
   // The narrator's own delivery limits, mirroring the host's
   // fieldSchemas and numberSpecs.
