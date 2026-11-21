@@ -396,8 +396,8 @@ export function useBoothPage(options: BoothPageOptions) {
     startedFrom.current = true;
     if (!unit) return;
     setLocal(unit);
-    // Record from here chooses the start; a bookmark jump from another chapter only puts the reading there.
-    if (!from.placeOnly) setPunchAt(unit.cur);
+    // An explicit entry (Record from here, a bookmark in another chapter) chooses the start.
+    setPunchAt(unit.cur);
   }, [from, paragraphs, units]);
 
   // The next listening session starts at the reading position (docs/guides/using-the-app/booth.md#where-you-stopped: a choice only sets where Start begins).
@@ -824,14 +824,18 @@ export function useBoothPage(options: BoothPageOptions) {
     return true;
   }, [pressUnderway, notify]);
   const moveReading = useCallback(
-    (next: UnitPosition) => {
+    (next: UnitPosition, choose = true) => {
       if (moveBlocked()) return;
-      // A move that changes the reading's phrase replaces the chosen start (Record from here, Mark the start here), so the cursor, the chip and Space
-      // agree. One that lands on the chosen phrase keeps it, and one that does not move the reading (an arrow at the end, the reading following
-      // the voice) replaces nothing.
+      // One rule for where a take starts (#3858): before a take, a move that changes the reading's phrase IS the narrator's choice of start (a click,
+      // an arrow, Next phrase, a find or bookmark jump, a pickup line, Resume at), so Record starts where the text shows. Where the Booth itself
+      // puts the reading (`choose` false: the resume point on opening) nothing is chosen and the take continues from there. During a take the
+      // voice owns the cursor: a move there only drops a start chosen earlier. One that does not move the reading (an arrow at the end) changes nothing.
       const now = latest.current;
       const phrase = Math.min(Math.max(next.cur, 0), Math.max(now.units.length - 1, 0));
-      if (phrase !== now.at.cur) setPunchAt((chosen) => (chosen === phrase ? chosen : null));
+      if (phrase !== now.at.cur) {
+        if (choose && !now.recording) setPunchAt(phrase);
+        else setPunchAt((chosen) => (chosen === phrase ? chosen : null));
+      }
       moveTo(next);
     },
     [moveBlocked, moveTo],
@@ -1478,6 +1482,11 @@ export function useBoothPage(options: BoothPageOptions) {
     seek: (paragraphId: string, word: number) => {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
       if (unit) moveReading(unit);
+    },
+    /** Where the Booth puts the reading itself (the resume point on opening): nothing is chosen, so the take continues from there. */
+    place: (paragraphId: string, word: number) => {
+      const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
+      if (unit) moveReading(unit, false);
     },
     /** True (and says why, once) while a press is under way: a control that would move the reading or the chosen place asks this first and changes nothing. */
     moveBlocked,

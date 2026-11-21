@@ -453,7 +453,7 @@ function BoothSession({
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
     seek,
     blocked: page.moveBlocked,
-    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: { ...at, placeOnly: true } }),
+    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
   // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits chapters have no paragraphs and so none.
@@ -476,7 +476,7 @@ function BoothSession({
     position: page.position,
     listening: session.active,
     refreshRecorded: data.refreshRecorded,
-    seek,
+    seek: page.place,
     setOpened: page.setOpened,
     onReturned,
   });
