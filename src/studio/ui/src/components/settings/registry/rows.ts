@@ -540,7 +540,7 @@ export const ROWS: readonly SettingMeta[] = [
     cat: 'speech',
     section: 'Background checks',
     label: 'Processors for background checks',
-    scope: 'computer',
+    scope: 'both',
     def: '0',
     field: { tool: 'RecordingCoverage', key: 'background_processors' },
     desc: 'Processors background checks may use; 0 lets the app choose.',

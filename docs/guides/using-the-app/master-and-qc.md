@@ -239,7 +239,7 @@ line what it lists; the rest is here, not on the page.
 
 **Silence cleanup candidates**, below that, lists the silences, breaths and clicks the same check found in
 each file, each a candidate to cut. Nothing is cut from here. The values the check used are listed under the
-candidates. Their thresholds are set in Settings, under Silence cleanup; **Open Settings**, at the top of the card, goes there. For this project
+candidates. Their thresholds are set in Settings, under Recording & DAW, in Editing checks; **Open Settings**, at the top of the card, goes there. For this project
 only, **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog with the hold kept at each side of a
 cut silence, the shortest and longest run read as a breath, how far below the speech level a breath sits and how far
 above the silence around it a click stands. A change is saved at once and applies to the next check, not to the
