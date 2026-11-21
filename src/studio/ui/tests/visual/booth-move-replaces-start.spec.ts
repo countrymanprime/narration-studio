@@ -78,3 +78,56 @@ test('after a take, going back to the phrase the chapter opened on chooses it, a
   expect(await lookups(page)).toBe(before + 1);
   expect(stopped).not.toBe(opened);
 });
+
+async function failListeningOnce(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    let failed = false;
+    window.__NARRATION_MOCK_OVERRIDES__ = {
+      teleprompterStart: async () => {
+        if (failed) return { status: 'started' };
+        failed = true;
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        throw new Error('Microphone Array was unplugged.');
+      },
+    } as never;
+  });
+}
+
+test('a take the Booth took back (its listening failed) leaves the start where the chapter opened: going back there chooses nothing (#3858)', async ({
+  page,
+}) => {
+  await failListeningOnce(page);
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  const opened = await reading(page);
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/text cannot follow your voice/).first()).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => dawRecording(page)).toBe(false);
+  await arrowDown(page, 2);
+  for (let i = 0; i < 10 && (await reading(page)) !== opened; i++) await page.keyboard.press('ArrowUp');
+  expect(await reading(page)).toBe(opened);
+  const before = await lookups(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible();
+  expect(await lookups(page)).toBe(before);
+});
+
+test('a chosen start survives a take the Booth took back: Record looks it up again (#3858)', async ({ page }) => {
+  await failListeningOnce(page);
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.locator('[data-booth-text] [data-word]').nth(5).click();
+  await page.keyboard.press('Space');
+  await expect(page.getByText(/text cannot follow your voice/).first()).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => dawRecording(page)).toBe(false);
+  const before = await lookups(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible();
+  expect(await lookups(page)).toBe(before + 1);
+});

@@ -268,8 +268,12 @@ export function useBoothPage(options: BoothPageOptions) {
   const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
   // A take under way has used it: from then on the voice owns the cursor, and R rolls from the word the voice is on.
+  // A take the Booth takes back (its listening failed) gives the chosen start back, so `startAtPress` keeps it.
+  const startAtPress = useRef<number | null>(null);
   useEffect(() => {
-    if (recording) setMovedTo(null);
+    if (!recording) return;
+    startAtPress.current = movedRef.current;
+    setMovedTo(null);
   }, [recording, setMovedTo]);
   // The take's length is the wall clock's (`useTakeClock`): a question that holds the reading never holds the clock, the DAW records on.
   const takeClock = useTakeClock(recording);
@@ -448,11 +452,6 @@ export function useBoothPage(options: BoothPageOptions) {
     openedPhrase.current = null;
   }, [recordId]);
   // After a take the place a take continues from is where it stopped, not the phrase the chapter opened on.
-  const wasRecording = useRef(false);
-  useEffect(() => {
-    if (wasRecording.current && !recording) openedPhrase.current = null;
-    wasRecording.current = recording;
-  }, [recording]);
   resumePhrase.current =
     resume.kind === 'offer' && resume.offer.source !== 'left'
       ? (unitAtPosition(paragraphs, units, { paragraphId: resume.offer.paragraphId, word: resume.offer.word })?.cur ?? null)
@@ -664,6 +663,7 @@ export function useBoothPage(options: BoothPageOptions) {
     }
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
+      if (!kept) setMovedTo(startAtPress.current);
       // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
       const timedOut = 'timedOut' in heard && heard.timedOut;
       // A listening that never answered is its own sentence: the take ran meanwhile, so it is not said to have not started (the reason goes to the run log).
@@ -1015,6 +1015,8 @@ export function useBoothPage(options: BoothPageOptions) {
     // A start chosen before the take is for the take that just ended: the next Record press starts where the recording ends, and does not
     // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
     setMovedTo(null);
+    // The next take continues from where this one stopped, not from the phrase the chapter opened on.
+    openedPhrase.current = null;
     // A take the Booth only followed was not stopped here: the status says it ended, not that this window recorded it.
     const followed = takeByDaw.current;
     setTakeNote(followed ? takeEndedIn(recorderLabel) : `Stopped. Recorded ${timerText(now.elapsed())}.`);
