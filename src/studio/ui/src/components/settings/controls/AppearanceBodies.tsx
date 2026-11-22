@@ -126,7 +126,10 @@ export function BoothTextSizeBody() {
  */
 export function PlaybackBody() {
   const { prefs, change } = useOutputPrefs();
-  const { listing, refresh } = useOutputDevices();
+  const { listing, refresh } = useOutputDevices({
+    saved: prefs.device,
+    missingSentence: (name) => `${name} is not connected. Sound plays on the system default until it is back.`,
+  });
   return (
     <div className={`flex flex-col gap-3 ${READER_FIELD}`}>
       <ToggleGroup

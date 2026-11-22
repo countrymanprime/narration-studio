@@ -26,7 +26,10 @@ export interface EditingOutputProps {
 
 /** The page's output controls with the computer's outputs and, with a DAW that can set it, the DAW's monitor level. */
 export function EditingOutput({ prefs, onChange, deviceProblem, caps }: EditingOutputProps) {
-  const { listing, refresh } = useOutputDevices();
+  const { listing, refresh } = useOutputDevices({
+    saved: prefs.device,
+    missingSentence: (name) => `${name} is not connected. Sound plays on the system default until it is back.`,
+  });
   const daw = useMemo(() => monitorDaw(caps), [caps]);
   return (
     <OutputControls prefs={prefs} onChange={onChange} devices={listing} deviceProblem={deviceProblem} onCheckDevices={refresh}>

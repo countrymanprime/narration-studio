@@ -61,4 +61,16 @@ describe('the Editing page output list', () => {
     expect(result.current.listing).toMatchObject({ phase: 'ready', status: 'unavailable' });
     enumerate.mockReset();
   });
+
+  it('a press of Check again with the saved output still missing says so again; the first read says nothing', async () => {
+    devices = [{ kind: 'audiooutput', deviceId: 'a1', label: 'Speakers' }];
+    const toast = vi.spyOn(overlay, 'toast');
+    const { result } = renderHook(() => useOutputDevices({ saved: 'Studio monitors', missingSentence: (name) => `${name} is gone.` }));
+    await waitFor(() => expect(result.current.listing.phase).toBe('ready'));
+    expect(toast).not.toHaveBeenCalled();
+    act(() => result.current.refresh());
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Studio monitors is gone.'));
+    act(() => result.current.refresh());
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
+  });
 });

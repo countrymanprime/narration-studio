@@ -9,7 +9,7 @@ type AudioOutput = { id: string; label: string };
 
 export type OutputListing = { status: 'ok'; outputs: AudioOutput[] } | { status: 'unavailable'; message: string };
 
-const OUTPUTS_UNAVAILABLE = "This computer's audio system would not list its outputs, so the choice is off. Voice samples play on the system default.";
+const OUTPUTS_UNAVAILABLE = "This computer's audio system would not list its outputs, so only the system default is offered. Sound plays on it.";
 
 type Sinkable = HTMLMediaElement & { setSinkId?: (id: string) => Promise<void> };
 

@@ -4,7 +4,7 @@ import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { HelpButton } from '../../primitives/HelpButton';
 import { Select } from '../../primitives/Select';
-import { listAudioOutputs, type OutputListing } from '../../voicesamples/audioOutputs';
+import { useOutputDevices } from '../../editing/output/useOutputDevices';
 import { setSampleOutput } from '../../voicesamples/samplePlayerStore';
 import { playTestSound } from '../../voicesamples/testSound';
 import { overlay } from '../../../overlay/overlayService';
@@ -13,8 +13,6 @@ import { useSettingsStore } from '../data/SettingsStore';
 import { useProjectDaw } from '../data/useProjectDaw';
 import { rowOf } from '../registry/rows';
 import { FIELD_WIDTH } from './MicBody';
-
-type Listing = { phase: 'loading' } | ({ phase: 'ready'; checkedAt: number } & OutputListing);
 
 /** How often the list is read again while the saved output is missing, so a speaker plugged back in is found without the narrator pressing anything. */
 const RECHECK_MS = 5000;
@@ -43,9 +41,20 @@ export function SampleOutputBody() {
   const recording = usePort('recording');
   const [engine, setEngine] = useState<RecordingEngine | undefined>();
   const [hasProject, setHasProject] = useState(true);
-  const [listing, setListing] = useState<Listing>({ phase: 'loading' });
   const { project } = store.fieldsOf(row);
   const value = project?.effectiveValue ?? '';
+  // The one reader of this computer's outputs (also the Editing popover's): its refusals are toasts, again on every Check again (#4044).
+  const builtin = !(engine === 'daw' && hasProject);
+  const {
+    listing,
+    refresh: check,
+    watch: load,
+  } = useOutputDevices({
+    saved: engine === 'builtin' ? value : '',
+    missingSentence: (name) => `${name} is not connected. Voice samples play on the system default until it is back.`,
+    missingAtOnce: true,
+    announce: builtin,
+  });
 
   // The engine is read when the row opens and again whenever "Record with" is changed on this page.
   const readEngine = useCallback(() => {
@@ -66,31 +75,6 @@ export function SampleOutputBody() {
     if (engine !== undefined) setSampleOutput(engine === 'builtin' ? value : '');
   }, [engine, value]);
 
-  const load = useCallback(() => {
-    listAudioOutputs().then((result) => setListing({ phase: 'ready', checkedAt: Date.now(), ...result }));
-  }, []);
-  useEffect(load, [load]);
-  // A press of Check again always answers: a list that is still unavailable, or an output still gone, is said again as a toast (rule 9).
-  const check = () => {
-    listAudioOutputs().then((result) => {
-      if (result.status === 'unavailable') overlay.toast(result.message);
-      else if (engine === 'builtin' && value !== '' && !result.outputs.some((o) => o.label === value))
-        overlay.toast(`${value} is not connected. Voice samples play on the system default until it is back.`);
-      setListing({ phase: 'ready', checkedAt: Date.now(), ...result });
-    });
-  };
-  // The list is read again when the window gets focus and whenever the computer says an output came or went, so an unplugged speaker is noticed
-  // without the narrator leaving the window.
-  useEffect(() => {
-    window.addEventListener('focus', load);
-    const devices = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined;
-    devices?.addEventListener?.('devicechange', load);
-    return () => {
-      window.removeEventListener('focus', load);
-      devices?.removeEventListener?.('devicechange', load);
-    };
-  }, [load]);
-
   const outputs = listing.phase === 'ready' && listing.status === 'ok' ? listing.outputs : [];
   const missing = engine === 'builtin' && listing.phase === 'ready' && listing.status === 'ok' && value !== '' && !outputs.some((o) => o.label === value);
   const recheck = useRef(load);
@@ -100,19 +84,6 @@ export function SampleOutputBody() {
     const timer = window.setInterval(() => recheck.current(), RECHECK_MS);
     return () => window.clearInterval(timer);
   }, [missing]);
-
-  // A list that would not come, or a saved output that is gone, is said once as a toast, never as red text that moves the row (#4044).
-  const refusal =
-    engine === 'daw' && hasProject
-      ? undefined
-      : listing.phase === 'ready' && listing.status === 'unavailable'
-        ? listing.message
-        : missing
-          ? `${value} is not connected. Voice samples play on the system default until it is back.`
-          : undefined;
-  useEffect(() => {
-    if (refusal) overlay.toast(refusal);
-  }, [refusal]);
 
   const choose = (next: string) => {
     setSampleOutput(next);

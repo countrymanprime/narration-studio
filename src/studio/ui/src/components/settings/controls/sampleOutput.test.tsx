@@ -8,7 +8,7 @@
 //   back to the default            'choosing System default again removes the project's choice'
 //   a DAW is connected             'with a DAW the row is a sentence and a test sound, and has no choice'
 //   saved device gone              'a saved output that is not connected stays chosen with a notice, and a refresh finds it again'
-//   cannot list or switch          'an audio system that will not list its outputs is said so and the choice is off'
+//   cannot list or switch          'an audio system that will not list its outputs is said so and only the system default is offered'
 //   no project open                'with no project open the choice is off and says to open one'
 //   loading                        'the choice is off until the project's recorder is known'
 //   test sound                     'Test sound plays on the chosen output', 'a failing output says so and the tone still plays on the default'
