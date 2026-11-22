@@ -20,6 +20,39 @@ const headings = (page: Page) =>
     .locator('thead th')
     .evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().left)));
 
+// #3590 (owner, 2026-11-22): a Pickups time is hh:mm:ss ("00:02:11"), so the Time column must hold all of it with the Type chip clear of it.
+for (const size of [
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'small-desktop', width: 1024, height: 768 },
+]) {
+  test(`Pickups / the whole time fits its cell, clear of the type chip / ${size.name}`, async ({ page }) => {
+    await open(page, 'list', size.width, size.height);
+    const cells = await card(page)
+      .locator('tr[data-pk]')
+      .evaluateAll((rows) =>
+        rows.map((row) => {
+          const [, time, type] = [...row.children] as HTMLElement[];
+          const range = document.createRange();
+          range.selectNodeContents(time!);
+          return {
+            text: time!.textContent,
+            textRight: range.getBoundingClientRect().right,
+            typeLeft: type!.getBoundingClientRect().left,
+            clipped: time!.scrollWidth > time!.clientWidth,
+            typeClipped: type!.scrollWidth > type!.clientWidth,
+          };
+        }),
+      );
+    expect(cells.length).toBeGreaterThan(0);
+    for (const cell of cells) {
+      expect(cell.text, 'an hh:mm:ss time').toMatch(/^\d\d:\d\d:\d\d$/);
+      expect(cell.clipped, cell.text ?? '').toBe(false);
+      expect(cell.typeClipped, 'the type chip').toBe(false);
+      expect(cell.textRight, cell.text ?? '').toBeLessThanOrEqual(cell.typeLeft);
+    }
+  });
+}
+
 for (const size of [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'small-desktop', width: 1024, height: 768 },

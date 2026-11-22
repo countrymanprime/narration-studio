@@ -73,9 +73,9 @@ describe('show-where-and-fine-as-read-on-a-selected-line', () => {
   it('a selected line shows where it is, with Fine, not a pickup and Go to the note in Proof', async () => {
     const where = vi.fn((p: { id: string }) => <p>where {p.id}</p>);
     const { user, onGoToProof } = setup({ where, onFine: vi.fn().mockResolvedValue(undefined) });
-    expect(screen.queryByRole('region', { name: /^Where 00:12.0/ })).toBeNull();
-    await select(user, '00:12.0');
-    const detail = screen.getByRole('region', { name: 'Where 00:12.0 is' });
+    expect(screen.queryByRole('region', { name: /^Where 00:00:12/ })).toBeNull();
+    await select(user, '00:00:12');
+    const detail = screen.getByRole('region', { name: 'Where 00:00:12 is' });
     expect(within(detail).getByText(`where ${PROOF.id}`)).toBeTruthy();
     await user.click(within(detail).getByRole('button', { name: 'Go to the note in Proof' }));
     expect(onGoToProof).toHaveBeenCalledWith('f9');
@@ -85,16 +85,16 @@ describe('show-where-and-fine-as-read-on-a-selected-line', () => {
     const undo = vi.fn().mockResolvedValue({ ok: true });
     const onFine = vi.fn().mockResolvedValue({ undo, entry: 7 });
     const { user, toasts } = setup({ onFine, where: () => null });
-    await select(user, '00:12.0');
-    await user.click(within(screen.getByRole('region', { name: 'Where 00:12.0 is' })).getByRole('button', { name: 'Fine, not a pickup' }));
+    await select(user, '00:00:12');
+    await user.click(within(screen.getByRole('region', { name: 'Where 00:00:12 is' })).getByRole('button', { name: 'Fine, not a pickup' }));
     expect(onFine).toHaveBeenCalledWith(PROOF);
-    await waitFor(() => expect(toasts().map((t) => t.text)).toContain('00:12.0 is fine as read: its note on Proof is cleared and it is off the list.'));
+    await waitFor(() => expect(toasts().map((t) => t.text)).toContain('00:00:12 is fine as read: its note on Proof is cleared and it is off the list.'));
   });
 
   it('a line from no note has both buttons off, with the reason', async () => {
     const { user } = setup({ onFine: vi.fn(), where: () => null });
-    await select(user, '00:44.0');
-    const detail = screen.getByRole('region', { name: 'Where 00:44.0 is' });
+    await select(user, '00:00:44');
+    const detail = screen.getByRole('region', { name: 'Where 00:00:44 is' });
     for (const name of ['Fine, not a pickup', 'Go to the note in Proof']) {
       expect(within(detail).getByRole('button', { name }).getAttribute('aria-disabled')).toBe('true');
     }
@@ -104,8 +104,8 @@ describe('show-where-and-fine-as-read-on-a-selected-line', () => {
   it('a refused Fine, not a pickup is a toast in the host’s words', async () => {
     const onFine = vi.fn().mockRejectedValue(new Error('The evidence for this note changed.'));
     const { user, toasts } = setup({ onFine, where: () => null });
-    await select(user, '00:12.0');
-    await user.click(within(screen.getByRole('region', { name: 'Where 00:12.0 is' })).getByRole('button', { name: 'Fine, not a pickup' }));
+    await select(user, '00:00:12');
+    await user.click(within(screen.getByRole('region', { name: 'Where 00:00:12 is' })).getByRole('button', { name: 'Fine, not a pickup' }));
     await waitFor(() =>
       expect(
         toasts()
@@ -163,11 +163,11 @@ describe('PickupsTable', () => {
 
   it('include-checkbox-and-keys: the checkbox is per open row and disabled when recorded', async () => {
     const { onSetIncluded, user } = setup();
-    const box = within(rowOf('05:12.0')).getByRole('checkbox', { name: 'Include 05:12.0 in the session' });
+    const box = within(rowOf('00:05:12')).getByRole('checkbox', { name: 'Include 00:05:12 in the session' });
     expect(box.getAttribute('aria-checked')).toBe('true');
     await user.click(box);
     expect(onSetIncluded).toHaveBeenCalledWith(SPEECH.id, false);
-    const recorded = within(rowOf('08:20.0')).getByRole('checkbox');
+    const recorded = within(rowOf('00:08:20')).getByRole('checkbox');
     expect(recorded.hasAttribute('disabled') || recorded.getAttribute('aria-disabled') === 'true').toBe(true);
     expect(recorded.getAttribute('aria-checked')).toBe('false');
   });
@@ -201,7 +201,7 @@ describe('PickupsTable', () => {
     const long =
       'The first question of course was, how to get dry again: they had a consultation about this, and after a few minutes it seemed quite natural to Alice.';
     setup({ pickups: [{ ...SPEECH, script: long }, DONE] });
-    const row = rowOf('05:12.0');
+    const row = rowOf('00:05:12');
     const buttons = within(row)
       .getAllByRole('button')
       .map((button) => button.getAttribute('aria-label'));
@@ -215,7 +215,7 @@ describe('PickupsTable', () => {
 
   it('Play says why it is off rather than doing nothing', () => {
     setup();
-    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
+    const play = within(rowOf('00:05:12')).getByRole('button', { name: 'Hear the original in context' });
     expect(play.getAttribute('aria-disabled') === 'true' || (play as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -223,52 +223,52 @@ describe('PickupsTable', () => {
     const play = vi.fn();
     const original = { playingId: 'speech:c1:g1', play, unavailable: () => undefined };
     const { user } = setup({ original });
-    const row = within(rowOf('05:12.0'));
+    const row = within(rowOf('00:05:12'));
     await user.click(row.getByRole('button', { name: 'Stop the original' }));
     expect(play).toHaveBeenCalledTimes(1);
-    expect(within(rowOf('05:40.5')).getByRole('button', { name: 'Hear the original in context' })).toBeTruthy();
+    expect(within(rowOf('00:05:41')).getByRole('button', { name: 'Hear the original in context' })).toBeTruthy();
   });
 
   it('a line with no place in the recording gives Play its reason', () => {
     setup({ original: { playingId: null, play: vi.fn(), unavailable: () => 'This line has no place in the recording yet.' } });
-    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
+    const play = within(rowOf('00:05:12')).getByRole('button', { name: 'Hear the original in context' });
     expect(play.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('a double click on Remove removes one line, not the line that moves up under the pointer', async () => {
     const { onRemove, user } = setup();
-    const first = within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' });
+    const first = within(rowOf('00:05:12')).getByRole('button', { name: 'Remove from pickups' });
     await user.dblClick(first);
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
   it('describes an off Play with its reason for a screen reader', () => {
     setup();
-    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
+    const play = within(rowOf('00:05:12')).getByRole('button', { name: 'Hear the original in context' });
     const ids = (play.getAttribute('aria-describedby') ?? '').split(' ');
     expect(document.getElementById(ids[0])?.textContent).toMatch(/not available here/);
   });
 
   it('announces Mark recorded and Mark open again, since only the row changes', async () => {
     const { user, service } = setup();
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Mark recorded' }));
-    await waitFor(() => expect(service.getSnapshot().announcement).toBe('05:12.0 marked recorded. It leaves the session.'));
+    await user.click(within(rowOf('00:05:12')).getByRole('button', { name: 'Mark recorded' }));
+    await waitFor(() => expect(service.getSnapshot().announcement).toBe('00:05:12 marked recorded. It leaves the session.'));
   });
 
   it('status-is-a-word-and-a-shape: Recorded and Open, and Mark recorded calls onSetDone', async () => {
     const { onSetDone, user } = setup();
-    expect(within(rowOf('05:12.0')).getByText('Open')).toBeTruthy();
-    expect(within(rowOf('08:20.0')).getByText('Recorded')).toBeTruthy();
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Mark recorded' }));
+    expect(within(rowOf('00:05:12')).getByText('Open')).toBeTruthy();
+    expect(within(rowOf('00:08:20')).getByText('Recorded')).toBeTruthy();
+    await user.click(within(rowOf('00:05:12')).getByRole('button', { name: 'Mark recorded' }));
     expect(onSetDone).toHaveBeenCalledWith(SPEECH.id, true);
-    await user.click(within(rowOf('08:20.0')).getByRole('button', { name: 'Mark open again' }));
+    await user.click(within(rowOf('00:08:20')).getByRole('button', { name: 'Mark open again' }));
     expect(onSetDone).toHaveBeenCalledWith(DONE.id, false);
   });
 
   it('a refusal from the host is a toast in the host’s words', async () => {
     const { onSetDone, user, toasts } = setup();
     onSetDone.mockRejectedValueOnce(new Error('Stale: that marker has moved.'));
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Mark recorded' }));
+    await user.click(within(rowOf('00:05:12')).getByRole('button', { name: 'Mark recorded' }));
     await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['Stale: that marker has moved.']));
     expect(toasts()[0].tone).toBe('error');
   });
@@ -277,10 +277,10 @@ describe('PickupsTable', () => {
     const undo = vi.fn().mockResolvedValue({ ok: true });
     const { onRemove, user, toasts } = setup();
     onRemove.mockResolvedValueOnce({ undo, entry: 4 });
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
+    await user.click(within(rowOf('00:05:12')).getByRole('button', { name: 'Remove from pickups' }));
     expect(onRemove).toHaveBeenCalledWith(SPEECH.id);
     await waitFor(() => expect(toasts()).toHaveLength(1));
-    expect(toasts()[0].text).toBe('Removed 05:12.0 from pickups.');
+    expect(toasts()[0].text).toBe('Removed 00:05:12 from pickups.');
     expect(toasts()[0].action?.label).toBe('Undo');
     expect(toasts()[0].undo?.entry).toBe(4);
     act(() => toasts()[0].action?.onAction());
@@ -290,9 +290,9 @@ describe('PickupsTable', () => {
   it('removing a line that cannot be put back still says it was removed, and focus moves to the next line', async () => {
     const { onRemove, user, toasts } = setup();
     onRemove.mockResolvedValueOnce(undefined);
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
+    await user.click(within(rowOf('00:05:12')).getByRole('button', { name: 'Remove from pickups' }));
     await waitFor(() => expect(toasts()).toHaveLength(1));
-    expect(toasts()[0].text).toMatch(/^Removed 05:12\.0 from pickups\. .*no Undo\.$/);
+    expect(toasts()[0].text).toMatch(/^Removed 00:05:12 from pickups\. .*no Undo\.$/);
     expect(toasts()[0].action).toBeUndefined();
     await waitFor(() => expect(document.activeElement?.hasAttribute('data-pk')).toBe(true));
   });
@@ -324,7 +324,7 @@ describe('PickupsTable', () => {
   it('a refused removal says why and nothing else', async () => {
     const { onRemove, user, toasts } = setup();
     onRemove.mockRejectedValueOnce(new Error('That line is not in the list.'));
-    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
+    await user.click(within(rowOf('00:05:12')).getByRole('button', { name: 'Remove from pickups' }));
     await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['That line is not in the list.']));
   });
 
@@ -332,15 +332,15 @@ describe('PickupsTable', () => {
   it('Show in REAPER goes to the pickup’s note in the DAW', async () => {
     const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => '' as never);
     const { user, goTo } = setup();
-    await user.click(await within(rowOf('00:12.0')).findByRole('button', { name: 'Show in REAPER' }));
+    await user.click(await within(rowOf('00:00:12')).findByRole('button', { name: 'Show in REAPER' }));
     expect(goTo).toHaveBeenCalledWith('f9');
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 3:41 in REAPER.'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 00:03:41 in REAPER.'));
     toast.mockRestore();
   });
 
   it('Show in REAPER is off for a line with no note, and asks the DAW nothing', async () => {
     const { user, goTo } = setup();
-    const row = within(rowOf('00:44.0'));
+    const row = within(rowOf('00:00:44'));
     const button = await row.findByRole('button', { name: 'Show in REAPER' });
     expect(button.getAttribute('aria-disabled')).toBe('true');
     await user.click(button);
@@ -349,7 +349,7 @@ describe('PickupsTable', () => {
 
   it('Open in Booth at this line passes that pickup', async () => {
     const { onOpenInBooth, user } = setup();
-    await user.click(within(rowOf('01:35.2')).getByRole('button', { name: 'Open in Booth at this line' }));
+    await user.click(within(rowOf('00:01:35')).getByRole('button', { name: 'Open in Booth at this line' }));
     expect(onOpenInBooth).toHaveBeenCalledWith([AUDIO]);
   });
 
@@ -397,7 +397,7 @@ describe('PickupsTable', () => {
   it('context-menu-rows: the provider offers the row actions and runs them', async () => {
     const onFine = vi.fn().mockResolvedValue(undefined);
     const { onSetIncluded, onOpenInBooth, onOpenInScript, onSetDone, onRemove, onGoToProof } = setup({ onFine });
-    const items = contextItemsFor(rowOf('00:12.0'))!;
+    const items = contextItemsFor(rowOf('00:00:12'))!;
     expect(items.map((i) => i.label)).toEqual([
       'Leave out of the session',
       'Open in Booth at this line',
@@ -424,7 +424,7 @@ describe('PickupsTable', () => {
 
   it('context-menu-rows: Fine, not a pickup is offered only for a line that came from a note', () => {
     setup({ onFine: vi.fn() });
-    expect(contextItemsFor(rowOf('00:44.0'))!.find((i) => i.label === 'Fine, not a pickup')?.unavailable).toMatch(/did not come from a note/);
+    expect(contextItemsFor(rowOf('00:00:44'))!.find((i) => i.label === 'Fine, not a pickup')?.unavailable).toMatch(/did not come from a note/);
   });
 
   it('rapid-double-fire: a second Remove, Mark recorded or include on a line still being answered is ignored', async () => {
@@ -433,7 +433,7 @@ describe('PickupsTable', () => {
     const onRemove = vi.fn().mockReturnValue(held);
     const onSetDone = vi.fn().mockReturnValue(held);
     const { user } = setup({ onRemove, onSetDone });
-    const row = within(rowOf('00:12.0'));
+    const row = within(rowOf('00:00:12'));
     await user.dblClick(row.getByRole('button', { name: 'Remove from pickups' }));
     await user.dblClick(row.getByRole('button', { name: 'Mark recorded' }));
     expect(onRemove).toHaveBeenCalledTimes(1);
@@ -444,9 +444,9 @@ describe('PickupsTable', () => {
 
   it('context-menu-rows: a pickup with no note cannot go to Proof, and a recorded one cannot be included', () => {
     setup();
-    const byHand = contextItemsFor(rowOf('00:44.0'))!;
+    const byHand = contextItemsFor(rowOf('00:00:44'))!;
     expect(byHand.find((i) => i.label === 'Go to the note in Proof')?.unavailable).toBeTruthy();
-    const recorded = contextItemsFor(rowOf('08:20.0'))!;
+    const recorded = contextItemsFor(rowOf('00:08:20'))!;
     expect(recorded.map((i) => i.label)).toContain('Mark open again');
     expect(recorded[0].unavailable).toBeTruthy();
     expect(contextItemsFor(document.body)).toBeNull();
@@ -470,7 +470,7 @@ describe('pickups-table-alignment', () => {
   it('removals in a row with no Undo are one toast that counts them, not a stack of the same sentence (R3PK-2, XPK-11)', async () => {
     const { onRemove, user, toasts } = setup();
     onRemove.mockResolvedValue(undefined);
-    for (const time of ['05:12.0', '05:40.5', '01:01.0']) {
+    for (const time of ['00:05:12', '00:05:41', '00:01:01']) {
       await user.click(within(rowOf(time)).getByRole('button', { name: 'Remove from pickups' }));
       await waitFor(() => expect(toasts().at(-1)?.text).toMatch(/^Removed/));
     }
@@ -480,15 +480,15 @@ describe('pickups-table-alignment', () => {
 
   it('a line left out of the session is drawn muted, an included one is not (R3PK-7)', () => {
     setup({ pickups: [{ ...SPEECH, included: false }, AUDIO] });
-    const out = rowOf('05:12.0');
+    const out = rowOf('00:05:12');
     expect(out.hasAttribute('data-left-out')).toBe(true);
-    expect(within(out).getByText('05:12.0').className).toContain('text-[var(--text-muted)]');
-    expect(rowOf('01:35.2').hasAttribute('data-left-out')).toBe(false);
+    expect(within(out).getByText('00:05:12').className).toContain('text-[var(--text-muted)]');
+    expect(rowOf('00:01:35').hasAttribute('data-left-out')).toBe(false);
   });
 
   it('every cell of a row starts at its top, so the controls sit on the first line of a tall line (XPK-1)', () => {
     setup();
-    for (const cell of within(rowOf('05:12.0')).getAllByRole('cell')) expect(cell.className).toContain('align-top');
+    for (const cell of within(rowOf('00:05:12')).getAllByRole('cell')) expect(cell.className).toContain('align-top');
   });
 
   it('the table runs to the card edges: the scroll box zeroes the panel padding (R3PK-1, XPK-13)', () => {
@@ -519,7 +519,7 @@ describe('pickups-table-alignment', () => {
 
   it('Remove is set apart from the three actions before it (XPK-16)', () => {
     setup();
-    const remove = within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' });
+    const remove = within(rowOf('00:05:12')).getByRole('button', { name: 'Remove from pickups' });
     const rule = remove.parentElement?.previousElementSibling ?? remove.previousElementSibling;
     expect(rule?.getAttribute('aria-hidden')).toBe('true');
   });
