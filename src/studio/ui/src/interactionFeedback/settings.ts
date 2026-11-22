@@ -41,7 +41,7 @@ export const settingsFeedback: Record<string, FeedbackRow> = {
   // The rebuilt Settings page (SN-M93): the Definitions and pronunciations panel
 
   // The Settings page rebuilt to the research mock (SN-M92): the shared reads and the one way a row is saved
-  'src/components/settings/data/settingsForms.tsx::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'A failed read is written on the page ("Your settings could not be read", with Retry) and in a toast; one read per scope serves every row and every panel kept behind Set on a page.'),
+  'src/components/settings/data/settingsForms.tsx::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'A failed read is written on the page ("Your settings could not be read", with Retry) and in a toast; one read per scope serves every row and every panel row.'),
   'src/components/settings/data/SettingsStore.tsx::saveSettings#1': row('input', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'Every plain row saves at once through this one call: a one-field write, about 3 ms like the other saveSettings rows. The row says Saved beside its control; a refusal keeps the previous value, is the host sentence under the row, and raises the page notice that changes may not be kept. A second change simply writes the next value.'),
   // Models & downloads: the one list over the asset registry
   'src/components/settings/models/AssetsStore.tsx::assetsList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads only the manifests, as Local assets did, so the list opens at once; read again after every install, repair or removal. A failure is the list alert with Retry, and the rows stay while it reloads.'),

@@ -118,13 +118,12 @@ describe('Settings from the project picker', () => {
     await picker();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     await settingsHeading();
-    fireEvent.click(within(await screen.findByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Set on a page/ }));
+    fireEvent.click(within(await screen.findByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Recording & DAW/ }));
     const entry = await waitFor(() => {
-      const found = document.querySelector<HTMLElement>('[data-page-setting="ps.cleanup"]');
+      const found = document.querySelector<HTMLElement>('[data-row="editing.cleanup"]');
       if (!found) throw new Error('not drawn');
       return found;
     });
-    fireEvent.click(within(entry).getByRole('button', { name: /Change it here for now/ }));
     const box = (await within(entry).findAllByRole('textbox'))[0] as HTMLInputElement;
     fireEvent.change(box, { target: { value: '0.9' } });
     await within(entry).findByText('Unsaved changes');
@@ -133,10 +132,10 @@ describe('Settings from the project picker', () => {
       await api.switchProject('C:/Projects/Alice-in-Wonderland', 'Alice');
     });
     await waitFor(() => expect(screen.getByRole('button', { name: /^Back to Production/ })).toBeTruthy());
-    const same = document.querySelector<HTMLElement>('[data-page-setting="ps.cleanup"]')!;
+    const same = document.querySelector<HTMLElement>('[data-row="editing.cleanup"]')!;
     expect(within(same).getByText('Unsaved changes')).toBeTruthy();
     expect((within(same).getAllByRole('textbox')[0] as HTMLInputElement).value).toBe('0.9');
-    expect(screen.getByRole('button', { name: /^Set on a page/ }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: /^Recording & DAW/ }).getAttribute('aria-current')).toBe('page');
   });
 
   it('moves focus into Settings when it opens from the picker, and back to the Settings button when Back returns', async () => {

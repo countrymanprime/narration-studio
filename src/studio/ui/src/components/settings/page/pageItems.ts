@@ -1,6 +1,5 @@
 import type { PageItem } from '../../../input/pageCommands';
-import { CATEGORIES, PAGES_CATEGORY, categoryLabel } from '../registry/categories';
-import { PAGE_SETTINGS } from '../registry/pageSettings';
+import { CATEGORIES, categoryLabel } from '../registry/categories';
 import { ROWS } from '../registry/rows';
 import type { CategoryId, SettingMeta } from '../registry/types';
 
@@ -19,11 +18,11 @@ export type SettingsPageItemsInput = {
  * row under its category's name. A row the host did not send is left out, as on the page; a row for another recording tool stays, off, with why.
  */
 export function settingsPageItems({ shown, daw, showCategory, showRow }: SettingsPageItemsInput): PageItem[] {
-  const categories: PageItem[] = [...CATEGORIES, PAGES_CATEGORY].map((category) => ({
+  const categories: PageItem[] = CATEGORIES.map((category) => ({
     id: `category.${category.id}`,
     label: category.label,
     group: 'Categories',
-    hint: 'blurb' in category ? category.blurb : undefined,
+    hint: category.blurb,
     run: () => showCategory(category.id),
   }));
   const rows: PageItem[] = ROWS.filter((row) => row.needs !== undefined || shown(row)).map((row) => ({
@@ -40,13 +39,5 @@ export function settingsPageItems({ shown, daw, showCategory, showRow }: Setting
           : undefined,
     run: () => showRow(row.cat, row.id),
   }));
-  const moved: PageItem[] = PAGE_SETTINGS.map((setting) => ({
-    id: `row.${setting.id}`,
-    label: setting.label,
-    group: PAGES_CATEGORY.label,
-    hint: setting.why,
-    keywords: setting.syn ? [setting.syn] : undefined,
-    run: () => showRow('pages', setting.id),
-  }));
-  return [...categories, ...rows, ...moved];
+  return [...categories, ...rows];
 }

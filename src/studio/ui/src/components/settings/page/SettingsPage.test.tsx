@@ -58,15 +58,16 @@ const waitForRow = (id: string) =>
   });
 
 describe('Settings: structure', () => {
-  it('lists every category in labelled groups, with Set on a page apart', async () => {
+  it('lists every category in three labelled groups, and no category groups settings by where else they are set', async () => {
     await renderPage();
-    for (const group of ['Shared tools', 'This project', 'This computer', 'Elsewhere']) expect(within(nav()).getByRole('group', { name: group })).toBeTruthy();
+    for (const group of ['Shared tools', 'This project', 'This computer']) expect(within(nav()).getByRole('group', { name: group })).toBeTruthy();
     expect(
       within(within(nav()).getByRole('group', { name: 'Shared tools' }))
         .getAllByRole('button')
         .map((button) => button.textContent),
     ).toEqual(['Recording & DAW', 'Speech to text', 'Voice & pronunciation', 'Models & downloads', 'Delivery']);
-    expect(within(within(nav()).getByRole('group', { name: 'Elsewhere' })).getByRole('button', { name: /Set on a page/ })).toBeTruthy();
+    expect(within(nav()).queryByRole('group', { name: 'Elsewhere' })).toBeNull();
+    expect(within(nav()).queryByRole('button', { name: /Set on a page/ })).toBeNull();
   });
 
   it('shows one category at a time and marks it current', async () => {
@@ -152,7 +153,7 @@ describe('Settings: page frame', () => {
     expect(toggle.textContent).toContain('Search results');
   });
 
-  it('spaces the category groups apart, the same for Elsewhere, and attaches each label to its group', async () => {
+  it('spaces the category groups apart and attaches each label to its group', async () => {
     await renderPage();
     const groups = within(nav()).getAllByRole('group');
     expect(new Set(groups.map((group) => group.className)).size).toBe(1);
@@ -503,6 +504,17 @@ describe('Settings: row layout', () => {
   });
 });
 
+describe('Settings: the In this project filter and panel rows', () => {
+  it('lists a panel row whose project layer holds a value, and leaves one that holds none (found by the qa-breaker)', async () => {
+    const api = createMockApi();
+    await api.saveSettings('Cleanup', 'project', { min_breath_seconds: '0.3' });
+    await renderPage({ api });
+    fireEvent.click(await screen.findByRole('button', { name: 'In this project' }));
+    await waitFor(() => expect(screen.getByText('Silence cleanup thresholds')).toBeTruthy());
+    expect(screen.queryByText('Preview suggestion')).toBeNull();
+  });
+});
+
 describe('Settings: editing', () => {
   it('applies at once, says Saved, marks the row Changed and offers Reset', async () => {
     const api = createMockApi();
@@ -850,64 +862,60 @@ describe('Settings: search and filters', () => {
     expect(screen.getByRole('heading', { level: 3, name: /Speech to text/ })).toBeTruthy();
   });
 
-  it('finds a setting that moved to a page', async () => {
+  it('finds a setting only one page reads under the topic it belongs to', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'breath');
-    expect(document.querySelector('[data-page-setting="ps.cleanup"]')).toBeTruthy();
+    const found = document.querySelector<HTMLElement>('[data-row="editing.cleanup"]');
+    expect(found).toBeTruthy();
+    expect(found!.closest('section[aria-label="Recording & DAW"]')).toBeTruthy();
   });
 
-  it('keeps the punch pre-roll and the Audacity backups editable here, with the page shortcut beside them', async () => {
+  it('keeps the punch pre-roll and the Audacity backups editable here, each in its category with the page it is also set on', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
-    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]');
-    expect(punch).toBeTruthy();
-    expect(within(punch!).getByRole('button', { name: /^Open Booth/ })).toBeTruthy();
-    expect(within(punch!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+    const punch = await waitForRow('daw.punchPreroll');
+    expect(within(punch).getByRole('button', { name: /Go to Booth/ })).toBeTruthy();
+    expect(within(punch).getByText(/Also set in Booth/)).toBeTruthy();
     await userEvent.clear(screen.getByRole('textbox', { name: 'Search settings' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Search settings' }), 'retention');
-    const backups = document.querySelector<HTMLElement>('[data-page-setting="ps.backups"]');
-    expect(backups).toBeTruthy();
-    expect(within(backups!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
-    expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+    const backups = await waitForRow('daw.backups');
+    expect(within(backups).getByText(/Also set in Editing/)).toBeTruthy();
   });
 
-  it('keeps an unsaved edit in a Set on a page panel when its group is collapsed and opened again', async () => {
+  it('keeps the punch pre-roll in Settings with the built-in recorder, and says why Audacity backups have no control with a tool that keeps none', async () => {
+    const api = createMockApi({}, { dawChoice: { chosen: 'Built-in' }, daw: { daw: 'Built-in' }, recording: { engine: 'builtin' } });
+    await renderPage({ api });
+    // A computer-wide value: the Booth does not offer it with a recorder that does not punch, but Settings keeps it for every project.
+    expect(await waitForRow('daw.punchPreroll')).toBeTruthy();
+    const backups = await waitForRow('daw.backups');
+    await waitFor(() => expect(within(backups).getByText('Backups are kept only when the project records with Audacity.')).toBeTruthy());
+  });
+
+  it('a value saved through a panel row marks the row Changed and counts it', async () => {
     await renderPage();
-    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
-    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
-    const toggle = within(punch).getByRole('button', { name: 'Change it here for now' });
-    await userEvent.click(toggle);
-    const field = await waitFor(() => {
-      const input = punch.querySelector<HTMLInputElement>('input');
-      expect(input).toBeTruthy();
-      return input!;
-    });
-    await userEvent.clear(field);
-    await userEvent.type(field, '2.5');
-    await userEvent.click(toggle);
-    await userEvent.click(toggle);
-    expect(punch.querySelector<HTMLInputElement>('input')!.value).toBe('2.5');
+    pick('Delivery');
+    const entry = await waitForRow('proofing.preview');
+    const target = await within(entry).findByRole('textbox', { name: 'Target length (seconds)' });
+    fireEvent.change(target, { target: { value: '240' } });
+    fireEvent.click(within(entry).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(row('proofing.preview').getAttribute('data-changed')).toBe('true'));
+    expect(within(nav()).getByRole('button', { name: /^Delivery/ }).textContent).toMatch(/1/);
   });
 
-  // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
-  it('puts Open <page> on the line of Change it here for now', async () => {
+  it('a panel in a row has no heading of its own: the row names it, the panel keeps its scope switch', async () => {
     await renderPage();
-    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
-    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
-    const open = within(punch).getByRole('button', { name: /^Open Booth/ });
-    const change = within(punch).getByRole('button', { name: 'Change it here for now' });
-    // Both sit in the setting's one entry, the open icon at the right of the disclosure's line.
-    expect(open.closest('[data-page-setting]')).toBe(change.closest('[data-page-setting]'));
-    expect(open.className).toContain('size-[var(--button-height-sm)]');
+    pick('Speech to text');
+    const entry = await waitForRow('stt.rules');
+    const panel = await within(entry).findByRole('region', { name: 'Recording check' });
+    expect(within(panel).queryAllByRole('heading')).toHaveLength(0);
+    expect(within(panel).getByRole('group', { name: 'Recording check scope' })).toBeTruthy();
   });
 
-  it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {
+  it('lists the favourite effects under Recording & DAW, beside the effects coverage cap', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');
-    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.fx"]');
-    expect(entry).toBeTruthy();
-    expect(within(entry!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
-    expect(within(entry!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+    const entry = await waitForRow('daw.fxFavourites');
+    expect(entry.closest('section[aria-label="Recording & DAW"]')).toBeTruthy();
   });
 
   it('Escape clears the search', async () => {

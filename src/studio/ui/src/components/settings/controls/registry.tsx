@@ -1,5 +1,14 @@
 import type { ComponentType } from 'react';
 import { MODELS_CONTROLS } from './modelsControls';
+import {
+  AudacityBackupsBody,
+  CompareColoursBody,
+  FavouriteEffectsBody,
+  PreviewSuggestionBody,
+  RecordingRulesBody,
+  SilenceCleanupBody,
+  StageSuggestionsBody,
+} from './pageOwnedControls';
 import { PROJECT_CONTROLS } from './projectControls';
 import { RECORDING_CONTROLS } from './recordingControls';
 
@@ -8,7 +17,29 @@ import { RECORDING_CONTROLS } from './recordingControls';
  * has a richer control than its kind). Each takes no props and reads what it needs through the page's contexts. A row with no entry here and no
  * host field is not drawn.
  */
-export const CUSTOM: Record<string, ComponentType> = { ...RECORDING_CONTROLS, ...MODELS_CONTROLS, ...PROJECT_CONTROLS };
+export const CUSTOM: Record<string, ComponentType> = {
+  ...RECORDING_CONTROLS,
+  ...MODELS_CONTROLS,
+  ...PROJECT_CONTROLS,
+  'stt.rules': RecordingRulesBody,
+  'stt.compareColours': CompareColoursBody,
+  'daw.fxFavourites': FavouriteEffectsBody,
+  'daw.backups': AudacityBackupsBody,
+  'editing.cleanup': SilenceCleanupBody,
+  'proofing.preview': PreviewSuggestionBody,
+  'project.stages': StageSuggestionsBody,
+};
 
 /** The bodies drawn under their label across the whole row: a table or a form that needs the width (alignment audit XSE2-4, XSE2-11). */
-export const WIDE_BODIES: ReadonlySet<string> = new Set(['daw.voices', 'project.credits', 'project.types']);
+export const WIDE_BODIES: ReadonlySet<string> = new Set([
+  'daw.voices',
+  'project.credits',
+  'project.types',
+  'stt.rules',
+  'stt.compareColours',
+  'daw.fxFavourites',
+  'daw.backups',
+  'editing.cleanup',
+  'proofing.preview',
+  'project.stages',
+]);

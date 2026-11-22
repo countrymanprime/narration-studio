@@ -21,7 +21,6 @@ import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
 import { DiagnosticsSection } from '../controls/DiagnosticsSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
-import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { search, type Hit } from '../registry/search';
 import { PAGE_LABEL, PAGE_PATH, type CategoryId, type SettingMeta, type UsedPage } from '../registry/types';
@@ -32,11 +31,11 @@ import { ANCHOR_TARGETS } from './anchors';
 import { CategoryNav } from './CategoryNav';
 import { CategoryPane } from './CategoryPane';
 import { ModelsPane } from './ModelsPane';
-import { PagesPane } from './PagesPane';
 import { PaneTitle } from './PaneTitle';
 import { Results } from './Results';
 import { settingsPageItems } from './pageItems';
 import { useDeepLink } from './useDeepLink';
+import { PANEL_ROWS } from '../registry/panelFields';
 
 export type SettingsPageProps = {
   data: Bootstrap;
@@ -132,7 +131,12 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     [store, flagged],
   );
   const inProject = useCallback(
-    (row: SettingMeta): boolean => (row.scope === 'project' && !row.field) || overrideValue(row, store.fieldsOf(row).project) !== undefined,
+    (row: SettingMeta): boolean => {
+      // A panel row has no field of its own: it is in this project when the project layer holds a value for one of the fields it draws.
+      const panel = PANEL_ROWS[row.id];
+      if (panel && store.settings.project?.[panel.tool]?.some((field) => field.isSet && panel.wanted(field.key))) return true;
+      return (row.scope === 'project' && !row.field) || overrideValue(row, store.fieldsOf(row).project) !== undefined;
+    },
     [store],
   );
   const passes = useCallback(
@@ -210,7 +214,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   }, [targetRow, advanced]);
   const settled = loaded || Boolean(store.readError.global);
   const clearFocus = useCallback(() => setFocusRow(null), []);
-  useDeepLink(focusRow, settled && (!targetRow?.advanced || Boolean(advanced[targetRow.cat])) && cat === (targetRow?.cat ?? 'pages'), clearFocus, setLit);
+  useDeepLink(focusRow, settled && (!targetRow?.advanced || Boolean(advanced[targetRow.cat])) && cat === targetRow?.cat, clearFocus, setLit);
 
   // Choosing a category moves the reader to its heading (the list stays where it is for a keyboard user to continue); a row asked for keeps its focus.
   const rowAsked = useRef(focusRow);
@@ -297,38 +301,34 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   } else {
     content = (
       <fieldset disabled={broken} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0 disabled:opacity-55">
-        {cat === 'pages' ? (
-          <PagesPane lit={lit} />
-        ) : (
-          <CategoryPane
-            category={category!}
-            rows={categoryRows(cat)}
-            changed={resettableChangedIn(cat)}
-            advancedOpen={Boolean(advanced[cat])}
-            // Collapsing Advanced unmounts the rows under it, and a key pasted into the Merriam-Webster box among them, so closing it asks (#3456).
-            onToggleAdvanced={() => {
-              const toggle = () => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }));
-              if (advanced[cat]) guarded(toggle);
-              else toggle();
-            }}
-            onReset={() => {
-              if (resetting.current) return;
-              resetting.current = true;
-              void resetCategory(categoryRows(cat).filter(changed), store, resets, notify, () => mounted.current).finally(() => {
-                resetting.current = false;
-              });
-            }}
-            lit={lit}
-            extra={
-              cat === 'app' ? (
-                <>
-                  <AboutSection />
-                  <DiagnosticsSection />
-                </>
-              ) : undefined
-            }
-          />
-        )}
+        <CategoryPane
+          category={category!}
+          rows={categoryRows(cat)}
+          changed={resettableChangedIn(cat)}
+          advancedOpen={Boolean(advanced[cat])}
+          // Collapsing Advanced unmounts the rows under it, and a key pasted into the Merriam-Webster box among them, so closing it asks (#3456).
+          onToggleAdvanced={() => {
+            const toggle = () => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }));
+            if (advanced[cat]) guarded(toggle);
+            else toggle();
+          }}
+          onReset={() => {
+            if (resetting.current) return;
+            resetting.current = true;
+            void resetCategory(categoryRows(cat).filter(changed), store, resets, notify, () => mounted.current).finally(() => {
+              resetting.current = false;
+            });
+          }}
+          lit={lit}
+          extra={
+            cat === 'app' ? (
+              <>
+                <AboutSection />
+                <DiagnosticsSection />
+              </>
+            ) : undefined
+          }
+        />
       </fieldset>
     );
   }
@@ -396,7 +396,6 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               onToggle={() => setNavOpen((current) => !current)}
               onPick={showCategory}
               changedIn={changedIn}
-              pageSettingCount={PAGE_SETTINGS.length}
             />
             <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
               {store.failing && (
@@ -458,8 +457,8 @@ async function resetCategory(
 }
 
 /**
- * The Settings page, at `/settings`: eight categories in three groups and an index of what moved to a page, one category at a time, built from
- * the host's fields and the registry in `registry/`. A change applies at once. The panels kept behind Set on a page edit with Save as before,
+ * The Settings page, at `/settings`: eight categories in three groups, one category at a time, built from
+ * the host's fields and the registry in `registry/`. A change applies at once. The panels of the settings one page reads edit with Save as before,
  * and join the app's leave guard through `SettingsFormsProvider`.
  */
 export function SettingsPage({

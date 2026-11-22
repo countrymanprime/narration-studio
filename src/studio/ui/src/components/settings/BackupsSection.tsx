@@ -9,6 +9,7 @@ import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { plural } from '../../plural';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 
 const TOOL = 'DAW';
 const WINDOW_KEY = 'backups.window_seconds';
@@ -19,7 +20,7 @@ const KEYS = [WINDOW_KEY, RETENTION_KEY];
 export type BackupsRow = { field: ScopedSettingField; scope: Scope };
 
 /** Whether the DAW has backups at all: a built `backups` row. REAPER's Not yet available and the built-in recorder's Unsupported have none. */
-function hasBackups(caps: DawCapabilities | undefined): boolean {
+export function hasBackups(caps: DawCapabilities | undefined): boolean {
   const level = caps?.capabilities['backups']?.level;
   return level === 'supported' || level === 'experimental';
 }
@@ -142,7 +143,6 @@ export function BackupsSection() {
   const readSettings = useCallback(async () => {
     const [global, project] = await Promise.all([system.settingsForScope('global'), system.settingsForScope('project')]);
     setRows(rowsOf(global[TOOL] ?? [], project[TOOL] ?? []));
-    setDrafts({});
   }, [system]);
 
   useEffect(() => {
@@ -169,6 +169,8 @@ export function BackupsSection() {
         await system.saveSettings(TOOL, scope, values);
         setSaveError('');
         await readSettings();
+        // Only what was saved leaves the form: a value held in the other box because its range refuses it stays (#3877 B1).
+        setDrafts((current) => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in values))));
       } catch (error) {
         setSaveError(describeApiError(error));
       }
@@ -183,6 +185,12 @@ export function BackupsSection() {
     if (row.field.number && numberProblem(row.field.number, draft)) return;
     void save(row.scope, { [key]: draft === '' ? null : draft });
   };
+
+  // A value outside its range is held in its box, not saved: leaving the category or the page asks before it is dropped (#3877 N6).
+  const refused = rows.some(
+    ({ field }) => drafts[field.key] !== undefined && field.number !== undefined && numberProblem(field.number, drafts[field.key]!) !== undefined,
+  );
+  useUnsavedDraft('audacity-backups', { dirty: refused, label: 'a backups value outside its range', discard: () => setDrafts({}) });
 
   if (!loadError && !hasBackups(caps)) return null;
   const support = caps?.capabilities['backups'];

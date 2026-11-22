@@ -64,7 +64,7 @@ describe('ScopedFieldsPanel save', () => {
       </ApiProvider>,
     );
     const field = (await screen.findAllByRole('textbox'))[0] ?? (await screen.findAllByRole('spinbutton'))[0];
-    fireEvent.change(field!, { target: { value: '7' } });
+    fireEvent.change(field!, { target: { value: '0.7' } });
     const save = await screen.findByRole('button', { name: 'Save' });
     const failed = nextToast();
     fireEvent.click(save);
