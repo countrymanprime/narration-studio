@@ -5,11 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { usePort } from '../../../ports/usePort';
-import { forgetPeaks, PEAKS_BUDGET_BYTES, usePrefetchPeaks, useRibbonPeaks } from './useRibbonPeaks';
+import { forgetPeaks, PEAKS_BUDGET_BYTES, UNANSWERED_RETRY_MS, usePrefetchPeaks, useRibbonPeaks } from './useRibbonPeaks';
 
 afterEach(cleanup);
 
 const result = (chapterId: string) => ({ chapterId, items: [{ index: 0, reason: 'No audio.' }] });
+const drawn = (chapterId: string) => ({
+  chapterId,
+  items: [{ index: 0, peaks: { startSeconds: 0, bucketsPerSecond: 50, buckets: 1, minMax: 'AAA=', sampleRate: 48000, channels: 1 } }],
+});
 const withApi = (api: ReturnType<typeof createMockApi>) =>
   function Wrapper({ children }: { children: ReactNode }) {
     return <ApiProvider api={api}>{children}</ApiProvider>;
@@ -56,10 +60,38 @@ describe('useRibbonPeaks', () => {
     expect(workspacePeaks).toHaveBeenCalledTimes(2);
   });
 
+  it('reads again, on the next ask after a quiet spell, an answer that drew nothing (#4042)', async () => {
+    vi.useFakeTimers();
+    try {
+      const workspacePeaks = vi
+        .fn()
+        .mockResolvedValueOnce(result('c-1'))
+        .mockResolvedValue({
+          chapterId: 'c-1',
+          items: [{ index: 0, peaks: { startSeconds: 0, bucketsPerSecond: 50, buckets: 1, minMax: 'AAA=', sampleRate: 48000, channels: 1 } }],
+        });
+      const api = { ...createMockApi(), workspacePeaks };
+      const first = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(first.result.current.status).toBe('ready'));
+      first.unmount();
+      renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) }).unmount();
+      expect(workspacePeaks).toHaveBeenCalledTimes(1);
+      vi.setSystemTime(Date.now() + UNANSWERED_RETRY_MS + 1000);
+      const later = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(2));
+      await vi.waitFor(() => {
+        const state = later.result.current;
+        expect(state.status === 'ready' && state.result.items[0]?.peaks).toBeTruthy();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('keeps a chapter read for the whole session, until it is forgotten', async () => {
     vi.useFakeTimers();
     try {
-      const workspacePeaks = vi.fn(async (chapterId: string) => result(chapterId));
+      const workspacePeaks = vi.fn(async (chapterId: string) => drawn(chapterId));
       const api = { ...createMockApi(), workspacePeaks };
       const first = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
       await vi.waitFor(() => expect(first.result.current.status).toBe('ready'));

@@ -6,7 +6,13 @@ import { docSpan, placePeaks, type DocPeaks, type ItemClocks } from './docClock'
 
 export type RibbonPeaks = { status: 'loading' } | { status: 'ready'; result: WorkspacePeaksResult } | { status: 'failed'; reason: string };
 
-type Shared = { promise: Promise<WorkspacePeaksResult>; result?: WorkspacePeaksResult; bytes: number };
+type Shared = { promise: Promise<WorkspacePeaksResult>; result?: WorkspacePeaksResult; bytes: number; at: number };
+
+/** How long an answer that drew nothing (every item only a reason: a file busy, a read that timed out) is trusted before the next ask reads it again (#4042). */
+export const UNANSWERED_RETRY_MS = 15_000;
+
+const drewNothing = (result: WorkspacePeaksResult): boolean =>
+  result.items.length > 0 && result.items.every((item) => !item.peaks) && result.items.some((item) => item.reason);
 type Workspace = { workspacePeaks: (chapterId: string) => Promise<WorkspacePeaksResult> };
 const reads = new WeakMap<object, Map<string, Shared>>();
 /** The page's chapters and the one that is open, per port: what "far" means when a kept waveform has to leave. */
@@ -58,12 +64,13 @@ function sharedRead(workspace: Workspace, chapterId: string): Shared {
   const byChapter = reads.get(workspace) ?? new Map<string, Shared>();
   reads.set(workspace, byChapter);
   const kept = byChapter.get(chapterId);
-  if (kept) return kept;
-  const entry: Shared = { promise: workspace.workspacePeaks(chapterId), bytes: 0 };
+  if (kept && !(kept.result && drewNothing(kept.result) && Date.now() - kept.at > UNANSWERED_RETRY_MS)) return kept;
+  const entry: Shared = { promise: workspace.workspacePeaks(chapterId), bytes: 0, at: Date.now() };
   byChapter.set(chapterId, entry);
   entry.promise.then(
     (result) => {
       entry.result = result;
+      entry.at = Date.now();
       if (byChapter.get(chapterId) !== entry) return;
       entry.bytes = peaksBytes(result);
       const known = sizes.get(workspace) ?? new Map<string, number>();
