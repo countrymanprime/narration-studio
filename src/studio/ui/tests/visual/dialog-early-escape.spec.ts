@@ -74,6 +74,8 @@ for (const throttle of [1, 20]) {
     });
   }
 
+  // This is also the guard for the `Tooltip` Escape listener's "pressed elsewhere" branch (#4014): the icon consumes an Escape pressed on it or in its note only, so a note left
+  // showing by the mouse never keeps a dialog open. A jsdom test cannot hold it (Base UI consumes that Escape itself there).
   // The same early Escape with an info icon's note on the page behind the dialog, opened by resting the mouse on the icon. The note belongs to the icon, not to the dialog.
   test(`Escape sent as soon as the jump menu has focus closes it, with an info icon's note from the mouse still showing, with the CPU ${throttle}x slower`, async ({
     page,
