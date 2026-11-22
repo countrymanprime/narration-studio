@@ -35,7 +35,7 @@ import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
 import { DawConnectionChip } from '../../connection/DawConnectionChip';
 import { DawToolsButton } from '../../engine/DawToolsButton';
-import { useReadChapters } from '../../../studio/useChapters';
+import { useChapters, useReadChapters } from '../../../studio/useChapters';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -94,9 +94,11 @@ function sayOnce(prefix: string, reason: string): string {
 
 function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, focusFile }: BodyProps & { projectFolder: string }) {
   const readChapters = useReadChapters(projectFolder);
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // The first frame already has the store's list when it holds one (the read below is async, so seeding from it avoids a frame of the loading box and a table that then appears).
+  const held = useChapters(false).chapters;
+  const [chapters, setChapters] = useState<ManuscriptChapter[]>(() => (held ? [...held] : []));
   const [chaptersProblem, setChaptersProblem] = useState<string>();
-  const [chaptersRead, setChaptersRead] = useState(false);
+  const [chaptersRead, setChaptersRead] = useState(held !== undefined);
   const profilesPort = usePort('deliveryProfiles');
   const run = useMeasureRun();
   useMeasureErrors(run);
