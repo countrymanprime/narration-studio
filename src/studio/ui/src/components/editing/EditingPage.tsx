@@ -6,6 +6,7 @@ import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { useReadChapters } from '../../studio/useChapters';
+import { ProjectChangedError } from '../../studio/store/createStudioStore';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
 import { Panel } from '../primitives/Panel';
@@ -104,9 +105,10 @@ function EditingLoaded({
   const [dawDialogOpen, setDawDialogOpen] = useState(false);
   const panels = usePanels(drawer);
   const width = useWindowWidth();
-  const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
-  // The project the chapters in `chapters` were read for.
+  const [read, setChapters] = useState<ManuscriptChapter[] | null>(null);
+  // The project the chapters in `read` were read for; the page draws them only under that folder, so a project switch shows the skeleton, never the old project's chapter.
   const [chaptersOf, setChaptersOf] = useState('');
+  const chapters = chaptersOf === projectFolder ? read : null;
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string>();
   const [attempt, setAttempt] = useState(0);
@@ -129,7 +131,8 @@ function EditingLoaded({
         setErrorDetails(undefined);
       },
       (e: unknown) => {
-        if (!live) return;
+        // A read that heard the project was another one: the page is about to be drawn for it (its folder prop follows the bootstrap), so it says nothing.
+        if (!live || e instanceof ProjectChangedError) return;
         setError(apiErrorMessage(e));
         setErrorDetails(apiErrorDetails(e));
       },

@@ -722,7 +722,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   // to link) it draws no list, and no separate Tracks card.
   it('opens the engine panel from the engine chip, without a manuscript, with the project and no track list', async () => {
     const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
+    // A project with no manuscript has no chapters: the host's list is empty (the mock answers its sample book whatever the bootstrap says).
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(screen.queryAllByRole('button', { name: 'Tracks' })).toHaveLength(0);
 

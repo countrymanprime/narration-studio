@@ -151,4 +151,22 @@ describe('useReadChapters (#3658, #3998)', () => {
     expect((await result.current()).length).toBeGreaterThan(0);
     expect(read).toHaveBeenCalledTimes(1);
   });
+
+  it('settled (the default) fails when the re-read of a held list failed; a page that only shows the list keeps the held one', async () => {
+    const api = createMockApi();
+    const original = api.manuscriptChapters.bind(api);
+    let fail = false;
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(async () => {
+      if (fail) throw new Error('offline');
+      return original();
+    });
+    const { result } = renderHook(() => ({ page: useReadChapters(), cells: useReadChapters(undefined, false), store: useStoreHandle() }), {
+      wrapper: withProvider(api),
+    });
+    await result.current.page();
+    fail = true;
+    act(() => announceChapterListWritten());
+    await expect(result.current.page()).rejects.toThrow('offline');
+    expect((await result.current.cells()).length).toBeGreaterThan(0);
+  });
 });

@@ -62,7 +62,8 @@ export function usePipelineSources(
   const findings = usePort('findings');
   const measure = usePort('measure');
   const scriptPrep = usePort('scriptPrep');
-  const readChapters = useReadChapters();
+  // The cells only show the list: a held one stays when its re-read fails (not `settled`).
+  const readChapters = useReadChapters(undefined, false);
   const store = useOptionalStoreHandle();
   // Each reset of the store is a project switch: what was read before it is the old project's, whatever the refresh key says.
   const generation = useSyncExternalStore(
