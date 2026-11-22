@@ -164,7 +164,7 @@ const usedRefresh = time.Hour
 
 // markUsed moves the entry file's modification time to now when it is older than usedRefresh. The modification time is the entry's
 // last use for PruneKinds, so an entry the narrator still reads is neither expired nor evicted first, and the blob is not rewritten.
-// The time is set through a root on the cache folder, so a link in place of the file is not followed. A failure is ignored: the entry
+// The time is set through a root on the cache folder, which a link cannot lead out of. A failure is ignored: the entry
 // then ages as if unused, which costs a recompute, never a wrong answer.
 func (s *CacheStore) markUsed(path string) {
 	info, err := os.Lstat(path)
@@ -178,8 +178,8 @@ func (s *CacheStore) markUsed(path string) {
 	s.setUsed(filepath.Base(path), time.Now())
 }
 
-// setUsed sets the modification time of the entry file name to at, through a root on the cache folder so a link in its place is not
-// followed. A failure is ignored: the entry then keeps its time, which costs a recompute at worst, never a wrong answer.
+// setUsed sets the modification time of the entry file name to at, through a root on the cache folder, which a link cannot lead
+// out of. A failure is ignored: the entry then keeps its time, which costs a recompute at worst, never a wrong answer.
 func (s *CacheStore) setUsed(name string, at time.Time) {
 	root, err := os.OpenRoot(s.dir)
 	if err != nil {
@@ -229,6 +229,13 @@ type CachePrune struct {
 // maxEnvelopeHeader is how much of an entry file's start entryAnalyzer reads looking for the blob's key.
 const maxEnvelopeHeader = 4 << 10
 
+// removeEntry removes one regular file below the project; a variable so a test can make a removal fail on every platform.
+var removeEntry = persist.RemoveRegular
+
+// maxRemovalFailures is how many removals may fail in one pass before it gives up: on a volume that refuses every delete a pass would
+// otherwise try each expired entry in turn, waiting on each, and report every one.
+const maxRemovalFailures = 8
+
 // scanChunk is how many entries a prune pass reads between two looks at its stop function.
 const scanChunk = 256
 
@@ -237,6 +244,9 @@ type cacheFile struct {
 	name string
 	size int64
 	used time.Time
+	// stamp is the file's modification time as listed: an entry whose time has moved by the time it is reached was used or written since,
+	// and stays.
+	stamp time.Time
 }
 
 // PruneKinds removes cache entries by what policies say about their analyzer: first the entries unused for longer than the kind's
@@ -294,12 +304,13 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 		if analyzer, ok := s.entryAnalyzer(entry.Name()); ok {
 			// A file time after now (a clock set back, a restored copy) is moved to now, so that the entry ages and is evicted like any other
 			// from here on; read as now alone it would be "just used" at every pass.
-			used := info.ModTime()
+			used, stamp := info.ModTime(), info.ModTime()
 			if used.After(now) {
 				used = now
 				s.setUsed(entry.Name(), now)
+				stamp = now
 			}
-			byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: info.Size(), used: used})
+			byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: info.Size(), used: used, stamp: stamp})
 		}
 	}
 	report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
@@ -325,9 +336,22 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 				report.Stopped = true
 				return report, errors.Join(failures...)
 			}
-			removed, err := persist.RemoveRegular(s.project, filepath.Join(rel, file.name))
+			// The list is some time old: an entry a hit refreshed or a writer wrote again since stays, and one already gone is not this pass's.
+			current, err := os.Lstat(filepath.Join(s.dir, file.name))
+			if err != nil {
+				kindBytes -= file.size // already gone
+				continue
+			}
+			if !current.ModTime().Equal(file.stamp) {
+				continue // used or written since the listing: it stays, and still counts against the cap
+			}
+			removed, err := removeEntry(s.project, filepath.Join(rel, file.name))
 			if err != nil {
 				failures = append(failures, fmt.Errorf("could not remove analysis cache entry %s: %w", file.name, err))
+				if len(failures) >= maxRemovalFailures {
+					failures = append(failures, fmt.Errorf("gave up after %d failed removals", maxRemovalFailures))
+					return report, errors.Join(failures...)
+				}
 				continue
 			}
 			kindBytes -= file.size
@@ -361,6 +385,11 @@ func (s *CacheStore) entryAnalyzer(name string) (string, bool) {
 		return "", false
 	}
 	defer func() { _ = file.Close() }()
+	// The listing saw a regular file, but a pipe or device may have taken its name since; a read of one waits for a writer for ever, and
+	// Go waits on a non-blocking pipe too. The opened handle is what is checked, so nothing can change between the check and the read.
+	if info, err := file.Stat(); err != nil || !info.Mode().IsRegular() {
+		return "", false
+	}
 	// The three fields before the blob are a few dozen bytes: a file whose envelope header runs past the limit is not one this store wrote.
 	decoder := json.NewDecoder(io.LimitReader(file, maxEnvelopeHeader))
 	if token, err := decoder.Token(); err != nil || token != json.Delim('{') {

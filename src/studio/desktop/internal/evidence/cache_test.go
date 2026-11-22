@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -791,6 +792,118 @@ func TestPruneKindsWithNoStopFunctionNeverStops(t *testing.T) {
 	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxAge: time.Hour}}, pruneNow, nil)
 	if err != nil || report.Removed != 1 || report.Stopped {
 		t.Fatalf("report = %+v, %v; want the entry removed with a nil stop", report, err)
+	}
+}
+
+// An entry a hit refreshed or a writer wrote again after the pass listed the folder stays: the list is some time old.
+func TestPruneKindsKeepsAnEntryUsedOrWrittenAgainSinceItListedTheFolder(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	used, rewritten, idle := kindKey("a", "used"), kindKey("a", "rewritten"), kindKey("a", "idle")
+	writeUsed(t, store, project, used, 100, pruneNow.Add(-48*time.Hour))
+	writeUsed(t, store, project, rewritten, 100, pruneNow.Add(-47*time.Hour))
+	writeUsed(t, store, project, idle, 100, pruneNow.Add(-46*time.Hour))
+
+	// stop is asked before each removal, after the listing: the first look is the moment another part of the app reads one entry and
+	// writes another.
+	first := true
+	stop := func() bool {
+		if first {
+			first = false
+			if _, ok := store.Read(used); !ok {
+				t.Error("the entry did not read")
+			}
+			if err := store.Write(rewritten, []byte("again")); err != nil {
+				t.Error(err)
+			}
+		}
+		return false
+	}
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, time.Now(), stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !entryExists(project, used) || !entryExists(project, rewritten) || entryExists(project, idle) || report.Removed != 1 {
+		t.Fatalf("used kept %v, rewritten kept %v, idle kept %v, removed %d; want only the idle entry removed", entryExists(project, used), entryExists(project, rewritten), entryExists(project, idle), report.Removed)
+	}
+}
+
+// A removal that fails leaves its entry and the pass goes on; the pass gives up, saying so, after maxRemovalFailures of them.
+func TestPruneKindsGoesOnPastAFailedRemovalAndGivesUpAfterEight(t *testing.T) {
+	was := removeEntry
+	t.Cleanup(func() { removeEntry = was })
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	var keys []CacheEntryKey
+	for i := range 12 {
+		key := kindKey("a", fmt.Sprint(i))
+		keys = append(keys, key)
+		writeUsed(t, store, project, key, 100, pruneNow.Add(-time.Duration(48-i)*time.Hour))
+	}
+	denied := errors.New("access is denied")
+	attempts := 0
+	removeEntry = func(root, rel string) (bool, error) {
+		attempts++
+		if attempts <= 3 {
+			return false, denied
+		}
+		return was(root, rel)
+	}
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never)
+	if err == nil || !errors.Is(err, denied) || report.Removed != 9 || report.FilesAfter != 3 {
+		t.Fatalf("report = %+v, err = %v; want 9 removed, the 3 refused kept and the errors reported", report, err)
+	}
+	for i := range 3 {
+		if !entryExists(project, keys[i]) {
+			t.Fatalf("entry %d was removed though its removal failed", i)
+		}
+	}
+
+	// Every removal refused, over a dozen entries again: it stops at the limit and says so.
+	for i, key := range keys {
+		writeUsed(t, store, project, key, 100, pruneNow.Add(-time.Duration(48-i)*time.Hour))
+	}
+	attempts = 0
+	removeEntry = func(string, string) (bool, error) { attempts++; return false, denied }
+	report, err = store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never)
+	if err == nil || attempts != maxRemovalFailures || report.Removed != 0 || !strings.Contains(err.Error(), "gave up") {
+		t.Fatalf("after %d attempts: report = %+v, err = %v; want it to give up after %d", attempts, report, err, maxRemovalFailures)
+	}
+}
+
+// A link named like an entry is not an entry: it is kept, and what it points to is not touched, in or outside the cache folder.
+func TestPruneKindsLeavesALinkNamedLikeAnEntryAndItsTarget(t *testing.T) {
+	project, elsewhere := t.TempDir(), t.TempDir()
+	store := NewCacheStore(project)
+	inside := kindKey("a", "inside")
+	writeUsed(t, store, project, inside, 100, pruneNow.Add(-400*24*time.Hour))
+	outside := filepath.Join(elsewhere, "outside.json")
+	if err := os.WriteFile(outside, []byte(`{"schemaVersion": 1, "analyzerId": "a", "blob": ""}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	links := map[string]string{
+		filepath.Join(CacheDir(project), "link-out.json"):    outside,
+		filepath.Join(CacheDir(project), "link-inside.json"): filepath.Join(CacheDir(project), inside.hash()+".json"),
+	}
+	for link, target := range links {
+		if err := os.Symlink(target, link); err != nil {
+			t.Skipf("no symbolic links here: %v", err)
+		}
+	}
+	// Only the real entry may go: the links and the outside file stay.
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(outside); err != nil {
+		t.Fatalf("the file behind a link was removed: %v", err)
+	}
+	for link := range links {
+		if _, err := os.Lstat(link); err != nil {
+			t.Fatalf("link %s was removed: %v", filepath.Base(link), err)
+		}
+	}
+	if entryExists(project, inside) {
+		t.Fatal("the real entry, long unused, was not removed")
 	}
 }
 

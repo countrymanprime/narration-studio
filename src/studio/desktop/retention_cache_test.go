@@ -101,7 +101,7 @@ func TestEveryWriterOfTheAnalysisCacheIsInTheRetentionTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, id := range []string{measure.PeaksAnalyzerID, measure.FileAnalyzerID, editing.AnalyzerSilence, passagetakes.MeasureAnalyzerID} {
+	for _, id := range []string{measure.PeaksAnalyzerID, measure.FileAnalyzerID, editing.AnalyzerSilence, passagetakes.MeasureAnalyzerID, coverage.WordsAnalyzerID} {
 		if !slices.ContainsFunc(cacheRetentionPolicies, func(p evidence.CacheKindPolicy) bool { return p.AnalyzerID == id }) {
 			t.Errorf("analyzer %q writes the cache and has no row in cacheRetentionPolicies", id)
 		}
