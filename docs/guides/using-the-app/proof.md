@@ -412,7 +412,7 @@ manuscript it offers **Open Production** to import one, and a failed read offers
 in the manuscript reader, or copy its range and length to paste elsewhere; neither changes anything — a
 suggestion is recomputed fresh every time you visit the page, never applied, exported or stored.
 
-**Jump to or run** (Ctrl+K) has **Open Preview options**, which sets how the suggestions are made for this project: the target length, the tolerance around it, the preset (**Sample** or **Spot check**) and how much of each chapter's ending to leave out. A choice is saved at once and a number when you press Enter or leave its box (one outside its range becomes the nearest allowed value; an emptied box hands the number back, as its reset button does), and the suggestions are computed again; the reset button on a line (the undo icon) hands that setting back to the computer-wide value or the default.
+**Jump to or run** (Ctrl+K) has **Open Preview options**, which sets how the suggestions are made for this project: the target length, the tolerance around it, the preset (**Sample** or **Spot check**) and how much of each chapter's ending to leave out. A choice is saved at once and a number when you press Enter or leave its box (the range is written under the box, such as "From 60 to 3600 s", and a number outside it becomes the nearest allowed value; an emptied box hands the number back, as its reset button does), and the suggestions are computed again; the reset button on a line (the undo icon) hands that setting back to the computer-wide value or the default.
 
 ![Proof chapter view - the Preview panel suggesting three candidate excerpts from the manuscript](../../images/ui/proof-chapter-preview.webp)
 

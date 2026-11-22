@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useId, useState, type ReactNode } from 'react';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
@@ -7,6 +7,7 @@ import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
 import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
+import { describeNumberRange } from '../../settings/numberSetting';
 import { SettingNumber } from '../../settings/value/SettingNumber';
 import type { ScopedSettingField } from '../../../types';
 import { proofingChoiceLabel } from '../options';
@@ -14,18 +15,29 @@ import { useProjectOptions } from './useProjectOptions';
 
 function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => Promise<boolean> }) {
   const range = field.number;
+  const noteId = useId();
+  // The range note under the box, as in Settings (CS-N1): a typed number past it becomes the limit, and this says what the limit is.
+  const rangeNote = range ? describeNumberRange(range) : '';
   const control =
     field.kind === 'number' && range ? (
-      // Saved when the narrator settles on it, never per key; an emptied box hands the setting back, as Reset does.
-      <SettingNumber
-        label={field.label}
-        className="max-w-[8rem]"
-        value={field.effectiveValue}
-        range={range}
-        commit="settle"
-        allowEmpty
-        onChange={(value) => onSet(field.key, value === '' ? null : value)}
-      />
+      <span className="flex flex-col gap-1">
+        {/* Saved when the narrator settles on it, never per key; an emptied box hands the setting back, as Reset does. */}
+        <SettingNumber
+          label={field.label}
+          className="max-w-[8rem]"
+          value={field.effectiveValue}
+          range={range}
+          commit="settle"
+          allowEmpty
+          describedBy={rangeNote ? noteId : undefined}
+          onChange={(value) => onSet(field.key, value === '' ? null : value)}
+        />
+        {rangeNote && (
+          <span id={noteId} className="text-[0.8125rem] text-[var(--text-muted)]">
+            {rangeNote}
+          </span>
+        )}
+      </span>
     ) : field.kind === 'choice' ? (
       <Select
         label={field.label}

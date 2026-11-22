@@ -120,6 +120,15 @@ describe('Proof options', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { target: '3600' }));
   });
 
+  // ux-reviewer (#4009): 99999 silently became 3600 with nothing in the dialog saying what the limit is.
+  it('says the range under a number box and ties it to the box, as Settings does', async () => {
+    const { open } = mount();
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    const note = screen.getByText('From 60 to 3600 s');
+    expect(box.getAttribute('aria-describedby')?.split(' ')).toContain(note.id);
+  });
+
   it('saves a colour as six hex digits without the hash, in capitals, and keeps text that is not a colour in the box, unsaved and marked', async () => {
     const { save, open } = mount();
     await open();
