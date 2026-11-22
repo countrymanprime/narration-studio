@@ -76,9 +76,9 @@ func TestBeginKeepsTheNewestRunFilesUpToTheCountLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// All files land within minutes of each other, so fixing "now" just after the last one keeps every file well
-	// inside the 7-day age limit — this test is only exercising the count limit, not the age one.
-	logger.now = fixedClock(base.Add(time.Duration(maxRunFiles+5) * time.Minute))
+	// All files land within minutes of each other, so fixing "now" three hours after the last one keeps every file outside
+	// the one-hour guard and well inside the 7-day age limit — this test is only exercising the count limit, not the age one.
+	logger.now = fixedClock(base.Add(time.Duration(maxRunFiles+5)*time.Minute + 3*time.Hour)) // past the hour a written file is left alone
 
 	logger.Begin("prune") // a run begins: the folder is pruned first
 
@@ -177,5 +177,30 @@ func TestBeginPrunesOnlyRunFilesAndFollowsNoLink(t *testing.T) {
 		if _, err := os.Lstat(link); err != nil {
 			t.Fatal("a link was removed")
 		}
+	}
+}
+
+// A run's file written within the last hour stays however many newer runs began: a sidecar that wrote only at its start is still running.
+func TestBeginLeavesARunFileWrittenWithinTheLastHour(t *testing.T) {
+	logger, path := newLogger(t, 0)
+	runsDir := filepath.Join(filepath.Dir(path), "runs")
+	if err := os.MkdirAll(runsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	for i := 0; i < maxRunFiles+3; i++ {
+		name := filepath.Join(runsDir, "run-"+strconv.Itoa(i)+".stderr.jsonl")
+		if err := os.WriteFile(name, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		modTime := now.Add(-time.Duration(i) * time.Minute) // all within the last hour
+		if err := os.Chtimes(name, modTime, modTime); err != nil {
+			t.Fatal(err)
+		}
+	}
+	logger.now = fixedClock(now)
+	logger.Begin("prune")
+	if entries, err := os.ReadDir(runsDir); err != nil || len(entries) != maxRunFiles+3 {
+		t.Fatalf("%d files left (%v); want all %d: each was written within the hour", len(entries), err, maxRunFiles+3)
 	}
 }

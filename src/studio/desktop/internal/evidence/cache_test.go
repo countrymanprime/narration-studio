@@ -641,7 +641,7 @@ func TestPruneKindsStopsWhileItIsStillReadingALargeCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	old := pruneNow.Add(-400 * 24 * time.Hour)
-	for i := range 3 * scanChunk {
+	for i := range 3 * persist.ScanChunk {
 		path := filepath.Join(CacheDir(project), fmt.Sprintf("e%04d.json", i))
 		if err := os.WriteFile(path, []byte(`{"schemaVersion": 1, "analyzerId": "rc", "blob": ""}`), 0o600); err != nil {
 			t.Fatal(err)
@@ -660,8 +660,8 @@ func TestPruneKindsStopsWhileItIsStillReadingALargeCache(t *testing.T) {
 		t.Fatalf("report = %+v after %d looks at stop; want it stopped on the first look, mid-scan, with nothing removed", report, calls)
 	}
 	entries, _ := os.ReadDir(CacheDir(project))
-	if len(entries) != 3*scanChunk {
-		t.Fatalf("%d files left, want all %d", len(entries), 3*scanChunk)
+	if len(entries) != 3*persist.ScanChunk {
+		t.Fatalf("%d files left, want all %d", len(entries), 3*persist.ScanChunk)
 	}
 }
 
@@ -788,15 +788,15 @@ func TestPruneKindsStoppedMidScanCountsOnlyWhatItReached(t *testing.T) {
 	if err := os.MkdirAll(CacheDir(project), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for i := range 2*scanChunk + 10 {
+	for i := range 2*persist.ScanChunk + 10 {
 		if err := os.WriteFile(filepath.Join(CacheDir(project), fmt.Sprintf("e%04d.json", i)), []byte(`{"schemaVersion": 1, "analyzerId": "rc", "blob": ""}`), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
 	looks := 0
 	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: 1}}, pruneNow, func() bool { looks++; return looks > 1 })
-	if err != nil || !report.Stopped || report.FilesBefore != scanChunk || report.FilesAfter != scanChunk || report.Removed != 0 {
-		t.Fatalf("report = %+v, %v; want stopped after the first %d files with nothing removed", report, err, scanChunk)
+	if err != nil || !report.Stopped || report.FilesBefore != persist.ScanChunk || report.FilesAfter != persist.ScanChunk || report.Removed != 0 {
+		t.Fatalf("report = %+v, %v; want stopped after the first %d files with nothing removed", report, err, persist.ScanChunk)
 	}
 }
 
@@ -843,7 +843,7 @@ func TestPruneKindsKeepsAnEntryUsedOrWrittenAgainSinceItListedTheFolder(t *testi
 	}
 }
 
-// A removal that fails leaves its entry and the pass goes on; the pass gives up, saying so, after maxRemovalFailures of them.
+// A removal that fails leaves its entry and the pass goes on; the pass gives up, saying so, after persist.MaxRemovalFailures of them.
 func TestPruneKindsGoesOnPastAFailedRemovalAndGivesUpAfterEight(t *testing.T) {
 	was := removeEntry
 	t.Cleanup(func() { removeEntry = was })
@@ -881,8 +881,8 @@ func TestPruneKindsGoesOnPastAFailedRemovalAndGivesUpAfterEight(t *testing.T) {
 	attempts = 0
 	removeEntry = func(string, string) (bool, error) { attempts++; return false, denied }
 	report, err = store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never)
-	if err == nil || attempts != maxRemovalFailures || report.Removed != 0 || !strings.Contains(err.Error(), "gave up") {
-		t.Fatalf("after %d attempts: report = %+v, err = %v; want it to give up after %d", attempts, report, err, maxRemovalFailures)
+	if err == nil || attempts != persist.MaxRemovalFailures || report.Removed != 0 || !strings.Contains(err.Error(), "gave up") {
+		t.Fatalf("after %d attempts: report = %+v, err = %v; want it to give up after %d", attempts, report, err, persist.MaxRemovalFailures)
 	}
 }
 

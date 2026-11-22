@@ -73,4 +73,5 @@ var runFilesRule = persist.PruneRule{
 	Group:      func(name string) (string, bool) { return name, strings.HasSuffix(name, ".stderr.jsonl") },
 	KeepGroups: maxRunFiles,
 	MaxAge:     maxRunFileAge,
+	Guard:      time.Hour,
 }

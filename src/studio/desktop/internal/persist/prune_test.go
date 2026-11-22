@@ -103,11 +103,11 @@ func TestPruneFolderTakesTheOldestGroupsUntilItIsUnderTheByteCap(t *testing.T) {
 	}
 }
 
-func TestPruneFolderLeavesAGroupModifiedWithinTheSizeGuardOutOfTheByteCap(t *testing.T) {
+func TestPruneFolderLeavesAGroupModifiedWithinTheGuardOutOfTheByteCap(t *testing.T) {
 	root, dir := pruneFolder(t)
 	old := pruneFile(t, dir, "a.dat", 100, 3*time.Hour)
 	fresh := pruneFile(t, dir, "b.dat", 100, time.Minute)
-	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 1, SizeGuard: 10 * time.Minute}, pruneNow, never); err != nil {
+	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 1, Guard: 10 * time.Minute}, pruneNow, never); err != nil {
 		t.Fatal(err)
 	}
 	if exists(old) || !exists(fresh) {
@@ -173,8 +173,8 @@ func TestPruneFolderNeverTouchesANameItsWriterDoesNotUse(t *testing.T) {
 	if err != nil || pass.Removed != 0 || !exists(note) || !exists(stray) || !exists(filepath.Join(dir, "sub.dat")) {
 		t.Fatalf("pass = %+v, %v; want everything kept", pass, err)
 	}
-	if pass.FilesBefore != 2 {
-		t.Fatalf("FilesBefore = %d; want the two regular files counted and the folder not", pass.FilesBefore)
+	if pass.FilesBefore != 0 {
+		t.Fatalf("FilesBefore = %d; want names the writer does not use, and the folder, not counted", pass.FilesBefore)
 	}
 }
 
@@ -205,6 +205,130 @@ func TestPruneFolderReadsAFileTimeInTheFutureAsNow(t *testing.T) {
 	// Its age is zero, so a time limit does not remove it.
 	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, never); err != nil || !exists(future) {
 		t.Fatalf("a future file was aged out: %v", err)
+	}
+}
+
+func TestPruneFolderStopsBeforeItListsTheFolder(t *testing.T) {
+	root, dir := pruneFolder(t)
+	pruneFile(t, dir, "a.dat", 10, 400*24*time.Hour)
+	was := listFolder
+	t.Cleanup(func() { listFolder = was })
+	listFolder = func(string) ([]os.DirEntry, error) { t.Error("the folder was listed after a stop"); return nil, nil }
+	if pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, func() bool { return true }); err != nil || !pass.Stopped {
+		t.Fatalf("pass = %+v, %v; want it stopped before the listing", pass, err)
+	}
+}
+
+// A group with a file modified within the guard is out of every removal, whatever the count, the age or the cap says.
+func TestPruneFolderLeavesAGroupModifiedWithinTheGuardWhateverTheRule(t *testing.T) {
+	root, dir := pruneFolder(t)
+	guarded := pruneFile(t, dir, "a.dat", 100, 30*time.Minute)
+	old := pruneFile(t, dir, "b.dat", 100, 9*24*time.Hour)
+	rule := PruneRule{Group: everyFileItsOwn, KeepGroups: 0, MaxAge: 7 * 24 * time.Hour, MaxBytes: 1, Guard: time.Hour}
+	// KeepGroups 1 would take the older one; MaxAge, MaxBytes too: each rule on its own and together leave the guarded file.
+	for name, r := range map[string]PruneRule{"count": {Group: rule.Group, KeepGroups: 0 + 1, Guard: time.Hour}, "age": {Group: rule.Group, MaxAge: 20 * time.Minute, Guard: time.Hour}, "size": {Group: rule.Group, MaxBytes: 1, Guard: time.Hour}} {
+		if _, err := PruneFolder(root, "runs", r, pruneNow, never); err != nil {
+			t.Fatal(name, err)
+		}
+		if !exists(guarded) {
+			t.Fatalf("the %s rule removed a file modified half an hour ago under a guard of an hour", name)
+		}
+		pruneFile(t, dir, "b.dat", 100, 9*24*time.Hour) // the old one is removed by whichever rule can; put it back for the next
+	}
+	if _, err := PruneFolder(root, "runs", rule, pruneNow, never); err != nil || !exists(guarded) || exists(old) {
+		t.Fatalf("all rules together: guarded kept %v, old kept %v (%v)", exists(guarded), exists(old), err)
+	}
+}
+
+// The guard ends: once a file is older than it, the rules apply.
+func TestPruneFolderTheGuardEndsWhenTheGroupIsOlderThanIt(t *testing.T) {
+	root, dir := pruneFolder(t)
+	file := pruneFile(t, dir, "a.dat", 10, 90*time.Minute)
+	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 1, Guard: time.Hour}, pruneNow, never); err != nil || exists(file) {
+		t.Fatalf("a file older than the guard was kept: %v", err)
+	}
+}
+
+// A file time in the future is set to now: the file is guarded for the guard period and ages out after it, and never keeps a place for ever.
+func TestPruneFolderSetsAFileTimeInTheFutureToNowAndAgesItFromThere(t *testing.T) {
+	root, dir := pruneFolder(t)
+	real := time.Now()
+	future := filepath.Join(dir, "future.dat")
+	if err := os.WriteFile(future, make([]byte, 10), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(future, real.Add(1000*24*time.Hour), real.Add(1000*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	rule := PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour, Guard: 10 * time.Minute}
+	if _, err := PruneFolder(root, "runs", rule, real, never); err != nil || !exists(future) {
+		t.Fatalf("a file dated in the future was removed on the pass that found it: %v", err)
+	}
+	if info, err := os.Stat(future); err != nil || info.ModTime().After(real.Add(time.Minute)) {
+		t.Fatalf("file time after the pass = %v (%v); want it moved to now", info.ModTime(), err)
+	}
+	// An hour and a bit later it is old like any other.
+	if _, err := PruneFolder(root, "runs", rule, real.Add(2*time.Hour), never); err != nil || exists(future) {
+		t.Fatalf("a file once dated in the future never aged out: %v", err)
+	}
+}
+
+// A future time that cannot be set (only the file's owner may) makes the file the oldest: it is neither kept for ever nor left in the cap.
+func TestPruneFolderTakesAFutureFileWhoseTimeCannotBeSetAsTheOldest(t *testing.T) {
+	root, dir := pruneFolder(t)
+	was := SetFileTime
+	t.Cleanup(func() { SetFileTime = was })
+	SetFileTime = func(string, string, time.Time) error { return errors.New("operation not permitted") }
+	real := time.Now()
+	future := filepath.Join(dir, "future.dat")
+	recent := filepath.Join(dir, "recent.dat")
+	for _, path := range []string{future, recent} {
+		if err := os.WriteFile(path, make([]byte, 10), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Chtimes(future, real.Add(1000*24*time.Hour), real.Add(1000*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(recent, real.Add(-time.Hour), real.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 10, Guard: time.Minute}, real, never); err != nil {
+		t.Fatal(err)
+	}
+	if exists(future) || !exists(recent) {
+		t.Fatalf("future kept %v, recent kept %v; want the file whose time cannot be set evicted first", exists(future), exists(recent))
+	}
+}
+
+// The limits are strict: a group exactly at the age, or a folder exactly at the cap, stays.
+func TestPruneFolderTheLimitsAreStrict(t *testing.T) {
+	root, dir := pruneFolder(t)
+	atAge := pruneFile(t, dir, "a.dat", 100, time.Hour)
+	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, never); err != nil || !exists(atAge) {
+		t.Fatalf("a file exactly at the age limit was removed: %v", err)
+	}
+	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 100}, pruneNow, never); err != nil || !exists(atAge) {
+		t.Fatalf("a folder exactly at the byte cap lost a file: %v", err)
+	}
+}
+
+// A file written during the pass is counted at its size now.
+func TestPruneFolderCountsAChangedFileAtItsSizeNow(t *testing.T) {
+	root, dir := pruneFolder(t)
+	file := pruneFile(t, dir, "a.dat", 10, 9*24*time.Hour)
+	looks := 0
+	stop := func() bool {
+		if looks++; looks == 3 {
+			if err := os.WriteFile(file, make([]byte, 50), 0o600); err != nil { // grows
+				t.Error(err)
+			}
+		}
+		return false
+	}
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, stop)
+	if err != nil || !exists(file) || pass.BytesAfter != 50 || pass.FilesAfter != 1 {
+		t.Fatalf("pass = %+v, %v; want the written file kept and counted at 50 bytes", pass, err)
 	}
 }
 
@@ -253,13 +377,13 @@ func TestPruneFolderStopsBeforeItReadsAnything(t *testing.T) {
 
 func TestPruneFolderStopsWhileItIsStillReadingALargeFolder(t *testing.T) {
 	root, dir := pruneFolder(t)
-	for i := range 2*pruneChunk + 5 {
+	for i := range 2*ScanChunk + 5 {
 		pruneFile(t, dir, fmt.Sprintf("f%04d.dat", i), 1, 400*24*time.Hour)
 	}
 	looks := 0
-	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, func() bool { looks++; return looks > 1 })
-	if err != nil || !pass.Stopped || pass.FilesBefore != pruneChunk || pass.Removed != 0 || pass.FilesAfter != pruneChunk {
-		t.Fatalf("pass = %+v, %v; want it stopped after the first %d files with nothing removed", pass, err, pruneChunk)
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, func() bool { looks++; return looks > 2 })
+	if err != nil || !pass.Stopped || pass.FilesBefore != ScanChunk || pass.Removed != 0 || pass.FilesAfter != ScanChunk {
+		t.Fatalf("pass = %+v, %v; want it stopped after the first %d files with nothing removed", pass, err, ScanChunk)
 	}
 }
 
@@ -268,8 +392,8 @@ func TestPruneFolderStopsBetweenGroups(t *testing.T) {
 	first := pruneFile(t, dir, "a.dat", 10, 3*time.Hour)
 	second := pruneFile(t, dir, "b.dat", 10, 2*time.Hour)
 	looks := 0
-	// The first look is the scan's; the second is before the first group, the third before the next.
-	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Minute}, pruneNow, func() bool { looks++; return looks > 2 })
+	// The first look is before the listing, the second the scan's; the third is before the first group, the fourth before the next.
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Minute}, pruneNow, func() bool { looks++; return looks > 3 })
 	if err != nil || !pass.Stopped || pass.Removed != 1 || exists(first) || !exists(second) {
 		t.Fatalf("pass = %+v, %v, first kept %v, second kept %v; want the oldest removed and the pass stopped", pass, err, exists(first), exists(second))
 	}
@@ -282,7 +406,7 @@ func TestPruneFolderLeavesAGroupWrittenToSinceTheListing(t *testing.T) {
 	idle := pruneFile(t, dir, "t_0002.diff", 10, 9*24*time.Hour)
 	looks := 0
 	stop := func() bool {
-		if looks++; looks == 2 { // after the scan, before the first group
+		if looks++; looks == 3 { // after the scan, before the first group
 			if err := os.WriteFile(live[1], []byte("more output"), 0o600); err != nil { // the run's file grows
 				t.Error(err)
 			}
@@ -305,7 +429,7 @@ func TestPruneFolderCarriesOnPastAFileThatIsGoneAndKeepsAGroupWhoseNameBecameAFo
 	folder := []string{pruneFile(t, dir, "t_0002.diff", 10, 9*24*time.Hour), pruneFile(t, dir, "t_0002.recorded.txt", 10, 9*24*time.Hour)}
 	looks := 0
 	stop := func() bool {
-		if looks++; looks == 2 {
+		if looks++; looks == 3 {
 			_ = os.Remove(gone[0]) // another pass took one file of the first run
 			if err := os.Remove(folder[0]); err != nil {
 				t.Error(err)
@@ -359,8 +483,105 @@ func TestPruneFolderGoesOnPastAFailedRemovalAndGivesUpAfterEight(t *testing.T) {
 	attempts = 0
 	removeFile = func(string, string) (bool, error) { attempts++; return false, denied }
 	_, err = PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: 7 * 24 * time.Hour}, pruneNow, never)
-	if err == nil || attempts != maxPruneFailures || !strings.HasPrefix(err.Error(), "gave up after 8 failed removals") {
-		t.Fatalf("after %d attempts: %v; want it to give up after %d", attempts, err, maxPruneFailures)
+	if err == nil || attempts != MaxRemovalFailures || !strings.HasPrefix(err.Error(), "gave up after 8 failed removals") {
+		t.Fatalf("after %d attempts: %v; want it to give up after %d", attempts, err, MaxRemovalFailures)
+	}
+}
+
+// A group whose one removal fails is left in part, and the failure is reported: the rest were removed, and a later pass tries the file again.
+func TestPruneFolderLeavesTheFileWhoseRemovalFailedAndRemovesTheRestOfItsGroup(t *testing.T) {
+	root, dir := pruneFolder(t)
+	files := map[string]string{
+		"diff":   pruneFile(t, dir, "T_0000000000000001.diff", 10, 9*24*time.Hour),
+		"manu":   pruneFile(t, dir, "T_0000000000000001.manuscript.txt", 10, 9*24*time.Hour),
+		"record": pruneFile(t, dir, "T_0000000000000001.recorded.txt", 10, 9*24*time.Hour),
+	}
+	was := removeFile
+	t.Cleanup(func() { removeFile = was })
+	denied := errors.New("access is denied")
+	removeFile = func(root, rel string) (bool, error) {
+		if strings.HasSuffix(rel, ".manuscript.txt") {
+			return false, denied
+		}
+		return was(root, rel)
+	}
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: runOf, MaxAge: 7 * 24 * time.Hour}, pruneNow, never)
+	if !errors.Is(err, denied) || pass.Removed != 2 || exists(files["diff"]) || !exists(files["manu"]) || exists(files["record"]) {
+		t.Fatalf("pass = %+v, err = %v; want the refused file left, the other two removed and the error reported", pass, err)
+	}
+	removeFile = was
+	if pass, err := PruneFolder(root, "runs", PruneRule{Group: runOf, MaxAge: 7 * 24 * time.Hour}, pruneNow, never); err != nil || pass.Removed != 1 || exists(files["manu"]) {
+		t.Fatalf("the next pass: %+v, %v; want the left-over file removed", pass, err)
+	}
+}
+
+// Each file is looked at right before its own removal: one written while a sibling was being removed keeps itself and the rest.
+func TestPruneFolderLeavesAFileWrittenWhileItsSiblingWasBeingRemoved(t *testing.T) {
+	root, dir := pruneFolder(t)
+	first := pruneFile(t, dir, "T_0000000000000001.diff", 10, 9*24*time.Hour)
+	second := pruneFile(t, dir, "T_0000000000000001.recorded.txt", 10, 9*24*time.Hour)
+	third := pruneFile(t, dir, "T_0000000000000001.manuscript.txt", 10, 9*24*time.Hour)
+	was := removeFile
+	t.Cleanup(func() { removeFile = was })
+	removed := 0
+	removeFile = func(root, rel string) (bool, error) {
+		removed++
+		ok, err := was(root, rel)
+		if removed == 1 { // the run writes to the next file as the first is removed
+			if werr := os.WriteFile(second, []byte("more output"), 0o600); werr != nil {
+				t.Error(werr)
+			}
+		}
+		return ok, err
+	}
+	// Names sort diff, manuscript, recorded: the first removed is the .diff.
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: runOf, MaxAge: 7 * 24 * time.Hour}, pruneNow, never)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if exists(first) || !exists(second) {
+		t.Fatalf("first kept %v, second kept %v (third %v); want the file written meanwhile left", exists(first), exists(second), exists(third))
+	}
+	if pass.Removed < 1 {
+		t.Fatalf("pass = %+v", pass)
+	}
+}
+
+// A sibling that is gone or became a folder as the first file was removed is out of the tally; a gone one does not stop the group.
+func TestPruneFolderCarriesOnPastASiblingGoneAsTheFirstWasRemoved(t *testing.T) {
+	root, dir := pruneFolder(t)
+	diff := pruneFile(t, dir, "T_0000000000000001.diff", 10, 9*24*time.Hour)
+	manu := pruneFile(t, dir, "T_0000000000000001.manuscript.txt", 10, 9*24*time.Hour)
+	record := pruneFile(t, dir, "T_0000000000000001.recorded.txt", 10, 9*24*time.Hour)
+	was := removeFile
+	t.Cleanup(func() { removeFile = was })
+	removeFile = func(root, rel string) (bool, error) {
+		ok, err := was(root, rel)
+		if strings.HasSuffix(rel, ".diff") { // as the diff goes: another pass takes the manuscript text, and a folder takes the recorded text's name
+			_ = os.Remove(manu)
+			if rerr := os.Remove(record); rerr != nil {
+				t.Error(rerr)
+			}
+			if merr := os.Mkdir(record, 0o755); merr != nil {
+				t.Error(merr)
+			}
+		}
+		return ok, err
+	}
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: runOf, MaxAge: 7 * 24 * time.Hour}, pruneNow, never)
+	if err != nil || exists(diff) || exists(manu) || pass.Removed != 1 || pass.FilesAfter != 0 || pass.BytesAfter != 0 {
+		t.Fatalf("pass = %+v, %v; want the diff removed by this pass, the other two out of the tally (one gone, one a folder)", pass, err)
+	}
+	if info, serr := os.Lstat(record); serr != nil || !info.IsDir() {
+		t.Fatalf("the folder that took a file's name was touched: %v", serr)
+	}
+}
+
+func TestPruneFolderWithNoStopFunctionRunsToTheEnd(t *testing.T) {
+	root, dir := pruneFolder(t)
+	old := pruneFile(t, dir, "a.dat", 10, 9*24*time.Hour)
+	if pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, nil); err != nil || pass.Removed != 1 || exists(old) {
+		t.Fatalf("pass = %+v, %v; want the file removed", pass, err)
 	}
 }
 

@@ -1,6 +1,7 @@
 package guide
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -527,5 +528,47 @@ func TestPreviewFolderIsWhereTheServiceRenders(t *testing.T) {
 	entries, err := os.ReadDir(filepath.Join(rig.project, PreviewFolder()))
 	if err != nil || len(entries) != 1 || !IsPreviewFile(entries[0].Name()) {
 		t.Fatalf("the preview folder holds %v (%v); want one preview file", entries, err)
+	}
+}
+
+// A preview last used eleven minutes ago, played now, is inside the prune pass's ten-minute guard again: a hit moves its time after a minute, not an hour.
+func TestAPreviewPlayedAfterElevenMinutesIsWithinTheGuardAgain(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(rig.audioDir(), previewFileName(testVoice, "Dawnspire", ""))
+	eleven := time.Now().Add(-11 * time.Minute)
+	if err := os.Chtimes(path, eleven, eleven); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(path); err != nil || time.Since(info.ModTime()) > time.Minute {
+		t.Fatalf("file time after a hit eleven minutes on = %v (%v); want now", info.ModTime(), err)
+	}
+}
+
+// End to end with the prune pass: a preview last written fifty minutes ago and played a moment ago is not removed to meet the cap.
+func TestAPreviewPlayedWithinTenMinutesIsNotRemovedToMeetTheCap(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(rig.audioDir(), previewFileName(testVoice, "Dawnspire", ""))
+	fifty := time.Now().Add(-50 * time.Minute)
+	if err := os.Chtimes(path, fifty, fifty); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil { // played again
+		t.Fatal(err)
+	}
+	rule := persist.PruneRule{Group: func(name string) (string, bool) { return name, IsPreviewFile(name) }, MaxBytes: 1, Guard: 10 * time.Minute}
+	if _, err := persist.PruneFolder(rig.project, PreviewFolder(), rule, time.Now(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("a preview played a moment ago was removed to meet the cap: %v", err)
 	}
 }

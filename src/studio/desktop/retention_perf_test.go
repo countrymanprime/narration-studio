@@ -128,7 +128,7 @@ func perfCachePass(t *testing.T, dir string) string {
 }
 
 // perfFilesPass fills the copy with NARRATION_PERF_FILES previews and Transcript Compare runs and runs the two folder steps twice each. It
-// answers "" when none were asked for. Previews are 64 KB, so a thousand are over the 64 MB cap; run i is i hours old, so runs past 168 hours
+// answers "" when none were asked for. Previews are 64 KB, so 1,024 fit the 64 MB cap and more are over it; run i is 25+i hours old (past the day a run is left alone), so runs past 168 hours
 // and past the newest 20 are removed.
 func perfFilesPass(t *testing.T, dir string) string {
 	t.Helper()
@@ -162,7 +162,7 @@ func perfFilesPass(t *testing.T, dir string) string {
 			if err := os.WriteFile(path, blob[:4<<10], 0o600); err != nil {
 				t.Fatal(err)
 			}
-			stamp(path, time.Duration(i)*time.Hour)
+			stamp(path, time.Duration(25+i)*time.Hour)
 		}
 	}
 	out := fmt.Sprintf("\n%d previews of 64 KB and %d Transcript Compare runs of three files\n\n| Step | Pass | ms | Files | MB | Removed |\n| --- | --- | --- | --- | --- | --- |\n", each, each)

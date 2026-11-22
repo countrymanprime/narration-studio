@@ -133,26 +133,26 @@ What goes at 10,000 is mostly the size caps (80 MB of blobs of each kind against
 
 ### The previews, the Transcript Compare files and the shared prune helper (#3816)
 
-`node scripts/dev/host-read-bench.mjs retention <book> --files N` adds N TTS previews (64 KB each, none used in the last ten minutes) and N Transcript Compare runs (a diff of 4 KB and two text files of 4 KB, run i being i hours old) to the copy and runs the two folder steps twice each. The previews are held to 64 MB (1,024 files of 64 KB), the runs to the newest 20 and 7 days. Two runs each, 44 chapter book, milliseconds; files and MB are the whole folder.
+`node scripts/dev/host-read-bench.mjs retention <book> --files N` adds N TTS previews (64 KB each, none used in the last ten minutes) and N Transcript Compare runs (a diff of 4 KB and two text files of 4 KB, run i being 25+i hours old: past the day a run is left alone) to the copy and runs the two folder steps twice each. The previews are held to 64 MB (1,024 files of 64 KB), the runs to the newest 20 and 7 days. Two runs each, 44 chapter book, milliseconds; files and MB are the whole folder.
 
 | N | Previews: first pass, ms | Files | MB | Removed | Compare runs: first pass, ms | Files | MB | Removed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 10 | 0, 0 | 10 → 10 | 0.66 → 0.66 | 0 | 0, 1 | 30 → 30 | 0.12 → 0.12 | 0 |
-| 100 | 0, 0 | 100 → 100 | 6.55 → 6.55 | 0 | 8, 4 | 300 → 60 | 1.23 → 0.25 | 240 |
-| 1,000 | 3, 4 | 1,000 → 1,000 | 65.54 → 65.54 | 0 | 82, 83 | 3,000 → 60 | 12.29 → 0.25 | 2,940 |
-| 10,000 | 290, 250 | 10,000 → 1,024 | 655.36 → 67.11 | 8,976 | 705, 608 | 30,000 → 60 | 122.88 → 0.25 | 29,940 |
+| 10 | 0, 0 | 10 → 10 | 0.66 → 0.66 | 0 | 0, 0 | 30 → 30 | 0.12 → 0.12 | 0 |
+| 100 | 0, 1 | 100 → 100 | 6.55 → 6.55 | 0 | 6, 9 | 300 → 60 | 1.23 → 0.25 | 240 |
+| 1,000 | 3, 6 | 1,000 → 1,000 | 65.54 → 65.54 | 0 | 63, 62 | 3,000 → 60 | 12.29 → 0.25 | 2,940 |
+| 10,000 | 299, 279 | 10,000 → 1,024 | 655.36 → 67.11 | 8,976 | 735, 720 | 30,000 → 60 | 122.88 → 0.25 | 29,940 |
 
-The second pass takes 0 to 5 ms for the previews and 0 to 1 ms for the runs at every size. Under 20 runs and under 64 MB nothing is removed (the 10 and 100 preview rows). A real project holds a few dozen previews and as many runs as the narrator has compared: the 10 and 100 rows.
+The second pass takes 0 to 5 ms for the previews and 0 to 1 ms for the runs at every size. Under 20 runs and under 64 MiB (67.11 MB; the table's MB are decimal) nothing is removed (the 10, 100 and 1,000 preview rows: 1,000 previews of 64 KB are 65.54 MB, 1,024 fit the cap). A real project holds a few dozen previews and as many runs as the narrator has compared: the 10 and 100 rows.
 
 `runlog.Begin` prunes `logs/runs` as every run starts, and now does it with the same helper (`persist.PruneFolder`) in place of its own loop. Cost of one `Begin` with N files in `logs/runs`, `main` against this change, 3 runs of 200 calls each (a folder held at its 20-file cap, the steady state), and the first `Begin` over N stale files (5 runs of one call each); microseconds and milliseconds:
 
 | Folder | `main` | This change |
 | --- | --- | --- |
-| 20 files, steady state, µs | 36 to 58 | 44 to 74 |
-| 200 stale files, first `Begin`, ms | 1.2 to 1.9 | 2.2 to 5.1 |
-| 2,000 stale files, first `Begin`, ms | 11.7 to 19.0 | 26.2 to 35.2 |
+| 20 files, steady state, µs | 36 to 58 | 43 to 60 |
+| 200 stale files, first `Begin`, ms | 1.2 to 1.9 | 2.5 to 3.4 |
+| 2,000 stale files, first `Begin`, ms | 11.7 to 19.0 | 28.9 to 40.2 |
 
-The helper costs about 10 to 30 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The folder cannot grow past 20 files again, so the one-time cost is paid once, on the first run after the upgrade.
+The helper costs about 5 to 10 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The benchmark is committed: `go -C src/studio/desktop test ./internal/runlog -run xxx -bench BenchmarkBegin -benchtime=200x -count=3` (`-benchtime=1x` for the first `Begin`). The folder cannot grow past 20 files again, so the one-time cost is paid once, on the first run after the upgrade.
 
 ## The real app
 

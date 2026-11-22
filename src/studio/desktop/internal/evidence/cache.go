@@ -218,13 +218,6 @@ const maxEnvelopeHeader = 4 << 10
 // removeEntry removes one regular file below the project; a variable so a test can make a removal fail on every platform.
 var removeEntry = persist.RemoveRegular
 
-// maxRemovalFailures is how many removals may fail in one pass before it gives up: on a volume that refuses every delete a pass would
-// otherwise try each expired entry in turn, waiting on each, and report every one.
-const maxRemovalFailures = 8
-
-// scanChunk is how many entries a prune pass reads between two looks at its stop function.
-const scanChunk = 256
-
 // cacheFile is one entry file a prune pass considers: its name, size and last use (its modification time, see markUsed).
 type cacheFile struct {
 	name string
@@ -276,7 +269,7 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 	byKind := map[string][]cacheFile{}
 	for i, entry := range entries {
 		// Reading each entry's start is the slow part of a large cache: a check that starts is not made to wait for all of it.
-		if i%scanChunk == 0 && stop() {
+		if i%persist.ScanChunk == 0 && stop() {
 			report.Stopped = true
 			report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
 			return report, nil
@@ -357,8 +350,8 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			removed, err := removeEntry(s.project, filepath.Join(rel, file.name))
 			if err != nil {
 				failures = append(failures, fmt.Errorf("could not remove analysis cache entry %s: %w", file.name, err))
-				if len(failures) >= maxRemovalFailures {
-					return report, fmt.Errorf("gave up after %d failed removals, the first: %w", maxRemovalFailures, failures[0])
+				if len(failures) >= persist.MaxRemovalFailures {
+					return report, persist.GaveUp(failures)
 				}
 				continue
 			}

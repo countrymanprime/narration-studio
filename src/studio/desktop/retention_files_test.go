@@ -38,6 +38,9 @@ func TestTheFolderRulesAreTheOwnersAnswers(t *testing.T) {
 	if previewRule.MaxBytes != 64<<20 || previewRule.KeepGroups != 0 || previewRule.MaxAge != 0 {
 		t.Errorf("previews: %+v; want a cap of 64 MB and nothing else", previewRule)
 	}
+	if previewRule.Guard != 10*time.Minute || compareRule.Guard != 24*time.Hour {
+		t.Errorf("guards: previews %v, compare %v; want ten minutes and a day", previewRule.Guard, compareRule.Guard)
+	}
 	if compareRule.KeepGroups != 20 || compareRule.MaxAge != 7*24*time.Hour || compareRule.MaxBytes != 0 {
 		t.Errorf("compare files: %+v; want the newest 20 runs and 7 days", compareRule)
 	}
@@ -68,8 +71,8 @@ func TestThePreviewStepTakesTheLeastRecentlyUsedOverTheCapAndLeavesWhatIsNotAPre
 	if fileExists(oldest) || fileExists(middle) || !fileExists(fresh) || !fileExists(part) || !fileExists(note) {
 		t.Fatalf("oldest kept %v, middle kept %v, fresh kept %v, part kept %v, note kept %v", fileExists(oldest), fileExists(middle), fileExists(fresh), fileExists(part), fileExists(note))
 	}
-	if report.FilesBefore != 5 || report.FilesAfter != 3 {
-		t.Fatalf("report = %+v; want 5 files before and 3 after", report)
+	if report.FilesBefore != 3 || report.FilesAfter != 1 {
+		t.Fatalf("report = %+v; want the three previews counted (a .part file and a note are not), 1 left", report)
 	}
 }
 
@@ -78,7 +81,7 @@ func TestTheCompareStepKeepsTheNewestTwentyRunsWholeAndTouchesNothingElse(t *tes
 	diffs := filepath.ToSlash(comparerun.DiffFolder())
 	for i := range 23 {
 		for _, ext := range []string{".diff", ".manuscript.txt", ".recorded.txt"} {
-			putFile(t, project, fmt.Sprintf("%s/Chapter_%016d%s", diffs, i, ext), 10, time.Duration(23-i)*time.Hour)
+			putFile(t, project, fmt.Sprintf("%s/Chapter_%016d%s", diffs, i, ext), 10, time.Duration(23-i+25)*time.Hour) // all past the day a run is left alone
 		}
 	}
 	decisions := []string{
@@ -187,4 +190,75 @@ func putStamped(t *testing.T, project, rel string, when time.Time) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+// Previews dated in the future (a clock set back, a restored project) do not keep the cap out of reach: their file times are set to now,
+// they are left alone for the guard period, and then they are the least recently used like any other.
+func TestThePreviewStepMovesFutureFileTimesToNowSoTheCapIsMetAfterTheGuard(t *testing.T) {
+	project := t.TempDir()
+	folder := filepath.ToSlash(guide.PreviewFolder())
+	real := time.Now()
+	var future []string
+	for i := range 3 {
+		path := filepath.Join(project, filepath.FromSlash(folder), previewName(i))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, make([]byte, 400), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		when := real.Add(1000 * 24 * time.Hour)
+		if err := os.Chtimes(path, when, when); err != nil {
+			t.Fatal(err)
+		}
+		future = append(future, path)
+	}
+	ordinary := putFile(t, project, folder+"/"+previewName(9), 400, 0)
+	if err := os.Chtimes(ordinary, real.Add(-time.Hour), real.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	step := previewRetention(project)
+	step.rule.MaxBytes = 500
+	step.now = func() time.Time { return real }
+	if report := step.Run(context.Background(), func() bool { return false }); report.Err != nil || fileExists(ordinary) {
+		t.Fatalf("first pass: %+v, ordinary kept %v; want the hour-old preview, the only one outside the guard, removed", report, fileExists(ordinary))
+	}
+	for _, path := range future {
+		if !fileExists(path) {
+			t.Fatal("a future-dated preview was removed inside the guard")
+		}
+	}
+	// Eleven minutes later the three are the least recently used like any other, and the cap is met.
+	step.now = func() time.Time { return real.Add(11 * time.Minute) }
+	if report := step.Run(context.Background(), func() bool { return false }); report.Err != nil || report.BytesAfter > 500 {
+		t.Fatalf("second pass: %+v; want the folder within the cap once the guard has passed", report)
+	}
+}
+
+// A Transcript Compare run just written is not pushed out by older runs dated in the future: it is read right after it is written.
+func TestTheCompareStepNeverRemovesTheRunJustWrittenWhenOthersAreDatedAhead(t *testing.T) {
+	project := t.TempDir()
+	diffs := filepath.ToSlash(comparerun.DiffFolder())
+	real := time.Now()
+	for i := range 20 {
+		for _, ext := range []string{".diff", ".manuscript.txt", ".recorded.txt"} {
+			path := filepath.Join(project, filepath.FromSlash(fmt.Sprintf("%s/Ahead_%016d%s", diffs, i+1, ext)))
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			when := real.Add(2 * 24 * time.Hour)
+			if err := os.Chtimes(path, when, when); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	fresh := putStamped(t, project, diffs+"/Ch1_1763812800000000.diff", real.Add(-time.Second))
+	step := compareRetention(project)
+	step.now = func() time.Time { return real }
+	if report := step.Run(context.Background(), func() bool { return false }); report.Err != nil || !fileExists(fresh) {
+		t.Fatalf("report = %+v, run just written kept %v; want it left", report, fileExists(fresh))
+	}
 }

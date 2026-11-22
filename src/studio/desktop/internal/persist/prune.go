@@ -26,8 +26,10 @@ const (
 )
 
 // Recheck looks at path again just before it is removed, and says whether it is still the regular file that was listed with that
-// size, modification time and identity (listed is the FileInfo the listing opened or read; os.SameFile compares against it). A writer that
-// renames another file over the name shows in the identity even on a filesystem whose times are too coarse to show it. The current
+// size, modification time and identity (listed is the FileInfo the listing opened or read; os.SameFile compares against it). Taken from
+// an opened handle (Stat), identity shows a writer that renamed another file over the name even on a filesystem whose times are too coarse to
+// show it; taken from a directory listing, on a Windows volume that lists no file ids (FAT, some network shares) it is read from whatever
+// file has the name then, and the size and time are what is left. The current
 // FileInfo comes back for the callers that count it (it is nil for a file that is gone or cannot be looked at).
 func Recheck(path string, size int64, modTime time.Time, listed os.FileInfo) (FileState, os.FileInfo) {
 	current, err := os.Lstat(path)
@@ -92,8 +94,9 @@ type PruneRule struct {
 	MaxAge time.Duration
 	// MaxBytes, when above zero, removes the oldest groups until the groups left hold no more than that.
 	MaxBytes int64
-	// SizeGuard keeps a group with a file modified within it out of the removals that meet MaxBytes (a writer may still be on it).
-	SizeGuard time.Duration
+	// Guard keeps a group with a file modified within it out of every removal (count, age and size): a writer may still be on it, as a
+	// sidecar is on its stderr file or a comparison on its diff, and a file the pass has just moved to now counts as modified now.
+	Guard time.Duration
 }
 
 // PrunePass is what one PruneFolder pass found and did: the regular files of the folder and their bytes before and after, and how
@@ -111,11 +114,18 @@ var (
 	listFolder = ReadDir
 )
 
-// maxPruneFailures is how many removals may fail in one pass before it gives up.
-const maxPruneFailures = 8
+// MaxRemovalFailures is how many removals may fail in one prune pass before it gives up: on a volume that refuses every delete a pass
+// would otherwise try each expired file in turn, waiting on each, and report every one. ScanChunk is how many entries a pass reads between
+// two looks at its stop function. Every prune pass (PruneFolder, evidence.CacheStore.PruneKinds) uses these.
+const (
+	MaxRemovalFailures = 8
+	ScanChunk          = 256
+)
 
-// pruneChunk is how many entries a pass reads between two looks at its stop function.
-const pruneChunk = 256
+// GaveUp is the error of a pass that ended on MaxRemovalFailures failed removals: one line, the count first and then the first failure.
+func GaveUp(failures []error) error {
+	return fmt.Errorf("gave up after %d failed removals, the first: %w", MaxRemovalFailures, failures[0])
+}
 
 type prunedFile struct {
 	name string
@@ -131,10 +141,10 @@ type prunedGroup struct {
 }
 
 // PruneFolder removes files from the flat folder rel beneath root by rule, as one pass: the groups older than MaxAge or beyond
-// KeepGroups, then the oldest groups beyond MaxBytes. Only regular files that rule.Group names are touched. Deletes go through
+// KeepGroups, then the oldest groups beyond MaxBytes. Only regular files that rule.Group names are counted or touched. Deletes go through
 // RemoveRegular after RealFolder (a folder that is a link, or below one, is an error and nothing is removed). Every file of a group is looked at again
 // just before the group goes (Recheck): a group with a file that was written or used since the listing stays whole. stop is asked
-// before the scan, every pruneChunk entries and before each group; a pass gives up after eight failed removals with one line. A
+// before the scan, every ScanChunk entries and before each group; a pass gives up after eight failed removals with one line. A
 // file time in the future counts as now. A folder that is not there is nothing to do.
 func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bool) (PrunePass, error) {
 	var pass PrunePass
@@ -153,18 +163,24 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 		return pass, nil
 	}
 	dir := filepath.Join(root, rel)
+	if stop() {
+		pass.Stopped = true
+		return pass, nil
+	}
 	entries, err := listFolder(dir)
 	if err != nil {
 		return pass, fmt.Errorf("could not list the folder: %w", err)
 	}
 	groups := map[string]*prunedGroup{}
 	for i, entry := range entries {
-		if i%pruneChunk == 0 && stop() {
+		if i%ScanChunk == 0 && stop() {
 			pass.Stopped = true
 			pass.FilesAfter, pass.BytesAfter = pass.FilesBefore, pass.BytesBefore
 			return pass, nil
 		}
-		if !entry.Type().IsRegular() {
+		// A name the writer does not use is not looked at: it is not counted, grouped or removed, and costs no stat.
+		key, ok := rule.Group(entry.Name())
+		if !ok || !entry.Type().IsRegular() {
 			continue
 		}
 		info, err := entry.Info()
@@ -173,21 +189,25 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 		}
 		pass.FilesBefore++
 		pass.BytesBefore += info.Size()
-		key, ok := rule.Group(entry.Name())
-		if !ok {
-			continue
-		}
 		group := groups[key]
 		if group == nil {
 			group = &prunedGroup{}
 			groups[key] = group
 		}
-		group.files = append(group.files, prunedFile{name: entry.Name(), info: info})
-		group.bytes += info.Size()
 		modified := info.ModTime()
 		if modified.After(now) {
-			modified = now // a time in the future counts as now
+			// A time in the future (a clock set back, a project restored from a copy) is set to now, so the file ages like any other from
+			// here: read as now alone it would be "just written" at every pass, and never aged out. A time that cannot be set (only the
+			// file's owner may) makes it the oldest, removable like any file whose time is long past.
+			modified = time.Time{}
+			if SetFileTime(dir, entry.Name(), now) == nil {
+				if fresh, err := os.Lstat(filepath.Join(dir, entry.Name())); err == nil && fresh.Mode().IsRegular() {
+					info, modified = fresh, fresh.ModTime()
+				}
+			}
 		}
+		group.files = append(group.files, prunedFile{name: entry.Name(), info: info})
+		group.bytes += info.Size()
 		if modified.After(group.newest) {
 			group.newest = modified
 		}
@@ -205,11 +225,12 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 		}
 		return strings.Compare(a.files[0].name, b.files[0].name)
 	})
+	guarded := func(group *prunedGroup) bool { return now.Sub(group.newest) < rule.Guard }
 	var doomed []*prunedGroup
 	var kept int64
 	var keptGroups []*prunedGroup
 	for i, group := range ordered {
-		if (rule.KeepGroups > 0 && i >= rule.KeepGroups) || (rule.MaxAge > 0 && now.Sub(group.newest) > rule.MaxAge) {
+		if !guarded(group) && ((rule.KeepGroups > 0 && i >= rule.KeepGroups) || (rule.MaxAge > 0 && now.Sub(group.newest) > rule.MaxAge)) {
 			doomed = append(doomed, group)
 			continue
 		}
@@ -219,14 +240,19 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 	if rule.MaxBytes > 0 {
 		// The oldest of what is left first, but not a group a writer may still be on.
 		for i := len(keptGroups) - 1; i >= 0 && kept > rule.MaxBytes; i-- {
-			if group := keptGroups[i]; now.Sub(group.newest) >= rule.SizeGuard {
+			if group := keptGroups[i]; !guarded(group) {
 				doomed = append(doomed, group)
 				kept -= group.bytes
 			}
 		}
 	}
 	// Oldest first: a pass cut short has removed what is least likely to be wanted.
-	slices.Reverse(doomed)
+	slices.SortStableFunc(doomed, func(a, b *prunedGroup) int {
+		if c := a.newest.Compare(b.newest); c != 0 {
+			return c
+		}
+		return strings.Compare(a.files[0].name, b.files[0].name)
+	})
 	var failures []error
 	for _, group := range doomed {
 		if stop() {
@@ -240,11 +266,25 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 			if file.settled {
 				continue
 			}
+			// Each file is looked at once more right before its own removal: a sibling's removal takes a moment, and a run's file may be
+			// written to meanwhile. A file that changed keeps the rest of its group (derived, and the next pass looks again).
+			if state, current := Recheck(filepath.Join(dir, file.name), file.info.Size(), file.info.ModTime(), file.info); state != FileSame {
+				if state == FileGone || state == FileNotRegular {
+					pass.FilesAfter--
+					pass.BytesAfter -= file.info.Size()
+				} else if current != nil {
+					pass.BytesAfter += current.Size() - file.info.Size()
+				}
+				if state == FileGone {
+					continue
+				}
+				break
+			}
 			removed, err := removeFile(root, filepath.Join(rel, file.name))
 			if err != nil {
 				failures = append(failures, fmt.Errorf("could not remove %s: %w", file.name, err))
-				if len(failures) >= maxPruneFailures {
-					return pass, fmt.Errorf("gave up after %d failed removals, the first: %w", maxPruneFailures, failures[0])
+				if len(failures) >= MaxRemovalFailures {
+					return pass, GaveUp(failures)
 				}
 				continue
 			}
@@ -265,7 +305,7 @@ func groupUnchanged(dir string, group *prunedGroup, pass *PrunePass) bool {
 	unchanged := true
 	for i := range group.files {
 		file := &group.files[i]
-		state, _ := Recheck(filepath.Join(dir, file.name), file.info.Size(), file.info.ModTime(), file.info)
+		state, current := Recheck(filepath.Join(dir, file.name), file.info.Size(), file.info.ModTime(), file.info)
 		switch state {
 		case FileGone, FileNotRegular:
 			file.settled = true
@@ -276,6 +316,9 @@ func groupUnchanged(dir string, group *prunedGroup, pass *PrunePass) bool {
 			}
 		case FileChanged:
 			unchanged = false
+			if current != nil {
+				pass.BytesAfter += current.Size() - file.info.Size()
+			}
 		}
 	}
 	return unchanged
