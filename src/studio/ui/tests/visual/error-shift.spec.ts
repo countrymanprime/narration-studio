@@ -12,34 +12,42 @@ const WIDTHS = [1440, 1100];
 type Boxes = Record<string, string>;
 
 /**
- * Makes the state's methods answer as the mock does, or reject while `window.__ERROR_SHIFT_FAILING__` is set, and counts in
- * `window.__ERROR_SHIFT_SETTLED__` the calls of them that have answered or rejected.
+ * Makes the state's methods answer as the mock does, or reject while `window.__ERROR_SHIFT_FAILING__` is set. Each call is numbered in
+ * `window.__ERROR_SHIFT_STARTED__`, and its number goes in `window.__ERROR_SHIFT_SETTLED__` once it has answered or rejected.
  */
 async function installHost(page: Page, state: ErrorState, failFromStart: boolean): Promise<void> {
   await page.addInitScript(
     ({ failing, failFromStart }) => {
       const w = window as unknown as Record<string, unknown> & { __NARRATION_MOCK_BASE__?: Record<string, (...args: unknown[]) => unknown> };
       w.__ERROR_SHIFT_FAILING__ = failFromStart;
-      w.__ERROR_SHIFT_SETTLED__ = 0;
-      const settled = () => (w.__ERROR_SHIFT_SETTLED__ = Number(w.__ERROR_SHIFT_SETTLED__) + 1);
+      w.__ERROR_SHIFT_STARTED__ = 0;
+      const settled: number[] = [];
+      w.__ERROR_SHIFT_SETTLED__ = settled;
       w.__NARRATION_MOCK_OVERRIDES__ = Object.fromEntries(
         Object.entries(failing).map(([name, message]) => [
           name,
           (...args: unknown[]) => {
             const base = w.__NARRATION_MOCK_BASE__;
             if (!base) throw new Error('the mock api did not publish __NARRATION_MOCK_BASE__');
-            const answer = w.__ERROR_SHIFT_FAILING__ ? Promise.reject(new Error(message)) : Promise.resolve(base[name]!.apply(base, args));
-            void answer.then(settled, settled);
+            const method = base[name];
+            if (typeof method !== 'function') throw new Error(`error-states.ts names ${name}, which the mock api does not have`);
+            const call = (w.__ERROR_SHIFT_STARTED__ = Number(w.__ERROR_SHIFT_STARTED__) + 1);
+            const answer = w.__ERROR_SHIFT_FAILING__ ? Promise.reject(new Error(message)) : Promise.resolve(method.apply(base, args));
+            const done = () => settled.push(call);
+            void answer.then(done, done);
             return answer;
           },
         ]),
       );
     },
-    { failing: state.failing, failFromStart },
+    { failing: state.failing ?? {}, failFromStart },
   );
 }
 
-const settledCalls = (page: Page): Promise<number> => page.evaluate(() => Number((window as unknown as Record<string, unknown>).__ERROR_SHIFT_SETTLED__));
+const startedCalls = (page: Page): Promise<number> => page.evaluate(() => Number((window as unknown as Record<string, unknown>).__ERROR_SHIFT_STARTED__));
+/** Whether a call numbered above `after`, one the state's `provoke` made, has answered or rejected. */
+const provokedCallSettled = (page: Page, after: number): Promise<boolean> =>
+  page.evaluate((after) => ((window as unknown as Record<string, number[]>).__ERROR_SHIFT_SETTLED__ ?? []).some((call) => call > after), after);
 
 /**
  * The box of every element drawn on the page, keyed by its path from the body, and the box of the first `neighbour`. Not measured: an element with role status or alert and what is in
@@ -92,20 +100,22 @@ function moved(ok: Boxes, failing: Boxes): string[] {
 async function draw(page: Page, state: ErrorState, failing: boolean): Promise<{ boxes: Boxes; neighbour?: string }> {
   await page.clock.install({ time: MOCK_DAY });
   await installHost(page, state, failing && state.failFrom === 'start');
-  await page.goto('/');
+  await page.goto(failing && state.failQuery ? `/${state.failQuery}` : '/');
   await settlePage(page);
   await state.open(page);
   if (failing && state.failFrom === 'after-open') await page.evaluate(() => ((window as unknown as Record<string, unknown>).__ERROR_SHIFT_FAILING__ = true));
-  const before = await settledCalls(page);
+  const before = await startedCalls(page);
   await state.provoke?.(page);
-  // The call the state provokes has answered (or failed) before the page is read, in both drawings.
-  if (state.failFrom === 'after-open') await expect.poll(() => settledCalls(page), { message: 'the provoked call never settled' }).toBeGreaterThan(before);
+  // The call the state provokes (not one the page made while opening) has answered or failed before the page is read, in both drawings.
+  if (state.failFrom === 'after-open') await expect.poll(() => provokedCallSettled(page, before), { message: 'the provoked call never settled' }).toBe(true);
   await state.ready(page, failing);
   await settleFrames(page);
   return page.evaluate(measure, { slot: state.slot, neighbour: state.expectShift?.neighbour });
 }
 
 for (const state of ERROR_STATES) {
+  if ((state.failing === undefined) === (state.failQuery === undefined) || (state.failQuery && state.failFrom !== 'start'))
+    throw new Error(`${state.name}: give either \`failing\` or \`failQuery\` (which fails from the start)`);
   for (const width of WIDTHS) {
     test(`${state.name} / ${width}`, async ({ browser }) => {
       test.setTimeout(90_000);

@@ -41,10 +41,13 @@ const EMPTY_HIDDEN = /(?:^|[\s'"`{])empty:hidden(?![\w-])/;
  * element has an error colour, tone or role, or when the condition it is drawn under names an error.
  */
 const ERROR_NAME = /^err$|error|problem|failure|failed|trouble/i;
-/** A condition that names an error: the element under it is drawn only when something went wrong. */
-const ERROR_CONDITION = /error|problem|failure|failed|trouble|notice$|cantTell|refused/i;
-/** A name that says there is none: `noErrors`, `isErrorFree`, `withoutProblems`. */
-const NOT_ERROR = /^(?:is|has)?(?:[Nn]o|[Nn]on|[Ww]ithout)(?=[A-Z_])|[Ff]ree|[Ww]ithout/;
+/**
+ * A condition that names an error: the element under it is drawn only when something went wrong. Not a `notice`, which is as often a success
+ * ("Timer stopped"): a notice counts only when its element carries an error mark.
+ */
+const ERROR_CONDITION = /error|problem|failure|failed|trouble|cantTell|refused/i;
+/** A name that says there is none: `noErrors`, `isErrorFree`, `withoutProblems` (not `freezeError` or `nonFatalError`). */
+const NOT_ERROR = /^(?:is|has)?(?:[Nn]o|[Ww]ithout)(?=[A-Z_])|(?:[Ee]rror|[Pp]roblem|[Ff]ailure|[Tt]rouble)s?[Ff]ree$/;
 /** The text of an error object: `error.message`, `e.message`, `failure.detail`. */
 const ERROR_TEXT_FIELD = /^(message|detail|text|reason)$/;
 /**
@@ -117,11 +120,22 @@ const attributeText = (attr: ts.JsxAttribute | undefined): string | undefined =>
 const classText = (node: Jsx): string => `${attributeText(attribute(node, 'className')) ?? ''} ${attributeText(attribute(node, 'style')) ?? ''}`;
 const isFixedSlot = (node: Jsx): boolean => FIXED_SLOT.test(classText(node));
 const isScreenReaderOnly = (node: Jsx): boolean => SCREEN_READER_ONLY.test(classText(node));
+/**
+ * The values an attribute takes: its literal, and unless `fixed`, the strings its expression can draw (`role={bad ? 'alert' : 'status'}`).
+ * `fixed` is for an element that is always drawn, or a component read as a whole: a role or tone that changes with the state marks no error there.
+ */
+const attributeValues = (attr: ts.JsxAttribute | undefined, fixed = false): string[] => {
+  const init = attr?.initializer;
+  if (!init) return attr ? ['true'] : [];
+  const text = attributeText(attr);
+  if (ts.isStringLiteral(init) || fixed) return text === undefined ? [] : [text];
+  return ts.isJsxExpression(init) && init.expression ? drawnStrings(init.expression) : [];
+};
 /** `role="alert"` or `aria-live="assertive"`: read out at once, as an error is. */
-const alertMark = (node: Jsx): string | undefined =>
-  attributeText(attribute(node, 'role')) === 'alert'
+const alertMark = (node: Jsx, fixed = false): string | undefined =>
+  attributeValues(attribute(node, 'role'), fixed).includes('alert')
     ? 'role="alert"'
-    : attributeText(attribute(node, 'aria-live')) === 'assertive'
+    : attributeValues(attribute(node, 'aria-live'), fixed).includes('assertive')
       ? 'aria-live="assertive"'
       : undefined;
 
@@ -158,6 +172,31 @@ const isWords = (node: ts.Node): boolean => {
   return (ts.isStringLiteralLike(n) && n.text.trim() !== '') || ts.isTemplateExpression(n) || ts.isIdentifier(n) || ts.isPropertyAccessExpression(n);
 };
 
+const jsxNamesBySource = new WeakMap<ts.SourceFile, Set<string>>();
+/**
+ * Names the file binds to JSX (`const errorAlert = error && <p role="alert">…</p>`, `line = <p>…</p>`): `{errorAlert}` draws that element,
+ * which is counted where it is written, so the name is neither an error's text nor an error test.
+ */
+function isJsxName(node: ts.Node): boolean {
+  if (!ts.isIdentifier(node)) return false;
+  const sf = node.getSourceFile();
+  let names = jsxNamesBySource.get(sf);
+  if (!names) {
+    const found = new Set<string>();
+    const holdsJsx = (n: ts.Node): boolean => !ts.isFunctionLike(n) && (isJsx(n) || (ts.forEachChild(n, (c) => holdsJsx(c) || undefined) ?? false));
+    const visit = (n: ts.Node) => {
+      if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && holdsJsx(n.initializer)) found.add(n.name.text);
+      if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(n.left) && holdsJsx(n.right))
+        found.add(n.left.text);
+      ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    names = found;
+    jsxNamesBySource.set(sf, names);
+  }
+  return names.has(node.text);
+}
+
 /**
  * The expression is an error's text in the states where something failed and nothing otherwise: `error`, `error?.message`, `e.message`,
  * `` `Failed: ${error}` ``, `String(error ?? '')`, `saveError && 'Could not save'`, `saveError ? 'Could not save' : null`.
@@ -168,7 +207,7 @@ function errorText(node: ts.Node): boolean {
     const owner = lastName(e.expression);
     if (owner !== undefined && (/^(e|err)$/.test(owner) || isErrorName(owner, ERROR_NAME))) return true;
   }
-  if (ts.isIdentifier(e) || ts.isPropertyAccessExpression(e)) return isErrorName(lastName(e), ERROR_NAME);
+  if (ts.isIdentifier(e) || ts.isPropertyAccessExpression(e)) return !isJsxName(e) && isErrorName(lastName(e), ERROR_NAME);
   if (ts.isTemplateExpression(e)) return e.templateSpans.some((span) => errorText(span.expression));
   if (ts.isCallExpression(e)) return e.arguments.some(errorText);
   if (ts.isBinaryExpression(e)) {
@@ -215,12 +254,13 @@ const isFieldError = (node: Jsx): boolean => {
 };
 
 /** The mark on this element that reads as an error at a glance: an alert role, a danger or warn colour or tone, `Note alert`. */
-function errorMark(node: Jsx, inCell: boolean): string | undefined {
-  const alert = alertMark(node);
+function errorMark(node: Jsx, inCell: boolean, fixed = false): string | undefined {
+  const alert = alertMark(node, fixed);
   if (alert) return alert;
-  if (!inCell && DANGER_COLOUR.test(classText(node))) return 'danger or warn colour';
-  const tone = attributeText(attribute(node, 'tone'));
-  if (!inCell && tone && /^(danger|warning|warn|error|alert)$/.test(tone) && !BADGES.has(tagName(node))) return `tone="${tone}"`;
+  // A danger colour on a button or a link says it destroys something, not that something failed.
+  if (!inCell && !BUTTONS.has(tagName(node)) && tagName(node) !== 'a' && DANGER_COLOUR.test(classText(node))) return 'danger or warn colour';
+  const tone = attributeValues(attribute(node, 'tone'), fixed).find((value) => /^(danger|warning|warn|error|alert)$/.test(value));
+  if (!inCell && tone && !BADGES.has(tagName(node))) return `tone="${tone}"`;
   if (tagName(node) === 'Note' && attribute(node, 'alert')) return 'Note alert';
   return undefined;
 }
@@ -363,11 +403,12 @@ function testsError(expr: ts.Expression): boolean {
     const other = literal === e.left ? e.right : e.left;
     if (EQUALS.includes(op)) return literal ? isErrorName(literalText(literal), ERROR_CONDITION) : testsError(e.left) || testsError(e.right);
     if (NOT_EQUALS.includes(op)) return literal !== undefined && (isEmptyValue(literal) || isZero(literal)) && testsError(other);
-    if (op === ts.SyntaxKind.GreaterThanToken) return testsError(e.left);
+    if (op === ts.SyntaxKind.GreaterThanToken || op === ts.SyntaxKind.GreaterThanEqualsToken) return testsError(e.left);
+    if (op === ts.SyntaxKind.LessThanToken || op === ts.SyntaxKind.LessThanEqualsToken) return testsError(e.right);
     return false;
   }
   if (ts.isCallExpression(e)) return testsError(e.expression);
-  return isErrorName(lastName(e), ERROR_CONDITION);
+  return !isJsxName(e) && isErrorName(lastName(e), ERROR_CONDITION);
 }
 /** The test is false when something went wrong: `!error`, `error === null`, `errors.length === 0`. */
 function negatesError(expr: ts.Expression): boolean {
@@ -382,6 +423,12 @@ function negatesError(expr: ts.Expression): boolean {
 /** The condition the element is drawn under names an error, and it is drawn when that holds: `{saveError && <p>…</p>}`, `if (!error) … else`. */
 const namesError = (c: Condition): boolean => c.error ?? (c.test !== undefined && (c.whenTrue ? testsError(c.test) : negatesError(c.test)));
 
+/** Overlays whose children are drawn in the page (a menu's trigger, the area a context menu opens on); their `items` are the overlay. */
+const CHILDREN_IN_PAGE = new Set(['Menu', 'ContextMenu']);
+/** Visits only the children of a menu or a context menu: its props are drawn in the overlay. */
+const visitChildrenInPage = (el: Jsx, visit: (node: ts.Node) => void): void => {
+  if (!ts.isJsxSelfClosingElement(el)) el.children.forEach(visit);
+};
 const isOverlay = (el: Jsx, known: KnownComponents): boolean => {
   const name = tagName(el);
   return known.overlays.has(name) || (isDotted(el) && OVERLAY_PARTS.has(name));
@@ -460,6 +507,7 @@ function firstSignal(root: Jsx, inView: boolean, known: KnownComponents): { why:
     let cell = inCell;
     if (isJsx(node)) {
       if (node !== root && (isConditional(node) || (inView && (isSwapBranch(node) || isFixedSlot(node))))) return;
+      if (CHILDREN_IN_PAGE.has(tagName(node)) && node !== root) return visitChildrenInPage(node, (c) => visit(c, cell));
       if (isOverlay(node, known) || isScreenReaderOnly(node)) return;
       cell ||= isCell(node);
       const why = signal(node, cell, known);
@@ -508,7 +556,7 @@ function inFlowError(node: Jsx, known: KnownComponents): Found | undefined {
 
 /** Why an element counts though it is always drawn: its error line comes and goes inside it. */
 function alwaysDrawnError(node: Jsx, known: KnownComponents): Found | undefined {
-  const alert = alertMark(node);
+  const alert = alertMark(node, true);
   if (alert) return { why: alert };
   // A button's words are its label: a word that comes and goes in it is not a line of the page.
   if (showsErrorText(node) && !BUTTONS.has(tagName(node))) return { why: 'error-named text, empty until the error comes' };
@@ -608,7 +656,8 @@ function inOverlayElement(node: ts.Node, known: KnownComponents): boolean {
   for (let up = node.parent; up && !ts.isSourceFile(up); up = up.parent) {
     if (ts.isJsxAttribute(up)) viaAttribute = true;
     else if (isJsx(up)) {
-      if (isOverlay(up, known) && !(viaAttribute && NOT_MODAL.has(tagName(up)))) return true;
+      const tag = tagName(up);
+      if (isOverlay(up, known) && (CHILDREN_IN_PAGE.has(tag) ? viaAttribute : !(viaAttribute && NOT_MODAL.has(tag)))) return true;
       viaAttribute = false;
     } else if (isOverlayOpen(up)) return true;
   }
@@ -622,7 +671,7 @@ function inOverlayElement(node: ts.Node, known: KnownComponents): boolean {
  * mark (`role="alert"`, a danger or warn colour or tone); one that returns an error in some states and its content in others is not, as its own
  * file counts that view. Drawn only in an overlay: every use is inside an overlay element, in what `overlay.open` renders, or in the body of a
  * component drawn only there (`CheckResult`, a step of `CheckRecordingsDialog`, which `openCheckRecordings` opens). Each is repeated until
- * nothing new is learnt. Two exported components with one name are taken as one.
+ * nothing new is learnt. A name two files declare is not learnt.
  */
 export function knownComponents(files: { file: string; text: string }[]): KnownComponents {
   const known = { overlays: new Set(OVERLAY_TAGS), notices: new Set(NOTICE_COMPONENTS), drawnInOverlay: new Set<string>() };
@@ -630,7 +679,13 @@ export function knownComponents(files: { file: string; text: string }[]): KnownC
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
     return { sf, comps: components(sf) };
   });
-  const exported = parsed.flatMap(({ comps }) => [...comps].filter(([, c]) => c.exported).map(([name, c]) => ({ name, roots: returnedElements(c.body) })));
+  // A name is learnt only when one file in src declares it: with two `Section`s, a `<Section>` could be either, so it is neither an overlay
+  // nor a notice.
+  const declared = new Map<string, number>();
+  for (const { comps } of parsed) for (const name of comps.keys()) declared.set(name, (declared.get(name) ?? 0) + 1);
+  const exported = parsed.flatMap(({ comps }) =>
+    [...comps].filter(([name, c]) => c.exported && declared.get(name) === 1).map(([name, c]) => ({ name, roots: returnedElements(c.body) })),
+  );
   const learn = (kind: Set<string>, is: (roots: Jsx[]) => boolean) => {
     for (let grew = true; grew;) {
       grew = false;
@@ -644,7 +699,7 @@ export function knownComponents(files: { file: string; text: string }[]): KnownC
   const modals = new Set(MODAL_TAGS);
   learn(modals, (roots) => roots.every((r) => modals.has(tagName(r))));
   for (const name of modals) known.overlays.add(name);
-  learn(known.notices, (roots) => roots.every((r) => errorMark(r, false) !== undefined || known.notices.has(tagName(r))));
+  learn(known.notices, (roots) => roots.every((r) => errorMark(r, false, true) !== undefined || known.notices.has(tagName(r))));
 
   const names = new Set(exported.map(({ name }) => name));
   const uses = new Map<string, { node: Jsx; at: (typeof parsed)[number] }[]>();
@@ -726,6 +781,7 @@ export function scanSource(file: string, text: string, known: KnownComponents = 
       if (why) add(node, why);
     }
     if (isJsx(node)) {
+      if (CHILDREN_IN_PAGE.has(tagName(node))) return visitChildrenInPage(node, visit);
       if (isOverlay(node, known) || isScreenReaderOnly(node)) return;
       // The element that marks a counted view, and what is always drawn in it, are that view's finding.
       const inMark = marksAView.has(node) || (under(node, (el) => marksAView.has(el)) && !isConditional(node));

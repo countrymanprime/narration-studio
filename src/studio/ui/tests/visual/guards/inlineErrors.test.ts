@@ -201,6 +201,48 @@ describe('what the guard counts that a first reading missed', () => {
   });
 });
 
+describe('what round two of review found', () => {
+  const one = (body: string) => scan(`export const A = ({ e, notice, errors, freezeError, nonFatalError, armed, bad }) => ${body};`);
+
+  it('a notice counts only with an error mark: it is as often a success', () => {
+    expect(one('<div>{notice && <p>{notice}</p>}</div>')).toEqual([]);
+    expect(one('<div>{notice && <p role="alert">{notice}</p>}</div>')).toEqual(['1: drawn in some states, role="alert"']);
+  });
+
+  it('one element kept in a variable counts once, where it is written', () => {
+    const body = [
+      'export function A({ error, status }) {',
+      '  const errorAlert = error && <p role="alert">{error}</p>;',
+      '  if (!status) return errorAlert ? <div>{errorAlert}</div> : null;',
+      '  return <div>{errorAlert}</div>;',
+      '}',
+    ].join('\n');
+    expect(scan(body)).toEqual(['2: drawn in some states, role="alert"']);
+  });
+
+  it('a name that only starts like "no error" is still an error, and a count compared either way round', () => {
+    expect(one('<div>{freezeError && <p>{freezeError}</p>}</div>')).toEqual(['1: drawn in some states, error-named text']);
+    expect(one('<div>{nonFatalError && <p>{nonFatalError}</p>}</div>')).toEqual(['1: drawn in some states, error-named text']);
+    expect(one('<div>{errors.length >= 1 && <p>Some rows need attention.</p>}</div>')).toEqual(['1: drawn in some states, under errors.length >= 1']);
+    expect(one('<div>{0 < errors.length && <p>Some rows need attention.</p>}</div>')).toEqual(['1: drawn in some states, under 0 < errors.length']);
+  });
+
+  it('a menu’s trigger and a context menu’s area are in the page; their items are the overlay', () => {
+    expect(one('<Menu items={[]}>{e && <span role="alert">!</span>}</Menu>')).toEqual(['1: drawn in some states, role="alert"']);
+    expect(one('<ContextMenu items={[]}><main>{e && <p role="alert">x</p>}</main></ContextMenu>')).toEqual(['1: drawn in some states, role="alert"']);
+    expect(one('<ContextMenu items={e && [<p key="a" role="alert">x</p>]}><main /></ContextMenu>')).toEqual([]);
+  });
+
+  it('a role or a tone that can be an error marks an element drawn in some states, not one always drawn', () => {
+    expect(one("<div>{bad && <InsetCard tone={bad ? 'danger' : 'neutral'}>x</InsetCard>}</div>")).toEqual(['1: drawn in some states, tone="danger"']);
+    expect(one("<p role={bad ? 'alert' : undefined}>{armed}</p>")).toEqual([]);
+  });
+
+  it('a danger colour on a button or a link says it destroys, not that something failed', () => {
+    expect(one('<div>{armed && <button className="text-[var(--danger)]">Delete</button>}</div>')).toEqual([]);
+  });
+});
+
 describe('what other files tell the guard', () => {
   const known: KnownComponents = knownComponents([
     { file: 'Shell.tsx', text: 'export function Shell({ children }) { return <Dialog title="T">{children}</Dialog>; }' },
@@ -222,6 +264,20 @@ describe('what other files tell the guard', () => {
     expect(known.drawnInOverlay.has('Wizard')).toBe(true);
     expect(known.drawnInOverlay.has('Step')).toBe(true);
     expect(scanSource('Step.tsx', 'export function Step({ e }) { return e ? <p role="alert">{e}</p> : <p>Fine.</p>; }', known)).toEqual([]);
+  });
+
+  it('a name two files declare is learnt as neither an overlay nor a notice', () => {
+    const twice = knownComponents([
+      { file: 'a/Panel.tsx', text: 'export function Panel({ children }) { return <Dialog title="T">{children}</Dialog>; }' },
+      { file: 'b/Panel.tsx', text: 'export function Panel({ children }) { return <section>{children}</section>; }' },
+      { file: 'a/Notice.tsx', text: 'export function Notice({ m }) { return <p role="alert">{m}</p>; }' },
+      { file: 'b/Notice.tsx', text: 'export function Notice({ m }) { return <p>{m}</p>; }' },
+    ]);
+    expect(twice.overlays.has('Panel')).toBe(false);
+    expect(twice.notices.has('Notice')).toBe(false);
+    expect(scanSource('X.tsx', 'export const X = ({ e }) => <Panel>{e && <p role="alert">{e}</p>}</Panel>;', twice)).toEqual([
+      { file: 'X.tsx', line: 1, why: 'drawn in some states, role="alert"' },
+    ]);
   });
 
   it('but a component that returns a slide-over, and a panel drawn in one, stay counted: a slide-over’s body is in scope', () => {

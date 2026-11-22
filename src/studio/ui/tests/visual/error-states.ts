@@ -11,6 +11,15 @@ import { goToPage, openAdvanced, openSettings, showSettingsRow } from './drivers
 // docs/research/2026-11-inline-error-audit.md) registers its pair here, with `slot` naming the slot: the guard in guards/inlineErrors.ts
 // trusts a `min-h-` class, and only this spec sees whether the message fits in it.
 //
+// Builds new because: the existing query switches (`?mockSettings=save-fails`, `?mockProfileRead=fails`) and the catalog's failing-state
+// drivers (catalog/settings.ts 'save-failed', catalog/master.ts 'profile-load-failed') fail a call from page load and draw one picture. This
+// registry also fails a call only after the page has opened (a Pickups or Schedule read again), and compares two drawings. Where a state here
+// is one the catalog already draws (a refused save, the profile read), it fails through the same switch (`failQuery`), on the same pane and
+// row, and adds only the second drawing.
+//
+// What the spec does not measure: every `[role="status"]` and `[role="alert"]` subtree is left out, as the message itself may change, so a
+// status role on a large container hides all the boxes in it. Give the role to the line that changes, not to the panel around it.
+//
 // A state that shifts today carries `expectShift`, the pull request of #4045 that fixes it and a neighbour that moves: the spec expects that
 // neighbour to move, so the fix fails the spec until that pull request deletes the field.
 
@@ -18,9 +27,14 @@ import { goToPage, openAdvanced, openSettings, showSettingsRow } from './drivers
 export interface ErrorState {
   /** `<page> / <state>`, as the catalog names a page (tests/visual/catalog/). */
   name: string;
-  /** The mock api methods that reject while the host is failing, with the message they reject with. */
-  failing: Partial<Record<keyof NarrationApi, string>>;
-  /** `start`: they fail from the page's first call. `after-open`: they answer until `open` has run, then fail. */
+  /** The mock api methods that reject while the host is failing, with the message they reject with. Not with `failQuery`. */
+  failing?: Partial<Record<keyof NarrationApi, string>>;
+  /**
+   * An existing mock switch that fails the call from page load (`?mockSettings=save-fails`), which the failing drawing loads the page with
+   * instead of `failing`: a state the catalog already draws fails the same way here.
+   */
+  failQuery?: string;
+  /** `start`: they fail from the page's first call. `after-open`: they answer until `open` has run, then fail (only with `failing`). */
   failFrom: 'start' | 'after-open';
   /** Reaches the page in its ok state. */
   open: (page: Page) => Promise<void>;
@@ -38,7 +52,6 @@ export interface ErrorState {
 }
 
 const WORKER_PLAN_FAILURE = 'The speech model could not be measured on this computer.';
-const SAVE_FAILURE = 'This project refused the change.';
 const READ_FAILURE = 'The project did not answer.';
 
 export const ERROR_STATES: ErrorState[] = [
@@ -62,8 +75,9 @@ export const ERROR_STATES: ErrorState[] = [
   },
   {
     // A delivery profile that cannot be read is a toast with Retry; the page keeps its frame and judges against the neutral profile.
+    // The catalog's master 'profile-load-failed' (drivers/master.ts) fails it with the same switch.
     name: 'master / the delivery profile cannot be read',
-    failing: { deliveryProfiles: READ_FAILURE },
+    failQuery: '?mockProfileRead=fails',
     failFrom: 'start',
     open: async (page) => {
       await goToPage(page, 'Master & QC');
@@ -72,29 +86,29 @@ export const ERROR_STATES: ErrorState[] = [
       if (failing)
         await page
           .locator('[data-toast-region]')
-          .getByText(/The delivery profile could not be read/)
+          .getByText(/delivery profiles? could not be read/)
           .waitFor();
     },
   },
   {
-    // The row's error line under the control is drawn only once a save fails, and the page adds its "cannot be saved" card (audit: SettingRowView:335, SettingsPage:402).
+    // The row's error line under the control is drawn only once a save fails, and the page adds its "cannot be saved" card (audit: SettingRowView:335,
+    // SettingsPage:402). The same switch, pane and row as the catalog's settings 'save-failed' (drivers/settings.ts).
     name: 'settings / a save is refused',
-    failing: { saveSettings: SAVE_FAILURE },
-    failFrom: 'after-open',
+    failQuery: '?mockSettings=save-fails',
+    failFrom: 'start',
     open: async (page) => {
-      await openSettings(page, 'Project');
-      await showSettingsRow(page, 'project.narrator');
+      await openSettings(page, 'App & updates');
+      await showSettingsRow(page, 'app.notify');
     },
     provoke: async (page) => {
-      await page.getByRole('textbox', { name: /Narrator name/ }).fill('Ada Reader');
-      await page.keyboard.press('Tab');
+      await page.getByRole('switch', { name: /Tell me when a long task finishes/ }).click();
     },
     ready: async (page, failing) => {
-      const row = page.locator('[data-row="project.narrator"]');
-      // Saved, the row marks the value as changed from the default; refused, the control is marked invalid.
-      await (failing ? row.locator('[aria-invalid="true"]').first() : row.getByText('Changed', { exact: true })).waitFor();
+      const row = page.locator('[data-row="app.notify"]');
+      // Saved, the row marks the value as changed from the default; refused, it says why.
+      await (failing ? row.getByText('The settings file is read-only.') : row.getByText('Changed', { exact: true })).waitFor();
     },
-    expectShift: { pr: 'PR 2', neighbour: '[data-row="project.credits"]' },
+    expectShift: { pr: 'PR 2', neighbour: '[data-row="app.importClose"]' },
   },
   {
     // A read again that fails keeps the list and puts a strip above it (audit: PickupsTable:352).
