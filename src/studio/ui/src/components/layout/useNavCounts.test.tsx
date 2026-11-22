@@ -9,6 +9,7 @@ import { MIXED } from '../pickups/list/pickupFixtures';
 import { openPickups } from '../pickups/list/pickupRows';
 import { openPickupsBeyondNotes, proofProgress } from '../proof/proof.selectors';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
+import { StudioProvider, useStoreHandle } from '../../studio/StudioProvider';
 import { useNavCounts } from './useNavCounts';
 
 const wrap = (api: Api) =>
@@ -105,6 +106,23 @@ describe('useNavCounts: Master & QC', () => {
     );
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
     await waitFor(() => expect(result.current.master).toBe(2));
+  });
+
+  it('follows the chapter list every page shares: a re-split moves the badge with no page move and no read of its own (#3658)', async () => {
+    // The store checks the list against the wire schema, so these are whole chapters.
+    const whole = (c: ManuscriptChapter) => ({ ...c, wordCount: 10, status: 'not_started' }) as ManuscriptChapter;
+    let list = [whole(chapter('c1', 0, 'One')), whole(chapter('c2', 1, 'Two'))];
+    const api = { ...withMeasurement([file('One.wav', 'not_met'), file('Two.wav', 'not_met')], list), manuscriptChapters: async () => list } as Api;
+    const wrapped = ({ children }: { children: ReactNode }) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{children}</StudioProvider>
+      </ApiProvider>
+    );
+    const { result } = renderHook(() => ({ counts: useNavCounts('/'), store: useStoreHandle() }), { wrapper: wrapped });
+    await waitFor(() => expect(result.current.counts.master).toBe(2));
+    list = [whole(chapter('c1', 0, 'One'))];
+    await act(async () => result.current.store.load('chapters'));
+    await waitFor(() => expect(result.current.counts.master).toBe(1));
   });
 
   it('counts a credits chapter whose file fails like any other chapter, paired by its title', async () => {

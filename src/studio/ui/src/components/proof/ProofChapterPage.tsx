@@ -28,6 +28,7 @@ import { useVoiceLayout } from '../engine/voiceLayout';
 import { destinationFor } from '../engine/destination';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { SavedProjectChip } from '../chapterTracks/SavedProjectChip';
+import { useReadChapters } from '../../studio/useChapters';
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -80,6 +81,7 @@ export function ProofChapterPage(props: ChapterViewProps) {
 
 function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscript, goToEditing, refreshKey }: ChapterViewProps & { chapterId: string }) {
   const api = useApi();
+  const readChapters = useReadChapters();
   const navigate = useGuardedNavigate();
   const [chapter, setChapter] = useState<ManuscriptChapter>();
   const [alignment, setAlignment] = useState<WorkspaceAlignmentResult>();
@@ -110,8 +112,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
 
   useEffect(() => {
     let active = true;
-    api
-      .manuscriptChapters()
+    readChapters(attempt > 0)
       .then((chapters) => {
         if (!active) return;
         setRead(true);
@@ -123,7 +124,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     return () => {
       active = false;
     };
-  }, [api, chapterId, attempt]);
+  }, [readChapters, chapterId, attempt]);
 
   // Clears the error and the half-read state first, so the skeleton shows with no stale sentence under it, then both reads run again.
   const retry = () => {

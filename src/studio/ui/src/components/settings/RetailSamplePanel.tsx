@@ -1,6 +1,6 @@
 import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { headingName } from '../../chapterHeading';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { ManuscriptChapter, RetailSampleAnswer } from '../../types';
@@ -9,6 +9,7 @@ import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayou
 import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
+import { useReadChapters } from '../../studio/useChapters';
 
 // The sample is a stretch of the book's own text: the credits are narration but have no lines to pick.
 const isSampleChapter = (chapter: ManuscriptChapter) => isNarrationChapter(chapter) && !isCreditsChapter(chapter);
@@ -38,6 +39,8 @@ const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
  */
 export function RetailSamplePanel({ notify }: { notify: Notify }) {
   const api = useApi();
+  const readChapters = useReadChapters();
+  const loads = useRef(0);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [answer, setAnswer] = useState<RetailSampleAnswer>();
   const [start, setStart] = useState<End>({ chapterId: '', line: '1' });
@@ -47,7 +50,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
 
   const load = useCallback(async () => {
     try {
-      const [nextChapters, nextAnswer] = await Promise.all([api.manuscriptChapters(), api.creditsRetailSample()]);
+      const [nextChapters, nextAnswer] = await Promise.all([readChapters(loads.current++ > 0), api.creditsRetailSample()]);
       const narration = nextChapters.filter(isSampleChapter);
       setChapters(narration);
       setAnswer(nextAnswer);
@@ -59,7 +62,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
     } catch (loadError) {
       setError(apiErrorMessage(loadError));
     }
-  }, [api]);
+  }, [api, readChapters]);
   useEffect(() => {
     void load();
   }, [load]);

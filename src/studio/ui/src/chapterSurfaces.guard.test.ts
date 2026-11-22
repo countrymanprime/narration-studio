@@ -42,8 +42,9 @@ const EXEMPT: Record<string, string> = {
     "reads one chapter's recordedThrough by its id; the Companion lists no chapters (CompanionPage shows the chapter asked for)",
   'components/settings/controls/VoicesBody.tsx':
     'hands the whole chapter list, the credits included, to the Voices card unchanged; the card names a chapter by the folder it is linked to, and nothing is filtered or counted here',
-  'components/script/page/data/scriptData.ts':
+  'components/script/page/data/useScriptData.ts':
     'the Script page draws the credits as their own cards (ScriptPage tests: each once); its paragraphs exclude them',
+  'components/script/page/data/sampleScript.ts': "the Script page's stories read a fixed sample; the credits cards are the page's, as in useScriptData.ts",
 };
 
 function sources(dir: string): string[] {
@@ -66,6 +67,13 @@ describe('every surface that reads the chapter list shows the credits', () => {
     expect(readers.filter((file) => !declared.includes(file))).toEqual([]);
     // `studio/slots.ts` reads the list through the port, so it is declared but not matched by the text above.
     expect(declared.filter((file) => !readers.includes(file) && file !== 'studio/slots.ts')).toEqual([]);
+  });
+
+  // One list for every page (#3658, #3998): the host's chapter list is read by the store's slot, and by the two hooks' fallbacks for a component rendered with
+  // no store. A page that calls the port itself has its own copy of the list, its own refresh rules and no project record.
+  it('reads the host list nowhere but the store and the fallbacks of its two hooks', () => {
+    const ALLOWED = ['studio/slots.ts', 'studio/useChapters.ts', 'components/script/page/data/sampleScript.ts'];
+    expect(readers.filter((file) => !ALLOWED.includes(file) && readFileSync(join(SRC, file), 'utf8').includes('manuscriptChapters()'))).toEqual([]);
   });
 
   it.each(Object.entries(COVERED))('%s: its test names the credits', (_file, tests) => {

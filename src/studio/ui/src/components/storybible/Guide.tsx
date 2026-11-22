@@ -61,6 +61,7 @@ import type { Notify } from '../primitives/Toast';
 import { useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
 import { plural } from '../../plural';
+import { useReadChapters } from '../../studio/useChapters';
 
 // A brand-new entity has no backend record at all until a category is chosen
 // (see GuideDetail's isNewDraft handling) - this is a purely local stand-in
@@ -98,6 +99,7 @@ export function Guide({ hasManuscript = true, onImport, needManuscript, ...rest 
 
 function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'goToManuscript'>) {
   const api = useApi();
+  const readChapters = useReadChapters();
   const location = useLocation();
   const routerNavigate = useGuardedNavigate();
   const guarded = useGuardedAction();
@@ -174,7 +176,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // The chapters, for Appears in and for where a suggestion's quote is; without them those sections stay empty and the list panel says so.
   useEffect(() => {
     let live = true;
-    api.manuscriptChapters().then(
+    readChapters(readNonce > 0).then(
       (list) => {
         if (!live) return;
         setChapters(withoutCredits(list));
@@ -185,7 +187,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     return () => {
       live = false;
     };
-  }, [api, readNonce]);
+  }, [readChapters, readNonce]);
   useEffect(() => {
     let live = true;
     api.guideTypes().then(

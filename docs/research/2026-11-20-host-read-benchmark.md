@@ -259,6 +259,19 @@ Booth and Editing then took the same list (the Editor, the Booth and the Product
 
 A cold start reads the list once either way. A warm visit makes one fewer call at 17 and 40 h (Booth 53 to 51, Editing 42 to 41). The Editing warm KB cells jump between about 217 and 330 in both builds: a store refresh of the list (an event or a focus, 100 to 150 KB at 17 to 40 h) lands inside the quiet window in some runs and not in others, so the KB of those cells says nothing about the change. The Production pipeline already read the store (#3910); its calls are unchanged (34 warm at every size), and what changed is that its own copy of the read (the generation and refresh-key bookkeeping around `ensure`/`load`) is one call of the shared hook. The goal of these moves is one list for every page, not the call count; the count is reported so a regression would show.
 
+The other readers then moved (Script, Story Bible, Proof, Pickups, Master & QC, Settings, with the rail's Master & QC badge, the Companion and the dialogs). Calls / KB, `--runs 5`, `main` at 00a3bfc against the head of that change, one build after the other; 1, 5, 17 and 40 hours. Nodes are unchanged on every page.
+
+| Page | Cold, before | Cold, after | Warm, before | Warm, after |
+| --- | --- | --- | --- | --- |
+| Script | 36 / 173, 183, 207, 253 | 35 / 171, 180, 199, 235 | 22 / 124, 130, 141, 162 | 21 / 123, 126, 132, 144 |
+| Story Bible | 35 / 90, 100, 123, 166 | 34 / 88, 96, 114, 148 | 21 / 41, 46, 56, 74 | 19 / 39, 39, 39, 39 |
+| Proof | 41 / 129, 140, 163, 206 | 40 / 129, 137, 155, 189 | 23 / 77, 82, 92, 110 | 21 / 75, 75, 75, 75 |
+| Pickups | 30 / 76, 87, 109, 153 | 29 / 75, 83, 101, 135 | 12 / 22, 27, 36, 55 | 10 / 19, 19, 19, 19 |
+| Master & QC | 29 / 89, 100, 123, 166 | 28 / 88, 96, 114, 148 | 15 / 41, 46, 56, 74 | 13 / 39, 39, 39, 39 |
+| Settings | 47 / 104, 118, 152, 217 | 47 / 104, 118, 152, 217 | 33 / 56, 64, 86, 126 | 32 / 55, 61, 77, 108 |
+
+(Calls are the same at every size; the four KB figures are 1, 5, 17 and 40 h.) A cold start makes one call fewer on five pages and a warm visit one or two fewer: the pages no longer read the list the store already holds, so after the first read their warm KB no longer grows with the book (Pickups 55 KB at 40 h before, 19 after; Proof 110 to 75). Settings' cold start is unchanged (47 calls); why was not traced. The real-host cost of each saved read is the `ManuscriptChapters` row of the [host read table](#host-reads) (653 ms at 17 h, 1,514 ms at 40 h).
+
 ## The track list: a 5 s poll against REAPER's change event
 
 [#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 1. Before it, every page that shows the project's tracks (`useLiveTracks`, behind the engine panel, Link chapters, Editing, Proof, Pickups and the Booth's voices) read `TracksLive`, `ChapterTrackLinks` and `VoiceTracksGet` every 5 s while the window was visible. With a revision from REAPER's heartbeat it reads on `daw_tracks_changed`, on focus and on Refresh, and every 30 s for a save in REAPER, which sends no event. Same rig and method as [above](#host-reads): `host-read-bench.mjs seed` then `reads --runs 3` (three processes, medians), here with `--tracks N` for the extra empty tracks. The three reads' warm medians are one tick; the poll is 12 ticks a minute, the event idle 2 (the 30 s read), a change 1.
