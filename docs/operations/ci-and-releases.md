@@ -676,8 +676,9 @@ runner called:
   lint target, because the repo-wide `ruff .`, `staticcheck ./...` (now golangci-lint) and `stylua --check` runs are gone.
 - **Releases** are unchanged: `nx release version` still versions the root project. `nx release` counts a commit
   when it affects the root project or a project the root depends on, so `workspace` lists every project except
-  the UI and desktop projects (they were already separate projects that never counted); the guard test keeps that
-  list complete when you add a project.
+  the site (`web`). The UI and desktop projects are in the list: they are the application, and a push that changed
+  only them once skipped the Windows build (#4035). Docs-only and site-only pushes still skip. The guard test keeps
+  that list complete when you add a project.
 - **Adding a project**: add a `project.json` (copy a neighbour), give it `lint` and `test` targets that call the same
   tools, list what it reads under `implicitDependencies`, and add its name to the root project's
   `implicitDependencies` unless it should not count toward the release version.
