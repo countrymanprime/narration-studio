@@ -131,7 +131,7 @@ export function SampleOutputBody() {
         options={[
           { value: '', label: 'System default' },
           ...outputs.map((o) => ({ value: o.label, label: o.label })),
-          ...(missing ? [{ value, label: `${value}, not connected` }] : []),
+          ...(missing ? [{ value, label: `${value}, ${listing.status === 'unavailable' ? 'could not check' : 'not connected'}` }] : []),
         ]}
       />
       <div className="flex flex-wrap items-center gap-2">

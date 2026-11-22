@@ -144,6 +144,17 @@ describe('the Output popover', () => {
     expect(onChangeSpy).toHaveBeenCalledWith({ device: '' });
   });
 
+  it('a saved output is "could not check" when the list would not come, "not connected" only when the list is fine and it is absent', async () => {
+    const view = render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} start={{ device: 'Studio monitors' }} />);
+    let dialog = await openOutput();
+    expect(within(dialog).getByRole('option', { name: 'Studio monitors (could not check)' })).toBeTruthy();
+    expect(within(dialog).queryByRole('option', { name: /not connected/ })).toBeNull();
+    view.unmount();
+    render(<Host devices={ready(['Speakers'])} start={{ device: 'Studio monitors' }} />);
+    dialog = await openOutput();
+    expect(within(dialog).getByRole('option', { name: 'Studio monitors (not connected)' })).toBeTruthy();
+  });
+
   it('keeps the choice on, with the system default, when no outputs can be listed and none is saved (never a dead control)', async () => {
     render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} />);
     const dialog = await openOutput();

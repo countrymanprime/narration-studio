@@ -53,7 +53,7 @@ export function DeviceRow({
   const options = [
     { value: '', label: 'System default' },
     ...listed.map((o) => ({ value: o.label, label: o.label })),
-    ...(missing ? [{ value: prefs.device, label: `${prefs.device} (not connected)` }] : []),
+    ...(missing ? [{ value: prefs.device, label: `${prefs.device} (${devices.status === 'unavailable' ? 'could not check' : 'not connected'})` }] : []),
   ];
   // With no list the choice stays on with the system default (and a saved output, so it can be cleared); it is off only while loading, so it is never a dead control.
   const off = devices.phase === 'loading';

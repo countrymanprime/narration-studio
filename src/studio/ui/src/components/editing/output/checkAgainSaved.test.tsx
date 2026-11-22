@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { overlay } from '../../../overlay/overlayService';
 import { DEFAULT_OUTPUT, OUTPUT_STORAGE_KEY } from '../../engine/outputPrefs';
-import { missingOutputSentence } from '../../voicesamples/audioOutputs';
+import { missingOutputSentence, OUTPUT_TOAST_TOPIC } from '../../voicesamples/audioOutputs';
 import { PlaybackBody } from '../../settings/controls/AppearanceBodies';
 import { EditingOutput } from './EditingOutput';
 
@@ -32,7 +32,7 @@ describe('Check again with the saved output still missing', () => {
     const again = await screen.findByRole('button', { name: 'Check again' });
     expect(toast).not.toHaveBeenCalled();
     fireEvent.click(again);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(missingOutputSentence('Studio monitors', 'Sound plays')));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(missingOutputSentence('Studio monitors', 'Sound plays'), { topic: OUTPUT_TOAST_TOPIC }));
   });
 
   it('Settings > Editing playback says again that it is gone', async () => {
@@ -40,7 +40,7 @@ describe('Check again with the saved output still missing', () => {
     const toast = vi.spyOn(overlay, 'toast');
     render(<PlaybackBody />);
     fireEvent.click(await screen.findByRole('button', { name: 'Check again' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(missingOutputSentence('Studio monitors', 'Sound plays')));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(missingOutputSentence('Studio monitors', 'Sound plays'), { topic: OUTPUT_TOAST_TOPIC }));
   });
 
   // Round 4 found the Settings page raising toasts on open: neither page says anything about the list until Check again is pressed.

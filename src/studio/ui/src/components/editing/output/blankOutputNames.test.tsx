@@ -2,6 +2,7 @@
 // The Editing page's list of outputs (#4044): a webview that gives no output names still gives a usable list, and a refusal is a toast, not red text.
 import { act, cleanup, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { OUTPUT_TOAST_TOPIC } from '../../voicesamples/audioOutputs';
 import { overlay } from '../../../overlay/overlayService';
 import { DEFAULT_OUTPUT } from '../../engine/outputPrefs';
 import { DeviceRow } from './OutputControls';
@@ -58,7 +59,7 @@ describe('the Editing page output list', () => {
     await waitFor(() => expect(result.current.listing.phase).toBe('ready'));
     expect(toast).not.toHaveBeenCalled();
     act(() => result.current.refresh());
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Studio monitors is gone.'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Studio monitors is gone.', { topic: OUTPUT_TOAST_TOPIC }));
     act(() => result.current.refresh());
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
   });

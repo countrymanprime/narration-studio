@@ -4,7 +4,7 @@
 import { useCallback, useEffect } from 'react';
 import { announceBrowserSettingChange, useBrowserSetting } from '../../browserSettings';
 import { overlay } from '../../overlay/overlayService';
-import { missingOutputSentence, setOutput } from '../voicesamples/audioOutputs';
+import { missingOutputSentence, OUTPUT_TOAST_TOPIC, setOutput } from '../voicesamples/audioOutputs';
 import { clamp } from '../../clamp';
 
 export type OutputPrefs = {
@@ -117,7 +117,7 @@ export function useAppliedOutput(getElement: () => HTMLMediaElement | undefined,
           : result.kind === 'unlisted'
             ? result.message
             : deviceProblem(device);
-      if (problem) overlay.toast(problem);
+      if (problem) overlay.toast(problem, { topic: OUTPUT_TOAST_TOPIC });
     });
     return () => {
       stale = true;

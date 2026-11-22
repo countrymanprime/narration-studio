@@ -28,6 +28,7 @@ import { StudioProvider } from '../../../studio/StudioProvider';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
+import { OUTPUT_TOAST_TOPIC } from '../../voicesamples/audioOutputs';
 import { overlay } from '../../../overlay/overlayService';
 import { SettingsPage } from '../page/SettingsPage';
 import { DAW_SENTENCE, dawSentence } from './SampleOutputBody';
@@ -140,7 +141,9 @@ describe('Voice sample output: the built-in recorder', () => {
     expect(toast).not.toHaveBeenCalled();
     fireEvent.click(await within(row()).findByRole('button', { name: 'Check again' }));
     await waitFor(() =>
-      expect(toast).toHaveBeenCalledWith('Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.'),
+      expect(toast).toHaveBeenCalledWith('Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.', {
+        topic: OUTPUT_TOAST_TOPIC,
+      }),
     );
     expect(within(row()).queryByRole('alert')).toBeNull();
     const select = await picker();
@@ -158,7 +161,7 @@ describe('Voice sample output: the built-in recorder', () => {
     expect(await picker()).toHaveProperty('disabled', false);
     expect(toast).not.toHaveBeenCalled();
     fireEvent.click(await within(row()).findByRole('button', { name: 'Check again' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('would not list its outputs')));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('would not list its outputs'), { topic: OUTPUT_TOAST_TOPIC }));
     expect(within(row()).queryByRole('alert')).toBeNull();
     fireEvent.click(within(row()).getByRole('button', { name: 'Check again' }));
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
@@ -195,7 +198,7 @@ describe('Voice sample output: the built-in recorder', () => {
     const select = await picker();
     await waitFor(() => expect(select.value).toBe('Studio monitors (Scarlett)'));
     expect(select.disabled).toBe(false);
-    expect(optionNames(select)).toEqual(['System default', 'Studio monitors (Scarlett), not connected']);
+    expect(optionNames(select)).toEqual(['System default', 'Studio monitors (Scarlett), could not check']);
   });
 
   it('the list is read again when the window gets focus', async () => {

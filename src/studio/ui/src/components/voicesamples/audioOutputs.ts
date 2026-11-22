@@ -24,7 +24,7 @@ const VIRTUAL = new Set(['default', 'communications']);
  * The outputs the webview reports. An output the webview gives no name (WebView2 hides output names until the page holds a media permission, which
  * this app never asks for) is listed as "Output 1", "Output 2" in the webview's order, so the choice is never lost to blank labels. Only a webview
  * without `setSinkId`, or an `enumerateDevices` that throws, is "unavailable"; a webview that lists no output gives an empty list, which is just the
- * system default and no error (owner decision, #4044).
+ * system default and no error (owner decision: https://github.com/countrymanprime/narration-studio/issues/4044#issuecomment-7085927424).
  */
 export async function listAudioOutputs(): Promise<OutputListing> {
   if (!outputsSupported()) return { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };
@@ -39,6 +39,9 @@ export async function listAudioOutputs(): Promise<OutputListing> {
     return { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };
   }
 }
+
+/** The one topic of every toast about the outputs, so the open-time sentence, a press of Check again and a second player's identical apply are one message on screen, the newest. */
+export const OUTPUT_TOAST_TOPIC = 'output-device';
 
 /** What is said of a saved output that is not connected; `plays` is what sounds on the system default meanwhile ("Sound plays", "Voice samples play"). */
 export const missingOutputSentence = (label: string, plays: string): string => `${label} is not connected. ${plays} on the system default until it is back.`;

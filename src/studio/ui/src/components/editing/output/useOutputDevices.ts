@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
-import { listAudioOutputs, type OutputListing } from '../../voicesamples/audioOutputs';
+import { listAudioOutputs, OUTPUT_TOAST_TOPIC, type OutputListing } from '../../voicesamples/audioOutputs';
 
 export type DeviceListing = { phase: 'loading' } | ({ phase: 'ready'; checkedAt: number } & OutputListing);
 
@@ -33,8 +33,9 @@ export function useOutputDevices(options: OutputDevicesOptions = {}): { listing:
       const o = now.current;
       if (owed.current) {
         owed.current = false;
-        if (result.status === 'unavailable') overlay.toast(result.message);
-        else if (o.saved && o.missingSentence && !result.outputs.some((out) => out.label === o.saved)) overlay.toast(o.missingSentence(o.saved));
+        if (result.status === 'unavailable') overlay.toast(result.message, { topic: OUTPUT_TOAST_TOPIC });
+        else if (o.saved && o.missingSentence && !result.outputs.some((out) => out.label === o.saved))
+          overlay.toast(o.missingSentence(o.saved), { topic: OUTPUT_TOAST_TOPIC });
       }
       setListing({ phase: 'ready', checkedAt: Date.now(), ...result });
     });
