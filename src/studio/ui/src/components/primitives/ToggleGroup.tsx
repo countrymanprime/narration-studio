@@ -56,7 +56,12 @@ export function ToggleGroup({
 }) {
   // The chip that has focus holds the tab stop while focus is in the group, so Tab and Shift+Tab leave the group from any chip.
   const [focused, setFocused] = useState<string | undefined>(undefined);
-  const reachable = options.filter((option) => !option.disabled);
+  // A chip that is off and has a hint (`title`) is drawn as off with a reason: it stays focusable and reads its hint on focus. A natively disabled
+  // chip with a title would make `Tooltip` wrap it in a span that is a second tab stop and swallows the arrows (#3993, qa-breaker B1).
+  const asReasoned = (option: ToggleGroupOption): ToggleGroupOption =>
+    option.disabled && !option.disabledReason && option.title ? { ...option, disabled: false, disabledReason: option.title } : option;
+  const chips = options.map(asReasoned);
+  const reachable = chips.filter((option) => !option.disabled);
   const tabStop = (reachable.find((option) => option.value === focused) ?? reachable.find((option) => option.value === value) ?? reachable[0])?.value;
   const holdTabStop = (event: FocusEvent<HTMLDivElement>) => {
     // Each chip draws one button, in the order of `options`.
@@ -88,7 +93,7 @@ export function ToggleGroup({
       onFocus={holdTabStop}
       onBlur={() => setFocused(undefined)}
     >
-      {options.map((option) => (
+      {chips.map((option) => (
         <Pill
           key={option.value}
           label={option.label}

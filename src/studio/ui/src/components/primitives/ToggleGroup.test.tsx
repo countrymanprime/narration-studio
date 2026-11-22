@@ -190,6 +190,33 @@ describe('ToggleGroup', () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
+    // qa-breaker B1 and B2 on #3993: a chip that is disabled and has a title was wrapped in a span that is its own tab stop and swallowed the arrows.
+    it('a chip that is off and has a title adds no second tab stop, stays in the rotation and chooses nothing', async () => {
+      const onChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <TooltipProvider>
+          <ToggleGroup
+            label="Chunk length"
+            value="1m"
+            onChange={onChange}
+            options={[
+              { value: '1m', label: '1m' },
+              { value: '5m', label: '5m', disabled: true, title: 'Too long for this model' },
+              { value: '10m', label: '10m', disabled: true, title: 'Too long for this model' },
+            ]}
+          />
+        </TooltipProvider>,
+      );
+      const group = screen.getByRole('group', { name: 'Chunk length' });
+      expect(group.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
+      await user.tab();
+      await user.keyboard('{ArrowRight}');
+      expect(document.activeElement).toBe(chip('5m'));
+      await user.keyboard('{Enter}');
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
     it('leaves a key held with a modifier to the page', async () => {
       const user = userEvent.setup();
       render(<Controlled />);

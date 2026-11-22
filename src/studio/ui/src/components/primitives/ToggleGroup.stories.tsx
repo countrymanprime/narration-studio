@@ -60,7 +60,7 @@ export const ArrowKeysMoveFocusAndEnterChooses: Story = {
     const small = within(group).getByRole('button', { name: 'Small' });
     await userEvent.tab();
     await expect(small).toHaveFocus();
-    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowLeft}');
     await expect(tiny).toHaveFocus();
     await expect(args.onChange).not.toHaveBeenCalled();
     await userEvent.keyboard('{Enter}');
@@ -73,7 +73,8 @@ export const ArrowKeysMoveFocusAndEnterChooses: Story = {
 export const DisabledChipIsNotChosen: Story = {
   play: async ({ args, canvasElement }) => {
     const large = within(canvasElement).getByRole('button', { name: 'Large' });
-    await expect(large).toBeDisabled();
+    // Off with a hint: drawn as off with a reason, so it stays focusable and says why on focus (a native `disabled` plus a title made a second tab stop).
+    await expect(large).toHaveAttribute('aria-disabled', 'true');
     large.click();
     await expect(args.onChange).not.toHaveBeenCalled();
   },
