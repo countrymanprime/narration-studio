@@ -81,7 +81,6 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
-- `src/components/settings/page/PagesPane.tsx`
 - `src/components/settings/page/ReaderTextPanel.tsx`
 - `src/components/settings/page/Results.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`

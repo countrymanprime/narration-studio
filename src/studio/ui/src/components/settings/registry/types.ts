@@ -35,7 +35,7 @@ export const PAGE_PATH: Record<UsedPage, string> = {
   delivery: '/delivery',
 };
 
-export type CategoryId = 'recording' | 'speech' | 'voice' | 'models' | 'delivery' | 'project' | 'appearance' | 'app' | 'pages';
+export type CategoryId = 'recording' | 'speech' | 'voice' | 'models' | 'delivery' | 'project' | 'appearance' | 'app';
 
 export type Category = {
   id: CategoryId;
@@ -64,7 +64,7 @@ export type OptionNote = { label?: string; asset?: AssetRef };
 
 export type SettingMeta = {
   id: string;
-  cat: Exclude<CategoryId, 'pages'>;
+  cat: CategoryId;
   section: string;
   /** The label shown; the host's own label is the fallback. */
   label: string;

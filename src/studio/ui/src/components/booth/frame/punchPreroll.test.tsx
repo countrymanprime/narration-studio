@@ -12,7 +12,7 @@ import { BoothFooter } from './BoothFooter';
 afterEach(cleanup);
 
 // The punch pre-roll (Teleprompter.punch_preroll_seconds, a global number the host reads in "Punch from here") is set in the Levels menu, next to the
-// microphone, and only where a DAW punches. The Settings page lists it under Set on a page and opens the Booth.
+// microphone, and only where a DAW punches. Settings draws it as a row under Recording & DAW, Take cues.
 function menu(engine: 'daw' | 'builtin', over: Partial<NarrationApi> = {}, preroll?: DawCapabilitySupport) {
   const save = vi.fn(async () => undefined);
   const api = createMockApi({ saveSettings: save, ...over } as Partial<NarrationApi>, { daw: {} });

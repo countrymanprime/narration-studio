@@ -42,9 +42,8 @@ test('Alt+Left from a focused invalid number box asks every time', async ({ page
   for (let attempt = 0; attempt < 10; attempt += 1) {
     await page.goto('/');
     await settlePage(page);
-    await openSettings(page, 'Set on a page');
-    const entry = page.locator('[data-page-setting="ps.coverage"]');
-    await entry.getByRole('button', { name: 'Change it here for now' }).click();
+    await openSettings(page, 'Speech to text');
+    const entry = page.locator('[data-row="stt.rules"]');
     const box = entry.getByLabel('Share of each paragraph that must be read', { exact: false }).first();
     await box.fill('abc');
     await page.keyboard.press('Alt+ArrowLeft');
@@ -77,9 +76,8 @@ test('a Settings save that never answers gives Cancel and Discard back after 15 
   });
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   const box = entry.getByRole('textbox', { name: 'Longest run of missing words allowed' });
   await box.fill('7');
   await switchProject(page);
@@ -103,9 +101,8 @@ test('a Settings save that never answers gives Cancel and Discard back after 15 
 test('the question opened from the keyboard shows a focus ring on the way to stay', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.keyboard.press('Alt+ArrowLeft');
   const question = unsaved(page, 'Unsaved changes');
@@ -123,9 +120,8 @@ test('the question opened from the keyboard shows a focus ring on the way to sta
 test('a second Enter within 300 ms of the one that asked does not dismiss the question', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.getByRole('button', { name: 'Production' }).first().focus();
   // key: the echo of the press that asked, which is what this case is about
@@ -144,9 +140,8 @@ test('a second Enter within 300 ms of the one that asked does not dismiss the qu
 test('a click on the backdrop leaves the focus inside the question', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.keyboard.press('Alt+ArrowLeft');
   const question = unsaved(page, 'Unsaved changes');
@@ -161,9 +156,8 @@ test('a click on the backdrop leaves the focus inside the question', async ({ pa
 test('an Enter held down from the press that asked does not dismiss the question', async ({ page }) => {
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
   await page.getByRole('button', { name: 'Production' }).first().focus();
   const question = unsaved(page, 'Unsaved changes');
@@ -179,9 +173,8 @@ test('an Enter held down from the press that asked does not dismiss the question
 async function holdSettingsEdit(page: Page): Promise<void> {
   await page.goto('/');
   await settlePage(page);
-  await openSettings(page, 'Set on a page');
-  const entry = page.locator('[data-page-setting="ps.coverage"]');
-  await entry.getByRole('button', { name: 'Change it here for now' }).click();
+  await openSettings(page, 'Speech to text');
+  const entry = page.locator('[data-row="stt.rules"]');
   await entry.getByRole('textbox', { name: 'Longest run of missing words allowed' }).fill('7');
 }
 

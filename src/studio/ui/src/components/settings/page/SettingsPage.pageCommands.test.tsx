@@ -8,7 +8,6 @@ import { currentPageContext, type PageItem } from '../../../input/pageCommands';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { CATEGORIES } from '../registry/categories';
-import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { SettingsPage } from './SettingsPage';
 
@@ -58,21 +57,21 @@ describe('Settings: jump menu page items', () => {
     expect(page.label).toBe('Settings');
     expect(page.supersedes).toEqual(['Settings']);
     const categories = items().filter((entry) => entry.group === 'Categories');
-    expect(categories.map((entry) => entry.label)).toEqual([...CATEGORIES.map((category) => category.label), 'Set on a page']);
+    expect(categories.map((entry) => entry.label)).toEqual(CATEGORIES.map((category) => category.label));
   });
 
   it('offers one item per setting row under its category, with the description as the hint', async () => {
     await renderPage();
     await settled();
     const rows = items().filter((entry) => entry.id.startsWith('row.'));
-    expect(rows).toHaveLength(ROWS.length + PAGE_SETTINGS.length);
+    expect(rows).toHaveLength(ROWS.length);
     const model = item('row.stt.model');
     const meta = ROWS.find((candidate) => candidate.id === 'stt.model')!;
     expect(model.label).toBe(meta.label);
     expect(model.group).toBe('Speech to text');
     expect(model.hint).toBe(meta.desc);
     expect(model.keywords?.join(' ')).toContain(meta.syn!);
-    expect(item('row.ps.cleanup').group).toBe('Set on a page');
+    expect(item('row.editing.cleanup').group).toBe('Recording & DAW');
   });
 
   it('keeps a row for another recording tool listed, off, with the reason', async () => {
@@ -134,11 +133,11 @@ describe('Settings: jump menu page items', () => {
     await waitFor(() => expect(row('project.build')).toBeTruthy());
   });
 
-  it('a page setting opens Set on a page and focuses its entry', async () => {
+  it('a setting only one page reads opens its category and focuses its row', async () => {
     await renderPage();
     await settled();
-    act(() => item('row.ps.cleanup').run());
-    await waitFor(() => expect(document.querySelector('[data-page-setting="ps.cleanup"]')!.contains(document.activeElement)).toBe(true));
+    act(() => item('row.editing.cleanup').run());
+    await waitFor(() => expect(row('editing.cleanup')!.contains(document.activeElement)).toBe(true));
   });
 
   it('registers nothing after the page unmounts', async () => {

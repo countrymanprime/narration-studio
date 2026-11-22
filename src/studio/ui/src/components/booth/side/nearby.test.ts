@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import { boothUnits, type ReadingParagraph } from '../reading/boothUnits';
 import { entities, garden, guideTypes, paragraphs, queen } from './fixture';
-import { linesInChapter, voicesInChapter } from './nearby';
+import { comingUpWords, linesInChapter, voicesInChapter } from './nearby';
+import { boothDecorations } from './decorations';
 
 const units = (list: readonly ReadingParagraph[]) => boothUnits(list);
 
@@ -68,5 +69,25 @@ describe('the lines each character speaks in the chapter', () => {
       entities,
     );
     expect([...lines]).toEqual([[queen.id, 2]]);
+  });
+});
+
+describe('one list of names (#3970)', () => {
+  // A speaking type that is not called "Character": the highlights drew her, but the cast list skipped her.
+  const person = [{ name: 'Person', colour: 'green' as const, speaks: true }];
+  const mara = { ...queen, id: 'mara', canonical_name: 'Mara', aliases: [], category: 'Person' } as GuideEntity;
+  const text: ReadingParagraph[] = [{ id: 'a', text: 'Mara said nothing. mara is not a name here.' }];
+
+  it('a-character-of-any-speaking-type-named-only-in-narration-is-in-the-chapter-the-highlights-draw-and-coming-up-lists-her', () => {
+    expect(voicesInChapter(text, units(text), [mara], person).map((voice) => voice.name)).toEqual(['Mara']);
+    expect(boothDecorations(text, [mara], { types: [], marks: [] }, person).decorations.map((d) => d.title)).toEqual(['Mara']);
+    expect(comingUpWords(units(text), 0, [mara]).map((word) => word.word)).toEqual(['Mara']);
+  });
+
+  it('a-lowercase-spelling-is-not-her-in-any-of-the-three', () => {
+    const lower: ReadingParagraph[] = [{ id: 'a', text: 'mara is not a name here.' }];
+    expect(voicesInChapter(lower, units(lower), [mara], person)).toEqual([]);
+    expect(boothDecorations(lower, [mara], { types: [], marks: [] }, person).decorations).toEqual([]);
+    expect(comingUpWords(units(lower), 0, [mara])).toEqual([]);
   });
 });

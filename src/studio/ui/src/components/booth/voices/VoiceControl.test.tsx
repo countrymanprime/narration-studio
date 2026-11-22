@@ -15,17 +15,24 @@ const voices: Voice[] = [
   { guid: 'x', name: '   ', key: '2', narrator: false, notVoice: false, characters: [] },
 ];
 
+const cast = {
+  inChapter: [{ id: 'mara', name: 'Mara', lines: 0 }],
+  elsewhere: [{ id: 'hatter', name: 'Hatter', lines: 0 }],
+};
+
 function Harness({
   onChoose,
+  extra = {},
   current = voices[0],
   arm = { state: 'unknown' },
 }: {
   onChoose: (voice: Voice) => void;
+  extra?: Partial<Parameters<typeof VoiceControl>[0]>;
   current?: Voice;
   arm?: BoothVoices['arm'];
 }) {
   const [open, setOpen] = useState(false);
-  return <VoiceControl voices={voices} current={current} choosing={false} arm={arm} onChoose={onChoose} open={open} onOpenChange={setOpen} />;
+  return <VoiceControl voices={voices} current={current} choosing={false} arm={arm} onChoose={onChoose} open={open} onOpenChange={setOpen} {...extra} />;
 }
 
 describe('the voice control', () => {
@@ -161,5 +168,52 @@ describe('the voice control', () => {
       expect(screen.getByRole('button', { name: /^Voice:/ }).textContent).not.toContain('King of Hearts');
       expect(screen.queryByRole('button', { name: 'Add a track for King of Hearts' })).toBeNull();
     });
+  });
+
+  // #3970
+  it('a search reaches the chapter characters first, then every character of the story, and a pick asks who records them', async () => {
+    const onPickCharacter = vi.fn();
+    render(<Harness onChoose={vi.fn()} extra={{ cast, onPickCharacter }} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
+    const box = await screen.findByRole('combobox', { name: 'Search voices' });
+    await userEvent.type(box, 'a');
+    const list = screen.getByRole('listbox', { name: 'Voices of this chapter' });
+    const labels = within(list)
+      .getAllByRole('option')
+      .map((row) => row.textContent);
+    expect(labels.findIndex((text) => text?.includes('Mara'))).toBeLessThan(labels.findIndex((text) => text?.includes('Hatter')));
+    await userEvent.click(within(list).getByRole('option', { name: /Hatter/ }));
+    expect(onPickCharacter).toHaveBeenCalledWith(cast.elsewhere[0]);
+  });
+
+  it('a search that matches nothing offers to add a track, with no number to type', async () => {
+    const onAddLane = vi.fn();
+    render(<Harness onChoose={vi.fn()} extra={{ cast, onAddLane }} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
+    await userEvent.type(await screen.findByRole('combobox', { name: 'Search voices' }), 'zzz');
+    await userEvent.click(within(screen.getByRole('listbox', { name: 'Voices of this chapter' })).getByRole('option', { name: /Add a track/ }));
+    expect(onAddLane).toHaveBeenCalledWith('zzz');
+    expect(screen.queryByRole('listbox', { name: 'Voices of this chapter' })).toBeNull();
+  });
+
+  it('a character a track already records is chosen by that track', async () => {
+    const onChoose = vi.fn();
+    const onPickCharacter = vi.fn();
+    const withQueen = { inChapter: [{ id: 'queen', name: 'Queen of Hearts', lines: 2, key: '1' }], elsewhere: [] };
+    render(<Harness onChoose={onChoose} extra={{ cast: withQueen, onPickCharacter }} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
+    await userEvent.type(await screen.findByRole('combobox', { name: 'Search voices' }), 'hearts');
+    const rows = within(screen.getByRole('listbox', { name: 'Voices of this chapter' })).getAllByRole('option');
+    await userEvent.click(rows[rows.length - 1]);
+    expect(onChoose).toHaveBeenCalledWith(voices[1]);
+    expect(onPickCharacter).not.toHaveBeenCalled();
+  });
+
+  it('with nothing typed, a chapter character who is only named and has no track is offered under No track', async () => {
+    render(<Harness onChoose={vi.fn()} extra={{ cast, noTrack: [] }} />);
+    await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
+    const list = await screen.findByRole('listbox', { name: 'Voices of this chapter' });
+    expect(list.textContent).toMatch(/No track.*Mara/);
+    expect(list.textContent).not.toContain('Hatter');
   });
 });
