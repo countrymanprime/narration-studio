@@ -79,6 +79,7 @@ function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTrack
             reason: '' as const,
             message: '',
             readAt: '2026-11-11T00:00:00Z',
+            revision: '',
             project: {
               path: 'book.rpp',
               tracks: [{ guid: 'tr', index: 0, name: 'One', color: '', muted: false, soloed: false, depth: 0, isFolder: false, items: [ITEM] }],

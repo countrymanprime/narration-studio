@@ -109,18 +109,20 @@ func TestASlowLinkStillAnswersACommandThatMayRunLong(t *testing.T) {
 // #3752: a command that changes the DAW is waited for on a link slower than the short wait, so the host never reports "no answer" for
 // a stop that then lands. The stop here reaches the DAW a second after the short wait ended, and its answer is the answer.
 func TestASlowLinkOutlastsTheShortWaitAndTheWriteIsStillAnswered(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
-		return [][]string{{"RECORD_STOPPED", run(command), "3", "1", "2"}}
+	onVirtualClock(t, func(t *testing.T) {
+		actions, client, dir := newActionsSession(t, true)
+		fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+			return [][]string{{"RECORD_STOPPED", run(command), "3", "1", "2"}}
+		})
+		actions.SetTimeout(20 * time.Millisecond)
+		client.SetSlowLink(SlowLink{Delay: time.Second})
+		if _, err := actions.RecordStop(context.Background()); err != nil {
+			t.Fatalf("a stop on a slow link: %v; want its answer", err)
+		}
+		if len(fake.commands()) != 1 {
+			t.Fatalf("the DAW read %d commands; want the one stop", len(fake.commands()))
+		}
 	})
-	actions.SetTimeout(20 * time.Millisecond)
-	client.SetSlowLink(SlowLink{Delay: time.Second})
-	if _, err := actions.RecordStop(context.Background()); err != nil {
-		t.Fatalf("a stop on a slow link: %v; want its answer", err)
-	}
-	if len(fake.commands()) != 1 {
-		t.Fatalf("the DAW read %d commands; want the one stop", len(fake.commands()))
-	}
 }
 
 // A read keeps the short wait: on a link slower than it the host reports no answer at once and the read still reaches the DAW afterwards,

@@ -102,6 +102,21 @@ describe('Settings: jump menu page items', () => {
     expect(scroll).toHaveBeenCalled();
   });
 
+  it('the Capabilities row is found by name and by what it holds, and opens its category with focus on its button (#3740)', async () => {
+    await renderPage();
+    await settled();
+    const capabilities = item('row.daw.capabilities');
+    expect(capabilities.label).toBe('Capabilities');
+    expect(capabilities.group).toBe('App & updates');
+    expect(capabilities.keywords).toContain('Recording tool');
+    expect(capabilities.keywords?.join(' ')).toContain('audacity');
+    expect(capabilities.disabledReason).toBeUndefined();
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    act(() => capabilities.run());
+    await waitFor(() => expect(row('daw.capabilities')).toBeTruthy());
+    await waitFor(() => expect(row('daw.capabilities')!.contains(document.activeElement)).toBe(true));
+  });
+
   it('a row under Advanced is opened first', async () => {
     await renderPage();
     await settled();

@@ -223,6 +223,35 @@ H.test('an edit that leaves the track list alone raises the counter and sends no
   H.eq(#s:all_events(), 0, 'the list is the same, so the heartbeat waits for its interval')
 end)
 
+-- The revision covers what the track list shows of REAPER's live half (GUID, name, folder depth): a mute, a selection or an arm is not a change
+-- of the list, and a revision that moved on each would have every page read the tracks again on each click.
+H.test('a track muted, selected or armed leaves the revision as it was', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  s.fake:add_track('Chapter 2')
+  local before = revision_after_tick(s)
+  s.fake.tracks[1].muted, s.fake.tracks[2].selected, s.fake.tracks[2].armed = true, true, true
+  s.fake.change_count = s.fake.change_count + 1
+  s:tick() -- the counter moved, so the revision is read, but it is the same: nothing is sent
+  H.eq(#s:all_events(), 0, 'a mute, a selection or an arm sends no heartbeat at once')
+  local after = revision_after_tick(s)
+  H.eq(after, before)
+end)
+
+H.test('the heartbeat and tracks_read still agree after the list changed', function()
+  local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
+  s.fake:add_track('Chapter 1')
+  local first = revision_after_tick(s)
+  s.fake:add_track('Chapter 2')
+  s.fake.tracks[1].name = 'Prologue'
+  s.fake.change_count = s.fake.change_count + 1
+  local beat, sent = revision_after_tick(s)
+  H.eq(sent, 1, 'a heartbeat is sent on the tick the list changed')
+  H.eq(beat ~= first, true)
+  s:send('tracks_read', 'r1')
+  H.eq(s:events()[1][6], beat)
+end)
+
 H.test('a track list change the edit counter does not count is in the next heartbeat', function()
   local s = H.session({ project_path = 'C:\\Projects\\Book\\Book.rpp' })
   s.fake:add_track('Chapter 1')

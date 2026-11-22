@@ -1250,7 +1250,9 @@ function Fake:add_item_api(api)
   -- track. Recorded in fake.calls.
   function api.InsertTrackAtIndex(index, want_defaults)
     fake.calls[#fake.calls + 1] = { name = 'InsertTrackAtIndex', index = index, defaults = want_defaults }
-    table.insert(fake.tracks, index + 1, fake:new_track(''))
+    local track = fake:new_track('')
+    track.rec_mon = fake.new_track_rec_mon -- REAPER's default for a new track's monitoring: a test sets it (unset reads 0; whether a real REAPER inserts at 0 is pending, #3670)
+    table.insert(fake.tracks, index + 1, track)
   end
   -- A track's name (P_NAME), GUID and extension data (P_EXT:key, which reads `false, ''` when missing, like an item's).
   -- A set is recorded in fake.calls.

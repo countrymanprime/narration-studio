@@ -27,6 +27,7 @@ func TestMain(m *testing.M) {
 	if mode := os.Getenv(fakeSidecarEnv); mode != "" {
 		os.Exit(runFakeSidecar(mode))
 	}
+	_ = os.Setenv("GORACE", "atexit_sleep_ms=0 "+os.Getenv("GORACE")) // a fake program run from here skips the race runtime's second of sleep at exit
 	os.Exit(m.Run())
 }
 
@@ -404,11 +405,17 @@ func fakeBuildSidecar(mode string, args []string) int {
 			fmt.Fprintln(os.Stderr, `{"level": "info", "msg": "ERROR: [E088] Text of length 1000001 exceeds maximum of 1000000.", "ts": "2026-10-25T12:00:00.000Z"}`)
 			return 1
 		case "build-spacy":
-			raw, _ := os.ReadFile(flagValue(args, "--manuscript"))
+			raw, err := os.ReadFile(flagValue(args, "--manuscript"))
 			var manuscript struct {
 				Paragraphs []struct{ ID, Text string } `json:"paragraphs"`
 			}
-			_ = json.Unmarshal(raw, &manuscript)
+			if err == nil {
+				err = json.Unmarshal(raw, &manuscript)
+			}
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "fake sidecar: could not read the manuscript:", err)
+				return 1
+			}
 			fmt.Println(`{"available": true}`)
 			for _, paragraph := range manuscript.Paragraphs {
 				text := []rune(paragraph.Text)
@@ -432,15 +439,32 @@ func fakeBuildSidecar(mode string, args []string) int {
 		}
 		fallthrough
 	case "pronunciation":
-		raw, _ := os.ReadFile(flagValue(args, "--words-file"))
-		var words []string
-		_ = json.Unmarshal(raw, &words)
+		words, err := readWordsFile(flagValue(args, "--words-file"))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "fake sidecar:", err)
+			return 1
+		}
 		for _, word := range words {
 			encoded, _ := json.Marshal(map[string]string{"ipa": "ipa:" + word})
 			fmt.Printf("{\"ipa\": %s, \"source\": \"cmu\", \"confidence\": \"medium\"}\n", encoded[7:len(encoded)-1])
 		}
 	}
 	return 0
+}
+
+// readWordsFile reads the host's list of words once, as the sidecar does (Python's read_text raises on a file it cannot read), and
+// returns the error. A failed read used to leave an empty list, so the fake answered nothing and the host reported an answer it could not
+// read, which hid the real cause.
+func readWordsFile(path string) ([]string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read the words file %s: %w", path, err)
+	}
+	var words []string
+	if err := json.Unmarshal(raw, &words); err != nil {
+		return nil, fmt.Errorf("the words file %s is not a list of words: %w", path, err)
+	}
+	return words, nil
 }
 
 // fakeRecordingSidecar is the "record" mode: it appends its arguments, joined by a unit separator, as one line of the record log, and

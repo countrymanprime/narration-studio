@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { commitsOf, evaluateHeartbeat, failedJobs, isHoldTicked, parseLastPass, redReport, tickHold, trainIssues } from './train-health.mjs';
+import { commitsOf, evaluateHeartbeat, failedJobs, isHoldTicked, parseLastPass, redReport, tickHold, tierOf, TIERS, trainIssues } from './train-health.mjs';
 
 const HOUR = 60 * 60 * 1000;
 const now = new Date('2026-10-10T12:00:00Z');
@@ -107,4 +107,31 @@ test('redReport says what it could not read, so a failed read never hides the re
   const report = redReport({ runUrl: 'u', sha: '0123456789', failed: [], commits: [] });
   assert.match(report, /Failed jobs:\n- not read: see the run/);
   assert.match(report, /- not read: no earlier green run was found/);
+});
+
+test('the slow-clock tier report names the failed jobs and the fix, lists no commits and holds nothing', () => {
+  const report = redReport({ runUrl: 'https://example.test/run/9', sha: '0123456789abcdef', failed: ['slow-clock'], commits: [], tier: 'slow-clock' });
+  assert.match(report, /slowed to 70% at 0123456: https:\/\/example\.test\/run\/9/);
+  assert.match(report, /- `slow-clock`/);
+  assert.match(report, /pastStartGuard/);
+  assert.match(report, /Nothing is held/);
+  assert.doesNotMatch(report, /Commits on `main`/);
+});
+
+test('each tier has its own label, so one tier\'s green run never closes another tier\'s issue', () => {
+  assert.equal(tierOf().label, 'main-red');
+  assert.equal(tierOf('main'), TIERS.main);
+  assert.equal(tierOf('slow-clock').label, 'slow-clock-red');
+  assert.notEqual(tierOf('main').label, tierOf('slow-clock').label);
+});
+
+test('a tier names its issue by the commit, and only main lists the commits since the last green run', () => {
+  assert.match(tierOf('main').title('0123456789'), /^main is red: .* at 0123456$/);
+  assert.match(tierOf('slow-clock').title('0123456789'), /slowed page clock at 0123456$/);
+  assert.equal(tierOf('main').commits, true);
+  assert.equal(tierOf('slow-clock').commits, false);
+});
+
+test('an unknown tier is refused, not taken for main', () => {
+  assert.throws(() => tierOf('nightly'), /unknown tier nightly: one of main, slow-clock/);
 });

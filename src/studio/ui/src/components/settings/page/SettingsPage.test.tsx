@@ -225,6 +225,14 @@ describe('Settings: row layout', () => {
     return body!;
   };
 
+  it('draws the Entry types list across the whole row, so a type is not squeezed into half of it (#3674)', async () => {
+    await renderPage();
+    pick('Project');
+    const body = await waitFor(() => wideBody('project.types'));
+    expect(body.className).toContain('col-span-full');
+    expect(await within(body).findAllByRole('button', { name: /^Colour for / })).not.toHaveLength(0);
+  });
+
   it('draws the Credits body across the whole row (XSE2-11)', async () => {
     await renderPage();
     pick('Project');

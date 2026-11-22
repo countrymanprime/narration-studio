@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -218,4 +219,68 @@ func (s *DecisionStore) writeLocked(file decisionsFile) error {
 		return fmt.Errorf("could not activate the %s file: %w", decisionsWhat, err)
 	}
 	return nil
+}
+
+// ReferencedRecordIDs is every ledger record id any decision's basis names, whichever document the file was kept for: a record a
+// confirmation or a dismissal stands on is kept by the ledger's retention. A missing file names none. A file that cannot be read, is
+// corrupt or was written by a newer app is an error on every call, never an empty set: a caller that deletes by it must stop. It reads
+// the file as it is and never moves a corrupt one aside, so a background pass cannot turn the error of one pass into the empty set of
+// the next, and does not touch the narrator's file.
+func (s *DecisionStore) ReferencedRecordIDs() (map[string]bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	raw, readErr := persist.ReadFile(s.path)
+	// A decisions file the stages service moved aside as corrupt (its reads do) leaves a missing file, and the decisions it held are in a
+	// kept-aside copy the narrator may restore: the records they name must not go while one is there. The copy is looked for after the read,
+	// so a file moved aside between the two is found by this look, and one moved before the read by the same look; the folder is listed,
+	// never matched as a pattern, because a project folder's name may hold pattern characters.
+	if aside, err := keptAside(s.path); err != nil {
+		return nil, fmt.Errorf("your %s file's folder could not be listed: %w", decisionsWhat, err)
+	} else if aside != "" {
+		return nil, fmt.Errorf("your %s file was kept aside as unreadable (%s); restore or remove it before records are cleaned up", decisionsWhat, aside)
+	}
+	if errors.Is(readErr, os.ErrNotExist) {
+		return map[string]bool{}, nil
+	}
+	if readErr != nil {
+		return nil, fmt.Errorf("your %s file could not be read: %w", decisionsWhat, readErr)
+	}
+	var decoded decisionsFile
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return nil, fmt.Errorf("your %s file could not be read: %w", decisionsWhat, err)
+	}
+	if err := persist.CheckVersion(decoded.SchemaVersion, decisionsSchemaVersion, decisionsWhat); err != nil {
+		return nil, err
+	}
+	ids := map[string]bool{}
+	for _, decision := range decoded.Decisions {
+		for _, signal := range decision.Basis {
+			for _, id := range signal.LedgerRecordIDs {
+				ids[id] = true
+			}
+		}
+	}
+	return ids, nil
+}
+
+// listFolder lists a folder; a variable so a test can make the listing fail on every platform.
+var listFolder = os.ReadDir
+
+// keptAside is the name of a copy of the decisions file that was moved aside as unreadable ("<name>.corrupt-<stamp>"), or "" when
+// there is none. A folder that is not there holds none.
+func keptAside(path string) (string, error) {
+	entries, err := listFolder(filepath.Dir(path))
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	prefix := filepath.Base(path) + ".corrupt-"
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), prefix) {
+			return entry.Name(), nil
+		}
+	}
+	return "", nil
 }

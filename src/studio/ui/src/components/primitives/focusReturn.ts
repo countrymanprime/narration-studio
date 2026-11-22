@@ -82,3 +82,20 @@ export function handFocusToPage(): boolean {
   }, 0);
   return false;
 }
+
+const POPUPS = '[data-popover-popup], [role="menu"]';
+const LEAVING = '[data-ending-style], [data-closed]';
+
+/**
+ * Whether another popup (a popover or a menu) is taking focus as `own`, a popover that is leaving, unmounts: focus is inside one, or one is open and has not taken
+ * focus yet (opened by a click a moment ago; its exit-free mount moves focus in a frame later). Giving focus back to `own`'s trigger then would take it from that
+ * popup, which closes when focus leaves it. `opener` is where focus was when `own` opened: a popup around it is `own`'s parent, which is not "another". Focus in `own`
+ * itself, on the page or in a dialog around it returns as before.
+ */
+export function anotherPopoverTakesFocus(own: Element | null, opener: Element | null): boolean {
+  const active = document.activeElement;
+  if (active && own?.contains(active)) return false;
+  const holding = active?.closest(POPUPS);
+  if (holding && holding !== own && !holding.closest(LEAVING)) return true;
+  return Array.from(document.querySelectorAll(POPUPS)).some((popup) => popup !== own && !popup.closest(LEAVING) && !(opener && popup.contains(opener)));
+}

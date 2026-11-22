@@ -1,9 +1,9 @@
-import type { KeyboardEventHandler, ReactNode } from 'react';
+import { useSyncExternalStore, type KeyboardEventHandler, type ReactNode } from 'react';
 import { IconButton } from '../../primitives/IconButton';
 import { Tab, TabList, TabPanel, Tabs } from '../../primitives/Tabs';
 import type { ChapterDoc, FlagKind } from '../model';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
-import { drawSections } from './drawerSections';
+import { drawSections, sectionsVersion, subscribeSections } from './drawerSections';
 import { tabLabel, type DrawerTab } from './drawerTabs';
 import { FoundList } from './FoundList';
 
@@ -34,6 +34,7 @@ export const flagTotal = (doc: ChapterDoc): number => doc.counts.extra + doc.cou
 /** The clean-up and effects drawer: tabs by capability, each tab a panel of the sections that registered for it. */
 export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose, flagKind, onReview, strip, onKeyDown }: DrawerProps) {
   const count = (k: DrawerTab): number => counts[k] ?? (k === 'cleanup' ? flagTotal(doc) : 0);
+  useSyncExternalStore(subscribeSections, sectionsVersion);
   const sections = drawSections(tab, { doc, chapterId });
   let body: ReactNode;
   if (tab === 'timeline') {

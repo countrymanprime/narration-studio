@@ -9,6 +9,7 @@ import {
   cardTally,
   checkSentence,
   estimateLabel,
+  hasRecording,
   recordedLabel,
   runningFor,
   staleWhy,
@@ -65,6 +66,14 @@ describe('recorded against the estimate', () => {
     expect(recordedLabel(125)).toBe('2:05');
     expect(recordedLabel(undefined)).toBe('—');
     expect(recordedLabel(0)).toBe('—');
+    // #3869: under one second is no recording; one second is.
+    for (const seconds of [0.001, 0.5, 0.99]) {
+      expect(recordedLabel(seconds), `${seconds} s`).toBe('—');
+      expect(hasRecording(seconds), `${seconds} s`).toBe(false);
+    }
+    expect(recordedLabel(1)).toBe('0:01');
+    expect(hasRecording(1)).toBe(true);
+    expect(hasRecording(12)).toBe(true);
     expect(estimateLabel(9300)).toBe('~1:00:00');
     expect(estimateLabel(0)).toBe('—');
   });

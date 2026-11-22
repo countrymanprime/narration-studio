@@ -31,6 +31,7 @@ import { macroNameProblem } from './macroName';
 import { MOCK_ACX, deliveryProfileKey } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
 import { brand } from '../brand.gen';
+import { plural } from '../plural';
 
 /** What the mock's picker chooses: two chapters, opening and closing credits, and a retail sample. */
 export const MOCK_EXPORT_PATHS = [
@@ -567,16 +568,20 @@ export function createRenderEncodeMasterMock(
           profile: forProfile.id,
           platform: platformNameFor(forProfile),
           phase: 'success',
-          message: `Built ${files.length} files.`,
+          message: `Built ${plural(files.length, 'file')}.`,
           outputDir,
           files,
           checklist,
         };
       });
 
+      const failedCount = results.filter((r) => r.phase === 'error').length;
+      // The host's sentences (multi_package_job.go finishMultiPackage), so a failed build reads the same here.
       const message = multiHold
         ? `Building the ${platformNameFor(resolved[0])} package (1 of ${resolved.length}).`
-        : `Built ${results.filter((r) => r.phase === 'success').length} packages.`;
+        : failedCount > 0
+          ? `${failedCount} of ${results.length} ${results.length === 1 ? 'package' : 'packages'} could not be built; the rest are ready.`
+          : `Built ${plural(results.length, 'package')}.`;
       multiPackageJob = {
         id: 'package-multi-1',
         kind: 'render_package_multi',
@@ -600,7 +605,11 @@ export function createRenderEncodeMasterMock(
     packageMultiCancel: async (): Promise<MultiPackageJob> => {
       if (multiPackageJob.phase === 'running') {
         const done = multiPackageJob.results.filter((r) => r.phase === 'success').length;
-        multiPackageJob = { ...multiPackageJob, phase: 'cancelled', message: `Cancelled. ${done} of ${multiPackageJob.results.length} packages were built.` };
+        multiPackageJob = {
+          ...multiPackageJob,
+          phase: 'cancelled',
+          message: `Cancelled. ${done} of ${multiPackageJob.results.length} ${multiPackageJob.results.length === 1 ? 'package was' : 'packages were'} built.`,
+        };
         publish({
           id: multiPackageJob.id ?? '',
           kind: 'render_package_multi',

@@ -86,6 +86,14 @@ func CurrentRenderRecord(ledger evidence.LedgerReader, documentID, chapterID, cu
 	return evidence.LedgerRecord{}, RenderScanPayload{}, false, nil
 }
 
+// RenderRetentionKey is the evidence.RetentionKey of a render-scan record (AnalyzerEditingRender): its payload's
+// RenderKey, since CurrentRenderRecord takes the newest complete record whose RenderKey is the render's. A record whose
+// payload does not decode is one CurrentRenderRecord passes over, and has no group.
+func RenderRetentionKey(record evidence.LedgerRecord) (string, bool) {
+	payload, ok := decodeRenderScanPayload(record)
+	return payload.RenderKey, ok
+}
+
 func decodeRenderScanPayload(record evidence.LedgerRecord) (RenderScanPayload, bool) {
 	var payload RenderScanPayload
 	if len(record.Payload) == 0 || json.Unmarshal(record.Payload, &payload) != nil {

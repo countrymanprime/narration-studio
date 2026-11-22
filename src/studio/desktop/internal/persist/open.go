@@ -2,7 +2,9 @@ package persist
 
 import (
 	"bytes"
+	"errors"
 	"io"
+	"io/fs"
 	"math"
 	"os"
 	"sync/atomic"
@@ -10,6 +12,9 @@ import (
 
 // decodes and listings count the work ReadJSON, ReadHeld (a file it decoded, not one it only hashed) and ReadDir did in this process, for the tests that budget what a host read costs.
 var decodes, listings atomic.Int64
+
+// ErrNotAFile is why ReadFile and ReadFileMax refuse a named pipe, a socket or a device: a read of one waits for a writer that may never come.
+var ErrNotAFile = errors.New("not a regular file")
 
 // Work reports how many files ReadJSON has read and decoded and how many folders ReadDir has listed since the process started. A
 // test takes the difference across a read; nothing in the app depends on the numbers.
@@ -32,10 +37,54 @@ func ReadFile(name string) ([]byte, error) {
 	// One buffer of the file's size, as os.ReadFile makes: io.ReadAll grows and copies its buffer as it goes, which more
 	// than doubled the read of a megabyte file, and every held file is read whole on every ask (issue 3863).
 	size := 0
-	if info, err := file.Stat(); err == nil && info.Size() > 0 && info.Size() < math.MaxInt32 {
-		size = int(info.Size())
+	if info, err := file.Stat(); err == nil {
+		if err := refuseNonFile(name, info.Mode()); err != nil {
+			return nil, err
+		}
+		if info.Size() > 0 && info.Size() < math.MaxInt32 {
+			size = int(info.Size())
+		}
 	}
 	return readSized(file, size)
+}
+
+// refuseNonFile is the refusal of a named pipe, a socket or a device by its mode: nil for anything else.
+func refuseNonFile(name string, mode fs.FileMode) error {
+	if mode&(fs.ModeNamedPipe|fs.ModeSocket|fs.ModeDevice) != 0 {
+		return &fs.PathError{Op: "read", Path: name, Err: ErrNotAFile}
+	}
+	return nil
+}
+
+// ErrTooLarge is ReadFileMax's answer for a file with more bytes than its limit.
+var ErrTooLarge = errors.New("the file is larger than the limit")
+
+// ReadFileMax is ReadFile for a file of at most limit bytes. It opens the file once and counts what it reads, so a file that
+// grows after a size check, or that has no honest size (a link to a device, a /proc file), is stopped at limit+1 bytes and answers
+// ErrTooLarge, wherever the size said it was small. Anything that is not a regular file is refused as in ReadFile.
+func ReadFileMax(name string, limit int64) ([]byte, error) {
+	file, err := Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = file.Close() }()
+	size := 0
+	if info, err := file.Stat(); err == nil {
+		if err := refuseNonFile(name, info.Mode()); err != nil {
+			return nil, err
+		}
+		if info.Size() > limit {
+			return nil, ErrTooLarge
+		}
+		if info.Size() > 0 {
+			size = int(info.Size())
+		}
+	}
+	data, err := readSized(io.LimitReader(file, limit+1), size)
+	if err == nil && int64(len(data)) > limit {
+		return nil, ErrTooLarge
+	}
+	return data, err
 }
 
 // readSized reads r to its end into a buffer made for size bytes, with room past them so the read that finds the end

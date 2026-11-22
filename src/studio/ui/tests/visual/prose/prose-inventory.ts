@@ -664,7 +664,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/production/RecordingCheckReport.tsx', text: 'Start not read: paragraphs 1 to … (…).', class: 'state' },
-  { file: 'components/production/target/TargetPopover.tsx', text: '… … a measured length: … words in ….', class: 'overlay' },
   { file: 'components/proof/CompareRun.tsx', text: 'Marker export is available only for results from this active … session', class: 'state' },
   {
     file: 'components/proof/PreviewPanel.tsx',

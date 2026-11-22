@@ -34,6 +34,7 @@ export const CUSTOM: Record<string, ComponentType> = {
 export const WIDE_BODIES: ReadonlySet<string> = new Set([
   'daw.voices',
   'project.credits',
+  'project.types',
   'stt.rules',
   'stt.compareColours',
   'daw.fxFavourites',

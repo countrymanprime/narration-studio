@@ -1,6 +1,22 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertPartition, assign, describeTest, groupKey, loaderLines, planTests, testsOfReport, weightsOf } from './visual-shards.mjs';
+import {
+  PAGES,
+  assertPartition,
+  assign,
+  describeScope,
+  describeTest,
+  groupKey,
+  importersOf,
+  inScope,
+  loaderLines,
+  pagesNamedIn,
+  planTests,
+  scopeOf,
+  testsOfReport,
+  underEveryPage,
+  weightsOf,
+} from './visual-shards.mjs';
 
 const spec = (file, title, duration) => ({ file, title, tests: [{ results: duration === undefined ? [] : [{ duration }] }] });
 const report = (...suites) => ({ suites });
@@ -125,4 +141,194 @@ test('weightsOf averages per group and per file, ignoring tests with no time', (
   assert.equal(weights.groups['a.spec.ts|Q / t'], 9);
   assert.equal(weights.files['a.spec.ts'], 5);
   assert.equal(weights.fallback, 5);
+});
+
+const UI = 'src/studio/ui/';
+const matrix = { file: 'app.spec.ts', loadFile: 'app.spec.ts', titlePath: ['booth / default'] };
+const boothSpec = { file: 'booth-keys.spec.ts', loadFile: 'booth-keys.spec.ts', titlePath: ['Booth keys', 'Space rolls'] };
+const proofSpec = { file: 'proof-notes.spec.ts', loadFile: 'proof-notes.spec.ts', titlePath: ['a note'] };
+const dialogSpec = { file: 'dialog-early-escape.spec.ts', loadFile: 'dialog-early-escape.spec.ts', titlePath: ['Escape closes'] };
+const editingOverlay = { file: 'helpers/overlayGuardFor.ts', loadFile: 'overlays.spec.ts', titlePath: ['Editing / row menu / desktop'] };
+const scriptOverlay = { file: 'helpers/overlayGuardFor.ts', loadFile: 'overlays.spec.ts', titlePath: ['Script / context menu on the page / tablet'] };
+const suite = [matrix, boothSpec, proofSpec, dialogSpec, editingOverlay, scriptOverlay];
+const owed = (changed) => suite.filter((item) => inScope(item, scopeOf(changed)));
+
+test('a run that is not a pull request owes the whole suite', () => {
+  assert.equal(scopeOf(null).everything, true);
+  assert.deepEqual(owed(null), suite);
+});
+
+test('the state matrix runs on every pull request, whatever it changed', () => {
+  for (const changed of [[], ['docs/x.md'], [`${UI}src/components/booth/page/BoothNextPage.tsx`], [`${UI}src/hooks/useThing.ts`]]) {
+    assert.ok(owed(changed).includes(matrix), JSON.stringify(changed));
+  }
+});
+
+test('a change inside one page owes that page’s specs and overlay rows, and no other page’s', () => {
+  assert.deepEqual(owed([`${UI}src/components/booth/page/BoothNextPage.tsx`]), [matrix, boothSpec, dialogSpec]);
+  assert.deepEqual(owed([`${UI}src/components/editing/EditingPage.tsx`]), [matrix, dialogSpec, editingOverlay]);
+  assert.deepEqual(owed([`${UI}src/components/masterqc/page/Page.tsx`]), [matrix, dialogSpec]);
+});
+
+test('a spec named for no page may drive one under another name, so a change inside any page owes it', () => {
+  for (const name of [
+    'deliveryProfileHeader.spec.ts',
+    'models-folder-small.spec.ts',
+    'colour-field.spec.ts',
+    'reader-follow.spec.ts',
+    'link-dialog-long-name.spec.ts',
+  ]) {
+    const spec = { file: name, loadFile: name, titlePath: ['x'] };
+    assert.equal(inScope(spec, scopeOf([`${UI}src/components/delivery/page/Header.tsx`])), true, name);
+    assert.equal(inScope(spec, scopeOf([`${UI}src/x.test.ts`])), false, name);
+  }
+});
+
+test('a change to shared code owes the specs named for no page, and leaves the page specs to main', () => {
+  assert.deepEqual(owed([`${UI}src/hooks/useThing.ts`]), [matrix, dialogSpec]);
+  assert.deepEqual(owed([`${UI}src/components/primitives/Button.tsx`]), [matrix, dialogSpec]);
+  assert.deepEqual(owed([`${UI}src/components/tracks/TrackRow.tsx`]), [matrix, dialogSpec]);
+});
+
+test('a change to an overlay primitive or the shell owes every overlay guard row', () => {
+  for (const file of [
+    'src/components/primitives/Popover.tsx',
+    'src/components/primitives/dialogClosed.ts',
+    'src/overlay/layer.ts',
+    'src/components/layout/AppShell.tsx',
+  ]) {
+    assert.deepEqual(owed([`${UI}${file}`]), [matrix, dialogSpec, editingOverlay, scriptOverlay], file);
+  }
+});
+
+test('a changed spec file owes itself', () => {
+  assert.deepEqual(owed([`${UI}tests/visual/proof-notes.spec.ts`]), [matrix, proofSpec]);
+});
+
+test('a unit test, a story or a doc draws nothing, so it owes only the matrix', () => {
+  assert.deepEqual(owed([`${UI}src/components/booth/page/BoothNextPage.test.tsx`, `${UI}src/components/primitives/Button.stories.tsx`, 'README.md']), [matrix]);
+});
+
+test('anything else owes the whole suite: the suite’s own machinery, a config, a lockfile, a workflow, another project', () => {
+  for (const file of [
+    `${UI}tests/visual/lib/capture.ts`,
+    `${UI}tests/visual/helpers/overlayGuardFor.ts`,
+    `${UI}tests/visual/overlays/pages.ts`,
+    `${UI}tests/visual/catalog/booth.ts`,
+    `${UI}playwright.config.ts`,
+    `${UI}package.json`,
+    `${UI}index.html`,
+    `${UI}src/styles.css`,
+    `${UI}src/components/booth/booth.css`,
+    `${UI}src/fixtures/book.json`,
+    'pnpm-lock.yaml',
+    '.github/workflows/_quality.yml',
+    'scripts/ci/visual-shards.mjs',
+    'config/defaults.json',
+    'src/studio/desktop/app.go',
+  ]) {
+    assert.equal(scopeOf([file, `${UI}src/components/booth/x.tsx`]).everything, true, file);
+  }
+});
+
+test('every page names folders that exist nowhere twice, and a spec word of its own', () => {
+  const folders = PAGES.flatMap((page) => page.folders);
+  assert.equal(new Set(folders).size, folders.length);
+  assert.equal(new Set(PAGES.map((page) => page.spec)).size, PAGES.length);
+});
+
+test('describeScope counts what runs and what is left to main', () => {
+  const scope = scopeOf([`${UI}src/components/booth/x.tsx`]);
+  const kept = suite.filter((item) => inScope(item, scope));
+  assert.equal(
+    describeScope(scope, kept, suite),
+    'visual scope: 3 of 6 tests (the state matrix; pages touched: booth; shared code: no). 3 tests of 2 spec files run on main after the merge.',
+  );
+  assert.match(describeScope(scopeOf(null), suite, suite), /the whole suite \(not a pull request/);
+});
+
+test('the engine panel is shared code: its specs drive other pages, and a change to it owes the specs named for no page', () => {
+  const engineSpec = { file: 'engine-link-closes-overlay.spec.ts', loadFile: 'engine-link-closes-overlay.spec.ts', titlePath: ['x'] };
+  assert.equal(
+    PAGES.some((page) => page.spec === 'engine' || page.folders.includes('engine')),
+    false,
+  );
+  for (const folder of ['proof', 'production', 'engine']) {
+    assert.equal(inScope(engineSpec, scopeOf([`${UI}src/components/${folder}/x.tsx`])), true, folder);
+  }
+  assert.equal(scopeOf([`${UI}src/components/engine/EnginePanel.tsx`]).shared, true);
+});
+
+test('a spec is owed by every page its text names, not only by the page in its file name', () => {
+  const text = "await goToPage(page, 'Pickups');\nawait expect(page.getByText('Master & QC')).toBeVisible(); // the Story Bible is not opened";
+  assert.deepEqual(pagesNamedIn(text), ['master', 'pickups', 'storybible']);
+  assert.deepEqual(pagesNamedIn("await page.goto('/settings/connection');"), ['settings']);
+  assert.deepEqual(pagesNamedIn('const depth = 1;'), []);
+  const boothLeave = { file: 'booth-leave-take-saved.spec.ts', loadFile: 'booth-leave-take-saved.spec.ts', titlePath: ['x'], names: ['booth', 'pickups'] };
+  assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/pickups/PickupsPage.tsx`])), true);
+  assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/booth/x.tsx`])), true);
+  assert.equal(inScope(boothLeave, scopeOf([`${UI}src/components/delivery/x.tsx`])), false);
+});
+
+test('a change to the landing page owes every behaviour spec: a spec can stand on it without naming it', () => {
+  const picker = { file: 'project-picker-back-focus.spec.ts', loadFile: 'project-picker-back-focus.spec.ts', titlePath: ['x'], names: ['project'] };
+  const scope = scopeOf([`${UI}src/components/production/pipeline/PipelineTable.tsx`]);
+  for (const spec of [picker, boothSpec, proofSpec, dialogSpec]) assert.equal(inScope(spec, scope), true, spec.file);
+  assert.equal(inScope(scriptOverlay, scope), false, 'overlay rows follow their own page');
+});
+
+test('a page word inside a longer name still names the page', () => {
+  assert.deepEqual(pagesNamedIn('await openSettings(page); mockProduction();'), ['production', 'settings']);
+});
+
+test('a page that draws another page’s code is touched by a change to it, however far down the imports', () => {
+  const C = `${UI}src/components/`;
+  const sources = new Map([
+    [`${C}script/page/tools/text/readerText.ts`, 'export const READER_FONTS = [];'],
+    [`${C}script/page/tools/text/index.ts`, "export * from './readerText';"],
+    [`${C}booth/page/useTextChoices.ts`, "import { READER_FONTS } from '../../script/page/tools/text';"],
+    [`${C}booth/frame/BoothTop.tsx`, "import { useTextChoices } from '../page/useTextChoices';"],
+    [`${C}primitives/Popover.tsx`, "const lazy = import('../booth/frame/BoothTop');"],
+    [`${C}delivery/Page.tsx`, "import { Button } from '../primitives/Button';"],
+  ]);
+  const changed = [`${C}script/page/tools/text/readerText.ts`];
+  assert.deepEqual([...importersOf(changed, sources)].sort(), [
+    `${C}booth/frame/BoothTop.tsx`,
+    `${C}booth/page/useTextChoices.ts`,
+    `${C}primitives/Popover.tsx`,
+    `${C}script/page/tools/text/index.ts`,
+    `${C}script/page/tools/text/readerText.ts`,
+  ]);
+  const scope = scopeOf(changed, sources);
+  assert.deepEqual([...scope.pages].sort(), ['booth', 'script']);
+  assert.equal(scope.overlays, true, 'an overlay primitive that imports the change owes every overlay row');
+  assert.equal(inScope(boothSpec, scope), true);
+  assert.equal(inScope(proofSpec, scope), false);
+  assert.deepEqual([...scopeOf(changed).pages], ['script'], 'without the sources only the changed folder counts');
+});
+
+test('a module the entry wires in under every page owes the whole suite, though no page imports it', () => {
+  const S = `${UI}src/`;
+  const sources = new Map([
+    [`${S}main.tsx`, "import { App } from './App';\nimport { createMockApi } from './api/mockApi';"],
+    [`${S}App.tsx`, "import { BoothPage } from './components/booth/BoothPage';\nimport { useKeys } from './input/useKeys';"],
+    [`${S}api/mockApi.ts`, "import { plan } from './scheduleMock';"],
+    [`${S}api/scheduleMock.ts`, 'export const plan = 1;'],
+    [`${S}input/useKeys.ts`, 'export const useKeys = 1;'],
+    [`${S}components/booth/BoothPage.tsx`, "import { text } from './text';"],
+    [`${S}components/booth/text.ts`, 'export const text = 1;'],
+    [`${S}devtools/orphan.ts`, 'export const x = 1;'],
+  ]);
+  assert.deepEqual([...underEveryPage(sources)].sort(), [
+    `${S}App.tsx`,
+    `${S}api/mockApi.ts`,
+    `${S}api/scheduleMock.ts`,
+    `${S}input/useKeys.ts`,
+    `${S}main.tsx`,
+  ]);
+  for (const file of ['App.tsx', 'main.tsx', 'api/mockApi.ts', 'api/scheduleMock.ts', 'input/useKeys.ts']) {
+    assert.equal(scopeOf([`${S}${file}`], sources).everything, true, file);
+  }
+  assert.equal(scopeOf([`${S}components/booth/text.ts`], sources).everything, false, 'a page’s own module is that page’s');
+  assert.equal(scopeOf([`${S}devtools/orphan.ts`], sources).everything, false, 'a module nothing reaches owes the matrix and the no-page specs');
 });

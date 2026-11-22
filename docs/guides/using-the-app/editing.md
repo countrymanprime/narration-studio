@@ -40,7 +40,7 @@ any other, so you can open them here, from [Production](production.md#the-credit
 chapter with text when none is remembered (with or without a DAW connected, and whatever **DAW follows your chapter** says). A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
 
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
-track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped) (a chapter with audio on its track never reads 0%).
+track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped) (a chapter with a recorded second on its track never reads 0%).
 
 The script is one centred column, 64 characters of text a line (the Script and Booth's default measure) with the times at its left, so on a wide
 window the text stays one comfortable line length and does not run across the whole card; in a narrow window it takes the card's width.

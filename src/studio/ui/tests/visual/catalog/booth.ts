@@ -288,13 +288,6 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
-    state: 'resume',
-    description:
-      'Booth, looked elsewhere in the chapter: Chapter 1 opens at ¶ 14, where its recording ends, and a click on a word in the next paragraph offers "Resume at ¶ 14" in the top bar; the progress line and the Recorded through chip stay, the chip is the way back',
-    ...REFLOW,
-  },
-  {
-    page: 'booth',
     state: 'recorded-partly',
     description:
       'Booth, a chapter recorded two thirds of the way chosen from the chapter menu (chapter 4): it opens on the word after the recording ends, the top bar says "Recorded 65%" (its tip quotes the last recorded words)',
@@ -437,13 +430,6 @@ export const boothStates: StateEntry[] = [
     state: 'page-break-stop',
     description:
       'Booth (as setup) with the reading stepped down to the first page break (the end of the paragraph that holds the 250th word): a dashed hairline across the text between two paragraphs and a vertical "Page 2" in the right margin; right-clicking it and choosing Read to here puts the chapter\'s stopping place there, a chequered-flag ribbon, and the toast says "Stopping place marked." with Undo',
-    ...REFLOW,
-  },
-  {
-    page: 'booth',
-    state: 'chosen-start',
-    description:
-      'Booth (as setup) after right-clicking a word that is in view and choosing Mark the start here (#3319): the first word of that sentence is marked with the sentence tinted, so the place the next take starts from shows in the text itself. Nothing has started: Record is still Record, and the Booth sent the DAW nothing; the side panel is open at 1440 and shut below that',
     ...REFLOW,
   },
   {

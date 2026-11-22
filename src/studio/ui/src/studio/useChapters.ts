@@ -27,6 +27,12 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     () => store?.getState().errors.chapters,
     () => undefined,
   );
+  // A reset while a read is out changes neither `held` nor `error`: the generation is what makes the effect below ask again for the new project.
+  const generation = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.generation() ?? 0,
+    () => 0,
+  );
   const [own, setOwn] = useState<readonly ManuscriptChapter[]>();
   // Ask when the list is not held and no read of it has failed: first mount, a project switch that emptied the slot, a read the switch dropped. A failure is
   // not asked again by this hook (an event or the caller's `refreshKey` does), so a host that is down is not read in a loop.
@@ -58,7 +64,7 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     return () => {
       live = false;
     };
-  }, [store, enabled, held, error, again]);
+  }, [store, enabled, held, error, again, generation]);
   useEffect(() => {
     if (store && enabled && refreshKey > 0) void store.load('chapters').catch(() => undefined);
   }, [store, enabled, refreshKey]);
