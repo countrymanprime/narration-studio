@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
+import { isGuardedTarget, keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
 
 /**
  * A pedal's Space must always toggle the take. Two places would otherwise keep it:
@@ -14,7 +14,11 @@ export function usePedalSpace(toggle: () => unknown): void {
     let swallowUp = false;
     const plain = (event: KeyboardEvent) => event.code === 'Space' && !event.ctrlKey && !event.altKey && !event.metaKey;
     const mine = (event: KeyboardEvent) => {
-      if (!plain(event) || takesTypedText(event.target) || modalLayerOpen()) return false;
+      // A control of a popup that is already leaving keeps no Space: its field is going, and the pedal's Space is the take's (#3976). The router ignores a closing popup
+      // too and runs the take for a target that is not a control, so the pedal takes only the Space the router would leave to the control, or the take would toggle twice.
+      const leaving = event.target instanceof Element && event.target.closest('[data-ending-style]') !== null;
+      if (!plain(event) || (takesTypedText(event.target) && !leaving) || modalLayerOpen()) return false;
+      if (leaving) return isGuardedTarget(event.target);
       if (event.target instanceof Element && event.target.closest('[role="radio"], input[type="radio"]')) return false;
       if (softLayerOpen()) return true;
       const target = event.target;

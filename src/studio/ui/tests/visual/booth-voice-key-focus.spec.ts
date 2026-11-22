@@ -185,6 +185,95 @@ test.describe('a lane key then Enter', () => {
     await expect(list(page)).toHaveCount(0, { timeout: 2000 });
   });
 
+  // The pedal's Space with a panel open closes the panel and toggles the take once. Pressed right after Escape, while the panel is still leaving, it toggled twice:
+  // the take stopped and a new one started (the walkthrough of #3976). Frames are held back so the panel is always still leaving.
+  for (const frames of ['held back', 'on time']) {
+    test(`Space right after Escape on Record options, frames ${frames}, stops a running take once and starts no other`, async ({ page }) => {
+      if (frames === 'held back') {
+        await page.addInitScript(() => {
+          const raf = window.requestAnimationFrame.bind(window);
+          window.requestAnimationFrame = (callback) => raf((time) => void window.setTimeout(() => callback(time), 400));
+        });
+      }
+      await openBooth(page);
+      await page.getByRole('button', { name: /^Record$/ }).click();
+      await expect(stopButton(page)).toBeVisible();
+      await pastStartGuard(page);
+      await page.getByRole('button', { name: 'Record options' }).click();
+      await expect(page.getByRole('dialog', { name: 'Record options' })).toBeVisible();
+      await page.waitForTimeout(800);
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Space');
+      await expect(page.getByRole('button', { name: /^Record$/ })).toBeVisible();
+      // A second toggle would start a take again about half a second later.
+      await page.waitForTimeout(1500);
+      await expect(stopButton(page)).toHaveCount(0);
+      expect(await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording)).toBe(false);
+    });
+  }
+
+  // The qa-breaker's breaks of #3976 (B1 to B3). A popup opened while another is leaving keeps focus and closes on Escape; the pedal's Space just after Escape starts
+  // the take. Frames are held back so the first popup is still leaving when the next thing happens.
+  const holdFrames = async (page: Page) =>
+    page.addInitScript(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (callback) => raf((time) => void window.setTimeout(() => callback(time), 400));
+    });
+  const chapterButton = (page: Page) => page.locator('[aria-label^="Chapter:"]').first();
+
+  for (const [first, second] of [
+    ['Text settings', 'Record options'],
+    ['Record options', 'Text settings'],
+  ]) {
+    test(`${second} clicked while ${first} is leaving stays open, keeps focus and closes on one Escape (frames held back)`, async ({ page }) => {
+      await holdFrames(page);
+      await openBooth(page);
+      await page.getByRole('button', { name: first }).click();
+      await expect(page.getByRole('dialog', { name: first })).toBeVisible();
+      // The click on the next button closes the first popup (a press outside it) and opens the second in the same breath.
+      await page.getByRole('button', { name: second }).click();
+      const popup = page.getByRole('dialog', { name: second });
+      await expect(popup).toBeVisible();
+      await page.waitForTimeout(1500);
+      await expect(popup).toBeVisible();
+      expect(await popup.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+      await page.keyboard.press('Escape');
+      await expect(popup).toHaveCount(0);
+      expect(new URL(page.url()).pathname).toBe('/booth');
+    });
+  }
+
+  test('the chapter menu clicked while Record options is leaving keeps focus and closes on one Escape', async ({ page }) => {
+    await holdFrames(page);
+    await openBooth(page);
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await expect(page.getByRole('dialog', { name: 'Record options' })).toBeVisible();
+    await chapterButton(page).click();
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    await page.waitForTimeout(1500);
+    await expect(menu).toBeVisible();
+    expect(await menu.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    expect(new URL(page.url()).pathname).toBe('/booth');
+  });
+
+  for (const panel of ['Text settings', 'Voices']) {
+    test(`the pedal's Space right after Escape on ${panel} starts one take`, async ({ page }) => {
+      await holdFrames(page);
+      await openBooth(page);
+      if (panel === 'Voices') await page.keyboard.press('NumpadDecimal');
+      else await page.getByRole('button', { name: panel }).click();
+      await expect(page.getByRole('dialog', { name: panel })).toBeVisible();
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Space');
+      await expect(stopButton(page)).toBeVisible();
+      await page.waitForTimeout(1500);
+      await expect(stopButton(page)).toBeVisible();
+    });
+  }
+
   test('a key with no track asks who is in it, and focus is on the dialog, then back on the page when it closes', async ({ page }) => {
     await openBooth(page);
     await page.keyboard.press('Numpad7');
