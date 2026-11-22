@@ -14,12 +14,12 @@ export type LaunchState =
   /** The host started it and the bridge never answered in time. */
   | { phase: 'failed'; message: string };
 
-const POLL_MS = 1000;
-const POLLS = 10;
+/** How long the app waits for the DAW to answer after the launcher ran, then reads it once more before saying it did not. */
+const WAIT_MS = 10_000;
 
 /**
- * Starts the DAW with the host's launcher (`DawLaunch`) and then reads the capabilities until the bridge answers: the Start button of the
- * not-connected dialog. A REAPER already open runs the launcher in place. `onCaps` hands each read to the page so its picture follows, and the
+ * Starts the DAW with the host's launcher (`DawLaunch`) and then waits for the capabilities event that says the bridge answers (the host
+ * announces it; nothing here asks every second), up to `waitMs`, with one read at the end: the Start button of the not-connected dialog. A REAPER already open runs the launcher in place. `onCaps` hands each read to the page so its picture follows, and the
  * dialog closes when the page stops drawing it. Leaving the dialog stops the waiting.
  */
 export function useReaperLaunch({
@@ -27,15 +27,13 @@ export function useReaperLaunch({
   name,
   onCaps,
   onLaunched,
-  pollMs = POLL_MS,
-  polls = POLLS,
+  waitMs = WAIT_MS,
 }: {
   daw: DawKind;
   name: string;
   onCaps?: (caps: DawCapabilities) => void;
   onLaunched?: (path: string) => void;
-  pollMs?: number;
-  polls?: number;
+  waitMs?: number;
 }): { state: LaunchState; start: () => void } {
   const project = usePort('project');
   const system = usePort('system');
@@ -54,6 +52,11 @@ export function useReaperLaunch({
     if (running.current) return;
     running.current = true;
     const say = (next: LaunchState) => alive.current && setState(next);
+    const readOnce = async () => {
+      const next = await dawPort.capabilities();
+      onCaps?.(next);
+      return next.reachable;
+    };
     void (async () => {
       say({ phase: 'starting' });
       const started = await startDaw({ project, system }, daw);
@@ -65,15 +68,29 @@ export function useReaperLaunch({
       onLaunched?.(started.path);
       say({ phase: 'waiting' });
       try {
-        for (let attempt = 0; attempt < polls && alive.current; attempt++) {
-          await new Promise((resolve) => setTimeout(resolve, pollMs));
-          if (!alive.current) break;
-          const next = await dawPort.capabilities();
-          onCaps?.(next);
-          if (next.reachable) {
-            say({ phase: 'idle' });
-            return;
-          }
+        // The host announces the DAW answering (`subscribeCapabilities`); the wait ends on that, or at the deadline with one read of its own.
+        const answered = await new Promise<boolean>((resolve) => {
+          const stop: { off?: () => void } = {};
+          let done = false;
+          const timer = setTimeout(() => finish(false), waitMs);
+          const finish = (reached: boolean) => {
+            done = true;
+            clearTimeout(timer);
+            stop.off?.();
+            resolve(reached);
+          };
+          stop.off = dawPort.subscribeCapabilities?.((next) => {
+            if (done) return;
+            if (!alive.current) return finish(false);
+            onCaps?.(next);
+            if (next.reachable) finish(true);
+          });
+        });
+        if (!alive.current) return;
+        const reached = answered || (await readOnce());
+        if (reached) {
+          say({ phase: 'idle' });
+          return;
         }
         say({ phase: 'failed', message: `${name} was started and has not answered yet. Check again in a moment, or open it by hand.` });
       } catch (error) {
@@ -82,7 +99,7 @@ export function useReaperLaunch({
         running.current = false;
       }
     })();
-  }, [daw, name, onCaps, onLaunched, pollMs, polls, project, system, dawPort]);
+  }, [daw, name, onCaps, onLaunched, waitMs, project, system, dawPort]);
 
   return { state, start };
 }

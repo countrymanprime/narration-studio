@@ -169,19 +169,29 @@ describe('the not-connected dialog', () => {
       order.push('launch');
       return { launched: true, path: 'C:/REAPER/reaper.exe', source: 'registry' };
     });
-    // The app's DAW session makes the first read at start; the first read after Start is still quiet, and the second answers.
-    let reads = 0;
-    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS[++reads > 2 ? 'reaper' : 'reaper-off']));
+    // The host announces the DAW's picture: it is still quiet at first, then it answers. Nothing is read in between.
+    let emit: (caps: (typeof DAW_SETUPS)['reaper']) => void = () => {};
+    const subscribeDawCapabilities = vi.fn((listener: typeof emit) => ((emit = listener), () => {}));
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off']));
     const onCaps = vi.fn();
     const onLaunched = vi.fn();
-    view(<ConnectionResolveDialog {...off} onCaps={onCaps} onLaunched={onLaunched} pollMs={5} />, {
+    view(<ConnectionResolveDialog {...off} onCaps={onCaps} onLaunched={onLaunched} />, {
       saveSettings,
       launchDaw,
       dawCapabilities,
+      subscribeDawCapabilities,
     } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Start REAPER' }));
+    await waitFor(() => expect(subscribeDawCapabilities).toHaveBeenCalled());
+    const reads = dawCapabilities.mock.calls.length;
+    act(() => emit(structuredClone(DAW_SETUPS['reaper-off'])));
+    act(() => emit(structuredClone(DAW_SETUPS.reaper)));
     await waitFor(() => expect(onCaps).toHaveBeenCalledTimes(2));
     expect(onCaps.mock.calls.map(([caps]) => caps.reachable)).toEqual([false, true]);
+    expect(dawCapabilities.mock.calls.length).toBe(reads);
+    // Once it answered, later pictures are not handed on.
+    act(() => emit(structuredClone(DAW_SETUPS['reaper-off'])));
+    expect(onCaps).toHaveBeenCalledTimes(2);
     expect(order).toEqual([`save ${JSON.stringify(['DAW', 'global', { auto_start_launcher: 'true' }])}`, 'launch']);
     expect(onLaunched).toHaveBeenCalledWith('C:/REAPER/reaper.exe');
   });
@@ -196,10 +206,22 @@ describe('the not-connected dialog', () => {
     expect(start.getAttribute('aria-busy')).toBe('true');
   });
 
+  it('takes the answer of its one read at the end when the event never came', async () => {
+    const launchDaw = vi.fn(async () => ({ launched: true, path: 'p', source: 's' }));
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS.reaper));
+    view(<ConnectionResolveDialog {...off} waitMs={20} />, { launchDaw, dawCapabilities } as Partial<NarrationApi>);
+    await userEvent.click(screen.getByRole('button', { name: 'Start REAPER' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    // The session's first read, plus the one read at the end: not one every second.
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(screen.queryByText(/has not answered yet/)).toBeNull();
+    expect(dawCapabilities.mock.calls.length).toBeLessThanOrEqual(3);
+  });
+
   it('says it started and did not answer, when the bridge stays quiet', async () => {
     const launchDaw = vi.fn(async () => ({ launched: true, path: 'p', source: 's' }));
     const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off']));
-    view(<ConnectionResolveDialog {...off} pollMs={1} polls={2} />, { launchDaw, dawCapabilities } as Partial<NarrationApi>);
+    view(<ConnectionResolveDialog {...off} waitMs={20} />, { launchDaw, dawCapabilities } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Start REAPER' }));
     expect((await screen.findByRole('alert')).textContent).toContain('REAPER was started and has not answered yet');
     expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();

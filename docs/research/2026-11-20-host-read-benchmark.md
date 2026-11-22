@@ -238,6 +238,17 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 - `ReadAloudReaperState` is the cost that grows (60 ms at 300 chapters, with no DAW: it reads the chapter's link and the manuscript); with a live REAPER it also reads the track state through the bridge, which this rig cannot time.
 - A track armed or disarmed in REAPER has no event that is known to carry it (the recorded runs say arming through the bridge leaves REAPER's change counter alone; a narrator's click on the arm button is not recorded: [recording and undo](reaper-recording-undo-2026-10-23.md), [arms and monitors](2026-11-16-booth-arms-and-monitors.md)), so the 60 s timer, focus and a press are how the Booth learns of it while idle; the script's `record_start` refuses a wrong arming whatever the page showed. A take started in the DAW is heard from the transport at once, as before.
 
+## The REAPER start wait: one read a second against the host's event
+
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. After Start REAPER the dialog read `DawCapabilities` every second for up to 10 s until the bridge answered. The host already announces the picture (`daw_capabilities_changed`, from its own tick), so the dialog now waits for that event, reading once at the 10 s deadline in case the event was lost. The cost of the read is the `DawCapabilities` row already on the rig ([above](#the-booths-idle-read-every-15-s-against-once-a-minute)): 0.1 ms warm at every book size (3, 44, 300 chapters, 2,003 tracks), 8.8 KB across the four reads of a tick, so the saving is a count, not a size.
+
+| Case | Reads before | Reads after |
+| --- | --- | --- |
+| REAPER answers within 10 s | up to 10 (one every second until it answers) | 0 (the event) |
+| REAPER never answers | 10 | 1 (at the deadline) |
+
+Not measured: the time a live REAPER takes to answer, and a live bridge round trip (the rig has no DAW). The counts are arithmetic from the code, covered by `connection.test.tsx` (`hands each read to the page until it answers` asserts no read between events; `takes the answer of its one read at the end`).
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.
