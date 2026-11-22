@@ -253,6 +253,19 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 - `ReadAloudReaperState` is the cost that grows (60 ms at 300 chapters, with no DAW: it reads the chapter's link and the manuscript); with a live REAPER it also reads the track state through the bridge, which this rig cannot time.
 - A track armed or disarmed in REAPER has no event that is known to carry it (the recorded runs say arming through the bridge leaves REAPER's change counter alone; a narrator's click on the arm button is not recorded: [recording and undo](reaper-recording-undo-2026-10-23.md), [arms and monitors](2026-11-16-booth-arms-and-monitors.md)), so the 60 s timer, focus and a press are how the Booth learns of it while idle; the script's `record_start` refuses a wrong arming whatever the page showed. A take started in the DAW is heard from the transport at once, as before.
 
+## The Booth's follow on open: asked every 2 s against once
+
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. A Booth opened with no chapter in the address asks the DAW where the narrator is (`DawPlace`) and opens on that chapter. While the DAW had not answered it asked again every 2 s for 20 s (up to 10 asks); it now asks once and again when the DAW says it is reachable (its capabilities event, which the app's session also sends on a focus or a Check again), for the same 20 s, one ask at a time, and, only while a DAW that says it is reachable still refuses (REAPER loading its project: no event says it is ready), again after 2 s and then 10 s (a third retry is pulled in to just before the 20 s end, so at most 4 asks in all). Same rig and method (`reads --runs 3`, medians): `DawPlace` joins its list.
+
+| Book | `DawPlace`, no DAW, first call \| warm | Answer | Asks while the DAW does not answer: before \| after |
+| --- | --- | --- | --- |
+| 3 chapters | 0.1 \| 0.0 ms | 147 bytes | 10 \| 1 |
+| 44 chapters (17 h) | 0.1 \| 0.0 ms | 147 bytes | 10 \| 1 |
+| 300 chapters | 0.1 \| 0.0 ms | 147 bytes | 10 \| 1 |
+
+- With no DAW the host answers at once that it is not running, so the host's cost is the same at every size and too small to show here: the saving is the count of asks (9 fewer in the 20 s a DAW takes to connect), each of which is a request through the bridge to REAPER when one is running. A DAW that connects at second 7 is followed within a tick of its event, where the timer found it up to 2 s later.
+- **Not measured:** the round trip to a live REAPER (what an ask costs there), which this rig cannot time.
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.
