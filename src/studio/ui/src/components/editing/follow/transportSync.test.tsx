@@ -232,6 +232,36 @@ describe('app-to-daw', () => {
     await wait(ECHO_WINDOW_MS + 100);
     expect(calls('cursor')).toHaveLength(1);
   });
+  it('puts the DAW cursor on the first word clicked after the DAW stopped, while its last word was still lit', async () => {
+    await ready();
+    act(() => daw.moveInDaw({ playing: true, head: at(4.2) }));
+    act(() => daw.moveInDaw({ playing: false }));
+    expect(state().playing).toBe(false);
+    act(() => page.dispatch({ type: 'place', key: 'p-1:0' }));
+    await wait(300);
+    expect(lit()).toBeNull();
+    expect(calls('cursor')).toEqual([{ action: 'cursor', seconds: at(t0('p-1:0')) }]);
+  });
+  it('does not write the DAW cursor while the DAW plays again at a second no word covers, though the old word is still held', async () => {
+    await ready();
+    act(() => daw.moveInDaw({ playing: true, head: at(4.2) }));
+    act(() => daw.moveInDaw({ playing: false }));
+    // Played again in the gap between two words: no word lights, so the hold stays.
+    act(() => daw.moveInDaw({ playing: true, head: at(3.6) }));
+    act(() => page.dispatch({ type: 'place', key: 'p-1:0' }));
+    await wait(300);
+    expect(calls('cursor')).toHaveLength(0);
+  });
+  it('selecting words while the DAW stopped with its last word lit does not start a play', async () => {
+    await ready();
+    act(() => daw.moveInDaw({ playing: true, head: at(4.2) }));
+    act(() => daw.moveInDaw({ playing: false }));
+    const before = daw.syncCalls().length;
+    act(() => page.dispatch({ type: 'select', anchor: 'p-1:3', head: 'p-2:1' }));
+    await wait(300);
+    expect(daw.syncCalls().filter((c) => c.action !== 'cursor')).toHaveLength(before);
+    expect(state().playing).toBe(false);
+  });
   it('does not write back a cursor the DAW put there', async () => {
     await ready();
     act(() => daw.moveInDaw({ cursor: at(1.3) }));

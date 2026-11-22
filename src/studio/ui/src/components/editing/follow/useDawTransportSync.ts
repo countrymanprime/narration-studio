@@ -237,7 +237,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       first.current = false;
       return;
     }
-    if (!ready || state.playT != null || owns.current) return;
+    // A word left lit after a stop is not a play, unless the DAW plays again (at a second no word covers, so nothing cleared the hold).
+    if (!ready || (state.playT != null && !(state.held && !dawPlaying.current)) || owns.current) return;
     if (cursor === fromDaw.current) {
       fromDaw.current = null;
       return;

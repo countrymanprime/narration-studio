@@ -83,6 +83,7 @@ Drift. While REAPER plays for the page, the app's audio is silent, so there is o
 | DAW not answered yet | Play plays nothing and says the page is checking | `transportSync.test.tsx` |
 | Built-in recorder, no tool, Audacity | The app plays the files itself, with no notice | `transportSync.test.tsx`, `providers.test.ts` |
 | Every provider readiness | The DAW ready, waiting, read failed, undeclared or unavailable; its play taken, refused or refused finally; the app ready or not; DAW-specific or not; recording or not: 120 cells | `providers.test.ts` |
+| The DAW stopped with its word still lit, then a word is clicked | The word is not a play, so the first cursor move is written to REAPER (`set_cursor`); while the DAW plays again it is not. REAPER holds a `set_cursor` sent at once after a stop, by hand or by `stop_play` | `transportSync.test.tsx`; `scenarios_playtrack.py` (real REAPER) |
 | Rapid double-fire, leave mid-play | Cursor writes debounce; unmounting stops the lease and the DAW if the page played it | the first is tested; the second is not |
 | Lost, repeated or out-of-order events | A repeated cursor is `unchanged`; a late echo is a move; a lost event delays by one tick | `echoGuard.test.ts` |
 | Huge, negative, NaN times | Refused before anything is sent, in Go, in Lua and in the map | all three |

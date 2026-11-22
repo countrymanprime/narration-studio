@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import time
 
-from scenario import Env, scenario
+from scenario import Env, near, scenario
 from scenarios_transport import play_state, stop_by_hand
 
 CHAPTERS = ("Chapter 1", "Chapter 2", "Pickups")
@@ -284,3 +284,30 @@ def play_leaves_count(env: Env) -> str:
     folder.mkdir(exist_ok=True)
     (folder / "play.json").write_text(json.dumps(rows, indent=2, sort_keys=True), encoding="utf-8")
     return "change count, undo top and dirty flag unchanged during and after play_range (ends itself, stop_play) and play_from (stopped by hand); selection, solos and mutes exact each time"
+
+
+@scenario(
+    "transport_sync",
+    "set_cursor",
+    "set_cursor sent at once after a play stopped in REAPER (by hand, or by stop_play) holds: REAPER and the bridge do not put the edit cursor back at the stop (the page-side guard for #4029 is the Vitest case in transportSync.test.tsx)",
+    needs_audio=True,
+)
+def cursor_after_a_stop_holds(env: Env) -> str:
+    fx = arrange(env)
+    held = {}
+    for how in ("by_hand", "stop_play"):
+        env.ok("play_from", "1", fx["ch1"], until="TRANSPORT_PLAYING")
+        env.wait_for(lambda: play_state(env) == 1, what="REAPER to play")
+        time.sleep(1.2)
+        if how == "by_hand":
+            stop_by_hand(env)
+        else:
+            env.ok("stop_play", until="TRANSPORT_STOPPED")
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        # The page's first cursor write after the stop, sent at once: nothing may put the cursor back at the stop.
+        env.ok("set_cursor", "6", until="CURSOR_SET")
+        time.sleep(1.0)
+        at = env.snapshot()["cursor"]
+        near(at, 6.0, 1e-6, f"set_cursor sent at once after a stop ({how}) holds")
+        held[how] = round(at, 3)
+    return f"set_cursor 6 sent right after a stop in REAPER held at {held}"
