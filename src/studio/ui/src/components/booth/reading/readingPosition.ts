@@ -1,3 +1,4 @@
+import { clamp } from '../../../clamp';
 import { wordCount, type BoothUnit, type ReadingParagraph } from './boothUnits';
 
 /** Where the narrator is in the chapter's sentences: the sentence and the word in it. */
@@ -5,8 +6,6 @@ export type UnitPosition = { cur: number; wcur: number };
 
 /** Where the narrator is in the paragraphs: a paragraph and the word number in it. Stable when the sentences are cut again. */
 export type ReadingPosition = { paragraphId: string; word: number };
-
-const clamp = (n: number, low: number, high: number): number => Math.max(low, Math.min(high, n));
 
 /** The paragraph and word where a sentence position is, or null when there is no such sentence. */
 export function positionOf(paragraphs: readonly ReadingParagraph[], units: readonly BoothUnit[], at: UnitPosition): ReadingPosition | null {

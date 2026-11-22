@@ -39,6 +39,7 @@ import type {
   TracksProject,
 } from '../types';
 import { brand } from '../brand.gen';
+import { clamp } from '../clamp';
 
 const recording = parseWire(recordedStreamSchema, recordedStream, { boundary: 'mock.recording', payload: 'teleprompterRecording.json' });
 const recordingSeconds = recording.events.at(-1)?.t ?? 1;
@@ -273,8 +274,8 @@ function chapterDisplayTitle(chapter: ManuscriptChapter): string {
 
 // A level as the sidecar's meter sends it: the peak sits about 9 dB over the RMS (a sine is 3 dB; speech is peakier), both in [-100, 0].
 function mockLevelEvent(rms: number): TeleprompterEvent {
-  const clamp = (value: number) => Math.round(Math.min(0, Math.max(-100, value)) * 10) / 10;
-  return { type: 'level', peak: clamp(rms + 9), rms: clamp(rms) };
+  const roundedLevel = (value: number) => Math.round(clamp(value, -100, 0) * 10) / 10;
+  return { type: 'level', peak: roundedLevel(rms + 9), rms: roundedLevel(rms) };
 }
 
 const idle: TeleprompterState = {

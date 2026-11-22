@@ -14,6 +14,7 @@ import {
   SUGGEST_MARGIN_FULL,
   UNTRIMMED_PENALTY,
 } from './estimates';
+import { clamp } from '../../../clamp';
 
 /** A value or the reason there is none; the same shape as the shared kit's `Measured<T>` (this folder imports no `api/`). */
 type Measured<T> = { ok: true; value: T } | { ok: false; reason: string };
@@ -82,8 +83,7 @@ export interface Suggestion {
   evidence: TakeEvidence[];
 }
 
-const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
-const noiseScore = (nf: number): number => clamp01((NOISE_RANGE_DB.worst - nf) / (NOISE_RANGE_DB.worst - NOISE_RANGE_DB.best));
+const noiseScore = (nf: number): number => clamp((NOISE_RANGE_DB.worst - nf) / (NOISE_RANGE_DB.worst - NOISE_RANGE_DB.best), 0, 1);
 
 const shown = (takes: readonly TakeInput[]): TakeInput[] => takes.filter((t) => !t.hidden);
 
@@ -149,7 +149,7 @@ export function suggestTake(takes: readonly TakeInput[], prepped: readonly strin
     );
   const margin = (ranked[0].score ?? 0) - (ranked[1].score ?? 0);
   const trimsLeft = steps.filter((s) => s.kind === 'trim' && s.needed).length;
-  const confidence = Math.round(clamp01(margin / SUGGEST_MARGIN_FULL) * clamp01(1 - UNTRIMMED_PENALTY * trimsLeft) * 100) / 100;
+  const confidence = Math.round(clamp(margin / SUGGEST_MARGIN_FULL, 0, 1) * clamp(1 - UNTRIMMED_PENALTY * trimsLeft, 0, 1) * 100) / 100;
   return out(
     confidence,
     trimsLeft
