@@ -96,13 +96,14 @@ var numberSpecs = map[string]map[string]numberSpec{
 	// page accepts is one cleanupSettings (cleanup_settings.go) never has to fall back from. pad_seconds keeps
 	// resolve's 0-2 s; min/max_breath_seconds start just above 0 (resolve requires min strictly positive) up to
 	// resolve's ceiling of 5 s; the two dB thresholds start just above 0 (resolve requires them strictly positive)
-	// with no declared maximum, like Editing's unbounded seconds fields.
+	// with no declared maximum, like Editing's unbounded seconds fields, on a 0.1 dB step: steps count from the
+	// minimum, so a 0.1 step keeps every tenth of a dB above 0 valid, the defaults 12 and 30 among them (#4010).
 	"Cleanup": {
 		"pad_seconds":            {min: bound(0), max: bound(2), step: bound(0.01), unit: "s"},
 		"min_breath_seconds":     {min: bound(0.01), max: bound(5), step: bound(0.01), unit: "s"},
 		"max_breath_seconds":     {min: bound(0.01), max: bound(5), step: bound(0.01), unit: "s"},
-		"breath_below_speech_db": {min: bound(0.1), step: bound(0.5), unit: "dB"},
-		"click_above_silence_db": {min: bound(0.1), step: bound(0.5), unit: "dB"},
+		"breath_below_speech_db": {min: bound(0.1), step: bound(0.1), unit: "dB"},
+		"click_above_silence_db": {min: bound(0.1), step: bound(0.1), unit: "dB"},
 	},
 }
 
