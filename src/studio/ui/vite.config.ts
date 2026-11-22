@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { assignShard, relativeSpec } from './scripts/vitest-shards.mjs';
+import { slowClock } from './scripts/slow-clock.mjs';
 import { brand } from './src/brand.gen';
 
 // index.html's <title> is the product name from the brand module (config/brand.json), written in at dev and build time.
@@ -22,8 +23,8 @@ async function costBalancedSequencer() {
   };
 }
 
-export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss(), brandTitle],
+export default defineConfig(async ({ mode }) => ({
+  plugins: [react(), tailwindcss(), brandTitle, ...slowClock(mode, process.env.UI_SLOW_CLOCK)],
   build: { outDir: 'dist', emptyOutDir: true },
   test: {
     // tests/visual/**/*.spec.ts and tests/aria/**/*.spec.ts are Playwright specs (run via `pnpm run
