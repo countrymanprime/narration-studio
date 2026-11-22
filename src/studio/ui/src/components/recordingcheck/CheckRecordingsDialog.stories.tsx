@@ -168,7 +168,7 @@ export const WholeRecording: Story = {
     await userEvent.click(await canvas.findByRole('checkbox', { name: /Transcribe each recording whole/ }));
     const chunk = canvas.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement;
     await expect(chunk.disabled).toBe(true);
-    await expect(chunk.selectedOptions[0].textContent).toBe('Whole');
+    await expect(chunk.selectedOptions[0].textContent).toBe('Each file whole');
   },
 };
 

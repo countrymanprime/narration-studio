@@ -19,10 +19,10 @@ const FIELD: ScopedSettingField = {
   effectiveSource: 'default',
 };
 
-function renderSetting(field: ScopedSettingField, change = vi.fn()) {
+function renderSetting(field: ScopedSettingField, change = vi.fn(), tool?: string) {
   render(
     <TooltipProvider>
-      <ScopedSetting field={field} scope="global" value={field.value} change={change} onClearOverride={() => undefined} />
+      <ScopedSetting tool={tool} field={field} scope="global" value={field.value} change={change} onClearOverride={() => undefined} />
     </TooltipProvider>,
   );
   return change;
@@ -377,7 +377,7 @@ describe('ScopedSetting controls', () => {
   });
 
   it('shows the update channel in words, not as the stored names', () => {
-    renderSetting({ ...FIELD, key: 'channel', label: 'Update channel', choices: ['candidates', 'stable'], effectiveValue: 'candidates' });
+    renderSetting({ ...FIELD, key: 'channel', label: 'Update channel', choices: ['candidates', 'stable'], effectiveValue: 'candidates' }, vi.fn(), 'Updates');
     const select = screen.getByRole('combobox', { name: 'Update channel' }) as HTMLSelectElement;
     expect(Array.from(select.options).map((option) => option.textContent)).toEqual(['Candidates and stable', 'Stable only']);
     expect(Array.from(select.options).map((option) => option.value)).toEqual(['candidates', 'stable']);

@@ -9,10 +9,11 @@ import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
 import { SettingNumber } from '../../settings/value/SettingNumber';
 import type { ScopedSettingField } from '../../../types';
-import { proofingChoiceLabel } from '../options';
+import { choiceOptions } from '../../settings/data/values';
+import { rowOfField } from '../../settings/registry/panelFields';
 import { useProjectOptions } from './useProjectOptions';
 
-function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string, value: string | null) => Promise<boolean> }) {
+function Row({ tool, field, onSet }: { tool: string; field: ScopedSettingField; onSet: (key: string, value: string | null) => Promise<boolean> }) {
   const range = field.number;
   const control =
     field.kind === 'number' && range ? (
@@ -34,7 +35,7 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
         // As wide as a colour row's swatch and hex box, so the controls down the dialog share a right edge (alignment audit XPC-10).
         className="w-[10.75rem]"
         value={field.effectiveValue}
-        options={field.choices.map((c) => ({ value: c, label: proofingChoiceLabel(field.key, c) }))}
+        options={choiceOptions(rowOfField(tool, field.key), field.choices, field.effectiveValue)}
         onChange={(value) => void onSet(field.key, value)}
       />
     ) : field.kind === 'color' ? (
@@ -117,7 +118,7 @@ export function ProofOptions({
       <div className="flex flex-col gap-3">
         {note}
         {fields.map((field) => (
-          <Row key={field.key} field={field} onSet={set} />
+          <Row key={field.key} tool={tool} field={field} onSet={set} />
         ))}
         {error ? (
           <p role="alert" className="m-0 text-[length:var(--font-size-sm)] [overflow-wrap:anywhere] text-[var(--danger-text)]">

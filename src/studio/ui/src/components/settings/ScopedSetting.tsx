@@ -6,7 +6,8 @@ import { Switch } from '../primitives/Switch';
 import { TagInput } from '../primitives/TagInput';
 import { TextField } from '../primitives/TextField';
 import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
-import { proofingChoiceLabel } from '../proof/options';
+import { choiceLabel, choiceOptions } from './data/values';
+import { rowOfField } from './registry/panelFields';
 import { describeNumberRange } from './numberSetting';
 import { SettingNumber } from './value/SettingNumber';
 import { IconButton } from '../primitives/IconButton';
@@ -83,10 +84,10 @@ const TOOLTIP: Record<string, string> = {
   breath_below_speech_db: 'How far below the read’s own speech level a quiet stretch must sit to be considered a breath.',
   click_above_silence_db: 'How far above the silence around it a short burst’s peak must stand to be read as a click.',
 };
-const optionTip = (field: ScopedSettingField, value: string) =>
+const optionTip = (field: ScopedSettingField, value: string, tool?: string) =>
   field.key.includes('color')
     ? `Use ${value} as the saved base color.`
-    : `${proofingChoiceLabel(field.key, value)} is the selected ${field.label.toLowerCase()} option.`;
+    : `${choiceLabel(rowOfField(tool, field.key), value)} is the selected ${field.label.toLowerCase()} option.`;
 
 // One setting: the label above its control below `md`, the label beside it from `md` (Tailwind's 48rem, the app's own layout
 // breakpoint). The two-column template does not apply below `md`: a grid gives a fixed-range track (the label's
@@ -278,13 +279,13 @@ export function ScopedSetting({
         ) : isText ? (
           <TextField label={field.label} className={GROWING_CONTROL_CLASSES} value={effective} onChange={(next) => change(next.trim() === '' ? '' : next)} />
         ) : (
-          <TooltipTarget text={optionTip(field, effective)} className={GROWING_CONTROL_CLASSES}>
+          <TooltipTarget text={optionTip(field, effective, tool)} className={GROWING_CONTROL_CLASSES}>
             <Select
               label={field.label}
               fullWidth
               value={effective}
               onChange={change}
-              options={field.choices.map((choice) => ({ value: choice, label: proofingChoiceLabel(field.key, choice) }))}
+              options={choiceOptions(rowOfField(tool, field.key), field.choices, effective)}
             />
           </TooltipTarget>
         )}

@@ -22,7 +22,8 @@ import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TagInput } from '../primitives/TagInput';
 import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { hasHint, splitHintTerms, suggestionMessage } from './hints';
-import { PROOFING_CHUNK_OPTIONS } from './options';
+import { choiceLabel } from '../settings/data/values';
+import { rowOf } from '../settings/registry/rows';
 import { ProofOptions } from './proofOptions/ProofOptions';
 import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
@@ -52,9 +53,11 @@ const WORKER_LIMITS: Record<string, string[]> = {
 /** The host's TranscriptCompare settings that belong to a run: the chunk length it starts with and the colours its REAPER markers get. The model is chosen in Settings. */
 const COMPARE_OPTION_KEYS = ['chunk_seconds', 'color_misread', 'color_skipped', 'color_extra'] as const;
 
-const CHUNK_OPTIONS: number[] = PROOFING_CHUNK_OPTIONS.map((option) => option.seconds);
+/** The chunk lengths, in seconds, and their words: the ones Settings offers for Compare chunk length, so the two never name a length apart. */
+const CHUNK_ROW = rowOf('stt.compareChunk');
+const CHUNK_OPTIONS = Object.keys(CHUNK_ROW?.options ?? {});
+const chunkWord = (seconds: string) => choiceLabel(CHUNK_ROW, seconds);
 const LOG_VERBOSITY_OPTIONS = ['Quiet', 'Normal', 'Verbose'].map((mode) => ({ value: mode, label: mode }));
-const CHUNK_LABELS = PROOFING_CHUNK_OPTIONS.map((option) => option.label);
 const CHUNK_LIMIT_INDEX: Record<string, number> = { tiny: 3, small: 3, medium: 2, 'large-v3-turbo': 2, 'large-v3': 1 };
 const CHUNK_LENGTH_TOOLTIP = [
   'Shorter chunks transcribe in parallel faster but can split a sentence across a boundary.',
@@ -196,12 +199,14 @@ export function CompareRun({
         const modelSetting = fields.find((field) => field.key === 'model_size');
         const chunkSetting = fields.find((field) => field.key === 'chunk_seconds');
         if (modelSetting?.effectiveValue) setModel(modelSetting.effectiveValue);
-        const index = CHUNK_OPTIONS.indexOf(Number(chunkSetting?.effectiveValue));
+        const index = CHUNK_OPTIONS.indexOf(chunkSetting?.effectiveValue ?? '');
         // The stored model may not allow the stored chunk (Settings offers both on their own): start on the longest it does allow, as choosing the model in this panel would.
         const allowed = CHUNK_LIMIT_INDEX[modelSetting?.effectiveValue ?? ''] ?? CHUNK_OPTIONS.length - 1;
         if (index >= 0) setChunkIndex(Math.min(index, allowed));
         else if (chunkSetting?.effectiveValue)
-          notify(`The chunk length in Settings (${chunkSetting.effectiveValue}) is not one this panel offers; starting on ${CHUNK_LABELS[1]}.`);
+          notify(
+            `The chunk length in Settings, ${chunkWord(chunkSetting.effectiveValue)}, is not one this panel offers; starting on ${chunkWord(CHUNK_OPTIONS[1])}.`,
+          );
       } catch {
         /* defaults remain usable */
       }
@@ -218,9 +223,9 @@ export function CompareRun({
     }
     const maxIndex = CHUNK_LIMIT_INDEX[value];
     if (chunkIndex > maxIndex) {
-      const previous = CHUNK_LABELS[chunkIndex];
+      const previous = chunkWord(CHUNK_OPTIONS[chunkIndex]);
       setChunkIndex(maxIndex);
-      notify(`Chunk length adjusted to ${CHUNK_LABELS[maxIndex]} — ${modelLabel(value)} doesn't support ${previous}.`);
+      notify(`Chunk length adjusted to ${chunkWord(CHUNK_OPTIONS[maxIndex])} — ${modelLabel(value)} doesn't support ${previous}.`);
     }
   };
 
@@ -259,7 +264,7 @@ export function CompareRun({
     try {
       const result = await api.transcriptStart({
         model,
-        chunk: String(CHUNK_OPTIONS[chunkIndex]),
+        chunk: CHUNK_OPTIONS[chunkIndex],
         workers,
         hints: acceptedHints.join(', '),
         chapterTitle: title,
@@ -414,11 +419,11 @@ export function CompareRun({
               <ToggleGroup
                 label="Chunk length"
                 className="mt-1.5 flex-wrap gap-1.5"
-                value={CHUNK_LABELS[chunkIndex]}
-                onChange={(label) => setChunkIndex(CHUNK_LABELS.findIndex((item) => item === label))}
-                options={CHUNK_LABELS.map((label, index) => ({
-                  value: label,
-                  label,
+                value={CHUNK_OPTIONS[chunkIndex]}
+                onChange={(seconds) => setChunkIndex(CHUNK_OPTIONS.indexOf(seconds))}
+                options={CHUNK_OPTIONS.map((seconds, index) => ({
+                  value: seconds,
+                  label: chunkWord(seconds),
                   disabled: index > CHUNK_LIMIT_INDEX[model],
                   title: index > CHUNK_LIMIT_INDEX[model] ? `Not available for ${modelLabel(model)}` : undefined,
                 }))}

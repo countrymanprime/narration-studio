@@ -39,12 +39,22 @@ export const isAnyChanged = (
   custom: ReadonlySet<string> = NONE,
 ): boolean => isChanged(row, global) || isBrowserChanged(row) || custom.has(row.id) || overrideValue(row, project) !== undefined;
 
-/** The label of a choice: the registry's word, else what the host sent. */
-export const choiceLabel = (row: SettingMeta, value: string): string => {
-  const listed = row.options?.[value]?.label;
+/**
+ * The label of a choice: the registry's word, else what the host sent. The one word list for a host choice: Settings, a page's options dialog and
+ * a page's own control all name a value through this (component selection, M9). `row` is absent for a field no row holds.
+ */
+export const choiceLabel = (row: SettingMeta | undefined, value: string): string => {
+  const listed = row?.options?.[value]?.label;
   if (listed) return listed;
   if (value === '') return 'Not set';
   // A hand-edited value of a row with a unit is named: a whole number gets its unit, anything else is said to be invalid.
-  if (row.unit) return /^\d+$/.test(value) ? `${value} ${row.unit}` : `${value} (invalid)`;
+  if (row?.unit) return /^\d+$/.test(value) ? `${value} ${row.unit}` : `${value} (invalid)`;
   return value;
+};
+
+/** A host choice field's options in the registry's words. A stored value the host no longer offers still shows, first, so the control never claims a choice that is not the real one. */
+export const choiceOptions = (row: SettingMeta | undefined, choices: readonly string[], value: string): { value: string; label: string }[] => {
+  const options = choices.map((choice) => ({ value: choice, label: choiceLabel(row, choice) }));
+  if (!choices.includes(value)) options.unshift({ value, label: choiceLabel(row, value) });
+  return options;
 };

@@ -4,7 +4,7 @@ import { Select } from '../../primitives/Select';
 import { useSettledDraft } from '../../primitives/settledDraft';
 import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
-import { choiceLabel } from '../data/values';
+import { choiceOptions } from '../data/values';
 import type { SettingMeta } from '../registry/types';
 import { SettingNumber } from '../value/SettingNumber';
 
@@ -87,9 +87,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
     );
   }
   if (field.kind === 'choice') {
-    const options = field.choices.map((choice) => ({ value: choice, label: choiceLabel(row, choice) }));
-    // A stored value the host no longer offers still shows, so the control never claims a choice that is not the real one.
-    if (!field.choices.includes(value)) options.unshift({ value, label: choiceLabel(row, value) });
+    const options = choiceOptions(row, field.choices, value);
     return (
       <Select
         id={id}
