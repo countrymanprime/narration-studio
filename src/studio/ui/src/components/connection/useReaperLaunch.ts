@@ -19,7 +19,7 @@ const WAIT_MS = 10_000;
 
 /**
  * Starts the DAW with the host's launcher (`DawLaunch`) and then waits for the capabilities event that says the bridge answers (the host
- * announces it; nothing here asks every second), up to `waitMs`, with one read at the end: the Start button of the not-connected dialog. A REAPER already open runs the launcher in place. `onCaps` hands each read to the page so its picture follows, and the
+ * announces it; nothing here asks every second), up to `waitMs`, with one read at the end: the Start button of the not-connected dialog. A REAPER already open runs the launcher in place. `onCaps` hands each read this hook makes to the page so its picture follows, and the
  * dialog closes when the page stops drawing it. Leaving the dialog stops the waiting.
  */
 export function useReaperLaunch({
@@ -69,8 +69,8 @@ export function useReaperLaunch({
       let wake: (reached: boolean) => void = () => {};
       const stop: { off?: () => void } = {};
       stop.off = dawPort.subscribeCapabilities?.((next) => {
+        // The picture comes from the app's own session (it is what the page already shows), so it is not handed back through `onCaps`: that is the session taking its own picture, which announces it again.
         if (!alive.current || heard) return;
-        onCaps?.(next);
         if (next.reachable) {
           heard = true;
           wake(true);

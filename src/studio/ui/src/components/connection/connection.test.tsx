@@ -189,16 +189,17 @@ describe('the not-connected dialog', () => {
     await waitFor(() => expect(launchDaw).toHaveBeenCalled());
     // The read right after the launcher is done once it has been quiet; from here only the event can end the wait.
     await new Promise((resolve) => setTimeout(resolve, 100));
-    const heard = onCaps.mock.calls.length;
+    const handed = onCaps.mock.calls.length;
     const reads = dawCapabilities.mock.calls.length;
     act(() => emit(structuredClone(DAW_SETUPS['reaper-off'])));
     act(() => emit(structuredClone(DAW_SETUPS.reaper)));
-    await waitFor(() => expect(onCaps).toHaveBeenCalledTimes(heard + 2));
-    expect(onCaps.mock.calls.at(-1)?.[0].reachable).toBe(true);
+    // The announced pictures end the wait; they are the page's own, so none is handed back and nothing is read.
+    await waitFor(() => expect(screen.queryByText(/has not answered yet/)).toBeNull());
+    expect(onCaps).toHaveBeenCalledTimes(handed);
     expect(dawCapabilities.mock.calls.length).toBe(reads);
-    // Once it answered, later pictures are not handed on.
+    // Once it answered, later pictures are not acted on.
     act(() => emit(structuredClone(DAW_SETUPS['reaper-off'])));
-    expect(onCaps).toHaveBeenCalledTimes(heard + 2);
+    expect(onCaps).toHaveBeenCalledTimes(handed);
     expect(order).toEqual([`save ${JSON.stringify(['DAW', 'global', { auto_start_launcher: 'true' }])}`, 'launch']);
     expect(onLaunched).toHaveBeenCalledWith('C:/REAPER/reaper.exe');
   });
@@ -242,9 +243,9 @@ describe('the not-connected dialog', () => {
       subscribeDawCapabilities,
     } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Start REAPER' }));
-    await waitFor(() => expect(onCaps.mock.calls.some(([caps]) => caps.reachable)).toBe(true));
+    // The wait ends on the announced picture (the label goes back from "Connecting…"), long before the 10 s deadline.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-busy')).not.toBe('true'), { timeout: 3000 });
     expect(screen.queryByText(/has not answered yet/)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-busy')).not.toBe('true');
   });
 
   describe('the subscription of the wait', () => {
@@ -278,6 +279,35 @@ describe('the not-connected dialog', () => {
       const handed = onCaps.mock.calls.length;
       emit(structuredClone(DAW_SETUPS.reaper));
       expect(onCaps).toHaveBeenCalledTimes(handed);
+    });
+
+    it('does not feed the session’s own picture back into itself: a page that takes each read re-announces it, and the wait must not loop', async () => {
+      const listeners = new Set<(caps: (typeof DAW_SETUPS)['reaper']) => void>();
+      const announce = (caps: (typeof DAW_SETUPS)['reaper']) => listeners.forEach((listener) => listener(caps));
+      const client: DawClient = {
+        ...dawClientFor('reaper'),
+        capabilities: quiet,
+        subscribeCapabilities: (listener) => (listeners.add(listener), () => listeners.delete(listener)),
+      };
+      let taken = 0;
+      // What the app's session does with `onCaps` (`takeCapabilities`): it takes the picture and announces it to everyone listening.
+      const take = vi.fn((caps: (typeof DAW_SETUPS)['reaper']) => {
+        if (++taken > 50) throw new Error('feedback loop');
+        announce(structuredClone(caps));
+      });
+      const api = createMockApi({ launchDaw: async () => ({ launched: true, path: 'p', source: 's' }) });
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <ApiProvider api={api}>
+          <PortOverrides clients={{ daw: client }}>{children}</PortOverrides>
+        </ApiProvider>
+      );
+      const view = renderHook(() => useReaperLaunch({ daw: 'REAPER', name: 'REAPER', onCaps: take, waitMs: 10_000 }), { wrapper });
+      act(() => view.result.current.start());
+      await waitFor(() => expect(view.result.current.state.phase).toBe('waiting'));
+      act(() => announce(structuredClone(DAW_SETUPS['reaper-off'])));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      // One read after the launcher was taken; the announced picture was not handed back.
+      expect(taken).toBeLessThanOrEqual(2);
     });
 
     it('is let go of when it answers before it returns, and the wait ends at once', async () => {

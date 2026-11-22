@@ -247,7 +247,7 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 | REAPER answers within 10 s | up to 10 (one every second until it answers) | 1 (after the launcher), then the event |
 | REAPER never answers | 10 | 2 (after the launcher, at the deadline) |
 
-Not measured: the time a live REAPER takes to answer, and a live bridge round trip (the rig has no DAW). The counts are arithmetic from the code, covered by `connection.test.tsx` (`hands each read to the page until it answers` asserts no read between events; `takes the answer of its one read at the end`; `hears the DAW answer while the launcher is still running`).
+Not measured: the time a live REAPER takes to answer, and a live bridge round trip (the rig has no DAW). The counts are arithmetic from the code, covered by `connection.test.tsx` (`hands each read to the page until it answers` asserts no read between events; `takes the answer of its one read at the end`; `hears the DAW answer while the launcher is still running`; Playwright `reaper-start-wait.spec.ts`).
 
 ## Not measured
 
