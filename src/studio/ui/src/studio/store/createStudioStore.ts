@@ -119,7 +119,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   const owners = new Map<string, string | undefined>();
   const waiters = new Set<() => void>();
   // Releases of the readers waiting on a read, called when a reset ends their epoch: a reader waiting on a read that was dropped, and may never answer, reads again.
-  // A reader takes its release out when it settles, so a store that is never reset holds none.
+  // A reader takes its release out when it settles; one joined to a read that never answers keeps it until the next reset (bounded by the readers).
   const releases = new Set<() => void>();
   const requests = new Map<string, number>();
   const listeners = new Set<() => void>();
@@ -170,7 +170,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     const config = Object.hasOwn(registry, name) ? registry[name] : undefined;
     if (!config) return new Error(`studio: no slot named ${name}`);
     const myEpoch = epoch;
-    const owner = onProject;
+    // A value read while the host's answer to an attach is not heard belongs to no known project: named readers read again for theirs.
+    const owner = confirmed ? onProject : undefined;
     const request = (requests.get(name) ?? 0) + 1;
     requests.set(name, request);
     // A reset or a newer load of the same slot makes this answer stale: it writes nothing, not even its failure.

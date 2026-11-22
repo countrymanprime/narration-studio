@@ -78,7 +78,7 @@ export function useReadChapters(project?: string, settled = true): (fresh?: bool
       if (!store) return manuscript.manuscriptChapters();
       await (fresh ? store.load('chapters', { project }) : store.ensure('chapters', { project, settled }));
       const held = store.getState().slots.chapters;
-      if (!held) throw store.getState().errors.chapters ?? new Error('The chapter list is not held.');
+      if (!held) throw store.getState().errors.chapters ?? new Error('The chapter list could not be read just now. Try again.');
       return [...held];
     },
     [store, manuscript, project, settled],
