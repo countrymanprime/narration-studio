@@ -19,9 +19,6 @@ const MAX_EXTRAPOLATE_SECONDS = 0.6;
 /** A run of cursor moves in the page is written to the DAW once, this long after the last. */
 const WRITE_DEBOUNCE_MS = 80;
 
-/** The most a play waits for the word table's first read before it says the words cannot be placed (the table's own limit is `WORD_TIMES_ANSWER_LIMIT_MS`). */
-const PLACE_WAIT_MS = 7000;
-
 const LOST = 'The DAW stopped answering, so playback stopped.';
 /** A DAW that stopped within this many seconds before the end of the stretch it was asked to play stopped itself there: its play head is read about four
  * times a second, so the last reading can be a quarter second short of the end. */
@@ -292,26 +289,18 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       const l = live.current;
       // A watch lease not yet answered does not hold a play back: the play asks the DAW itself and its answer is the truth (a refusal is said then).
       if (l.lease.state === 'refused') return 'not_ready';
-      // The word table not yet read is waited for inside `start`, not before it: no "checking" stands between the click and the play.
-      if (!l.clock && l.clockPending) return null;
+      // A word table not yet read places nothing: the play goes to the app at once and says so (a click never waits for the table).
       return (l.clock?.projectAt(docT) ?? null) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
     notPlacedWhy: (docT, daw) =>
       live.current.clock?.whyNotPlaced(docT, daw) ??
+      (live.current.clockPending ? `${daw} has not yet said where the words sit in its project.` : null) ??
       `The app could not read where the words sit in ${daw}'s project. Check that ${daw} is open on this book with the chapter's track linked.`,
     start: async (docT, endDocT) => {
-      // The words' project times are in the host's word table: one still being read is waited for (bounded), as the play starts.
-      const until = Date.now() + PLACE_WAIT_MS;
-      while (!live.current.clock && live.current.clockPending && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 50));
       const l = live.current;
       const project = l.clock?.projectAt(docT) ?? null;
-      if (project === null)
-        return l.clock
-          ? 'That part has no place in the DAW project.'
-          : l.clockPending
-            ? 'The words have not been placed in the DAW project yet.'
-            : 'The words could not be placed in the DAW project.';
+      if (project === null) return 'That part has no place in the DAW project.';
       // A stretch that ends where nothing is known to play (or before it starts) is played open, and the page stops it as it always did.
       const projectEnd = endDocT === undefined ? null : (l.clock?.projectEndAt(endDocT) ?? null);
       const stretch = endDocT !== undefined && projectEnd !== null && projectEnd > project ? { docEnd: endDocT, projectEnd } : null;

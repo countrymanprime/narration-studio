@@ -135,9 +135,28 @@ export function useScriptPlayback({
   // A voice sample starting takes the audio: two sounds at once would be heard as one muddle (docs/prds/character-voice-samples.prd.md, Playback).
   useEffect(() => onSampleStart(halt), [halt]);
 
+  /** The newest play asked, for the Retry of a failure that comes after `go` returned (the audio could not be played). */
+  const lastAsk = useRef<{ t: number; stopsAt: number | null; asked: number } | null>(null);
+  const goAgain = useRef<(t: number, stopsAt: number | null) => void>(() => {});
+  /** Counts the plays asked, so a Retry offered for an older one does nothing once a newer one was asked. */
+  const playsAsked = useRef(0);
+  /** False once the page is gone: a Retry pressed after leaving the chapter plays nothing (it would play the old chapter's track). */
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const fail = useCallback(() => {
+    const again = lastAsk.current;
     halt();
-    live.current.notify(AUDIO_FAILED);
+    // Nothing could play: the same play is offered again, as for a DAW that refused.
+    live.current.notify(
+      AUDIO_FAILED,
+      again ? () => mounted.current && playsAsked.current === again.asked && goAgain.current(again.t, again.stopsAt) : undefined,
+    );
   }, [halt]);
 
   const start = useCallback(() => {
@@ -182,17 +201,6 @@ export function useScriptPlayback({
    * that can play always plays; one that cannot now, or that refuses, hands the play to the app with a notice saying why.
    */
   /** The latest `go`, so a notice's Retry plays again with what the page holds now. */
-  const goAgain = useRef<(t: number, stopsAt: number | null) => void>(() => {});
-  /** Counts the plays asked, so a Retry offered for an older one does nothing once a newer one was asked. */
-  const playsAsked = useRef(0);
-  /** False once the page is gone: a Retry pressed after leaving the chapter plays nothing (it would play the old chapter's track). */
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const go = useCallback(
     (t: number): void => {
       const { caps: now, read: dawRead, notify: say } = live.current;
@@ -203,6 +211,7 @@ export function useScriptPlayback({
       const wanted = (): boolean => asks.current === ask;
       const asked = ++playsAsked.current;
       const stopsAt = stopAt.current;
+      lastAsk.current = { t, stopsAt, asked };
       // A read that failed is asked again, so the DAW plays the next press once it answers.
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = now?.daw ?? 'The DAW';
