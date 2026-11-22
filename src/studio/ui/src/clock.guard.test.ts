@@ -166,6 +166,16 @@ describe('the full form is only for Editing and Proof, and every position there 
     expect(asking.some((file) => file.startsWith('components/editing/'))).toBe(true);
     expect(asking.some((file) => file.startsWith('components/proof/'))).toBe(true);
   });
+  // #3590 (owner, 2026-11-22): a Pickups time is hh:mm:ss to the nearest second, and nowhere else is. `pickupTime` in pickupRows.ts is the one Pickups time, so it is the one file that asks.
+  it('sees an hms call (its own check)', () => {
+    expect(clockCalls('a(clock(x, { hms: true }), clock(y))').filter((call) => /\bhms:\s*true\b/.test(call))).toEqual(['clock(x, { hms: true })']);
+    expect(clockCalls('clock(x, { full: true })').filter((call) => /\bhms:\s*true\b/.test(call))).toEqual([]);
+  });
+  it('hh:mm:ss (hms) is asked for by pickupRows.ts and no other file', () => {
+    expect(files.filter((file) => file !== 'clock.ts' && clockCalls(text(file)).some((call) => /\bhms:\s*true\b/.test(call)))).toEqual([
+      'components/pickups/list/pickupRows.ts',
+    ]);
+  });
   // The duration calls of a file: each call's text (whitespace collapsed), "x2" when it appears twice.
   const durationCalls = (source: string): Record<string, number> => {
     const counts: Record<string, number> = {};

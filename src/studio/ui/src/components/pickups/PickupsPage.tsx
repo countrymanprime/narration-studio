@@ -16,7 +16,7 @@ import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton'
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
-import { ALL_SCOPE, clock, inScope, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, pickupTime, inScope, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';
@@ -206,7 +206,7 @@ export function PickupsPage({
     const failed = (error: unknown) => ({ ok: false as const, refusal: { code: 'host_refused', reason: reasonSentence(error) } });
     // A line added by hand is a journal entry, so Ctrl+Z and History put it back as the toast's Undo does.
     const done = await journal.act<null>({
-      label: `Removed ${clock(time)} from pickups`,
+      label: `Removed ${pickupTime(time)} from pickups`,
       touches: ['pickups'],
       run: async () => {
         try {
@@ -252,7 +252,7 @@ export function PickupsPage({
       before,
       { id, evidenceVersion: before.evidence_version ?? '', status: 'dismissed', note: before.review.note ?? '' },
       {
-        label: `Fine, not a pickup at ${clock(pickup.time)}`,
+        label: `Fine, not a pickup at ${pickupTime(pickup.time)}`,
         touches: ['pickups'],
         describe: reasonSentence,
         afterUndo: () => changing(pickupsApi.pickupsList()),
