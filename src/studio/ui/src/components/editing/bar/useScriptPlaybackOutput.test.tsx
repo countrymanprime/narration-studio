@@ -14,6 +14,8 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { DEFAULT_OUTPUT, deviceProblem, type OutputPrefs } from '../../engine/outputPrefs';
+import { missingOutputSentence, OUTPUT_TOAST_TOPIC } from '../../voicesamples/audioOutputs';
+import { overlay } from '../../../overlay/overlayService';
 import { EditingPageProvider } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import { useScriptPlayback, type ScriptPlayback } from './useScriptPlayback';
@@ -44,10 +46,9 @@ const SEGMENT: PlaylistSegment = {
   overlapsPrevious: false,
 };
 let playback: ScriptPlayback;
-const onOutputDevice = vi.fn();
 
 function Harness({ output }: { output: OutputPrefs }) {
-  playback = useScriptPlayback({ playlist: [SEGMENT], mediaUrl: (f) => `media/${f}`, notify: vi.fn(), output, onOutputDevice });
+  playback = useScriptPlayback({ playlist: [SEGMENT], mediaUrl: (f) => `media/${f}`, notify: vi.fn(), output });
   return null;
 }
 // The playback hook reads the DAW sync port; with no DAW sync asked for it does nothing.
@@ -64,10 +65,11 @@ const rerender = (view: ReturnType<typeof mount>, output: OutputPrefs) => view.r
 const flush = () => act(async () => void (await Promise.resolve()));
 
 let outputs: { kind: string; deviceId: string; label: string }[];
+let toast: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
   instances.length = 0;
   refuse = false;
-  onOutputDevice.mockClear();
   outputs = [{ kind: 'audiooutput', deviceId: 'a1', label: 'Studio monitors' }];
   vi.stubGlobal(
     'Audio',
@@ -120,14 +122,14 @@ describe('the output device', () => {
     mount(DEFAULT_OUTPUT);
     await flush();
     expect(instances[0].setSinkId).toHaveBeenCalledWith('');
-    expect(onOutputDevice).toHaveBeenLastCalledWith(null);
+    expect(toast).not.toHaveBeenCalled();
   });
 
   it('sends the element to the named output and reports no problem', async () => {
     mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });
     await flush();
     expect(instances[0].setSinkId).toHaveBeenCalledWith('a1');
-    expect(onOutputDevice).toHaveBeenLastCalledWith(null);
+    expect(toast).not.toHaveBeenCalled();
   });
 
   it('says so, and the element is back on the default, when the output is gone', async () => {
@@ -135,7 +137,33 @@ describe('the output device', () => {
     mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });
     await flush();
     expect(instances[0].setSinkId).toHaveBeenLastCalledWith('');
-    expect(onOutputDevice).toHaveBeenLastCalledWith(deviceProblem('Studio monitors'));
+    // #4044: said where it arises, so a closed Output popover does not hide it, and as the one sentence the Output popover's Check again says too.
+    const gone = missingOutputSentence('Studio monitors', 'Sound plays');
+    expect(toast).toHaveBeenCalledWith(gone, { topic: OUTPUT_TOAST_TOPIC });
+  });
+
+  // A list that will not come is not an unplugged speaker: the toast must not say the output is not connected.
+  it('says the list would not come, not that the output is gone, when the listing throws', async () => {
+    vi.stubGlobal('navigator', { ...navigator, mediaDevices: { enumerateDevices: vi.fn(async () => Promise.reject(new Error('NotAllowedError'))) } });
+    mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });
+    await flush();
+    await flush();
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('would not list its outputs'), { topic: OUTPUT_TOAST_TOPIC });
+    expect(toast).not.toHaveBeenCalledWith(missingOutputSentence('Studio monitors', 'Sound plays'));
+    expect(instances[0].setSinkId).toHaveBeenLastCalledWith('');
+  });
+
+  // Editing opens two players on one saved output (the script's and the range player's) and Check again says it a third time: one message on screen.
+  it('two players and a press say it as one message, the newest', async () => {
+    outputs = [];
+    const { overlay: service } = await import('../../../overlay/overlayService');
+    mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });
+    mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });
+    await flush();
+    await flush();
+    const said = service.getSnapshot().toasts.filter((t) => t.topic === OUTPUT_TOAST_TOPIC);
+    expect(said).toHaveLength(1);
+    expect(said[0]!.text).toBe(missingOutputSentence('Studio monitors', 'Sound plays'));
   });
 
   it('says so when the audio system refuses the output', async () => {
@@ -143,7 +171,7 @@ describe('the output device', () => {
     mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });
     await flush();
     await flush();
-    expect(onOutputDevice).toHaveBeenLastCalledWith(deviceProblem('Studio monitors'));
+    expect(toast).toHaveBeenCalledWith(deviceProblem('Studio monitors'), { topic: OUTPUT_TOAST_TOPIC });
     expect(instances[0].setSinkId).toHaveBeenLastCalledWith('');
   });
 
@@ -152,7 +180,6 @@ describe('the output device', () => {
     rerender(view, DEFAULT_OUTPUT);
     await flush();
     await flush();
-    expect(onOutputDevice).not.toHaveBeenCalledWith(deviceProblem('Gone'));
-    expect(onOutputDevice).toHaveBeenLastCalledWith(null);
+    expect(toast).not.toHaveBeenCalledWith(missingOutputSentence('Gone', 'Sound plays'));
   });
 });

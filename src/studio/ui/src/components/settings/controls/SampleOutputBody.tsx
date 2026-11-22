@@ -4,7 +4,9 @@ import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { HelpButton } from '../../primitives/HelpButton';
 import { Select } from '../../primitives/Select';
-import { listAudioOutputs, type OutputListing } from '../../voicesamples/audioOutputs';
+import { useOutputDevices } from '../../editing/output/useOutputDevices';
+import { CheckedStamp, useCheckedAt } from '../../primitives/CheckedStamp';
+import { missingOutputSentence } from '../../voicesamples/audioOutputs';
 import { setSampleOutput } from '../../voicesamples/samplePlayerStore';
 import { playTestSound } from '../../voicesamples/testSound';
 import { overlay } from '../../../overlay/overlayService';
@@ -14,13 +16,8 @@ import { useProjectDaw } from '../data/useProjectDaw';
 import { rowOf } from '../registry/rows';
 import { FIELD_WIDTH } from './MicBody';
 
-type Listing = { phase: 'loading' } | ({ phase: 'ready'; checkedAt: number } & OutputListing);
-
 /** How often the list is read again while the saved output is missing, so a speaker plugged back in is found without the narrator pressing anything. */
 const RECHECK_MS = 5000;
-
-/** A note under the control: muted 13 px, one width with the row's description. */
-const NOTE_CLASS = 'max-w-[60ch] text-[0.8125rem] break-words text-[var(--text-muted)]';
 
 /** The words behind the control's "?": what it changes and what it does not. */
 const NOTE = 'Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.';
@@ -43,9 +40,18 @@ export function SampleOutputBody() {
   const recording = usePort('recording');
   const [engine, setEngine] = useState<RecordingEngine | undefined>();
   const [hasProject, setHasProject] = useState(true);
-  const [listing, setListing] = useState<Listing>({ phase: 'loading' });
   const { project } = store.fieldsOf(row);
   const value = project?.effectiveValue ?? '';
+  // The one reader of this computer's outputs (also the Editing popover's): its refusals are toasts, again on every Check again (#4044).
+  const [checkedAt, markChecked, reads] = useCheckedAt();
+  const {
+    listing,
+    refresh: check,
+    watch: load,
+  } = useOutputDevices({
+    saved: engine === 'builtin' ? value : '',
+    missingSentence: (name) => missingOutputSentence(name, 'Voice samples play'),
+  });
 
   // The engine is read when the row opens and again whenever "Record with" is changed on this page.
   const readEngine = useCallback(() => {
@@ -66,24 +72,13 @@ export function SampleOutputBody() {
     if (engine !== undefined) setSampleOutput(engine === 'builtin' ? value : '');
   }, [engine, value]);
 
-  const load = useCallback(() => {
-    listAudioOutputs().then((result) => setListing({ phase: 'ready', checkedAt: Date.now(), ...result }));
-  }, []);
-  useEffect(load, [load]);
-  // The list is read again when the window gets focus and whenever the computer says an output came or went, so an unplugged speaker is noticed
-  // without the narrator leaving the window.
+  // The stamp is the answer to a press that finds the same list: the time of the last finished read (rule 9).
+  const readAt = listing.phase === 'ready' ? listing.checkedAt : 0;
   useEffect(() => {
-    window.addEventListener('focus', load);
-    const devices = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined;
-    devices?.addEventListener?.('devicechange', load);
-    return () => {
-      window.removeEventListener('focus', load);
-      devices?.removeEventListener?.('devicechange', load);
-    };
-  }, [load]);
-
+    if (readAt) markChecked();
+  }, [readAt, markChecked]);
   const outputs = listing.phase === 'ready' && listing.status === 'ok' ? listing.outputs : [];
-  const missing = engine === 'builtin' && listing.phase === 'ready' && listing.status === 'ok' && value !== '' && !outputs.some((o) => o.label === value);
+  const missing = engine === 'builtin' && listing.phase === 'ready' && value !== '' && !outputs.some((o) => o.label === value);
   const recheck = useRef(load);
   recheck.current = load;
   useEffect(() => {
@@ -126,47 +121,29 @@ export function SampleOutputBody() {
   // The select at the settings' field width, its buttons on one row under it (the Microphone row's arrangement), then the notes.
   return (
     <div className="flex w-full min-w-0 flex-col items-start gap-2">
-      {unavailable && (
-        <p
-          role="alert"
-          className="m-0 max-w-[60ch] rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2 text-sm break-words text-[var(--danger-text)]"
-        >
-          {unavailable}
-        </p>
-      )}
-      {missing && (
-        <p role="alert" className="m-0 max-w-[60ch] rounded-[var(--radius-card)] bg-[var(--warn-soft)] px-3 py-2 text-sm break-words text-[var(--warn-text)]">
-          {value} is not connected. Voice samples play on the system default until it is back.
-        </p>
-      )}
       <Select
         label="Voice sample output"
         id={`set-${row.id}`}
         className={FIELD_WIDTH}
-        value={unavailable ? '' : value}
+        value={value}
         onChange={choose}
-        disabled={unavailable !== undefined || engine === undefined || !hasProject}
+        disabled={engine === undefined || !hasProject}
         options={[
           { value: '', label: 'System default' },
           ...outputs.map((o) => ({ value: o.label, label: o.label })),
-          ...(missing ? [{ value, label: `${value}, not connected` }] : []),
+          ...(missing ? [{ value, label: `${value}, ${listing.status === 'unavailable' ? 'could not check' : 'not connected'}` }] : []),
         ]}
       />
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onClick={load}>
+        <Button variant="secondary" onClick={check}>
           {unavailable || missing ? 'Check again' : 'Refresh the list'}
         </Button>
         {testButton}
         <HelpButton label={HELP_LABEL}>{NOTE}</HelpButton>
+        <CheckedStamp at={checkedAt} reads={reads} />
         {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for outputs…</span>}
       </div>
       {!hasProject && <span className="text-[0.8125rem] text-[var(--text-muted)]">Open a project to choose where its voice samples play.</span>}
-      {missing && listing.phase === 'ready' && (
-        <span className={NOTE_CLASS}>
-          Last checked {new Date(listing.checkedAt).toLocaleTimeString()}. The list is read again when you open Settings, when the window gets focus, and while
-          this notice is up.
-        </span>
-      )}
     </div>
   );
 }

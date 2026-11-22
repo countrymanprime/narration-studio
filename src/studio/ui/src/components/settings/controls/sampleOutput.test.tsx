@@ -8,7 +8,7 @@
 //   back to the default            'choosing System default again removes the project's choice'
 //   a DAW is connected             'with a DAW the row is a sentence and a test sound, and has no choice'
 //   saved device gone              'a saved output that is not connected stays chosen with a notice, and a refresh finds it again'
-//   cannot list or switch          'an audio system that will not list its outputs is said so and the choice is off'
+//   cannot list or switch          'an audio system that will not list its outputs is said so and only the system default is offered'
 //   no project open                'with no project open the choice is off and says to open one'
 //   loading                        'the choice is off until the project's recorder is known'
 //   test sound                     'Test sound plays on the chosen output', 'a failing output says so and the tone still plays on the default'
@@ -28,6 +28,7 @@ import { StudioProvider } from '../../../studio/StudioProvider';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
+import { OUTPUT_TOAST_TOPIC } from '../../voicesamples/audioOutputs';
 import { overlay } from '../../../overlay/overlayService';
 import { SettingsPage } from '../page/SettingsPage';
 import { DAW_SENTENCE, dawSentence } from './SampleOutputBody';
@@ -133,9 +134,18 @@ describe('Voice sample output: the built-in recorder', () => {
   it('a saved output that is not connected stays chosen with a notice, and a refresh finds it again', async () => {
     const api = createMockApi({}, { recording: { engine: 'builtin' } });
     await api.saveSettings('VoiceSamples', 'project', { output_device: 'Studio monitors (Scarlett)' });
+    const toast = vi.spyOn(overlay, 'toast');
     await renderRow(api);
-    const alert = await within(row()).findByRole('alert');
-    expect(alert.textContent).toBe('Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.');
+    // Quiet on its own reads; Check again says it (and the Settings page opening does not raise a toast about a row the narrator did not touch).
+    expect(await picker()).toBeTruthy();
+    expect(toast).not.toHaveBeenCalled();
+    fireEvent.click(await within(row()).findByRole('button', { name: 'Check again' }));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith('Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.', {
+        topic: OUTPUT_TOAST_TOPIC,
+      }),
+    );
+    expect(within(row()).queryByRole('alert')).toBeNull();
     const select = await picker();
     expect(select.value).toBe('Studio monitors (Scarlett)');
     expect(optionNames(select)).toContain('Studio monitors (Scarlett), not connected');
@@ -144,13 +154,51 @@ describe('Voice sample output: the built-in recorder', () => {
     await waitFor(() => expect(within(row()).queryByRole('alert')).toBeNull());
   });
 
-  it('an audio system that will not list its outputs is said so and the choice is off', async () => {
+  it('an audio system that will not list its outputs says so on Check again, every time; the choice stays on with the system default', async () => {
     delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
+    const toast = vi.spyOn(overlay, 'toast');
     await renderRow();
-    const alert = await within(row()).findByRole('alert');
-    expect(alert.textContent).toContain('would not list its outputs');
-    expect(await picker()).toHaveProperty('disabled', true);
+    expect(await picker()).toHaveProperty('disabled', false);
+    expect(toast).not.toHaveBeenCalled();
+    fireEvent.click(await within(row()).findByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('would not list its outputs'), { topic: OUTPUT_TOAST_TOPIC }));
+    expect(within(row()).queryByRole('alert')).toBeNull();
+    fireEvent.click(within(row()).getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
     expect(within(row()).getByRole('button', { name: 'Check again' })).toBeTruthy();
+  });
+
+  // #4044: a webview that gives no output names still gives a usable list, and no error.
+  it('outputs with blank names are offered as Output 1 and Output 2, with no toast and no alert', async () => {
+    devices = [out('a1', ''), out('b2', '')];
+    const toast = vi.spyOn(overlay, 'toast');
+    await renderRow();
+    const select = await picker();
+    await waitFor(() => expect(optionNames(select)).toEqual(['System default', 'Output 1', 'Output 2']));
+    expect(select.disabled).toBe(false);
+    expect(toast).not.toHaveBeenCalled();
+    expect(within(row()).queryByRole('alert')).toBeNull();
+  });
+
+  // #4044, rule 9: a press that finds the same list still answers, with the time of the read.
+  it('Refresh the list answers with the time of the read even when the list is the same', async () => {
+    await renderRow();
+    await picker();
+    const before = await within(row()).findByRole('status');
+    fireEvent.click(within(row()).getByRole('button', { name: 'Refresh the list' }));
+    await waitFor(() => expect(within(row()).getByRole('status').textContent).toMatch(/\(\d+\)$/));
+    expect(before.textContent).toMatch(/^Checked /);
+  });
+
+  it('with the list unavailable the saved output stays shown and can be cleared to the system default', async () => {
+    const api = createMockApi({}, { recording: { engine: 'builtin' } });
+    await api.saveSettings('VoiceSamples', 'project', { output_device: 'Studio monitors (Scarlett)' });
+    delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
+    await renderRow(api);
+    const select = await picker();
+    await waitFor(() => expect(select.value).toBe('Studio monitors (Scarlett)'));
+    expect(select.disabled).toBe(false);
+    expect(optionNames(select)).toEqual(['System default', 'Studio monitors (Scarlett), could not check']);
   });
 
   it('the list is read again when the window gets focus', async () => {
@@ -233,7 +281,8 @@ describe('Voice sample output: device changes', () => {
     expect(within(row()).queryByRole('alert')).toBeNull();
     devices = devices.filter((d) => d.label !== 'USB DAC');
     act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));
-    await within(row()).findByText(/USB DAC is not connected/);
+    await waitFor(async () => expect(optionNames(await picker())).toContain('USB DAC, not connected'));
+    expect(within(row()).queryByRole('alert')).toBeNull();
     devices = [...devices, out('d5', 'USB DAC')];
     act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));
     await waitFor(() => expect(within(row()).queryByRole('alert')).toBeNull());

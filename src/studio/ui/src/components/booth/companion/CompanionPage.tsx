@@ -10,6 +10,7 @@ import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionSkeleton } from './CompanionSkeleton';
 import { CompanionHost } from './CompanionHost';
 import { addressPath } from '../../../navigation/address';
+import { useReadChapters } from '../../../studio/useChapters';
 
 const NO_ENTITIES: GuideEntity[] = [];
 const NO_NOTES: ManuscriptNote[] = [];
@@ -27,6 +28,7 @@ type Props = {
  */
 export function CompanionPage({ onFixCredits }: Props) {
   const api = useApi();
+  const readChapters = useReadChapters();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
@@ -41,7 +43,7 @@ export function CompanionPage({ onFixCredits }: Props) {
   useEffect(() => {
     let live = true;
     void Promise.all([
-      api.manuscriptChapters(),
+      readChapters(),
       api.readerState().catch(() => undefined),
       api.teleprompterState().catch(() => undefined),
       api.guideEntities().catch(() => NO_ENTITIES),
@@ -63,7 +65,7 @@ export function CompanionPage({ onFixCredits }: Props) {
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, readChapters]);
 
   const asked = readBoothQuery(params)?.chapter;
   const chosen = asked ?? fallback;
