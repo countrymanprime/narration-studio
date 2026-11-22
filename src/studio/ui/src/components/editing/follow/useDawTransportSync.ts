@@ -237,7 +237,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       first.current = false;
       return;
     }
-    if (!ready || state.playT != null || owns.current) return;
+    if (!ready || (state.playT != null && !state.held) || owns.current) return;
     if (cursor === fromDaw.current) {
       fromDaw.current = null;
       return;

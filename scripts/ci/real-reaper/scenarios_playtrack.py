@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import time
 
-from scenario import Env, scenario
+from scenario import Env, near, scenario
 from scenarios_transport import play_state, stop_by_hand
 
 CHAPTERS = ("Chapter 1", "Chapter 2", "Pickups")
@@ -284,3 +284,29 @@ def play_leaves_count(env: Env) -> str:
     folder.mkdir(exist_ok=True)
     (folder / "play.json").write_text(json.dumps(rows, indent=2, sort_keys=True), encoding="utf-8")
     return "change count, undo top and dirty flag unchanged during and after play_range (ends itself, stop_play) and play_from (stopped by hand); selection, solos and mutes exact each time"
+
+
+@scenario(
+    "transport_sync",
+    "set_cursor",
+    "set_cursor sent at once after a play the narrator stopped in REAPER holds: the first word clicked after the DAW stopped moves the edit cursor (#4029)",
+    needs_audio=True,
+)
+def cursor_after_a_stop_holds(env: Env) -> str:
+    fx = arrange(env)
+    held = {}
+    for how in ("by_hand", "stop_play"):
+        env.ok("play_from", "1", fx["ch1"], until="TRANSPORT_PLAYING")
+        env.wait_for(lambda: play_state(env) == 1 and env.snapshot()["cursor"] is not None, what="REAPER to play")
+        time.sleep(1.2)
+        if how == "by_hand":
+            stop_by_hand(env)
+        else:
+            env.ok("stop_play", until="TRANSPORT_STOPPED")
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        # The page's first cursor write after the stop, sent at once: the bridge's stop guard must not put the cursor back at the stop.
+        env.ok("set_cursor", "6", until="CURSOR_SET")
+        time.sleep(1.0)
+        held[how] = round(env.snapshot()["cursor"], 3)
+        near(held[how], 6.0, 1e-6, f"set_cursor sent at once after a stop ({how}) holds")
+    return f"set_cursor 6 sent right after a stop in REAPER held at {held}"
