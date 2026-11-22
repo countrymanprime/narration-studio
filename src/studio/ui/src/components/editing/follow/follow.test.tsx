@@ -345,7 +345,7 @@ describe('poll-is-bounded', () => {
     await poll(10);
     expect(lit()).toBe('p-1:3');
   });
-  it('caps going unreachable mid-play ends the DAW play: a cursor move clears the word', async () => {
+  it('caps going unreachable mid-play ends the DAW play: the word clears and the bar leaves Pause', async () => {
     const api = makeApi();
     const view = render(tree(api, DAW_SETUPS.reaper));
     dawAt(1.3);

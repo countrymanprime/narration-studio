@@ -213,6 +213,23 @@ describe('daw-to-app', () => {
     await wait(10);
     expect(playback.syncActive).toBe(false);
   });
+  it('lights the word the DAW plays when the watch lease is refused: the transport event carries the play to the heartbeat follow', async () => {
+    // Another project is open, so the host refuses the lease and the stream says nothing; the DAW plays, and only its transport event says where.
+    mount(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: false, position: at(1.3) } }, dawScript: 'different' });
+    await wait(LEASE_RENEW_MS + 10);
+    expect(calls('watch')).toHaveLength(0);
+    expect(lit()).toBe('p-1:3');
+  });
+  it('stands the heartbeat follow down while the lease is held: the stream lights the word, and the transport event does not take it over', async () => {
+    // The transport event says the DAW plays at one word; the stream (the lease is held) says another. Only the stream may light.
+    mount(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: false, position: at(1.3) } } });
+    await wait(10);
+    expect(calls('watch').length).toBeGreaterThan(0);
+    act(() => daw.moveInDaw({ playing: true, head: at(4.2) }));
+    await wait(10);
+    expect(lit()).toBe('p-2:1');
+    expect(document.querySelectorAll('[data-now]')).toHaveLength(1);
+  });
   it('ignores a DAW that has another project open', async () => {
     mount(DAW_SETUPS.reaper, { daw: {}, dawScript: 'different' });
     await wait(LEASE_RENEW_MS + 10);
