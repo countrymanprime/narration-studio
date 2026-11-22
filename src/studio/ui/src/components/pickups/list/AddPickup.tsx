@@ -41,8 +41,10 @@ export function AddPickup({
     if (sending.current) return;
     if (!line.trim()) return refuse('line', 'Type the line first.');
     if ([...line.trim()].length > PICKUP_LINE_MAX) return refuse('line', `A line can be at most ${PICKUP_LINE_MAX} characters.`);
-    const seconds = parseClock(time);
-    if (seconds === null) return refuse('time', `Type the time like ${pickupTime(312)}.`);
+    const typed = parseClock(time);
+    if (typed === null) return refuse('time', `Type the time like ${pickupTime(312)}.`);
+    // A time is kept to the nearest second, as it is shown (owner, #3590), whether or not the box was left first.
+    const seconds = Math.round(typed);
     setProblem(null);
     sending.current = true;
     setBusy(true);

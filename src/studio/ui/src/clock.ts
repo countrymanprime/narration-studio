@@ -88,7 +88,7 @@ export function spokenMarked(text: string): string {
 
 /** `hh:mm:ss` (see `ClockOptions.hms`): the nearest whole second; negative and non-finite input reads zero, a value past a billion seconds is capped like `full`. */
 function clockHms(seconds: number): string {
-  const whole = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.round(seconds)), MAX_FULL_MILLIS / 1000) : 0;
+  const whole = Number.isFinite(seconds) ? clamp(Math.round(seconds), 0, MAX_FULL_MILLIS / 1000) : 0;
   return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor(whole / 60) % 60)}:${pad(whole % 60)}`;
 }
 

@@ -138,6 +138,13 @@ describe('AddPickup', () => {
     expect(problemWith(time)).toEqual({ invalid: false, says: '' });
   });
 
+  it('keeps a typed tenth to the nearest second even when Enter is pressed in the time box (box not left first)', async () => {
+    const { onAdd, user } = setup();
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'The salt was thick.');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '5:12.5{Enter}');
+    expect(onAdd).toHaveBeenCalledWith('c1', 313, 'The salt was thick.');
+  });
+
   it('a line with no usable time is refused', async () => {
     const { onAdd, user, toasts } = setup();
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
