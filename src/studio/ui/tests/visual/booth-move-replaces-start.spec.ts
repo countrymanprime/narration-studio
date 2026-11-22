@@ -57,7 +57,7 @@ test('repro B: Record from here on the Script, the arrow keys move the start to 
   expect(await lookups(page)).toBe(before + 1);
 });
 
-test('after a take, going back to the phrase the chapter opened on chooses it, as the take now continues from where it stopped (#3858)', async ({ page }) => {
+test('after a take, going back to the phrase the chapter opened on chooses it, like any phrase the reading moves onto (#3858)', async ({ page }) => {
   await page.goto('/?mockCallLog=1');
   await settlePage(page);
   await goToPage(page, 'Booth');
@@ -93,7 +93,7 @@ async function failListeningOnce(page: Page): Promise<void> {
   });
 }
 
-test('a take the Booth took back (its listening failed) leaves the start where the chapter opened: going back there chooses nothing (#3858)', async ({
+test('a take the Booth took back (its listening failed): going back to the phrase the chapter opened on chooses it, as any explicit move does (#3858)', async ({
   page,
 }) => {
   await failListeningOnce(page);
@@ -112,7 +112,7 @@ test('a take the Booth took back (its listening failed) leaves the start where t
   const before = await lookups(page);
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
-  expect(await lookups(page)).toBe(before);
+  expect(await lookups(page)).toBe(before + 1);
 });
 
 test('a chosen start survives a take the Booth took back: Record looks it up again (#3858)', async ({ page }) => {
@@ -130,4 +130,98 @@ test('a chosen start survives a take the Booth took back: Record looks it up aga
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
   expect(await lookups(page)).toBe(before + 1);
+});
+
+/** A host whose lookup always finds the phrase and whose listening throws while `window.__failListen` is set. */
+async function listeningFailsOnDemand(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown>; __failListen?: boolean };
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      boothPunchTarget: async () => ({ outcome: 'found', start: 12, end: 20 }),
+      teleprompterStart: async () => {
+        if (w.__failListen) {
+          w.__failListen = false;
+          throw new Error('The microphone is in use by another application.');
+        }
+        return { status: 'started' };
+      },
+    };
+  });
+}
+const failNextPress = (page: Page) =>
+  page.evaluate(() => {
+    (window as unknown as { __failListen: boolean }).__failListen = true;
+    window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'start');
+  });
+const failedPress = (page: Page) =>
+  expect(page.getByText(/Recording did not start: the text cannot follow|Disk full/).first()).toBeVisible({ timeout: 10_000 });
+
+test('a press whose listening fails and whose DAW start is refused keeps the chosen start: the retry looks it up (#3858)', async ({ page }) => {
+  await listeningFailsOnDemand(page);
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await arrowDown(page, 2);
+  await failNextPress(page);
+  await page.keyboard.press('Space');
+  await failedPress(page);
+  await page.waitForTimeout(800);
+  const before = await lookups(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 10_000 });
+  expect(await lookups(page)).toBe(before + 1);
+});
+
+test("a failed press after a take does not bring back that take's start: Record continues with no lookup (#3858)", async ({ page }) => {
+  await listeningFailsOnDemand(page);
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await arrowDown(page, 2);
+  await page.keyboard.press('Space'); // take 1, punched at the chosen phrase
+  await expect(stop(page)).toBeVisible();
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible({ timeout: 10_000 });
+  await failNextPress(page);
+  await page.keyboard.press('Space'); // listening fails, DAW refuses
+  await failedPress(page);
+  await page.waitForTimeout(800);
+  const before = await lookups(page);
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 10_000 });
+  expect(await lookups(page)).toBe(before);
+});
+
+test('after a lookup that failed, a click on the phrase the reading is on chooses it again: Record looks it up (#3858)', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown>; __asked: number };
+    w.__asked = 0;
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      boothPunchTarget: async () => {
+        w.__asked += 1;
+        if (w.__asked === 1) throw new Error('The recording check could not be read.');
+        return { outcome: 'found', start: 12, end: 20 };
+      },
+    };
+  });
+  await page.goto('/?mockCallLog=1');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await arrowDown(page, 2);
+  await page.keyboard.press('Space'); // the lookup throws: no start is chosen now
+  const asked = () => page.evaluate(() => (window as unknown as { __asked: number }).__asked);
+  await expect.poll(asked).toBe(1);
+  await page.waitForTimeout(800);
+  const onPhrase = await reading(page);
+  await page.locator(`[data-booth-text] [data-unit="${onPhrase}"] [data-word]`).first().click(); // choose the phrase again, as the message says
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 10_000 });
+  expect(await asked()).toBe(2);
 });
