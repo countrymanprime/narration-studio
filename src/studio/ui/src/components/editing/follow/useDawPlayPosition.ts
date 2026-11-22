@@ -45,6 +45,8 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
   /** The playhead this hook put there last, so a playhead it did not put is the app's own playback. */
   const mine = useRef<number | null>(null);
   const dawPlaying = useRef(false);
+  /** The transport event last applied, and how many have come: a backstop read that was out when one came is older than it and is dropped. */
+  const heard = useRef({ transport, count: 0 });
   const live = useRef({ state, clock, playback, dispatch });
   useEffect(() => {
     live.current = { state, clock, playback, dispatch };
@@ -68,9 +70,11 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
 
   // The transport event (and the page becoming visible, or the DAW answering, which hears the state the session already holds).
   useEffect(() => {
+    if (heard.current.transport !== transport) heard.current = { transport, count: heard.current.count + 1 };
     if (!enabled || !visible) return;
     apply(transport.playing && !transport.recording, transport.position ?? 0);
-  }, [apply, enabled, visible, transport]);
+    // The word table arriving after a play started (or another chapter's) lights the word at once, not at the next heartbeat.
+  }, [apply, enabled, visible, transport, clock]);
 
   // The backstop: a stop or a play whose event was lost is found here.
   useEffect(() => {
@@ -80,10 +84,12 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
     const read = (): void => {
       if (reading) return;
       reading = true;
+      const asked = heard.current.count;
       daw.projectState().then(
         (ps) => {
           reading = false;
-          if (alive) apply(ps.playState === 'playing', ps.playPosition);
+          // An event that came while the read was out is newer than it.
+          if (alive && heard.current.count === asked) apply(ps.playState === 'playing', ps.playPosition);
         },
         () => {
           reading = false;

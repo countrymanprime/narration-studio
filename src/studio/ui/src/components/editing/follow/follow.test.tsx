@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DawCapabilities, DawProjectState } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawProjectState, DawTransport } from '../../../api/contracts/daw';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
@@ -16,6 +16,7 @@ import { ScriptDoc } from '../script/ScriptDoc';
 import { marksDoc } from '../script/scriptFixtures';
 import { buildWordClock } from './wordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
+import type { WordClock } from './wordClock';
 import { BACKSTOP_MS, useDawPlayPosition } from './useDawPlayPosition';
 import { useFollowScroll } from './useFollowScroll';
 
@@ -60,11 +61,11 @@ let client: DawClient;
 let playback: ScriptPlayback;
 let page: ReturnType<typeof useEditingPage>;
 
-function Harness({ caps }: { caps: DawCapabilities | null }) {
+function Harness({ caps, clock = CLOCK }: { caps: DawCapabilities | null; clock?: WordClock | null }) {
   const root = useRef<HTMLDivElement>(null);
   page = useEditingPage();
   playback = useScriptPlayback({ playlist: PLAYLIST, mediaUrl: (f) => f, notify: () => {} });
-  useDawPlayPosition({ clock: CLOCK, caps, playback });
+  useDawPlayPosition({ clock, caps, playback });
   useFollowScroll(root, playback);
   return (
     <div ref={root}>
@@ -75,24 +76,24 @@ function Harness({ caps }: { caps: DawCapabilities | null }) {
 }
 
 /** The host's transport event: it says a play started or stopped and carries the position (as of the last heartbeat) while the DAW plays. */
-let announceTransport: (next: { playing: boolean; recording: boolean; position?: number }) => void = () => {};
-const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper) =>
-  render(
-    <ApiProvider
-      api={createMockApi({
-        subscribeDawTransport: (listener: (next: { playing: boolean; recording: boolean; position?: number }) => void) => {
-          announceTransport = listener;
-          return () => {};
-        },
-      } as never)}
-    >
-      <PortOverrides clients={{ daw: client }}>
-        <EditingPageProvider doc={doc}>
-          <Harness caps={caps} />
-        </EditingPageProvider>
-      </PortOverrides>
-    </ApiProvider>,
-  );
+let announceTransport: (next: DawTransport) => void = () => {};
+const makeApi = () =>
+  createMockApi({
+    subscribeDawTransport: (listener: (next: DawTransport) => void) => {
+      announceTransport = listener;
+      return () => {};
+    },
+  });
+const tree = (api: ReturnType<typeof makeApi>, caps: DawCapabilities | null = DAW_SETUPS.reaper, clock: WordClock | null = CLOCK) => (
+  <ApiProvider api={api}>
+    <PortOverrides clients={{ daw: client }}>
+      <EditingPageProvider doc={doc}>
+        <Harness caps={caps} clock={clock} />
+      </EditingPageProvider>
+    </PortOverrides>
+  </ApiProvider>
+);
+const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper) => render(tree(makeApi(), caps));
 const state = () => JSON.parse(screen.getByTestId('state').textContent ?? '{}') as { playT: number | null; follow: boolean };
 const lit = (): string | null => document.querySelector('[data-now]')?.getAttribute('data-k') ?? null;
 /** Lets one poll's read answer. */
@@ -318,6 +319,31 @@ describe('poll-is-bounded', () => {
     await poll(BACKSTOP_MS + 100);
     expect(lit()).toBe('p-1:3');
     expect(client.projectState).toHaveBeenCalled();
+  });
+  it('a backstop read that was out when a newer event came is dropped: a stop is not undone by the older play it brings', async () => {
+    let release: (ps: DawProjectState) => void = () => {};
+    vi.mocked(client.projectState).mockImplementation(() => new Promise((resolve) => (release = resolve)));
+    mount();
+    dawAt(4.2);
+    await poll(BACKSTOP_MS + 100);
+    expect(client.projectState).toHaveBeenCalledTimes(1);
+    expect(lit()).toBe('p-2:1');
+    dawAt(4.2, 'stopped');
+    // The read had been asked before the stop was announced; it answers with the play it saw.
+    await act(async () => release({ savedAt: null, unsavedChanges: false, playState: 'playing', playPosition: at(1.3) }));
+    expect(lit()).toBe('p-2:1');
+    act(() => page.dispatch({ type: 'place', key: 'p-1:0' }));
+    expect(state().playT).toBeNull();
+  });
+  it('a word table that arrives after a play started lights its word at once, with no new event', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper, null));
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBeNull();
+    view.rerender(tree(api, DAW_SETUPS.reaper, CLOCK));
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
   });
   it('waits for a slow read before asking again', async () => {
     vi.mocked(client.projectState).mockImplementation(() => new Promise(() => {}));
