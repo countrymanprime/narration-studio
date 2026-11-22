@@ -27,6 +27,7 @@ import {
   report,
   packageFolder,
   raceScope,
+  raceSkippedTests,
   splitRacePackages,
   touchedPackages,
   TARGET,
@@ -476,4 +477,21 @@ test('no Go test reads a file under docs/ that the race scope treats as Go-free'
       assert.equal(touchedPackages(FOLDERS, ['src/app/internal/a/a.go', probe]), null, `a Go test reads ${read}, which the race scope treats as Go-free: take it out of GO_FREE in coverage-gate.mjs`);
     }
   }
+});
+
+test('raceSkippedTests names the tests of the files that start with the !race build line, and no other', () => {
+  const files = {
+    'a_test.go': 'package p\n\nfunc TestRaced(t *testing.T) {}\n',
+    'slow_test.go': '//go:build !race\n\npackage p\n\nfunc TestSlowOne(t *testing.T) {}\nfunc TestSlowTwo(t *testing.T) {}\nfunc helper() {}\n',
+    'race_off_test.go': '//go:build !race\n\npackage p\n\nconst raceSlowdown = 1\n',
+    'race_on_test.go': '//go:build race\n\npackage p\n\nfunc TestOnlyRaced(t *testing.T) {}\n',
+    'helper.go': '//go:build !race\n\npackage p\n\nfunc TestNotInATestFile(t *testing.T) {}\n',
+  };
+  const names = raceSkippedTests('dir', () => Object.keys(files), (path) => files[path.replace(/^dir[\\/]/, '')]);
+  assert.deepEqual(names, ['TestSlowOne', 'TestSlowTwo']);
+});
+
+test('the tests this repository keeps out of a raced run are the ones named in the Go tree today', () => {
+  const folder = fileURLToPath(new URL('../../src/studio/desktop/internal/guide', import.meta.url));
+  assert.deepEqual(raceSkippedTests(folder), ['TestBuildMatchesTheSidecar', 'TestCaseFoldingMatchesTheSidecarForEveryCasedCharacter']);
 });
