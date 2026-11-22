@@ -243,6 +243,7 @@ describe('Who records a character with no track?', () => {
     cleanup();
     show({ kind: 'key', key: 11 }, { voices: [...nine, tenth] });
     await userEvent.click(screen.getByRole('radio', { name: /An existing track/ }));
-    expect(screen.getByRole('combobox', { name: 'Track' }).textContent).toContain('V0');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Track' }));
+    expect(screen.getByRole('option', { name: 'Shift + Num 0 · Ten' })).toBeTruthy();
   });
 });

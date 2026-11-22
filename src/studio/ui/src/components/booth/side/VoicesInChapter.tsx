@@ -66,6 +66,8 @@ function VoiceKey({ voice, voiceKeys }: { voice: ChapterVoice; voiceKeys: VoiceK
   if (key) return <Kbd keys={voiceChord({ key })} />;
   const chord = voiceKeys.chordOf?.(voice.id);
   // Shift and the digit alone ("Shift + 1") keep the cap inside the column; the name a screen reader hears is the whole chord.
+  // A voice past nineteen has no key: said plainly, not left looking like a character with no track.
+  if (key === '' && !chord?.length) return <span className="text-xs text-[var(--text-muted)]">No key</span>;
   if (chord?.length) return <Kbd keys={chord.map((cap) => cap.replace(/^Num /, ''))} label={chordText(chord)} />;
   if (key !== undefined || !voiceKeys.speaks(voice.id)) return null;
   return (

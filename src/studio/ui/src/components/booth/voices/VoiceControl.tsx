@@ -20,13 +20,21 @@ const ADD_LANE = 'add-lane';
 const keyLabel = (voice: Voice) => chordText(voiceChord(voice));
 /** The number-pad key as the number alone ("2"); a screen reader still hears which key it is ("Num 2"). */
 function KeyNumber({ voice }: { voice: Voice }) {
+  // Past nineteen a voice has no key at all, and says so; the Narrator always has one.
+  if (voice.notVoice) return null;
   const shifted = !voice.key && voice.shift !== undefined;
-  if (!voice.key && !shifted) return null;
+  const keyless = !voice.key && !shifted;
   return (
     <span className="flex-none font-mono font-semibold whitespace-nowrap text-[var(--text)]">
       {/* A screen reader hears the whole chord ("Shift + Num 1"), not the digit drawn after it. */}
-      <span className="sr-only">{shifted ? chordText(voiceChord(voice)) : 'Num '}</span>
-      {shifted ? <span aria-hidden="true">{`Shift ${voice.shift}`}</span> : voice.key}
+      <span className="sr-only">{keyless ? '' : shifted ? chordText(voiceChord(voice)) : 'Num '}</span>
+      {keyless ? (
+        <span className="font-normal text-[var(--text-muted)]">No key</span>
+      ) : shifted ? (
+        <span aria-hidden="true">{`Shift ${voice.shift}`}</span>
+      ) : (
+        voice.key
+      )}
       <span className="sr-only">, </span>
     </span>
   );

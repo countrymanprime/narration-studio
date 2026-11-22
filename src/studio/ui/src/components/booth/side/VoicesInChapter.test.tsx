@@ -217,6 +217,12 @@ describe('voice keys in a chapter linked to a folder of voices (phase 5)', () =>
     expect(screen.queryByRole('button', { name: 'Add a track for Queen' })).toBeNull();
   });
 
+  it('a character on a voice past nineteen says it has no key, not nothing (#3989)', () => {
+    render(<VoicesInChapter voices={cast} voiceKeys={keys({ keyOf: (id) => (id === 'queen' ? '' : undefined) })} />);
+    expect(screen.getByText('No key')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add a track for Queen' })).toBeNull();
+  });
+
   it('a character with a voice shows its key; a speaker with none offers a track; one only named offers nothing', async () => {
     const voiceKeys = keys();
     render(<VoicesInChapter voices={cast} voiceKeys={voiceKeys} />);
