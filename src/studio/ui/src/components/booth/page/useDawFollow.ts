@@ -3,6 +3,8 @@ import { usePort } from '../../../ports/usePort';
 
 /** How long after the Booth opens a DAW that connects is still followed: one that connected later is not, since the narrator has been working by then. */
 const ASK_FOR_MS = 20_000;
+/** A DAW that says it is reachable but refuses (REAPER is still loading its project) has no event to say it is ready, so that one case is asked again on a timer. */
+const RETRY_REACHABLE_MS = 2000;
 
 /**
  * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW may not have
@@ -35,8 +37,14 @@ export function useFollowDawOnOpen({
     let live = true;
     let inFlight = false;
     let owed = false;
+    let reachable = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = Date.now() + ASK_FOR_MS;
-    const ask = () => {
+    // No answer: a DAW not reachable yet is asked again by its event; one that says it is reachable and still refuses has no event coming, so it is asked again soon.
+    const noAnswer = () => {
+      if (live && reachable && !settled.current && Date.now() < deadline) timer = setTimeout(ask, RETRY_REACHABLE_MS);
+    };
+    function ask() {
       // One ask at a time: an event heard while one is out is answered by one more when it ends.
       if (inFlight) {
         owed = true;
@@ -46,25 +54,28 @@ export function useFollowDawOnOpen({
       void place
         .dawPlace()
         .then((answer) => {
-          if (!live || !answer.ok) return;
+          if (!live) return;
+          if (!answer.ok) return noAnswer();
           settled.current = true;
           if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
         })
-        // A read that failed is the same as one the DAW has not answered: it is asked again when the DAW says it is reachable, until the time is up, and the Booth opens as it would have.
-        .catch(() => {})
+        // A read that failed is the same as one the DAW has not answered, and the Booth opens as it would have.
+        .catch(noAnswer)
         .finally(() => {
           inFlight = false;
           const again = owed;
           owed = false;
           if (live && again && !settled.current && Date.now() < deadline) ask();
         });
-    };
+    }
     ask();
     const off = daw.subscribeCapabilities?.((next) => {
+      reachable = next.reachable;
       if (live && next.reachable && !settled.current && Date.now() < deadline) ask();
     });
     return () => {
       live = false;
+      if (timer !== undefined) clearTimeout(timer);
       off?.();
     };
   }, [ready, place, daw]);
