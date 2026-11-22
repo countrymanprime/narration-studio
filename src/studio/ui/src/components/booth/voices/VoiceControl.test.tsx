@@ -230,8 +230,11 @@ describe('the voice control', () => {
         onOpenChange={vi.fn()}
       />,
     );
-    const row = within(await screen.findByRole('listbox', { name: 'Voices of this chapter' })).getByRole('option', { name: /Dormouse/ });
-    expect(row.textContent).toContain('Shift 1');
-    expect(row.textContent).toContain('Shift + Num');
+    const list = await screen.findByRole('listbox', { name: 'Voices of this chapter' });
+    expect(within(list).getByRole('option', { name: /Dormouse/ }).textContent).toContain('Shift 1');
+    // The accessible name says the chord once ("Shift + Num 1"), not the visible digit after it.
+
+    expect(within(list).getByRole('option', { name: /Shift \+ Num 1/ })).toBeTruthy();
+    expect(within(list).queryByRole('option', { name: /Shift 1/ })).toBeNull();
   });
 });
