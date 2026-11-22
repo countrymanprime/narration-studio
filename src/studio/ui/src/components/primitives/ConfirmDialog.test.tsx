@@ -324,7 +324,7 @@ describe('ConfirmDialog echoGuard', () => {
     );
   }
 
-  it('ignores the second click of a real double click on the control that raised it, and holds nobody else', async () => {
+  it('lets a press with a click count of one through, however soon after the dialog opened', async () => {
     forgetEchoClicks();
     const confirm = vi.fn();
     render(<Raiser echoGuard confirm={confirm} />);

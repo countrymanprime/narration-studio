@@ -15,11 +15,15 @@ for (const gap of [0, 250]) {
     const reaper = page.getByRole('radio', { name: /^REAPER/ });
     if (gap === 0) await reaper.dblclick();
     else {
-      // The dialog hides the radio from role queries once it is open, so its centre is read first.
+      // The dialog hides the radio from role queries once it is open, so its centre is read first, with the radio on screen.
+      await reaper.scrollIntoViewIfNeeded();
       const [x, y] = await centreOf(reaper);
       await reaper.click();
       await page.waitForTimeout(gap);
-      await page.mouse.click(x, y);
+      // The second click of a double click that is slower than a Playwright `dblclick`: the OS counts it (click count two), as the real one would.
+      await page.mouse.move(x, y);
+      await page.mouse.down({ clickCount: 2 });
+      await page.mouse.up({ clickCount: 2 });
     }
     await expect(page.getByRole('alertdialog', { name: 'Unsaved changes' })).toBeVisible();
     await page.waitForTimeout(300);
