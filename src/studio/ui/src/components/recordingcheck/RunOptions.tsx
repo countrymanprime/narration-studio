@@ -2,6 +2,7 @@ import type { CoverageEngine, CoverageEngines } from '../../api/contracts/covera
 import { Checkbox } from '../primitives/Checkbox';
 import { Select } from '../primitives/Select';
 import { Slider } from '../primitives/Slider';
+import { choiceLabel } from '../settings/data/values';
 import { rowOf } from '../settings/registry/rows';
 import { engineOptionLabel } from './checkSelection';
 import { CHAPTERS_AT_ONCE, DOUBT_SHARES, runProblem, runSummary, withChoice, type RunChoices } from './runChoices';
@@ -10,7 +11,8 @@ import { useWorkerPlan, workerPlanSentences } from './workerPlan';
 const engineOptions = (engines: readonly CoverageEngine[]) => engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }));
 
 /** The chunk lengths Settings offers for Coverage chunk length (0 is the whole-recording checkbox), so the dialog and the setting can show the same values. */
-const CHUNK_CHOICES = Object.keys(rowOf('stt.chunk')?.options ?? {})
+const CHUNK_ROW = rowOf('stt.chunk');
+const CHUNK_CHOICES = Object.keys(CHUNK_ROW?.options ?? {})
   .map(Number)
   .filter((seconds) => seconds > 0);
 /** The slider ranges of the Check recordings dialog. A stored setting outside one is shown as it is and the thumb rests at the end. */
@@ -94,7 +96,7 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
             onChange={(value) => onChange({ chunkSeconds: Number(value) })}
             options={(whole ? [0] : withChoice(CHUNK_CHOICES, choices.chunkSeconds)).map((seconds) => ({
               value: String(seconds),
-              label: seconds === 0 ? 'Whole' : `${seconds} s`,
+              label: choiceLabel(CHUNK_ROW, String(seconds)),
             }))}
           />
         </label>

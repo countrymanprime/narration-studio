@@ -681,6 +681,8 @@ export const ROWS: readonly SettingMeta[] = [
     label: 'Preview suggestion',
     scope: 'both',
     def: '',
+    // The preset's two choices (src/studio/desktop/internal/preview Preset): a clean, varied, shareable excerpt versus a passage worth a second look.
+    options: { sample: { label: 'Sample' }, spot_check: { label: 'Spot check' } },
     desc: 'How the sample preview of a chapter is chosen.',
     more: 'Only the preview builder uses these: the sample length, its tolerance and how a spot check is picked. Set here they are the computer’s values, and a project may use its own.',
     used: ['proof'],
@@ -773,6 +775,8 @@ export const ROWS: readonly SettingMeta[] = [
     label: 'Stage suggestions',
     scope: 'both',
     def: '',
+    // Each readiness signal's two policies: it must hold before a stage is suggested, or it is not looked at.
+    options: { required: { label: 'Required' }, ignored: { label: 'Ignored' } },
     desc: 'What the board needs before it suggests the next stage.',
     more: 'The readiness signals the Production board requires or ignores before it suggests a chapter’s next stage. They shape the board they appear on. Set here they are the computer’s values, and a project may use its own.',
     used: ['production'],

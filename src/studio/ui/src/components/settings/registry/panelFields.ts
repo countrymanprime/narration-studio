@@ -1,4 +1,5 @@
-import { ROWS } from './rows';
+import { ROWS, rowOf } from './rows';
+import type { SettingMeta } from './types';
 
 /**
  * The rows whose body is a panel of host fields (`controls/pageOwnedControls.tsx`): the host tool each edits and which of its keys the panel
@@ -21,6 +22,11 @@ export const PANEL_ROWS: Readonly<Record<string, PanelFields>> = {
   'proofing.preview': { tool: 'Preview', wanted: () => true },
   'project.stages': { tool: 'StageRecommendations', wanted: () => true },
 };
+
+/** The row that holds host field `key` of `tool`: the row of its own, else the panel row that draws it; undefined when no row does. */
+export const rowOfField = (tool: string | undefined, key: string): SettingMeta | undefined =>
+  ROWS.find((row) => row.field !== undefined && row.field.tool === tool && row.field.key === key) ??
+  rowOf(Object.entries(PANEL_ROWS).find(([, panel]) => panel.tool === tool && panel.wanted(key))?.[0] ?? '');
 
 /** A value the narrator set, as opposed to one the host holds as its own default (the repo's or a built-in). */
 export const isChosen = (field: { isSet: boolean; effectiveSource: string }): boolean =>
