@@ -1,5 +1,5 @@
 import { creditsKindOfId } from '../../credits/creditsEntries';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
@@ -8,12 +8,17 @@ import type { CreditsKind } from '../readerModel';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
-import { useJournalOrOwn } from '../../../studio/StudioProvider';
+import { useJournalOrOwn, useOptionalStoreHandle } from '../../../studio/StudioProvider';
 import { useChapters } from '../../../studio/useChapters';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 const NONE: never[] = [];
+const noSubscribe = () => () => undefined;
+
+/** Whether two reads of a chapter are the same chapter to the Booth: what a take changes (how far it is recorded) is not part of it. */
+const sameChapter = (a: ManuscriptChapter, b: ManuscriptChapter) =>
+  a.id === b.id && a.title === b.title && a.subtitle === b.subtitle && a.index === b.index && a.isCredits === b.isCredits && a.contentKind === b.contentKind;
 
 type SourceChapter = Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle'>;
 
@@ -68,19 +73,34 @@ export function useBoothData(target: BoothChapterTarget | null) {
   const [types, setTypes] = useState<GuideType[]>(NONE);
   const { previews, loaded: creditsLoaded } = useCreditsPreviews();
 
-  // The chapter list is the store's, shared with every page: opening the Booth does not read it again. `reload` asks the store for it now (Retry, and after a take).
+  // The chapter list is the store's, shared with every page: opening the Booth does not read it again. `reload` asks the store for it now (after a take).
   const [reload, setReload] = useState(0);
   const { chapters: held, error: listError } = useChapters(true, reload);
-  const [hostRead, setHostRead] = useState(false);
-  const [running, setRunning] = useState<string | undefined>();
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>();
-  const [fallback, setFallback] = useState('');
-  const [retriedFrom, setRetriedFrom] = useState<Error>();
+  const store = useOptionalStoreHandle();
+  // Each reset of the store is a project switch: the chapter the page opens on is chosen again for the new project.
+  const generation = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.generation() ?? 0,
+    () => 0,
+  );
 
-  // How far each chapter is recorded, from the store's list, so a chapter the narrator comes back to opens where the take they just made ends; the
-  // chapters themselves are not replaced once shown, so nothing on the page re-renders. Each entry is the chapter's `recordedThrough` AND whether its
-  // track holds audio, from the same read (`RecordedAt`): a new list replaces the pairs together.
-  const recordedAt = useMemo<Record<string, RecordedAt>>(() => (held ? recordedOf(held.filter(isNarrationChapter)) : {}), [held]);
+  // The narration chapters follow the store's list (a re-split, a chapter added while the Booth is open, a project switch). The array is kept as it was while
+  // only what a take changes (how far a chapter is recorded) moved, so a take does not re-render what is built from the chapters.
+  const narration = useMemo(() => held?.filter(isNarrationChapter), [held]);
+  const shown = useRef<ManuscriptChapter[]>(undefined);
+  const chapters = useMemo(() => {
+    if (!narration) return undefined;
+    const before = shown.current;
+    const same = before && before.length === narration.length && before.every((item, i) => sameChapter(item, narration[i]!));
+    return same ? before : narration;
+  }, [narration]);
+  useEffect(() => {
+    shown.current = chapters;
+  }, [chapters]);
+
+  // How far each chapter is recorded, from the store's list, so a chapter the narrator comes back to opens where the take they just made ends. Each entry is
+  // the chapter's `recordedThrough` AND whether its track holds audio, from the same read (`RecordedAt`): a new list replaces the pairs together.
+  const recordedAt = useMemo<Record<string, RecordedAt>>(() => (narration ? recordedOf(narration) : {}), [narration]);
   const recorded = useMemo<Record<string, RecordedThrough>>(
     () => Object.fromEntries(Object.entries(recordedAt).map(([id, at]) => [id, at.through])),
     [recordedAt],
@@ -88,29 +108,57 @@ export function useBoothData(target: BoothChapterTarget | null) {
   // After a take the list is read now rather than waiting for the store's record-end event; a failure keeps what was read before.
   const refreshRecorded = useCallback(() => setReload((n) => n + 1), []);
 
+  // The running session picks the chapter the page opens on. It is read for each project and each Retry, and the choice below waits for the read of its own
+  // generation and attempt, so an old answer never picks the chapter.
   const [attempt, setAttempt] = useState(0);
+  const [host, setHost] = useState<{ generation: number; attempt: number; running: string | undefined }>();
   useEffect(() => {
     let live = true;
     void teleprompter
       .teleprompterState()
       .catch(() => undefined)
-      .then((host) => {
-        if (!live) return;
-        setRunning(host && host.phase !== 'idle' && host.phase !== 'stopped' ? (host.chapter ?? undefined) : undefined);
-        setHostRead(true);
-      });
+      .then(
+        (state) =>
+          live &&
+          setHost({ generation, attempt, running: state && state.phase !== 'idle' && state.phase !== 'stopped' ? (state.chapter ?? undefined) : undefined }),
+      );
     return () => {
       live = false;
     };
-  }, [teleprompter, attempt]);
+  }, [teleprompter, generation, attempt]);
+  const hostRead = host && host.generation === generation && host.attempt === attempt ? host : undefined;
+  const [chosen, setChosen] = useState<{ generation: number; id: string }>();
   useEffect(() => {
-    if (!held || !hostRead || chapters) return;
-    const narration = held.filter(isNarrationChapter);
-    setChapters(narration);
+    if (!narration || !hostRead || chosen?.generation === generation) return;
     // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
-    setFallback(narration.find((item) => item.id === running)?.id ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '');
-  }, [held, hostRead, running, chapters]);
-  const failed = !held && listError && listError !== retriedFrom ? listError : undefined;
+    const id = narration.find((item) => item.id === hostRead.running)?.id ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '';
+    setChosen({ generation, id });
+  }, [narration, hostRead, generation, chosen]);
+  const fallback = chosen?.generation === generation ? chosen.id : '';
+
+  // A Retry reads the list now and shows the skeleton until that read ends, whatever the failure is (the same Error object may come back); a Booth opened on
+  // a list whose read failed does the same for its own read.
+  const [retrying, setRetrying] = useState(() => Boolean(store && !store.getState().slots.chapters && store.getState().errors.chapters));
+  const reading = useRef(false);
+  const readAgain = useCallback(() => {
+    // A second press while the read is out reads nothing more.
+    if (!store || reading.current) return;
+    reading.current = true;
+    setRetrying(true);
+    void store
+      .load('chapters')
+      .catch(() => undefined)
+      .then(() => {
+        reading.current = false;
+        setRetrying(false);
+      });
+  }, [store]);
+  useEffect(() => {
+    if (retrying) readAgain();
+    // Only the first render asks: a Retry asks for itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const failed = !held && listError && !retrying ? listError : undefined;
   const error = failed ? apiErrorMessage(failed) : '';
   const errorDetails = failed ? apiErrorDetails(failed) : undefined;
 
@@ -136,10 +184,9 @@ export function useBoothData(target: BoothChapterTarget | null) {
 
   // Retry: clears the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
   const retry = useCallback(() => {
-    setRetriedFrom(listError);
-    setReload((n) => n + 1);
+    readAgain();
     setAttempt((n) => n + 1);
-  }, [listError]);
+  }, [readAgain]);
 
   const chapterId = target ? target.chapter : fallback;
   const chapter = chapters?.find((item) => item.id === chapterId);

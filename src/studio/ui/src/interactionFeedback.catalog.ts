@@ -275,10 +275,12 @@ export const SILENT_CATCHES: Record<string, string> = {
   // The new Booth page (SN-O102): secondary reads that only add to a chapter that already reads.
   'src/components/booth/page/useBoothData.ts#1': 'The credits templates only decide whether the picker offers the credits; with none, it offers the chapters.',
   'src/components/booth/page/useBoothData.ts#2': 'The running session only picks the default chapter; the first chapter is used without it.',
-  'src/components/booth/page/useBoothData.ts#3': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
-  'src/components/booth/page/useBoothData.ts#4':
+  'src/components/booth/page/useBoothData.ts#3':
+    "A Retry or a Booth opened on a failed list reads the chapter list again: the failure is recorded in the store's `errors` and the page shows it as its alert with Retry, so the rejection has nobody left to tell.",
+  'src/components/booth/page/useBoothData.ts#4': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
+  'src/components/booth/page/useBoothData.ts#5':
     'The Story Bible types only colour the names and speakers; without them every entry keeps the fallback colour and the page still opens.',
-  'src/components/booth/page/useBoothData.ts#5': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
+  'src/components/booth/page/useBoothData.ts#6': 'The dialogue cues only add speaker chips; without them every phrase reads as narration.',
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };
