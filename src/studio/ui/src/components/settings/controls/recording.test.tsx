@@ -31,6 +31,15 @@ function RegistryProbe() {
   return null;
 }
 
+// Types an out-of-range value into the backups row and waits until the registry holds it. The box is looked up again on every try: the section can be
+// rebuilt once while the page reads which tool the project records with, and a box found before that is gone.
+async function typeHeldBackupsValue(): Promise<void> {
+  await waitFor(() => {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Keep backups for (days)' }), { target: { value: '999' } });
+    expect(registry.heldNow().length).toBeGreaterThan(0);
+  });
+}
+
 async function renderPage({
   api = createMockApi(),
   category,
@@ -260,10 +269,7 @@ describe('Recording & DAW: Record with', () => {
     // The shell's question (App.tsx), stood in for: it holds the move when something is held, as the real one does.
     const held: (() => void)[] = [];
     registry.setShell({ ask: (run) => (registry.heldNow().length > 0 ? held.push(run) : run()), go: vi.fn() });
-    const days = await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
-    fireEvent.change(days, { target: { value: '999' } });
-    // The value is held by the registry once the section has rendered it (it must not be remounted by the tool read arriving).
-    await waitFor(() => expect(registry.heldNow().length).toBeGreaterThan(0));
+    await typeHeldBackupsValue();
     fireEvent.click(screen.getByRole('radio', { name: /^REAPER/ }));
     await waitFor(() => expect(held).toHaveLength(1));
     expect(choose).not.toHaveBeenCalled();
@@ -300,9 +306,7 @@ describe('Recording & DAW: Record with', () => {
     await renderPage({ api, category: 'Recording & DAW' });
     const held: (() => void)[] = [];
     registry.setShell({ ask: (run) => (registry.heldNow().length > 0 ? held.push(run) : run()), go: vi.fn() });
-    const days = await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
-    fireEvent.change(days, { target: { value: '999' } });
-    await waitFor(() => expect(registry.heldNow().length).toBeGreaterThan(0));
+    await typeHeldBackupsValue();
     fireEvent.click(screen.getByRole('radio', { name: /^Built-in/ }));
     const stop = await screen.findByRole('alertdialog');
     expect(held).toHaveLength(0);
