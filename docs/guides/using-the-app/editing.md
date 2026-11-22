@@ -88,7 +88,7 @@ Beside the clock, the **Output** group sets what you hear, not what is recorded.
 **Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
 default, or one of this computer's outputs. A speed other than 1× is also written beside the buttons. The choices apply to the chapter and to a take you play on this page, and are kept for this
 computer, not for the project. A saved output that is not connected stays chosen with "(not connected)", the sound plays on the system default meanwhile, and **Check again** reads the list; an
-output the computer gives no name is listed as Output 1, Output 2 in the order the computer gives them, and a computer that will not list its outputs says so in a message and leaves the system default. With REAPER connected and **Set the monitor level** on in [Settings](settings.md), the popover also has REAPER's monitor level,
+output the computer gives no name is listed as Output 1, Output 2 in the order the computer gives them, and a computer that will not list its outputs says so in a message when you press **Check again**, and leaves the system default. With REAPER connected and **Set the monitor level** on in [Settings](settings.md), the popover also has REAPER's monitor level,
 which sets REAPER's own output when REAPER plays and does not change the app's sound.
 
 ![Editing - the Output popover open over the bar: the speed, the volume, the output device and REAPER's monitor level](../../images/ui/editing-output.webp)

@@ -27,7 +27,6 @@ export interface EditingOutputProps {
 /** The page's output controls with the computer's outputs and, with a DAW that can set it, the DAW's monitor level. */
 export function EditingOutput({ prefs, onChange, caps }: EditingOutputProps) {
   const { listing, refresh } = useOutputDevices({
-    quiet: true,
     saved: prefs.device,
     missingSentence: (name) => missingOutputSentence(name, 'Sound plays'),
   });

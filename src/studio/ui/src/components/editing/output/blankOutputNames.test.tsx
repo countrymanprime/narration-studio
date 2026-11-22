@@ -51,17 +51,6 @@ describe('the Editing page output list', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('a list that throws is said once as a toast, and every press of Check again says it again', async () => {
-    enumerate.mockRejectedValue(new Error('NotAllowedError'));
-    const toast = vi.spyOn(overlay, 'toast');
-    const { result } = renderHook(() => useOutputDevices());
-    await waitFor(() => expect(result.current.listing.phase).toBe('ready'));
-    expect(toast).toHaveBeenCalledTimes(1);
-    act(() => result.current.refresh());
-    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
-    expect(result.current.listing).toMatchObject({ phase: 'ready', status: 'unavailable' });
-  });
-
   it('a press of Check again with the saved output still missing says so again; the first read says nothing', async () => {
     devices = [{ kind: 'audiooutput', deviceId: 'a1', label: 'Speakers' }];
     const toast = vi.spyOn(overlay, 'toast');
@@ -70,19 +59,6 @@ describe('the Editing page output list', () => {
     expect(toast).not.toHaveBeenCalled();
     act(() => result.current.refresh());
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Studio monitors is gone.'));
-    act(() => result.current.refresh());
-    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
-  });
-
-  it('a refusal is said once, not again on every later read, and again on a press', async () => {
-    enumerate.mockRejectedValue(new Error('NotAllowedError'));
-    const toast = vi.spyOn(overlay, 'toast');
-    const { result } = renderHook(() => useOutputDevices());
-    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
-    act(() => void window.dispatchEvent(new Event('focus')));
-    act(() => void window.dispatchEvent(new Event('focus')));
-    await waitFor(() => expect(enumerate).toHaveBeenCalledTimes(3));
-    expect(toast).toHaveBeenCalledTimes(1);
     act(() => result.current.refresh());
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
   });
@@ -102,13 +78,29 @@ describe('the Editing page output list', () => {
     expect(toast).not.toHaveBeenCalled();
   });
 
-  it('a quiet reader says nothing on its own reads and answers a press of Check again', async () => {
+  it('a list that throws says nothing on its own reads, and each press of Check again answers', async () => {
     enumerate.mockRejectedValue(new Error('NotAllowedError'));
     const toast = vi.spyOn(overlay, 'toast');
-    const { result } = renderHook(() => useOutputDevices({ quiet: true }));
+    const { result } = renderHook(() => useOutputDevices());
     await waitFor(() => expect(result.current.listing.phase).toBe('ready'));
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(enumerate).toHaveBeenCalledTimes(2));
     expect(toast).not.toHaveBeenCalled();
     act(() => result.current.refresh());
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    act(() => result.current.refresh());
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
+  });
+
+  it('a press overtaken by a focus read is still answered', async () => {
+    enumerate.mockRejectedValue(new Error('NotAllowedError'));
+    const toast = vi.spyOn(overlay, 'toast');
+    const { result } = renderHook(() => useOutputDevices());
+    await waitFor(() => expect(result.current.listing.phase).toBe('ready'));
+    act(() => {
+      result.current.refresh();
+      window.dispatchEvent(new Event('focus'));
+    });
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
   });
 });

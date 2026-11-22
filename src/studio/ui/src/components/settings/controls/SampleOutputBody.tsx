@@ -43,7 +43,6 @@ export function SampleOutputBody() {
   const { project } = store.fieldsOf(row);
   const value = project?.effectiveValue ?? '';
   // The one reader of this computer's outputs (also the Editing popover's): its refusals are toasts, again on every Check again (#4044).
-  const builtin = !(engine === 'daw' && hasProject);
   const [checkedAt, markChecked, reads] = useCheckedAt();
   const {
     listing,
@@ -52,8 +51,6 @@ export function SampleOutputBody() {
   } = useOutputDevices({
     saved: engine === 'builtin' ? value : '',
     missingSentence: (name) => missingOutputSentence(name, 'Voice samples play'),
-    quiet: true,
-    announce: builtin,
   });
 
   // The engine is read when the row opens and again whenever "Record with" is changed on this page.

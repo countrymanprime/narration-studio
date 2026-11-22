@@ -4,42 +4,38 @@ import { listAudioOutputs, type OutputListing } from '../../voicesamples/audioOu
 
 export type DeviceListing = { phase: 'loading' } | ({ phase: 'ready'; checkedAt: number } & OutputListing);
 
-/** What the list says besides its own refusal, for the pages that keep a saved output. */
+/** What a press of Check again says besides the list's own refusal, for the pages that keep a saved output. */
 export type OutputDevicesOptions = {
   /** The saved output's name, '' when none. */
   saved?: string;
   /** The sentence for a saved output that is not in the list. */
   missingSentence?: (saved: string) => string;
-  /** False while the page does not use the list (a DAW's own output): nothing is said. */
-  announce?: boolean;
-  /** Says nothing on its own reads, only when Check again is pressed: for a page where the list is a side detail (the Editing popover, Settings > Editing playback). */
-  quiet?: boolean;
 };
 
 /**
  * This computer's outputs, read when the page opens, when the window gets focus and when the computer says one came or went; `refresh` reads them now.
- * A refusal (the list would not come, or the saved output is gone) is said as a toast, never as red text in the page (#4044): once when it starts, and
- * again on every press of Check again, so a press never looks dead.
+ * The reads say nothing on their own (opening a page raises no toast about a detail the narrator did not touch); a press of Check again always
+ * answers, as a toast, never as red text in the page (#4044): the list would not come, or the saved output is gone, again on every press.
  */
 export function useOutputDevices(options: OutputDevicesOptions = {}): { listing: DeviceListing; refresh: () => void; watch: () => void } {
   const [listing, setListing] = useState<DeviceListing>({ phase: 'loading' });
   // Only the newest read is shown: an older answer that arrives late would put back a list from before an output was plugged in (qa-breaker B4).
   const latest = useRef(0);
-  const said = useRef<string | null>(null);
+  // A press whose read was overtaken by a newer read (focus, devicechange) is still answered by that newer read.
+  const owed = useRef(false);
   const now = useRef(options);
   now.current = options;
   const read = useCallback((pressed: boolean) => {
     const mine = ++latest.current;
+    if (pressed) owed.current = true;
     void listAudioOutputs().then((result) => {
       if (mine !== latest.current) return;
       const o = now.current;
-      let sentence: string | null = null;
-      if (o.announce !== false && (pressed || !o.quiet)) {
-        if (result.status === 'unavailable') sentence = result.message;
-        else if (o.saved && o.missingSentence && !result.outputs.some((out) => out.label === o.saved) && pressed) sentence = o.missingSentence(o.saved);
+      if (owed.current) {
+        owed.current = false;
+        if (result.status === 'unavailable') overlay.toast(result.message);
+        else if (o.saved && o.missingSentence && !result.outputs.some((out) => out.label === o.saved)) overlay.toast(o.missingSentence(o.saved));
       }
-      if (sentence && (pressed || sentence !== said.current)) overlay.toast(sentence);
-      said.current = sentence;
       setListing({ phase: 'ready', checkedAt: Date.now(), ...result });
     });
   }, []);
