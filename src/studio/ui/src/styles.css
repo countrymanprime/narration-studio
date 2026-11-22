@@ -86,6 +86,9 @@ html[data-motion='reduce'] {
 :root {
   --bg: #efede7;
   --surface: #fbfaf7;
+  /* The cue of a box that scrolls (`scroll-x-edges`, `scroll-y-edges`): a shade at the edge that has more beyond it. Black on a light surface,
+     a light glow on a dark one (a black shade is invisible there); src/scrollEdges.test.ts holds each to a visible step off --surface. */
+  --scroll-edge: rgba(0, 0, 0, 0.2);
   --surface-2: #f4f2ec;
   --surface-3: #dcd8cd;
   --border: #dcd7cb;
@@ -275,6 +278,7 @@ html[data-motion='reduce'] {
 :root[data-theme='dark'] {
   --bg: #14120e;
   --surface: #1d1a15;
+  --scroll-edge: rgba(255, 255, 255, 0.2);
   --surface-2: #26221c;
   --surface-3: #363023;
   --skeleton: var(--surface-3);
@@ -489,15 +493,15 @@ html[data-motion='reduce'] {
     background:
       linear-gradient(to right, var(--surface) 30%, transparent) left center / 2rem 100% no-repeat local,
       linear-gradient(to left, var(--surface) 30%, transparent) right center / 2rem 100% no-repeat local,
-      linear-gradient(to right, rgb(0 0 0 / 0.2), transparent) left center / 0.75rem 100% no-repeat scroll,
-      linear-gradient(to left, rgb(0 0 0 / 0.2), transparent) right center / 0.75rem 100% no-repeat scroll;
+      linear-gradient(to right, var(--scroll-edge), transparent) left center / 0.75rem 100% no-repeat scroll,
+      linear-gradient(to left, var(--scroll-edge), transparent) right center / 0.75rem 100% no-repeat scroll;
   }
   /* Its vertical twin, for a box that scrolls up and down inside a dialog (Check recordings' form, alignment audit XPF-2). */
   .scroll-y-edges {
     background:
       linear-gradient(var(--surface) 30%, transparent) center top / 100% 2rem no-repeat local,
       linear-gradient(to top, var(--surface) 30%, transparent) center bottom / 100% 2rem no-repeat local,
-      linear-gradient(rgb(0 0 0 / 0.2), transparent) center top / 100% 0.75rem no-repeat scroll,
-      linear-gradient(to top, rgb(0 0 0 / 0.2), transparent) center bottom / 100% 0.75rem no-repeat scroll;
+      linear-gradient(var(--scroll-edge), transparent) center top / 100% 0.75rem no-repeat scroll,
+      linear-gradient(to top, var(--scroll-edge), transparent) center bottom / 100% 0.75rem no-repeat scroll;
   }
 }
