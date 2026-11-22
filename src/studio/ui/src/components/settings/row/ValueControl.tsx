@@ -1,11 +1,9 @@
-import { useId } from 'react';
 import type { ScopedSettingField } from '../../../types';
 import { ColourField } from '../../primitives/ColourField';
 import { Select } from '../../primitives/Select';
 import { useSettledDraft } from '../../primitives/settledDraft';
 import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
-import { describeNumberRange } from '../numberSetting';
 import { choiceLabel } from '../data/values';
 import type { SettingMeta } from '../registry/types';
 import { SettingNumber } from '../value/SettingNumber';
@@ -22,8 +20,6 @@ const PLACEHOLDER: Record<string, string> = {
   'daw.reaperPath': 'C:\\Program Files\\REAPER\\reaper.exe',
   'project.narrator': 'Your name as the narrator',
 };
-// A number's range is a note, in the row's 13 px note size (alignment audit XSE2-37).
-const NOTE = 'text-[0.8125rem]';
 
 export type ValueControlProps = {
   row: SettingMeta;
@@ -81,8 +77,6 @@ function SettledBox({
 /** The control for one value of a plain setting, by the kind the host reports. */
 export function ValueControl({ row, field, value, which, id, describedBy, invalid, disabled, onChange }: ValueControlProps) {
   const name = row.label + (which ? ` (${which})` : '');
-  // A number box's range note is part of what describes the box, after the row's own description.
-  const noteId = useId();
   if (field.kind === 'bool') {
     const on = value === 'true';
     return (
@@ -110,29 +104,23 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
     );
   }
   if (field.kind === 'number' && field.number) {
-    const range = describeNumberRange(field.number);
+    // The range note under the box describes it after the row's own description (alignment audit XSE2-37).
     return (
-      <span className="flex flex-col gap-1">
-        <SettingNumber
-          id={id}
-          label={name}
-          value={value}
-          range={field.number}
-          unit={row.unit}
-          commit="settle"
-          allowEmpty
-          disabled={disabled}
-          invalid={invalid}
-          describedBy={range ? [describedBy, noteId].filter(Boolean).join(' ') : describedBy}
-          className={NUMBER_WIDTH}
-          onChange={onChange}
-        />
-        {range && (
-          <span id={noteId} className={`${NOTE} text-[var(--text-muted)]`}>
-            {range}
-          </span>
-        )}
-      </span>
+      <SettingNumber
+        id={id}
+        label={name}
+        value={value}
+        range={field.number}
+        unit={row.unit}
+        commit="settle"
+        allowEmpty
+        disabled={disabled}
+        invalid={invalid}
+        describedBy={describedBy}
+        showRange
+        className={NUMBER_WIDTH}
+        onChange={onChange}
+      />
     );
   }
   if (field.kind === 'color') {

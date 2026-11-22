@@ -19,6 +19,8 @@ type SettingNumberProps = {
   placeholder?: string;
   id?: string;
   describedBy?: string;
+  /** Writes the range ("From 0 to 10 s") as a muted note under the box, describing it after `describedBy`. */
+  showRange?: boolean;
   disabled?: boolean;
   invalid?: boolean;
   /** The box's width. */
@@ -71,6 +73,7 @@ export function SettingNumber({
   placeholder,
   id,
   describedBy,
+  showRange = false,
   disabled,
   invalid,
   className,
@@ -78,13 +81,15 @@ export function SettingNumber({
   // The value a save in flight is carrying is shown until that save ends, so the box does not fall back to the old value while the host answers.
   const { shown, send } = useValueInFlight(value, onChange);
   const unitId = useId();
+  const noteId = useId();
+  const note = showRange ? describeNumberRange(range) : '';
   const isJunk = shown.trim() !== '' && stored(shown) === null;
   // Only a value past the range is marked, not one between steps: on main the host's own defaults for the cleanup levels (12 and 30 dB on a
   // 0.5 step counted from 0.1) sit between its steps, and a default must not read as an error.
   const n = stored(shown);
   const isRefused = isJunk || (n !== null && ((range.min !== null && n < range.min) || (range.max !== null && n > range.max)));
   const shownUnit = unit ?? range.unit;
-  // A range note names the unit, and the caller ties its note to the box; with no range to note, the unit beside the box is its description.
+  // A range note names the unit, so it describes the box (this one, or the caller's); with no range to note, the unit beside the box is.
   const describesByUnit = shownUnit !== '' && describeNumberRange(range) === '';
   const report = (n: number | null): void => {
     if (n === null) {
@@ -94,7 +99,7 @@ export function SettingNumber({
     const next = acceptedNumberText(range, n);
     if (next !== undefined) send(next);
   };
-  return (
+  const box = (
     <span className="flex min-w-0 items-center gap-2">
       <NumberInput
         allowEmpty
@@ -110,7 +115,7 @@ export function SettingNumber({
         disabled={disabled}
         invalid={invalid || isRefused}
         placeholder={placeholder ?? (isJunk ? shown : undefined)}
-        aria-describedby={[describedBy, describesByUnit ? unitId : ''].filter(Boolean).join(' ') || undefined}
+        aria-describedby={[describedBy, note ? noteId : '', describesByUnit ? unitId : ''].filter(Boolean).join(' ') || undefined}
         onValueChange={report}
       />
       {shownUnit && (
@@ -118,6 +123,16 @@ export function SettingNumber({
           {shownUnit}
         </span>
       )}
+    </span>
+  );
+  if (!note) return box;
+  // The note hangs under the box, so a row that lines its label up with the box (`items-start`) keeps them level.
+  return (
+    <span className="flex flex-col gap-1">
+      {box}
+      <span id={noteId} className="text-[0.8125rem] text-[var(--text-muted)]">
+        {note}
+      </span>
     </span>
   );
 }

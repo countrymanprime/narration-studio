@@ -279,4 +279,24 @@ describe('SettingNumber', () => {
     rerender(<SettingNumber label="Gap" value="2" range={CAP} commit="settle" describedBy="about note" onChange={vi.fn()} />);
     expect(box().getAttribute('aria-describedby')).toBe('about note');
   });
+
+  it('showRange writes the range under the box, describing it after the caller’s description; with no range to note it writes nothing', () => {
+    const { rerender } = render(<SettingNumber label="Gap" value="2" range={CAP} commit="settle" describedBy="about" showRange onChange={vi.fn()} />);
+    const [about, note] = (box().getAttribute('aria-describedby') ?? '').split(' ');
+    expect(about).toBe('about');
+    expect(document.getElementById(note)?.textContent).toBe('From 1 to 100 %');
+    rerender(
+      <SettingNumber
+        label="Gap"
+        value="2"
+        range={{ min: null, max: null, step: 1, unit: '' }}
+        commit="settle"
+        describedBy="about"
+        showRange
+        onChange={vi.fn()}
+      />,
+    );
+    expect(box().getAttribute('aria-describedby')).toBe('about');
+    expect(screen.queryByText(/^From /)).toBeNull();
+  });
 });
