@@ -1,3 +1,5 @@
+import { clamp } from '../../../clamp';
+
 /** The sound of the chapter on the document's clock: `level[i]` (0 to 1) is the loudest sample in `[start + i * step, start + (i + 1) * step)`. */
 export interface Envelope {
   start: number;
@@ -66,5 +68,3 @@ export function audioTail(env: Envelope, wordStart: number, end: number, limit: 
   if (over < loudest) return soundEnds;
   return clamp(start + (join + 0.5) * step, end, limit);
 }
-
-const clamp = (t: number, low: number, high: number): number => Math.max(low, Math.min(t, high));

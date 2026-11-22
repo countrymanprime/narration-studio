@@ -1,3 +1,4 @@
+import { clamp } from '../../clamp';
 import type { CoverageEngine, CoverageEngines } from '../../api/contracts/coverage';
 import { Checkbox } from '../primitives/Checkbox';
 import { Select } from '../primitives/Select';
@@ -20,7 +21,6 @@ const OVERLAP_RANGE = { min: 0, max: 10, step: 1 };
 const WORKER_RANGE = { min: 1, max: 8, step: 1 };
 /** Where the chunk length lands when "Transcribe each recording whole" is turned off. */
 const UNWHOLE_CHUNK_DEFAULT = 60;
-const clampTo = (value: number, range: { min: number; max: number }): number => Math.min(range.max, Math.max(range.min, value));
 
 const LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
 
@@ -108,7 +108,7 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
           max={OVERLAP_RANGE.max}
           step={OVERLAP_RANGE.step}
           disabled={whole}
-          value={clampTo(choices.overlapSeconds, OVERLAP_RANGE)}
+          value={clamp(choices.overlapSeconds, OVERLAP_RANGE.min, OVERLAP_RANGE.max)}
           onValueChange={(overlapSeconds) => onChange({ overlapSeconds })}
         />
         {/* Each hint sits under the controls it explains (alignment audit XPF-20). */}
@@ -121,10 +121,14 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
           max={WORKER_RANGE.max}
           step={WORKER_RANGE.step}
           disabled={whole || automatic}
-          value={clampTo(whole ? 1 : choices.workers, WORKER_RANGE)}
+          value={clamp(whole ? 1 : choices.workers, WORKER_RANGE.min, WORKER_RANGE.max)}
           onValueChange={(workers) => onChange({ workers })}
         />
-        <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
+        <Checkbox
+          checked={automatic && !whole}
+          disabled={whole}
+          onChange={(on) => onChange({ workers: on ? 0 : clamp(cpus, WORKER_RANGE.min, WORKER_RANGE.max) })}
+        >
           Automatic: plan it from the processors, the free memory and the model
         </Checkbox>
         {/* A reserved slot: the plan arrives after the dialog opens and changes with the choices, so it holds three lines and moves nothing. */}
