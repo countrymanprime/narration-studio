@@ -433,17 +433,77 @@ describe('CompareRun "may have changed since comparison"', () => {
       await waitFor(() => expect(screen.getByText(/may have changed/)).toBeTruthy());
     });
 
-    it('listens only while results are shown: it lets go when they close, and a late edit does nothing', async () => {
-      const { api, emit, off } = quietApi();
+    it('listens only while results are shown: when they close, an edit is not compared and no note shows', async () => {
+      let listener: (edit: { changeCount: number }) => void = () => {};
+      const off = vi.fn(() => {
+        listener = () => {};
+      });
+      const subscribeDawProjectEdited = vi.fn((next: typeof listener) => ((listener = next), off));
+      const projectStateCheck = vi.fn().mockResolvedValue({ status: 'started' as const });
+      const projectStateChangedSince = vi.fn(async (current: number, baseline: number) => ({ changed: current !== baseline }));
+      const api = createMockApi({ subscribeDawProjectEdited, projectStateCheck, projectStateChangedSince } as never);
       const view = render(
         <ApiProvider api={api}>
           <CompareRun {...resultsProps()} />
         </ApiProvider>,
       );
       await screen.findByText(/2 discrepancies/);
-      view.unmount();
+      const heard = listener;
+      view.rerender(
+        <ApiProvider api={api}>
+          <CompareRun {...resultsProps({ state: { ...WIRE_TRANSCRIPT, phase: 'idle', projectChangeCount: 41 } })} />
+        </ApiProvider>,
+      );
       expect(off).toHaveBeenCalled();
-      emit({ changeCount: 50 });
+      const compared = projectStateChangedSince.mock.calls.length;
+      // The listener that was heard before the results closed is ignored, and so is any later one.
+      act(() => heard({ changeCount: 50 }));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(projectStateChangedSince.mock.calls.length).toBe(compared);
+      expect(screen.queryByText(/may have changed/)).toBeNull();
+    });
+
+    it('a check that fails is asked again soon, not left to the backstop, because the edits made earlier are not announced again', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        let asked = 0;
+        const projectStateCheck = vi.fn(async () => {
+          if (++asked === 1) throw new Error('REAPER is not answering');
+          return { status: 'started' as const };
+        });
+        render(
+          <ApiProvider api={createMockApi({ projectStateCheck } as never)}>
+            <CompareRun {...resultsProps()} />
+          </ApiProvider>,
+        );
+        await screen.findByText(/2 discrepancies/);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(5_100)));
+        expect(projectStateCheck).toHaveBeenCalledTimes(2);
+        // The retries stop at two; after that only the backstop asks.
+        await act(async () => void (await vi.advanceTimersByTimeAsync(60_000)));
+        expect(projectStateCheck.mock.calls.length).toBeLessThanOrEqual(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('the note of an earlier baseline is cleared when the results switch to another comparison, until its count is known', async () => {
+      const results = (count: number) => ({ ...WIRE_TRANSCRIPT, phase: 'success' as const, rows: WIRE_DISCREPANCIES, projectChangeCount: count });
+      const view = render(
+        <ApiProvider api={createMockApi()}>
+          <CompareRun {...resultsProps({ state: results(41) })} />
+        </ApiProvider>,
+      );
+      await waitFor(() => expect(screen.getByText(/may have changed/)).toBeTruthy());
+      const quiet = createMockApi({ projectStateCheck: vi.fn().mockRejectedValue(new Error('x')) } as never);
+      view.rerender(
+        <ApiProvider api={quiet}>
+          <CompareRun {...resultsProps({ state: results(7) })} />
+        </ApiProvider>,
+      );
+      await screen.findByText(/2 discrepancies/);
+      expect(screen.queryByText(/may have changed/)).toBeNull();
     });
 
     it('asks REAPER once when the results open, then only on a slow backstop, not every 30 s', async () => {
