@@ -5,7 +5,8 @@ import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
-import { useChapters } from '../../studio/useChapters';
+import { usePort } from '../../ports/usePort';
+import { useOptionalStoreHandle } from '../../studio/StudioProvider';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
 import { Panel } from '../primitives/Panel';
@@ -97,32 +98,19 @@ function EditingLoaded({
   dawConnectGraceMs = DAW_CONNECT_GRACE_MS,
   projectFolder = '',
 }: EditingPageProps) {
+  const manuscript = usePort('manuscript');
   const keymap = useUserKeymap();
   const daw = useDawStatus();
   // The DAW dialog is the shared chip's (`DawConnectionChip`); the page is told when it is up, so the chapter-link dialog waits for it.
   const [dawDialogOpen, setDawDialogOpen] = useState(false);
   const panels = usePanels(drawer);
   const width = useWindowWidth();
-  // The chapter list is the store's, shared with every page: opening the Editor does not read it again. A Retry, and a project that changed under the page,
-  // ask the store for it now.
-  const [retries, setRetries] = useState(0);
-  const folderChanges = useRef(0);
-  const folderOf = useRef(projectFolder);
-  const lastList = useRef<readonly ManuscriptChapter[] | undefined>(undefined);
-  const staleList = useRef<readonly ManuscriptChapter[] | undefined>(undefined);
-  if (folderOf.current !== projectFolder) {
-    folderOf.current = projectFolder;
-    folderChanges.current += 1;
-    staleList.current = lastList.current;
-  }
-  const { chapters: held, error: listError, refreshing } = useChapters(true, retries + folderChanges.current);
-  lastList.current = held;
-  const chapters = useMemo(() => (held ? held.filter(isNarrationChapter) : null), [held]);
-  // The project the chapters in `chapters` were read for: the list the store held when the project changed is the old project's until a newer one arrives.
-  const chaptersOf = held && held !== staleList.current ? projectFolder : '';
-  const failed = !held && listError && !refreshing ? listError : undefined;
-  const error = failed ? apiErrorMessage(failed) : null;
-  const errorDetails = failed ? apiErrorDetails(failed) : undefined;
+  const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
+  // The project the chapters in `chapters` were read for.
+  const [chaptersOf, setChaptersOf] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string>();
+  const [attempt, setAttempt] = useState(0);
   const [chosen, setChosen] = useState<string | undefined>(asked);
   // A chapter the narrator chose in one project is not the choice in another: the project changing under the page starts from the address again.
   useEffect(() => setChosen(asked), [asked, projectFolder]);
@@ -130,8 +118,44 @@ function EditingLoaded({
   const [moved, setMoved] = useState(false);
   useEffect(() => setMoved(false), [passageId, findingId, t]);
 
-  // Retry: the store reads the list now and the skeleton shows until that read ends.
-  const retry = useCallback(() => setRetries((n) => n + 1), []);
+  // The chapter list comes from the store the other pages share, so opening the Editor does not read what is held: the first ask joins or serves it, and a
+  // Retry or a project that changed under the page reads it now. Without a store (a component rendered alone) the page reads the port, as it always did.
+  const store = useOptionalStoreHandle();
+  const readFor = useRef('');
+  useEffect(() => {
+    let live = true;
+    const key = `${attempt}:${projectFolder}`;
+    const first = readFor.current === '';
+    readFor.current = key;
+    const read = async (): Promise<ManuscriptChapter[]> => {
+      if (!store) return manuscript.manuscriptChapters();
+      await (first ? store.ensure('chapters') : store.load('chapters'));
+      const held = store.getState().slots.chapters;
+      if (!held) throw store.getState().errors.chapters ?? new Error('The chapter list is not held.');
+      return [...held];
+    };
+    read().then(
+      (all) => {
+        if (!live) return;
+        setChapters(all.filter(isNarrationChapter));
+        setChaptersOf(projectFolder);
+      },
+      (e: unknown) => {
+        if (!live) return;
+        setError(apiErrorMessage(e));
+        setErrorDetails(apiErrorDetails(e));
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [manuscript, store, attempt, projectFolder]);
+  // Retry: forgets the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
+  const retry = useCallback(() => {
+    setError(null);
+    setErrorDetails(undefined);
+    setAttempt((n) => n + 1);
+  }, []);
 
   // Each chapter's note is how far it is recorded, the value the Booth resumes at (`chapterRecordedDetail`).
   const list = useMemo(

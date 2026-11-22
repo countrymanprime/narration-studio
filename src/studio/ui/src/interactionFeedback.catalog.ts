@@ -84,10 +84,12 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/production/usePipelineSources.ts#2':
     "The delivery measurement read beside the list: unreadable, the Master cell and Next up's failing chapter stay absent, as before.",
   'src/studio/useChapters.ts#1':
-    "The chapter list read again because a reader mounted on a failed list or the caller asked (a dialog's Check again): the failure is recorded in the store's `errors` for the page that shows it, and `refreshing` says the read is out.",
+    "A reader that mounts on a list whose read failed asks once more: the failure is recorded in the store's `errors` for the page that shows it.",
   'src/studio/useChapters.ts#2':
     "The chapter list asked for by a page: the failure is recorded in the store's `errors` for the page that shows it (the callers keep the titles the host kept), so the rejection of the shared read has nobody left to tell.",
   'src/studio/useChapters.ts#3':
+    "The chapter list read again because the caller asked (a dialog's Check again): the failure is recorded in the store's `errors` for the page that shows it.",
+  'src/studio/useChapters.ts#4':
     'The chapter list read for a component rendered without the store (a unit render): a failed read leaves no list, and the callers fall back to the titles the host kept.',
   'src/hooks/useDawGoesToChapter.ts#1':
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",

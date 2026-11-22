@@ -11,8 +11,9 @@ import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
 import { createJournal } from '../../studio/journal/createJournal';
+import { useStoreHandle } from '../../studio/StudioProvider';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
-import type { NarrationApi } from '../../types';
+import type { ManuscriptChapter, NarrationApi } from '../../types';
 import { clock } from '../../clock';
 import { useSelectionActions } from './bar/selectionActions';
 import { drawSections } from './drawer/drawerSections';
@@ -263,6 +264,56 @@ describe('EditingPage', () => {
     view.rerender(tree('/b'));
     await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
     window.localStorage.clear();
+  });
+
+  describe('the chapter list it read stays what the page works on (#3658)', () => {
+    const chapterOf = (id: string, title: string, index: number) =>
+      ({ id, title, index, wordCount: 10, status: 'not_started', contentKind: 'narration' }) as ManuscriptChapter;
+    const storeRef: { current: ReturnType<typeof useStoreHandle> | null } = { current: null };
+    function Probe() {
+      storeRef.current = useStoreHandle();
+      return null;
+    }
+    const treeFor = (api: NarrationApi, projectFolder: string, chapterId?: string) => (
+      <PageFooterProvider value={null}>
+        <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
+          <Probe />
+          <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} chapterId={chapterId} />
+        </EditingHost>
+      </PageFooterProvider>
+    );
+
+    it('keeps the chapter on screen, and the saved one, when the store later lists it differently (a re-split)', async () => {
+      let list = [chapterOf('c1', 'Chapter One', 0), chapterOf('c2', 'Chapter Two', 1)];
+      const api = pageApi({ manuscriptChapters: async () => list });
+      render(treeFor(api, '/p', 'c1'));
+      await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./p')).toBe('c1'));
+      list = [chapterOf('c1a', 'Chapter One (part 1)', 0), chapterOf('c1b', 'Chapter One (part 2)', 1), chapterOf('c2', 'Chapter Two', 2)];
+      await act(async () => storeRef.current!.load('chapters'));
+      await act(async () => {});
+      expect(screen.queryByText('Chapter One (part 1)')).toBeNull();
+      expect(window.localStorage.getItem('narration.editing.lastChapter./p')).toBe('c1');
+      window.localStorage.clear();
+    });
+
+    it("does not save the new project's chapter under the old project's key when the store resets before the folder changes", async () => {
+      let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
+      const api = pageApi({ manuscriptChapters: async () => list });
+      window.localStorage.setItem('narration.editing.lastChapter./a', 'a2');
+      const view = render(treeFor(api, '/a'));
+      await screen.findByText('This chapter has no text yet.');
+      list = [chapterOf('b1', 'Beta One', 0), chapterOf('b2', 'Beta Two', 1)];
+      await act(async () => {
+        storeRef.current!.reset();
+        await storeRef.current!.load('chapters');
+      });
+      await act(async () => {});
+      expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('a2');
+      view.rerender(treeFor(api, '/b'));
+      await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('b1'));
+      expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('a2');
+      window.localStorage.clear();
+    });
   });
 
   it("does not save the old project's chapter under a new project folder", async () => {
