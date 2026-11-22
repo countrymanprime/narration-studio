@@ -15,7 +15,7 @@ Pass 1: after a plan is drafted and before any code (workflow step 1 in `CLAUDE.
 
 ## Pass 1: Design check
 
-Add a row for [one thing per job](../../rules/product-rules.md) (the existing thing searched, and what the new one replaces), then a table with one row per planned file or package and a status for each principle: **met**, **at risk** (with the fix) or **waived** (with the reason).
+Add a row for [one thing per job](../../rules/product-rules.md) (the existing thing searched, and what the new one replaces, or its `Builds new because:` reason), then a table with one row per planned file or package and a status for each principle: **met**, **at risk** (with the fix) or **waived** (with the reason).
 
 | Principle | Go | Python | TypeScript |
 | --- | --- | --- | --- |
@@ -27,7 +27,7 @@ Add a row for [one thing per job](../../rules/product-rules.md) (the existing th
 
 ## Pass 2: drift review
 
-1. Fail the review on a new thing that does what an existing one does and has no replaced-and-deleted counterpart in the diff ([one thing per job](../../rules/product-rules.md)). Diff the result against the Design check. Objective signals first: depguard, `pnpm --dir src/studio/ui architecture` and lint results, imports across a port or fence, files past 800 lines, an interface that grew, a package that gained a second reason to change.
+1. Fail the review on a consolidation skipped because the gain is small, and on a new thing that does what an existing one does and has neither a replaced-and-deleted counterpart in the diff nor a `Builds new because:` (a) or (b) ([one thing per job](../../rules/product-rules.md)). Diff the result against the Design check. Objective signals first: depguard, `pnpm --dir src/studio/ui architecture` and lint results, imports across a port or fence, files past 800 lines, an interface that grew, a package that gained a second reason to change.
 2. Judgement findings second, each tied to a line in the diff. Do not report a principle as violated without pointing at the code.
 3. Send findings back to the plan and fix. Repeat until every row is met or waived. After three rounds, stop and give the owner the open rows.
 
