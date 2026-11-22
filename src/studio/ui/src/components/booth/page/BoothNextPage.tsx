@@ -513,7 +513,7 @@ function BoothSession({
     (control.project === null ? !control.projectFailed : control.project.playState === 'recording') && !(control.recording && control.startedByApp);
   holdsTake.current = dawHoldsOthersTake;
   // Not `dawRecording`: that holds until the transport has been read once, and a take the DAW holds that the app did not start is not the narrator acting here. A latch.
-  useLatchOnce(takeBusy, control.recording || control.starting);
+  useLatchOnce(takeBusy, (control.recording && control.startedByApp) || control.starting);
   const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
