@@ -380,3 +380,41 @@ describe('the split of a line said twice, in a line across two items with a clos
     expect(docTimeOf(doc, cutRead, 'p-1', 3.0)).toBeCloseTo(three.t0 as number, 2);
   });
 });
+
+describe('a line that goes to another item and back (issue #4047)', () => {
+  const heard = [
+    ['one', 0, 2],
+    ['two', 0, 2.5],
+    ['three', 1, 40],
+    ['four', 1, 40.5],
+    ['five', 0, 50],
+    ['six', 0, 50.5],
+  ].map(([text, item, off0], k) => ({
+    text: text as string,
+    paragraphId: 'p-1',
+    ordinal: k,
+    item: item as number,
+    off0: off0 as number,
+    off1: (off0 as number) + 0.4,
+    conf: 1,
+  }));
+  const read = readFrom([{ id: 'p-1', text: 'one two three four five six' }], heard, {
+    items: [
+      { index: 0, itemGuid: 'item-0', live: true },
+      { index: 1, itemGuid: 'item-1', live: true },
+    ],
+  });
+
+  it('plays each stretch from its own file, and not the other item under the words between', () => {
+    const files = [
+      { guid: 'item-0', supported: true, sourceAvailable: true, sourceFile: 'a.wav' },
+      { guid: 'item-1', supported: true, sourceAvailable: true, sourceFile: 'b.wav' },
+    ] as never;
+    const play = playlistOf(docOf(read), { ...read, items: files });
+    expect(play.map((s) => [s.sourceFile, Math.round(s.sourceStart * 100) / 100, Math.round(s.sourceEnd * 100) / 100])).toEqual([
+      ['a.wav', 2, 2.9],
+      ['b.wav', 40, 40.9],
+      ['a.wav', 50, 50.9],
+    ]);
+  });
+});

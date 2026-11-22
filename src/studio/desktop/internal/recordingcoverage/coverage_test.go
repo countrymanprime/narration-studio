@@ -491,11 +491,10 @@ func TestTwoWordsAcrossALineBreakAreNotAWholeLineSaidAgain(t *testing.T) {
 
 func TestAWordSaidTwiceInARowKeepsTheLastCopyAndTheEarlierOneIsExtra(t *testing.T) {
 	// Issue #4047: "back" misspoken and said again a second later. The correction is the word the line goes on from, so the first copy is the extra.
-	a := aligned(t, []string{p1, p2}, p1+" "+p2, "")
 	said := strings.Fields(p1 + " " + p2)
 	for at := range said {
 		doubled := append(append(append([]string{}, said[:at+1]...), said[at]), said[at+1:]...)
-		a = aligned(t, []string{p1, p2}, strings.Join(doubled, " "), "")
+		a := aligned(t, []string{p1, p2}, strings.Join(doubled, " "), "")
 		tokens, extras := a.AlignTokens(DefaultParams)
 		if len(extras) != 1 || extras[0] != [2]int{at, at + 1} {
 			t.Fatalf("word %d said twice: extras %v, want the first copy [%d %d)", at, extras, at, at+1)

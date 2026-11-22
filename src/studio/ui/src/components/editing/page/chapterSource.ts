@@ -5,7 +5,7 @@ import type { WordFx } from '../../../api/contracts/wordFx';
 import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
 import { HEADING_PARAGRAPH, tokenParagraph, type HeardAnswer, type HeardWord } from '../../../ports/alignment';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { curTime, type ChapterDoc, type HeardWord as ModelWord } from '../model';
+import { curTime, type ChapterDoc, type DocItem, type HeardWord as ModelWord } from '../model';
 import { duplicateRead } from '../model/duplicates';
 import { itemClocks, type ItemClocks } from '../ribbon/docClock';
 import type { RangeLocator } from '../range/common/locate';
@@ -159,36 +159,44 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
       for (const piece of clocks.get(item) ?? []) {
         // The play runs over the words the piece holds, from the first one's start to the last one's end: the piece itself runs a tail past its last word
         // for the waveform, and a word that was cut sits inside that tail.
-        const held = dp.items.filter(
-          (i) => i.src?.item === item && i.t0 != null && i.t1 != null && !i.cut && i.st !== 'miss' && i.t0 >= piece.from - 1e-9 && i.t0 < piece.to - 1e-9,
-        );
-        if (!held.length) continue;
-        const first = Math.min(...held.map((i) => i.t0 as number));
-        const last = Math.max(...held.map((i) => i.t1 as number));
-        // A cut that leaves a gap keeps the time and not the sound: the play steps over it.
-        let spans: Array<[number, number]> = [[first, last]];
-        for (const c of gapCuts)
-          spans = spans.flatMap(([a, b]) =>
-            c.b <= a || c.a >= b
-              ? [[a, b]]
-              : (
-                  [
-                    [a, Math.min(b, c.a)],
-                    [Math.max(a, c.b), b],
-                  ] as Array<[number, number]>
-                ).filter(([x, y]) => y - x > 1e-9),
-          );
-        for (const [from, to] of spans) {
-          if (to - from <= 1e-9) continue;
-          out.push({
-            itemGuid,
-            sourceFile,
-            sourceStart: from - piece.shift,
-            sourceEnd: to - piece.shift,
-            elapsedStart: from,
-            elapsedEnd: to,
-            overlapsPrevious: false,
-          });
+        const audible = dp.items.filter((i) => i.src && i.t0 != null && i.t1 != null && !i.cut && i.st !== 'miss');
+        const inPiece = audible.filter((i) => i.src?.item === item && (i.t0 as number) >= piece.from - 1e-9 && (i.t0 as number) < piece.to - 1e-9);
+        // A line that goes to another item and back plays this one twice: words of another item between two of these split them.
+        const runs: DocItem[][] = [];
+        for (const i of inPiece) {
+          const last = runs.at(-1);
+          const between = last ? audible.slice(audible.indexOf(last[last.length - 1]) + 1, audible.indexOf(i)) : [];
+          if (last && !between.some((x) => x.src?.item !== item)) last.push(i);
+          else runs.push([i]);
+        }
+        for (const held of runs) {
+          const first = Math.min(...held.map((i) => i.t0 as number));
+          const last = Math.max(...held.map((i) => i.t1 as number));
+          // A cut that leaves a gap keeps the time and not the sound: the play steps over it.
+          let spans: Array<[number, number]> = [[first, last]];
+          for (const c of gapCuts)
+            spans = spans.flatMap(([a, b]) =>
+              c.b <= a || c.a >= b
+                ? [[a, b]]
+                : (
+                    [
+                      [a, Math.min(b, c.a)],
+                      [Math.max(a, c.b), b],
+                    ] as Array<[number, number]>
+                  ).filter(([x, y]) => y - x > 1e-9),
+            );
+          for (const [from, to] of spans) {
+            if (to - from <= 1e-9) continue;
+            out.push({
+              itemGuid,
+              sourceFile,
+              sourceStart: from - piece.shift,
+              sourceEnd: to - piece.shift,
+              elapsedStart: from,
+              elapsedEnd: to,
+              overlapsPrevious: false,
+            });
+          }
         }
       }
     }
