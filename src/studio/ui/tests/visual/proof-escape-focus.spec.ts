@@ -47,3 +47,11 @@ for (const route of ROUTES) {
     await expect.poll(() => onBody(page), { message: `focus fell to <body> after ${route.name}` }).toBe(false);
   });
 }
+
+test('Proof: a cold load of a chapter link does not move focus to the chapter picker', async ({ page }) => {
+  await page.goto('/proof?chapter=chapter-1&mockChapterLink=confirmed');
+  await settlePage(page);
+  await page.getByText('Recording check', { exact: true }).waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(500);
+  await expect(page.locator('[data-chapter-picker]')).not.toBeFocused();
+});

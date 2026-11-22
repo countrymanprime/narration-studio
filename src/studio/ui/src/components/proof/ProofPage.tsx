@@ -441,8 +441,10 @@ export function ProofPage({
   const view = all ? ALL_CHAPTERS : (chapter?.id ?? '');
   const shownView = useRef(view);
   useEffect(() => {
-    if (shownView.current === view) return;
+    const before = shownView.current;
     shownView.current = view;
+    // `''` is the chapter list still loading (a cold load of a chapter link), not a view the narrator left.
+    if (before === '' || before === view) return;
     if (document.activeElement === document.body || document.activeElement === null) document.querySelector<HTMLElement>('[data-chapter-picker]')?.focus();
   }, [view]);
   useProofKeys({ order, selectedId, select: pickNote, step: pickStep, allChapters: all, toAllChapters: () => pickChapter(ALL_CHAPTERS) });
