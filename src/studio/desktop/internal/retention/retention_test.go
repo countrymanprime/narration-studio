@@ -34,7 +34,10 @@ func waitFor(t *testing.T, what string, done func() bool) {
 	}
 }
 
-func TestTenKicksAtOnceMakeOnePass(t *testing.T) {
+// Ten kicks while a pass runs are one pass and one re-run, not ten: the kicks that arrive during the pass are not lost, and they are
+// one. The test waits for the re-run before it closes the runner: Close cancels, and a re-run that has not started by then is not made,
+// which would make the count depend on which of the two got there first.
+func TestTenKicksAtOnceMakeOnePassAndOneRerun(t *testing.T) {
 	var passes atomic.Int32
 	release := make(chan struct{})
 	runner := New([]Step{stepFunc{"a", func(context.Context, func() bool) Report {
@@ -47,9 +50,10 @@ func TestTenKicksAtOnceMakeOnePass(t *testing.T) {
 	}
 	waitFor(t, "the pass to start", func() bool { return passes.Load() == 1 })
 	close(release)
+	waitFor(t, "the re-run the other nine kicks asked for", func() bool { return passes.Load() == 2 })
 	runner.Close()
-	if got := passes.Load(); got != 1 {
-		t.Fatalf("%d passes, want 1", got)
+	if got := passes.Load(); got != 2 {
+		t.Fatalf("%d passes, want 2: the pass and one re-run for the nine kicks that came during it", got)
 	}
 }
 

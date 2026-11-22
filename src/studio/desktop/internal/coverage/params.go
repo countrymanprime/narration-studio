@@ -17,13 +17,13 @@ const (
 	// older record reads as stale (evidence.ReasonAnalyzerChanged).
 	AnalyzerID      = "recording-coverage"
 	AnalyzerVersion = "1"
-	// wordsAnalyzerID and wordsVersion name the per-source words entries in the
+	// WordsAnalyzerID and wordsVersion name the per-source words entries in the
 	// analysis evidence cache. The version is the sidecar's words file schema.
 	// Raised once, to 2, for the model cascade's `spans` field
 	// (coverage_mode.splice_window): a words file the sidecar
 	// still reads without them, so this is a clean one-time invalidation, not a
 	// correctness fix.
-	wordsAnalyzerID = "recording-coverage-words"
+	WordsAnalyzerID = "recording-coverage-words"
 	//
 	// Raised again, to 3, when a words file began to carry Whisper's probability for each word: the
 	// reader still takes a file without them, but a chapter checked before would otherwise never show a doubted

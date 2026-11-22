@@ -61,7 +61,7 @@ type wordsCache struct {
 }
 
 func (c wordsCache) key(identity evidence.SourceIdentity) evidence.CacheEntryKey {
-	return evidence.CacheEntryKey{Source: identity, AnalyzerID: wordsAnalyzerID, AnalyzerVersion: wordsVersion, ParamHash: c.paramHash}
+	return evidence.CacheEntryKey{Source: identity, AnalyzerID: WordsAnalyzerID, AnalyzerVersion: wordsVersion, ParamHash: c.paramHash}
 }
 
 func (c wordsCache) read(identity evidence.SourceIdentity) wordsBlob {

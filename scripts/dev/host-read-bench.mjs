@@ -6,7 +6,7 @@
 //   node scripts/dev/host-read-bench.mjs seed  <new-folder> [--size 1h|17h|40h|300] [--chapters N] [--paragraphs N] [--items N]
 //                                                           [--tracks N] [--checked N] [--checks N]
 //   node scripts/dev/host-read-bench.mjs reads <seeded-folder> [--runs N]
-//   node scripts/dev/host-read-bench.mjs retention <seeded-folder>
+//   node scripts/dev/host-read-bench.mjs retention <seeded-folder> [--cache-entries N]
 //
 // `seed` writes the book through the host's own code (TestSeedAPerfBook, src/studio/desktop/perfbook_test.go). --size picks a measured
 // size: 1h is 3 chapters, 17h is 44, 40h is 103 (40 paragraphs of about 88 words each), 300 is 300 chapters of 6 paragraphs; the other
@@ -14,6 +14,7 @@
 // have a recording check (all) and --checks how many times each was checked (1).
 // `retention` runs the ledger retention pass (#3816) twice over a copy of the book and prints what each pass cost and removed, and the first call
 // of three ledger-walking reads before and after (TestPrintTheRetentionPass, retention_perf_test.go); seed with --checks 3 for superseded records.
+// --cache-entries N also fills the copy's analysis cache with N entries of each kind and runs the cache pass twice over them.
 // `reads` prints one Markdown table a run (TestPrintTheHostReadTable, perfreads_test.go); each run is a new process, so its first calls
 // meet nothing in memory. Needs Go and, on Linux, the Wails GTK libraries (.github/actions/setup-toolchain/action.yml).
 import { spawnSync } from 'node:child_process';
@@ -26,7 +27,7 @@ const [verb, folder, ...rest] = process.argv.slice(2);
 const args = Object.fromEntries(rest.flatMap((arg, i) => (arg.startsWith('--') ? [[arg.slice(2), rest[i + 1]]] : [])));
 
 function usage(message) {
-  console.error(`${message}\nusage: host-read-bench.mjs seed <new-folder> [--size 1h|17h|40h|300] [--chapters N ...] | reads <seeded-folder> [--runs N] | retention <seeded-folder>`);
+  console.error(`${message}\nusage: host-read-bench.mjs seed <new-folder> [--size 1h|17h|40h|300] [--chapters N ...] | reads <seeded-folder> [--runs N] | retention <seeded-folder> [--cache-entries N]`);
   process.exit(2);
 }
 
@@ -54,7 +55,7 @@ if (verb === 'seed') {
   goTest('TestSeedAPerfBook', { NARRATION_PERF_SEED: spec });
   console.log(`seeded ${resolve(folder)} (${spec}) in ${((Date.now() - started) / 1000).toFixed(1)} s`);
 } else if (verb === 'retention') {
-  const out = goTest('TestPrintTheRetentionPass', { NARRATION_PERF_RETENTION: '1' });
+  const out = goTest('TestPrintTheRetentionPass', { NARRATION_PERF_RETENTION: '1', ...(args['cache-entries'] ? { NARRATION_PERF_CACHE_ENTRIES: args['cache-entries'] } : {}) });
   const at = out.indexOf('\nRetention pass on ');
   if (at < 0) {
     console.error(out, '\nno retention table in the test output: is the folder a seeded book?');

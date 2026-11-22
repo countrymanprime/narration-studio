@@ -1,6 +1,7 @@
 import { Radio as BaseRadio } from '@base-ui/react/radio';
 import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
 import { useId, type ReactNode } from 'react';
+import { HIT_AREA } from './hitArea';
 import { TooltipTarget } from './Tooltip';
 
 export type RadioOption<Value extends string> = {
@@ -69,8 +70,9 @@ function RadioItem({ value, label, description, disabled, reason }: RadioOption<
         value={value}
         disabled={disabled}
         aria-describedby={[why ? reasonId : '', description ? descriptionId : ''].filter(Boolean).join(' ') || undefined}
-        // Unselected fill is --surface-3 with the --border rim, not --surface, as the benchmark mocks draw it.
-        className="inline-flex size-4 flex-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] data-[checked]:border-[var(--accent)]"
+        // Unselected fill is --surface-3 with the --border rim, not --surface, as the benchmark mocks draw it. The 16 px circle takes a press
+        // 24 px each way (`HIT_AREA`), inside the 10 px between two options; the label beside it is part of the same target.
+        className={`${HIT_AREA} inline-flex size-4 flex-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] data-[checked]:border-[var(--accent)]`}
       >
         <BaseRadio.Indicator className="size-2 rounded-full bg-[var(--accent)] data-[unchecked]:hidden" />
       </BaseRadio.Root>

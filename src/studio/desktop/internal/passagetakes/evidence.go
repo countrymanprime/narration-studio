@@ -281,7 +281,7 @@ func sentence(reason string) string {
 // editing scan uses): measureAnalyzerVersion changes when MeasureRange derives a figure differently, measureBlobVersion
 // when the stored JSON changes shape.
 const (
-	measureAnalyzerID      = "passagetakes.measure"
+	MeasureAnalyzerID      = "passagetakes.measure"
 	measureAnalyzerVersion = "1"
 	measureBlobVersion     = 1
 )
@@ -395,7 +395,7 @@ func (c *MeasureCache) key(identity evidence.SourceIdentity, r Range) evidence.C
 	// DiagnosticOptions holds finite numbers only, so encoding it cannot fail.
 	options, _ := json.Marshal(measure.DefaultDiagnosticOptions())
 	return evidence.CacheEntryKey{
-		Source: identity, AnalyzerID: measureAnalyzerID, AnalyzerVersion: c.version,
+		Source: identity, AnalyzerID: MeasureAnalyzerID, AnalyzerVersion: c.version,
 		ParamHash:   evidence.HashParts(r.Kind, string(options), strconv.Itoa(measure.AnalyzerVersion)),
 		PlayedRange: &evidence.PlayedRange{Start: r.Start, End: r.Start + r.Length},
 	}

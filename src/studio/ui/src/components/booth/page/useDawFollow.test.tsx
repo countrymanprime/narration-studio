@@ -3,13 +3,18 @@ import { act, cleanup, render, renderHook, waitFor } from '@testing-library/reac
 import { StrictMode, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
-import type { DawPlace } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawPlace } from '../../../api/contracts/daw';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import type { DawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
+import { dawClientFor } from '../record/fixtures';
 import type { ScopedSettingField } from '../../../api/contracts/system';
 import { createDawMock } from '../../../api/dawMock';
 import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
+import { useDawSession } from '../../../daw/useDawSession';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
-import { forgetBoothMonitorAsked, useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { forgetBoothMonitorAsked, useArmBoothOnOpen, useFollowDawOnOpen, useLatchOnce, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
 
 afterEach(() => {
@@ -26,6 +31,18 @@ function wrapperFor(overrides: Partial<NarrationApi>) {
   const api = createMockApi(overrides);
   return ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
 }
+
+describe('useLatchOnce', () => {
+  it('stays true once the narrator acted, however the take goes on', () => {
+    const latch = { current: false };
+    const view = renderHook(({ acted }) => useLatchOnce(latch, acted), { initialProps: { acted: false } });
+    expect(latch.current).toBe(false);
+    view.rerender({ acted: true });
+    expect(latch.current).toBe(true);
+    view.rerender({ acted: false });
+    expect(latch.current).toBe(true);
+  });
+});
 
 describe('useFollowDawOnOpen', () => {
   const chapterIds = ['c-1', 'c-2'];
@@ -62,46 +79,315 @@ describe('useFollowDawOnOpen', () => {
     expect(dawPlace).not.toHaveBeenCalled();
   });
 
-  it('asks again while the DAW has not answered, then follows it once it does', async () => {
+  /** A DAW client whose capabilities event the test sends by hand (the host's `daw_capabilities_changed`). */
+  function dawEvents() {
+    let emit: (next: DawCapabilities) => void = () => {};
+    const off = vi.fn();
+    const client: DawClient = { ...dawClientFor('reaper'), subscribeCapabilities: (listener) => ((emit = listener), off) };
+    const wrapper =
+      (api: ReturnType<typeof createMockApi>) =>
+      ({ children }: { children: ReactNode }) => (
+        <ApiProvider api={api}>
+          <PortOverrides clients={{ daw: client }}>{children}</PortOverrides>
+        </ApiProvider>
+      );
+    return { off, emit: (next: DawCapabilities) => emit(next), wrapper };
+  }
+  const reachable = DAW_SETUPS.reaper;
+  const quiet: DawCapabilities = { ...DAW_SETUPS.reaper, reachable: false };
+
+  it('asks again when the DAW says it is reachable, then follows it once it answers: not on a timer', async () => {
     vi.useFakeTimers();
     const onChapter = vi.fn();
     let calls = 0;
-    const dawPlace = vi.fn(async () => (++calls < 3 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
-    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: wrapperFor({ dawPlace }) });
+    const dawPlace = vi.fn(async () => (++calls < 2 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
     await act(async () => {});
     expect(onChapter).not.toHaveBeenCalled();
-    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
-    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+    // Nothing asks while the DAW stays quiet, however long, and a picture that says it is not reachable asks nothing.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(15_000)));
+    act(() => events.emit(quiet));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    act(() => events.emit(reachable));
+    await act(async () => {});
     expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-1');
-    expect(dawPlace).toHaveBeenCalledTimes(3);
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+    // Followed: later events ask nothing.
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    expect(dawPlace).toHaveBeenCalledTimes(2);
   });
 
-  it('gives up silently when the DAW never answers, and treats a failed read as no answer', async () => {
+  it('a DAW that connects after the time is up is not followed, and one that never answers is asked once', async () => {
     vi.useFakeTimers();
     const onChapter = vi.fn();
     const dawPlace = vi.fn(async () => {
       throw new Error('boom');
     });
-    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: wrapperFor({ dawPlace }) });
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
     await act(async () => void (await vi.advanceTimersByTimeAsync(60_000)));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    expect(dawPlace).toHaveBeenCalledTimes(1);
     expect(onChapter).not.toHaveBeenCalled();
-    const calls = dawPlace.mock.calls.length;
-    expect(calls).toBeGreaterThan(1);
-    expect(calls).toBeLessThanOrEqual(12);
   });
 
-  it('stops asking once the narrator or the address chooses a chapter', async () => {
+  it('a DAW that says it is reachable and still refuses (still loading its project) is asked again soon, until it answers', async () => {
+    vi.useFakeTimers();
+    const onChapter = vi.fn();
+    let calls = 0;
+    const dawPlace = vi.fn(async () => (++calls < 3 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    // Not reachable yet: no timer, the event is what asks again.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+    expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-1');
+    expect(dawPlace).toHaveBeenCalledTimes(3);
+  });
+
+  it('a DAW that was already reachable when the Booth opened and refuses is asked again soon: no event comes for it', async () => {
+    vi.useFakeTimers();
+    const onChapter = vi.fn();
+    let calls = 0;
+    const dawPlace = vi.fn(async () => (++calls < 3 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
+    const events = dawEvents();
+    let take: (caps: DawCapabilities) => void = () => {};
+    const view = renderHook(
+      ({ enabled }) => {
+        take = useDawSession().takeCapabilities;
+        useFollowDawOnOpen({ enabled, chapterIds, onChapter });
+      },
+      { wrapper: events.wrapper(createMockApi({ dawPlace })), initialProps: { enabled: false } },
+    );
+    await act(async () => {});
+    // The session has already heard the DAW say it is reachable when the Booth starts asking; no event follows.
+    act(() => take(reachable));
+    view.rerender({ enabled: true });
+    await act(async () => {});
+    // The retries slow down: the second ask 2 s after the first, the third 10 s after the second.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+    await act(async () => void (await vi.advanceTimersByTimeAsync(9000)));
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+    await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
+    expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-1');
+    expect(dawPlace).toHaveBeenCalledTimes(3);
+  });
+
+  it('events heard while a retry waits make one chain of asks, and nothing asks after the Booth is left', async () => {
     vi.useFakeTimers();
     const dawPlace = vi.fn(async () => refusal);
+    const events = dawEvents();
+    const view = renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter: vi.fn() }), {
+      wrapper: events.wrapper(createMockApi({ dawPlace })),
+    });
+    await act(async () => {});
+    act(() => events.emit(reachable));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
+    act(() => events.emit(reachable));
+    const before = dawPlace.mock.calls.length;
+    // One chain: the first retry's 2 s timer is replaced by the next, which waits 10 s, not one more timer for each event heard.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(9000)));
+    expect(dawPlace.mock.calls.length - before).toBe(0);
+    await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
+    expect(dawPlace.mock.calls.length - before).toBe(1);
+    view.unmount();
+    const after = dawPlace.mock.calls.length;
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    expect(dawPlace).toHaveBeenCalledTimes(after);
+  });
+
+  it('a retry that was waiting when the event got the answer asks nothing more', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const dawPlace = vi.fn(async () => (++calls < 2 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
+    const events = dawEvents();
+    let take: (caps: DawCapabilities) => void = () => {};
+    const view = renderHook(
+      ({ enabled }) => {
+        take = useDawSession().takeCapabilities;
+        useFollowDawOnOpen({ enabled, chapterIds, onChapter: vi.fn() });
+      },
+      { wrapper: events.wrapper(createMockApi({ dawPlace })), initialProps: { enabled: false } },
+    );
+    await act(async () => {});
+    act(() => take(reachable));
+    view.rerender({ enabled: true });
+    await act(async () => {});
+    // The first ask was refused and a retry waits; the event gets the answer first.
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+  });
+
+  it('an answer that arrives while a take is starting or running ends the follow: it never moves the Booth, now or after the take', async () => {
+    vi.useFakeTimers();
     const onChapter = vi.fn();
+    let busy = true;
+    const dawPlace = vi.fn(async () => answer({ chapterId: 'c-2', selected: 1 }));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter, busy: () => busy }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    expect(onChapter).not.toHaveBeenCalled();
+    // The take (or a start that failed) is over; the narrator acted here, so nothing is asked again and nothing follows.
+    busy = false;
+    act(() => events.emit(reachable));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(25_000)));
+    expect(onChapter).not.toHaveBeenCalled();
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+  });
+
+  it('a DAW that refuses until late in the window is still asked once more just before it ends', async () => {
+    vi.useFakeTimers();
+    const onChapter = vi.fn();
+    let calls = 0;
+    // Asked at the start, after 2 s, after 12 s, and a last time 2 s before the window ends (18 s).
+    const dawPlace = vi.fn(async () => (++calls < 4 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
+    const events = dawEvents();
+    let take: (caps: DawCapabilities) => void = () => {};
+    const view = renderHook(
+      ({ enabled }) => {
+        take = useDawSession().takeCapabilities;
+        useFollowDawOnOpen({ enabled, chapterIds, onChapter });
+      },
+      { wrapper: events.wrapper(createMockApi({ dawPlace })), initialProps: { enabled: false } },
+    );
+    await act(async () => {});
+    act(() => take(reachable));
+    view.rerender({ enabled: true });
+    await act(async () => void (await vi.advanceTimersByTimeAsync(17_900)));
+    expect(onChapter).not.toHaveBeenCalled();
+    await act(async () => void (await vi.advanceTimersByTimeAsync(200)));
+    expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-1');
+    expect(dawPlace).toHaveBeenCalledTimes(4);
+  });
+
+  it('turning the follow off and on again does not open a new window', async () => {
+    vi.useFakeTimers();
+    const onChapter = vi.fn();
+    let calls = 0;
+    const dawPlace = vi.fn(async () => (++calls < 2 ? refusal : answer({ chapterId: 'c-2', selected: 1 })));
+    const events = dawEvents();
+    const view = renderHook(({ enabled }) => useFollowDawOnOpen({ enabled, chapterIds, onChapter }), {
+      wrapper: events.wrapper(createMockApi({ dawPlace })),
+      initialProps: { enabled: true },
+    });
+    await act(async () => {});
+    await act(async () => void (await vi.advanceTimersByTimeAsync(15_000)));
+    view.rerender({ enabled: false });
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    view.rerender({ enabled: true });
+    await act(async () => {});
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    expect(onChapter).not.toHaveBeenCalled();
+  });
+
+  it('a retry owed to a reachable DAW stops at the deadline and when the narrator chooses a chapter', async () => {
+    vi.useFakeTimers();
+    const dawPlace = vi.fn(async () => refusal);
+    const events = dawEvents();
+    const { rerender } = renderHook(({ enabled }) => useFollowDawOnOpen({ enabled, chapterIds, onChapter: vi.fn() }), {
+      initialProps: { enabled: true },
+      wrapper: events.wrapper(createMockApi({ dawPlace })),
+    });
+    await act(async () => {});
+    act(() => events.emit(reachable));
+    await act(async () => {});
+    rerender({ enabled: false });
+    const stopped = dawPlace.mock.calls.length;
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    expect(dawPlace).toHaveBeenCalledTimes(stopped);
+    rerender({ enabled: true });
+    await act(async () => {});
+    act(() => events.emit(reachable));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(60_000)));
+    // 20 s of retries at most (every 2 s), then none.
+    expect(dawPlace.mock.calls.length - stopped).toBeLessThanOrEqual(13);
+    const after = dawPlace.mock.calls.length;
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    expect(dawPlace).toHaveBeenCalledTimes(after);
+  });
+
+  it('an ask that ends after the deadline, or after the Booth is left, owes nothing', async () => {
+    vi.useFakeTimers();
+    const events = dawEvents();
+    let release: (place: DawPlace) => void = () => {};
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => (release = resolve)));
+    const late = renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter: vi.fn() }), {
+      wrapper: events.wrapper(createMockApi({ dawPlace })),
+    });
+    await act(async () => {});
+    act(() => events.emit(reachable));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(25_000)));
+    await act(async () => release(refusal));
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    late.unmount();
+    const left = renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter: vi.fn() }), {
+      wrapper: events.wrapper(createMockApi({ dawPlace })),
+    });
+    await act(async () => {});
+    const before = dawPlace.mock.calls.length;
+    act(() => events.emit(reachable));
+    left.unmount();
+    await act(async () => release(refusal));
+    expect(dawPlace).toHaveBeenCalledTimes(before);
+  });
+
+  it('an answer that arrives after the time is up does not move the Booth', async () => {
+    vi.useFakeTimers();
+    const events = dawEvents();
+    let release: (place: DawPlace) => void = () => {};
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => (release = resolve)));
+    const onChapter = vi.fn();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    await act(async () => void (await vi.advanceTimersByTimeAsync(25_000)));
+    await act(async () => release(answer({ chapterId: 'c-2' })));
+    expect(onChapter).not.toHaveBeenCalled();
+  });
+
+  it('events heard while an ask is out are answered by one more ask, not one each', async () => {
+    const onChapter = vi.fn();
+    let release: (place: DawPlace) => void = () => {};
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => (release = resolve)));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    act(() => {
+      events.emit(reachable);
+      events.emit(reachable);
+      events.emit(reachable);
+    });
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    await act(async () => release(refusal));
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops listening once the narrator or the address chooses a chapter', async () => {
+    const dawPlace = vi.fn(async () => refusal);
+    const onChapter = vi.fn();
+    const events = dawEvents();
     const { rerender } = renderHook(({ enabled }) => useFollowDawOnOpen({ enabled, chapterIds, onChapter }), {
       initialProps: { enabled: true },
-      wrapper: wrapperFor({ dawPlace }),
+      wrapper: events.wrapper(createMockApi({ dawPlace })),
     });
     await act(async () => {});
     rerender({ enabled: false });
+    expect(events.off).toHaveBeenCalled();
     const before = dawPlace.mock.calls.length;
-    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
+    act(() => events.emit(reachable));
+    await act(async () => {});
     expect(dawPlace).toHaveBeenCalledTimes(before);
   });
 });
