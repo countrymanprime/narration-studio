@@ -23,6 +23,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
      - Comment `<ID>: PAUSED at <step>, PR #<n>` on the train issue, then end the session.
   3. On AMBER in your own reading (`allowed_warning`), **unless the train issue's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
+- **One thing per job: [the rule](../../../rules/product-rules.md).** Search before building; put `Existing thing searched:` (and `Replaces:` for a new thing) in the PR's Reuse section.
 - **How to work: [ponytail.md](ponytail.md).** The smallest complete change, the reuse rules and the list never to skip are there. Two train limits apply on top: run the targeted checks together and stop after three fix-and-run rounds (push what is green, put the failing check and its output in the Handoff comment and the PR body, and end; a fixer takes it); and never delete, skip or loosen a test to get green without saying why in the PR body.
 - **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing (D99, one-shot):**
