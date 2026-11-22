@@ -18,6 +18,7 @@ test('the rule file holds the rule sentence', () => {
 test('CLAUDE.md, which every session loads, carries the rule sentence and links the rule', () => {
   const claude = read('CLAUDE.md');
   assert.ok(claude.toLowerCase().includes(RULE));
+  assert.ok(claude.includes('means changing the old thing to a new purpose'), 'CLAUDE.md lost reason (b)');
   assert.ok(claude.includes('Reuse is the default, a small or zero gain never skips a consolidation'), 'CLAUDE.md lost the reuse-default clause');
   assert.ok(claude.includes('.claude/rules/product-rules.md'));
 });
@@ -31,7 +32,7 @@ test('the PR template asks for the searched thing, what it replaces and why it b
 
 test('the rule file holds the default, the small-gain clause and both reasons to build new', () => {
   const rule = read('.claude/rules/product-rules.md');
-  for (const phrase of ['Reuse is the default', 'small or zero performance gain', 'Builds new because:', '(a) reusing makes it way worse', '(b) reusing means changing', 'a PR that skips a consolidation because the gain is small fails the review']) {
+  for (const phrase of ['Reuse is the default', 'small or zero performance gain', 'Builds new because:', '(a) reusing makes it way worse', '(b) reusing means changing', 'a PR that skips a consolidation because the gain is small fails the review', 'and then the old one stays']) {
     assert.ok(rule.includes(phrase), `product-rules.md lost "${phrase}"`);
   }
 });
@@ -68,8 +69,12 @@ test('the merge-gating reviewers fail a consolidation skipped for a small gain',
   for (const file of [
     '.claude/agents/intent-reviewer.md',
     '.claude/agents/ux-reviewer.md',
+    '.claude/agents/lua-reviewer.md',
+    '.claude/agents/qa-breaker.md',
+    '.claude/agents/standards-auditor.md',
     '.claude/skills/intent-check/SKILL.md',
     '.claude/skills/solid-design-review/SKILL.md',
+    '.claude/skills/change-impact-scan/SKILL.md',
     '.claude/skills/agent-train/references/coordinator.md',
   ]) {
     assert.match(read(file), /gain is small|small gain/, `${file} lost the small-gain fail clause`);
