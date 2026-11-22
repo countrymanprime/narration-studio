@@ -17,7 +17,7 @@ export interface TextParagraph {
 }
 
 /** Seconds of lead-in before a stretch's first word, so the model's offsets begin just after zero. */
-const LEAD = 0.15;
+export const LEAD = 0.15;
 
 /**
  * The units of a paragraph: its quotes and the narration around them. A boundary is moved out to the whitespace around the word it fell in, so
@@ -102,6 +102,7 @@ function alignerFor(heard: NonNullable<Extract<HeardAnswer, { heard: unknown }>[
         off0: Math.max(0, w.off0 - origin),
         off1: Math.max(0, w.off1 - origin),
         conf: w.conf ?? 1,
+        src: { item: w.item, start: w.off0 },
         ...(w.conf === null ? { unscored: true as const } : {}),
         ...(w.added ? { added: true } : {}),
         ...(w.repeats ? { repeats: w.repeats } : {}),

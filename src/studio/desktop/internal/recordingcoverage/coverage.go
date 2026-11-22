@@ -534,6 +534,7 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 			used[pair[1]] = true
 		}
 	}
+	a.keepLastOfARepeatedWord(heard, used)
 	hasHeading := false
 	for _, p := range a.TokenParagraph {
 		if p == Heading {
@@ -584,6 +585,30 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 		}
 	}
 	return tokens, extras
+}
+
+// keepLastOfARepeatedWord moves a heard word to the last copy of it when the narrator said the same word again straight away (a word misspoken and
+// said again): the earlier copy is the extra word, and the one that stays is the one the line goes on from. difflib matches the first copy; the
+// Editing page sets the words against the script the same way (align.ts), so the two agree on which word is the extra. Only a copy that is free
+// (no token is heard as it) and that comes before the next heard token's word is taken, so no other token loses its word.
+func (a *AlignedChapter) keepLastOfARepeatedWord(heard []int, used []bool) {
+	for i, j := range heard {
+		if j < 0 || a.DocTokens[i] != a.AudioTokens[j] {
+			continue
+		}
+		next := len(a.AudioTokens)
+		for n := i + 1; n < len(heard); n++ {
+			if heard[n] >= 0 {
+				next = heard[n]
+				break
+			}
+		}
+		for j+1 < next && !used[j+1] && a.AudioTokens[j+1] == a.AudioTokens[j] {
+			used[j], used[j+1] = false, true
+			j++
+		}
+		heard[i] = j
+	}
 }
 
 // minRepeatTokens is the fewest chapter words an extra run must say again to

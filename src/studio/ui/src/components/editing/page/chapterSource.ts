@@ -7,17 +7,14 @@ import { HEADING_PARAGRAPH, tokenParagraph, type HeardAnswer, type HeardWord } f
 import type { PlaylistSegment } from '../../proof/playlist';
 import type { ChapterDoc, HeardWord as ModelWord } from '../model';
 import { duplicateRead } from '../model/duplicates';
+import { itemClocks, type ItemClocks } from '../ribbon/docClock';
 import type { RangeLocator } from '../range/common/locate';
 import { docCutsOf } from '../range/common/locate';
-import { docFromHeard, groupByParagraph, type QuotedPhrase } from '../script/docFromHeard';
+import { docFromHeard, groupByParagraph, LEAD, type QuotedPhrase } from '../script/docFromHeard';
 
-/** Seconds of lead-in `docFromHeard` puts before a paragraph's first heard word. */
-const LEAD = 0.15;
-
-/** Where a paragraph's audio is: the item it was heard on and the second of that item's source the paragraph's time 0 is. */
+/** Where a paragraph's audio is: the item it was heard on and its heard words. */
 interface HeardSpan {
   item: number;
-  origin: number;
   words: readonly HeardWord[];
 }
 
@@ -25,9 +22,16 @@ interface HeardSpan {
 function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Map<string, HeardSpan> {
   const out = new Map<string, HeardSpan>();
   if (!answer.heard) return out;
-  for (const [pid, words] of groupByParagraph(answer.heard.words, firstParagraph)) out.set(pid, { item: words[0].item, origin: words[0].off0 - LEAD, words });
+  for (const [pid, words] of groupByParagraph(answer.heard.words, firstParagraph)) out.set(pid, { item: words[0].item, words });
   return out;
 }
+
+/**
+ * The shift of the document clock against an item's source at a moment of the document (`source = document - shift`): the one clock the waveform is
+ * drawn on (`itemClocks`), so a cut, a play and the waveform all put a word at the same second. Null where no word of the item is placed there.
+ */
+const sourceShift = (clocks: ItemClocks, item: number, at: number): number | null =>
+  (clocks.get(item) ?? []).find((p) => at >= p.from - 1e-9 && at <= p.to + 1e-9)?.shift ?? null;
 
 /**
  * Whether the chapter has audio the page can edit. When it has none, why: no track is linked to it (`unlinked`), the linked track is not in the
@@ -112,14 +116,16 @@ export function locatorOf(doc: ChapterDoc, read: ChapterRead): RangeLocator {
   const tokens = new Map(read.workspace.tokens.filter((t) => tokenParagraph(t) !== undefined).map((t) => [`${tokenParagraph(t)}:${t.w}`, t.i]));
   const spans = heardSpans(read.answer, read.workspace.paragraphs[0]?.id);
   const guids = new Map(read.workspace.items.map((it) => [it.index, it.itemGuid]));
+  const clocks = itemClocks(doc);
   return {
     token: (key) => tokens.get(key),
     source(at) {
       const dp = paraOf(doc, at);
       const span = dp ? spans.get(dp.p.id) : undefined;
       const itemGuid = span ? guids.get(span.item) : undefined;
-      if (!dp || dp.start == null || !span || !itemGuid) return null;
-      return { itemGuid, sourceTime: span.origin + (at - dp.start) };
+      if (!dp || !span || !itemGuid) return null;
+      const shift = sourceShift(clocks, span.item, at);
+      return shift == null ? null : { itemGuid, sourceTime: at - shift };
     },
     place: () => read.place,
   };
@@ -133,22 +139,35 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
   const spans = heardSpans(read.answer, read.workspace.paragraphs[0]?.id);
   const guids = new Map(read.workspace.items.map((it) => [it.index, it.itemGuid]));
   const files = new Map(read.items.filter((i) => i.supported && i.sourceAvailable).map((i) => [i.guid, i.sourceFile]));
+  const clocks = itemClocks(doc);
   const out: PlaylistSegment[] = [];
   for (const dp of doc.paras) {
     const span = spans.get(dp.p.id);
     const itemGuid = span ? guids.get(span.item) : undefined;
     const sourceFile = itemGuid ? files.get(itemGuid) : undefined;
-    if (dp.start == null || dp.end == null || !span || !itemGuid || !sourceFile) continue;
-    const len = dp.end - dp.start;
-    out.push({
-      itemGuid,
-      sourceFile,
-      sourceStart: span.origin,
-      sourceEnd: span.origin + len,
-      elapsedStart: dp.start,
-      elapsedEnd: dp.end,
-      overlapsPrevious: false,
-    });
+    if (!span || !itemGuid || !sourceFile) continue;
+    // One segment for each stretch of the paragraph at one shift: a cut inside the paragraph closes a gap, so the source after it is further on than the
+    // document clock says.
+    const { start: dpStart, end: dpEnd } = dp;
+    if (dpStart == null || dpEnd == null) continue;
+    const start = sourceShift(clocks, span.item, dpStart);
+    if (start == null) continue;
+    const cuts = (clocks.get(span.item) ?? []).filter((p) => p.to > dpStart + 1e-9 && p.from < dpEnd - 1e-9);
+    const pieces = cuts.length ? cuts : [{ from: dpStart, to: dpEnd, shift: start }];
+    for (const piece of pieces) {
+      const from = Math.max(piece.from, dpStart);
+      const to = Math.min(piece.to, dpEnd);
+      if (to - from <= 1e-9) continue;
+      out.push({
+        itemGuid,
+        sourceFile,
+        sourceStart: from - piece.shift,
+        sourceEnd: to - piece.shift,
+        elapsedStart: from,
+        elapsedEnd: to,
+        overlapsPrevious: false,
+      });
+    }
   }
   return out;
 }
@@ -176,11 +195,18 @@ function doubledRead(read: ChapterRead, paragraphId: string): { startsAt: number
   const para = read.workspace.paragraphs.find((p) => p.id === paragraphId);
   const span = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId);
   if (!para || !span) return null;
-  const words: ModelWord[] = span.words.map((w) => ({ text: w.text, off0: w.off0 - span.origin, off1: w.off1 - span.origin, conf: w.conf ?? 1 }));
+  const origin = span.words[0].off0 - LEAD;
+  const words: ModelWord[] = span.words.map((w) => ({ text: w.text, off0: w.off0 - origin, off1: w.off1 - origin, conf: w.conf ?? 1 }));
   const repeated = repeatSplit(span.words, words);
   if (repeated !== undefined) return repeated;
   const dup = duplicateRead(para.text, words);
   return dup ? { startsAt: dup.startsAt, cutAt: dup.cutAt } : null;
+}
+
+/** Seconds of the item's source where a paragraph's stretch begins: its first heard word less the lead-in, the zero `doubledCut` and `doubledStart` count from. Null when nothing was heard in it. */
+export function stretchOrigin(read: ChapterRead, paragraphId: string): number | null {
+  const span = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId);
+  return span ? span.words[0].off0 - LEAD : null;
 }
 
 /** Where a doubled read of a paragraph is cut, in seconds from the start of its take, or null when the paragraph is not read twice. */

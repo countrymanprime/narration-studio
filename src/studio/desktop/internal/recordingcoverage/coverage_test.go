@@ -488,3 +488,27 @@ func TestTwoWordsAcrossALineBreakAreNotAWholeLineSaidAgain(t *testing.T) {
 	}
 	eq(t, RepeatOf([]string{"hotel", "india"}, doc, lines, intp(3), nil), &Repeat{Start: 2, End: 4, First: 0, Last: 2})
 }
+
+func TestAWordSaidTwiceInARowKeepsTheLastCopyAndTheEarlierOneIsExtra(t *testing.T) {
+	// Issue #4047: "back" misspoken and said again a second later. The correction is the word the line goes on from, so the first copy is the extra.
+	a := aligned(t, []string{p1, p2}, p1+" "+p2, "")
+	said := strings.Fields(p1 + " " + p2)
+	for at := range said {
+		doubled := append(append(append([]string{}, said[:at+1]...), said[at]), said[at+1:]...)
+		a = aligned(t, []string{p1, p2}, strings.Join(doubled, " "), "")
+		tokens, extras := a.AlignTokens(DefaultParams)
+		if len(extras) != 1 || extras[0] != [2]int{at, at + 1} {
+			t.Fatalf("word %d said twice: extras %v, want the first copy [%d %d)", at, extras, at, at+1)
+		}
+		if tokens[at].Audio == nil || *tokens[at].Audio != at+1 || tokens[at].Status != StatusRead {
+			t.Fatalf("word %d said twice: token %+v, want read as the second copy %d", at, tokens[at], at+1)
+		}
+	}
+}
+
+func TestAScriptWordThatIsSaidTwiceByTheScriptIsStillTwoWords(t *testing.T) {
+	a := aligned(t, []string{"very very good indeed they said"}, "very very good indeed they said", "")
+	tokens, extras := a.AlignTokens(DefaultParams)
+	eq(t, len(extras), 0)
+	eq(t, []int{*tokens[0].Audio, *tokens[1].Audio}, []int{0, 1})
+}

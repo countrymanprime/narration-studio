@@ -15,6 +15,8 @@ export interface HeardWord {
   unscored?: true;
   /** Said, but not in the text the stretch was read from. */
   added?: boolean;
+  /** Where the word is in the recording, seconds of the item's file: what the page's clock is laid against, whichever script word the word is set against. */
+  src?: { item: number; start: number };
   /** An added word of a run the check found says the script again (a second take): which side of the run it repeats. */
   repeats?: 'previous' | 'next';
 }
@@ -97,7 +99,11 @@ export function alignToScript(script: string[], heard: HeardWord[]): AlignOp[] {
   let dels: number[] = [];
   let ins: number[] = [];
   while (i < ka.length || j < kc.length) {
-    if (i < ka.length && j < kc.length && ka[i] === kc[j]) {
+    if (i < ka.length && j < kc.length && ka[i] === kc[j] && kc[j + 1] === kc[j] && L[i][j + 1] === L[i][j]) {
+      // The same word said again straight away, and matching the later one loses nothing: the narrator stopped and said it again, so the line goes on
+      // with the last of them and the earlier is the extra (a "back" misspoken and said again a second later).
+      ins.push(j++);
+    } else if (i < ka.length && j < kc.length && ka[i] === kc[j]) {
       flush(dels, ins);
       dels = [];
       ins = [];
