@@ -1,4 +1,5 @@
 import { HEADING_PARAGRAPH, type HeardAnswer, type HeardWord as PortWord } from '../../../ports/alignment';
+import { normKey } from '../model/align';
 import { buildDoc, type Aligner, type ChapterDoc, type ChapterInput, type Heard, type HeardWord, type ScriptParagraph } from '../model';
 import { clamp } from '../../../clamp';
 
@@ -72,12 +73,17 @@ const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({
  * The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it, except
  * a restart (a run that says the script words after it again), which goes with the script word after it, the line it restarts.
  */
-export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repeats'>>(words: readonly W[], first: string | undefined): Map<string, W[]> {
+export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repeats' | 'ordinal' | 'text'>>(
+  words: readonly W[],
+  first: string | undefined,
+): Map<string, W[]> {
   const out = new Map<string, W[]>();
   let current = first;
   words.forEach((w, k) => {
     if (w.paragraphId !== undefined) current = w.paragraphId;
-    const restarts = w.paragraphId === undefined && w.repeats === 'next' ? words.slice(k + 1).find((n) => n.paragraphId !== undefined)?.paragraphId : undefined;
+    const upNext = w.paragraphId === undefined ? words.slice(k + 1).find((n) => n.paragraphId !== undefined) : undefined;
+    // A restart says the words after it again; so does a word said and said again across a line break, which is the start of the next line.
+    const restarts = upNext && (w.repeats === 'next' || (upNext.ordinal === 0 && normKey(upNext.text) === normKey(w.text))) ? upNext.paragraphId : undefined;
     const pid = restarts ?? current;
     if (pid === undefined) return;
     out.set(pid, [...(out.get(pid) ?? []), w]);

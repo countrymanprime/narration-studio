@@ -1,29 +1,16 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
-import type { HeardAnswer, HeardWord } from '../../../ports/alignment';
+import type { HeardWord } from '../../../ports/alignment';
+import { loadRealSpeech, REAL_SPEECH_FILES, type RealSpeech } from './realSpeechFixture';
 import type { ChapterRead } from './chapterSource';
+import { readFrom } from './readFixture';
 
 /**
  * A take shaped like the sidecar's answer, built from the real LibriVox alignments the end-of-play test already uses
  * (`model/fixtures/realSpeech`): the recogniser's own word times, grouped into paragraphs by its segments. A misspoken word and its
  * correction, a long pause, a late start and a different item are put into the same words, so the model sees what the host sends for a real take.
  */
-interface RealWord {
-  w: string;
-  t0: number;
-  t1: number;
-  seg: number;
-}
-interface RealTake {
-  name: string;
-  words: RealWord[];
-}
+export const REAL_TAKES = REAL_SPEECH_FILES;
 
-export const REAL_TAKES = ['alice-ch1-librivox', 'alice-ch5-librivox', 'speckled-band-librivox', 'jungle-book-librivox'] as const;
-
-export const loadRealTake = (name: (typeof REAL_TAKES)[number]): RealTake =>
-  JSON.parse(readFileSync(join(__dirname, '../model/fixtures/realSpeech', `${name}.json`), 'utf8')) as RealTake;
+export const loadRealTake = loadRealSpeech;
 
 /** What the recording said about one word of the take: the script word it is, or that it was said and is not in the script. */
 interface SaidWord {
@@ -56,12 +43,12 @@ export interface TakeOptions {
   perParagraph?: number;
 }
 
-export function takeFrom(real: RealTake, opts: TakeOptions = {}): Take {
+export function takeFrom(real: RealSpeech, opts: TakeOptions = {}): Take {
   const maxParagraphs = opts.paragraphs ?? 4;
   const cap = opts.perParagraph ?? 40;
   const paragraphs: Take['paragraphs'] = [];
   const said: SaidWord[] = [];
-  const bySeg = new Map<number, RealWord[]>();
+  const bySeg = new Map<number, RealSpeech['words']>();
   for (const w of real.words) bySeg.set(w.seg, [...(bySeg.get(w.seg) ?? []), w]);
   const segs = [...bySeg.values()].filter((s) => s.length >= 4).slice(0, maxParagraphs);
   let shift = (opts.head ?? 0) - (segs[0]?.[0].t0 ?? 0);
@@ -110,18 +97,4 @@ const heardWords = (take: Take): HeardWord[] =>
     ...(s.added ? { added: true as const, timing: 'spread' as const } : {}),
   }));
 
-export function readOf(take: Take): ChapterRead {
-  const workspace: WorkspaceAlignmentResult = {
-    chapterId: 'c-1',
-    state: 'current',
-    reasons: [],
-    needsAlignAgain: false,
-    paragraphs: take.paragraphs,
-    tokens: [],
-    extras: [],
-    items: [{ index: 0, itemGuid: 'item-0', live: true }],
-    engine: { id: 'whisper:small', name: 'Whisper small' },
-  };
-  const answer: HeardAnswer = { heard: { engine: workspace.engine as { id: string; name: string }, words: heardWords(take) } };
-  return { workspace, answer, cuts: [], effects: [], accepted: [], items: [], place: 'track', audio: { kind: 'ready' } };
-}
+export const readOf = (take: Take): ChapterRead => readFrom(take.paragraphs, heardWords(take));

@@ -5,7 +5,7 @@ import type { WordFx } from '../../../api/contracts/wordFx';
 import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
 import { HEADING_PARAGRAPH, tokenParagraph, type HeardAnswer, type HeardWord } from '../../../ports/alignment';
 import type { PlaylistSegment } from '../../proof/playlist';
-import type { ChapterDoc, HeardWord as ModelWord } from '../model';
+import { curTime, type ChapterDoc, type HeardWord as ModelWord } from '../model';
 import { duplicateRead } from '../model/duplicates';
 import { itemClocks, type ItemClocks } from '../ribbon/docClock';
 import type { RangeLocator } from '../range/common/locate';
@@ -140,6 +140,8 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
   const guids = new Map(read.workspace.items.map((it) => [it.index, it.itemGuid]));
   const files = new Map(read.items.filter((i) => i.supported && i.sourceAvailable).map((i) => [i.guid, i.sourceFile]));
   const clocks = itemClocks(doc);
+  const allCuts = docCutsOf(read.cuts);
+  const gapCuts = allCuts.filter((c) => c.mode === 'gap').map((c) => ({ a: curTime(allCuts, c.a), b: curTime(allCuts, c.b) }));
   const out: PlaylistSegment[] = [];
   for (const dp of doc.paras) {
     const span = spans.get(dp.p.id);
@@ -155,18 +157,39 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
     const cuts = (clocks.get(span.item) ?? []).filter((p) => p.to > dpStart + 1e-9 && p.from < dpEnd - 1e-9);
     const pieces = cuts.length ? cuts : [{ from: dpStart, to: dpEnd, shift: start }];
     for (const piece of pieces) {
-      const from = Math.max(piece.from, dpStart);
-      const to = Math.min(piece.to, dpEnd);
-      if (to - from <= 1e-9) continue;
-      out.push({
-        itemGuid,
-        sourceFile,
-        sourceStart: from - piece.shift,
-        sourceEnd: to - piece.shift,
-        elapsedStart: from,
-        elapsedEnd: to,
-        overlapsPrevious: false,
-      });
+      // The play runs over the words the piece holds, from the first one's start to the last one's end: the piece itself runs a tail past its last word
+      // for the waveform, and a word that was cut sits inside that tail.
+      const held = dp.items.filter(
+        (i) => i.src?.item === span.item && i.t0 != null && i.t1 != null && !i.cut && i.st !== 'miss' && i.t0 >= piece.from - 1e-9 && i.t0 < piece.to - 1e-9,
+      );
+      if (!held.length) continue;
+      const first = Math.min(...held.map((i) => i.t0 as number));
+      const last = Math.max(...held.map((i) => i.t1 as number));
+      // A cut that leaves a gap keeps the time and not the sound: the play steps over it.
+      let spans: Array<[number, number]> = [[first, last]];
+      for (const c of gapCuts)
+        spans = spans.flatMap(([a, b]) =>
+          c.b <= a || c.a >= b
+            ? [[a, b]]
+            : (
+                [
+                  [a, Math.min(b, c.a)],
+                  [Math.max(a, c.b), b],
+                ] as Array<[number, number]>
+              ).filter(([x, y]) => y - x > 1e-9),
+        );
+      for (const [from, to] of spans) {
+        if (to - from <= 1e-9) continue;
+        out.push({
+          itemGuid,
+          sourceFile,
+          sourceStart: from - piece.shift,
+          sourceEnd: to - piece.shift,
+          elapsedStart: from,
+          elapsedEnd: to,
+          overlapsPrevious: false,
+        });
+      }
     }
   }
   return out;
@@ -195,7 +218,7 @@ function doubledRead(read: ChapterRead, paragraphId: string): { startsAt: number
   const para = read.workspace.paragraphs.find((p) => p.id === paragraphId);
   const span = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId);
   if (!para || !span) return null;
-  const origin = span.words[0].off0 - LEAD;
+  const origin = stretchOrigin(read, paragraphId) ?? 0;
   const words: ModelWord[] = span.words.map((w) => ({ text: w.text, off0: w.off0 - origin, off1: w.off1 - origin, conf: w.conf ?? 1 }));
   const repeated = repeatSplit(span.words, words);
   if (repeated !== undefined) return repeated;

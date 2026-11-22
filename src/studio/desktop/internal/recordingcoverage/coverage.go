@@ -590,9 +590,11 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 // keepLastOfARepeatedWord moves a heard word to the last copy of it when the narrator said the same word again straight away (a word misspoken and
 // said again): the earlier copy is the extra word, and the one that stays is the one the line goes on from. difflib matches the first copy; the
 // Editing page sets the words against the script the same way (align.ts), so the two agree on which word is the extra. Only a copy that is free
-// (no token is heard as it) and that comes before the next heard token's word is taken, so no other token loses its word.
+// (no token is heard as it) and that comes before the next heard token's word is taken, so no other token loses its word. The last token moves first,
+// so a word the script says three times and the narrator says five times keeps its last three copies, as align.ts does.
 func (a *AlignedChapter) keepLastOfARepeatedWord(heard []int, used []bool) {
-	for i, j := range heard {
+	for i := len(heard) - 1; i >= 0; i-- {
+		j := heard[i]
 		if j < 0 || a.DocTokens[i] != a.AudioTokens[j] {
 			continue
 		}

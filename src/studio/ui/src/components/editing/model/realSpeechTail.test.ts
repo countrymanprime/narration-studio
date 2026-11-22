@@ -1,10 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { shiftPeaks } from '../ribbon/docClock';
 import { envelopeOf } from '../ribbon/useChapterSound';
 import type { ChapterDoc, DocItem } from './doc';
+import { loadRealSpeech, REAL_SPEECH_FILES, type RealSpeech } from '../page/realSpeechFixture';
 import { heardWindow, MAX_TAIL_SECONDS } from './runway';
 
 /**
@@ -13,15 +11,10 @@ import { heardWindow, MAX_TAIL_SECONDS } from './runway';
  * A word is clipped when sound within 30 dB of the word's own peak, and 10 dB above the room, still plays more than 30 ms after the planned stop.
  * The old rule was checked on a made-up envelope only, and the owner still heard "statue" for "statues".
  */
-interface Fixture {
-  name: string;
-  words: { w: string; t0: number; t1: number; seg: number }[];
-  peaks: WorkspacePeaks;
-  rms: { hopSeconds: number; windowSeconds: number; dbBase64: string };
-}
+type Fixture = RealSpeech;
 
-const load = (name: string): Fixture => JSON.parse(readFileSync(join(__dirname, 'fixtures/realSpeech', `${name}.json`), 'utf8')) as Fixture;
-const FILES = ['alice-ch1-librivox', 'alice-ch5-librivox', 'speckled-band-librivox', 'jungle-book-librivox'];
+const load = loadRealSpeech;
+const FILES = REAL_SPEECH_FILES;
 
 const REL_DB = -30;
 const OVER_ROOM_DB = 10;

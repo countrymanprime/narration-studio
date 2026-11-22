@@ -35,4 +35,9 @@ describe('a word said twice in a row (a misspoken word and its correction)', () 
   it('still reads a misspoken attempt the recogniser wrote differently as an extra word before the right one', () => {
     expect(shape(['the', 'back', 'door'], ['the', 'bact', 'back', 'door'])).toEqual(['ok:the@0', 'x:bact@1', 'ok:back@2', 'ok:door@3']);
   });
+
+  it('keeps the last copies of a word the script says more than once', () => {
+    expect(shape(['no', 'no', 'no'], ['no', 'no', 'no', 'no', 'no'])).toEqual(['x:no@0', 'x:no@1', 'ok:no@2', 'ok:no@3', 'ok:no@4']);
+    expect(shape(['very', 'very', 'good'], ['very', 'very', 'very', 'good'])).toEqual(['x:very@0', 'ok:very@1', 'ok:very@2', 'ok:good@3']);
+  });
 });

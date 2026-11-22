@@ -512,3 +512,23 @@ func TestAScriptWordThatIsSaidTwiceByTheScriptIsStillTwoWords(t *testing.T) {
 	eq(t, len(extras), 0)
 	eq(t, []int{*tokens[0].Audio, *tokens[1].Audio}, []int{0, 1})
 }
+
+func TestAScriptWordSaidMoreOftenThanTheScriptKeepsItsLastCopiesLikeTheEditingPage(t *testing.T) {
+	// The same cases are in ui/src/components/editing/model/align.test.ts; the two must name the same copies as extra.
+	for _, c := range []struct {
+		script, said string
+		heard        []int
+	}{
+		{"no no no", "no no no no no", []int{2, 3, 4}},
+		{"very very good", "very very very good", []int{1, 2, 3}},
+		{"no way", "no no no way", []int{2, 3}},
+	} {
+		a := aligned(t, []string{c.script}, c.said, "")
+		tokens, _ := a.AlignTokens(DefaultParams)
+		got := []int{}
+		for _, token := range tokens {
+			got = append(got, *token.Audio)
+		}
+		eq(t, got, c.heard)
+	}
+}
