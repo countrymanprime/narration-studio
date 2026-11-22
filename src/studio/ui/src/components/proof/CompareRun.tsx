@@ -205,7 +205,7 @@ export function CompareRun({
         if (index >= 0) setChunkIndex(Math.min(index, allowed));
         else if (chunkSetting?.effectiveValue)
           notify(
-            `The chunk length in Settings (${chunkWord(chunkSetting.effectiveValue)}) is not one this panel offers; starting on ${chunkWord(CHUNK_OPTIONS[1])}.`,
+            `The chunk length in Settings, ${chunkWord(chunkSetting.effectiveValue)}, is not one this panel offers; starting on ${chunkWord(CHUNK_OPTIONS[1])}.`,
           );
       } catch {
         /* defaults remain usable */

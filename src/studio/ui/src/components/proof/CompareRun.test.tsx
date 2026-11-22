@@ -924,6 +924,6 @@ describe('CompareRun starting values from Settings', () => {
         />
       </ApiProvider>,
     );
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('(abc (invalid)) is not one this panel offers; starting on 60 s')));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining(', abc (invalid), is not one this panel offers; starting on 60 s')));
   });
 });
