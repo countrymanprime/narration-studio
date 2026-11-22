@@ -15,7 +15,7 @@ Pass 1: after a plan is drafted and before any code (workflow step 1 in `CLAUDE.
 
 ## Pass 1: Design check
 
-Add a row for [one thing per job](../../rules/product-rules.md) (the existing thing searched, and what the new one replaces), then a table with one row per planned file or package and a status for each principle: **met**, **at risk** (with the fix) or **waived** (with the reason).
+Add a row for [one thing per job](../../rules/product-rules.md) (the existing thing searched, and what the new one replaces, or its `Builds new because:` reason), then a table with one row per planned file or package and a status for each principle: **met**, **at risk** (with the fix) or **waived** (with the reason).
 
 | Principle | Go | Python | TypeScript |
 | --- | --- | --- | --- |

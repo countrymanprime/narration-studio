@@ -28,7 +28,14 @@ test('the PR template asks for the searched thing, what it replaces and why it b
   }
 });
 
-test('every reviewer and the intent-check skill point at the rule', () => {
+test('the rule file holds the default, the small-gain clause and both reasons to build new', () => {
+  const rule = read('.claude/rules/product-rules.md');
+  for (const phrase of ['Reuse is the default', 'small or zero performance gain', 'Builds new because:', '(a) reusing makes it way worse', '(b) reusing means changing']) {
+    assert.ok(rule.includes(phrase), `product-rules.md lost "${phrase}"`);
+  }
+});
+
+test('every reviewer, the intent and design skills, the coordinator and the worker files name the reason to build new', () => {
   for (const file of [
     '.claude/agents/intent-reviewer.md',
     '.claude/agents/ux-reviewer.md',
@@ -36,7 +43,21 @@ test('every reviewer and the intent-check skill point at the rule', () => {
     '.claude/agents/qa-breaker.md',
     '.claude/agents/narrator-walkthrough.md',
     '.claude/skills/intent-check/SKILL.md',
+    '.claude/skills/change-impact-scan/SKILL.md',
+    '.claude/skills/solid-design-review/SKILL.md',
+    '.claude/skills/design-principles/SKILL.md',
+    '.claude/skills/frontend-primitives/SKILL.md',
+    '.claude/skills/agent-train/references/coordinator.md',
+    '.claude/skills/agent-train/references/ponytail.md',
+    '.claude/skills/agent-train/references/worker.md',
   ]) {
-    assert.ok(read(file).includes('rules/product-rules.md'), `${file} does not point at rules/product-rules.md`);
+    const text = read(file);
+    assert.ok(text.includes('rules/product-rules.md'), `${file} does not point at rules/product-rules.md`);
+    assert.ok(text.includes('Builds new because'), `${file} does not name \`Builds new because:\``);
   }
+});
+
+test('the agent-train worker, resume and fixer prompts point at the rule', () => {
+  const templates = read('.claude/skills/agent-train/references/templates.md');
+  assert.ok((templates.match(/ONE THING PER JOB/g) ?? []).length >= 3, 'templates.md needs the rule in the worker, resume and fixer prompts');
 });

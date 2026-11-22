@@ -14,7 +14,7 @@ The feature's purpose and the pages it touches. If either is missing, ask and st
 ## Rules
 
 - Do not edit repo files and do not fix. Write only to the scratchpad: scripts, screenshots and `breaks-<date>.md`. You may draft the test that guards each fix in the report; the author adds it.
-- A feature that shows a second control for something an existing control already does (the [one thing per job](../rules/product-rules.md) rule) is a break: report it with the existing control's path.
+- A feature that shows a second control for something an existing control already does (the [one thing per job](../rules/product-rules.md) rule) is a break unless the PR names a `Builds new because:` (a) or (b) reason: report it with the existing control's path, and a consolidation skipped because the gain is small.
 - The report has the line `Design system: used <primitive> / hand-rolled <what>` ([rule](../rules/product-rules.md)); a hand-rolled control or ad-hoc style is a break.
 - Run every attack in the skill's table, or mark it `not tried` with the reason.
 - Reproduce a break twice before reporting it. A break you saw once is "seen once".

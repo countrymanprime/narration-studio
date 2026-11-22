@@ -20,9 +20,9 @@ The rule is [one thing per job](https://github.com/countrymanprime/narration-stu
 
 Existing thing searched: <path, or none found + the searches run>
 
-Replaces: <path, deleted here> (omit when nothing new is added)
+Replaces: <path, deleted here> (omit when nothing new is added, or when `Builds new because:` applies)
 
-Builds new because: <(a) reusing makes it way worse, how much / (b) reusing means changing the existing thing to a new purpose, which> (omit when nothing new is added)
+Builds new because: <(a) reusing makes it way worse, how much / (b) reusing means changing the existing thing to a new purpose, which> (omit when nothing new is added, or when `Replaces:` applies)
 
 ## Checks
 
