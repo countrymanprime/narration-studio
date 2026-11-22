@@ -258,6 +258,8 @@ describe('Recording & DAW: Record with', () => {
     registry.setShell({ ask: (run) => (registry.heldNow().length > 0 ? held.push(run) : run()), go: vi.fn() });
     const days = await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
     fireEvent.change(days, { target: { value: '999' } });
+    // The value is held by the registry once the section has rendered it (it must not be remounted by the tool read arriving).
+    await waitFor(() => expect(registry.heldNow().length).toBeGreaterThan(0));
     fireEvent.click(screen.getByRole('radio', { name: /^REAPER/ }));
     await waitFor(() => expect(held).toHaveLength(1));
     expect(choose).not.toHaveBeenCalled();

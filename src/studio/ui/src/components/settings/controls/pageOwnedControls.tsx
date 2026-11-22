@@ -124,7 +124,9 @@ export function StageSuggestionsBody() {
 export function AudacityBackupsBody() {
   const hasProject = useHasProject();
   // The capability report is read when the section mounts; a change of the project's recording tool reads it again.
-  const daw = useProjectDaw('REAPER');
+  // The row is only drawn for a project that records with Audacity, so that is the tool until the read says otherwise: a key that started as another tool
+  // would remount the section when the read arrived, and drop a value typed in the meantime.
+  const daw = useProjectDaw('Audacity');
   return hasProject ? (
     <div className="w-full min-w-0">
       <BackupsSection key={daw} />
