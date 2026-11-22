@@ -53,7 +53,7 @@ Guards that hold rules 1, 7, 8 and 9 over the whole app. All but `mixedButtons` 
 
 - `tests/visual/guards/toolbarButtons.test.ts` (rule 1: a `Button` with words inside a toolbar or ribbon).
 - `tests/visual/guards/mixedButtons.test.ts` (rule 1: one state of a control draws an `IconButton` and another draws a confirm-type word button, such as Confirm, Save, Apply or Cancel; no allowlist; it reads literal text in conditionals only: it does not see early returns (`if (editing) return`), a label held in a variable, sibling `{a && …}{!a && …}` pairs, or buttons other than `Button`, so check those by hand).
-- `tests/visual/guards/inlineErrors.test.ts` (rule 7: a `role="alert"` element outside a dialog, menu, popover or the toast).
+- `tests/visual/guards/inlineErrors.test.ts` (rule 7: an error-marked element drawn only in some states, outside an overlay and a `min-h-` slot; what it counts is in [design-system.md#errors](../../../docs/design/design-system.md#errors)), and `tests/visual/error-shift.spec.ts`, which requires the page around a registered failing state not to move.
 - `tests/visual/inFlowProse.test.ts` (rule 8).
 - `src/colourControls.guard.test.ts` (a colour chosen without `ColourField`: a `type="color"` input, a `Select`, `RadioGroup`, `ToggleGroup` or `Listbox` of colour names, or a page's inline `background` filled from a token chosen at run time; it does not see a label held in a variable, a `Menu` of colour names or a swatch drawn with a class).
 - `src/truncatedText.guard.test.ts` (rule 1's tooltip: text that an element clips with `truncate`, `line-clamp-*` or `text-ellipsis` must be readable in full in a `title` or a `TooltipTarget` on it or around it; the `DEBT` list in it only shrinks, #3380).
