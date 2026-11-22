@@ -14,6 +14,7 @@ import { onEngineChanged } from './engineSignal';
 import { onProjectDataChanged } from './projectDataSignal';
 import { needsProject } from '../registry/projectNeeds';
 import { rowOf } from '../registry/rows';
+import { isChosen, PANEL_ROWS, type PanelFields } from '../registry/panelFields';
 import { useHasProject } from '../row/SettingsHost';
 import { BROWSER_CHANGED } from './browserValues';
 import type { ReadSettings } from './values';
@@ -32,6 +33,10 @@ export type ProbeContext = {
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
 };
+
+/** Whether the narrator chose a value, in the computer's layer or this project's, for some field the panel draws. */
+const panelChosen = (settings: ReadSettings, { tool, wanted }: PanelFields): boolean =>
+  [settings.global?.[tool], settings.project?.[tool]].some((fields) => fields?.some((field) => isChosen(field) && wanted(field.key)) === true);
 
 /**
  * A row with a custom body has no host field to compare with its default. It is listed here instead, with a probe that says whether the
@@ -63,6 +68,8 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
     const { globalDefault, shippedDefault } = await delivery();
     return globalDefault.id !== shippedDefault.id || (globalDefault.version ?? '') !== (shippedDefault.version ?? '');
   },
+  // The panels of the settings one page reads: some value the narrator chose, in either layer, for a field the panel draws.
+  ...Object.fromEntries(Object.entries(PANEL_ROWS).map(([id, panel]) => [id, ({ settings }: ProbeContext) => panelChosen(settings, panel)])),
   // This project: the Story Bible's types are not the default six.
   'project.types': async ({ api }) => api.guideTypesChanged(),
   // This project: the Script page's mark types are not the default six (a read of the file only, so it never migrates old notes).
@@ -170,6 +177,11 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   // The probes read the page's fields only for the one fact they use (a command's keys changed), so the effect below runs again when that fact moves, not on
   // every read of a scope: each scope's answer used to start a whole pass of host reads again (#3658).
   const keymapSet = settings.global?.Keymap?.some((field) => field.isSet) === true;
+  // Likewise the panel rows: which of them hold a value the narrator chose is the one fact their probes read, so a save through a panel starts a pass.
+  const panelsChosen = Object.entries(PANEL_ROWS)
+    .filter(([, panel]) => panelChosen(settings, panel))
+    .map(([id]) => id)
+    .join(',');
   const latestSettings = useRef(settings);
   latestSettings.current = settings;
   // The last pass of the probes: when it started, with which settings, and how it ended. A pass that failed, or has been out longer than
@@ -220,7 +232,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     return () => {
       current = false;
     };
-  }, [api, keymapSet, version, again, hasProject]);
+  }, [api, keymapSet, panelsChosen, version, again, hasProject]);
 
   // A new read of the settings while the last pass has not answered every probe asks the probes again (a pass that answered leaves nothing to ask).
   useEffect(() => {

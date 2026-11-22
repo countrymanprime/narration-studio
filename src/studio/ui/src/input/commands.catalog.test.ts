@@ -123,6 +123,7 @@ describe('the Booth rows', () => {
       'booth.text.larger': ['Equal'],
       'booth.text.smaller': ['Minus'],
       ...Object.fromEntries(Array.from({ length: 10 }, (_, n) => [`booth.voice.${n}`, [`Numpad${n}`]])),
+      ...Object.fromEntries(Array.from({ length: 10 }, (_, n) => [`booth.voice.${n + 10}`, [`Shift+Numpad${n}`]])),
       'booth.voice.next': ['NumpadAdd'],
       'booth.voice.prev': ['NumpadSubtract'],
       'booth.voice.list': ['NumpadDecimal'],

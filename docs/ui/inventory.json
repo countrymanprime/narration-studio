@@ -99,7 +99,7 @@
         "Save Refused"
       ],
       "consumers": [
-        "src/components/settings/page/PageSettingPanel.tsx"
+        "src/components/settings/controls/pageOwnedControls.tsx"
       ],
       "a11yDebt": false
     },
@@ -1069,7 +1069,6 @@
         "src/components/production/ImportReview.tsx",
         "src/components/production/RecordingCheckReport.tsx",
         "src/components/settings/page/CategoryPane.tsx",
-        "src/components/settings/page/PagesPane.tsx",
         "src/components/storybible/source/NamePronunciation.tsx"
       ],
       "a11yDebt": false
@@ -1400,6 +1399,7 @@
         "Measured Header"
       ],
       "consumers": [
+        "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
         "src/components/chapterTracks/SavedProjectChip.tsx",
@@ -1725,7 +1725,6 @@
         "src/components/settings/models/ModelsFolder.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/ModelsPane.tsx",
-        "src/components/settings/page/PagesPane.tsx",
         "src/components/settings/page/Results.tsx",
         "src/components/settings/page/ScopedFieldsPanel.tsx",
         "src/components/settings/page/SettingsPage.tsx",
@@ -2552,7 +2551,6 @@
         "src/components/settings/page/CategoryPane.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/ModelsPane.tsx",
-        "src/components/settings/page/PagesPane.tsx",
         "src/components/settings/page/ReaderTextPanel.tsx",
         "src/components/settings/page/Results.tsx",
         "src/components/settings/page/ScopedFieldsPanel.tsx",
@@ -3731,8 +3729,7 @@
         "src/components/booth/reading/SpeakerChip.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
-        "src/components/booth/voices/VoiceControl.tsx",
-        "src/components/booth/voices/WhoIsInDialog.tsx",
+        "src/components/booth/voices/CharacterBadge.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",

@@ -478,6 +478,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'The app is free software, licensed under the GNU Affero General Public License, version 3 or later.',
     class: 'state',
   },
+  { file: 'components/settings/controls/pageOwnedControls.tsx', text: 'Backups are kept only when the project records with Audacity.', class: 'state' },
   { file: 'components/settings/controls/DeliveryBodies.tsx', text: 'None checked. Master &amp; QC measures but does not judge.', class: 'state' },
   {
     file: 'components/settings/controls/EngineBody.tsx',

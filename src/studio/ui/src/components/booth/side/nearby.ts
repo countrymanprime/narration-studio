@@ -1,5 +1,6 @@
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import { speakerColour, type EntityColour } from '../../../kinds/entityColour';
+import { canSpeak } from '../../../storyBibleTypes';
 import type { GuideType } from '../../../types';
 import type { BoothUnit } from '../reading/boothUnits';
 
@@ -25,10 +26,12 @@ export type ChapterVoice = { id: string; name: string; voice: string; aliases: s
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** A name as a whole word of a text: the one rule the highlights, "Coming up" and "In this chapter" all find names by. */
+export const namePattern = (name: string, flags = 'u'): RegExp => new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(name)}(?![\\p{L}\\p{N}_])`, flags);
+
 /** Where a name first stands in a text as a whole word, or -1. */
 function firstMention(text: string, name: string): number {
-  if (name.trim() === '') return -1;
-  return text.search(new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(name)}(?![\\p{L}\\p{N}_])`, 'iu'));
+  return name.trim() === '' ? -1 : text.search(namePattern(name));
 }
 
 /**
@@ -52,7 +55,7 @@ export function voicesInChapter(
   }
   const found: Array<{ at: number; voice: ChapterVoice }> = [];
   for (const entity of entities) {
-    if (entity.category.toLowerCase() !== 'character') continue;
+    if (!canSpeak(types, entity.category)) continue;
     const mentions = [entity.canonical_name, ...entity.aliases.map((alias) => alias.text)].map((name) => firstMention(text, name)).filter((at) => at >= 0);
     const spoken = labels.get(entity.id);
     if (mentions.length === 0 && !spoken) continue;
@@ -96,7 +99,7 @@ export function comingUpWords(units: readonly BoothUnit[], cur: number, entities
       ...entity.aliases.map((a) => ({ text: a.text, ipa: a.pronunciation.ipa })),
     ]) {
       if (alias.text.trim() === '' || out.has(alias.text.toLowerCase())) continue;
-      if (!new RegExp(`(?<![\\p{L}\\p{N}_])${alias.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}_])`, 'iu').test(text)) continue;
+      if (!namePattern(alias.text).test(text)) continue;
       out.set(alias.text.toLowerCase(), { word: alias.text, say: alias.ipa, set: alias.ipa.trim() !== '' });
     }
   }

@@ -8,14 +8,18 @@ import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
 import { type Notify, retryAction } from '../../primitives/Toast';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
+import { numberProblem } from '../numberSetting';
 import { ScopedSetting } from '../ScopedSetting';
 import { useScopedFields, useSettingsForms } from '../data/settingsForms';
+import { isHexColour } from '../../primitives/colourHex';
 
 // Two tools share the key `chunk_seconds`, and the host words their labels alike ("Default chunk length", "Chunk length in seconds"). The page names
 // each for what it chunks (issue 2980); the host's label is the fallback for every other field.
 const LABELS: Record<string, string> = {
   'TranscriptCompare.chunk_seconds': 'Compare chunk length',
   'RecordingCoverage.chunk_seconds': 'Coverage chunk length (0 = each item whole)',
+  // The host's label is 51 characters: at 390 px it wraps to two lines while its four siblings stay on one, and the alignment audit (A5) fails the page.
+  'Cleanup.click_above_silence_db': 'How far above silence a click stands',
 };
 
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', project: 'This project' };
@@ -34,6 +38,21 @@ function changedValues(fields: readonly ScopedSettingField[], values: Record<str
   return Object.fromEntries(
     fields.filter((field) => isChanged(field, values[field.key] ?? field.value)).map((field) => [field.key, saved(field, values[field.key] ?? '')]),
   );
+}
+
+/** The first number the form holds that its own range refuses, or colour that is no colour (the box marks it): Save does not send it, and the narrator is told why. */
+function firstFieldProblem(fields: readonly ScopedSettingField[], values: Record<string, string>): string | undefined {
+  for (const field of fields) {
+    const value = values[field.key] ?? field.value;
+    if (field.kind === 'color') {
+      if (value !== '' && !isHexColour(value)) return `${field.label}: enter a colour as six hex digits, like #3c7a5c.`;
+      continue;
+    }
+    if (field.kind !== 'number' || !field.number) continue;
+    const problem = numberProblem(field.number, value);
+    if (problem) return `${field.label}: ${problem}`;
+  }
+  return undefined;
 }
 
 const sameValues = (one: Record<string, string>, other: Record<string, string>) =>
@@ -64,6 +83,10 @@ export type ScopedFieldsPanelProps = {
   notify: Notify;
   /** Drawn above the fields. */
   before?: (state: ScopedPanelState) => ReactNode;
+  /** The page already says the settings could not be read, with its own Retry: a panel drawn in a category row leaves its own line out. */
+  pageSaysReadError?: boolean;
+  /** The panel is the body of a settings row, which already names it: no heading of its own, only the scope switch. */
+  inRow?: boolean;
   /** Drawn below the fields, above Save. */
   after?: (state: ScopedPanelState) => ReactNode;
   /** Replaces the form in a scope where the panel is not a form of fields (DAW Integration in a project); `undefined` keeps it. */
@@ -78,7 +101,20 @@ export type ScopedFieldsPanelProps = {
  * shows Save and Discard once something changed, and asks before a scope switch would drop an edit. Its edits join
  * the page's dirty flag and its leave guard through `SettingsFormsProvider`.
  */
-export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, before, after, replace, onChoose }: ScopedFieldsPanelProps) {
+export function ScopedFieldsPanel({
+  id,
+  title,
+  tool,
+  scopes,
+  filter,
+  notify,
+  before,
+  after,
+  replace,
+  onChoose,
+  pageSaysReadError = false,
+  inRow = false,
+}: ScopedFieldsPanelProps) {
   const system = usePort('system');
   const { register } = useSettingsForms();
   const [scope, setScope] = useState<Scope>(scopes[0]!);
@@ -95,6 +131,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
     [read, filter, tool],
   );
   const [values, setValues] = useState<Record<string, string>>({});
+  const saveProblem = firstFieldProblem(fields, values);
   const [dirty, setDirtyState] = useState(false);
   // The flag as of now, not as of the last render: an edit typed before this panel copied a fresh read into the form
   // runs ahead of that render's effect, which must then leave the edit alone.
@@ -112,6 +149,8 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
 
   // The form as the last render drew it. A save reads it when it starts and again when it ends, and the save that waited for another starts
   // before the next render: a closure's copy would be the form as it was when the narrator pressed Save.
+  const fieldsNow = useRef(fields);
+  fieldsNow.current = fields;
   const form = useRef({ read, values, scope });
   form.current = { read, values, scope };
   // What the host took in saves answered since `over` was read. A save that waited for another starts before the new read is drawn, and
@@ -128,6 +167,13 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
     const { read: readNow, values: sent, scope: sentScope } = form.current;
     const send = async (): Promise<boolean> => {
       if (!tool || !readNow) return true;
+      // A number its own box refuses is not sent: the form keeps it, marked, and Save says why it waits.
+      // The Save button is already off for it; the leave dialog's Save & continue reaches here, so it says why nothing was saved.
+      const problem = firstFieldProblem(fieldsNow.current, sent);
+      if (problem) {
+        notify(problem, 'error');
+        return false;
+      }
       try {
         const changed = changedValues(heldByHost(readNow, taken.current), sent);
         // An edit that was put back leaves nothing to save: the host is not asked, and "Unsaved changes" clears.
@@ -188,26 +234,30 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
     else setScope(next);
   };
 
+  const scopeSubtitle = scopes.length > 1 || scope === 'project' ? SCOPE_SUBTITLE[scope] : undefined;
+  const scopeSwitch =
+    scopes.length > 1 ? (
+      <ToggleGroup
+        label={`${title} scope`}
+        look="segmented"
+        value={scope}
+        onChange={(next) => chooseScope(next as Scope)}
+        options={scopes.map((entry) => ({ value: entry, label: SCOPE_LABEL[entry] }))}
+      />
+    ) : undefined;
   const state: ScopedPanelState = { scope, fields, dirty, reload };
   const replaced = replace?.(state);
   return (
     <div id={`settings-${id}`} className="scroll-mt-4">
-      <Panel
-        title={title}
-        subtitle={scopes.length > 1 || scope === 'project' ? SCOPE_SUBTITLE[scope] : undefined}
-        actions={
-          scopes.length > 1 ? (
-            <ToggleGroup
-              label={`${title} scope`}
-              look="segmented"
-              value={scope}
-              onChange={(next) => chooseScope(next as Scope)}
-              options={scopes.map((entry) => ({ value: entry, label: SCOPE_LABEL[entry] }))}
-            />
-          ) : undefined
-        }
-      >
-        {error && (
+      <Panel {...(inRow ? { label: title } : { title, subtitle: scopeSubtitle, actions: scopeSwitch })}>
+        {inRow && (scopeSwitch || scopeSubtitle) && (
+          // The row above already says what this is, so the panel keeps no heading of its own: its scope switch and what it falls back to sit on one line.
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <span className="text-[0.8125rem] text-[var(--text-muted)]">{scopeSubtitle}</span>
+            {scopeSwitch}
+          </div>
+        )}
+        {error && !pageSaysReadError && (
           <div
             role="alert"
             className="mb-3 flex flex-wrap items-center gap-3 rounded-md p-3 text-sm"
@@ -262,7 +312,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
                   <Button variant="secondary" type="button" onClick={() => void discard()}>
                     Discard changes
                   </Button>
-                  <Button variant="primary" type="submit">
+                  <Button variant="primary" type="submit" disabledReason={saveProblem}>
                     Save
                   </Button>
                 </div>

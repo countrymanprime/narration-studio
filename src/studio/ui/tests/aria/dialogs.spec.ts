@@ -45,7 +45,7 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
   },
   {
     name: 'the unsaved-settings confirm is an alert dialog with three actions',
-    state: ['settings', 'pages-navigate-away-confirm'],
+    state: ['settings', 'speech-rules-navigate-away-confirm'],
     snapshot: 'confirm-unsaved-settings.aria.yml',
   },
 

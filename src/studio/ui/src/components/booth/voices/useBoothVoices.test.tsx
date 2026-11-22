@@ -151,6 +151,14 @@ describe("the Booth's voices", () => {
     expect(notify).toHaveBeenCalledWith(expect.stringContaining('The host did not answer.'), 'error', expect.objectContaining({ label: 'Retry' }));
   });
 
+  it('a number past nine (Shift+1 is 11) asks who is in it when the folder has no such voice, and chooses nothing', async () => {
+    const onNoTrack = vi.fn();
+    const { hook } = await mount({ voiceFolders: true }, false, undefined, { onNoTrack });
+    await act(async () => hook.current.byKey(11));
+    expect(onNoTrack).toHaveBeenCalledWith(11);
+    expect(hook.current.current?.name).toBe('Narrator');
+  });
+
   it('a key with no track, while stopped, asks who is in it and changes nothing else', async () => {
     const onNoTrack = vi.fn();
     const stopTake = vi.fn(async () => true);

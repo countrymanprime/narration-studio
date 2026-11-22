@@ -389,7 +389,8 @@ export function useBoothVoices({
         stopFor.current = n;
         return;
       }
-      const voice = voices.find((each) => each.key === String(n));
+      // Past nine a voice has no key: Shift with a number reaches it by its place among the others (Shift+1 is the 11th, 1 the 1st).
+      const voice = n <= 9 ? voices.find((each) => each.key === String(n)) : voices.filter((each) => !each.narrator)[n - 1];
       if (voice) return choose(voice, true);
       // Decision C as the owner changed it (#2839): a key with no track asks who is in it, while stopped and during a take; a take
       // this app runs is stopped first, as the Stop press stops it, so nothing recorded is lost.

@@ -215,4 +215,16 @@ describe('Who records a character with no track?', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Use this track' }));
     expect(props.onUse).toHaveBeenCalledWith(voices[1], ['king']);
   });
+
+  it('a track added from a search that found nothing starts named by what was typed (#3970)', () => {
+    show({ kind: 'key', key: 5, name: ' Duchess ' });
+    expect((screen.getByLabelText('Track name') as HTMLInputElement).value).toBe('Duchess');
+    // No one is ticked for it: the chapter's speakers with no track are not the Duchess.
+    expect(screen.queryAllByRole('checkbox', { checked: true })).toHaveLength(0);
+  });
+
+  it('a number past nine has no key to name: the dialog asks about the new track', () => {
+    show({ kind: 'key', key: 11 });
+    expect(screen.getByRole('dialog', { name: 'Who is in the new track?' })).toBeTruthy();
+  });
 });

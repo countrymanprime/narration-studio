@@ -3,7 +3,6 @@ import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { CATEGORIES } from '../registry/categories';
 import type { Hit } from '../registry/search';
-import { PageSettingList } from './PagesPane';
 import { RowOf } from './RowOf';
 import type { CategoryId } from '../registry/types';
 import { plural } from '../../../plural';
@@ -36,8 +35,7 @@ export function Results({
     <>
       {categories.map((name) => {
         const mine = hits.filter((hit) => hit.cat === name);
-        const rows = mine.flatMap((hit) => (hit.row ? [hit.row] : []));
-        const pages = mine.flatMap((hit) => (hit.page ? [hit.page] : []));
+        const rows = mine.map((hit) => hit.row);
         const category = CATEGORIES.find((candidate) => candidate.label === name);
         return (
           <section key={name} aria-label={name} className="flex flex-col">
@@ -52,7 +50,6 @@ export function Results({
                 ))}
               </Panel>
             )}
-            {pages.length > 0 && <PageSettingList items={pages} />}
           </section>
         );
       })}
