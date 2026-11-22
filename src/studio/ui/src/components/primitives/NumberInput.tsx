@@ -15,6 +15,15 @@ type Base = Omit<TextFieldProps, 'value' | 'onChange' | 'type' | 'mono' | 'readO
   stepFrom?: number;
   /** The number a clamped value is reported as (a setting's value moved onto its step), or undefined for one that cannot be reported, which puts the value back. */
   accepted?: (n: number) => number | undefined;
+  /**
+   * For a field of a form that saves later (`commit="input"`): called, as it is typed, with text that is not a number, so the form holds it as
+   * its unsaved value (it then asks before the narrator leaves, and the host refuses it on Save), as ColourField's `onRefused` does. It is
+   * handed over at once and not when the box is left: an exit decides whether to ask a moment after it takes the focus off the box.
+   * Without it that text reverts when the box is left.
+   */
+  onRefused?: (text: string) => void;
+  /** The text the form holds for this box that is not a number (what `onRefused` handed it): the box shows it in place of `value`. */
+  heldText?: string;
 };
 /** `onValueChange` may return the save it starts: a `settle` box then shows the value being saved until that save ends. */
 type Filled = { allowEmpty?: false; value: number; onValueChange: (value: number) => void | Promise<unknown> };
@@ -39,7 +48,7 @@ const asText = (n: number | null): string => (n === null ? '' : String(n));
 // holds a draft (its dialog dismissed by a press outside) reports it, as leaving the box does.
 // `allowEmpty` makes an emptied box a value (`null`) and not junk; an arrow step from an empty box starts at `min`, else 0.
 export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberInput(
-  { value, onValueChange, allowEmpty, commit = 'input', min, max, step = 1, stepFrom, accepted, invalid, onBlur, onKeyDown, ...rest },
+  { value, onValueChange, allowEmpty, commit = 'input', min, max, step = 1, stepFrom, accepted, onRefused, heldText, invalid, onBlur, onKeyDown, ...rest },
   ref,
 ) {
   const isSettle = commit === 'settle';
@@ -61,7 +70,8 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
     return n === null ? undefined : toAccepted(clamp(n));
   };
   const apply = (n: number | null | undefined): void => {
-    if (n !== undefined && n !== value) void report(n);
+    // While the form holds text that is not a number, `value` stands for none, so any number (or an emptied box) replaces that text.
+    if (n !== undefined && (n !== value || heldText !== undefined)) void report(n);
   };
   const settled = useSettledDraft(asText(value), (text) => report(text === '' ? null : Number(text)), {
     read: (text) => {
@@ -120,7 +130,7 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
       max={max}
       step={step}
       aria-invalid={invalid ? true : undefined}
-      value={isSettle ? settled.draft : (typedDraft ?? asText(value))}
+      value={isSettle ? settled.draft : (typedDraft ?? heldText ?? asText(value))}
       onChange={(text) => {
         if (isSettle) {
           settled.setDraft(text);
@@ -130,6 +140,8 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
         const n = parse(text);
         if (n !== null && n === clamp(n)) apply(toAccepted(n));
         else if (isEmptied(text)) apply(null);
+        // An emptied box that may not be empty is no text to hold: it reverts.
+        else if (n === null && onRefused && text.trim() !== '' && text.trim() !== heldText) onRefused(text.trim());
       }}
       onBlur={(event) => {
         if (isSettle) settled.settleText(settled.draft);

@@ -347,4 +347,74 @@ describe('NumberInput', () => {
       expect(onChange).toHaveBeenLastCalledWith(0.2);
     });
   });
+
+  // unsaved-drafts.spec.ts "Alt+Left from a focused invalid number box asks every time": a form's box that dropped text that is not a number when
+  // it was left let an exit leave without asking, and the text was gone.
+  describe('onRefused, for a field of a form', () => {
+    function Form({ onRefused, onValueChange = () => undefined }: { onRefused: (text: string) => void; onValueChange?: (value: number | null) => void }) {
+      const [held, setHeld] = useState<string>();
+      const [value, setValue] = useState<number | null>(4);
+      return (
+        <>
+          <NumberInput
+            label="Count"
+            allowEmpty
+            min={1}
+            max={12}
+            value={held === undefined ? value : null}
+            heldText={held}
+            onValueChange={(next) => {
+              onValueChange(next);
+              setHeld(undefined);
+              setValue(next);
+            }}
+            onRefused={(text) => {
+              onRefused(text);
+              setHeld(text);
+            }}
+          />
+          <button type="button" onClick={() => setHeld(undefined)}>
+            Discard
+          </button>
+        </>
+      );
+    }
+
+    it('hands text that is not a number to the form as it is typed, and the box keeps it when left', () => {
+      const onRefused = vi.fn();
+      render(<Form onRefused={onRefused} />);
+      fireEvent.change(box(), { target: { value: ' abc ' } });
+      expect(onRefused).toHaveBeenCalledExactlyOnceWith('abc');
+      fireEvent.blur(box());
+      expect(box().value).toBe('abc');
+      expect(onRefused).toHaveBeenCalledTimes(1);
+    });
+
+    it('a number typed over the held text is reported, even the number the form held before it', () => {
+      const onValueChange = vi.fn();
+      render(<Form onRefused={vi.fn()} onValueChange={onValueChange} />);
+      fireEvent.change(box(), { target: { value: 'abc' } });
+      fireEvent.change(box(), { target: { value: '4' } });
+      expect(onValueChange).toHaveBeenCalledExactlyOnceWith(4);
+      fireEvent.blur(box());
+      expect(box().value).toBe('4');
+    });
+
+    it('shows the value again when the form lets go of the text', () => {
+      render(<Form onRefused={vi.fn()} />);
+      fireEvent.change(box(), { target: { value: 'abc' } });
+      fireEvent.blur(box());
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+      expect(box().value).toBe('4');
+    });
+
+    it('does not hand over an emptied box that may not be empty: it reverts', () => {
+      const onRefused = vi.fn();
+      render(<NumberInput label="Count" value={3} onValueChange={vi.fn()} onRefused={onRefused} />);
+      fireEvent.change(box(), { target: { value: ' ' } });
+      fireEvent.blur(box());
+      expect(onRefused).not.toHaveBeenCalled();
+      expect(box().value).toBe('3');
+    });
+  });
 });

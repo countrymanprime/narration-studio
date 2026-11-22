@@ -165,7 +165,8 @@ function NumberSetting({
       <div className={CONTROLS_CLASSES}>
         {/* A number box is one short width, 10rem (room for its "Inherits 0.8" placeholder), with or without a unit after it, so the boxes down a panel line up (alignment audit XSE2-22);
             the unit stays beside its box at every width. The form is the draft, so a valid number is the form's value as it is typed; one out of
-            range becomes the nearest allowed value when the box is left. Keyed by the scope, so nothing typed under one scope shows under the other. */}
+            range becomes the nearest allowed value when the box is left, and text that is not a number is the form's value too as it is typed (`onRefused`), so the
+            form asks before the narrator leaves. Keyed by the scope, so nothing typed under one scope shows under the other. */}
         <SettingNumber
           key={scope}
           label={field.label}
@@ -177,6 +178,7 @@ function NumberSetting({
           placeholder={numberPlaceholder(field, scope)}
           describedBy={hint ? hintId : undefined}
           onChange={change}
+          onRefused={change}
         />
         {resetButton}
         {hint && (
@@ -255,7 +257,7 @@ export function ScopedSetting({
           </div>
         ) : isColor ? (
           // The pair takes the row's free width: the hex box settles on Enter or on leaving it, so a half-typed code never marks the form changed.
-          // Text left in the box that is not a colour is the form's value too (`onRefused`), as a number out of range is: the form then asks before
+          // Text left in the box that is not a colour is the form's value too (`onRefused`), as text that is not a number is: the form then asks before
           // the narrator leaves, and Discard takes it away. Keyed by the scope, so nothing typed under one scope shows under the other.
           // An emptied box is "not set" under This project, where the colour then comes from Global. Global has nothing to fall back to and the
           // host refuses '' there, so the box refuses it: it is marked, and the form is not handed a value it could only fail to save.

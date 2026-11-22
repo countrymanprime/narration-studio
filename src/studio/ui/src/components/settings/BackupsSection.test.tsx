@@ -198,6 +198,22 @@ describe('BackupsSection', () => {
     expect(await windowBox()).toBeTruthy();
   });
 
+  // #3877 N6: text held in its box and not saved was dropped without a word by leaving the category or the page. Text that is not a number
+  // is still held so.
+  it('text that is not a number is held, not saved: leaving asks, and Discard puts the box back', async () => {
+    const { saveSettings } = renderSection();
+    const box = (await retentionBox()) as HTMLInputElement;
+    expect(registry.heldNow()).toEqual([]);
+    fireEvent.change(box, { target: { value: 'abc' } });
+    expect(registry.heldNow().map((held) => held.label)).toEqual(['a backups value that is not a number']);
+    fireEvent.blur(box);
+    expect(box.value).toBe('abc');
+    expect(saveSettings).not.toHaveBeenCalled();
+    act(() => registry.discard());
+    await waitFor(() => expect(box.value).toBe(''));
+    expect(registry.heldNow()).toEqual([]);
+  });
+
   // #3877 N6 held a value outside its range in its box as an unsaved draft that leaving asked about. Since CS-N1 (#3681) there is no such
   // draft: the value is saved as the nearest limit when the box is left, and every exit takes the focus off the box first.
   it('a value outside its range is not an unsaved draft: leaving the box saves the nearest limit', async () => {

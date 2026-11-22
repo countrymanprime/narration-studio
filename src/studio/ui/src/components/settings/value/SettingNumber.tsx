@@ -16,6 +16,11 @@ type SettingNumberProps = {
   allowEmpty?: boolean;
   /** A value the host accepts: in range and on step, or '' for an emptied box that may be. May return the save it starts. */
   onChange: (value: string) => void | Promise<unknown>;
+  /**
+   * For a field of a form (`commit="input"`): called, as it is typed, with text in the box that is not a number, so the form holds it as its
+   * unsaved value and asks before the narrator leaves; while `value` is that text the box shows it. Without it such text reverts.
+   */
+  onRefused?: (text: string) => void;
   placeholder?: string;
   id?: string;
   describedBy?: string;
@@ -45,6 +50,7 @@ export function SettingNumber({
   commit,
   allowEmpty = false,
   onChange,
+  onRefused,
   placeholder,
   id,
   describedBy,
@@ -85,7 +91,9 @@ export function SettingNumber({
         accepted={accepted}
         disabled={disabled}
         invalid={invalid || isRefused}
-        placeholder={placeholder ?? (isJunk ? value : undefined)}
+        onRefused={onRefused}
+        heldText={onRefused && isJunk ? value.trim() : undefined}
+        placeholder={placeholder ?? (isJunk && !onRefused ? value : undefined)}
         aria-describedby={[describedBy, note ? noteId : '', describesByUnit ? unitId : ''].filter(Boolean).join(' ') || undefined}
         onValueChange={(next) => (next !== null ? onChange(String(next)) : allowEmpty ? onChange('') : undefined)}
       />

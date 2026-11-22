@@ -5,9 +5,11 @@ import { usePort } from '../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../types';
 import { IconButton } from '../primitives/IconButton';
 import { SectionLabel } from '../primitives/SectionLabel';
+import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 import { plural } from '../../plural';
+import { useUnsavedDraft } from '../../studio/drafts/unsavedDrafts';
 
 const TOOL = 'DAW';
 const WINDOW_KEY = 'backups.window_seconds';
@@ -28,9 +30,14 @@ function windowWords(seconds: number): string {
   return `about ${seconds >= 60 ? plural(Math.round(seconds / 60), 'minute') : plural(seconds, 'second')} either side`;
 }
 
-/** The value a row stands for: the edit (its box reports only numbers the range accepts), else what is in force. */
+/** Whether a row's edit is text its box held because it is not a number (`onRefused`); every number the box reports is one the range accepts. */
+function isNotANumber(row: BackupsRow, draft: string | undefined): boolean {
+  return draft !== undefined && draft !== '' && row.field.number !== undefined && numberProblem(row.field.number, draft) !== undefined;
+}
+
+/** The value a row stands for: the edit when it is a number, else what is in force. */
 function shown(row: BackupsRow, draft: string | undefined): number {
-  return Number(draft || row.field.effectiveValue);
+  return Number(draft && !isNotANumber(row, draft) ? draft : row.field.effectiveValue);
 }
 
 export type BackupsViewProps = {
@@ -185,9 +192,13 @@ export function BackupsSection() {
   const commit = (key: string) => {
     const row = rows.find((candidate) => candidate.field.key === key);
     const draft = latestDrafts.current[key];
-    if (!row || draft === undefined || draft === row.field.value) return;
+    if (!row || draft === undefined || draft === row.field.value || isNotANumber(row, draft)) return;
     void save(row.scope, { [key]: draft === '' ? null : draft });
   };
+
+  // Text that is not a number is held in its box, not saved: leaving the category or the page asks before it is dropped (#3877 N6).
+  const held = rows.some((row) => isNotANumber(row, drafts[row.field.key]));
+  useUnsavedDraft('audacity-backups', { dirty: held, label: 'a backups value that is not a number', discard: () => holdDrafts({}) });
 
   if (!loadError && !hasBackups(caps)) return null;
   const support = caps?.capabilities['backups'];

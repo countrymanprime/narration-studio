@@ -342,6 +342,18 @@ describe('ScopedSetting controls', () => {
       expect(box.getAttribute('aria-invalid')).toBeNull();
     });
 
+    // unsaved-drafts.spec.ts: text that is not a number is the form's value, so the Settings page asks before an exit drops it.
+    it('hands text that is not a number to the form as it is typed, and shows it, marked, while the form holds it', () => {
+      const change = renderNumber(LIMIT, 'global');
+      fireEvent.change(screen.getByRole('textbox', { name: 'True peak, highest' }), { target: { value: 'abc' } });
+      expect(change).toHaveBeenCalledExactlyOnceWith('abc');
+      cleanup();
+      renderNumber(LIMIT, 'global', 'abc');
+      const box = screen.getByRole('textbox', { name: 'True peak, highest' }) as HTMLInputElement;
+      expect(box.value).toBe('abc');
+      expect(box.getAttribute('aria-invalid')).toBe('true');
+    });
+
     it('marks a stored value the range refuses, and keeps the range as its description', () => {
       renderNumber(LIMIT, 'global', '5');
       const box = screen.getByRole('textbox', { name: 'True peak, highest' });

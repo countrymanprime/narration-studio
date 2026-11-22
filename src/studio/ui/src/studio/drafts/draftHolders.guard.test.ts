@@ -240,6 +240,7 @@ const PROOF_MOVES: Replacer[] = [
   { file: 'proof/ProofPage.tsx', control: 'a clicked row in the notes list', asks: /guarded\(\(\) => \{\s*select\(id\)/ },
 ];
 const HOLDER_REPLACED_BY: Record<string, Replacer[]> = {
+  'settings/BackupsSection.tsx': SETTINGS_PANE,
   'settings/controls/MwKeyBody.tsx': SETTINGS_PANE,
   'settings/page/StoryBibleTypesPanel.tsx': SETTINGS_PANE,
   'proof/inspector/FindingThread.tsx': PROOF_MOVES,
