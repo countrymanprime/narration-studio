@@ -889,7 +889,7 @@ describe('Settings: search and filters', () => {
   });
 
   it('keeps the punch pre-roll and the Audacity backups editable here, each in its category with the page it is also set on', async () => {
-    await renderPage();
+    await renderPage({ api: createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } }) });
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
     const punch = await waitForRow('daw.punchPreroll');
     expect(within(punch).getByRole('button', { name: /Go to Booth/ })).toBeTruthy();
@@ -900,13 +900,18 @@ describe('Settings: search and filters', () => {
     expect(within(backups).getByText(/Also set in Editing/)).toBeTruthy();
   });
 
-  it('keeps the punch pre-roll in Settings with the built-in recorder, and says why Audacity backups have no control with a tool that keeps none', async () => {
+  it('does not draw the Audacity backups row while the project records with REAPER', async () => {
+    await renderPage();
+    expect(await waitForRow('daw.punchPreroll')).toBeTruthy();
+    expect(row('daw.backups')).toBeNull();
+  });
+
+  it('keeps the punch pre-roll in Settings with the built-in recorder, and does not draw the Audacity backups row for a tool that keeps none', async () => {
     const api = createMockApi({}, { dawChoice: { chosen: 'Built-in' }, daw: { daw: 'Built-in' }, recording: { engine: 'builtin' } });
     await renderPage({ api });
     // A computer-wide value: the Booth does not offer it with a recorder that does not punch, but Settings keeps it for every project.
     expect(await waitForRow('daw.punchPreroll')).toBeTruthy();
-    const backups = await waitForRow('daw.backups');
-    await waitFor(() => expect(within(backups).getByText('Backups are kept only when the project records with Audacity.')).toBeTruthy());
+    expect(row('daw.backups')).toBeNull();
   });
 
   it('a value saved through a panel row marks the row Changed and counts it', async () => {

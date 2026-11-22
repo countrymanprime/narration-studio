@@ -34,9 +34,11 @@ export function settingsPageItems({ shown, daw, showCategory, showRow }: Setting
     disabledReason:
       row.needs === 'reaper' && daw !== 'REAPER'
         ? `Only applies when recording with REAPER (this project uses ${daw})`
-        : row.needs === 'daw' && daw === 'Built-in'
-          ? `Only applies when recording with a DAW (this project uses ${daw})`
-          : undefined,
+        : row.needs === 'audacity' && daw !== 'Audacity'
+          ? 'Only applies when recording with Audacity'
+          : row.needs === 'daw' && daw === 'Built-in'
+            ? `Only applies when recording with a DAW (this project uses ${daw})`
+            : undefined,
     run: () => showRow(row.cat, row.id),
   }));
   return [...categories, ...rows];
