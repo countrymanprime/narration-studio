@@ -52,7 +52,8 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
         label={`How retries are kept in this ${scope}`}
         look="segmented"
         value={value}
-        options={answer ? options : options.map((o) => ({ ...o, disabled: true }))}
+        // While the mode loads every option is off, and says so (the option's own title says what it means, not why it is off).
+        options={answer ? options : options.map((o) => ({ ...o, disabled: true, disabledReason: 'Loading how retries are kept…' }))}
         onChange={(v) => void choose(v === 'inherit' ? '' : (v as RetryMode))}
       />
       {mode === 'stack' && count > 0 ? (
