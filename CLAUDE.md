@@ -2,6 +2,8 @@
 
 If git, the GitHub tools or a session launch cannot reach this repository (a 404, `repository not found`, `ref_not_found`, a call refused as out of scope), the repository was probably renamed: follow `docs/operations/repository-rename.md`.
 
+**Owner rule, always in force (#3962):** "If we already have a thing that does something, we SHOULD NOT MAKE A NEW ONE UNLESS WE ARE REPLACING THE OLD ONE WITH A BETTER ONE". Reuse is the default, a small or zero gain never skips a consolidation, and the UI comes from the design system: [`.claude/rules/product-rules.md`](.claude/rules/product-rules.md) holds the rule and the two reasons to build new.
+
 ## Feature workflow: plan → impact scan → implement → verify → clean up
 
 New features and bugfixes in this repo have a history of silently breaking unrelated things — this order exists to catch that before it ships, not after. For anything beyond a trivial single-file change:

@@ -44,6 +44,7 @@ Before each `create_session` for a worker, a resume or a fixer, confirm:
 The worker template, with this paragraph first:
 
 ```text
+ONE THING PER JOB: .claude/rules/product-rules.md (reuse is the default; `Existing thing searched:`, `Replaces:`, `Builds new because:` in the PR's Reuse section).
 RESUME: stream <ID> was paused. Its work is on branch <branch>, draft PR #<n>. Read the PR's "## Resume notes" and its
 diff, check out the branch, merge main into it (never rebase), re-run the checks listed there, then continue from "Next".
 Mark the PR ready for review when its phase is done.
@@ -52,7 +53,7 @@ Mark the PR ready for review when its phase is done.
 ## Fixer template
 
 ```text
-You are a fixer in this repository's agent train. PR #<n> (branch <b>) <has a merge conflict with main | fails <check> |
+You are a fixer in this repository's agent train. ONE THING PER JOB: .claude/rules/product-rules.md; a fix reuses what exists and adds no parallel thing. PR #<n> (branch <b>) <has a merge conflict with main | fails <check> |
 turned main red>. Merge main into the branch (never rebase or force-push). Keep the PR body's "Closes #<n>" lines; add one for any issue your fix resolves. Resolve keeping both sides' intent: for
 hostAPIVersion take the higher value + 1 and regenerate Host.*; for ADR or PRD index rows keep both rows; for an ADR number
 clash renumber the later one to the next free number and fix its links. Run targeted checks for the touched areas, push,
