@@ -205,7 +205,7 @@ describe('a failed read on Script', () => {
   });
 
   // One list for every page (#3658): a job that ends is one read of the chapter list, the store's, and the page follows it; Script has no read of its own for it.
-  it('reads the chapter list once when a job ends, and shows what that read answers', async () => {
+  it('reads the chapter list once when a job ends', async () => {
     const { api, fails, asked, endJob } = refusing('manuscriptChapters', 'The chapters could not be read.');
     fails.now = false;
     mount(api);
