@@ -48,7 +48,7 @@ export type StudioStoreOptions<R extends SlotRegistry> = {
 type ReadOptions = { project?: string };
 
 /** What a reader that named a project is told when the app is on another one: the page is about to be drawn for the new project. */
-class ProjectChangedError extends Error {
+export class ProjectChangedError extends Error {
   constructor() {
     super('The project changed while its chapters were being read.');
     this.name = 'ProjectChangedError';
