@@ -1,11 +1,42 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { NumberSettingRange } from '../../../api/contracts/system';
+import type { NumberSettingRange, ScopedSettingField } from '../../../api/contracts/system';
+import { wireSettings } from '../../../api/mockFixtures';
+import { settingsForScopeSchema } from '../../../api/schemas/settings';
+import { numberProblem } from '../numberSetting';
 import { SettingNumber } from './SettingNumber';
 
 afterEach(cleanup);
+
+const GOLDEN_DIR = join(__dirname, '..', '..', '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts');
+
+/** Every number field's stored and effective value, in the host's settings goldens (both scopes) and the mock's settings, with its range. */
+function hostDefaults(): [string, string, NumberSettingRange][] {
+  const sources: [string, Record<string, ScopedSettingField[]>][] = [
+    ...['settings-global.json', 'settings-project.json'].map((file): [string, Record<string, ScopedSettingField[]>] => [
+      file,
+      settingsForScopeSchema.parse(JSON.parse(readFileSync(join(GOLDEN_DIR, file), 'utf8'))),
+    ]),
+    ['mock', wireSettings()],
+  ];
+  return sources.flatMap(([source, tools]) =>
+    Object.entries(tools).flatMap(([tool, fields]) =>
+      fields.flatMap(({ kind, key, value, effectiveValue, number }) =>
+        kind === 'number' && number
+          ? [...new Set([value, effectiveValue])].map((text): [string, string, NumberSettingRange] => [
+              `${source} ${tool}.${key} (${text || 'unset'})`,
+              text,
+              number,
+            ])
+          : [],
+      ),
+    ),
+  );
+}
 
 const GAP: NumberSettingRange = { min: 0, max: null, step: 0.1, unit: 's' };
 const CAP: NumberSettingRange = { min: 1, max: 100, step: 1, unit: '%' };
@@ -232,10 +263,20 @@ describe('SettingNumber', () => {
     expect(box().getAttribute('aria-invalid')).toBe('true');
   });
 
-  // A stored number between steps is not marked: the host's own cleanup-level defaults (12 dB on a 0.5 step from 0.1) are such numbers.
-  it('a stored number between steps is not marked', () => {
-    render(<SettingNumber label="Gap" value="0.15" range={GAP} commit="settle" onChange={vi.fn()} />);
-    expect(box().value).toBe('0.15');
+  // A hand-edited file can hold a number the host refuses for its step, as it can one past the range.
+  it.each([
+    ['2.5 for a whole number', '2.5', CAP],
+    ['0.15 on a 0.1 step', '0.15', GAP],
+  ])('a stored number between steps is marked invalid: %s', (_, value, range) => {
+    render(<SettingNumber label="Gap" value={value} range={range} commit="settle" onChange={vi.fn()} />);
+    expect(box().value).toBe(value);
+    expect(box().getAttribute('aria-invalid')).toBe('true');
+  });
+
+  // Marking a number between steps is only right while no default the host ships is one (#4010 was two that were).
+  it.each(hostDefaults())('the default of %s is not marked invalid', (_, text, range) => {
+    expect(numberProblem(range, text)).toBeUndefined();
+    render(<SettingNumber label="Gap" value={text} range={range} commit="settle" onChange={vi.fn()} />);
     expect(box().getAttribute('aria-invalid')).toBeNull();
   });
 
