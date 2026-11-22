@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
-import { HEADING_PARAGRAPH, type HeardAnswer, type HeardWord } from '../../../ports/alignment';
+import { HEADING_PARAGRAPH, type HeardWord } from '../../../ports/alignment';
 import { docOf, type ChapterRead } from './chapterSource';
+import { readFrom } from './readFixture';
 
 const word = (text: string, paragraphId: string | undefined, ordinal: number | undefined, at: number): HeardWord => ({
   text,
@@ -13,23 +13,8 @@ const word = (text: string, paragraphId: string | undefined, ordinal: number | u
   conf: 1,
 });
 
-const workspace = (heading: { title?: string; subtitle?: string }): WorkspaceAlignmentResult => ({
-  chapterId: 'c-1',
-  state: 'current',
-  reasons: [],
-  needsAlignAgain: false,
-  ...heading,
-  paragraphs: [{ id: 'p-1', text: 'Alice began to read.' }],
-  tokens: [],
-  extras: [],
-  items: [],
-  engine: { id: 'whisper:small', name: 'Whisper small' },
-});
-
-const readOf = (heading: { title?: string; subtitle?: string }, words: HeardWord[]): ChapterRead => {
-  const answer: HeardAnswer = { heard: { engine: { id: 'whisper:small', name: 'Whisper small' }, words } };
-  return { workspace: workspace(heading), answer, cuts: [], effects: [], accepted: [], items: [], place: 'track', audio: { kind: 'ready' } };
-};
+const readOf = (heading: { title?: string; subtitle?: string }, words: HeardWord[]): ChapterRead =>
+  readFrom([{ id: 'p-1', text: 'Alice began to read.' }], words, { ...heading, items: [] });
 
 const body = [word('Alice', 'p-1', 0, 2), word('began', 'p-1', 1, 2.4), word('to', 'p-1', 2, 2.8), word('read', 'p-1', 3, 3.2)];
 const spoken = [
