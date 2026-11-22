@@ -82,6 +82,16 @@ describe('Settings: jump menu page items', () => {
     expect(item('row.stt.model').disabledReason).toBeUndefined();
   });
 
+  it('lists the Audacity backups off with the reason while the project records with REAPER, and on with Audacity', async () => {
+    await renderPage();
+    await waitFor(() => expect(row('daw.backups')).toBeFalsy());
+    expect(item('row.daw.backups').disabledReason).toBe('Only applies when recording with Audacity');
+    cleanup();
+    await renderPage(createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' }, recording: { engine: 'daw' } }));
+    await waitFor(() => expect(row('daw.backups')).toBeTruthy());
+    expect(item('row.daw.backups').disabledReason).toBeUndefined();
+  });
+
   it('a category item shows that category and focuses its heading', async () => {
     await renderPage();
     const focus = vi.spyOn(HTMLElement.prototype, 'focus');

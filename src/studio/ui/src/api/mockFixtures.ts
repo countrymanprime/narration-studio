@@ -975,8 +975,8 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('pad_seconds', 'Hold kept at each side of a cut silence', '0.15', { min: 0, max: 2, step: 0.01, unit: 's' }),
     recordingCheck('min_breath_seconds', 'Shortest run read as a breath', '0.12', { min: 0.01, max: 5, step: 0.01, unit: 's' }),
     recordingCheck('max_breath_seconds', 'Longest run read as a breath', '0.9', { min: 0.01, max: 5, step: 0.01, unit: 's' }),
-    recordingCheck('breath_below_speech_db', 'How far below speech level a breath sits', '12', { min: 0.1, max: null, step: 0.5, unit: 'dB' }),
-    recordingCheck('click_above_silence_db', 'How far above the silence around it a click stands', '30', { min: 0.1, max: null, step: 0.5, unit: 'dB' }),
+    recordingCheck('breath_below_speech_db', 'How far below speech level a breath sits', '12', { min: 0.1, max: null, step: 0.1, unit: 'dB' }),
+    recordingCheck('click_above_silence_db', 'How far above the silence around it a click stands', '30', { min: 0.1, max: null, step: 0.1, unit: 'dB' }),
   ],
   // Which signals must be met for a stage suggestion, mirroring the
   // host's fieldSchemas: the master switch, then one choice per signal a provider declares (recording, editing, proofing).
