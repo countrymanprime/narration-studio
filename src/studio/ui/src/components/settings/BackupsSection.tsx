@@ -36,6 +36,9 @@ function shown(row: BackupsRow, draft: string | undefined): number {
   return Number(valid ? draft : row.field.effectiveValue);
 }
 
+/** What the question calls the held value (and what Record with looks for before it asks about leaving it). */
+export const BACKUPS_DRAFT_LABEL = 'a backups value outside its range';
+
 export type BackupsViewProps = {
   /** The DAW's name from the capability report. */
   daw: string;
@@ -187,7 +190,7 @@ export function BackupsSection() {
   const refused = rows.some(
     ({ field }) => drafts[field.key] !== undefined && field.number !== undefined && numberProblem(field.number, drafts[field.key]!) !== undefined,
   );
-  useUnsavedDraft('audacity-backups', { dirty: refused, label: 'a backups value outside its range', discard: () => setDrafts({}) });
+  useUnsavedDraft('audacity-backups', { dirty: refused, label: BACKUPS_DRAFT_LABEL, discard: () => setDrafts({}) });
 
   // The row is shown for a project that records with Audacity; a report that is not Audacity's yet (the old tool's, until Audacity connects) says so
   // here rather than leaving a label with no control. The report is read again when it changes, so the row turns on when Audacity reports.

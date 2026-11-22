@@ -8,7 +8,8 @@ import { DAW_CAPABILITIES, type DawCapabilities } from '../../../api/contracts/d
 import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
 import { expectHolderCleanAfterSave } from '../../../studio/drafts/holderContract';
-import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../../studio/drafts/unsavedDrafts';
+import { UnsavedDraftsProvider, useUnsavedDraft, useUnsavedDrafts } from '../../../studio/drafts/unsavedDrafts';
+import type { ReactNode } from 'react';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
@@ -36,18 +37,21 @@ async function renderPage({
   advanced = false,
   notify = vi.fn(),
   onLinkDawFile = vi.fn(),
+  extra,
 }: {
   api?: NarrationApi;
   category: string;
   advanced?: boolean;
   notify?: Notify;
   onLinkDawFile?: () => void;
+  extra?: ReactNode;
 }) {
   const data = await api.bootstrap();
   render(
     <MemoryRouter>
       <UnsavedDraftsProvider>
         <RegistryProbe />
+        {extra}
         <ThemeProvider>
           <ApiProvider api={api}>
             <StudioProvider>
@@ -266,6 +270,46 @@ describe('Recording & DAW: Record with', () => {
     expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('999');
     held[0]!();
     await waitFor(() => expect(choose).toHaveBeenCalledWith('REAPER'));
+  });
+
+  it('switching Record with is not held by a draft of another editor, only by the backups value', async () => {
+    function OtherHolder() {
+      useUnsavedDraft('other-editor', { dirty: true, label: 'a key you entered', discard: () => undefined });
+      return null;
+    }
+    const api = createMockApi(
+      {},
+      { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity', connected: true }, audacityLink: { module: 'on', running: true, pipe: 'silent' } },
+    );
+    const choose = vi.spyOn(api, 'dawChoose');
+    await renderPage({ api, category: 'Recording & DAW', extra: <OtherHolder /> });
+    const asked = vi.fn();
+    registry.setShell({ ask: (run) => asked(run), go: vi.fn() });
+    await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
+    fireEvent.click(screen.getByRole('radio', { name: /^REAPER/ }));
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('REAPER'));
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  it('choosing the built-in recorder asks Stop recording first, and keeping the tool there keeps the backups value (the question comes with the choice)', async () => {
+    const api = createMockApi(
+      {},
+      { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity', connected: true }, audacityLink: { module: 'on', running: true, pipe: 'silent' } },
+    );
+    const choose = vi.spyOn(api, 'dawChoose');
+    await renderPage({ api, category: 'Recording & DAW' });
+    const held: (() => void)[] = [];
+    registry.setShell({ ask: (run) => (registry.heldNow().length > 0 ? held.push(run) : run()), go: vi.fn() });
+    const days = await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
+    fireEvent.change(days, { target: { value: '999' } });
+    await waitFor(() => expect(registry.heldNow().length).toBeGreaterThan(0));
+    fireEvent.click(screen.getByRole('radio', { name: /^Built-in/ }));
+    const stop = await screen.findByRole('alertdialog');
+    expect(held).toHaveLength(0);
+    fireEvent.click(within(stop).getByRole('button', { name: /^Keep / }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(choose).not.toHaveBeenCalled();
+    expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('999');
   });
 
   it('switching Record with goes ahead at once when nothing is held', async () => {

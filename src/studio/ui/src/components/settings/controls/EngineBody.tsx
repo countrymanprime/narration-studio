@@ -4,7 +4,7 @@ import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/cont
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
 import { useDawSession, useDawState } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
-import { useGuardedAction } from '../../../studio/drafts/unsavedDrafts';
+import { useGuardedAction, useUnsavedDrafts } from '../../../studio/drafts/unsavedDrafts';
 import { startDaw } from '../../connection/startDaw';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
@@ -17,6 +17,7 @@ import { AudacityLinkCard } from '../../engine/AudacityLinkCard';
 import { useAudacityLink } from '../../engine/useAudacityLink';
 import { HelpButton } from '../../primitives/HelpButton';
 import { useSettingsHost } from '../row/SettingsHost';
+import { BACKUPS_DRAFT_LABEL } from '../BackupsSection';
 
 /** What the "?" under a radio that cannot record yet says: the press still switches the project. */
 const choosingHelp = (daw: string) => `${daw} cannot record yet, but choosing it still switches this project to ${daw} and shows its connection card.`;
@@ -144,6 +145,7 @@ function BridgeLine({ choice }: { choice: DawChoice }) {
 export function EngineBody() {
   const dawChoice = usePort('dawChoice');
   const guarded = useGuardedAction();
+  const drafts = useUnsavedDrafts();
   const capsVersion = useDawState((state) => state.capsVersion);
   const session = useDawSession();
   const project = usePort('project');
@@ -252,14 +254,18 @@ export function EngineBody() {
   });
   const notInstalled = choice.options.find((option) => option.daw === daw)?.installed === false;
   const linkable = state === 'not_linked' || linkedFile !== null;
-  // Another tool can take rows off the page (the Audacity backups row is only drawn for Audacity), and with them a value typed in one and not saved yet:
-  // the move asks first, as a change of category does.
+  // Another tool takes the Audacity backups row off the page, and with it a value typed in it and not saved yet (one outside its range cannot be saved): the
+  // switch asks first, as a change of category does. Only that value asks: a key or an edit held elsewhere stays where it is, as it did before. The question
+  // comes at the choice itself, after the built-in recorder's own "Stop recording?" confirm, so keeping the tool there keeps the value.
+  const switchTo = (next: ChoosableDaw) => {
+    const go = () => void act(() => dawChoice.dawChoose(next));
+    if (drafts.heldNow().some((held) => held.label === BACKUPS_DRAFT_LABEL)) guarded(go);
+    else go();
+  };
   const choose = (next: ChoosableDaw) => {
     if (next === daw) return;
-    guarded(() => {
-      if (next === 'Built-in' && dawLinked(choice)) setConfirmBuiltIn(true);
-      else void act(() => dawChoice.dawChoose(next));
-    });
+    if (next === 'Built-in' && dawLinked(choice)) setConfirmBuiltIn(true);
+    else switchTo(next);
   };
 
   return (
@@ -344,7 +350,7 @@ export function EngineBody() {
           focusCancel
           confirm={() => {
             setConfirmBuiltIn(false);
-            void act(() => dawChoice.dawChoose('Built-in'));
+            switchTo('Built-in');
           }}
           cancel={() => setConfirmBuiltIn(false)}
         />
