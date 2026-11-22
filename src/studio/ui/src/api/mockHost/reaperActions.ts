@@ -32,6 +32,7 @@ import {
   WIRE_PICKUPS_IMPORT_SUCCESS,
   WIRE_PICKUPS_NEXT_SUCCESS,
   WIRE_PARAGRAPHS,
+  MOCK_PROJECT_CHANGE_COUNT,
   WIRE_PROJECT_STATE_CHECKED,
   WIRE_PROJECT_STATE_IDLE,
   WIRE_RENDER_CONFIG_ERROR,
@@ -404,7 +405,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       publishProjectState();
       setTimeout(() => {
         if (projectState.phase !== 'checking') return;
-        const changeCount = initial.projectState === 'unchanged' ? 41 : (WIRE_PROJECT_STATE_CHECKED.changeCount ?? 42);
+        const changeCount = initial.projectState === 'unchanged' ? MOCK_PROJECT_CHANGE_COUNT : (WIRE_PROJECT_STATE_CHECKED.changeCount ?? 42);
         projectState = { ...wireClone(WIRE_PROJECT_STATE_CHECKED), runId: projectState.runId, changeCount };
         publishProjectState();
       }, 150);

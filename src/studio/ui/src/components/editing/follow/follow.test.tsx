@@ -203,6 +203,20 @@ describe('lit-word-follows-the-daw-while-it-plays', () => {
     expect(page.state.cursor).not.toBeNull();
     expect(state().playing).toBe(false);
   });
+  it('a play that turns into a recording stops lighting and ends the play', async () => {
+    mount();
+    dawAt(1.3);
+    await poll();
+    expect(state().playing).toBe(true);
+    dawAt(1.3, 'recording');
+    await poll();
+    expect(state().playing).toBe(false);
+    dawAt(4.2, 'recording');
+    await poll();
+    // A recording lights no new word.
+    expect(lit()).toBe('p-1:3');
+    expect(state().playing).toBe(false);
+  });
   it('lights nothing while the DAW plays a gap', async () => {
     mount();
     dawAt(1.3);

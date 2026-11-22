@@ -214,6 +214,14 @@ describe('daw-to-app', () => {
     expect(state().cursor).toBeNull();
     expect(calls('watch')).toHaveLength(0);
   });
+  it('a play that turns into a recording ends the play: the bar reads Play and no new word lights', async () => {
+    await ready();
+    act(() => daw.moveInDaw({ playing: true, head: at(1.3) }));
+    expect(state().playing).toBe(true);
+    act(() => daw.moveInDaw({ playing: true, head: at(4.2), recording: true }));
+    expect(state().playing).toBe(false);
+    expect(lit()).toBe('p-1:3');
+  });
   it('does not follow a DAW that is recording', async () => {
     await ready();
     act(() => daw.moveInDaw({ playing: true, head: at(1.3), recording: true }));
