@@ -91,4 +91,17 @@ describe('useChapters after a project switch (#3658)', () => {
     await waitFor(() => expect(result.current.chapters).toBeDefined());
     expect(read).toHaveBeenCalledTimes(2);
   });
+  it("asks for the new project's list when a second reset arrives while the first read is still out", async () => {
+    const api = createMockApi();
+    let calls = 0;
+    const hang = new Promise<never>(() => undefined);
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(() => (++calls === 2 ? hang : createMockApi().manuscriptChapters()));
+    const { result } = renderHook(() => ({ list: useChapters(), store: useStoreHandle() }), { wrapper: withProvider(api) });
+    await waitFor(() => expect(result.current.list.chapters).toBeDefined());
+    act(() => result.current.store.reset());
+    await waitFor(() => expect(calls).toBe(2));
+    act(() => result.current.store.reset());
+    await waitFor(() => expect(result.current.list.chapters).toBeDefined());
+    expect(calls).toBe(3);
+  });
 });

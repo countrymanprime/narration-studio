@@ -163,6 +163,19 @@ The slowest call of each first visit, in seconds as the page waited for it:
 
 A first change of 0 in three warm cells means the script saw no change of the page after its measurement began in most of the five runs; it prints 0 for that. A page's own cost stays under one second at every size; what a narrator waits for on a real book is the host reads above.
 
+### Readers moved onto the shared chapter list (#3658)
+
+Host calls and answer size (calls / KB, `--runs 3`) of the Production page before and after its pipeline cells took the chapter list from the store instead of reading it again. Books of 1, 5, 17 and 40 hours (3, 13, 44 and 103 chapters).
+
+| Production | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 53 / 122 | 53 / 167 | 53 / 262 | 53 / 440 |
+| Cold, after | 52 / 121 | 52 / 163 | 52 / 253 | 52 / 422 |
+| Warm, before | 35 / 64 | 35 / 100 | 35 / 176 | 35 / 321 |
+| Warm, after | 34 / 63 | 34 / 96 | 34 / 168 | 34 / 303 |
+
+The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
+
 ## The track list: a 5 s poll against REAPER's change event
 
 [#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 1. Before it, every page that shows the project's tracks (`useLiveTracks`, behind the engine panel, Link chapters, Editing, Proof, Pickups and the Booth's voices) read `TracksLive`, `ChapterTrackLinks` and `VoiceTracksGet` every 5 s while the window was visible. With a revision from REAPER's heartbeat it reads on `daw_tracks_changed`, on focus and on Refresh, and every 30 s for a save in REAPER, which sends no event. Same rig and method as [above](#host-reads): `host-read-bench.mjs seed` then `reads --runs 3` (three processes, medians), here with `--tracks N` for the extra empty tracks. The three reads' warm medians are one tick; the poll is 12 ticks a minute, the event idle 2 (the 30 s read), a change 1.
@@ -204,6 +217,6 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 - **A cold start**, with the operating system's file cache empty.
 - **The split of a call's wait between the host and the bridge to the page.** The page logs the whole wait; the host's share is the read table's, measured alone and not under the page's concurrent calls.
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
-- **300 chapters on the mock**, which sizes a book in hours only.
+- **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.
