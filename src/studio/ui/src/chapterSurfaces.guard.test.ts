@@ -69,6 +69,13 @@ describe('every surface that reads the chapter list shows the credits', () => {
     expect(declared.filter((file) => !readers.includes(file) && file !== 'studio/slots.ts')).toEqual([]);
   });
 
+  // One list for every page (#3658, #3998): the host's chapter list is read by the store's slot, and by the two hooks' fallbacks for a component rendered with
+  // no store. A page that calls the port itself has its own copy of the list, its own refresh rules and no project record.
+  it('reads the host list nowhere but the store and the fallbacks of its two hooks', () => {
+    const ALLOWED = ['studio/slots.ts', 'studio/useChapters.ts', 'components/script/page/data/sampleScript.ts'];
+    expect(readers.filter((file) => !ALLOWED.includes(file) && readFileSync(join(SRC, file), 'utf8').includes('manuscriptChapters()'))).toEqual([]);
+  });
+
   it.each(Object.entries(COVERED))('%s: its test names the credits', (_file, tests) => {
     for (const test of tests) {
       expect(readFileSync(join(SRC, test), 'utf8'), test).toMatch(/credits-opening|isCredits|withCredits|CHAPTERS_WITH_CREDITS/);
