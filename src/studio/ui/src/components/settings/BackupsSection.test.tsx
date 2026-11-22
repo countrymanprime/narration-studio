@@ -183,6 +183,19 @@ describe('BackupsSection', () => {
     expect(document.activeElement).toBe(screen.getByRole('main'));
   });
 
+  it('turns the row on when Audacity reports its backups after the section was drawn (the report changes, no remount)', async () => {
+    let report: (caps: DawCapabilities) => void = () => undefined;
+    const subscribeCapabilities = vi.fn((callback: (caps: DawCapabilities) => void) => {
+      report = callback;
+      return () => undefined;
+    });
+    renderSection({ setup: 'reaper', daw: { subscribeCapabilities } });
+    expect(await screen.findByText('Audacity has not reported its backups yet.')).toBeTruthy();
+    act(() => report(DAW_SETUPS.audacity));
+    expect(await windowBox()).toBeTruthy();
+    expect(screen.queryByText('Audacity has not reported its backups yet.')).toBeNull();
+  });
+
   it('standalone-and-self-contained: it takes no props, so a page can draw it anywhere', async () => {
     const Section = BackupsSection;
     render(
