@@ -26,7 +26,7 @@ export const loadRealTake = (name: (typeof REAL_TAKES)[number]): RealTake =>
   JSON.parse(readFileSync(join(__dirname, '../model/fixtures/realSpeech', `${name}.json`), 'utf8')) as RealTake;
 
 /** What the recording said about one word of the take: the script word it is, or that it was said and is not in the script. */
-export interface SaidWord {
+interface SaidWord {
   /** Script paragraph and ordinal; absent for a word said and not in the script. */
   paragraphId?: string;
   ordinal?: number;
@@ -99,7 +99,7 @@ export function takeFrom(real: RealTake, opts: TakeOptions = {}): Take {
   return { paragraphs, said };
 }
 
-export const heardWords = (take: Take): HeardWord[] =>
+const heardWords = (take: Take): HeardWord[] =>
   take.said.map((s) => ({
     text: s.text,
     ...(s.paragraphId !== undefined ? { paragraphId: s.paragraphId, ordinal: s.ordinal } : {}),
