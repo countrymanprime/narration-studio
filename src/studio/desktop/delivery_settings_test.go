@@ -84,21 +84,7 @@ func TestEveryNumberFieldHasARangeAndEveryRangeAField(t *testing.T) {
 
 // A number field's shipped default is a value its own range accepts, so the page never opens on a value a save of the
 // same text would refuse. A field with no default reads back "" (unset) and is skipped.
-//
-// defaultsOffTheirStep lists the defaults that fail today (#4010): the two Cleanup thresholds count their 0.5 dB step
-// from a minimum of 0.1, so 12 and 30 are off it. Shrink-only: fix the range and delete the entry, never add one; the
-// length check makes a new entry a reviewed change to this test.
 func TestEveryNumberFieldsDefaultPassesItsOwnRange(t *testing.T) {
-	defaultsOffTheirStep := map[string]bool{"Cleanup.breath_below_speech_db": true, "Cleanup.click_above_silence_db": true}
-	if len(defaultsOffTheirStep) != 2 {
-		t.Fatalf("defaultsOffTheirStep has %d entries, want 2: it only shrinks (#4010)", len(defaultsOffTheirStep))
-	}
-	for name := range defaultsOffTheirStep {
-		tool, key, _ := strings.Cut(name, ".")
-		if schema, ok := schemaFor(tool, key); !ok || schema.kind != "number" {
-			t.Errorf("defaultsOffTheirStep names %s, which is not a number field: delete the entry", name)
-		}
-	}
 	host := newTestHostForDeliverySettings(t, t.TempDir())
 	for tool, schemas := range fieldSchemas {
 		for _, schema := range schemas {
@@ -109,13 +95,30 @@ func TestEveryNumberFieldsDefaultPassesItsOwnRange(t *testing.T) {
 			if value == "" {
 				continue
 			}
-			err := validateSettingValue(tool, schema, value)
-			known := defaultsOffTheirStep[tool+"."+schema.key]
-			if err != nil && !known {
+			if err := validateSettingValue(tool, schema, value); err != nil {
 				t.Errorf("%s.%s default %q: %v", tool, schema.key, value, err)
 			}
-			if err == nil && known {
-				t.Errorf("%s.%s default %q now passes: delete it from defaultsOffTheirStep", tool, schema.key, value)
+		}
+	}
+}
+
+// The two Cleanup dB thresholds take any tenth of a dB from 0.1 up (#4010): the shipped defaults 12 and 30 and other
+// whole and tenth values save, and a value under the minimum or between tenths is refused.
+func TestCleanupDBThresholdsSaveAnyTenthOfADBFromAPointOne(t *testing.T) {
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	for _, key := range []string{settingCleanupBreathBelowSpeechDB, settingCleanupClickAboveSilenceDB} {
+		for _, value := range []string{"12", "30", "0.1", "8", "12.3"} {
+			if err := host.saveSettings("Cleanup", "global", map[string]*string{key: ptr(value)}); err != nil {
+				t.Errorf("saveSettings(%s=%q) = %v, want it accepted", key, value, err)
+				continue
+			}
+			if got := effectiveValues(host, "Cleanup")[key]; got != value {
+				t.Errorf("effective %s after saving %q = %q", key, value, got)
+			}
+		}
+		for value, wantErr := range map[string]string{"0.05": "at least 0.1", "0": "at least 0.1", "-1": "at least 0.1", "12.25": "steps of 0.1"} {
+			if err := host.saveSettings("Cleanup", "global", map[string]*string{key: ptr(value)}); err == nil || !strings.Contains(err.Error(), wantErr) {
+				t.Errorf("saveSettings(%s=%q) = %v, want an error containing %q", key, value, err, wantErr)
 			}
 		}
 	}
