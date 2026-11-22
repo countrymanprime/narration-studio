@@ -298,16 +298,16 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 			}
 			// The delete looks at the file once more itself and leaves it if it is no longer the one listed: the window for a swap is what is
 			// left between that look and the delete.
-			swapped := false
+			var swapped fs.FileInfo
 			removed, err := removeFile(root, filepath.Join(rel, file.name), func(current fs.FileInfo) bool {
-				same := current.ModTime().Equal(file.info.ModTime()) && current.Size() == file.info.Size() && os.SameFile(file.info, current)
-				swapped = !same
-				return same
-			})
-			if swapped {
-				if current, err := os.Lstat(filepath.Join(dir, file.name)); err == nil {
-					pass.BytesAfter += current.Size() - file.info.Size()
+				if current.ModTime().Equal(file.info.ModTime()) && current.Size() == file.info.Size() && os.SameFile(file.info, current) {
+					return true
 				}
+				swapped = current // the regular file the delete's own look found: what the tally counts
+				return false
+			})
+			if swapped != nil {
+				pass.BytesAfter += swapped.Size() - file.info.Size()
 				break
 			}
 			if err != nil {
@@ -321,6 +321,12 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 			pass.BytesAfter -= file.info.Size()
 			if removed {
 				pass.Removed++
+				continue
+			}
+			// Nothing was deleted and nothing failed: the file is gone, or a folder, link or pipe has taken the name (the delete's look found
+			// it not regular). The latter keeps the rest of its group, as the look before it does.
+			if _, err := os.Lstat(filepath.Join(dir, file.name)); err == nil {
+				break
 			}
 		}
 	}

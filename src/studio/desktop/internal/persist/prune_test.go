@@ -907,3 +907,86 @@ func TestPruneFolderLeavesAFileReplacedBetweenItsRecheckAndItsRemoval(t *testing
 		t.Fatalf("BytesAfter = %d; want the 55 bytes the replacement has", pass.BytesAfter)
 	}
 }
+
+// M1/M2: what the delete's own look refuses is counted at the size it found; a copy with the same size and time (cp -p) is caught by file identity alone.
+func TestPruneFolderLeavesAReplacementWithTheSameSizeAndTimeAndCountsIt(t *testing.T) {
+	root, dir := pruneFolder(t)
+	path := pruneFile(t, dir, "a.dat", 10, 48*time.Hour)
+	listed, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lstatWas := lstatRoot
+	t.Cleanup(func() { lstatRoot = lstatWas })
+	swapped := false
+	lstatRoot = func(folder *os.Root, name string) (fs.FileInfo, error) {
+		if !swapped {
+			swapped = true
+			fresh := filepath.Join(dir, "fresh.tmp")
+			if err := os.WriteFile(fresh, make([]byte, 10), 0o600); err != nil {
+				t.Error(err)
+			}
+			if err := os.Chtimes(fresh, listed.ModTime(), listed.ModTime()); err != nil {
+				t.Error(err)
+			}
+			if err := os.Rename(fresh, path); err != nil {
+				t.Error(err)
+			}
+		}
+		return folder.Lstat(name)
+	}
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, never)
+	if err != nil || !exists(path) || pass.Removed != 0 || pass.FilesAfter != 1 || pass.BytesAfter != 10 {
+		t.Fatalf("pass = %+v, err = %v, kept %v; want the same-size replacement kept and counted", pass, err, exists(path))
+	}
+}
+
+// M3: a time far ahead that cannot be set is the oldest; one exactly the guard ahead is not guarded either.
+func TestPruneFolderTakesAFileFarAheadOrExactlyTheGuardAheadAsTheOldest(t *testing.T) {
+	root, dir := pruneFolder(t)
+	was := SetFileTime
+	t.Cleanup(func() { SetFileTime = was })
+	SetFileTime = func(string, string, time.Time) error { return errors.New("operation not permitted") }
+	real := time.Now()
+	far := filepath.Join(dir, "far.dat")
+	edge := filepath.Join(dir, "edge.dat")
+	for path, ahead := range map[string]time.Duration{far: 48 * time.Hour, edge: 24 * time.Hour} {
+		if err := os.WriteFile(path, make([]byte, 10), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(path, real.Add(ahead), real.Add(ahead)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// A pass clock a little later than the file times were read at, so the edge file is at least the guard ahead.
+	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: 7 * 24 * time.Hour, Guard: 24 * time.Hour}, real, never); err != nil {
+		t.Fatal(err)
+	}
+	if exists(far) || exists(edge) {
+		t.Fatalf("far kept %v, edge kept %v; want both removed as the oldest", exists(far), exists(edge))
+	}
+}
+
+// A folder that takes a listed name between the pass's look and the delete's own look keeps the rest of that group, as the look before it does.
+func TestPruneFolderKeepsTheRestOfAGroupWhenTheDeleteFindsANonRegularFile(t *testing.T) {
+	root, dir := pruneFolder(t)
+	first := pruneFile(t, dir, "a.1.x", 10, 48*time.Hour)
+	second := pruneFile(t, dir, "a.2.x", 10, 48*time.Hour)
+	rule := PruneRule{Group: func(name string) (string, bool) { return "a", strings.HasPrefix(name, "a.") }, MaxAge: time.Hour}
+	was := beforeAct
+	t.Cleanup(func() { beforeAct = was })
+	lstatWas := lstatRoot
+	t.Cleanup(func() { lstatRoot = lstatWas })
+	lstatRoot = func(folder *os.Root, name string) (fs.FileInfo, error) {
+		if name == "runs/a.1.x" || strings.HasSuffix(name, "a.1.x") {
+			if err := os.Remove(first); err == nil {
+				_ = os.Mkdir(first, 0o755)
+			}
+		}
+		return folder.Lstat(name)
+	}
+	pass, err := PruneFolder(root, "runs", rule, pruneNow, never)
+	if err != nil || !exists(second) || pass.Removed != 0 {
+		t.Fatalf("pass = %+v, err = %v, sibling kept %v; want the sibling kept and nothing removed", pass, err, exists(second))
+	}
+}

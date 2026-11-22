@@ -12,7 +12,7 @@ import (
 // steps wired after it), so every automatic delete has one place to review and the threat-model row (7c) to match. A new caller is
 // added here on purpose, with its guard tests.
 // deletingCode matches the deleting code by selector, so a call and a method value are both seen.
-var deletingCode = regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults|PruneKinds|PruneFolder)\b|\bRemoveRegular\b`)
+var deletingCode = regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults|PruneKinds|PruneFolder)\b|\bRemoveRegular(?:If)?\b`)
 
 func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 	// The deleting code is reached by a selector (a call or a method value), never by name alone, so a reference taken as a value is seen too.
@@ -42,7 +42,7 @@ func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 		}
 		for _, found := range deletingCode.FindAllString(withoutCommentLines(string(text)), -1) {
 			// RemoveRegular is also how the two stores delete their own files; those are the defining files.
-			if slash == "internal/runlog/runlog.go" && !strings.Contains(found, "PruneFolder") {
+			if !mayNameDeletingCode(slash, found) {
 				t.Errorf("%s names %s: the logger may prune logs/runs through PruneFolder only", slash, strings.TrimPrefix(found, "."))
 			}
 			if !defining[slash] && !steps[slash] {
@@ -56,9 +56,25 @@ func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 	}
 }
 
+// mayNameDeletingCode reports whether the file may name the deleting code found: the logger (the one app-level caller) only PruneFolder.
+func mayNameDeletingCode(slash, found string) bool {
+	return slash != "internal/runlog/runlog.go" || strings.Contains(found, "PruneFolder")
+}
+
+func TestTheLoggerMayNameOnlyPruneFolder(t *testing.T) {
+	if !mayNameDeletingCode("internal/runlog/runlog.go", ".PruneFolder") || !mayNameDeletingCode("retention_files.go", "RemoveRegular") {
+		t.Error("the guard refuses a name it should allow")
+	}
+	for _, found := range []string{"RemoveRegular", "RemoveRegularIf", ".Retain", ".PruneKinds"} {
+		if mayNameDeletingCode("internal/runlog/runlog.go", found) {
+			t.Errorf("the logger may name %s", found)
+		}
+	}
+}
+
 // The guard sees a method value taken from an unlisted file, which a call-text match did not.
 func TestTheRetentionGuardSeesAMethodValue(t *testing.T) {
-	for _, source := range []string{"sweep := s.SweepOrphanResults; sweep()", "l.ledger.Retain(keys, nil, nil)", "persist.RemoveRegular(root, name)", "run(checks.RemoveStoredResult)", "prune := cache.PruneKinds; prune(nil, now, stop)", "persist.PruneFolder(root, rel, rule, now, stop)"} {
+	for _, source := range []string{"sweep := s.SweepOrphanResults; sweep()", "l.ledger.Retain(keys, nil, nil)", "persist.RemoveRegular(root, name)", "persist.RemoveRegularIf(root, rel, nil)", "del := persist.RemoveRegularIf", "run(checks.RemoveStoredResult)", "prune := cache.PruneKinds; prune(nil, now, stop)", "persist.PruneFolder(root, rel, rule, now, stop)"} {
 		if !deletingCode.MatchString(source) {
 			t.Errorf("the guard does not see %q", source)
 		}

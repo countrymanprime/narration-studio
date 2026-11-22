@@ -250,3 +250,26 @@ func TestBeginRecordsARunsFolderItWillNotPrune(t *testing.T) {
 		t.Fatal("a logs/runs that is a link was skipped without a record")
 	}
 }
+
+// A prune that ran out of budget before it removed anything says so in the run log.
+func TestBeginRecordsAPruneThatRanOutOfBudget(t *testing.T) {
+	was := pruneBudget
+	t.Cleanup(func() { pruneBudget = was })
+	pruneBudget = -time.Second
+	logger, path := newLogger(t, 0)
+	runs := filepath.Join(filepath.Dir(path), "runs")
+	if err := os.MkdirAll(runs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(runs, "a.stderr.jsonl"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	logger.Begin("tool")
+	warned := false
+	for _, record := range readLines(t, path) {
+		warned = warned || record["event"] == "runs.prune"
+	}
+	if !warned {
+		t.Fatal("a prune that ran out of time left no record")
+	}
+}
