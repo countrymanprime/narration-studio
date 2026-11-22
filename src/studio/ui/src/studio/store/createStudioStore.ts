@@ -45,7 +45,7 @@ export type StudioStoreOptions<R extends SlotRegistry> = {
 };
 
 /** What a reader tells the store about itself: `project` is the project folder the reader is on. A reader that names it is served and read for that project only. */
-export type ReadOptions = { project?: string };
+type ReadOptions = { project?: string };
 
 /** What a reader that named a project is told when the app is on another one: the page is about to be drawn for the new project. */
 export class ProjectChangedError extends Error {
