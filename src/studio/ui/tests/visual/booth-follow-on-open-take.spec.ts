@@ -13,6 +13,8 @@ test('a late answer from the DAW does not change the chapter once a take is runn
   const record = page.getByRole('button', { name: /^Record$/ });
   await expect(record).toBeEnabled();
   const before = await chapter();
+  // The DAW's answer has not come yet (it would have put its chapter in the address), or the test would pass without the race.
+  expect(before).not.toBe('chapter-3');
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.setPlace('chapter-3', 0));
   await record.click();
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible({ timeout: 10_000 });

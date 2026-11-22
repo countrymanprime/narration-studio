@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDawSession } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
 
 /** How long after the Booth opens a DAW that connects is still followed: one that connected later is not, since the narrator has been working by then. */
@@ -26,7 +27,9 @@ export function useFollowDawOnOpen({
 }) {
   const place = usePort('dawPlace');
   const daw = usePort('daw');
+  const session = useDawSession();
   const settled = useRef(false);
+  const openedAt = useRef<number | undefined>(undefined);
   const onChapterRef = useRef(onChapter);
   onChapterRef.current = onChapter;
   const ready = enabled && chapterIds !== undefined && chapterIds.length > 0;
@@ -37,14 +40,23 @@ export function useFollowDawOnOpen({
     let live = true;
     let inFlight = false;
     let owed = false;
-    let reachable = false;
+    // The host sends no event for a state the DAW is already in when the Booth opens, so the session's last picture is where reachability starts.
+    let reachable = session.getState().caps?.reachable === true;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const deadline = Date.now() + ASK_FOR_MS;
+    // The window opens once, with the first ready effect: a Booth that is enabled again later is not given a new one.
+    openedAt.current ??= Date.now();
+    const deadline = openedAt.current + ASK_FOR_MS;
     // No answer: a DAW that has not connected yet is asked again by its event; one that says it is reachable and still refuses has no event coming, so it is asked again soon.
     const noAnswer = () => {
-      if (live && reachable && !settled.current && Date.now() < deadline) timer = setTimeout(ask, RETRY_REACHABLE_MS);
+      if (live && reachable && !settled.current && Date.now() < deadline) {
+        clearTimeout(timer);
+        timer = setTimeout(ask, RETRY_REACHABLE_MS);
+      }
     };
     function ask() {
+      // An event heard while a retry is waiting is that retry's answer: one chain of asks, not one more each.
+      clearTimeout(timer);
+      if (!live || settled.current) return;
       // One ask at a time: an event heard while one is out is answered by one more when it ends.
       if (inFlight) {
         owed = true;
@@ -80,7 +92,7 @@ export function useFollowDawOnOpen({
       if (timer !== undefined) clearTimeout(timer);
       off?.();
     };
-  }, [ready, place, daw]);
+  }, [ready, place, daw, session]);
 }
 
 /**
