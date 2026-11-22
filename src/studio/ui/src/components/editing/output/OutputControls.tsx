@@ -27,7 +27,6 @@ export type OutputControlsProps = {
   children?: ReactNode;
 };
 
-const UNLISTED = 'This computer would not list its outputs, so the choice is off. Sound plays on the system default.';
 const HEADING = 'text-xs font-semibold text-[var(--text-muted)] uppercase';
 
 function Note({ children, alert = false }: { children: ReactNode; alert?: boolean }) {
@@ -54,20 +53,19 @@ export function DeviceRow({
   const listed = (devices.phase === 'ready' && devices.status === 'ok' ? devices.outputs : []).filter(
     (output, at, all) => all.findIndex((other) => other.label === output.label) === at,
   );
-  const unlisted = devices.phase === 'ready' && devices.status === 'unavailable';
   const missing = prefs.device !== '' && devices.phase === 'ready' && !listed.some((o) => o.label === prefs.device);
   const options = [
     { value: '', label: 'System default' },
     ...listed.map((o) => ({ value: o.label, label: o.label })),
     ...(missing ? [{ value: prefs.device, label: `${prefs.device} (not connected)` }] : []),
   ];
-  // With no list and a saved output the choice stays on, so the system default can still be picked; it is off while loading, or when there is nothing to clear.
-  const off = devices.phase === 'loading' || (unlisted && prefs.device === '');
-  // A refusal is said once as a toast, never as red text in the popover that moves the rows under it (#4044, frontend-primitives rule 7).
-  const refusal = unlisted ? UNLISTED : deviceProblem;
+  // With no list the choice stays on with the system default (and a saved output, so it can be cleared); it is off only while loading, so it is never a dead control.
+  const off = devices.phase === 'loading';
+  // A refusal is said as a toast, never as red text in the popover that moves the rows under it (#4044, frontend-primitives rule 7); the list's own
+  // refusal is said by `useOutputDevices` when the list turns unavailable.
   useEffect(() => {
-    if (refusal) overlay.toast(refusal);
-  }, [refusal]);
+    if (deviceProblem) overlay.toast(deviceProblem);
+  }, [deviceProblem]);
   return (
     <div className="flex flex-col gap-1.5">
       {heading && <span className={HEADING}>Output</span>}

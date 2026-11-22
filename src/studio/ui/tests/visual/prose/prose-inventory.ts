@@ -501,7 +501,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/settings/controls/SampleOutputBody.tsx',
-    text: 'Last checked …. The list is read again when you open Settings, when the window gets focus, and while this notice is up.',
+    text: 'Last checked …. The list is read again when you open Settings, when the window gets focus, and while this output is missing.',
     class: 'state',
   },
   {

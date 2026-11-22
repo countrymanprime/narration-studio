@@ -70,6 +70,15 @@ export function SampleOutputBody() {
     listAudioOutputs().then((result) => setListing({ phase: 'ready', checkedAt: Date.now(), ...result }));
   }, []);
   useEffect(load, [load]);
+  // A press of Check again always answers: a list that is still unavailable, or an output still gone, is said again as a toast (rule 9).
+  const check = () => {
+    listAudioOutputs().then((result) => {
+      if (result.status === 'unavailable') overlay.toast(result.message);
+      else if (engine === 'builtin' && value !== '' && !result.outputs.some((o) => o.label === value))
+        overlay.toast(`${value} is not connected. Voice samples play on the system default until it is back.`);
+      setListing({ phase: 'ready', checkedAt: Date.now(), ...result });
+    });
+  };
   // The list is read again when the window gets focus and whenever the computer says an output came or went, so an unplugged speaker is noticed
   // without the narrator leaving the window.
   useEffect(() => {
@@ -145,7 +154,7 @@ export function SampleOutputBody() {
         className={FIELD_WIDTH}
         value={unavailable ? '' : value}
         onChange={choose}
-        disabled={unavailable !== undefined || engine === undefined || !hasProject}
+        disabled={engine === undefined || !hasProject}
         options={[
           { value: '', label: 'System default' },
           ...outputs.map((o) => ({ value: o.label, label: o.label })),
@@ -153,7 +162,7 @@ export function SampleOutputBody() {
         ]}
       />
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onClick={load}>
+        <Button variant="secondary" onClick={check}>
           {unavailable || missing ? 'Check again' : 'Refresh the list'}
         </Button>
         {testButton}
@@ -164,7 +173,7 @@ export function SampleOutputBody() {
       {missing && listing.phase === 'ready' && (
         <span className={NOTE_CLASS}>
           Last checked {new Date(listing.checkedAt).toLocaleTimeString()}. The list is read again when you open Settings, when the window gets focus, and while
-          this notice is up.
+          this output is missing.
         </span>
       )}
     </div>

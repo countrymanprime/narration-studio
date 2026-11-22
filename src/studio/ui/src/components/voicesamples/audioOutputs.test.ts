@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The state matrix for choosing where voice samples play (docs/prds/character-voice-samples.prd.md, phase 7, the approved mock's section 4).
 //
-//   empty (no outputs at all)            'no outputs at all is unavailable'
+//   empty (no outputs at all)            'no outputs at all is an empty list, not an error'
 //   outputs with blank names             'outputs with blank names are listed as Output 1, Output 2, in the webview's order'
 //   one, many                            'lists each named output, not the virtual default or communications ones'
 //   system default                       'an empty choice resets the element to the system default'
@@ -51,11 +51,11 @@ describe('listing the outputs', () => {
     });
   });
 
-  it('no outputs at all is unavailable', async () => {
+  it('no outputs at all is an empty list, not an error', async () => {
     devices = [dev('default', ''), dev('communications', '')];
-    expect((await listAudioOutputs()).status).toBe('unavailable');
+    expect(await listAudioOutputs()).toEqual({ status: 'ok', outputs: [] });
     devices = [];
-    expect((await listAudioOutputs()).status).toBe('unavailable');
+    expect(await listAudioOutputs()).toEqual({ status: 'ok', outputs: [] });
   });
 
   // #4044: WebView2 gives output names only to a page that holds a media permission, and this app asks for none.

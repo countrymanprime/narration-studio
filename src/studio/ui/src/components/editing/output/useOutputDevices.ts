@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { overlay } from '../../../overlay/overlayService';
 import { listAudioOutputs, type OutputListing } from '../../voicesamples/audioOutputs';
 
 export type DeviceListing = { phase: 'loading' } | ({ phase: 'ready'; checkedAt: number } & OutputListing);
@@ -8,19 +9,29 @@ export function useOutputDevices(): { listing: DeviceListing; refresh: () => voi
   const [listing, setListing] = useState<DeviceListing>({ phase: 'loading' });
   // Only the newest read is shown: an older answer that arrives late would put back a list from before an output was plugged in (qa-breaker B4).
   const latest = useRef(0);
-  const refresh = useCallback(() => {
+  // The refusal is said once when the list turns unavailable, not on every read and not on every open of the popover (#4044).
+  const wasUnavailable = useRef(false);
+  const read = useCallback((pressed: boolean) => {
     const mine = ++latest.current;
-    void listAudioOutputs().then((result) => mine === latest.current && setListing({ phase: 'ready', checkedAt: Date.now(), ...result }));
+    void listAudioOutputs().then((result) => {
+      if (mine !== latest.current) return;
+      // A press of Check again always answers, even when the list is still unavailable (rule 9).
+      if (result.status === 'unavailable' && (pressed || !wasUnavailable.current)) overlay.toast(result.message);
+      wasUnavailable.current = result.status === 'unavailable';
+      setListing({ phase: 'ready', checkedAt: Date.now(), ...result });
+    });
   }, []);
+  const watch = useCallback(() => read(false), [read]);
+  const refresh = useCallback(() => read(true), [read]);
   useEffect(() => {
-    refresh();
+    watch();
     const devices = typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined;
-    window.addEventListener('focus', refresh);
-    devices?.addEventListener?.('devicechange', refresh);
+    window.addEventListener('focus', watch);
+    devices?.addEventListener?.('devicechange', watch);
     return () => {
-      window.removeEventListener('focus', refresh);
-      devices?.removeEventListener?.('devicechange', refresh);
+      window.removeEventListener('focus', watch);
+      devices?.removeEventListener?.('devicechange', watch);
     };
-  }, [refresh]);
+  }, [watch]);
   return { listing, refresh };
 }

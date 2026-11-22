@@ -2,6 +2,8 @@
 // audio, so the choice is an output of this computer, applied to the player's `Audio` with `setSinkId`. The setting keeps the output's name, not its
 // id: the id is the webview's own and changes when its profile is reset, the name is what the narrator chose.
 
+import { hasVisibleText } from '../../visibleText';
+
 /** One named output of this computer. */
 type AudioOutput = { id: string; label: string };
 
@@ -21,16 +23,18 @@ const VIRTUAL = new Set(['default', 'communications']);
 /**
  * The outputs the webview reports. An output the webview gives no name (WebView2 hides output names until the page holds a media permission, which
  * this app never asks for) is listed as "Output 1", "Output 2" in the webview's order, so the choice is never lost to blank labels. Only a webview
- * without `setSinkId`, or an `enumerateDevices` that throws or lists no output at all, has no choice to offer.
+ * without `setSinkId`, or an `enumerateDevices` that throws, is "unavailable"; a webview that lists no output gives an empty list, which is just the
+ * system default and no error (owner decision, #4044).
  */
 export async function listAudioOutputs(): Promise<OutputListing> {
   if (!outputsSupported()) return { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };
   try {
     const all = await navigator.mediaDevices.enumerateDevices();
+    let blank = 0;
     const outputs = all
       .filter((d) => d.kind === 'audiooutput' && !VIRTUAL.has(d.deviceId))
-      .map((d, at) => ({ id: d.deviceId, label: d.label.trim() !== '' ? d.label : `Output ${at + 1}` }));
-    return outputs.length > 0 ? { status: 'ok', outputs } : { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };
+      .map((d) => ({ id: d.deviceId, label: hasVisibleText(d.label) ? d.label : `Output ${++blank}` }));
+    return { status: 'ok', outputs };
   } catch {
     return { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };
   }

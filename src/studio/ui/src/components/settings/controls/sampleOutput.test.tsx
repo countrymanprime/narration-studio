@@ -147,13 +147,16 @@ describe('Voice sample output: the built-in recorder', () => {
     await waitFor(() => expect(within(row()).queryByRole('alert')).toBeNull());
   });
 
-  it('an audio system that will not list its outputs is said so and the choice is off', async () => {
+  it('an audio system that will not list its outputs is said so, and every Check again says it again; the choice stays on with the system default', async () => {
     delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
     const toast = vi.spyOn(overlay, 'toast');
     await renderRow();
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('would not list its outputs')));
     expect(within(row()).queryByRole('alert')).toBeNull();
-    expect(await picker()).toHaveProperty('disabled', true);
+    expect(await picker()).toHaveProperty('disabled', false);
+    const said = toast.mock.calls.length;
+    fireEvent.click(within(row()).getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(toast.mock.calls.length).toBe(said + 1));
     expect(within(row()).getByRole('button', { name: 'Check again' })).toBeTruthy();
   });
 

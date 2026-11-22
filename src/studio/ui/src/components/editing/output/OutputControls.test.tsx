@@ -135,23 +135,22 @@ describe('the Output popover', () => {
   // Changed for qa-breaker B2: with a saved output and no list, the choice stays on so System default can be picked; it is off only when there is nothing to clear.
   it('says it would not list the outputs and offers a way out; a saved output can still be cleared to the system default', async () => {
     const onChangeSpy = vi.fn();
-    const toast = vi.spyOn(overlay, 'toast');
     render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} start={{ device: 'Gone' }} onChangeSpy={onChangeSpy} />);
     const dialog = await openOutput();
     const select = within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLSelectElement;
     expect(select.disabled).toBe(false);
-    // #4044: said once as a toast, never as red text under the list.
-    expect(toast).toHaveBeenCalledWith(expect.stringMatching(/would not list its outputs/));
+    // #4044: never red text under the list; the toast is the hook's (useOutputDevices.test.tsx).
     expect(within(dialog).queryByRole('alert')).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
     await userEvent.selectOptions(select, 'System default');
     expect(onChangeSpy).toHaveBeenCalledWith({ device: '' });
   });
 
-  it('turns the choice off when no outputs can be listed and none is saved', async () => {
+  it('keeps the choice on, with the system default, when no outputs can be listed and none is saved (never a dead control)', async () => {
     render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} />);
     const dialog = await openOutput();
-    expect((within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLInputElement).disabled).toBe(true);
+    expect((within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLInputElement).disabled).toBe(false);
+    expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
   });
 
   it('lists two outputs with the same name once, with no duplicate-key error (qa-breaker B3)', async () => {
