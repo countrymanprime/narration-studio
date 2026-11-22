@@ -91,6 +91,8 @@ test('browser Back over a hash-only Settings entry asks over a pasted key, and C
   await page.evaluate(() => {
     window.location.hash = '#category-voice';
   });
+  // The pane follows the address a render later: an Advanced clicked before it swaps opens the Project pane's, not Voice's.
+  await page.getByRole('heading', { level: 2, name: 'Voice & pronunciation', exact: true }).waitFor();
   await page.getByRole('button', { name: /Advanced/ }).click();
   await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
   const before = page.url();
@@ -99,6 +101,21 @@ test('browser Back over a hash-only Settings entry asks over a pasted key, and C
   await unsaved(page).getByRole('button', { name: 'Cancel' }).click();
   expect(page.url()).toBe(before);
   await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveValue('pasted-key-123');
+});
+
+// Why the Back test above waits for the Voice heading (#3981): the pane follows the address a render later, so an Advanced clicked in the same task as the hash write opens the pane that was showing, and Voice's stays closed.
+test('an Advanced clicked in the task that swaps the pane by hash opens the old pane, not the new one', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await openSettings(page, 'Project');
+  await page.evaluate(() => {
+    window.location.hash = '#category-voice';
+    Array.from(document.querySelectorAll('button'))
+      .find((button) => /Advanced/.test(button.textContent ?? ''))
+      ?.click();
+  });
+  await page.getByRole('heading', { level: 2, name: 'Voice & pronunciation', exact: true }).waitFor();
+  await expect(page.getByRole('textbox', { name: 'Merriam-Webster key' })).toHaveCount(0);
 });
 
 test('a typed hash change of Settings asks over a pasted key', async ({ page }) => {
@@ -164,6 +181,8 @@ test('typed hash from a middle entry with a pasted key: Cancel restores the addr
   await page.evaluate(() => {
     window.location.hash = '#category-voice';
   });
+  // The pane follows the address a render later: an Advanced clicked before it swaps opens the Project pane's, not Voice's.
+  await page.getByRole('heading', { level: 2, name: 'Voice & pronunciation', exact: true }).waitFor();
   await page.getByRole('button', { name: /Advanced/ }).click();
   await page.getByRole('textbox', { name: 'Merriam-Webster key' }).fill('pasted-key-123');
   const before = page.url();
