@@ -6,6 +6,9 @@ import { usePort } from '../../../ports/usePort';
 const ASK_FOR_MS = 20_000;
 /** A DAW that says it is reachable but refuses (REAPER is still loading its project) has no event to say it is ready, so that one case is asked again on a timer that slows down: 2 s, then 10 s, then 30 s. */
 const RETRY_REACHABLE_MS = [2000, 10_000, 30_000];
+/** The last retry lands this long before the window ends; a retry closer than this to the previous one is not made. */
+const LAST_ASK_BEFORE_END_MS = 500;
+const MIN_RETRY_MS = 500;
 
 /**
  * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW may not have
@@ -25,7 +28,7 @@ export function useFollowDawOnOpen({
   enabled: boolean;
   chapterIds: readonly string[] | undefined;
   onChapter: (chapterId: string) => void;
-  /** A take is starting or running: the answer is held back (asked again soon), never moves the Booth under it. */
+  /** A take is starting or running: an answer that comes then ends the follow without moving the Booth. */
   busy?: () => boolean;
 }) {
   const place = usePort('dawPlace');
@@ -55,9 +58,9 @@ export function useFollowDawOnOpen({
     // No answer: a DAW that has not connected yet is asked again by its event; one that says it is reachable and still refuses has no event coming, so it is asked again soon.
     const noAnswer = () => {
       if (!live || !reachable || settled.current) return;
-      const wait = RETRY_REACHABLE_MS[Math.min(retries, RETRY_REACHABLE_MS.length - 1)]!;
-      // A retry that would fall after the window is not made: its answer would be dropped.
-      if (Date.now() + wait >= deadline) return;
+      // The last retry is pulled in to just before the window ends, so a REAPER that becomes ready late is still asked once more.
+      const wait = Math.min(RETRY_REACHABLE_MS[Math.min(retries, RETRY_REACHABLE_MS.length - 1)]!, deadline - Date.now() - LAST_ASK_BEFORE_END_MS);
+      if (wait < MIN_RETRY_MS) return;
       retries++;
       clearTimeout(timer);
       timer = setTimeout(ask, wait);
@@ -77,12 +80,9 @@ export function useFollowDawOnOpen({
         .then((answer) => {
           if (!live) return;
           if (!answer.ok) return noAnswer();
-          // A take that is starting or running keeps its chapter; the DAW has answered, so it is asked again soon (a take that fails to start frees the follow).
-          if (busyRef.current?.()) {
-            reachable = true;
-            return noAnswer();
-          }
           settled.current = true;
+          // A take that is starting or running keeps its chapter, and the follow is over: the narrator acted in the Booth, so a chapter chosen for them later (after a take, or a start that failed) would be a surprise.
+          if (busyRef.current?.()) return;
           // An answer after the time is up is too late to move a Booth the narrator has been using.
           if (Date.now() >= deadline) return;
           if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
