@@ -204,3 +204,49 @@ func TestBeginLeavesARunFileWrittenWithinTheLastHour(t *testing.T) {
 		t.Fatalf("%d files left (%v); want all %d: each was written within the hour", len(entries), err, maxRunFiles+3)
 	}
 }
+
+// A Begin whose prune budget has run out still starts the run and removes nothing it did not get to.
+func TestBeginDoesNotWaitOnAPruneThatRanOutOfBudget(t *testing.T) {
+	was := pruneBudget
+	t.Cleanup(func() { pruneBudget = was })
+	pruneBudget = -time.Second
+	logger, path := newLogger(t, 0)
+	runs := filepath.Join(filepath.Dir(path), "runs")
+	if err := os.MkdirAll(runs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(runs, "old.stderr.jsonl")
+	if err := os.WriteFile(stale, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-30 * 24 * time.Hour)
+	if err := os.Chtimes(stale, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if run := logger.Begin("tool"); run == nil {
+		t.Fatal("Begin returned no run")
+	}
+	if _, err := os.Stat(stale); err != nil {
+		t.Fatalf("a prune past its budget removed a file: %v", err)
+	}
+}
+
+// B2: a logs/runs that is a link is not pruned (nothing is removed through a link), and the run log says so instead of letting it grow in silence.
+func TestBeginRecordsARunsFolderItWillNotPrune(t *testing.T) {
+	logger, path := newLogger(t, 0)
+	elsewhere := t.TempDir()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(elsewhere, filepath.Join(filepath.Dir(path), "runs")); err != nil {
+		t.Skipf("no links here: %v", err)
+	}
+	logger.Begin("tool")
+	var warned bool
+	for _, record := range readLines(t, path) {
+		warned = warned || record["event"] == "runs.prune"
+	}
+	if !warned {
+		t.Fatal("a logs/runs that is a link was skipped without a record")
+	}
+}

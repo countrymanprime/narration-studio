@@ -126,7 +126,7 @@ type PrunePass struct {
 
 // removeFile removes one regular file below a root and listFolder lists a folder; variables so a test can make either fail on every platform.
 var (
-	removeFile = RemoveRegular
+	removeFile = RemoveRegularIf
 	listFolder = ReadDir
 )
 
@@ -215,6 +215,10 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 			modified = time.Time{}
 			if fresh, ok := MoveFutureToNow(dir, entry.Name(), now); ok {
 				info, modified = fresh, fresh.ModTime()
+			} else if listed := info.ModTime(); listed.Sub(now) < rule.Guard {
+				// A time only a little ahead is a clock a few seconds fast (a share's server): the file was just written, so it is guarded
+				// as written now; only a time far ahead is read as the oldest.
+				modified = now
 			}
 		}
 		pass.BytesBefore += info.Size()
@@ -292,7 +296,20 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 				}
 				break
 			}
-			removed, err := removeFile(root, filepath.Join(rel, file.name))
+			// The delete looks at the file once more itself and leaves it if it is no longer the one listed: the window for a swap is what is
+			// left between that look and the delete.
+			swapped := false
+			removed, err := removeFile(root, filepath.Join(rel, file.name), func(current fs.FileInfo) bool {
+				same := current.ModTime().Equal(file.info.ModTime()) && current.Size() == file.info.Size() && os.SameFile(file.info, current)
+				swapped = !same
+				return same
+			})
+			if swapped {
+				if current, err := os.Lstat(filepath.Join(dir, file.name)); err == nil {
+					pass.BytesAfter += current.Size() - file.info.Size()
+				}
+				break
+			}
 			if err != nil {
 				failures = append(failures, fmt.Errorf("could not remove %s: %w", file.name, err))
 				if len(failures) >= MaxRemovalFailures {

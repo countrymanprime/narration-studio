@@ -152,7 +152,7 @@ The second pass takes 0 to 5 ms for the previews and 0 to 1 ms for the runs at e
 | 200 stale files, first `Begin`, ms | 1.0 to 1.7 | 2.0 to 2.7 |
 | 2,000 stale files, first `Begin`, ms | 10.3 to 16.6 | 25.7 to 35.0 |
 
-The helper costs about 5 to 12 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The benchmark is committed: `go -C src/studio/desktop test ./internal/runlog -run xxx -bench BenchmarkBegin -benchtime=200x -count=3` (`-benchtime=1x` for the first `Begin`). After that prune the folder is held at 20 files (a file written in the last hour is never removed, so a burst of more than 20 runs within an hour keeps them until the hour has passed), so the one-time cost is paid on the first run after the upgrade.
+The helper costs about 5 to 12 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The benchmark is committed: `go -C src/studio/desktop test ./internal/runlog -run xxx -bench BenchmarkBegin -benchtime=200x -count=5` (`-benchtime=1x` for the first `Begin`). After that prune the folder is held at 20 files (a file written in the last hour is never removed, so a burst of more than 20 runs within an hour keeps them until the hour has passed), so the one-time cost is paid on the first run after the upgrade.
 
 ## The real app
 

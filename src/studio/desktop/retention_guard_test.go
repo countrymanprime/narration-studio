@@ -42,6 +42,9 @@ func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 		}
 		for _, found := range deletingCode.FindAllString(withoutCommentLines(string(text)), -1) {
 			// RemoveRegular is also how the two stores delete their own files; those are the defining files.
+			if slash == "internal/runlog/runlog.go" && !strings.Contains(found, "PruneFolder") {
+				t.Errorf("%s names %s: the logger may prune logs/runs through PruneFolder only", slash, strings.TrimPrefix(found, "."))
+			}
 			if !defining[slash] && !steps[slash] {
 				t.Errorf("%s names %s: the code that deletes derived files is called only from the retention steps (see the test's comment)", slash, strings.TrimPrefix(found, "."))
 			}

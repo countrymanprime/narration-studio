@@ -148,7 +148,12 @@ func (l *Logger) Begin(tool string, attrs ...any) *Run {
 	}
 	id := l.newID()
 	runsDir := filepath.Join(filepath.Dir(l.path), "runs")
-	_, _ = persist.PruneFolder(filepath.Dir(l.path), "runs", runFilesRule, l.now(), nil)
+	// The prune must not hold a run back: it stops after pruneBudget (a volume that refuses deletes makes each removal wait), and the next Begin goes on.
+	deadline := time.Now().Add(pruneBudget)
+	if _, err := persist.PruneFolder(filepath.Dir(l.path), "runs", runFilesRule, l.now(), func() bool { return time.Now().After(deadline) }); err != nil {
+		// A folder that is a link or cannot be pruned would otherwise grow without a word anywhere.
+		slog.New(l.handler).LogAttrs(context.Background(), slog.LevelWarn, "logs/runs could not be pruned", slog.String("event", "runs.prune"), slog.String("error", err.Error()))
+	}
 	run := &Run{
 		id:      id,
 		tool:    tool,

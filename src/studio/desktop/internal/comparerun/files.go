@@ -10,7 +10,7 @@ import (
 func DiffFolder() string { return filepath.Join("TranscriptCompare", "diffs") }
 
 // diffFile matches <track>_<run id>.diff and the two text files written beside it: the run id is the digits after the last underscore.
-var diffFile = regexp.MustCompile(`^.+_(\d+)\.(?:diff|manuscript\.txt|recorded\.txt)$`)
+var diffFile = regexp.MustCompile(`(?s)^.*_(\d+)\.(?:diff|manuscript\.txt|recorded\.txt)$`)
 
 // RunOfFile is the run a file of DiffFolder belongs to: the run id its name ends with, the same for the three files of one run. A
 // name that is not one of those three (a stray file, a note) is not a run's file and answers false.

@@ -20,7 +20,7 @@ func TestRunOfFileReadsTheRunIDOfTheThreeFilesOfARun(t *testing.T) {
 }
 
 func TestRunOfFileRefusesWhatIsNotARunsFile(t *testing.T) {
-	for _, name := range []string{"equivalences.csv", "vocab_hints.json", "vocabulary_hints.txt", "x_1763.diff.part", "x_1763.diff.tmp", "x_abc.diff", "_1763.diff", "x_1763.txt", "1763.diff", ".diff", ""} {
+	for _, name := range []string{"equivalences.csv", "vocab_hints.json", "vocabulary_hints.txt", "x_1763.diff.part", "x_1763.diff.tmp", "x_abc.diff", "x_1763.txt", "1763.diff", ".diff", ""} {
 		if got, ok := RunOfFile(name); ok {
 			t.Errorf("RunOfFile(%q) = %q, true; want not a run's file", name, got)
 		}
@@ -30,5 +30,14 @@ func TestRunOfFileRefusesWhatIsNotARunsFile(t *testing.T) {
 func TestDiffFolderIsBelowTheProjectFolder(t *testing.T) {
 	if got, want := DiffFolder(), filepath.Join("TranscriptCompare", "diffs"); got != want {
 		t.Fatalf("DiffFolder() = %q, want %q", got, want)
+	}
+}
+
+// B6: the names the writers make include an empty track name and one with a newline (a track name is the narrator's own text).
+func TestRunOfFileMatchesEveryNameTheWritersMake(t *testing.T) {
+	for name, want := range map[string]string{"_1700.diff": "1700", "a\nb_17000.diff": "17000", "_5.manuscript.txt": "5", "é 🦎 עברית_9.recorded.txt": "9"} {
+		if got, ok := RunOfFile(name); !ok || got != want {
+			t.Errorf("RunOfFile(%q) = %q, %v; want %q", name, got, ok, want)
+		}
 	}
 }
