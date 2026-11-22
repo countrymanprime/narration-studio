@@ -55,7 +55,7 @@ function footer(a: ReturnType<typeof api>, over: Partial<Parameters<typeof Booth
 }
 
 function top(over: Partial<Parameters<typeof BoothTop>[0]> = {}) {
-  return render(<BoothTop progress="¶ 1 of 2 · 0% · ~1:00 of audio left" recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
+  return render(<BoothTop progress={['¶ 1 of 2', '0% read', '~1:00 of audio left']} recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
 }
 
 describe('rec-shows-only-while-recording', () => {
@@ -63,7 +63,7 @@ describe('rec-shows-only-while-recording', () => {
     const { rerender } = top();
     expect(screen.queryByText(/ready/i)).toBeNull();
     expect(screen.queryByText('REC')).toBeNull();
-    rerender(<BoothTop progress="" recording panelOpen={false} onTogglePanel={() => {}} />);
+    rerender(<BoothTop progress={[]} recording panelOpen={false} onTogglePanel={() => {}} />);
     const pill = screen.getByText('REC');
     expect(pill.style.background).toBe('var(--rec-fill)');
     expect(pill.style.color).toBe('var(--rec-text)');
@@ -92,7 +92,7 @@ describe('the-resume-and-setup-slots', () => {
     expect(container.querySelector('[data-slot]')).toBeNull();
     rerender(
       <BoothTop
-        progress=""
+        progress={[]}
         recording={false}
         panelOpen={false}
         onTogglePanel={() => {}}
@@ -105,7 +105,7 @@ describe('the-resume-and-setup-slots', () => {
   });
   it('shows the progress line', () => {
     top();
-    expect(screen.getByText('¶ 1 of 2 · 0% · ~1:00 of audio left')).toBeTruthy();
+    expect(document.getElementById('bprog')?.textContent).toBe('¶ 1 of 20% read~1:00 of audio left');
   });
 });
 
@@ -128,7 +128,7 @@ describe('the-side-panel-toggle-and-drawer-width', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await userEvent.click(toggle);
     expect(onTogglePanel).toHaveBeenCalledOnce();
-    rerender(<BoothTop progress="" recording={false} panelOpen onTogglePanel={onTogglePanel} />);
+    rerender(<BoothTop progress={[]} recording={false} panelOpen onTogglePanel={onTogglePanel} />);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
   });
   it('is a drawer at 1280 and below and a column above', () => {
@@ -346,7 +346,7 @@ describe('the text popover', () => {
     return (
       <>
         <BoothTop
-          progress=""
+          progress={[]}
           recording={false}
           panelOpen={false}
           onTogglePanel={() => {}}

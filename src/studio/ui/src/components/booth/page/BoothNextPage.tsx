@@ -629,6 +629,16 @@ function BoothSession({
   useCommand('booth.voice.7', () => voices.byKey(7));
   useCommand('booth.voice.8', () => voices.byKey(8));
   useCommand('booth.voice.9', () => voices.byKey(9));
+  useCommand('booth.voice.10', () => voices.byKey(10));
+  useCommand('booth.voice.11', () => voices.byKey(11));
+  useCommand('booth.voice.12', () => voices.byKey(12));
+  useCommand('booth.voice.13', () => voices.byKey(13));
+  useCommand('booth.voice.14', () => voices.byKey(14));
+  useCommand('booth.voice.15', () => voices.byKey(15));
+  useCommand('booth.voice.16', () => voices.byKey(16));
+  useCommand('booth.voice.17', () => voices.byKey(17));
+  useCommand('booth.voice.18', () => voices.byKey(18));
+  useCommand('booth.voice.19', () => voices.byKey(19));
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
@@ -680,13 +690,16 @@ function BoothSession({
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;
   // The heading's words count toward the chapter's, but the paragraph numbers are the manuscript's: the heading is on paragraph 1.
   const lastParagraph = Math.max(0, paragraphs.length - 1);
-  const progress = progressLine({
-    paragraph: bodyParagraphIndex(paragraphs, units[at.cur]?.paragraphIndex ?? 0) + 1,
-    paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
-    wordsRead,
-    words,
-    complete: recordedLabel?.complete,
-  });
+  const progress = progressLine(
+    {
+      paragraph: bodyParagraphIndex(paragraphs, units[at.cur]?.paragraphIndex ?? 0) + 1,
+      paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
+      wordsRead,
+      words,
+      complete: recordedLabel?.complete,
+    },
+    !recordedLabel,
+  );
   const capabilities = control.capabilities;
   // The tracks the dialog for an unlinked chapter offers are read here, in the background, as soon as the chapter is known: the
   // dialog then opens with them (#3669). A read that fails leaves the dialog to read for itself.
@@ -1027,6 +1040,10 @@ function BoothSession({
                   setVoiceListOpen(next);
                 }}
                 noTrack={cast.noTrack}
+                cast={cast}
+                onAddLane={
+                  control.recording ? undefined : (name) => askWho({ kind: 'key', key: voices.voices.filter((voice) => !voice.narrator).length + 1, name })
+                }
                 // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
                 onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : askWho({ kind: 'character', character }))}
                 standIn={voices.standIn}

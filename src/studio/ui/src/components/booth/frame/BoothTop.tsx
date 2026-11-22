@@ -1,3 +1,4 @@
+import { HeaderChip } from '../../primitives/HeaderChip';
 import type { ReactNode } from 'react';
 import { useLayoutClass } from '../../../hooks/useLayoutClass';
 import { IconButton } from '../../primitives/IconButton';
@@ -88,7 +89,8 @@ export function BoothTop({
   text,
 }: {
   chapter?: ReactNode;
-  progress: string;
+  /** The progress chips' texts, in order; none draws nothing. */
+  progress: readonly string[];
   resume?: ReactNode;
   setup?: ReactNode;
   recording: boolean;
@@ -120,8 +122,10 @@ export function BoothTop({
         />
       ) : null}
       {/* Not drawn in a short window (still read by a screen reader): it wraps to two rows there, and those rows are what the side panel needs to be readable. */}
-      <span id="bprog" className={`min-w-0 font-mono text-sm text-[var(--text-muted)] ${GIVES_WAY_IN_A_SHORT_WINDOW}`}>
-        {progress}
+      <span id="bprog" className={`flex min-w-0 flex-wrap items-center gap-1.5 ${GIVES_WAY_IN_A_SHORT_WINDOW}`}>
+        {progress.map((text, at) => (
+          <HeaderChip key={at}>{text}</HeaderChip>
+        ))}
       </span>
       {resume}
       {/* The bar's tools are one group kept at the right edge: when the bar wraps they move to the next row together, never under Previous. */}
