@@ -22,6 +22,8 @@ Existing thing searched: <path, or none found + the searches run>
 
 Replaces: <path, deleted here> (omit when nothing new is added)
 
+Builds new because: <(a) reusing makes it way worse, how much / (b) reusing means changing the existing thing to a new purpose, which> (omit when nothing new is added)
+
 ## Checks
 
 - [ ] I ran the targeted local checks for what changed (listed above); the full `pnpm check` runs in the pipeline.

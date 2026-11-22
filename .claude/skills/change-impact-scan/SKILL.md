@@ -34,7 +34,7 @@ Skip it for changes fully contained inside one tool's own directory (e.g. `src/s
    - UI consumers → look for a vitest unit test or a Playwright spec under `src/studio/ui/tests/`.
    - Go consumers → look for a `_test.go` in the same package or a contract test.
    - Lua consumers → the bridge harness in `src/studio/integrations/reaper/tests` covers bridge commands ([The DAW port](../../../docs/architecture/daw-integration.md#the-daw-port)). Find the harness tests for every command the consumer touches; a consumer with none is **zero coverage**. REAPER's own API behaviour is never covered by the fake.
-4. Search for the existing thing the change might duplicate, per [one thing per job](../../rules/product-rules.md), and report it with the consumers. A new thing that does what an existing one does is refused unless it replaces it.
+4. Search for the existing thing the change might duplicate, per [one thing per job](../../rules/product-rules.md), and report it with the consumers. A new thing that does what an existing one does is refused unless it replaces it and names its `Builds new because:` reason; a small gain is never a reason to skip the consolidation.
 5. Report the impact before writing code: list each consumer, whether it has coverage, and which consumers have none. Don't proceed silently past a zero-coverage consumer — say so explicitly and ask whether to add a regression test first or accept manual verification later (via `full-verification-gate`). If the change widens an interface or adds a dependency across a package or port, run `solid-design-review` pass 1 on the plan.
 6. If the consumer list turns out to be empty (change is genuinely isolated), say that too — it's a valid finding, not a reason to skip the scan.
 
