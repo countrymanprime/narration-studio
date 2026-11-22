@@ -270,7 +270,7 @@ The other readers then moved (Script, Story Bible, Proof, Pickups, Master & QC, 
 | Master & QC | 29 / 89, 100, 123, 166 | 28 / 88, 96, 114, 148 | 15 / 41, 46, 56, 74 | 13 / 39, 39, 39, 39 |
 | Settings | 47 / 104, 118, 152, 217 | 47 / 104, 118, 152, 217 | 33 / 56, 64, 86, 126 | 32 / 55, 61, 77, 108 |
 
-(Calls are the same at every size; the four KB figures are 1, 5, 17 and 40 h.) A cold start makes one call fewer on five pages and a warm visit one or two fewer: the pages no longer read the list the store already holds, so after the first read their warm KB no longer grows with the book (Pickups 55 KB at 40 h before, 19 after; Proof 110 to 75). Settings' cold start is unchanged: its Voices row reads the list the store has already loaded for the app. The real-host cost of each saved read is the `ManuscriptChapters` row of the [host read table](#host-reads) (653 ms at 17 h, 1,514 ms at 40 h).
+(Calls are the same at every size; the four KB figures are 1, 5, 17 and 40 h.) A cold start makes one call fewer on five pages and a warm visit one or two fewer: the pages no longer read the list the store already holds, so after the first read their warm KB no longer grows with the book (Pickups 55 KB at 40 h before, 19 after; Proof 110 to 75). Settings' cold start is unchanged (47 calls); why was not traced. The real-host cost of each saved read is the `ManuscriptChapters` row of the [host read table](#host-reads) (653 ms at 17 h, 1,514 ms at 40 h).
 
 ## The track list: a 5 s poll against REAPER's change event
 
