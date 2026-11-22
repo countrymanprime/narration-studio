@@ -197,7 +197,9 @@ describe('focus-refetches', () => {
 });
 
 describe('ensure settled', () => {
-  it('waits for a refresh in flight when a value is held, serves the held value when that read fails, and serves at once without the option', async () => {
+  const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  it('waits for a refresh in flight when a value is held, and serves at once without the option', async () => {
     const gate = deferred<unknown>();
     let calls = 0;
     const { store } = make({ a: { schema: isCount, load: () => (++calls === 1 ? Promise.resolve({ count: 1 }) : gate.promise) } });
@@ -207,13 +209,12 @@ describe('ensure settled', () => {
     void store.ensure('a').then(() => (served = true));
     let settled = false;
     void store.ensure('a', { settled: true }).then(() => (settled = true));
-    await Promise.resolve();
-    await Promise.resolve();
+    await flush();
     expect(served).toBe(true);
     expect(settled).toBe(false);
     gate.resolve({ count: 2 });
     await refresh;
-    await Promise.resolve();
+    await flush();
     expect(settled).toBe(true);
     expect(store.getState().slots.a).toEqual({ count: 2 });
   });
@@ -229,6 +230,47 @@ describe('ensure settled', () => {
     await refresh;
     await expect(waiting).resolves.toBeUndefined();
     expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+
+  it('waits for the read an event queued behind the flight it joined', async () => {
+    const first = deferred<unknown>();
+    const second = deferred<unknown>();
+    let calls = 0;
+    const { store } = make({
+      a: { schema: isCount, load: () => (++calls === 1 ? Promise.resolve({ count: 1 }) : calls === 2 ? first.promise : second.promise), topics: ['t'] },
+    });
+    await store.load('a');
+    store.publish('t');
+    store.publish('t');
+    let settled = false;
+    void store.ensure('a', { settled: true }).then(() => (settled = true));
+    first.resolve({ count: 2 });
+    await flush();
+    expect(settled).toBe(false);
+    second.resolve({ count: 3 });
+    await flush();
+    expect(settled).toBe(true);
+    expect(store.getState().slots.a).toEqual({ count: 3 });
+  });
+
+  it('serves the held value once the read it waits for is as old as the store would still join', async () => {
+    vi.useFakeTimers();
+    try {
+      const never = deferred<unknown>();
+      let calls = 0;
+      const { store } = make({ a: { schema: isCount, load: () => (++calls === 1 ? Promise.resolve({ count: 1 }) : never.promise) } });
+      await store.load('a');
+      void store.load('a');
+      let settled = false;
+      void store.ensure('a', { settled: true }).then(() => (settled = true));
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1500);
+      expect(settled).toBe(true);
+      expect(store.getState().slots.a).toEqual({ count: 1 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
