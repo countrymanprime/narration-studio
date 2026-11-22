@@ -227,4 +227,22 @@ describe('Who records a character with no track?', () => {
     show({ kind: 'key', key: 11 });
     expect(screen.getByRole('dialog', { name: 'Who is in the new track?' })).toBeTruthy();
   });
+
+  it('the 10th track is offered Shift and Num 0, and a track past nine is listed with its Shift keys (#3989)', async () => {
+    const nine: Voice[] = Array.from({ length: 9 }, (_, i) => ({
+      guid: `{v${i}}`,
+      name: `V${i}`,
+      key: String(i + 1),
+      narrator: false,
+      notVoice: false,
+      characters: [],
+    }));
+    const tenth: Voice = { guid: '{ten}', name: 'Ten', key: '', shift: '0', narrator: false, notVoice: false, characters: [] };
+    show({ kind: 'key', key: 10 }, { voices: nine });
+    expect(screen.getByRole('img', { name: 'Shift + Num 0' })).toBeTruthy();
+    cleanup();
+    show({ kind: 'key', key: 11 }, { voices: [...nine, tenth] });
+    await userEvent.click(screen.getByRole('radio', { name: /An existing track/ }));
+    expect(screen.getByRole('combobox', { name: 'Track' }).textContent).toContain('V0');
+  });
 });

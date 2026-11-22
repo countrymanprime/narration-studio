@@ -216,4 +216,22 @@ describe('the voice control', () => {
     expect(list.textContent).toMatch(/No track.*Mara/);
     expect(list.textContent).not.toContain('Hatter');
   });
+
+  it('a voice past nine is listed with Shift and its digit, which a screen reader hears as Shift Num N (#3989)', async () => {
+    const eleventh: Voice = { guid: 'e', name: 'Dormouse', key: '', shift: '1', narrator: false, notVoice: false, characters: [] };
+    render(
+      <VoiceControl
+        voices={[...voices, eleventh]}
+        current={voices[0]}
+        choosing={false}
+        arm={{ state: 'unknown' }}
+        onChoose={vi.fn()}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+    const row = within(await screen.findByRole('listbox', { name: 'Voices of this chapter' })).getByRole('option', { name: /Dormouse/ });
+    expect(row.textContent).toContain('⇧1');
+    expect(row.textContent).toContain('Shift Num');
+  });
 });

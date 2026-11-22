@@ -206,6 +206,17 @@ describe('voice keys in a chapter linked to a folder of voices (phase 5)', () =>
     ...over,
   });
 
+  it('a character on a voice past nine shows Shift and its digit (#3989)', () => {
+    render(
+      <VoicesInChapter
+        voices={cast}
+        voiceKeys={keys({ keyOf: (id) => (id === 'queen' ? '' : undefined), chordOf: (id) => (id === 'queen' ? ['Shift', 'Num 1'] : undefined) })}
+      />,
+    );
+    expect(screen.getByRole('img', { name: 'Shift + Num 1' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add a track for Queen' })).toBeNull();
+  });
+
   it('a character with a voice shows its key; a speaker with none offers a track; one only named offers nothing', async () => {
     const voiceKeys = keys();
     render(<VoicesInChapter voices={cast} voiceKeys={voiceKeys} />);

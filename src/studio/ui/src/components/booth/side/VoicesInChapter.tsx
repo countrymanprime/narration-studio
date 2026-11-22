@@ -63,6 +63,8 @@ function CantTell({ samples }: { samples: BoothSamples }) {
 function VoiceKey({ voice, voiceKeys }: { voice: ChapterVoice; voiceKeys: VoiceKeys }) {
   const key = voiceKeys.keyOf(voice.id);
   if (key) return <Kbd keys={[`Num ${key}`]} />;
+  const chord = voiceKeys.chordOf?.(voice.id);
+  if (chord?.length) return <Kbd keys={[...chord]} />;
   if (key !== undefined || !voiceKeys.speaks(voice.id)) return null;
   return (
     <IconButton action="add" size="sm" label={`Add a track for ${voice.name}`} disabledReason={voiceKeys.addWhy} onClick={() => voiceKeys.add(voice.id)} />

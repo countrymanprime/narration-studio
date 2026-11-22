@@ -10,7 +10,7 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 import { Select } from '../../primitives/Select';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { CharacterBadge } from './CharacterBadge';
-import { defaultTrackName, keyForNewTrack, keyName, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
+import { chordForNewTrack, defaultTrackName, keyName, voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 import { hasVisibleText } from '../../../visibleText';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
@@ -112,7 +112,7 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
       : voices.some((voice) => same(voice.name, name))
         ? `This chapter already has a track named “${name.trim()}”.`
         : undefined;
-  const newKey = keyForNewTrack(voices, name);
+  const newChord = chordForNewTrack(voices, name);
   const target = others.find((voice) => voice.guid === existing);
   const blocked = choice === 'new' ? Boolean(nameProblem) : choice === 'existing' ? !target : !narrator;
   const title = asked
@@ -127,9 +127,9 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
       value: 'new',
       label: (
         <span className="inline-flex flex-wrap items-center gap-2">
-          {newKey ? (
+          {newChord.length > 0 ? (
             <>
-              A new track on <Kbd keys={[keyName(newKey)]} />
+              A new track on <Kbd keys={newChord} />
             </>
           ) : (
             'A new track, with no key'
@@ -211,7 +211,10 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
             fullWidth
             value={existing}
             onChange={setExisting}
-            options={others.map((voice) => ({ value: voice.guid, label: voice.key ? `${keyName(voice.key)} · ${voiceName(voice)}` : voiceName(voice) }))}
+            options={others.map((voice) => ({
+              value: voice.guid,
+              label: voiceChord(voice).length ? `${voiceChord(voice).join(' ')} · ${voiceName(voice)}` : voiceName(voice),
+            }))}
           />
         ) : null}
         {!asked && choice !== 'narrator' ? (

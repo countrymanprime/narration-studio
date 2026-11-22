@@ -614,6 +614,7 @@ function BoothSession({
     voices.voices.length > 0
       ? {
           keyOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.key,
+          chordOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.chord,
           speaks: (id: string) => (lines.get(id) ?? 0) > 0,
           add: (id: string) => askFor(id, 'new'),
           addWhy: control.recording ? whileRecording : undefined,
