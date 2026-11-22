@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"desktop/internal/coverage"
 	"desktop/internal/editing"
 	"desktop/internal/evidence"
 	"desktop/internal/measure"
@@ -104,6 +105,18 @@ func TestEveryWriterOfTheAnalysisCacheIsInTheRetentionTable(t *testing.T) {
 		if !slices.ContainsFunc(cacheRetentionPolicies, func(p evidence.CacheKindPolicy) bool { return p.AnalyzerID == id }) {
 			t.Errorf("analyzer %q writes the cache and has no row in cacheRetentionPolicies", id)
 		}
+	}
+}
+
+// A pass cut short has trimmed the cheap kinds first: the recogniser's words, the dearest entry to make again, come last of the named
+// kinds, and the entries with no analyzer after them.
+func TestTheCacheRetentionTableTakesTheDearestKindLast(t *testing.T) {
+	var ids []string
+	for _, policy := range cacheRetentionPolicies {
+		ids = append(ids, policy.AnalyzerID)
+	}
+	if ids[0] != measure.PeaksAnalyzerID || ids[len(ids)-2] != coverage.WordsAnalyzerID || ids[len(ids)-1] != "" {
+		t.Fatalf("kinds in order %q; want peaks first, then the recogniser's words, then no analyzer, last", ids)
 	}
 }
 

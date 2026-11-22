@@ -71,8 +71,8 @@ func TestPrintTheRetentionPass(t *testing.T) {
 	fmt.Printf("\nRetention pass on %s (%s/%s, %d CPUs, %s)\n\n| Pass | ms | Files | MB | Removed |\n| --- | --- | --- | --- | --- |\n%s\n%s%s", src, runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), runtime.Version(), out, table, cacheTable)
 }
 
-// perfCachePass fills the copy's analysis cache with NARRATION_PERF_CACHE_ENTRIES entries of each kind (8 KB blobs; the entries of the
-// kinds with a time limit, and a third of the others, last used long ago) and runs the cache step twice. It answers "" when none were asked for.
+// perfCachePass fills the copy's analysis cache with NARRATION_PERF_CACHE_ENTRIES entries of each kind (8 KB blobs; every third file, of any kind,
+// last used 400 days ago and the others 0 to 39 hours ago) and runs the cache step twice. It answers "" when none were asked for.
 func perfCachePass(t *testing.T, dir string) string {
 	t.Helper()
 	var each int

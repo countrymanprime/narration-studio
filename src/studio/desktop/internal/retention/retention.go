@@ -148,8 +148,8 @@ func (r *Runner) Close() {
 	}
 }
 
-// DirStep is a Step that reports the size of the regular files below dir, which it never changes: the report-only step of a store
-// whose deletes are not wired. A folder that is not there is empty, a link is not followed, and a folder that cannot be listed
+// DirStep is a Step that reports the size of the regular files below dir, which it never changes: it measures what a deleting step
+// covers (the ledger step uses it for the stores it prunes) and reports a store whose deletes are not wired. A folder that is not there is empty, a link is not followed, and a folder that cannot be listed
 // is passed over with the first such error in the report.
 func DirStep(kind, dir string) Step { return dirStep{kind: kind, dir: dir} }
 

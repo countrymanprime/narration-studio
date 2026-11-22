@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -167,16 +168,25 @@ const usedRefresh = time.Hour
 // then ages as if unused, which costs a recompute, never a wrong answer.
 func (s *CacheStore) markUsed(path string) {
 	info, err := os.Lstat(path)
-	if err != nil || time.Since(info.ModTime()) < usedRefresh {
+	if err != nil {
 		return
 	}
+	// A file time in the future (a clock set back, a restored copy) is not "used within the hour": it is moved to now too.
+	if age := time.Since(info.ModTime()); age >= 0 && age < usedRefresh {
+		return
+	}
+	s.setUsed(filepath.Base(path), time.Now())
+}
+
+// setUsed sets the modification time of the entry file name to at, through a root on the cache folder so a link in its place is not
+// followed. A failure is ignored: the entry then keeps its time, which costs a recompute at worst, never a wrong answer.
+func (s *CacheStore) setUsed(name string, at time.Time) {
 	root, err := os.OpenRoot(s.dir)
 	if err != nil {
 		return
 	}
 	defer func() { _ = root.Close() }()
-	now := time.Now()
-	_ = root.Chtimes(filepath.Base(path), now, now)
+	_ = root.Chtimes(name, at, at)
 }
 
 // Delete removes key's entry, if any. A missing entry is not an error: the
@@ -208,13 +218,16 @@ type CacheKindPolicy struct {
 }
 
 // CachePrune is what one PruneKinds pass found and did: the regular files of the cache folder and their bytes before and after, and how
-// many entries it removed. Stopped is set when the pass was told to stop before it was done.
+// many entries it removed. Stopped is set when the pass was told to stop before it was done; the counts are then of what it had reached (a pass stopped while still reading the folder counts the files it had read and removes none).
 type CachePrune struct {
 	FilesBefore, FilesAfter int
 	BytesBefore, BytesAfter int64
 	Removed                 int
 	Stopped                 bool
 }
+
+// maxEnvelopeHeader is how much of an entry file's start entryAnalyzer reads looking for the blob's key.
+const maxEnvelopeHeader = 4 << 10
 
 // scanChunk is how many entries a prune pass reads between two looks at its stop function.
 const scanChunk = 256
@@ -237,6 +250,9 @@ type cacheFile struct {
 // recomputed.
 func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop func() bool) (CachePrune, error) {
 	var report CachePrune
+	if stop == nil {
+		stop = func() bool { return false }
+	}
 	if s.project == "" {
 		return report, nil
 	}
@@ -276,7 +292,14 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			continue
 		}
 		if analyzer, ok := s.entryAnalyzer(entry.Name()); ok {
-			byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: info.Size(), used: info.ModTime()})
+			// A file time after now (a clock set back, a restored copy) is moved to now, so that the entry ages and is evicted like any other
+			// from here on; read as now alone it would be "just used" at every pass.
+			used := info.ModTime()
+			if used.After(now) {
+				used = now
+				s.setUsed(entry.Name(), now)
+			}
+			byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: info.Size(), used: used})
 		}
 	}
 	report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
@@ -284,7 +307,9 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 	slices.SortStableFunc(ordered, func(a, b CacheKindPolicy) int { return cmpBool(a.AnalyzerID == "", b.AnalyzerID == "") })
 	var failures []error
 	for _, policy := range ordered {
+		// Taken out of the map, so a kind named twice in the table is handled once.
 		files := byKind[policy.AnalyzerID]
+		delete(byKind, policy.AnalyzerID)
 		slices.SortStableFunc(files, func(a, b cacheFile) int { return a.used.Compare(b.used) })
 		var kindBytes int64
 		for _, file := range files {
@@ -300,14 +325,17 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 				report.Stopped = true
 				return report, errors.Join(failures...)
 			}
-			if _, err := persist.RemoveRegular(s.project, filepath.Join(rel, file.name)); err != nil {
+			removed, err := persist.RemoveRegular(s.project, filepath.Join(rel, file.name))
+			if err != nil {
 				failures = append(failures, fmt.Errorf("could not remove analysis cache entry %s: %w", file.name, err))
 				continue
 			}
 			kindBytes -= file.size
-			report.Removed++
-			report.FilesAfter--
-			report.BytesAfter -= file.size
+			if removed {
+				report.Removed++
+				report.FilesAfter--
+				report.BytesAfter -= file.size
+			}
 		}
 	}
 	return report, errors.Join(failures...)
@@ -333,7 +361,8 @@ func (s *CacheStore) entryAnalyzer(name string) (string, bool) {
 		return "", false
 	}
 	defer func() { _ = file.Close() }()
-	decoder := json.NewDecoder(file)
+	// The three fields before the blob are a few dozen bytes: a file whose envelope header runs past the limit is not one this store wrote.
+	decoder := json.NewDecoder(io.LimitReader(file, maxEnvelopeHeader))
 	if token, err := decoder.Token(); err != nil || token != json.Delim('{') {
 		return "", false
 	}
