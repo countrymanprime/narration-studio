@@ -183,7 +183,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#8': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
-    'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
+    'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was; the next edit, or the 5 minute backstop, compares again.',
   'src/components/proof/NativeTakesPanel.tsx#1':
     "The panel's first read of the chapter's native takes; a failure just leaves it unrendered a moment longer until the next recording:state event (subscribeRecorderState) catches up, the same fallback useRecorder.ts::recorderState#2 already uses.",
   'src/components/booth/CompanionShell.tsx#1':

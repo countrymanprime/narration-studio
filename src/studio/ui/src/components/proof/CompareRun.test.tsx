@@ -480,9 +480,33 @@ describe('CompareRun "may have changed since comparison"', () => {
         expect(projectStateCheck).toHaveBeenCalledTimes(1);
         await act(async () => void (await vi.advanceTimersByTimeAsync(5_100)));
         expect(projectStateCheck).toHaveBeenCalledTimes(2);
-        // The retries stop at two; after that only the backstop asks.
+        // The first retry answered; a failure that keeps coming is asked again at 30 s, then left to the backstop.
         await act(async () => void (await vi.advanceTimersByTimeAsync(60_000)));
-        expect(projectStateCheck.mock.calls.length).toBeLessThanOrEqual(2);
+        expect(projectStateCheck.mock.calls.length).toBe(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('a check that keeps failing is asked again at 5 s and 30 s, then only on the backstop', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const projectStateCheck = vi.fn().mockRejectedValue(new Error('REAPER is not answering'));
+        render(
+          <ApiProvider api={createMockApi({ projectStateCheck } as never)}>
+            <CompareRun {...resultsProps()} />
+          </ApiProvider>,
+        );
+        await screen.findByText(/2 discrepancies/);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(5_100)));
+        expect(projectStateCheck).toHaveBeenCalledTimes(2);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(30_100)));
+        expect(projectStateCheck).toHaveBeenCalledTimes(3);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(200_000)));
+        expect(projectStateCheck).toHaveBeenCalledTimes(3);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(70_000)));
+        expect(projectStateCheck).toHaveBeenCalledTimes(4);
       } finally {
         vi.useRealTimers();
       }

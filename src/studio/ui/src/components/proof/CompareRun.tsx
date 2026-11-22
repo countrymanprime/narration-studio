@@ -62,8 +62,7 @@ const CHUNK_LENGTH_TOOLTIP = [
 ].join(' ');
 const modelLabel = (value: string) => MODEL_OPTIONS.find((option) => option.value === value)?.label ?? value;
 
-/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown: a background hint, not a status light, so it polls far less often than useReaperStatus's 3 s connection check. */
-// The edit event (`daw_project_edited`) carries every change; this slow check is only the backstop for one that was lost.
+/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown. The edit event (`daw_project_edited`) carries every change; this slow check is only the backstop for one that was lost. */
 const PROJECT_STATE_BACKSTOP_MS = 300_000;
 // A check that failed is asked again after these (the edits made before the results opened are not announced again).
 const RETRY_AFTER_MS = [5_000, 30_000];
