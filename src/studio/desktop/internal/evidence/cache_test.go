@@ -550,7 +550,8 @@ func TestPruneKindsTakesTheEntriesWithNoAnalyzerLast(t *testing.T) {
 	writeUsed(t, store, project, tagged, 100, pruneNow.Add(-1*time.Hour))
 	// The empty policy is listed first. Told to stop after one removal, the pass has taken the tagged kind's entry, not the other.
 	calls := 0
-	stop := func() bool { calls++; return calls > 1 }
+	// The first look is the scan's, before it reads anything; the second is before the first removal, the third before the next one.
+	stop := func() bool { calls++; return calls > 2 }
 	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "", MaxAge: time.Hour}, {AnalyzerID: "rc", MaxAge: time.Minute}}, pruneNow, stop)
 	if err != nil {
 		t.Fatal(err)
@@ -616,7 +617,8 @@ func TestPruneKindsStopsWhenToldTo(t *testing.T) {
 	writeUsed(t, store, project, second, 100, pruneNow.Add(-time.Hour))
 
 	calls := 0
-	stop := func() bool { calls++; return calls > 1 }
+	// The first look is the scan's, before it reads anything; the second is before the first removal, the third before the next one.
+	stop := func() bool { calls++; return calls > 2 }
 	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: 1}}, pruneNow, stop)
 	if err != nil {
 		t.Fatal(err)
@@ -778,7 +780,8 @@ func TestPruneKindsStoppedMidScanCountsOnlyWhatItReached(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: 1}}, pruneNow, func() bool { return true })
+	looks := 0
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: 1}}, pruneNow, func() bool { looks++; return looks > 1 })
 	if err != nil || !report.Stopped || report.FilesBefore != scanChunk || report.FilesAfter != scanChunk || report.Removed != 0 {
 		t.Fatalf("report = %+v, %v; want stopped after the first %d files with nothing removed", report, err, scanChunk)
 	}
@@ -904,6 +907,185 @@ func TestPruneKindsLeavesALinkNamedLikeAnEntryAndItsTarget(t *testing.T) {
 	}
 	if entryExists(project, inside) {
 		t.Fatal("the real entry, long unused, was not removed")
+	}
+}
+
+// A kind named twice is handled by its first row only: a second row with a smaller cap does not trim what the first row kept.
+func TestPruneKindsTakesTheFirstRowOfAKindNamedTwice(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	for i := range 3 {
+		writeUsed(t, store, project, kindKey("a", fmt.Sprint(i)), 100, pruneNow.Add(-time.Duration(3-i)*time.Hour))
+	}
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: 1 << 20}, {AnalyzerID: "a", MaxBytes: 1}}, pruneNow, never)
+	if err != nil || report.Removed != 0 || report.FilesAfter != 3 {
+		t.Fatalf("report = %+v, %v; want nothing removed: the first row has room for all three", report, err)
+	}
+}
+
+// A removal that answers "nothing was there" is not counted as a removal, but the file is gone from the folder's tally.
+func TestPruneKindsCountsOnlyWhatItRemoved(t *testing.T) {
+	was := removeEntry
+	t.Cleanup(func() { removeEntry = was })
+	removeEntry = func(string, string) (bool, error) { return false, nil }
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	writeUsed(t, store, project, kindKey("a", "x"), 100, pruneNow.Add(-48*time.Hour))
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never)
+	if err != nil || report.Removed != 0 || report.FilesAfter != 0 {
+		t.Fatalf("report = %+v, %v; want 0 removed by this pass and 0 files left", report, err)
+	}
+}
+
+// What another store already deleted frees its share of the cap: the pass does not evict a live entry to make room that is there.
+func TestPruneKindsDoesNotEvictToMakeRoomThatAnotherStoreMade(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	gone, second, third := kindKey("a", "gone"), kindKey("a", "second"), kindKey("a", "third")
+	writeUsed(t, store, project, gone, 100, pruneNow.Add(-3*time.Hour))
+	writeUsed(t, store, project, second, 100, pruneNow.Add(-2*time.Hour))
+	writeUsed(t, store, project, third, 100, pruneNow.Add(-time.Hour))
+	capBytes := fileSize(t, project, second) + fileSize(t, project, third)
+
+	stop := func() bool { _ = store.Delete(gone); return false }
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: capBytes}}, pruneNow, stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !entryExists(project, second) || !entryExists(project, third) || report.Removed != 0 || report.FilesAfter != 2 {
+		t.Fatalf("second kept %v, third kept %v, report %+v; want both kept: the third entry's room was made by the other store", entryExists(project, second), entryExists(project, third), report)
+	}
+}
+
+// An entry that could not be removed still counts against the cap, so the pass goes on to the next one.
+func TestPruneKindsKeepsCountingAnEntryItCouldNotRemove(t *testing.T) {
+	was := removeEntry
+	t.Cleanup(func() { removeEntry = was })
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	keys := []CacheEntryKey{kindKey("a", "1"), kindKey("a", "2"), kindKey("a", "3")}
+	for i, key := range keys {
+		writeUsed(t, store, project, key, 100, pruneNow.Add(-time.Duration(3-i)*time.Hour))
+	}
+	first := true
+	removeEntry = func(root, rel string) (bool, error) {
+		if first {
+			first = false
+			return false, errors.New("access is denied")
+		}
+		return was(root, rel)
+	}
+	// Room for one entry: the oldest cannot go, so both newer ones must.
+	_, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: fileSize(t, project, keys[0])}}, pruneNow, never)
+	if err == nil {
+		t.Fatal("the refused removal was not reported")
+	}
+	if !entryExists(project, keys[0]) || entryExists(project, keys[1]) || entryExists(project, keys[2]) {
+		t.Fatalf("kept: %v %v %v; want only the oldest, whose removal was refused", entryExists(project, keys[0]), entryExists(project, keys[1]), entryExists(project, keys[2]))
+	}
+}
+
+// Two entries stamped in the future under a cap of one: the pass moves both to now and removes one in the same pass.
+func TestPruneKindsRemovesAClampedEntryOverTheCapInTheSamePass(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	first, second := kindKey("a", "1"), kindKey("a", "2")
+	writeUsed(t, store, project, first, 100, time.Now().Add(1000*24*time.Hour))
+	writeUsed(t, store, project, second, 100, time.Now().Add(2000*24*time.Hour))
+	// Either may be the one kept, and their sizes differ by a byte or two: the cap fits the larger.
+	capBytes := max(fileSize(t, project, first), fileSize(t, project, second))
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: capBytes}}, time.Now(), never)
+	if err != nil || report.Removed != 1 || report.FilesAfter != 1 {
+		t.Fatalf("report = %+v, %v; want one of the two removed to meet the cap of one", report, err)
+	}
+}
+
+// A file time that cannot be set (only the file's owner may) must not keep an entry for ever, nor leave it counted against the cap while
+// the pass evicts others: the entry becomes the least recently used.
+func TestPruneKindsEvictsAFutureEntryWhoseTimeCannotBeSetFirst(t *testing.T) {
+	was := touchEntry
+	t.Cleanup(func() { touchEntry = was })
+	touchEntry = func(string, string, time.Time) error { return errors.New("operation not permitted") }
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	future, recent := kindKey("a", "future"), kindKey("a", "recent")
+	writeUsed(t, store, project, future, 100, time.Now().Add(1000*24*time.Hour))
+	writeUsed(t, store, project, recent, 100, time.Now().Add(-time.Hour))
+
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: fileSize(t, project, recent)}}, time.Now(), never); err != nil {
+		t.Fatal(err)
+	}
+	if entryExists(project, future) || !entryExists(project, recent) {
+		t.Fatalf("future kept %v, recent kept %v; want the entry whose time cannot be fixed evicted first, the recently used one kept", entryExists(project, future), entryExists(project, recent))
+	}
+	// And with a time limit it expires.
+	writeUsed(t, store, project, future, 100, time.Now().Add(1000*24*time.Hour))
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, time.Now(), never); err != nil {
+		t.Fatal(err)
+	}
+	if entryExists(project, future) {
+		t.Fatal("a future entry whose time could not be set never expired")
+	}
+}
+
+// A pass that is already stopped reads no header and sets no file time.
+func TestPruneKindsAlreadyStoppedDoesNothing(t *testing.T) {
+	was := touchEntry
+	t.Cleanup(func() { touchEntry = was })
+	touched := 0
+	touchEntry = func(dir, name string, at time.Time) error { touched++; return was(dir, name, at) }
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	writeUsed(t, store, project, kindKey("a", "future"), 100, time.Now().Add(1000*24*time.Hour))
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, time.Now(), func() bool { return true })
+	if err != nil || !report.Stopped || touched != 0 || report.FilesBefore != 0 {
+		t.Fatalf("report = %+v, %v, %d file times set; want it stopped before it looked at anything", report, err, touched)
+	}
+}
+
+// The give-up error says so first and carries one failure, so a log that cuts a long message keeps it.
+func TestPruneKindsGiveUpErrorIsOneShortLineThatSaysSoFirst(t *testing.T) {
+	was := removeEntry
+	t.Cleanup(func() { removeEntry = was })
+	removeEntry = func(string, string) (bool, error) { return false, errors.New("access is denied") }
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	for i := range 12 {
+		writeUsed(t, store, project, kindKey("a", fmt.Sprint(i)), 100, pruneNow.Add(-48*time.Hour))
+	}
+	_, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never)
+	if err == nil || !strings.HasPrefix(err.Error(), "gave up after 8 failed removals") || strings.Count(err.Error(), "\n") != 0 {
+		t.Fatalf("err = %v; want one line beginning \"gave up after 8 failed removals\"", err)
+	}
+}
+
+// A project path with ".." after a link is listed and deleted from in the same folder (the lexical one), never one folder for each.
+func TestPruneKindsOfAProjectPathWithDotDotAfterALinkActsInOneFolder(t *testing.T) {
+	base := t.TempDir()
+	lexical, physical := filepath.Join(base, "lexical"), filepath.Join(base, "physical", "sub")
+	if err := os.MkdirAll(lexical, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(physical, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(physical, filepath.Join(lexical, "link")); err != nil {
+		t.Skipf("no symbolic links here: %v", err)
+	}
+	path := filepath.Join(lexical, "link", "..")
+	// A fresh entry in the physical folder the operating system would resolve "..", then the lexical one holding an expired entry.
+	fresh, expired := kindKey("a", "fresh"), kindKey("a", "expired")
+	writeUsed(t, NewCacheStore(filepath.Join(base, "physical")), filepath.Join(base, "physical"), fresh, 100, time.Now())
+	writeUsed(t, NewCacheStore(lexical), lexical, expired, 100, time.Now().Add(-48*time.Hour))
+
+	if _, err := NewCacheStore(path).PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, time.Now(), never); err != nil {
+		t.Fatal(err)
+	}
+	if !entryExists(filepath.Join(base, "physical"), fresh) {
+		t.Fatal("an entry in the folder the path resolves through the link was removed")
+	}
+	if entryExists(lexical, expired) {
+		t.Fatal("the expired entry in the folder the path names was not removed")
 	}
 }
 

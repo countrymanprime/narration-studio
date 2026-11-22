@@ -108,15 +108,16 @@ func TestEveryWriterOfTheAnalysisCacheIsInTheRetentionTable(t *testing.T) {
 	}
 }
 
-// A pass cut short has trimmed the cheap kinds first: the recogniser's words, the dearest entry to make again, come last of the named
-// kinds, and the entries with no analyzer after them.
-func TestTheCacheRetentionTableTakesTheDearestKindLast(t *testing.T) {
+// A pass cut short has trimmed the cheap kinds first: the order the issue ranks the kinds by what an entry costs to make again, the
+// recogniser's words last of the named kinds and the entries with no analyzer after them.
+func TestTheCacheRetentionTableTakesTheKindsInTheIssuesOrder(t *testing.T) {
 	var ids []string
 	for _, policy := range cacheRetentionPolicies {
 		ids = append(ids, policy.AnalyzerID)
 	}
-	if ids[0] != measure.PeaksAnalyzerID || ids[len(ids)-2] != coverage.WordsAnalyzerID || ids[len(ids)-1] != "" {
-		t.Fatalf("kinds in order %q; want peaks first, then the recogniser's words, then no analyzer, last", ids)
+	want := []string{measure.PeaksAnalyzerID, editing.AnalyzerSilence, passagetakes.MeasureAnalyzerID, measure.FileAnalyzerID, coverage.WordsAnalyzerID, ""}
+	if !slices.Equal(ids, want) {
+		t.Fatalf("kinds in order %q; want %q", ids, want)
 	}
 }
 

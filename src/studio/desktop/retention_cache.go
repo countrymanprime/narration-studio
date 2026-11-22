@@ -20,13 +20,13 @@ const (
 // cacheRetentionPolicies bound the analysis cache by what wrote each entry (#3816). An entry whose key is a content hash of an input
 // that does not change between sessions has no time limit, only a size cap; an entry that depends on what is in the DAW (an item's
 // trim and move) expires after a day unused, a take's range after a week; an entry written before the envelope named its analyzer
-// after a month and is taken last. The kinds are taken in order of what an entry costs to make again, cheapest first (a waveform) and
-// the recogniser's words last, so a pass cut short has trimmed the cheap kinds first. An analyzer missing from this table keeps every entry, so a newer build's entries survive.
+// after a month and is taken last. The kinds are taken in the order the issue ranks them by what an entry costs to make again (#3816: peaks, editing scans, take
+// evidence, delivery measurements, the recogniser's words last), so a pass cut short has trimmed the cheap kinds first. An analyzer missing from this table keeps every entry, so a newer build's entries survive.
 var cacheRetentionPolicies = []evidence.CacheKindPolicy{
 	{AnalyzerID: measure.PeaksAnalyzerID, MaxBytes: 64 * megabyte},
-	{AnalyzerID: measure.FileAnalyzerID, MaxBytes: 8 * megabyte},
-	{AnalyzerID: passagetakes.MeasureAnalyzerID, MaxBytes: 8 * megabyte, MaxAge: 7 * day},
 	{AnalyzerID: editing.AnalyzerSilence, MaxBytes: 64 * megabyte, MaxAge: day},
+	{AnalyzerID: passagetakes.MeasureAnalyzerID, MaxBytes: 8 * megabyte, MaxAge: 7 * day},
+	{AnalyzerID: measure.FileAnalyzerID, MaxBytes: 8 * megabyte},
 	{AnalyzerID: coverage.WordsAnalyzerID, MaxBytes: 256 * megabyte},
 	{AnalyzerID: "", MaxBytes: 256 * megabyte, MaxAge: 30 * day},
 }

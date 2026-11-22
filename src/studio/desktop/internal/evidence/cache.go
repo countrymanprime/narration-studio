@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -105,6 +106,11 @@ type CacheStore struct {
 
 // NewCacheStore returns a CacheStore rooted at project's cache directory.
 func NewCacheStore(project string) *CacheStore {
+	// The path is cleaned once, here: CacheDir cleans it lexically, so a project path with ".." after a link would otherwise be listed in
+	// one folder and deleted from in another (the operating system resolves ".." through the link).
+	if project != "" {
+		project = filepath.Clean(project)
+	}
 	return &CacheStore{project: project, dir: CacheDir(project)}
 }
 
@@ -175,18 +181,23 @@ func (s *CacheStore) markUsed(path string) {
 	if age := time.Since(info.ModTime()); age >= 0 && age < usedRefresh {
 		return
 	}
-	s.setUsed(filepath.Base(path), time.Now())
+	_ = s.setUsed(filepath.Base(path), time.Now())
 }
 
 // setUsed sets the modification time of the entry file name to at, through a root on the cache folder, which a link cannot lead
-// out of. A failure is ignored: the entry then keeps its time, which costs a recompute at worst, never a wrong answer.
-func (s *CacheStore) setUsed(name string, at time.Time) {
-	root, err := os.OpenRoot(s.dir)
+// out of. A failure is returned for the pass, which needs to know; a hit ignores it, and the entry then keeps its time, which costs a
+// recompute at worst, never a wrong answer.
+func (s *CacheStore) setUsed(name string, at time.Time) error { return touchEntry(s.dir, name, at) }
+
+// touchEntry is the file-time change itself; a variable so a test can make it fail on every platform (a file time can only be set by
+// the file's owner, so it fails for a project copied by another user).
+var touchEntry = func(dir, name string, at time.Time) error {
+	root, err := os.OpenRoot(dir)
 	if err != nil {
-		return
+		return err
 	}
 	defer func() { _ = root.Close() }()
-	_ = root.Chtimes(name, at, at)
+	return root.Chtimes(name, at, at)
 }
 
 // Delete removes key's entry, if any. A missing entry is not an error: the
@@ -284,7 +295,7 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 	byKind := map[string][]cacheFile{}
 	for i, entry := range entries {
 		// Reading each entry's start is the slow part of a large cache: a check that starts is not made to wait for all of it.
-		if i%scanChunk == 0 && i > 0 && stop() {
+		if i%scanChunk == 0 && stop() {
 			report.Stopped = true
 			report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
 			return report, nil
@@ -301,17 +312,25 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 		if _, ok := recordID(entry.Name()); !ok {
 			continue
 		}
-		if analyzer, ok := s.entryAnalyzer(entry.Name()); ok {
-			// A file time after now (a clock set back, a restored copy) is moved to now, so that the entry ages and is evicted like any other
-			// from here on; read as now alone it would be "just used" at every pass.
-			used, stamp := info.ModTime(), info.ModTime()
-			if used.After(now) {
-				used = now
-				s.setUsed(entry.Name(), now)
-				stamp = now
-			}
-			byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: info.Size(), used: used, stamp: stamp})
+		analyzer, opened, ok := s.entryAnalyzer(entry.Name())
+		if !ok {
+			continue
 		}
+		// Size and time are those of the handle the header was read from, the same call the removal looks again with.
+		used, stamp := opened.ModTime(), opened.ModTime()
+		if used.After(now) {
+			// A file time after now (a clock set back, a restored copy) is moved to now, so that the entry ages and is evicted like any other
+			// from here on; read as now alone it would be "just used" at every pass. A time that cannot be set (only the file's owner may)
+			// makes the entry the least recently used instead, so it is neither kept for ever nor counted against the cap for nothing.
+			if err := s.setUsed(entry.Name(), now); err != nil {
+				used = time.Time{}
+			} else if fresh, err := os.Lstat(filepath.Join(s.dir, entry.Name())); err == nil {
+				used, stamp = fresh.ModTime(), fresh.ModTime()
+			} else {
+				continue
+			}
+		}
+		byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: opened.Size(), used: used, stamp: stamp})
 	}
 	report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
 	ordered := slices.Clone(policies)
@@ -338,27 +357,34 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			}
 			// The list is some time old: an entry a hit refreshed or a writer wrote again since stays, and one already gone is not this pass's.
 			current, err := os.Lstat(filepath.Join(s.dir, file.name))
-			if err != nil {
-				kindBytes -= file.size // already gone
+			if errors.Is(err, fs.ErrNotExist) {
+				kindBytes -= file.size
+				report.FilesAfter--
+				report.BytesAfter -= file.size
 				continue
 			}
-			if !current.ModTime().Equal(file.stamp) {
-				continue // used or written since the listing: it stays, and still counts against the cap
+			if err != nil || !current.ModTime().Equal(file.stamp) {
+				// Used or written since the listing, or not to be looked at: it stays, and still counts against the cap at its size now.
+				if err == nil {
+					kindBytes += current.Size() - file.size
+					report.BytesAfter += current.Size() - file.size
+				}
+				continue
 			}
 			removed, err := removeEntry(s.project, filepath.Join(rel, file.name))
 			if err != nil {
 				failures = append(failures, fmt.Errorf("could not remove analysis cache entry %s: %w", file.name, err))
 				if len(failures) >= maxRemovalFailures {
-					failures = append(failures, fmt.Errorf("gave up after %d failed removals", maxRemovalFailures))
-					return report, errors.Join(failures...)
+					// One line, summary first: the host log cuts a long message, and every failure is usually the same one.
+					return report, fmt.Errorf("gave up after %d failed removals, the first: %w", maxRemovalFailures, failures[0])
 				}
 				continue
 			}
 			kindBytes -= file.size
+			report.FilesAfter--
+			report.BytesAfter -= file.size
 			if removed {
 				report.Removed++
-				report.FilesAfter--
-				report.BytesAfter -= file.size
 			}
 		}
 	}
@@ -379,21 +405,22 @@ func cmpBool(a, b bool) int {
 // entryAnalyzer reads the analyzer an entry file names from the start of its envelope without decoding the blob (an entry can be
 // a megabyte), and reports false for a file that is not an envelope this build supports: not JSON, no schema version, or a newer one.
 // An entry written before the envelope named its analyzer answers "".
-func (s *CacheStore) entryAnalyzer(name string) (string, bool) {
+func (s *CacheStore) entryAnalyzer(name string) (string, os.FileInfo, bool) {
 	file, err := persist.Open(filepath.Join(s.dir, name))
 	if err != nil {
-		return "", false
+		return "", nil, false
 	}
 	defer func() { _ = file.Close() }()
 	// The listing saw a regular file, but a pipe or device may have taken its name since; a read of one waits for a writer for ever, and
 	// Go waits on a non-blocking pipe too. The opened handle is what is checked, so nothing can change between the check and the read.
-	if info, err := file.Stat(); err != nil || !info.Mode().IsRegular() {
-		return "", false
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		return "", nil, false
 	}
 	// The three fields before the blob are a few dozen bytes: a file whose envelope header runs past the limit is not one this store wrote.
 	decoder := json.NewDecoder(io.LimitReader(file, maxEnvelopeHeader))
 	if token, err := decoder.Token(); err != nil || token != json.Delim('{') {
-		return "", false
+		return "", nil, false
 	}
 	var version int
 	var analyzer string
@@ -401,7 +428,7 @@ func (s *CacheStore) entryAnalyzer(name string) (string, bool) {
 		token, err := decoder.Token()
 		key, ok := token.(string)
 		if err != nil || !ok {
-			return "", false
+			return "", nil, false
 		}
 		switch key {
 		case "schemaVersion":
@@ -409,16 +436,16 @@ func (s *CacheStore) entryAnalyzer(name string) (string, bool) {
 		case "analyzerId":
 			err = decoder.Decode(&analyzer)
 		case "blob":
-			return analyzer, version >= 1 && version <= cacheSchemaVersion
+			return analyzer, info, version >= 1 && version <= cacheSchemaVersion
 		default:
 			var skipped json.RawMessage
 			err = decoder.Decode(&skipped)
 		}
 		if err != nil {
-			return "", false
+			return "", nil, false
 		}
 	}
-	return "", false
+	return "", nil, false
 }
 
 func (s *CacheStore) entryPath(key CacheEntryKey) string {

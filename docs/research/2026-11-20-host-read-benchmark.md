@@ -122,10 +122,12 @@ On the two books checked three times, the first call of three reads that walk th
 
 | Entries of each kind | First pass, ms | Files | MB | Removed | Second pass, ms |
 | --- | --- | --- | --- | --- | --- |
-| 10 | 2, 1 | 61 → 45 | 0.91 → 0.73 | 16 | 0, 0 |
-| 100 | 35, 23 | 601 → 479 | 6.86 → 5.51 | 122 | 5, 3 |
-| 1,000 | 202, 281 | 6,001 → 4,478 | 66.39 → 49.60 | 1,523 | 35, 50 |
-| 10,000 | 4,761, 4,455 | 60,001 → 28,290 | 661.68 → 312.07 | 31,711 | 255, 247 |
+| 10 | 2, 3 | 61 → 45 | 0.91 → 0.73 | 16 | 0, 0 |
+| 100 | 17, 19 | 601 → 479 | 6.86 → 5.51 | 122 | 3, 4 |
+| 1,000 | 319, 271 | 6,001 → 4,478 | 66.39 → 49.60 | 1,523 | 54, 49 |
+| 10,000 | 5,079, 5,737 | 60,001 → 28,290 | 661.68 → 312.07 | 31,711 | 274, 288 |
+
+Measured on the code of PR #3986 after its review fixes (the first version, before the per-entry handle check and the time check before each removal, took 1 to 2, 23 to 35, 202 to 281 and 4,455 to 4,761 ms at the same sizes).
 
 What goes at 10,000 is mostly the size caps (80 MB of blobs of each kind against caps of 8 and 64 MB) and the entries past 24 hours and 7 days. A real cache holds far fewer, larger entries (a peaks entry is about 0.9 MB an hour of audio, a take evidence entry about 0.45 KB), so the first pass of a real project is the 100 to 1,000 row at most. The pass asks to stop every 256 entries while it reads and before each removal, so a check starting waits for at most 256 header reads (not timed on their own).
 
@@ -259,5 +261,5 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
-- **The three sections above (#3897, #3958, the cache pass):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and neither change decodes audio. The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
+- **The three sections above (#3897, #3958, the cache pass):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and neither change decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.

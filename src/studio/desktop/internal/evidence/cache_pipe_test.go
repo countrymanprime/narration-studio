@@ -34,7 +34,7 @@ func TestEntryAnalyzerDoesNotWaitOnAPipeThatTookAnEntrysName(t *testing.T) {
 	for _, name := range []string{"pipe.json", "link.json"} {
 		done := make(chan bool, 1)
 		go func() {
-			_, ok := store.entryAnalyzer(name)
+			_, _, ok := store.entryAnalyzer(name)
 			done <- ok
 		}()
 		select {
