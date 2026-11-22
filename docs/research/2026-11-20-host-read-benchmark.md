@@ -192,7 +192,7 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 
 ### Readers moved onto the shared chapter list (#3658)
 
-Host calls and answer size (calls / KB, `--runs 3`) of the Production page before and after its pipeline cells took the chapter list from the store instead of reading it again. Books of 1, 5, 17 and 40 hours (3, 13, 44 and 103 chapters).
+Host calls and answer size (calls / KB, `--runs 3`) of the Production page before and after its pipeline cells took the chapter list from the store instead of reading it again, and of the Booth after it did the same. Books of 1, 5, 17 and 40 hours (3, 13, 44 and 103 chapters).
 
 | Production | 1 h | 5 h | 17 h | 40 h |
 | --- | --- | --- | --- | --- |
@@ -201,7 +201,14 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 | Warm, before | 35 / 64 | 35 / 100 | 35 / 176 | 35 / 321 |
 | Warm, after | 34 / 63 | 34 / 96 | 34 / 168 | 34 / 303 |
 
-The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
+| Booth | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 62 / 144 | 62 / 154 | 62 / 177 | 62 / 220 |
+| Cold, after | 62 / 144 | 62 / 154 | 62 / 177 | 62 / 220 |
+| Warm, before | 51 / 107 | 51 / 112 | 51 / 122 | 51 / 140 |
+| Warm, after | 50 / 106 | 50 / 108 | 50 / 113 | 50 / 122 |
+
+The Booth's cold start reads the list once either way. The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
 ## The track list: a 5 s poll against REAPER's change event
 
