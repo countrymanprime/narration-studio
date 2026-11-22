@@ -348,6 +348,46 @@ describe('the not-connected dialog', () => {
       await waitFor(() => expect(view.result.current.state.phase).toBe('idle'));
     });
 
+    it('a read that fails after an announcement said the DAW answers is not a failure', async () => {
+      const listeners = new Set<(caps: (typeof DAW_SETUPS)['reaper']) => void>();
+      const announce = (caps: (typeof DAW_SETUPS)['reaper']) => listeners.forEach((listener) => listener(caps));
+      let fail: (error: Error) => void = () => {};
+      const client: DawClient = {
+        ...dawClientFor('reaper'),
+        capabilities: () => new Promise((_resolve, reject) => (fail = reject)),
+        subscribeCapabilities: (listener) => (listeners.add(listener), () => listeners.delete(listener)),
+      };
+      const { view } = hookOn(client);
+      act(() => view.result.current.start());
+      await waitFor(() => expect(view.result.current.state.phase).toBe('waiting'));
+      act(() => announce(structuredClone(DAW_SETUPS.reaper)));
+      await act(async () => fail(new Error('x')));
+      await waitFor(() => expect(view.result.current.state.phase).toBe('idle'));
+    });
+
+    it('reads nothing once the dialog has gone while the launcher ran', async () => {
+      let release: () => void = () => {};
+      const capabilities = vi.fn(quiet);
+      const client: DawClient = { ...dawClientFor('reaper'), capabilities, subscribeCapabilities: () => () => {} };
+      const api = createMockApi({
+        launchDaw: () => new Promise((resolve) => (release = () => resolve({ launched: true, path: 'p', source: 's' }))),
+        dawChoice: async () => ({ hasProject: true, daw: 'REAPER', state: 'linked', linkedFile: 'a.rpp', foundFiles: [], options: [] }) as never,
+      });
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <ApiProvider api={api}>
+          <PortOverrides clients={{ daw: client }}>{children}</PortOverrides>
+        </ApiProvider>
+      );
+      const view = renderHook(() => useReaperLaunch({ daw: 'REAPER', name: 'REAPER', waitMs: 20 }), { wrapper });
+      act(() => view.result.current.start());
+      await waitFor(() => expect(view.result.current.state.phase).toBe('starting'));
+      view.unmount();
+      const before = capabilities.mock.calls.length;
+      await act(async () => release());
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      expect(capabilities.mock.calls.length).toBe(before);
+    });
+
     it('is let go of when it answers before it returns, and the wait ends at once', async () => {
       const unsubscribe = vi.fn();
       const client: DawClient = {

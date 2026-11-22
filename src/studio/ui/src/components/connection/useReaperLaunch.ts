@@ -91,6 +91,8 @@ export function useReaperLaunch({
           return;
         }
         onLaunched?.(started.path);
+        // The dialog may have gone while the launcher ran: no more reads, nothing said.
+        if (!alive.current) return;
         say({ phase: 'waiting' });
         // One read now, for a change the event did not carry; then the event, up to `waitMs`; then one read at the deadline.
         let reached = heard || (await readOnce());
@@ -113,6 +115,11 @@ export function useReaperLaunch({
         }
         say({ phase: 'failed', message: `${name} was started and has not answered yet. Check again in a moment, or open it by hand.` });
       } catch (error) {
+        // A failed read after an announcement said the DAW answers is not a failure: the announcement is the newer word.
+        if (heard) {
+          say({ phase: 'idle' });
+          return;
+        }
         say({ phase: 'failed', message: `${name} was started, but this app could not tell whether it answered: ${apiErrorMessage(error)}` });
       } finally {
         release();
