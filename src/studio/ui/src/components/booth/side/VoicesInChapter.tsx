@@ -11,6 +11,7 @@ import { sampleLength, clipProblem } from '../../storybible/voicesamples/voiceSa
 import { useBoothSamplesContext } from '../samples/BoothSamplesContext';
 import type { BoothSamples } from '../samples/useBoothSamples';
 import type { ChapterVoice } from './nearby';
+import { chordText, voiceChord } from '../voices/whoIsIn';
 import type { VoiceKeys } from './sections';
 import { DIM_CLASS, ROW_CLASS, SideSection } from './SideSection';
 import { plural } from '../../../plural';
@@ -62,7 +63,12 @@ function CantTell({ samples }: { samples: BoothSamples }) {
 /** In a folder chapter, the row's first column: the key of the voice that records the character, or a press to add a track for a speaker with none. */
 function VoiceKey({ voice, voiceKeys }: { voice: ChapterVoice; voiceKeys: VoiceKeys }) {
   const key = voiceKeys.keyOf(voice.id);
-  if (key) return <Kbd keys={[`Num ${key}`]} />;
+  if (key) return <Kbd keys={voiceChord({ key })} />;
+  const chord = voiceKeys.chordOf?.(voice.id);
+  // Shift and the digit alone ("Shift + 1") keep the cap inside the column; the name a screen reader hears is the whole chord.
+  // A voice past nineteen has no key: said plainly, not left looking like a character with no track.
+  if (key === '' && !chord?.length) return <span className="text-xs text-[var(--text-muted)]">No key</span>;
+  if (chord?.length) return <Kbd keys={chord.map((cap) => cap.replace(/^Num /, ''))} label={chordText(chord)} />;
   if (key !== undefined || !voiceKeys.speaks(voice.id)) return null;
   return (
     <IconButton action="add" size="sm" label={`Add a track for ${voice.name}`} disabledReason={voiceKeys.addWhy} onClick={() => voiceKeys.add(voice.id)} />

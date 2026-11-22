@@ -131,6 +131,29 @@ Measured at `4c362abbb`, the head of PR #3986 after its review fixes (the first 
 
 What goes at 10,000 is mostly the size caps (80 MB of blobs of each kind against caps of 8 and 64 MB) and the entries past 24 hours and 7 days. A real cache holds far fewer, larger entries (a peaks entry is about 0.9 MB an hour of audio, a take evidence entry about 0.45 KB), so the first pass of a real project is the 100 to 1,000 row at most. The pass asks to stop every 256 entries while it reads and before each removal, so a check starting waits for at most 256 header reads (not timed on their own).
 
+### The previews, the Transcript Compare files and the shared prune helper (#3816)
+
+`node scripts/dev/host-read-bench.mjs retention <book> --files N` adds N TTS previews (64 KB each, none used in the last ten minutes) and N Transcript Compare runs (a diff of 4 KB and two text files of 4 KB, run i being 25+i hours old: past the day a run is left alone) to the copy and runs the two folder steps twice each. The previews are held to 64 MB (1,024 files of 64 KB), the runs to the newest 20 and 7 days. Two runs each, 44 chapter book, milliseconds; files and MB are the whole folder.
+
+| N | Previews: first pass, ms | Files | MB | Removed | Compare runs: first pass, ms | Files | MB | Removed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 10 | 0, 0 | 10 → 10 | 0.66 → 0.66 | 0 | 0, 0 | 30 → 30 | 0.12 → 0.12 | 0 |
+| 100 | 0, 1 | 100 → 100 | 6.55 → 6.55 | 0 | 6, 9 | 300 → 60 | 1.23 → 0.25 | 240 |
+| 1,000 | 3, 6 | 1,000 → 1,000 | 65.54 → 65.54 | 0 | 63, 62 | 3,000 → 60 | 12.29 → 0.25 | 2,940 |
+| 10,000 | 299, 279 | 10,000 → 1,024 | 655.36 → 67.11 | 8,976 | 735, 720 | 30,000 → 60 | 122.88 → 0.25 | 29,940 |
+
+The second pass takes 0 to 5 ms for the previews and 0 to 1 ms for the runs at every size. Under 20 runs and under 64 MiB (67.11 MB; the table's MB are decimal) nothing is removed (the 10, 100 and 1,000 preview rows: 1,000 previews of 64 KB are 65.54 MB, 1,024 fit the cap). A real project holds a few dozen previews and as many runs as the narrator has compared: the 10 and 100 rows.
+
+`runlog.Begin` prunes `logs/runs` as every run starts, and now does it with the same helper (`persist.PruneFolder`) in place of its own loop. Cost of one `Begin` with N files in `logs/runs`, `main` against this change, 5 runs of 200 calls each (a folder held at its 20-file cap, the steady state), and the first `Begin` over N stale files (5 runs of one call each); every file is past the hour a written file is left alone, so both versions prune to 20; microseconds and milliseconds:
+
+| Folder | `main` | This change |
+| --- | --- | --- |
+| 20 files, steady state, µs | 31 to 48 | 43 to 51 |
+| 200 stale files, first `Begin`, ms | 1.0 to 1.7 | 2.0 to 2.7 |
+| 2,000 stale files, first `Begin`, ms | 10.3 to 16.6 | 25.7 to 35.0 |
+
+The helper costs about 5 to 12 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The benchmark is committed: `go -C src/studio/desktop test ./internal/runlog -run xxx -bench BenchmarkBegin -benchtime=200x -count=5` (`-benchtime=1x` for the first `Begin`). After that prune the folder is held at 20 files (a file written in the last hour is never removed, so a burst of more than 20 runs within an hour keeps them until the hour has passed), so the one-time cost is paid on the first run after the upgrade.
+
 ## The real app
 
 Seconds after the launch command, per launch.
@@ -253,6 +276,17 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 - `ReadAloudReaperState` is the cost that grows (60 ms at 300 chapters, with no DAW: it reads the chapter's link and the manuscript); with a live REAPER it also reads the track state through the bridge, which this rig cannot time.
 - A track armed or disarmed in REAPER has no event that is known to carry it (the recorded runs say arming through the bridge leaves REAPER's change counter alone; a narrator's click on the arm button is not recorded: [recording and undo](reaper-recording-undo-2026-10-23.md), [arms and monitors](2026-11-16-booth-arms-and-monitors.md)), so the 60 s timer, focus and a press are how the Booth learns of it while idle; the script's `record_start` refuses a wrong arming whatever the page showed. A take started in the DAW is heard from the transport at once, as before.
 
+## The REAPER start wait: one read a second against the host's event
+
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. After Start REAPER the dialog read `DawCapabilities` every second for up to 10 s until the bridge answered. The host already announces the picture (`daw_capabilities_changed`, from its own tick), so the dialog now listens from before the launcher runs, reads once when the launcher returns (a REAPER already open can answer during the launch, and an unchanged picture is not announced again), then waits for the event, reading once more at the 10 s deadline in case the event was lost. The cost of the read is the `DawCapabilities` row already on the rig ([above](#the-booths-idle-read-every-15-s-against-once-a-minute)): 0.1 ms warm at every book size (3, 44, 300 chapters, 2,003 tracks), 8.8 KB across the four reads of a tick, so the saving is a count, not a size.
+
+| Case | Reads before | Reads after |
+| --- | --- | --- |
+| REAPER answers within 10 s | up to 10 (one every second until it answers) | 1 (after the launcher), then the event |
+| REAPER never answers | 10 | 2 (after the launcher, at the deadline) |
+
+Not measured: the time a live REAPER takes to answer, and a live bridge round trip (the rig has no DAW). The counts are arithmetic from the code, covered by `connection.test.tsx` (`hands each read to the page until it answers` asserts no read between events; `takes the answer of its one read at the end`; `hears the DAW answer while the launcher is still running`; Playwright `reaper-start-wait.spec.ts`).
+
 ## The Booth's follow on open: asked every 2 s against once
 
 [#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. A Booth opened with no chapter in the address asks the DAW where the narrator is (`DawPlace`) and opens on that chapter. While the DAW had not answered it asked again every 2 s for 20 s (up to 10 asks); it now asks once and again when the DAW says it is reachable (its capabilities event, which the app's session also sends on a focus or a Check again), for the same 20 s, one ask at a time, and, only while a DAW that says it is reachable still refuses (REAPER loading its project: no event says it is ready), again after 2 s and then 10 s (a third retry is pulled in to just before the 20 s end, so at most 4 asks in all). Same rig and method (`reads --runs 3`, medians): `DawPlace` joins its list.
@@ -274,5 +308,5 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
-- **The three sections above (#3897, #3958, the cache pass):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
+- **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.

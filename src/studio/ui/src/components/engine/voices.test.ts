@@ -136,6 +136,26 @@ describe('the voices of a chapter folder', () => {
     ).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '']);
   });
 
+  it('give the 10th to the 19th voice a Shift digit, and none past nineteen (#3989)', () => {
+    const many = [track('f', 'Ch', 0, true), ...Array.from({ length: 21 }, (_, i) => track(`v${i}`, `Voice ${i}`, 1))];
+    const voices = folderVoices(many, 'f', [], { layout: 'folders', narratorCharacter: '', narratorGuids: [], notVoiceGuids: [], tracks: [] });
+    expect(voices.slice(8, 21).map((v) => [v.key, v.shift])).toEqual([
+      ['9', undefined],
+      ['', '0'],
+      ['', '1'],
+      ['', '2'],
+      ['', '3'],
+      ['', '4'],
+      ['', '5'],
+      ['', '6'],
+      ['', '7'],
+      ['', '8'],
+      ['', '9'],
+      ['', undefined],
+      ['', undefined],
+    ]);
+  });
+
   it('give key 0 to the first Narrator only; a second one is an ordinary voice', () => {
     const twice = [track('f', 'Ch', 0, true), track('n1', 'Narrator', 1), track('x', 'Extras', 1), track('n2', 'narrator', 1)];
     expect(

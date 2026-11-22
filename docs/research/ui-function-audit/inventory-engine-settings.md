@@ -116,7 +116,7 @@ Own reads: `manuscriptChapters` + `chapterTrackMapList` (:53-57, rerun on `refre
 |---|---|---|---|---|
 | `ConnectionIndicator` chip | `{label}` ("Not linked to a track", "{DAW} not connected", "Linked to several tracks"), tooltip "Show what is wrong and how to fix it" | `ConnectionIndicator.tsx:7-14` | `onOpen` reopens dialog | used `booth/record/RecordSetup.tsx:103`, `ChapterLinkNotice.tsx:45`, `editing/EditingPage.tsx:161`, `editing/page/useChapterLink.tsx:33`, `production/pipeline/DawIndicator.tsx:16` |
 | `ResolveShell` | primary + secondary "Check again"; header X; outside press closes | `ResolveShell.tsx:36-62` | | frame of both dialogs |
-| ReaperOff primary | `Start {name}` / startLabel (Booth: "Open in REAPER and connect") / "Connecting…" | `ReaperOffDialog.tsx:121-126` | `useReaperLaunch.start` (`useReaperLaunch.ts:214`): `system.saveSettings('DAW','global',{auto_start_launcher:'true'})` (:223) -> `project.launchDaw()` (:224) -> poll `daw.capabilities()` x10 @1 s (:236) | disabled while unlinked (`linked` prop or `dawChoice().state==='not_linked'`) |
+| ReaperOff primary | `Start {name}` / startLabel (Booth: "Open in REAPER and connect") / "Connecting…" | `ReaperOffDialog.tsx:121-126` | `useReaperLaunch.start` (`useReaperLaunch.ts:214`): `system.saveSettings('DAW','global',{auto_start_launcher:'true'})` (:223) -> `project.launchDaw()` (:224) -> waits for the capabilities event (up to 10 s, one read at the end) | disabled while unlinked (`linked` prop or `dawChoice().state==='not_linked'`) |
 | ReaperOff secondary | "Check again" | :127 | page-supplied `onCheckAgain` (Booth `control.checkAgain` BoothNextPage.tsx:778; Editing `daw.retry` EditingPage.tsx:176; Production `checkDaw` ProductionPage.tsx:370) | each page has its own check |
 | "Link in Settings" | link Button | :135 | `onLink` prop (Booth passes `onSettings`; **Editing and Production pass none -> text "Link the project file first." with no action**) | |
 | ChapterLinkDialog | title "{chapter} is not linked to a track" / "…’s track is not in the project" / "…linked to more than one track" | `ChapterLinkDialog.tsx:130-134` | | used by Booth `ChapterLinkNotice.tsx:47` and Editing `useChapterLink.tsx:35` |
@@ -300,7 +300,7 @@ DIVERGE: four stores (bootstrap, DawChoice, capabilities session, Audacity link)
 
 | Location | Impl |
 |---|---|
-| ReaperOffDialog Start (`ReaperOffDialog.tsx:121`, Booth label "Open in REAPER and connect") | `useReaperLaunch`: saves `auto_start_launcher=true`, `launchDaw`, polls caps up to 10 s |
+| ReaperOffDialog Start (`ReaperOffDialog.tsx:121`, Booth label "Open in REAPER and connect") | `useReaperLaunch`: saves `auto_start_launcher=true`, `launchDaw`, waits for the capabilities event up to 10 s (one read at the end) |
 | Settings "Start {DAW}" (`EngineBody.tsx:273`) | `launchDaw` + toast, no save/poll |
 | Audacity card "Start Audacity" (`AudacityLinkCard.tsx:92`) | `launchDaw` + toast |
 | Project picker "Open running {DAW project}" | different (switch project) |

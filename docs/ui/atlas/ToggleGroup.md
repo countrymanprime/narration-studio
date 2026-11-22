@@ -9,6 +9,7 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - Default
 - Second Chosen
 - Choosing Moves The Press
+- Arrow Keys Move Focus And Enter Chooses
 - Disabled Chip Is Not Chosen
 - Chip Disabled With Reason
 - Segmented

@@ -3,7 +3,7 @@
 // new track gets.
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 import type { Track } from '../../../api/contracts/tracks';
-import type { Voice } from '../../engine/voices';
+import { shiftDigitOfPlace, type Voice } from '../../engine/voices';
 import { plural } from '../../../plural';
 import { trackName } from '../../tracks/trackName';
 
@@ -14,6 +14,13 @@ export const voiceName = (voice: Pick<Voice, 'name'>) => trackName(voice.name);
 /** How many lines a character speaks in the chapter ("1 line", "12 lines"). */
 export const lineCount = (lines: number) => `${plural(lines, 'line')}`;
 
+/** The keys that choose a voice: Num N, Shift and Num N past nine, none past nineteen (the key hint draws them, `Kbd`). */
+export const voiceChord = (voice: Pick<Voice, 'key' | 'shift'>): string[] =>
+  voice.key ? [keyName(voice.key)] : voice.shift !== undefined ? ['Shift', keyName(voice.shift)] : [];
+
+/** A chord as text, the way `Kbd` names it to a screen reader ("Shift + Num 1"): the one spelling the badge, the track list and the voice control use. */
+export const chordText = (chord: readonly string[]): string => chord.join(' + ');
+
 export type WhoCharacter = {
   id: string;
   name: string;
@@ -21,6 +28,8 @@ export type WhoCharacter = {
   lines: number;
   /** The key of the voice that records the character, when one does ("" for a voice past nine). */
   key?: string;
+  /** The keys of that voice (`voiceChord`): empty for a voice with none. */
+  chord?: string[];
 };
 
 export type Cast = {
@@ -47,8 +56,11 @@ export function castOf({
   lines: ReadonlyMap<string, number>;
   voices: readonly Voice[];
 }): Cast {
-  const keyOf = (id: string) => voices.find((voice) => voice.characters.some((character) => character.id === id))?.key;
-  const row = (character: Named): WhoCharacter => ({ id: character.id, name: character.name, lines: lines.get(character.id) ?? 0, key: keyOf(character.id) });
+  const voiceOf = (id: string) => voices.find((voice) => voice.characters.some((character) => character.id === id));
+  const row = (character: Named): WhoCharacter => {
+    const voice = voiceOf(character.id);
+    return { id: character.id, name: character.name, lines: lines.get(character.id) ?? 0, key: voice?.key, chord: voice ? voiceChord(voice) : undefined };
+  };
   const inChapter = inThisChapter.map(row).sort((a, b) => b.lines - a.lines);
   const here = new Set(inChapter.map((character) => character.id));
   const elsewhere = characters
@@ -64,6 +76,12 @@ export function keyForNewTrack(voices: readonly Voice[], name: string): string {
   if (same(name, 'narrator') && !voices.some((voice) => voice.narrator)) return '0';
   const next = voices.filter((voice) => !voice.narrator).length + 1;
   return next <= 9 ? String(next) : '';
+}
+
+/** The keys a new track named `name` gets (`keyForNewTrack`, then Shift and a digit for the 10th to the 19th): empty past nineteen. */
+export function chordForNewTrack(voices: readonly Voice[], name: string): string[] {
+  const place = voices.filter((voice) => !voice.narrator).length + 1;
+  return voiceChord({ key: keyForNewTrack(voices, name), shift: shiftDigitOfPlace(place) });
 }
 
 /** A new track's name: the character's when one is ticked, else "Extras" (the mock's shared track), numbered past the names the chapter's

@@ -14,6 +14,14 @@ The release page lists this title, grouped by type. Add lines to this descriptio
 
 Closes #
 
+## Reuse
+
+The rule is [one thing per job](https://github.com/countrymanprime/narration-studio/blob/main/.claude/rules/product-rules.md): a new thing is allowed only when it replaces the old one with a better one.
+
+Existing thing searched: <path, or none found + the searches run>
+
+Replaces: <path, deleted here> (omit when nothing new is added)
+
 ## Checks
 
 - [ ] I ran the targeted local checks for what changed (listed above); the full `pnpm check` runs in the pipeline.
