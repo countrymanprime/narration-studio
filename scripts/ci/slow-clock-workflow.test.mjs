@@ -34,6 +34,6 @@ test('the issue jobs act only for main, and a job cancelled at its limit counts 
   assert.match(green, /if: needs\.booth\.result == 'success' && github\.ref == 'refs\/heads\/main'/);
 });
 
-test('it leaves out exactly the five specs the header names, by the title Playwright greps (describe and test joined by a space)', () => {
-  assert.match(workflow, /--grep-invert "the top bar record-connect at\|a roll that answers while Stop is still pending"/);
+test('it leaves out exactly the six specs the header names, by the title Playwright greps (describe and test joined by a space)', () => {
+  assert.match(workflow, /--grep-invert "the top bar record-connect at\|a roll that answers while Stop is still pending\|a stale yes does not open a chapter without asking"/);
 });
