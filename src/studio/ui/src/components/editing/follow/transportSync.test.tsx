@@ -192,8 +192,13 @@ describe('daw-to-app', () => {
   it('lets the DAW stay lit after the narrator stops it there', async () => {
     await ready();
     act(() => daw.moveInDaw({ playing: true, head: at(4.2) }));
+    expect(state().playing).toBe(true);
     act(() => daw.moveInDaw({ playing: false }));
     expect(lit()).toBe('p-2:1');
+    // The word stays, but nothing plays: the bar reads Play. The DAW playing again reads Pause.
+    expect(state().playing).toBe(false);
+    act(() => daw.moveInDaw({ playing: true, head: at(4.2) }));
+    expect(state().playing).toBe(true);
   });
   it('does not light the word of a DAW that plays another project, whatever its heartbeat says: the transport event carries no project', async () => {
     // The lease is refused (another project is open), and the heartbeat transport still says the DAW plays at one word: it is the other project's play.

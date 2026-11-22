@@ -14,6 +14,8 @@ export interface PageState {
   flag: string | null;
   /** Where the playhead is, seconds into the chapter as it stands now; null when nothing plays. */
   playT: number | null;
+  /** True when `playT` is a word left lit after the DAW stopped: nothing plays, so the bar reads Play and the word clears when the cursor moves. */
+  held?: boolean;
   /**
    * The exact time range drawn on the waveform, seconds on the document's clock, when the selection came from it. It can start or end inside a
    * word; `sel` holds the words it covers. Any other way of moving the selection drops it, so it never outlives the words it was drawn for.
@@ -40,6 +42,8 @@ export type PageAction =
   | { type: 'openFlag'; key: string }
   | { type: 'closeFlag' }
   | { type: 'play'; t: number | null }
+  /** The DAW stopped: the word it reached stays lit, but nothing plays. */
+  | { type: 'hold' }
   /** The waveform was scrolled by hand to show `[t0, t1]`. */
   | { type: 'view'; t0: number; t1: number }
   | { type: 'reset' };
@@ -85,7 +89,9 @@ export function pageReducer(s: PageState, a: PageAction): PageState {
     case 'view':
       return s.view && s.view.t0 === a.t0 && s.view.t1 === a.t1 ? s : { ...s, view: { t0: a.t0, t1: a.t1 } };
     case 'play':
-      return s.playT === a.t ? s : { ...s, playT: a.t };
+      return s.playT === a.t && !s.held ? s : { ...s, playT: a.t, held: false };
+    case 'hold':
+      return s.playT == null || s.held ? s : { ...s, held: true };
     case 'reset':
       return initialPageState;
   }

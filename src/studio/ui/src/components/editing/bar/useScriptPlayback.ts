@@ -366,7 +366,7 @@ export function useScriptPlayback({
 
   const toggle = useCallback(() => {
     const { doc: d, state: s, notify: say, dispatch: send } = live.current;
-    if (s.playT != null) {
+    if (s.playT != null && !s.held) {
       const key = playingKey(playable(d), s.playT);
       halt();
       // Space on a play of a selection pauses it and keeps the selection; placing the cursor would drop it.
@@ -394,7 +394,7 @@ export function useScriptPlayback({
   const selection = state.sel;
   useEffect(() => {
     const now = live.current.state;
-    if (!selection || now.playT == null) return;
+    if (!selection || now.playT == null || now.held) return;
     const was = playedSel.current;
     if (was && was.anchor === selection.anchor && was.head === selection.head) return;
     playSelection();
@@ -406,7 +406,7 @@ export function useScriptPlayback({
     (d: 1 | -1) => {
       const { doc: document, state: s, dispatch: send } = live.current;
       const heard = playable(document);
-      if (s.playT != null) {
+      if (s.playT != null && !s.held) {
         const now = playingKey(heard, s.playT);
         const at = heard.findIndex((i) => i.key === now);
         const to = heard[Math.max(0, Math.min(heard.length - 1, (at < 0 ? 0 : at) + d))];
@@ -423,5 +423,15 @@ export function useScriptPlayback({
     [go],
   );
 
-  return { playing: state.playT != null, follow, setFollow: setFollowState, toggle, playFrom, playSelection, skip, stop: halt, syncActive: syncing.active };
+  return {
+    playing: state.playT != null && !state.held,
+    follow,
+    setFollow: setFollowState,
+    toggle,
+    playFrom,
+    playSelection,
+    skip,
+    stop: halt,
+    syncActive: syncing.active,
+  };
 }

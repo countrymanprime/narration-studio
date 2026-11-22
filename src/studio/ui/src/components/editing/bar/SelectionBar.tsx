@@ -34,7 +34,7 @@ export function SelectionBar({
   const has = summary.items.length > 0;
   const allCut = has && summary.items.every((i) => i.cut);
   const cursorItem = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1] : undefined;
-  const at = state.playT ?? (has ? summary.start : (cursorItem?.t0 ?? 0));
+  const at = (state.held ? null : state.playT) ?? (has ? summary.start : (cursorItem?.t0 ?? 0));
   const low = summary.audible.filter(isLow).length;
   const count = summary.items.length;
   const playLabel = playback.playing ? 'Pause' : has ? 'Play the selection' : 'Play from here';

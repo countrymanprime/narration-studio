@@ -166,7 +166,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       if (l.state.playT != null && l.state.playT !== mine.current) return; // the app's own audio is playing: it wins
       if (at === null) return;
       mine.current = at.t;
-      if (l.state.playT !== at.t) l.dispatch({ type: 'play', t: at.t });
+      if (l.state.playT !== at.t || l.state.held) l.dispatch({ type: 'play', t: at.t });
     };
     const carry = setInterval(() => {
       if (!heard || !dawPlaying.current) return;
@@ -210,6 +210,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
           range.current = null;
           if (done !== null) l.onHead(done, false);
           else l.onStopped();
+        } else if (mine.current != null && l.state.playT === mine.current) {
+          // The DAW's own play stopped: its last word stays lit, but nothing plays, so the bar reads Play.
+          l.dispatch({ type: 'hold' });
         }
       }
     });
