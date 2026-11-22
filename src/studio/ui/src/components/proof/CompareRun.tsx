@@ -310,9 +310,14 @@ export function CompareRun({
     let attempt = 0;
     let asked = false;
     let latest = 0;
+    // The highest count heard for this baseline: counts only rise while one project stays open, so a lower one that is not below the baseline was read before an
+    // edit already heard and is stale. A count below the baseline is not: the counter was reset (the project was reopened) or another project is open, which
+    // "may have changed" says.
+    let highest = -1;
     // The counter is compared with the baseline wherever it was heard: in a read's answer, or in an edit the host announced. The newest comparison asked is the one that counts.
     const compare = (count: number) => {
-      if (!active) return;
+      if (!active || (count < highest && count >= compareBaseline)) return;
+      highest = count;
       const mine = ++latest;
       void api
         .projectStateChangedSince(count, compareBaseline)
