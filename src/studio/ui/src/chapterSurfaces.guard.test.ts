@@ -18,10 +18,11 @@ const COVERED: Record<string, readonly string[]> = {
   'components/proof/ProofChapterPage.tsx': ['components/proof/ProofChapterPage.test.tsx'],
   'components/booth/companion/CompanionPage.tsx': ['components/booth/companion/CompanionPage.test.tsx'],
   'components/pickups/PickupsPage.tsx': ['components/pickups/PickupsPage.test.tsx'],
-  'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
   'components/production/useChapterTools.tsx': ['components/production/ProductionPage.test.tsx'],
   'components/masterqc/page/MasterPage.tsx': ['components/masterqc/page/Page.test.tsx'],
   'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
+  // The pipeline's cells take the list from the store (ensure/load) and fall back to the port with no store; the credits pairing is checked in ProductionPage.test.tsx.
+  'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
   'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx', 'components/booth/page/BoothNextPage.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],

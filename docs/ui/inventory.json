@@ -644,6 +644,8 @@
         "Not Yet Checked"
       ],
       "consumers": [
+        "src/components/engine/AudacityLinkCard.tsx",
+        "src/components/engine/CapabilityReferenceDialog.tsx",
         "src/components/settings/controls/MicBody.tsx",
         "src/components/storybible/voicesamples/VoiceSamplesBody.tsx"
       ],
@@ -1400,7 +1402,6 @@
       "consumers": [
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
-        "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/chapterTracks/SavedProjectChip.tsx",
         "src/components/connection/ConnectionIndicator.tsx",
         "src/components/engine/EngineChipButton.tsx",
@@ -2673,7 +2674,8 @@
         "Closed",
         "Opens On Press",
         "Closes On Escape And Returns Focus",
-        "Inside A Dialog"
+        "Inside A Dialog",
+        "Opens At An Anchor"
       ],
       "consumers": [
         "src/components/booth/frame/BoothTop.tsx",
@@ -2693,6 +2695,7 @@
         "src/components/primitives/TreeSelect.tsx",
         "src/components/production/target/TargetInfoButton.tsx",
         "src/components/script/bookmarks/ui/BookmarkEditor.tsx",
+        "src/components/script/page/layout/SpeakerLayer.tsx",
         "src/components/script/page/rail/words/DefinitionSourceMenu.tsx",
         "src/components/script/page/registry/useScriptRegistry.ts",
         "src/components/script/page/tools/text/TextSettings.tsx",
@@ -3032,22 +3035,6 @@
       "a11yDebt": false
     },
     {
-      "title": "Booth/ResumeOffer",
-      "name": "ResumeOffer",
-      "source": "src/components/booth/resume/ResumeOffer.tsx",
-      "stories": [
-        "Offered",
-        "Estimated",
-        "Remembered",
-        "None",
-        "Needs Model"
-      ],
-      "consumers": [
-        "src/components/booth/page/BoothNextPage.tsx"
-      ],
-      "a11yDebt": false
-    },
-    {
       "title": "Editing/Ribbon",
       "name": "Ribbon",
       "source": "src/components/editing/ribbon/Ribbon.tsx",
@@ -3268,6 +3255,7 @@
         "src/components/script/page/rail/bible/EntryCard.tsx",
         "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/script/page/tools/select/MarksDialog.tsx",
+        "src/components/script/page/tools/speaker/SpeakerPicker.tsx",
         "src/components/settings/BackupsSection.tsx",
         "src/components/settings/KeyboardPanel.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
@@ -4409,7 +4397,6 @@
         "src/components/booth/bookmarks/BookmarkRibbons.tsx",
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
-        "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
         "src/components/chapterTracks/SavedProjectChip.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",

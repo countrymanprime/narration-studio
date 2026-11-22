@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -77,6 +77,87 @@ describe('AudacityLinkCard states', () => {
     expect(screen.queryByRole('button', { name: 'Link the open Audacity project' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Unlink' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Unlink' })).toBeNull());
+  });
+
+  it('Check again that finds the same thing still answers with the time it checked (#3382 b)', async () => {
+    const user = userEvent.setup();
+    renderCard({ module: 'on', running: true, pipe: 'silent' });
+    await card();
+    expect(screen.queryByText(/^Checked /)).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByText(/^Checked \d/)).toBeTruthy());
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByText(/^Checked .*\(2\)$/)).toBeTruthy());
+  });
+
+  it('a check that fails shows the failure, not a Checked time', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'silent' } });
+    renderCard({}, api);
+    await card();
+    api.audacityLinkCheck = () => Promise.reject(new Error('Audacity could not be read.'));
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('could not be read');
+    expect(screen.queryByText(/^Checked /)).toBeNull();
+  });
+
+  it('a failed read after a good one does not leave the old Checked time beside the failure', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'silent' } });
+    renderCard({}, api);
+    await card();
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByText(/^Checked \d/)).toBeTruthy());
+    api.audacityLinkCheck = () => Promise.reject(new Error('Audacity could not be read.'));
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('could not be read');
+    expect(screen.queryByText(/^Checked /)).toBeNull();
+  });
+
+  it('a background read after a failed check does not bring back the Checked time from before it', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'silent' } });
+    renderCard({}, api);
+    await card();
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByText(/^Checked \d/)).toBeTruthy());
+    api.audacityLinkCheck = () => Promise.reject(new Error('Audacity could not be read.'));
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await screen.findByRole('alert');
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(screen.queryByText(/^Checked /)).toBeNull();
+  });
+
+  it.each([undefined, '', new Error(''), {}])('a check that fails with no message (%s) still says what failed in a sentence', async (reason) => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'silent' } });
+    renderCard({}, api);
+    await card();
+    api.audacityLinkCheck = () => Promise.reject(reason);
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    const text = (await screen.findByRole('alert')).textContent ?? '';
+    expect(text).not.toMatch(/: $|undefined|\[object Object\]/);
+  });
+
+  it('the Check again button and its stamp are separate children of the row, so the stamp wrapping never moves the button', async () => {
+    const user = userEvent.setup();
+    renderCard({ module: 'on' });
+    const button = await screen.findByRole('button', { name: 'Check again' });
+    await user.click(button);
+    const stamp = await screen.findByText(/^Checked \d/);
+    expect(stamp.parentElement!.contains(button)).toBe(true);
+    expect(stamp.parentElement!.className).not.toContain('inline-flex');
+  });
+
+  it('says when it last asked even while Audacity is not running (the host answers that too)', async () => {
+    const user = userEvent.setup();
+    renderCard({ module: 'on' });
+    expect((await card()).getAttribute('data-audacity-state')).toBe('not_running');
+    await user.click(screen.getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.getByText(/^Checked \d/)).toBeTruthy());
   });
 
   it('shows a refusal in a sentence and stays where it was', async () => {

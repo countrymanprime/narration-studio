@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { QUIET_MS } from '../../quietWindow';
 import { TRACKS_READ_TOPIC } from './useLiveTracks';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -70,28 +71,30 @@ describe('EnginePanel', () => {
     const user = userEvent.setup();
     const api = renderPanel();
     const chapters = vi.spyOn(api, 'manuscriptChapters');
-    const maps = vi.spyOn(api, 'chapterTrackMapList');
+    const unlinks = vi.spyOn(api, 'chapterTrackUnlink');
     const table = await trackTable();
     const use = await within(table).findByRole('button', { name: 'Use this track for Chapter 1' });
     const row = use.closest('tr');
     if (!row) throw new Error('the Use this track button is not in a row');
     const chaptersBefore = chapters.mock.calls.length;
-    let mapsBefore = maps.mock.calls.length;
-    const settle = async () => {
-      await waitFor(() => expect(maps.mock.calls.length).toBeGreaterThan(mapsBefore));
-      // Let the refresh key's re-read, if one is coming, arrive.
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      mapsBefore = maps.mock.calls.length;
+    // The write's own answer redraws the row; then wait out the window in which the row ignores a press (Clear appears where Use this track was),
+    // which also lets the refresh key's re-read, if one is coming, arrive. This used to wait for the links to be read again, which the 5 s
+    // track timer did while the Clear press was still being ignored: the unlink half never ran.
+    const cleared = () => within(table).queryByRole('button', { name: 'Clear the link for Chapter 1' }) === null;
+    const settle = async (linked: boolean) => {
+      await waitFor(() => expect(cleared()).toBe(!linked));
+      await new Promise((resolve) => setTimeout(resolve, QUIET_MS + 50));
     };
 
     const picker = within(row).getByRole('combobox') as HTMLSelectElement;
     await user.selectOptions(picker, picker.options[1]!.value);
     await user.click(use);
-    await settle();
+    await settle(true);
     expect(chapters.mock.calls.length).toBe(chaptersBefore);
 
-    await user.click(await within(table).findByRole('button', { name: 'Clear the link for Chapter 1' }));
-    await settle();
+    await user.click(within(table).getByRole('button', { name: 'Clear the link for Chapter 1' }));
+    await settle(false);
+    expect(unlinks).toHaveBeenCalledTimes(1);
     expect(chapters.mock.calls.length).toBe(chaptersBefore);
   });
 
@@ -214,7 +217,14 @@ describe('EnginePanel', () => {
     expect(screen.queryByRole('toolbar', { name: 'REAPER tools' })).toBeNull();
     cleanup();
     renderPanel({
-      tracksLive: async () => ({ source: 'live', reason: '', message: '', readAt: '2026-11-03T12:00:00Z', project: { path: 'C:/Book/Empty.rpp', tracks: [] } }),
+      tracksLive: async () => ({
+        source: 'live',
+        reason: '',
+        message: '',
+        readAt: '2026-11-03T12:00:00Z',
+        revision: '',
+        project: { path: 'C:/Book/Empty.rpp', tracks: [] },
+      }),
     });
     expect(await screen.findByText('This REAPER project has no tracks yet.')).toBeTruthy();
   });
@@ -354,6 +364,7 @@ describe("EnginePanel's live track list", () => {
     reason: '',
     message: '',
     readAt: '2026-11-03T12:00:00Z',
+    revision: '',
     project: { ...WIRE_TRACKS_PROJECT, tracks },
     ...over,
   });

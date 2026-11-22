@@ -9,7 +9,7 @@ import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { BoothNextPage } from './BoothNextPage';
-import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
+import { BoothHost, CHAPTERS, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 
 // The Booth page (docs/research/mockups/research-mock/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
 type Args = {
@@ -72,7 +72,18 @@ const unsavedReaper = (): DawClient =>
 function Page({ setup, resume, pickups = false, roomTone, unsaved = false, navigate }: Args) {
   const [host] = useState(() => ({
     api: pageApi({
-      ...(resume ? { teleprompterLocate: async () => LOCATED } : {}),
+      ...(resume
+        ? {
+            teleprompterLocate: async () => LOCATED,
+            // Chapter One is recorded to the third word of the second paragraph: the top bar says how far.
+            manuscriptChapters: async () =>
+              CHAPTERS.map((chapter) =>
+                chapter.id === 'c1'
+                  ? { ...chapter, recordedThrough: { paragraphId: 'p2', word: 3, percent: 45, complete: false, source: 'booth' as const, confident: true } }
+                  : chapter,
+              ),
+          }
+        : {}),
       ...(pickups ? { pickupsList: async () => SESSION } : {}),
     } as Partial<NarrationApi>),
     daw: setup === 'destructive' ? destructive() : unsaved ? unsavedReaper() : dawFor(setup),
@@ -160,21 +171,22 @@ export const RollConfirm: Story = {
   },
 };
 
-// The recording ends in the second paragraph: "Resume at ¶ 2", read from the saved project.
+// The recording ends in the second paragraph: the Booth opens there, says how far it is recorded, and draws no "Resume at" chip (#3858).
 export const Resume: Story = {
   args: { resume: true },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByRole('button', { name: 'Resume at ¶ 2' }, { timeout: 4000 })).toBeTruthy();
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole('group', { name: /^Recorded/ }, { timeout: 4000 })).toBeTruthy();
+    await expect(canvas.queryByRole('button', { name: /Resume at/ })).toBeNull();
   },
 };
 
-// The project has changes since it was saved: the resume line says it is as of the save, and the setup chip says there are unsaved changes.
+// The project has changes since it was saved: the setup chip says there are unsaved changes.
 export const UnsavedChanges: Story = {
   args: { resume: true, unsaved: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText(/Project saved Sep 26, 08:40\. Changes in REAPER since then are not included/, {}, { timeout: 4000 })).toBeTruthy();
-    await expect(await canvas.findByRole('button', { name: 'Recording setup: REAPER, unsaved changes in the project' })).toBeTruthy();
+    await expect(await canvas.findByRole('button', { name: 'Recording setup: REAPER, unsaved changes in the project' }, { timeout: 4000 })).toBeTruthy();
   },
 };
 

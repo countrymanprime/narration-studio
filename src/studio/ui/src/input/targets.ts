@@ -55,23 +55,57 @@ export function isGuardedTarget(target: EventTarget | null): boolean {
  */
 const KEY_LAYER = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-popover-popup]';
 
-/** Whether a popup that owns the keyboard is on screen (not hidden, inert or aria-hidden). */
+const HIDDEN = '[hidden], [inert], [aria-hidden="true"]';
+// A Base UI popup stays in the page, marked `data-ending-style`, until its exit has run, and the exit waits for a frame (late on a loaded machine). The
+// popup that closed on a key still owns that key (the pedal's Space closes it and must not also reach the page), but a key pressed after it has closed
+// owns nothing: it belongs to the page, and focus is still on a control inside the popup until the popup is gone (#3906, #3931).
+const CLOSING = '[data-ending-style]';
+// What the live checks below skip: hidden, or already closing. The pedal's Space (usePedalSpace) and the router must agree on whether a popup is still there:
+// the router reads what the key met when it began and ignores a closing popup, so a pedal that counted it would toggle the take and the router would too (#3976).
+const GONE = `${HIDDEN}, ${CLOSING}`;
+
+/** Whether a popup that owns the keyboard is on screen (not hidden, inert, aria-hidden or closing). */
 export function keyLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest('[hidden], [inert], [aria-hidden="true"]'));
+  return Array.from(root.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest(GONE));
 }
 
-const HIDDEN = '[hidden], [inert], [aria-hidden="true"]';
+/** What a keydown met when it began, before anything it triggered could close a popup: whether a popup that has not begun closing owns the keys, and whether its target is inside one that has. */
+export type KeyContext = { layerOpen: boolean; targetClosing: boolean };
+
+const keyContexts = new WeakMap<Event, KeyContext>();
+let watching = false;
+
+/** Notes each keydown's `KeyContext` at the window's capture phase, ahead of every listener that could close a popup. Once; a no-op without a window. */
+export function watchKeyContext(): void {
+  if (watching || typeof window === 'undefined') return;
+  watching = true;
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      const target = event.target;
+      const open = keyLayerOpen();
+      keyContexts.set(event, { layerOpen: open, targetClosing: target instanceof Element && target.closest(CLOSING) !== null });
+    },
+    true,
+  );
+}
+
+/** The `KeyContext` noted for a keydown, or undefined for one the watch did not see. */
+export function keyContextOf(event: Event): KeyContext | undefined {
+  return keyContexts.get(event);
+}
+
 const SOFT_LAYER = '[role="menu"], [data-popover-popup]';
 const MODAL_LAYER = '[role="alertdialog"], [role="dialog"]:not([data-popover-popup])';
 
 /** Whether a menu or popover (a popup the page behind stays usable under, closed by Escape) is on screen. */
 export function softLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(HIDDEN));
+  return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(GONE));
 }
 
 /** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
 export function modalLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(HIDDEN));
+  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(GONE));
 }
 
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);

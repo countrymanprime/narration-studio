@@ -15,6 +15,7 @@ import { FormatRows } from './FormatRows';
 import { LimitRow } from './LimitRow';
 import { editOf, formatRules, limitRules, limitsOf, type Limit } from './limitText';
 import { ProfileMenu } from './ProfileMenu';
+import { hasVisibleText } from '../../../visibleText';
 
 /** The longest profile name the host saves (deliverySaveProfile refuses more); checked here so the refusal reads like the blank-name one. */
 const MAX_NAME_LENGTH = 80;
@@ -132,7 +133,7 @@ export function ProfileCard({
               value={profile.name}
               onCommit={(name) => {
                 const trimmed = name.trim();
-                if (trimmed === '') setError(`A profile needs a name${NAME_KEPT}`);
+                if (!hasVisibleText(trimmed)) setError(`A profile needs a name${NAME_KEPT}`);
                 else if ([...trimmed].length > MAX_NAME_LENGTH) setError(`A profile's name can be at most ${MAX_NAME_LENGTH} characters${NAME_KEPT}`);
                 else void save(editOf(profile, { name: trimmed }));
               }}

@@ -1,6 +1,5 @@
 import { cueIsConfirmed } from '../../manuscript/dialogueCues.selectors';
 import type { GuideDialogueCue, GuideEntity, ManuscriptParagraph, TeleprompterFlag, TeleprompterSpan } from '../../../types';
-import { WPH } from '../../schedule/estimates';
 import type { CreditsKind } from '../readerModel';
 import { UNKNOWN_SPEAKER, wordCount, type BoothUnit, type ReadingParagraph, type WordDecoration } from '../reading/boothUnits';
 import type { ReadingPosition } from '../reading/readingPosition';
@@ -143,12 +142,6 @@ export function wordRangeOf(paragraphs: readonly ReadingParagraph[], unit: Booth
   if (!paragraph) return null;
   const from = wordCount(paragraph.text.slice(0, unit.start));
   return { paragraphId: paragraph.id, from, to: from + Math.max(unit.words, 1) - 1 };
-}
-
-/** Where a phrase starts in the chapter's audio, in seconds, read at the standard rate (`WPH` words an hour). An estimate. */
-export function secondsBefore(units: readonly BoothUnit[], phrase: number): number {
-  const words = units.slice(0, Math.max(0, phrase)).reduce((sum, unit) => sum + unit.words, 0);
-  return (words / WPH) * 3600;
 }
 
 /** The host's suspected flags placed in the paragraphs the Booth reads: the paragraph the flag starts in, and the words it covers there. */

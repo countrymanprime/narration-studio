@@ -197,6 +197,14 @@ describe('focus-refetches', () => {
 });
 
 describe('store-is-throwaway', () => {
+  it('counts each reset in generation(), so a reader can tell the project it read for', () => {
+    const { store } = make({ a: { schema: isCount, load: () => Promise.resolve({ count: 1 }) } });
+    expect(store.generation()).toBe(0);
+    store.reset();
+    store.reset();
+    expect(store.generation()).toBe(2);
+  });
+
   it('reset() empties every slot and an in-flight load of the old project writes nothing', async () => {
     const gate = deferred<unknown>();
     const { store } = make({ a: { schema: isCount, load: () => gate.promise }, b: { schema: isName, load: () => Promise.resolve('Ada') } });

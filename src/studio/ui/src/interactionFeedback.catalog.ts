@@ -79,6 +79,10 @@ export const SILENT_CATCHES: Record<string, string> = {
     "A chapter's text asked for by a page: the failure is recorded on the key (`error`) for the page that shows it, so the rejection of the shared read has nobody left to tell.",
   'src/studio/useChapterText.ts#3':
     "A chapter's text read for a component rendered without the store (a unit render): a failed read shows no text, as the page did before the cache.",
+  'src/components/production/usePipelineSources.ts#1':
+    'The chapter list read for the pairing: unreadable, the Master cell and Next up\'s failing chapter stay absent and read "Not measured yet"; the store records the failure for the pages that show it.',
+  'src/components/production/usePipelineSources.ts#2':
+    "The delivery measurement read beside the list: unreadable, the Master cell and Next up's failing chapter stay absent, as before.",
   'src/studio/useChapters.ts#1':
     "A reader that mounts on a list whose read failed asks once more: the failure is recorded in the store's `errors` for the page that shows it.",
   'src/studio/useChapters.ts#2':

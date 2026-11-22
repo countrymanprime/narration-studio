@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
@@ -77,5 +78,38 @@ export const InsideADialog: Story = {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Microphone' })).toBeNull());
     // The dialog itself is still open: Escape closed the popover, not the dialog it sits in.
     await expect(screen.getByRole('dialog', { name: 'Read aloud' })).toBeVisible();
+  },
+};
+
+// One popover for many controls (a speaker chip in the Script reader): the page keeps the rectangle of the control pressed and passes it as
+// `anchor`. This one sits at the bottom edge of the window, so the popup opens above it, inside the window (#3823).
+function AtAnAnchor() {
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  return (
+    <>
+      <Button className="fixed bottom-2 left-2" onClick={(event) => setAnchor(event.currentTarget.getBoundingClientRect())}>
+        Hatter
+      </Button>
+      {anchor && (
+        <Popover anchor={anchor} label="Who says this" align="start" compact fitToWindow open onOpenChange={(open) => !open && setAnchor(null)}>
+          <button type="button">Alice</button>
+        </Popover>
+      )}
+    </>
+  );
+}
+
+export const OpensAtAnAnchor: Story = {
+  render: () => <AtAnAnchor />,
+  play: async ({ canvasElement }) => {
+    const chip = within(canvasElement).getByRole('button', { name: 'Hatter' });
+    await userEvent.click(chip);
+    const popup = await screen.findByRole('dialog', { name: 'Who says this' });
+    await waitFor(() => expect(popup.getBoundingClientRect().bottom).toBeLessThanOrEqual(chip.getBoundingClientRect().top));
+    await expect(popup.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    await waitFor(() => expect(popup.contains(document.activeElement)).toBe(true));
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Who says this' })).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(chip));
   },
 };

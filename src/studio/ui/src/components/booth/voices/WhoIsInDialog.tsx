@@ -11,6 +11,7 @@ import { Select } from '../../primitives/Select';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { defaultTrackName, keyForNewTrack, keyName, lineCount, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
+import { hasVisibleText } from '../../../visibleText';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
 export type WhoAsk = { kind: 'key'; key: number } | { kind: 'character'; character: WhoCharacter; choice?: WhoChoice };
@@ -104,14 +105,13 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const [existing, setExisting] = useState(others[0]?.guid ?? '');
   const [busy, setBusy] = useState(false);
 
-  const nameProblem =
-    name.trim() === ''
-      ? 'The new track needs a name.'
-      : [...name.trim()].length > TRACK_NAME_MAX
-        ? `A track name is at most ${TRACK_NAME_MAX} characters.`
-        : voices.some((voice) => same(voice.name, name))
-          ? `This chapter already has a track named “${name.trim()}”.`
-          : undefined;
+  const nameProblem = !hasVisibleText(name)
+    ? 'The new track needs a name.'
+    : [...name.trim()].length > TRACK_NAME_MAX
+      ? `A track name is at most ${TRACK_NAME_MAX} characters.`
+      : voices.some((voice) => same(voice.name, name))
+        ? `This chapter already has a track named “${name.trim()}”.`
+        : undefined;
   const newKey = keyForNewTrack(voices, name);
   const target = others.find((voice) => voice.guid === existing);
   const blocked = choice === 'new' ? Boolean(nameProblem) : choice === 'existing' ? !target : !narrator;

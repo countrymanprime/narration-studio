@@ -78,7 +78,7 @@ export const Stopping: Story = {
   ),
 };
 
-// A press that waits on the host (the Mark the start here lookup, the checks, the start tone): the spinner replaces the record mark, the label stays.
+// A press that waits on the host (the lookup of a chosen start, the checks, the start tone): the spinner replaces the record mark, the label stays.
 export const Pending: Story = {
   render: () => (
     <SplitButton label="Recording">

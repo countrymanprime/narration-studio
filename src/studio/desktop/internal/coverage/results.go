@@ -3,9 +3,14 @@ package coverage
 import (
 	"desktop/internal/brand"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -21,12 +26,25 @@ const storedResultVersion = 1
 // it with the ledger and cache, since results name chapter and paragraph ids a
 // re-import resets.
 func Dir(project string) string {
-	return filepath.Join(project, brand.ProjectFolder, "analysis", "coverage")
+	return filepath.Join(project, folder)
 }
 
-func resultsDir(project string) string { return filepath.Join(Dir(project), "results") }
+// folder is Dir below the project folder, and resultsFolder and summariesFolder are the two stores' folders there.
+var (
+	folder          = filepath.Join(brand.ProjectFolder, "analysis", "coverage")
+	resultsFolder   = filepath.Join(folder, "results")
+	summariesFolder = filepath.Join(folder, "summaries")
+)
 
-func summariesDir(project string) string { return filepath.Join(Dir(project), "summaries") }
+func resultsDir(project string) string { return filepath.Join(project, resultsFolder) }
+
+// ResultsDir is the folder of the stored results under a project.
+func ResultsDir(project string) string { return resultsDir(project) }
+
+// SummariesDir is the folder of the stored result summaries under a project.
+func SummariesDir(project string) string { return filepath.Join(project, summariesFolder) }
+
+func summariesDir(project string) string { return filepath.Join(project, summariesFolder) }
 
 func runsDir(project string) string { return filepath.Join(Dir(project), "runs") }
 
@@ -277,6 +295,136 @@ func (s resultStore) countDecode() {
 	if s.cache != nil {
 		s.cache.decoded.Add(1)
 	}
+}
+
+// RemoveStoredResult deletes what coverage stored for the ledger record recordID: its stored result, then that
+// result's summary, from disk and from memory. It is for evidence.LedgerStore.Retain's beforeDelete, which calls it
+// before the record's own file goes, so the order for each dropped record is result, summary, record. The result goes
+// first because a summary whose result is there is rebuilt by a read (Service.summary); a read that was already
+// rebuilding it may store the summary again afterwards, and SweepOrphanResults finds that file once the record is
+// gone. A step that fails leaves the later ones undone, and the record with them, so the next pass starts again here.
+// Each delete is persist.RemoveRegular rooted at the project folder: a file that is not there is done already, a
+// link or folder in its place is left alone, and a results or summaries folder that is a link, or is below one, is an
+// error with nothing deleted through it.
+func (s *Service) RemoveStoredResult(recordID string) error {
+	name, ok := evidence.RecordFileName(recordID)
+	if !ok {
+		return fmt.Errorf("%q is not a ledger record id", recordID)
+	}
+	if _, err := persist.RemoveRegular(s.config.Project, filepath.Join(resultsFolder, name)); err != nil {
+		return fmt.Errorf("could not remove the coverage result of record %s: %w", recordID, err)
+	}
+	s.results.cache.drop(recordID)
+	s.summaries.forget(recordID)
+	if _, err := persist.RemoveRegular(s.config.Project, filepath.Join(summariesFolder, name)); err != nil {
+		return fmt.Errorf("could not remove the coverage result summary of record %s: %w", recordID, err)
+	}
+	return nil
+}
+
+// SweepOrphanResults deletes every stored summary whose record has no file in the ledger folder and whose result is gone,
+// and returns the record ids it deleted for. A summary is answered only while its result is there and is rebuilt from it,
+// so one left behind (a read stored it again after RemoveStoredResult) is only clutter. It never deletes a result: a result
+// with no record file cannot be told from one whose record has not arrived yet (a project being synced or restored), and
+// deleting that costs a whole re-check. A superseded record's result goes with its record, in RemoveStoredResult.
+//
+// A record file that is there protects its summary whether or not it can be read (evidence.LedgerStore.RecordFileIDs).
+// A ledger folder that is missing, that holds no record file at all, or that cannot be listed protects everything: a
+// ledger that is away for a moment (a folder being synced or moved) must not cost anything. The stored files are
+// listed before the ledger, so a record written meanwhile is in the later listing.
+//
+// It deletes only what this package stored: a regular file in the summaries folder, named by a record id, that decodes
+// as a stored summary of that record. Any other file there is left and not reported. Only a file with no record is read
+// for this, so a sweep that finds no orphan decodes nothing. A results, summaries or ledger folder that is a link, or is
+// below one, is an error before anything is deleted (persist.RealFolder): it would list another folder's files.
+func (s *Service) SweepOrphanResults() ([]string, error) {
+	// The ledger must be this project's: another project's ledger holds none of this project's records, so every result here would be an orphan.
+	if filepath.Clean(s.ledger.Project()) != filepath.Clean(s.config.Project) {
+		return nil, fmt.Errorf("could not sweep the stored coverage results: the ledger belongs to another project (%s)", s.ledger.Project())
+	}
+	stored := map[string]bool{}
+	for _, dir := range []string{resultsFolder, summariesFolder} {
+		if _, err := persist.RealFolder(s.config.Project, dir); err != nil {
+			return nil, fmt.Errorf("could not list the stored coverage results: %w", err)
+		}
+		entries, err := persist.ReadDir(filepath.Join(s.config.Project, dir))
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("could not list the stored coverage results: %w", err)
+		}
+		for _, entry := range entries {
+			if id, isJSON := strings.CutSuffix(entry.Name(), ".json"); isJSON {
+				stored[id] = true
+			}
+		}
+	}
+	if s.sweepListed != nil {
+		s.sweepListed()
+	}
+	recorded, err := s.ledger.RecordFileIDs()
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(recorded) == 0 {
+		return nil, nil
+	}
+	var removed []string
+	for _, id := range slices.Sorted(maps.Keys(stored)) {
+		if _, isRecordID := evidence.RecordFileName(id); !isRecordID || recorded[id] {
+			continue
+		}
+		// A result with no record is left where it is: it cannot be told from one whose record has not arrived yet (a project being
+		// synced or restored), and deleting that costs a whole re-check. Retain removes a superseded record's result with it, so an
+		// orphan result is rare. A summary is another matter: it is answered only while its result is there and is rebuilt from it.
+		summary, err := s.removeOrphan(summariesFolder, id, s.orphanSummary)
+		if err != nil {
+			return removed, fmt.Errorf("could not remove the coverage result summary of record %s: %w", id, err)
+		}
+		if summary {
+			s.summaries.forget(id)
+			removed = append(removed, id)
+		}
+	}
+	return removed, nil
+}
+
+// orphanSummary reports whether raw is a summary this package stored for record id whose result is not there any more: a summary is
+// answered only while its result is, so it goes with it, and one whose result stays (not superseded) stays too.
+func (s *Service) orphanSummary(raw []byte, id string) bool {
+	if !isStoredSummary(raw, id) {
+		return false
+	}
+	present, err := persist.IsRegular(s.config.Project, filepath.Join(resultsFolder, id+".json"))
+	return err == nil && !present
+}
+
+// removeOrphan deletes the file kept for record id in one of the two stores' folders when it is a regular file that
+// stored says is that store's own, and reports whether it deleted one. The file is opened only once it is known to be
+// a regular file in real folders, so nothing that is not one (a named pipe, a link) is read.
+func (s *Service) removeOrphan(dir, id string, stored func(raw []byte, id string) bool) (bool, error) {
+	file := filepath.Join(dir, id+".json")
+	regular, err := persist.IsRegular(s.config.Project, file)
+	if err != nil || !regular {
+		return false, err
+	}
+	own := false
+	// No reporter: a file that is not this package's is left as it is found, and is nothing to write to the log.
+	(*persist.Reporter)(nil).ReadJSON(filepath.Join(s.config.Project, file), "stored coverage file", persist.Disposable, func(raw []byte) error {
+		own = stored(raw, id)
+		return nil
+	})
+	if !own {
+		return false, nil
+	}
+	return persist.RemoveRegular(s.config.Project, file)
+}
+
+// isStoredSummary reports whether raw is a summary this package stored for record id: a ResultSummary that names the record and carries the version of the result it was made from.
+func isStoredSummary(raw []byte, id string) bool {
+	var summary ResultSummary
+	return json.Unmarshal(raw, &summary) == nil && summary.RecordID == id && summary.SchemaVersion > 0 && summary.ResultVersion > 0
 }
 
 // ChapterResult is what the result reader answers for a chapter: whether the

@@ -16,6 +16,7 @@ const live = (over: Partial<LiveTracks> = {}) =>
     readAt: Date.now(),
     busy: false,
     refreshing: false,
+    following: false,
     stale: false,
     error: '',
     source: 'live',

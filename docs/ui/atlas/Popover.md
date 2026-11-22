@@ -10,6 +10,7 @@ Storybook title: `Primitives/Popover`. Source: `src/components/primitives/Popove
 - Opens On Press
 - Closes On Escape And Returns Focus
 - Inside A Dialog
+- Opens At An Anchor
 
 ## Used by
 
@@ -30,6 +31,7 @@ Storybook title: `Primitives/Popover`. Source: `src/components/primitives/Popove
 - `src/components/primitives/TreeSelect.tsx`
 - `src/components/production/target/TargetInfoButton.tsx`
 - `src/components/script/bookmarks/ui/BookmarkEditor.tsx`
+- `src/components/script/page/layout/SpeakerLayer.tsx`
 - `src/components/script/page/rail/words/DefinitionSourceMenu.tsx`
 - `src/components/script/page/registry/useScriptRegistry.ts`
 - `src/components/script/page/tools/text/TextSettings.tsx`

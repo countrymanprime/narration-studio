@@ -1,4 +1,5 @@
 import type { Gesture } from './gestures';
+import type { KeyContext } from './targets';
 
 /** One gesture as it reaches the router: the normalised gesture, the DOM target it happened on (for the target
  * guard, `targets.ts`) and how to consume it so nothing else also reacts (`isScrollKey`). */
@@ -10,6 +11,8 @@ export type GestureEvent = {
   repeat?: boolean;
   /** Whether something nearer the target already took the key (a list that walks its own rows with the arrows). Keyboard only. */
   consumed?: () => boolean;
+  /** What the key met when it began (`watchKeyContext`): a popup that was still closing when it was pressed owns no key. Keyboard only; without it the router asks the page as it is. */
+  context?: KeyContext;
 };
 
 /**

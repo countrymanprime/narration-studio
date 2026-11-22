@@ -85,7 +85,7 @@ import {
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { settingsForScopeSchema } from './schemas/settings';
-import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksChangedSchema, tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
@@ -806,6 +806,7 @@ export const wailsClient: NarrationApi = {
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),
   tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
+  subscribeTracksChanged: (onUpdate) => subscribeChecked('daw_tracks_changed', tracksChangedSchema, onUpdate),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
   chapterTrackCreate: (chapterId, choice) =>

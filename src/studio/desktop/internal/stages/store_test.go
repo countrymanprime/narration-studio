@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -244,4 +245,92 @@ func TestDecisionStoreReportsEachWriteFailure(t *testing.T) {
 			t.Fatalf("the decisions file appeared: %v", err)
 		}
 	})
+}
+
+func TestReferencedRecordIDsNamesEveryRecordADecisionStandsOnWhicheverDocument(t *testing.T) {
+	project := t.TempDir()
+	store := NewDecisionStore(project, nil)
+	first := decisionAt("c-0001", DecisionConfirmed, 1)
+	second := decisionAt("c-0002", DecisionDismissed, 2)
+	second.Basis = []SignalBasis{{ID: "x", LedgerRecordIDs: []string{"rec-2", "rec-3"}}, {ID: "y", LedgerRecordIDs: []string{"rec-1"}}}
+	for _, decision := range []Decision{first, second} {
+		if err := store.Append("doc-1", decision); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := store.ReferencedRecordIDs() // asked with no document: the file is kept for doc-1
+	if err != nil || len(got) != 3 || !got["rec-1"] || !got["rec-2"] || !got["rec-3"] {
+		t.Fatalf("ReferencedRecordIDs = %v, %v; want rec-1, rec-2 and rec-3", got, err)
+	}
+}
+
+func TestReferencedRecordIDsOfNoFileIsEmptyAndOfAnUnreadableFileIsAnError(t *testing.T) {
+	if got, err := NewDecisionStore(t.TempDir(), nil).ReferencedRecordIDs(); err != nil || got == nil || len(got) != 0 {
+		t.Fatalf("a missing file: %v, %v; want an empty set and no error", got, err)
+	}
+	for name, content := range map[string]string{"corrupt": "{not json", "newer": `{"schemaVersion": 99, "documentId": "d", "decisions": []}`} {
+		project := t.TempDir()
+		writeRaw(t, project, content)
+		if got, err := NewDecisionStore(project, nil).ReferencedRecordIDs(); err == nil || got != nil {
+			t.Fatalf("%s file: %v, %v; want an error and no set", name, got, err)
+		}
+	}
+}
+
+func TestReferencedRecordIDsDoesNotMoveACorruptFileAside(t *testing.T) {
+	project := t.TempDir()
+	writeRaw(t, project, "{not json")
+	store := NewDecisionStore(project, nil)
+	for range 2 {
+		if got, err := store.ReferencedRecordIDs(); err == nil || got != nil {
+			t.Fatalf("ReferencedRecordIDs = %v, %v; want an error on every call", got, err)
+		}
+	}
+	if raw, err := os.ReadFile(DecisionsFile(project)); err != nil || string(raw) != "{not json" {
+		t.Fatalf("the file after two reads = %q, %v; want it untouched", raw, err)
+	}
+}
+
+// The stages service's own read moves a corrupt decisions file aside; the file then looks missing, but the decisions are in the
+// kept-aside copy, so no record may be removed on an empty set while it is there, whatever characters the project's path holds.
+func TestReferencedRecordIDsStillStopsAfterTheStagesServiceMovedTheFileAside(t *testing.T) {
+	for _, name := range []string{"Book", "Book [Final]", "Book [draft", "What?", "A*B", "Книга 📚"} {
+		t.Run(name, func(t *testing.T) {
+			if runtime.GOOS == "windows" && strings.ContainsAny(name, "*?") {
+				t.Skip("a folder name cannot hold * or ? on Windows")
+			}
+			project := filepath.Join(t.TempDir(), name)
+			writeRaw(t, project, `{"schemaVersion":1,"documentId":"d","decisions":[{"basis":[{"ledgerRecordIds":["rec-1"]}]}]`)
+			_, _ = NewDecisionStore(project, nil).List("d") // the service's read quarantines the file
+			if _, err := os.Stat(DecisionsFile(project)); err == nil {
+				t.Fatal("the stages service's read did not move the corrupt file aside, so this test no longer tests the hole it guards")
+			}
+			if got, err := NewDecisionStore(project, nil).ReferencedRecordIDs(); err == nil || got != nil {
+				t.Fatalf("ReferencedRecordIDs = %v, %v; want an error while the kept-aside copy is there", got, err)
+			}
+		})
+	}
+}
+
+func TestReferencedRecordIDsOfAFolderThatCannotBeListedIsAnError(t *testing.T) {
+	project := t.TempDir()
+	writeRaw(t, project, `{"schemaVersion": 1, "documentId": "d", "decisions": []}`)
+	was := listFolder
+	listFolder = func(string) ([]os.DirEntry, error) { return nil, errors.New("access is denied") }
+	t.Cleanup(func() { listFolder = was })
+	got, err := NewDecisionStore(project, nil).ReferencedRecordIDs()
+	if err == nil || got != nil || !strings.Contains(err.Error(), "could not be listed") {
+		t.Fatalf("ReferencedRecordIDs = %v, %v; want the listing error and no set", got, err)
+	}
+}
+
+func TestReferencedRecordIDsOfAPathThatIsNotAFileIsAnError(t *testing.T) {
+	project := t.TempDir()
+	// A directory where the file should be cannot be read as a file; it is not "no decisions".
+	if err := os.MkdirAll(DecisionsFile(project), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := NewDecisionStore(project, nil).ReferencedRecordIDs(); err == nil || got != nil {
+		t.Fatalf("a directory at the decisions path: %v, %v; want an error and no set", got, err)
+	}
 }
