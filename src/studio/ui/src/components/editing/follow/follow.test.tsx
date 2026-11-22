@@ -180,6 +180,29 @@ describe('lit-word-follows-the-daw-while-it-plays', () => {
     expect(lit()).toBe('p-1:3');
     expect(state().playing).toBe(false);
   });
+  it('a stop only the backstop read sees leaves the bar on Play', async () => {
+    mount();
+    dawAt(1.3);
+    await poll();
+    expect(state().playing).toBe(true);
+    // The stop's event was lost: the read finds it.
+    transport = { ...transport, playState: 'stopped' };
+    await poll(BACKSTOP_MS + 100);
+    expect(lit()).toBe('p-1:3');
+    expect(state().playing).toBe(false);
+  });
+  it('while a word is held after a stop, skip moves the cursor and plays nothing', async () => {
+    mount();
+    dawAt(1.3);
+    await poll();
+    dawAt(1.3, 'stopped');
+    await poll();
+    expect(state().playing).toBe(false);
+    expect(state().playT).not.toBeNull();
+    act(() => playback.skip(1));
+    expect(page.state.cursor).not.toBeNull();
+    expect(state().playing).toBe(false);
+  });
   it('lights nothing while the DAW plays a gap', async () => {
     mount();
     dawAt(1.3);
