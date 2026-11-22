@@ -273,3 +273,36 @@ func TestBeginRecordsAPruneThatRanOutOfBudget(t *testing.T) {
 		t.Fatal("a prune that ran out of time left no record")
 	}
 }
+
+// A pass that was stopped part-way but removed something is not a failure to prune: no record. A pass that finished writes none either.
+func TestBeginStaysQuietWhenAStoppedPruneRemovedSomething(t *testing.T) {
+	was := pruneStop
+	t.Cleanup(func() { pruneStop = was })
+	calls := 0
+	pruneStop = func(time.Time) func() bool { return func() bool { calls++; return calls >= 5 } }
+	logger, path := newLogger(t, 0)
+	runs := filepath.Join(filepath.Dir(path), "runs")
+	if err := os.MkdirAll(runs, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := logger.now().Add(-30 * 24 * time.Hour)
+	for i := range maxRunFiles + 5 {
+		file := filepath.Join(runs, strconv.Itoa(i)+".stderr.jsonl")
+		if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(file, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	logger.Begin("tool")
+	entries, _ := os.ReadDir(runs)
+	if len(entries) >= maxRunFiles+5 {
+		t.Fatalf("%d files left; the stopped pass was meant to remove some first", len(entries))
+	}
+	for _, record := range readLines(t, path) {
+		if record["event"] == "runs.prune" {
+			t.Fatalf("a pass that removed files left a record: %v", record)
+		}
+	}
+}

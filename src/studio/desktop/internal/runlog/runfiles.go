@@ -68,6 +68,9 @@ func (w *stderrFileWriter) Close() error { return nil }
 // pruneBudget is the most a Begin spends pruning logs/runs; a variable so a test can make it run out.
 var pruneBudget = time.Second
 
+// pruneStop is the stop a Begin gives its prune for a deadline; a variable so a test can stop a pass part-way.
+var pruneStop = func(deadline time.Time) func() bool { return func() bool { return time.Now().After(deadline) } }
+
 // runFilesRule is what Begin prunes logs/runs by (persist.PruneFolder): the newest maxRunFiles run files stay and any older than
 // maxRunFileAge go, so a long burst of runs does not fill the disk and a quiet week does not keep stale debug detail around. A run file
 // written in the last hour is never removed, whatever the count, so a sidecar that wrote only at its start and is still running keeps its

@@ -947,7 +947,7 @@ func TestPruneFolderTakesAFileFarAheadOrExactlyTheGuardAheadAsTheOldest(t *testi
 	was := SetFileTime
 	t.Cleanup(func() { SetFileTime = was })
 	SetFileTime = func(string, string, time.Time) error { return errors.New("operation not permitted") }
-	real := time.Now()
+	real := time.Now().Truncate(2 * time.Second) // a filesystem with coarse times stores the edge exactly
 	far := filepath.Join(dir, "far.dat")
 	edge := filepath.Join(dir, "edge.dat")
 	for path, ahead := range map[string]time.Duration{far: 48 * time.Hour, edge: 24 * time.Hour} {
@@ -958,7 +958,6 @@ func TestPruneFolderTakesAFileFarAheadOrExactlyTheGuardAheadAsTheOldest(t *testi
 			t.Fatal(err)
 		}
 	}
-	// A pass clock a little later than the file times were read at, so the edge file is at least the guard ahead.
 	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: 7 * 24 * time.Hour, Guard: 24 * time.Hour}, real, never); err != nil {
 		t.Fatal(err)
 	}
@@ -973,8 +972,6 @@ func TestPruneFolderKeepsTheRestOfAGroupWhenTheDeleteFindsANonRegularFile(t *tes
 	first := pruneFile(t, dir, "a.1.x", 10, 48*time.Hour)
 	second := pruneFile(t, dir, "a.2.x", 10, 48*time.Hour)
 	rule := PruneRule{Group: func(name string) (string, bool) { return "a", strings.HasPrefix(name, "a.") }, MaxAge: time.Hour}
-	was := beforeAct
-	t.Cleanup(func() { beforeAct = was })
 	lstatWas := lstatRoot
 	t.Cleanup(func() { lstatRoot = lstatWas })
 	lstatRoot = func(folder *os.Root, name string) (fs.FileInfo, error) {
@@ -986,7 +983,35 @@ func TestPruneFolderKeepsTheRestOfAGroupWhenTheDeleteFindsANonRegularFile(t *tes
 		return folder.Lstat(name)
 	}
 	pass, err := PruneFolder(root, "runs", rule, pruneNow, never)
-	if err != nil || !exists(second) || pass.Removed != 0 {
-		t.Fatalf("pass = %+v, err = %v, sibling kept %v; want the sibling kept and nothing removed", pass, err, exists(second))
+	if err != nil || !exists(second) || pass.Removed != 0 || pass.FilesAfter != 1 || pass.BytesAfter != 10 {
+		t.Fatalf("pass = %+v, err = %v, sibling kept %v; want the sibling kept, nothing removed, one file of 10 bytes left in the tally", pass, err, exists(second))
+	}
+}
+
+// A swapped file keeps the rest of its group, as the look before the delete does.
+func TestPruneFolderKeepsTheRestOfAGroupWhenTheDeleteFindsTheFileReplaced(t *testing.T) {
+	root, dir := pruneFolder(t)
+	first := pruneFile(t, dir, "a.1.x", 10, 48*time.Hour)
+	second := pruneFile(t, dir, "a.2.x", 10, 48*time.Hour)
+	rule := PruneRule{Group: func(name string) (string, bool) { return "a", strings.HasPrefix(name, "a.") }, MaxAge: time.Hour}
+	lstatWas := lstatRoot
+	t.Cleanup(func() { lstatRoot = lstatWas })
+	swapped := false
+	lstatRoot = func(folder *os.Root, name string) (fs.FileInfo, error) {
+		if !swapped && strings.HasSuffix(name, "a.1.x") {
+			swapped = true
+			fresh := filepath.Join(dir, "fresh.tmp")
+			if err := os.WriteFile(fresh, make([]byte, 55), 0o600); err != nil {
+				t.Error(err)
+			}
+			if err := os.Rename(fresh, first); err != nil {
+				t.Error(err)
+			}
+		}
+		return folder.Lstat(name)
+	}
+	pass, err := PruneFolder(root, "runs", rule, pruneNow, never)
+	if err != nil || !exists(first) || !exists(second) || pass.Removed != 0 || pass.FilesAfter != 2 || pass.BytesAfter != 65 {
+		t.Fatalf("pass = %+v, err = %v; want both files kept, nothing removed, two files of 65 bytes in the tally", pass, err)
 	}
 }
