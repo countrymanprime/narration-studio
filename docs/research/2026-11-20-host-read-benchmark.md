@@ -313,6 +313,17 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - The saving is the count of asks (each a request through the bridge to REAPER while it runs): 9 in 10 fewer over an hour. The label also appears at the edit instead of up to 30 s later.
 - **Not measured:** the round trip of a check to a live REAPER, the label's delay after a real edit, and a comparison left open for hours.
 
+## Editing's heartbeat follow of the DAW's play: four reads a second against a transport event
+
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. When the transport sync is not holding its watch lease (another project open, a recording, the capability off) the Editing page lights the word REAPER is playing from a fallback, `useDawPlayPosition`, which read `DawProjectState` four times a second whenever the DAW was reachable and the page visible, played or not. The host already announces a play starting and stopping (`daw_transport_changed`, held by the app's DAW session), so the fallback now reads four times a second only while the DAW plays and every 2 s otherwise (the backstop for a lost transport event); the read made when the announcement arrives sees the start or the stop at once. Same rig and method, one existing row (`DawProjectState`): `0.0` ms warm at every size (3, 44, 300 chapters; the rig has no DAW, so it times the host's immediate answer, not a live REAPER round trip), so the saving is a count.
+
+| Editing page visible, DAW reachable | Reads a minute before | After, DAW stopped | After, DAW playing |
+| --- | --- | --- | --- |
+| each minute | 240 | 30 | 240 |
+
+- Eight times fewer reads while the DAW is not playing (the usual state of a page left open), each a request through the bridge to REAPER when one runs; no change while it plays, and the word is lit as soon as the play is announced instead of at the next tick.
+- **Not measured:** the round trip of a read to a live REAPER, the delay between a real play and the transport event, and what the page costs while REAPER plays for hours.
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.

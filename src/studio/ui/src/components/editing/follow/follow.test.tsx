@@ -74,9 +74,18 @@ function Harness({ caps }: { caps: DawCapabilities | null }) {
   );
 }
 
+/** The host's transport event: what tells the page a play started or stopped, so the position is read often only while the DAW plays. */
+let announceTransport: (next: { playing: boolean; recording: boolean }) => void = () => {};
 const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper) =>
   render(
-    <ApiProvider api={createMockApi()}>
+    <ApiProvider
+      api={createMockApi({
+        subscribeDawTransport: (listener: (next: { playing: boolean; recording: boolean }) => void) => {
+          announceTransport = listener;
+          return () => {};
+        },
+      } as never)}
+    >
       <PortOverrides clients={{ daw: client }}>
         <EditingPageProvider doc={doc}>
           <Harness caps={caps} />
@@ -94,6 +103,7 @@ const poll = async (ms = POLL_MS) => {
 };
 const dawAt = (docT: number, playState: DawProjectState['playState'] = 'playing') => {
   transport = { ...transport, playState, playPosition: at(docT) };
+  act(() => announceTransport({ playing: playState === 'playing', recording: false }));
 };
 
 beforeEach(() => {
@@ -261,6 +271,38 @@ describe('poll-is-bounded', () => {
     view.unmount();
     await poll(2000);
     expect(vi.mocked(client.projectState).mock.calls.length).toBe(after);
+  });
+  it('reads every 2 s while the DAW does not play, and four times a second while it plays', async () => {
+    mount();
+    await poll(10_000);
+    const idle = vi.mocked(client.projectState).mock.calls.length;
+    expect(idle).toBeGreaterThanOrEqual(4);
+    expect(idle).toBeLessThanOrEqual(7);
+    dawAt(1.3);
+    const playingFrom = vi.mocked(client.projectState).mock.calls.length;
+    await poll(2000);
+    const playing = vi.mocked(client.projectState).mock.calls.length - playingFrom;
+    expect(playing).toBeGreaterThanOrEqual(7);
+    expect(playing).toBeLessThanOrEqual(10);
+    dawAt(2.0, 'stopped');
+    const stoppedFrom = vi.mocked(client.projectState).mock.calls.length;
+    await poll(10_000);
+    expect(vi.mocked(client.projectState).mock.calls.length - stoppedFrom).toBeLessThanOrEqual(7);
+  });
+  it('reads a play the transport event announces at once, not at the next idle tick', async () => {
+    mount();
+    await poll(500);
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+  });
+  it('still finds a play whose transport event was lost, at the idle backstop', async () => {
+    mount();
+    await poll(500);
+    // The DAW plays but no transport event comes: the backstop read finds it.
+    transport = { ...transport, playState: 'playing', playPosition: at(1.3) };
+    await poll(2100);
+    expect(lit()).toBe('p-1:3');
   });
   it('waits for a slow read before asking again', async () => {
     vi.mocked(client.projectState).mockImplementation(() => new Promise(() => {}));
