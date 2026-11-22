@@ -109,7 +109,7 @@ describe('applying a choice', () => {
     expect(result).toEqual({
       ok: false,
       message: 'Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.',
-      missing: true,
+      kind: 'missing',
     });
     expect(setSinkId).toHaveBeenCalledWith('');
   });
@@ -117,13 +117,21 @@ describe('applying a choice', () => {
   it('a refusal from setSinkId is said and the element is reset to the default', async () => {
     setSinkId.mockRejectedValueOnce(new DOMException('no', 'NotAllowedError'));
     const result = await setOutput(audio(), 'Speakers (Realtek)');
-    expect(result).toEqual({ ok: false, message: 'Could not play on Speakers (Realtek). Choose another output or use the system default.' });
+    expect(result).toEqual({ ok: false, message: 'Could not play on Speakers (Realtek). Choose another output or use the system default.', kind: 'refused' });
+    expect(setSinkId).toHaveBeenLastCalledWith('');
+  });
+
+  // #4044: a list that will not come is not an unplugged speaker, and the sentence must not say so.
+  it('a listing that throws is named as such, not as a missing output', async () => {
+    enumerate.mockRejectedValueOnce(new Error('NotAllowedError'));
+    const result = await setOutput(audio(), 'Speakers (Realtek)');
+    expect(result).toMatchObject({ ok: false, kind: 'unlisted' });
     expect(setSinkId).toHaveBeenLastCalledWith('');
   });
 
   it('a choice cannot be applied where setSinkId does not exist', async () => {
     delete (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId;
-    expect((await setOutput(audio(), 'Speakers (Realtek)')).ok).toBe(false);
+    expect(await setOutput(audio(), 'Speakers (Realtek)')).toMatchObject({ ok: false, kind: 'unlisted' });
     expect((await setOutput(audio(), '')).ok).toBe(true);
   });
 

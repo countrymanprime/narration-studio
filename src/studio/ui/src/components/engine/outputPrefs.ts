@@ -110,7 +110,13 @@ export function useAppliedOutput(getElement: () => HTMLMediaElement | undefined,
       if (stale) return;
       // Said where the problem arises, not in the Output popover that may be closed (#4044); the sound is already back on the default.
       // A gone output is said as the one sentence `useOutputDevices` says for it (the same text is one toast); a refusal as `deviceProblem`.
-      const problem = result.ok ? null : result.missing ? missingOutputSentence(device, 'Sound plays') : deviceProblem(device);
+      const problem = result.ok
+        ? null
+        : result.kind === 'missing'
+          ? missingOutputSentence(device, 'Sound plays')
+          : result.kind === 'unlisted'
+            ? result.message
+            : deviceProblem(device);
       if (problem) overlay.toast(problem);
     });
     return () => {

@@ -142,6 +142,17 @@ describe('the output device', () => {
     expect(toast).toHaveBeenCalledWith(gone);
   });
 
+  // A list that will not come is not an unplugged speaker: the toast must not say the output is not connected.
+  it('says the list would not come, not that the output is gone, when the listing throws', async () => {
+    vi.stubGlobal('navigator', { ...navigator, mediaDevices: { enumerateDevices: vi.fn(async () => Promise.reject(new Error('NotAllowedError'))) } });
+    mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });
+    await flush();
+    await flush();
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('would not list its outputs'));
+    expect(toast).not.toHaveBeenCalledWith(missingOutputSentence('Studio monitors', 'Sound plays'));
+    expect(instances[0].setSinkId).toHaveBeenLastCalledWith('');
+  });
+
   it('says so when the audio system refuses the output', async () => {
     refuse = true;
     mount({ ...DEFAULT_OUTPUT, device: 'Studio monitors' });

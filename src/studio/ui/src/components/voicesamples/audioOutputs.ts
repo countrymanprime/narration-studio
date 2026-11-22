@@ -43,8 +43,9 @@ export async function listAudioOutputs(): Promise<OutputListing> {
 /** What is said of a saved output that is not connected; `plays` is what sounds on the system default meanwhile ("Sound plays", "Voice samples play"). */
 export const missingOutputSentence = (label: string, plays: string): string => `${label} is not connected. ${plays} on the system default until it is back.`;
 
-export type SinkResult =
-  { ok: true } | { ok: false; message: string; /** The named output is not in the list (as against refused by the audio system). */ missing?: true };
+/** Why a named output could not be used: it is not in the list, the list would not come (or the webview cannot choose), or the audio system refused it. */
+export type SinkFailure = 'missing' | 'unlisted' | 'refused';
+export type SinkResult = { ok: true } | { ok: false; message: string; kind: SinkFailure };
 
 async function toDefault(element: Sinkable): Promise<void> {
   try {
@@ -63,18 +64,22 @@ export async function setOutput(element: Sinkable, label: string): Promise<SinkR
     await toDefault(element);
     return { ok: true };
   }
-  if (!element.setSinkId) return { ok: false, message: OUTPUTS_UNAVAILABLE };
+  if (!element.setSinkId) return { ok: false, message: OUTPUTS_UNAVAILABLE, kind: 'unlisted' };
   const listing = await listAudioOutputs();
-  const found = listing.status === 'ok' ? listing.outputs.find((o) => o.label === label) : undefined;
+  if (listing.status === 'unavailable') {
+    await toDefault(element);
+    return { ok: false, message: listing.message, kind: 'unlisted' };
+  }
+  const found = listing.outputs.find((o) => o.label === label);
   if (!found) {
     await toDefault(element);
-    return { ok: false, message: missingOutputSentence(label, 'Voice samples play'), missing: true };
+    return { ok: false, message: missingOutputSentence(label, 'Voice samples play'), kind: 'missing' };
   }
   try {
     await element.setSinkId(found.id);
     return { ok: true };
   } catch {
     await toDefault(element);
-    return { ok: false, message: `Could not play on ${label}. Choose another output or use the system default.` };
+    return { ok: false, message: `Could not play on ${label}. Choose another output or use the system default.`, kind: 'refused' };
   }
 }
