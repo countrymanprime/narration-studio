@@ -15,7 +15,11 @@ import type { SystemApi } from '../../../../api/contracts/system';
 import { readableFailure } from '../../../../api/errorMessage';
 
 export type ScriptPorts = {
-  manuscript: Pick<ManuscriptApi, 'manuscriptChapters' | 'manuscriptParagraphs'>;
+  manuscript: Pick<ManuscriptApi, 'manuscriptParagraphs'>;
+  /** The chapter list, from the store every page shares (`useReadChapters`): the first read serves what it holds, a later one (a job ended, a Retry) reads it now. */
+  readChapters: (fresh: boolean) => Promise<ManuscriptChapter[]>;
+  /** The store's list as it changes (a job ends, a take, a link, the window used again): the page's `chapters` follows it, so Script has no refresh rules of its own for the list. */
+  followChapters?: (onList: (list: ManuscriptChapter[]) => void, onFailed: (error: unknown) => void) => () => void;
   marks: Pick<MarksApi, 'marksList'>;
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepList'>;
   storyBible: Pick<StoryBibleApi, 'guideEntities' | 'guideTypes' | 'guideDialogueCuesIn'>;
@@ -101,7 +105,7 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
   };
 
   const readers: { [L in ScriptList]: () => Promise<NonNullable<ScriptDataState[L]> extends Loadable<infer T> ? T : never> } = {
-    chapters: () => ports.manuscript.manuscriptChapters(),
+    chapters: () => ports.readChapters(state.chapters !== undefined),
     marks: () => ports.marks.marksList(),
     prep: () => ports.scriptPrep.scriptPrepList(),
     entries: () => ports.storyBible.guideEntities(),
@@ -154,7 +158,8 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
 
   /** Everything loaded is read again: a job may have replaced the manuscript or rebuilt the Story Bible. */
   const reloadLoaded = () => {
-    (Object.keys(readers) as ScriptList[]).filter((list) => state[list]).forEach((list) => void load(list));
+    // The chapter list is the store's: it reads itself on a job end and the page follows it.
+    (Object.keys(readers) as ScriptList[]).filter((list) => list !== 'chapters' && state[list]).forEach((list) => void load(list));
     Object.keys(state.paragraphs).forEach((chapterId) => void loadParagraphs(chapterId));
     void loadCues();
   };
@@ -204,21 +209,30 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
         const offProject = ports.system.subscribeProjectAttach((attach) => {
           if (!attach.attached) return;
           // The old project's answers are dropped and what the page was reading is read for the new one.
-          const lists = (Object.keys(readers) as ScriptList[]).filter((list) => state[list]);
+          const hadChapters = Boolean(state.chapters);
+          const lists = (Object.keys(readers) as ScriptList[]).filter((list) => list !== 'chapters' && state[list]);
           const chapterIds = Object.keys(state.paragraphs);
           const cueChapterIds = Object.keys(state.cues);
           latest.clear();
-          set({ cues: {}, paragraphs: {} });
+          // The old project's list goes with it; the store is emptied by the same attach and the page follows what it reads for the new project (`followChapters`).
+          set({ cues: {}, paragraphs: {}, chapters: undefined });
+          if (hadChapters) void load('chapters');
           lists.forEach((list) => void load(list));
           chapterIds.forEach((chapterId) => void loadParagraphs(chapterId));
           void loadCues(cueChapterIds);
         });
+        const offChapters = ports.followChapters?.(
+          (list) => set({ ...state, chapters: { status: 'ready', value: list } }),
+          // A failed read of the store's list keeps the list on screen and says why, with the page's Retry (a failure never replaces a held value).
+          (error) => set({ ...state, chapters: { status: 'error', message: readableFailure(error, NO_REASON), value: state.chapters?.value } }),
+        );
         const offPronunciation = ports.pronunciation?.subscribe(() => {
           if (state.entries) void load('entries');
         });
         stop = () => {
           offJob();
           offProject();
+          offChapters?.();
           offPronunciation?.();
         };
       }

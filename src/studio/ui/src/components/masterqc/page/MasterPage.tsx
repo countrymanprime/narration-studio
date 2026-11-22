@@ -35,6 +35,7 @@ import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
 import { DawConnectionChip } from '../../connection/DawConnectionChip';
 import { DawToolsButton } from '../../engine/DawToolsButton';
+import { useChapters, useReadChapters } from '../../../studio/useChapters';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -92,10 +93,12 @@ function sayOnce(prefix: string, reason: string): string {
 }
 
 function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, focusFile }: BodyProps & { projectFolder: string }) {
-  const manuscript = usePort('manuscript');
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  const readChapters = useReadChapters(projectFolder);
+  // The first frame already has the store's list when it holds one (the read below is async, so seeding from it avoids a frame of the loading box and a table that then appears).
+  const held = useChapters(false).chapters;
+  const [chapters, setChapters] = useState<ManuscriptChapter[]>(() => (held ? [...held] : []));
   const [chaptersProblem, setChaptersProblem] = useState<string>();
-  const [chaptersRead, setChaptersRead] = useState(false);
+  const [chaptersRead, setChaptersRead] = useState(held !== undefined);
   const profilesPort = usePort('deliveryProfiles');
   const run = useMeasureRun();
   useMeasureErrors(run);
@@ -144,14 +147,14 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
 
   useEffect(() => {
     let live = true;
-    manuscript.manuscriptChapters().then(
+    readChapters(chaptersAttempt > 0).then(
       (list) => live && (setChapters(list), setChaptersRead(true)),
       (error) => live && (setChaptersProblem(apiErrorMessage(error)), setChaptersRead(true)),
     );
     return () => {
       live = false;
     };
-  }, [manuscript, chaptersAttempt]);
+  }, [readChapters, chaptersAttempt]);
   const retryChapters = () => {
     setChaptersProblem(undefined);
     setChaptersRead(false);

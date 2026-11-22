@@ -96,7 +96,8 @@ export function usePipelineSources(
           setPrepRead({ value: Object.fromEntries(record.chapters.map((chapter) => [chapterIdOfPrepId(chapter.chapterId), chapter.state])), generation }),
         () => live && setPrepRead({ value: undefined, generation }),
       );
-      // A held list is served on a first ask and in a new project (the store was emptied: it reads); a new refresh key in the same project reads it now.
+      // A held list is served on a first ask and in a new project (the store was emptied: it reads); a new refresh key in the same project reads it now: nothing announces what
+      // the key stands for. The chapter tools beside it (`useChapterTools`) serve the list and wait for this read, so a key is one read of the list.
       const previous = asked.current;
       asked.current = { generation, key: refreshKey };
       const fresh = previous !== undefined && previous.generation === generation && previous.key !== refreshKey;
