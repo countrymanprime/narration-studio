@@ -295,10 +295,13 @@ describe('Settings: row layout', () => {
     expect(within(row('project.roomTone')).queryByRole('combobox')).toBeNull();
     expect((box as HTMLInputElement).value).toBe('0');
     expect(within(row('project.roomTone')).getByText('From 0 to 10 s')).toBeTruthy();
-    fireEvent.change(box, { target: { value: '2.5' } });
+    // CS-N1 (owner decision, this PR): a number is never refused by the box. Junk text reverts and saves
+    // nothing; a number between steps moves onto the step (this test pinned the old refusal of 2.5).
+    fireEvent.change(box, { target: { value: '1e1' } });
     fireEvent.blur(box);
     expect(saved).not.toHaveBeenCalled();
-    fireEvent.change(box, { target: { value: '3' } });
+    expect((box as HTMLInputElement).value).toBe('0');
+    fireEvent.change(box, { target: { value: '2.5' } });
     fireEvent.blur(box);
     await waitFor(() => expect(saved).toHaveBeenCalledWith('General', 'global', { credits_room_tone_seconds: '3' }));
   });
