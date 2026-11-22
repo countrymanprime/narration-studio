@@ -10,7 +10,6 @@ Storybook title: `Editing/OutputControls`. Source: `src/components/editing/outpu
 - Listing Outputs
 - No Outputs Listed
 - Saved Output Not Connected
-- Output Refused
 - Long And Foreign Names
 - Daw Monitor Level
 - Daw Monitor Reading
