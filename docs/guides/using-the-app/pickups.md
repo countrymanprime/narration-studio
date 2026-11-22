@@ -112,10 +112,10 @@ while it cannot read, and whenever you return to the window.
 **Check recordings** opens the recording check on the chapters whose check is not current, so their gaps can join the
 list. It is off when the DAW is not reachable. An off button stays in the Tab order: focus it and the reason appears, and
 a screen reader reads it as the button's description. **Add a pickup by hand** asks for the time in the
-recording (`00:05:12.000`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
+recording (`00:05:12`, or `5:12`; seconds run 00 to 59; a time typed with tenths, `5:12.5`, is kept to the nearest second, `00:05:13`) and the line to re-record (one line, up to 500 characters), and
 adds it to the chapter in view (with every chapter shown, a **Chapter** list under the title starts on the last chapter you
-stepped to, or the first, and you can pick another); with one chapter in view the form names it, and **Close** or Escape leaves it. The time box shows the shape, `hh:mm:ss.fff`, in
-grey until you type, and `5:12` becomes `00:05:12.000` when you leave the box. A line over 500 characters is refused under its box. A time or line the app cannot use is said once, under its box, which is marked as wrong until you change
+stepped to, or the first, and you can pick another); with one chapter in view the form names it, and **Close** or Escape leaves it. The time box shows the shape, `hh:mm:ss`, in
+grey until you type, and `5:12` becomes `00:05:12` when you leave the box. A line over 500 characters is refused under its box. A time or line the app cannot use is said once, under its box, which is marked as wrong until you change
 it; the form keeps what you typed. If the app refuses a line that looks right, a short message says why.
 
 ![Pickups - Add a pickup by hand: the time in the recording and the line to re-record](../../images/ui/pickups-add.webp)

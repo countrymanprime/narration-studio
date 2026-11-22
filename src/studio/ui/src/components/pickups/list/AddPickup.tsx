@@ -4,7 +4,7 @@ import { Button } from '../../primitives/Button';
 import { Field } from '../../primitives/Field';
 import { Select } from '../../primitives/Select';
 import { IconButton } from '../../primitives/IconButton';
-import { clock, parseClock, PICKUP_LINE_MAX, reasonSentence } from './pickupRows';
+import { pickupTime, parseClock, PICKUP_LINE_MAX, reasonSentence } from './pickupRows';
 
 /**
  * The popover form of "Add a pickup by hand" (mock `AddPickup`): the time in the recording and the line to re-record, for the chapter in view.
@@ -42,7 +42,7 @@ export function AddPickup({
     if (!line.trim()) return refuse('line', 'Type the line first.');
     if ([...line.trim()].length > PICKUP_LINE_MAX) return refuse('line', `A line can be at most ${PICKUP_LINE_MAX} characters.`);
     const seconds = parseClock(time);
-    if (seconds === null) return refuse('time', 'Type the time like 00:05:12.000.');
+    if (seconds === null) return refuse('time', `Type the time like ${pickupTime(312)}.`);
     setProblem(null);
     sending.current = true;
     setBusy(true);
@@ -87,12 +87,12 @@ export function AddPickup({
           setTime(value);
           if (problem?.field === 'time') setProblem(null);
         }}
-        /* The format, not a time: a sample such as 00:05:12.000 in the box's muted text reads as a value already typed. */
-        placeholder="hh:mm:ss.fff"
-        /* A time such as 5:12 is shown as the form it is kept in (00:05:12.000), so the rewrite is seen and not silent. */
+        /* The format, not a time: a sample such as 00:05:12 in the box's muted text reads as a value already typed. */
+        placeholder="hh:mm:ss"
+        /* A time such as 5:12 is shown as the form it is shown in (00:05:12), so the rewrite is seen and not silent. */
         onBlur={() => {
           const seconds = parseClock(time);
-          if (seconds !== null) setTime(clock(seconds));
+          if (seconds !== null) setTime(pickupTime(seconds));
         }}
         error={problem?.field === 'time' ? problem.text : undefined}
       />

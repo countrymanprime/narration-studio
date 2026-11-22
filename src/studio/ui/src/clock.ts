@@ -18,6 +18,11 @@ export type ClockOptions = {
    */
   full?: true;
   /**
+   * `hh:mm:ss`, always: two-digit hours, minutes and seconds, rounded to the NEAREST second ("00:02:11"; 130.4 reads "00:02:10", 130.5 "00:02:11"), no milliseconds.
+   * Owner, 2026-11-22 (#3590): the form of a Pickups time and nowhere else (`clock.guard.test.ts` lists the one file that asks for it). Overrides the other options except `full`.
+   */
+  hms?: true;
+  /**
    * Hours and minutes with their units, "5h 40m" ("0h 10m", "100h 30m"), always marked, so a length of hours beside lengths in minutes and seconds ("10:12") cannot be
    * read as minutes and seconds (owner, 2026-11-16, #3443): every Production and Schedule hours figure. It FLOORS to the whole minute like every other reading (the floor rule of #3443, whose owner confirmation is still open there): 61 s, 89 s,
    * 90 s and 119 s read "0h 01m", 120 s reads "0h 02m", and under a minute (0 < s < 60) it reads "<0h 01m", never "0h 01m", so a figure is never ahead of the time it stands for.
@@ -37,6 +42,7 @@ const pad = (value: number): string => String(value).padStart(2, '0');
  */
 export function clock(seconds: number, options: ClockOptions = {}): string {
   if (options.full) return clockFull(seconds);
+  if (options.hms) return clockHms(seconds);
   if (options.marked) return clockMarked(seconds);
   const whole = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
   const hours = Math.floor(whole / 3600);
@@ -78,6 +84,12 @@ export function spokenMarked(text: string): string {
     const [hours, minutes] = [Number(h), Number(m)];
     return [hours > 0 ? plural(hours, 'hour') : '', minutes > 0 || hours === 0 ? plural(minutes, 'minute') : ''].filter(Boolean).join(' ');
   });
+}
+
+/** `hh:mm:ss` (see `ClockOptions.hms`): the nearest whole second; negative and non-finite input reads zero, a value past a billion seconds is capped like `full`. */
+function clockHms(seconds: number): string {
+  const whole = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.round(seconds)), MAX_FULL_MILLIS / 1000) : 0;
+  return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor(whole / 60) % 60)}:${pad(whole % 60)}`;
 }
 
 /** `hh:mm:ss.fff` (see `ClockOptions.full`): floored to the millisecond, so every field is in range and no reading is ahead of the time it stands for. */

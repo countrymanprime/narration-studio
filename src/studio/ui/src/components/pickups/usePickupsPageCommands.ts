@@ -1,7 +1,7 @@
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
 import { addMarkersLabel } from '../engine/AddMarkers';
 import type { PickupItem } from '../../api/contracts/pickups';
-import { ALL_SCOPE, clock, lineText, sessionPickups, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, pickupTime, lineText, sessionPickups, type ChapterRef } from './list/pickupRows';
 
 type Gate = { available: boolean; message?: string };
 
@@ -32,7 +32,7 @@ export function usePickupsPageCommands(page: {
     for (const pickup of page.pickups.filter((p) => !p.done)) {
       items.push({
         id: `pickup.${pickup.id}`,
-        label: `${clock(pickup.time)} · ${lineText(pickup)}`,
+        label: `${pickupTime(pickup.time)} · ${lineText(pickup)}`,
         group: 'Pickups',
         hint: nameOf(pickup.chapterId),
         icon: 'locate',

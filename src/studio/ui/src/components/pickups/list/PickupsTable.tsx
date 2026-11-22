@@ -17,7 +17,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { statusLabel, statusTone } from '../../../kinds/statusTone';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { AddPickup } from './AddPickup';
-import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, pickupKind, typeLabel, ALL_SCOPE, type ChapterRef } from './pickupRows';
+import { pickupTime, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, pickupKind, typeLabel, ALL_SCOPE, type ChapterRef } from './pickupRows';
 import { ScriptLine } from './ScriptLine';
 import { FINE_LABEL, fineUnavailable, NO_NOTE, PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
@@ -37,7 +37,7 @@ const ROW_HEIGHT = '[&>td]:h-[57px]';
  * Fixed columns, so a Recorded line, a left-out line or a chapter switch never moves them (alignment audit XPK-3): include, Time, Type,
  * the line (the rest), From, Status (the pill and "Not in the DAW yet" under it) and the four actions with Remove set apart.
  */
-const COLUMNS = ['2.625rem', '6.5rem', '5.25rem', 'auto', '4.5rem', '6.25rem', '12rem'] as const;
+const COLUMNS = ['2.625rem', '4.75rem', '6.5rem', 'auto', '4.5rem', '6.25rem', '12rem'] as const;
 /**
  * Every cell starts at the row's top, 10 px in, and each one-line cell is a 36 px box (the icon buttons' height) centring what it holds,
  * so the checkbox, time, chip, source, status and buttons sit on the line's first text line in a tall row as in a short one (XPK-1).
@@ -206,7 +206,8 @@ export function PickupsTable({
         await onSetDone(id, done);
         changed = true;
       });
-      if (changed && pickup) overlay.announce(done ? `${clock(pickup.time)} marked recorded. It leaves the session.` : `${clock(pickup.time)} is open again.`);
+      if (changed && pickup)
+        overlay.announce(done ? `${pickupTime(pickup.time)} marked recorded. It leaves the session.` : `${pickupTime(pickup.time)} is open again.`);
     });
   /* A double click on Remove is one removal: its second click (`detail` 2) lands on the line that moved up into the first one's place, so
      it is ignored, and so is any removal while another is being answered. */
@@ -231,7 +232,7 @@ export function PickupsTable({
         removed = true;
       });
       if (!removed) return;
-      if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo.undo, { entry: undo.entry });
+      if (undo) overlay.toastUndo(`Removed ${pickupTime(pickup.time)} from pickups.`, undo.undo, { entry: undo.entry });
       else {
         /* Removals in a row are one message that counts them, so the no-Undo sentence is said once, not on a stack of toasts (R3PK-2, XPK-11). */
         const now = Date.now();
@@ -239,7 +240,7 @@ export function PickupsTable({
         removedRun.current = { count: run, at: now };
         overlay.toast(
           run === 1
-            ? `Removed ${clock(pickup.time)} from pickups. A line from a check or a note stays off the list, so there is no Undo.`
+            ? `Removed ${pickupTime(pickup.time)} from pickups. A line from a check or a note stays off the list, so there is no Undo.`
             : `Removed ${run} lines from pickups. A line from a check or a note stays off the list, so there is no Undo.`,
           { topic: REMOVED_TOPIC },
         );
@@ -263,7 +264,7 @@ export function PickupsTable({
         done = true;
       });
       if (!done) return;
-      const text = `${clock(pickup.time)} is fine as read: its note on Proof is cleared and it is off the list.`;
+      const text = `${pickupTime(pickup.time)} is fine as read: its note on Proof is cleared and it is off the list.`;
       if (answer) overlay.toastUndo(text, answer.undo, { entry: answer.entry });
       else overlay.toast(text);
       region.current?.focus();
@@ -428,12 +429,12 @@ export function PickupsTable({
                         <TableCell valign="top" className={CELL_TOP}>
                           <span className={LINE_BOX}>
                             <Checkbox checked={pickup.included && !pickup.done} disabled={pickup.done} onChange={(checked) => setIncluded(pickup.id, checked)}>
-                              <span className="sr-only">Include {clock(pickup.time)} in the session</span>
+                              <span className="sr-only">Include {pickupTime(pickup.time)} in the session</span>
                             </Checkbox>
                           </span>
                         </TableCell>
                         <TableCell numeric align="left" valign="top" className={`${CELL_TOP} leading-9 ${leftOut(pickup) ? LEFT_OUT_TEXT : ''}`}>
-                          {clock(pickup.time)}
+                          {pickupTime(pickup.time)}
                         </TableCell>
                         <TableCell valign="top" className={CELL_TOP}>
                           <span className={`${LINE_BOX} whitespace-nowrap`}>
@@ -541,7 +542,7 @@ function ShowWhere({
   return (
     <TableRow data={{ 'data-show-where': pickup.id }} className={NARROW_SPAN_ROW}>
       <TableCell colSpan={7} className="bg-[var(--surface-2)]">
-        <section aria-label={`Where ${clock(pickup.time)} is`} className="sticky left-2 flex max-w-[min(60rem,calc(100vw-5rem))] flex-col gap-2 py-1">
+        <section aria-label={`Where ${pickupTime(pickup.time)} is`} className="sticky left-2 flex max-w-[min(60rem,calc(100vw-5rem))] flex-col gap-2 py-1">
           {where?.(pickup)}
           <div className="flex flex-wrap items-center gap-2">
             {canFine && (
