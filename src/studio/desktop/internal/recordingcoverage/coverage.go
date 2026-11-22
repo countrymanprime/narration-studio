@@ -606,13 +606,27 @@ func (a *AlignedChapter) keepLastOfARepeatedWord(heard []int, used []bool) {
 				break
 			}
 		}
-		for j+1 < next && !used[j+1] && a.AudioTokens[j+1] == a.AudioTokens[j] {
-			used[j], used[j+1] = false, true
-			j++
+		// The next copy: straight after, or after a filler of a few words said between them (a word misspoken, "um", and the word said again).
+		for {
+			copy := -1
+			for k := j + 1; k < next && k <= j+1+maxFiller && !used[k]; k++ {
+				if a.AudioTokens[k] == a.AudioTokens[j] {
+					copy = k
+					break
+				}
+			}
+			if copy < 0 {
+				break
+			}
+			used[j], used[copy] = false, true
+			j = copy
 		}
 		heard[i] = j
 	}
 }
+
+// maxFiller is the most words said between a word and the copy of it that replaces it: "alice um alice".
+const maxFiller = 2
 
 // minRepeatTokens is the fewest chapter words an extra run must say again to
 // be a repeat, unless they are a whole line.

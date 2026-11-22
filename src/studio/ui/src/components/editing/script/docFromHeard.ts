@@ -89,11 +89,15 @@ export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repea
   /** A run of added words straight before the first word of a line, that starts by saying that word, is a start of that line said again (a misspoken first word). It is the line's when it is nearer that line's first word than the word before it. */
   const startsNextLine = (k: number): boolean => {
     const next = words[upNext[k]];
-    const head = words[runStart[k]];
-    if (!next || next.ordinal !== 0 || normKey(head.text) !== normKey(next.text)) return false;
+    if (!next || next.ordinal !== 0) return false;
+    // The run begins at the first word that says the line's first word again: a filler before it ("um go") stays with the line before.
+    let head = runStart[k];
+    while (head < upNext[k] && normKey(words[head].text) !== normKey(next.text)) head++;
+    if (head > k || head >= upNext[k]) return false;
     const before = words[runStart[k] - 1];
-    if (head.off0 === undefined || head.off1 === undefined || next.off0 === undefined || !before || before.off1 === undefined) return true;
-    return next.off0 - head.off1 <= head.off0 - before.off1;
+    const said = words[head];
+    if (said.off0 === undefined || said.off1 === undefined || next.off0 === undefined || !before || before.off1 === undefined) return true;
+    return next.off0 - said.off1 <= said.off0 - before.off1;
   };
   let current = first;
   words.forEach((w, k) => {

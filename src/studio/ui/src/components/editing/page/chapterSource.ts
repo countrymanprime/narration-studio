@@ -193,7 +193,8 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
       }
     }
   }
-  return out;
+  // One line can run across items and back: the play steps through the document in order.
+  return out.sort((a, b) => a.elapsedStart - b.elapsedStart);
 }
 
 /** The chapter's length now: where its last heard word ends. */
@@ -233,9 +234,11 @@ function doubledRead(read: ChapterRead, paragraphId: string): { startsAt: number
  */
 export function docTimeOf(doc: ChapterDoc, read: ChapterRead, paragraphId: string, sourceTime: number): number | null {
   const para = doc.paras.find((p) => p.p.id === paragraphId);
-  const item = para?.items.find((i) => i.src && i.t0 != null && !i.cut && i.st !== 'miss')?.src?.item;
-  if (item === undefined) return null;
-  const pieces = itemClocks(doc).get(item) ?? [];
+  // The item is the one `stretchOrigin` counts from: the first word heard in the paragraph, and only the pieces its words sit in are its own.
+  const item = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId)?.item;
+  if (!para || item === undefined) return null;
+  const mine = para.items.filter((i) => i.src?.item === item && i.t0 != null && !i.cut && i.st !== 'miss');
+  const pieces = (itemClocks(doc).get(item) ?? []).filter((p) => mine.some((i) => (i.t0 as number) >= p.from - 1e-9 && (i.t0 as number) < p.to - 1e-9));
   const hit = pieces.filter((p) => sourceTime + p.shift >= p.from - 1e-9).at(-1) ?? pieces[0];
   return hit ? sourceTime + hit.shift : null;
 }

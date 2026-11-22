@@ -541,3 +541,15 @@ func TestAFirstBodyWordSaidTwiceAfterTheHeadingIsFlaggedOnItsFirstCopy(t *testin
 	eq(t, *tokens[2].Audio, 3)
 	eq(t, extras, [][2]int{{2, 3}})
 }
+
+func TestAFillerBetweenTheTwoCopiesStillKeepsTheLastCopy(t *testing.T) {
+	// Issue #4047: "alice", "um", "alice": the correction is the last copy, and the misspoken one and the filler are extra.
+	a := aligned(t, []string{"we go home", "go now please thanks"}, "we go home go um go now please thanks", "")
+	tokens, extras := a.AlignTokens(DefaultParams)
+	eq(t, *tokens[3].Audio, 5)
+	eq(t, extras, [][2]int{{3, 5}})
+	a = aligned(t, []string{"alice sat"}, "chapter one alice um alice sat", "chapter one")
+	tokens, extras = a.AlignTokens(DefaultParams)
+	eq(t, *tokens[2].Audio, 4)
+	eq(t, extras, [][2]int{{2, 4}})
+}

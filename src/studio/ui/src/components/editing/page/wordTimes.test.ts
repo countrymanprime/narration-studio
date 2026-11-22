@@ -325,6 +325,21 @@ describe('added words straight before the first word of a line (issue #4047)', (
     sorted.slice(1).forEach((s, k) => expect(s.sourceStart).toBeGreaterThanOrEqual(sorted[k].sourceEnd - 1e-6));
   });
 
+  it('moves the copy of the first word and what follows it, and leaves a filler said before it with the line before', () => {
+    const read = readFrom(lines, [
+      at('we', 1, 'p-1', 0),
+      at('home', 1.4, 'p-1', 1),
+      at('um', 5.6),
+      at('go', 6),
+      at('go', 7.5, 'p-2', 0),
+      at('now', 8, 'p-2', 1),
+      at('please', 8.4, 'p-2', 2),
+      at('thanks', 8.8, 'p-2', 3),
+    ]);
+    const doc = docOf(read);
+    expect(doc.items.filter((i) => i.kind === 'x').map((i) => `${i.pid}:${i.text}`)).toEqual(['p-1:um', 'p-2:go']);
+  });
+
   it('leaves an aside said right after the last word of a line with that line, however far the next one is', () => {
     const read = readFrom(lines, [
       at('we', 1, 'p-1', 0),
@@ -337,5 +352,31 @@ describe('added words straight before the first word of a line (issue #4047)', (
     ]);
     const doc = docOf(read);
     expect(doc.items.find((i) => i.kind === 'x')?.pid).toBe('p-1');
+  });
+});
+
+describe('the split of a line said twice, in a line across two items with a closed cut (issue #4047)', () => {
+  const heard = ['one', 'two', 'three', 'four', 'five', 'six'].map((text, k) => ({
+    text,
+    paragraphId: 'p-1',
+    ordinal: k,
+    item: k < 3 ? 0 : 1,
+    off0: k < 3 ? 2 + k * 0.5 : 40 + (k - 3) * 0.5,
+    off1: k < 3 ? 2.4 + k * 0.5 : 40.4 + (k - 3) * 0.5,
+    conf: 1,
+  }));
+  const read = readFrom([{ id: 'p-1', text: 'one two three four five six' }], heard, {
+    items: [
+      { index: 0, itemGuid: 'item-0', live: true },
+      { index: 1, itemGuid: 'item-1', live: true },
+    ],
+  });
+  const plain = docOf(read);
+  const cutRead = { ...read, cuts: [editCut(plain, [plain.items[1].key], 'close')] };
+  const doc = docOf(cutRead);
+
+  it('puts a moment of the first item on the document by its own pieces', () => {
+    const three = doc.items[2];
+    expect(docTimeOf(doc, cutRead, 'p-1', 3.0)).toBeCloseTo(three.t0 as number, 2);
   });
 });
