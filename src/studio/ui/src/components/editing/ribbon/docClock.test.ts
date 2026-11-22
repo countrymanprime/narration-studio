@@ -120,7 +120,7 @@ const DRIFT = answerOf([
 describe('itemClocks: where an item’s source seconds sit on the document clock', () => {
   it('is document minus source for each paragraph, and moves from one paragraph to the next', () => {
     const doc = docFromHeard(PARAS, DRIFT);
-    const clocks = itemClocks(doc, DRIFT);
+    const clocks = itemClocks(doc);
     const pieces = clocks.get(0)!;
     expect(pieces).toHaveLength(3);
     for (const [k, pid] of ['p-0', 'p-1', 'p-2'].entries()) {
@@ -135,7 +135,7 @@ describe('itemClocks: where an item’s source seconds sit on the document clock
 
   it('draws every line of the chapter where it is heard: the loud columns sit where the words of the line are', () => {
     const doc = docFromHeard(PARAS, DRIFT);
-    const clocks = itemClocks(doc, DRIFT);
+    const clocks = itemClocks(doc);
     const file = speechPeaks(0, 30, [
       [1, 1.6],
       [10, 11.5],
@@ -160,21 +160,21 @@ describe('itemClocks: where an item’s source seconds sit on the document clock
     const doc = docFromHeard(PARAS.slice(1, 2), answer);
     const first = doc.items[0];
     // The document puts a line at 0.5 s + lead-in; a recording that says it there has no shift.
-    const pieces = itemClocks(doc, answer).get(0)!;
+    const pieces = itemClocks(doc).get(0)!;
     expect(pieces).toHaveLength(1);
     expect(pieces[0].shift).toBeCloseTo(first.t0! - 0.65, 3);
   });
 
   it('has no entry for an item no word was heard on, and none for a chapter nothing was heard in', () => {
     const doc = docFromHeard(PARAS, DRIFT);
-    expect(itemClocks(doc, DRIFT).has(1)).toBe(false);
-    expect(itemClocks(docFromHeard(PARAS, { heard: null, reason: 'x', reasons: [] }), { heard: null, reason: 'x', reasons: [] }).size).toBe(0);
+    expect(itemClocks(doc).has(1)).toBe(false);
+    expect(itemClocks(docFromHeard(PARAS, { heard: null, reason: 'x', reasons: [] })).size).toBe(0);
   });
 
   it('keeps a second item of the line on its own piece', () => {
     const answer = answerOf([...said('p-1', 'Alice was tired', 10, 0), ...said('p-1', 'of sitting', 10.9, 1, 3)]);
     const doc = docFromHeard(PARAS.slice(1, 2), answer);
-    const clocks = itemClocks(doc, answer);
+    const clocks = itemClocks(doc);
     expect([...clocks.keys()]).toEqual([0, 1]);
     for (const item of [0, 1]) for (const piece of clocks.get(item)!) expect(Number.isFinite(piece.shift)).toBe(true);
   });
@@ -187,10 +187,9 @@ describe('a closed cut inside a line', () => {
   const tired = base.items[2];
   const cut: DocCut = { id: 'cut-1', a: was.t0!, b: tired.t1!, mode: 'close', keys: [was.key, tired.key], off0: was.off0!, off1: tired.off1! };
   const doc = docFromHeard(PARAS.slice(1, 2), answerOf(said('p-1', 'Alice was tired of sitting', 10)), { cuts: [cut] });
-  const answer = answerOf(said('p-1', 'Alice was tired of sitting', 10));
 
   it('splits the item into a piece before the cut and a piece after it, at shifts 0.6 s apart', () => {
-    const pieces = itemClocks(doc, answer).get(0)!;
+    const pieces = itemClocks(doc).get(0)!;
     expect(pieces).toHaveLength(2);
     expect(pieces[0].shift - pieces[1].shift).toBeCloseTo(0.6, 2);
     expect(pieces[0].to).toBeLessThanOrEqual(pieces[1].from + 1e-9);
@@ -198,7 +197,7 @@ describe('a closed cut inside a line', () => {
 
   it('draws the words either side of the cut where they are heard, and the cut audio nowhere', () => {
     const l = ribbonLayout(doc, 'p-1', null)!;
-    const clocks = itemClocks(doc, answer);
+    const clocks = itemClocks(doc);
     const columns = (entry: WorkspacePeaks): PeakColumn[] => {
       const got = pickEntries(ready(entry), clocks, l.t0, l.t1, [0]);
       if (!('peaks' in got)) throw new Error(got.reason);
@@ -238,7 +237,7 @@ describe('a closed cut inside a line', () => {
       off1: lateBase.items[2].off1!,
     };
     const cutDoc = docFromHeard(PARAS.slice(1, 2), late, { cuts: [c] });
-    const pieces = itemClocks(cutDoc, late).get(0)!;
+    const pieces = itemClocks(cutDoc).get(0)!;
     const alice = cutDoc.items[0];
     expect(pieces[0].to - alice.t1!).toBeLessThanOrEqual(0.35 + 1e-9);
     expect(pieces[0].to - alice.t1!).toBeGreaterThan(0.2);

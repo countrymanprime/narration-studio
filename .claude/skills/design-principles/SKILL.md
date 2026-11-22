@@ -19,7 +19,7 @@ Skip it for a typo, a doc-only change or a one-line fix.
 
 ## What to do
 
-0. Check the plan against [one thing per job](../../rules/product-rules.md): a plan that adds a parallel thing without replacing the old one is rejected.
+0. Check the plan against [one thing per job](../../rules/product-rules.md): a plan that adds a parallel thing with neither a replacement of the old one nor a `Builds new because:` (a) or (b) reason is rejected.
 1. Read [the principles](../../../docs/architecture/principles.md) and pick the ones the change touches. Most changes touch two to four.
 2. For each, answer its question in the plan. Add a **Principles check** table next to the Design check: one row per principle touched, **met**, **at risk** (with the fix) or **waived** (with the reason and what would make you revisit), as `solid-design-review` does.
 3. Read the ADRs in `docs/adr/` (each is about one screen) and check the change against them. A principle is a summary; the ADR is the rule.

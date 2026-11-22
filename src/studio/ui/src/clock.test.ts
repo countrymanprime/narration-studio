@@ -149,3 +149,18 @@ describe('clockTenths', () => {
     expect(clockTenths(1500.255, { decimals: 2 })).toBe('25:00.26');
   });
 });
+
+describe('hms', () => {
+  it.each([
+    [0, '00:00:00'],
+    [130.4, '00:02:10'],
+    [130.5, '00:02:11'],
+    [59.6, '00:01:00'],
+    [3600, '01:00:00'],
+    [86399.6, '24:00:00'],
+    [-5, '00:00:00'],
+    [Number.NaN, '00:00:00'],
+    [Number.POSITIVE_INFINITY, '00:00:00'],
+  ])('%s s reads %s', (seconds, text) => expect(clock(seconds, { hms: true })).toBe(text));
+  it('is capped at a billion seconds like full', () => expect(clock(1e12, { hms: true })).toBe(clock(1e9, { hms: true })));
+});

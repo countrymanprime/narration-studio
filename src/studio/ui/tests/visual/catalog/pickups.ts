@@ -21,7 +21,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'show-where',
     description:
-      'Pickups, all chapters, the line at 07:30.9 from a note selected: under it In the script with its paragraph between the paragraphs before and after, Fine, not a pickup and Go to the note in Proof',
+      'Pickups, all chapters, the line at 00:07:31 from a note selected: under it In the script with its paragraph between the paragraphs before and after, Fine, not a pickup and Go to the note in Proof',
     ...REFLOW,
   },
   {
@@ -46,7 +46,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'add-popover-empty',
     description:
-      'Pickups with Add a pickup by hand submitted empty: "Type the line first." once, under the line box, no toast, and the time box showing its mm:ss.s hint',
+      'Pickups with Add a pickup by hand submitted empty: "Type the line first." once, under the line box, no toast, and the time box showing its hh:mm:ss hint',
     ...REFLOW,
   },
   {
