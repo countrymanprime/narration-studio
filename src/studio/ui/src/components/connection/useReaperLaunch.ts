@@ -55,9 +55,12 @@ export function useReaperLaunch({
     if (running.current) return;
     running.current = true;
     const say = (next: LaunchState) => alive.current && setState(next);
+    let heard = false;
     const readOnce = async () => {
       const next = await dawPort.capabilities();
       if (!alive.current) return false;
+      // An announcement heard while this read was out is newer than the read: the older picture it brings is not taken over it.
+      if (heard) return true;
       onCaps?.(next);
       return next.reachable;
     };
@@ -65,7 +68,6 @@ export function useReaperLaunch({
       say({ phase: 'starting' });
       // Listening starts before the launcher runs: the host announces the DAW answering (`subscribeCapabilities`) and a REAPER already open can
       // answer before the launcher returns, with no later event for a picture that has not changed.
-      let heard = false;
       let wake: (reached: boolean) => void = () => {};
       const stop: { off?: () => void } = {};
       stop.off = dawPort.subscribeCapabilities?.((next) => {
@@ -102,7 +104,7 @@ export function useReaperLaunch({
             leave.current = () => wake(false);
             if (heard) wake(true);
           });
-          reached = reached || (alive.current && (await readOnce()));
+          reached = reached || (alive.current && (await readOnce())) || heard;
         }
         if (!alive.current) return;
         if (reached) {

@@ -194,7 +194,7 @@ describe('the not-connected dialog', () => {
     act(() => emit(structuredClone(DAW_SETUPS['reaper-off'])));
     act(() => emit(structuredClone(DAW_SETUPS.reaper)));
     // The announced pictures end the wait; they are the page's own, so none is handed back and nothing is read.
-    await waitFor(() => expect(screen.queryByText(/has not answered yet/)).toBeNull());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-busy')).not.toBe('true'), { timeout: 3000 });
     expect(onCaps).toHaveBeenCalledTimes(handed);
     expect(dawCapabilities.mock.calls.length).toBe(reads);
     // Once it answered, later pictures are not acted on.
@@ -308,6 +308,44 @@ describe('the not-connected dialog', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       // One read after the launcher was taken; the announced picture was not handed back.
       expect(taken).toBeLessThanOrEqual(2);
+    });
+
+    it('an announcement heard while a read is out is not undone by the older picture that read brings', async () => {
+      const listeners = new Set<(caps: (typeof DAW_SETUPS)['reaper']) => void>();
+      const announce = (caps: (typeof DAW_SETUPS)['reaper']) => listeners.forEach((listener) => listener(caps));
+      let release: (caps: (typeof DAW_SETUPS)['reaper']) => void = () => {};
+      const client: DawClient = {
+        ...dawClientFor('reaper'),
+        capabilities: () => new Promise((resolve) => (release = resolve)),
+        subscribeCapabilities: (listener) => (listeners.add(listener), () => listeners.delete(listener)),
+      };
+      const { view, onCaps } = hookOn(client);
+      act(() => view.result.current.start());
+      await waitFor(() => expect(view.result.current.state.phase).toBe('waiting'));
+      act(() => announce(structuredClone(DAW_SETUPS.reaper)));
+      await act(async () => release(structuredClone(DAW_SETUPS['reaper-off'])));
+      await waitFor(() => expect(view.result.current.state.phase).toBe('idle'));
+      // The older, quiet picture was not taken over the announcement.
+      expect(onCaps.mock.calls.some(([caps]) => caps.reachable === false)).toBe(false);
+    });
+
+    it('an announcement heard while the read at the deadline is out ends the wait as answered', async () => {
+      const listeners = new Set<(caps: (typeof DAW_SETUPS)['reaper']) => void>();
+      const announce = (caps: (typeof DAW_SETUPS)['reaper']) => listeners.forEach((listener) => listener(caps));
+      let release: (caps: (typeof DAW_SETUPS)['reaper']) => void = () => {};
+      let reads = 0;
+      const client: DawClient = {
+        ...dawClientFor('reaper'),
+        // The read after the launcher is quiet at once; the one at the deadline is held.
+        capabilities: () => (++reads === 1 ? quiet() : new Promise((resolve) => (release = resolve))),
+        subscribeCapabilities: (listener) => (listeners.add(listener), () => listeners.delete(listener)),
+      };
+      const { view } = hookOn(client, 20);
+      act(() => view.result.current.start());
+      await waitFor(() => expect(reads).toBe(2), { timeout: 3000 });
+      act(() => announce(structuredClone(DAW_SETUPS.reaper)));
+      await act(async () => release(structuredClone(DAW_SETUPS['reaper-off'])));
+      await waitFor(() => expect(view.result.current.state.phase).toBe('idle'));
     });
 
     it('is let go of when it answers before it returns, and the wait ends at once', async () => {
