@@ -20,6 +20,11 @@ type numberSpec struct {
 func bound(value float64) *float64 { return &value }
 
 var numberSpecs = map[string]map[string]numberSpec{
+	// The room tone the credits estimate adds to each credits file: whole seconds, 0 (the default: count the words
+	// only) to 10. The stored text is what the UI's roomToneSeconds parses as a whole number.
+	"General": {
+		"credits_room_tone_seconds": {min: bound(0), max: bound(10), step: bound(1), unit: "s"},
+	},
 	// The recording check's settings (docs/utilities/recording-coverage.md Q3). The ranges keep a typo out: a share is a
 	// fraction of the paragraph's words, the runs are whole words, and an anchor is at least one word.
 	"RecordingCoverage": {

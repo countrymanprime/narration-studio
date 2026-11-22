@@ -119,6 +119,33 @@ func TestTheDefinitionSourceReadsAsWebWhenUnsetOrUnknown(t *testing.T) {
 	}
 }
 
+// General.credits_room_tone_seconds reads as 0 until it is set, and a stored value that is not a whole number from 0 to 10 (a hand-edited
+// file) reads as the layer below it, so the credits estimate never adds room tone Settings cannot show.
+func TestRoomToneReadsAsZeroWhenUnsetOrOutOfRange(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	store := New(t.TempDir(), t.TempDir())
+	if value, source := store.Effective("General", "credits_room_tone_seconds", ""); value != "0" || source != "repo_default" {
+		t.Fatalf("unset = %q from %q, want 0 from repo_default", value, source)
+	}
+	for _, step := range []struct{ scope, value, want, source string }{
+		{"global", "3", "3", "global"},
+		{"project", "11", "3", "global"},
+		{"project", "-1", "3", "global"},
+		{"project", "2.5", "3", "global"},
+		{"global", "lots", "0", "repo_default"},
+		{"project", "0", "0", "project"},
+		{"project", "10", "10", "project"},
+	} {
+		value := step.value
+		if err := store.Save("General", step.scope, map[string]*string{"credits_room_tone_seconds": &value}); err != nil {
+			t.Fatal(err)
+		}
+		if got, source := store.Effective("General", "credits_room_tone_seconds", ""); got != step.want || source != step.source {
+			t.Fatalf("after %s=%q: %q from %q, want %q from %q", step.scope, step.value, got, source, step.want, step.source)
+		}
+	}
+}
+
 // Editing.fx_cap_pct reads as 10 until it is set, and a stored value that is not a whole number from 1 to 100 (a hand-edited file) reads as
 // the layer below it, so the Effects tab never judges its coverage against a cap it cannot draw.
 func TestTheFxCapReadsAsTenWhenUnsetOrOutOfRange(t *testing.T) {

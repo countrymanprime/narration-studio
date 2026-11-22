@@ -643,7 +643,17 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '',
       effectiveSource: 'hardcoded',
     },
-    choice('credits_room_tone_seconds', 'Room tone per credits file (seconds)', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], '0'),
+    {
+      key: 'credits_room_tone_seconds',
+      label: 'Room tone per credits file (seconds)',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '0',
+      effectiveSource: 'repo default',
+      number: { min: 0, max: 10, step: 1, unit: 's' },
+    },
   ],
   Manuscript: [
     {

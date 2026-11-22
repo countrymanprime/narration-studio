@@ -321,7 +321,7 @@ The audit lists every site with its file and line; this table names the larger c
 | CS-B1, CS-B2, CS-B6 | Two Settings bodies are Off / On `RadioGroup`s; some booleans saved at once are `Checkbox`es, and a draft's are `Switch`es | S6 to S10, E4 |
 | CS-M1, CS-M2, CS-M7 | `components/production/ImportReview.tsx` selects chapter tiles and character tiles with a `Switch` each and "Select all" / "Select none" buttons; `components/recordingcheck/CheckRecordingsDialog.tsx` has "All" / "None" buttons | P1 to P4, K2 |
 | CS-E3, CS-N7, CS-E10 | Parallel workers is a number box where 0 means automatic in Settings, a `Slider` with an "Automatic" `Checkbox` in `components/recordingcheck/RunOptions.tsx`, and a chip group in `components/proof/CompareRun.tsx` | S16, P5, P6, F2, F3, S22 |
-| CS-N1 | Number boxes built on `TextField` with page-written parsing in Settings and Schedule | S11 to S14, H1, H2 |
+| CS-N1 | Number boxes built on `TextField` with page-written parsing in Settings and Schedule | S11 to S13, H1, H2 |
 | CS-P3 | **REAPER program** (`daw.reaperPath`) is a free-text box with no Choose… button | S15 |
 | CS-L5 | `Field` draws `error` as a line in the flow under the control, which adds its height when it appears; it has no reserved slot. `components/settings/row/ValueControl.tsx` shows a refused number as a `role="alert"` line in place of the range note; it is counted in the inline-errors allowlist | (none) |
 | CS-N6 | `NumberInput` has no precision or format prop: a money value with `step={0.01}` shows 12, not 12.00 | H1 |
