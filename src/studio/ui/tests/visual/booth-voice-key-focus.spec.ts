@@ -286,6 +286,27 @@ test.describe('a lane key then Enter', () => {
     await expect(stopButton(page)).toBeVisible();
   });
 
+  // #3906: with motion on (a narrator's default; `settlePage` emulates reduced motion, so the page is switched back) the Record options popup lingers while it animates out,
+  // and the voice-list key pressed from 20 ms after Escape must still reach the Booth. Measured on main: with motion on, 0 of 24 lost at 60 and 140 ms and 1 of 13 at 0 ms
+  // (under load); with reduced motion 13 of 45 lost at 0 ms and 0 of 75 from 10 ms on. Only the same millisecond loses it.
+  test('with motion on, the voice-list key pressed 20, 60 and 140 ms after Escape closes Record options opens the list (#3906)', async ({ page }) => {
+    await openBooth(page);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    for (const delay of [20, 60, 140]) {
+      for (let round = 1; round <= 4; round++) {
+        await page.getByRole('button', { name: 'Record options' }).click();
+        await page.getByRole('radio', { name: 'Record', exact: true }).click();
+        await page.keyboard.press('Escape');
+        if (delay) await page.waitForTimeout(delay);
+        await page.keyboard.press('NumpadDecimal');
+        await expect(list(page), `${delay} ms, round ${round}`).toBeVisible({ timeout: 1500 });
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(700);
+        await expect(list(page)).toHaveCount(0);
+      }
+    }
+  });
+
   test('a lane key with the voice button focused takes focus off it', async ({ page }) => {
     await openBooth(page);
     await voiceButton(page).focus();
