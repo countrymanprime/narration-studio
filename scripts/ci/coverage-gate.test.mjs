@@ -487,6 +487,7 @@ test('raceSkippedTests names the tests of the files that start with the !race bu
     'race_off_test.go': '//go:build !race\n\npackage p\n\nconst raceSlowdown = 1\n',
     'race_on_test.go': '//go:build race\n\npackage p\n\nfunc TestOnlyRaced(t *testing.T) {}\n',
     'helper.go': '//go:build !race\n\npackage p\n\nfunc TestNotInATestFile(t *testing.T) {}\n',
+    'main_test.go': '//go:build !race\n\npackage p\n\nfunc TestMain(m *testing.M) {}\n',
   };
   const names = raceSkippedTests('dir', () => Object.keys(files), (path) => files[path.replace(/^dir[\\/]/, '')]);
   assert.deepEqual(names, ['TestSlowOne', 'TestSlowTwo']);
@@ -512,6 +513,9 @@ test('the extra plain run of the !race tests happens once for each raced package
   const [run] = runs([slow], ['-race', '-timeout=20m']);
   assert.deepEqual(run.args, ['-timeout=20m', '-run', '^(TestSlow)$', slow], 'no -race and no -cover, one anchored -run');
   assert.deepEqual(run.names, ['TestSlow'], 'a test whose parameter is not named t is found');
+  for (const narrowed of [['-race', '-run', 'TestX'], ['-race', '-run=TestX'], ['-race', '-skip', 'TestX'], ['-race', '-list', '.'], ['-race', '-coverprofile=c.out']]) {
+    assert.deepEqual(runs([slow], narrowed), [], `${narrowed.join(' ')}: the extra pass would override the caller's own narrowing`);
+  }
 });
 
 test('every Go test file that mentions race in its build line is one the gate understands', () => {
@@ -529,7 +533,9 @@ test('every Go test file that mentions race in its build line is one the gate un
   const found = [];
   for (const file of files) {
     const lines = readFileSync(file, 'utf8').split('\n');
-    const header = lines.slice(0, lines.findIndex((line) => line.startsWith('package ')));
+    const packageLine = lines.findIndex((line) => line.startsWith('package '));
+    assert.ok(packageLine >= 0, `${file}: has a package clause`);
+    const header = lines.slice(0, packageLine);
     const build = header.map((line, index) => ({ line, index })).filter((entry) => /^\/\/go:build\b/.test(entry.line) && /\brace\b/.test(entry.line));
     if (build.length === 0) continue;
     found.push(file);
@@ -539,7 +545,7 @@ test('every Go test file that mentions race in its build line is one the gate un
     assert.ok(build[0].index === 0 && /^\/\/go:build (!race|race)\s*$/.test(build[0].line), `${file}: a race constraint is the first line and exactly //go:build race or //go:build !race (coverage-gate.mjs raceSkippedTests)`);
     if (build[0].line.includes('!race')) {
       const tests = [...lines.join('\n').matchAll(/^func (Test\w+)\(/gm)].map((match) => match[1]);
-      assert.deepEqual(raceSkippedTests(dirname(file), () => [file.split(/[\\/]/).pop()]).sort(), tests.sort(), `${file}: every Test is found`);
+      assert.deepEqual(raceSkippedTests(dirname(file), () => [file.split(/[\\/]/).pop()]).sort(), tests.sort(), `${file}: every Test is found (a TestMain or a signature other than func TestX(t *testing.T) is not supported in a !race file)`);
     }
   }
   assert.ok(found.length >= 2, 'found the race files that exist today');

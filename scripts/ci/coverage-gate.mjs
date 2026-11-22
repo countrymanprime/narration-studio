@@ -197,6 +197,8 @@ export function raceSkippedTests(folder, list = (dir) => readdirSync(dir), read 
  * its `!race` files were built into its plain run.
  */
 export function raceSkippedRuns(raced, projectRoot, modulePath, extra, list, read) {
+  // A caller who narrowed the run (-run, -skip, -list) or asked for a profile gets the raced run's own narrowing: this pass would override it.
+  if (extra.some((arg) => /^-(run|skip|list|coverprofile)\b/.test(arg))) return [];
   const runs = [];
   for (const pkg of raced) {
     const names = raceSkippedTests(packageFolder(projectRoot, modulePath, pkg), list, read);
