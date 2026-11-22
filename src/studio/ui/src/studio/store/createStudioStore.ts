@@ -171,13 +171,25 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     void attempt(name);
   }
 
+  // The reads of a slot that a settled `ensure` waits for: the one in flight and the read an event queued behind it (`again`), each for at most as long as
+  // the store would still join it (`STUCK_READ_MS` from its start), so a read that never answers does not hold the caller. A failure of them is not the caller's.
+  async function waitForReads(name: keyof R & string): Promise<void> {
+    for (let reads = 0; reads < 3; reads += 1) {
+      const flight = flights.get(name);
+      if (!flight || !young(flight.at)) return;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const left = new Promise<void>((resolve) => (timer = setTimeout(resolve, Math.max(0, STUCK_READ_MS - (Date.now() - flight.at)))));
+      await Promise.race([flight.promise.then(() => undefined), left]);
+      clearTimeout(timer);
+      // The read an event queued behind this one starts as this one ends.
+      await Promise.resolve();
+    }
+  }
+
   // A load an `ensure` started or joined: the one read in flight for the slot, so callers that mount together share it.
   const ensuring = new Map<string, { promise: Promise<void>; at: number }>();
   function ensure(name: keyof R & string, options?: { settled?: boolean }): Promise<void> {
-    if (Object.hasOwn(state.slots, name) && state.slots[name] !== undefined) {
-      const flight = options?.settled ? flights.get(name) : undefined;
-      return flight && young(flight.at) ? flight.promise.then(() => undefined) : Promise.resolve();
-    }
+    if (Object.hasOwn(state.slots, name) && state.slots[name] !== undefined) return options?.settled ? waitForReads(name) : Promise.resolve();
     const running = ensuring.get(name);
     if (running && young(running.at)) return running.promise;
     // A read already in flight (a load, an event, a refresh) is joined, not repeated.
