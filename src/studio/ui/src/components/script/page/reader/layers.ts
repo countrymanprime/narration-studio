@@ -9,6 +9,7 @@ import type { Mark, MarkColour, MarkStyle, MarkType } from '../../../../api/cont
 import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
 import { entryColour, speakerColour, type EntityColour } from '../../../../kinds/entityColour';
 import type { GuideType } from '../../../../types';
+import { clamp } from '../../../../clamp';
 import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
 import { mentionsIn, phrasesOf, type Phrase } from '../data/script.selectors';
 
@@ -66,8 +67,9 @@ const layerId = (layer: Layer): string => {
  * non-numeric offset) is dropped, so the pieces always rebuild the text.
  */
 export function composeLayers(text: string, layers: readonly Layer[]): LayerPiece[] {
-  const clamp = (offset: number): number => Math.min(Math.max(offset, 0), text.length);
-  const inside = layers.map((layer) => ({ layer, start: clamp(layer.start), end: clamp(layer.end) })).filter(({ start, end }) => start < end);
+  const inside = layers
+    .map((layer) => ({ layer, start: clamp(layer.start, 0, text.length), end: clamp(layer.end, 0, text.length) }))
+    .filter(({ start, end }) => start < end);
   const points = [...new Set([0, text.length, ...inside.flatMap(({ start, end }) => [start, end])])].sort((a, b) => a - b);
   const opened = new Set<string>();
   return points.slice(0, -1).flatMap((start, i) => {

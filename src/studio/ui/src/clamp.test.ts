@@ -22,6 +22,10 @@ describe('clamp', () => {
     expect(clamp(Number.NaN, 0, 10)).toBeNaN();
     expect(clamp(Number.NaN, 3, 1)).toBeNaN();
   });
+  it('gives +0 for -0 at a low bound of 0, and keeps -0 inside a wider range', () => {
+    expect(Object.is(clamp(-0, 0, 1), 0)).toBe(true);
+    expect(Object.is(clamp(-0, -1, 1), -0)).toBe(true);
+  });
   it('holds infinities to the bounds', () => {
     expect(clamp(Number.POSITIVE_INFINITY, 0, 10)).toBe(10);
     expect(clamp(Number.NEGATIVE_INFINITY, 0, 10)).toBe(0);

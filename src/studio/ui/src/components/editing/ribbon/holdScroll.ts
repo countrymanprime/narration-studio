@@ -2,6 +2,8 @@
 // `HOLD_DELAY_MS` scrolls continuously at one step a second, eased in, until released. Under reduced motion a press jumps and a hold repeats
 // whole steps. The view is scrolled with `scrollTo`, so the selection (placed on the document clock) stays where it is.
 
+import { clamp } from '../../../clamp';
+
 /** A press held this long (ms) is a hold, not a click. */
 export const HOLD_DELAY_MS = 350;
 /** How long a single step takes to arrive (ms). */
@@ -54,9 +56,8 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
     const v = deps.view();
     return Math.max(0, v.total - v.len);
   };
-  const clamp = (s: number): number => Math.min(max(), Math.max(0, s));
   const move = (s: number): void => {
-    pos = clamp(s);
+    pos = clamp(s, 0, max());
     deps.scrollTo(pos);
   };
   const stopMotion = (): void => {
@@ -70,7 +71,7 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
   function step(dir: 1 | -1): void {
     const from = unsubscribe && target !== null ? pos : deps.view().start;
     const base = unsubscribe && target !== null ? target : from;
-    const to = clamp(base + dir * deps.step());
+    const to = clamp(base + dir * deps.step(), 0, max());
     stopMotion();
     if (deps.reducedMotion() || to === from) {
       move(to);
@@ -93,7 +94,7 @@ export function createHoldScroll(deps: HoldScrollDeps): HoldScroll {
     if (deps.reducedMotion()) {
       const once = (): void => {
         const before = deps.view().start;
-        const to = clamp(before + dir * deps.step());
+        const to = clamp(before + dir * deps.step(), 0, max());
         move(to);
         if (to === before) stopMotion();
       };

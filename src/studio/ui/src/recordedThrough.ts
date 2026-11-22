@@ -1,4 +1,5 @@
 import type { RecordedThrough } from './api/contracts/manuscript';
+import { clamp } from './clamp';
 
 const wordsOf = (text: string): string[] => text.match(/\S+/g) ?? [];
 
@@ -94,13 +95,12 @@ export function recordedShare(chapter: { recordedThrough?: RecordedThrough; reco
 export function recordedPercent(chapter: { recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number }, wph: number): number | null {
   // 0 only when no audio is measured (under one second, or a host 0 with nothing on the track); any recorded second is at least 1, up to 99; only the host's "complete" is 100.
   const audio = hasAudio(chapter.recordedSeconds);
-  const atLeastOne = (percent: number): number => Math.min(99, Math.max(1, percent));
   if (chapter.recordedThrough) {
     return throughPercent({ through: chapter.recordedThrough, audio });
   }
   if (chapter.recordedSeconds === null || chapter.wordCount <= 0) return null;
   if (!audio) return 0;
-  return atLeastOne(Math.floor((chapter.recordedSeconds / ((chapter.wordCount / wph) * 3600)) * 100));
+  return clamp(Math.floor((chapter.recordedSeconds / ((chapter.wordCount / wph) * 3600)) * 100), 1, 99);
 }
 
 /** The note a chapter list draws after a chapter's name (`ChapterStepper`'s `detail`): "45%", "~30%", "Complete"; none with nothing recorded. */
