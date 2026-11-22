@@ -19,7 +19,7 @@ const SIX_HEX_DIGITS = /^[0-9a-fA-F]{6}$/;
 const PLAIN_NUMBER = /^-?(\d+(\.\d*)?|\.\d+)$/;
 
 /** The host's sentence for a value its number field refuses (`validateNumberSetting` in src/studio/desktop/settings_number.go), or undefined. */
-export function numberRefusal(key: string, range: NumberSettingRange, text: string): string | undefined {
+function numberRefusal(key: string, range: NumberSettingRange, text: string): string | undefined {
   const value = Number(text);
   if (!PLAIN_NUMBER.test(text) || !Number.isFinite(value)) return `setting ${key} must be a number, like -3 or 0.5`;
   const unit = range.unit ? ` ${range.unit}` : '';
