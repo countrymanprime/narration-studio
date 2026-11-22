@@ -22,5 +22,8 @@ test('a late answer from the DAW does not change the chapter once a take is runn
   // The read has been answered by now; the take's chapter stays.
   await page.waitForTimeout(Math.max(0, 4_000 - (Date.now() - pressedAt)));
   expect(await chapter()).toBe(before);
+  // The read did come back with a chapter (a refusal is the longer answer, 103 bytes), so the unchanged address is the gate's doing.
+  const answered = await page.evaluate(() => (window.__hostCalls ?? []).filter((c) => c.name === 'dawPlace' && c.bytes < 100).length);
+  expect(answered).toBeGreaterThan(0);
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
 });

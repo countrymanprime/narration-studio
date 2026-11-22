@@ -212,6 +212,34 @@ describe('useFollowDawOnOpen', () => {
     expect(dawPlace).toHaveBeenCalledTimes(2);
   });
 
+  it('an answer that arrives while a take is starting is held back, and follows once the take is gone', async () => {
+    vi.useFakeTimers();
+    const onChapter = vi.fn();
+    let busy = true;
+    const dawPlace = vi.fn(async () => answer({ chapterId: 'c-2', selected: 1 }));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter, busy: () => busy }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    await act(async () => void (await vi.advanceTimersByTimeAsync(4000)));
+    expect(onChapter).not.toHaveBeenCalled();
+    // The start failed and no take ran: the DAW is asked again and the Booth follows it.
+    busy = false;
+    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+    expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-2');
+  });
+
+  it('an answer held back by a take that outlasts the window never moves the Booth', async () => {
+    vi.useFakeTimers();
+    const onChapter = vi.fn();
+    const dawPlace = vi.fn(async () => answer({ chapterId: 'c-2', selected: 1 }));
+    const events = dawEvents();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter, busy: () => true }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    await act(async () => void (await vi.advanceTimersByTimeAsync(30_000)));
+    expect(onChapter).not.toHaveBeenCalled();
+    expect(dawPlace.mock.calls.length).toBeLessThanOrEqual(12);
+  });
+
   it('turning the follow off and on again does not open a new window', async () => {
     vi.useFakeTimers();
     const onChapter = vi.fn();

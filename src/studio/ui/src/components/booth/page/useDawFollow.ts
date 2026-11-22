@@ -20,10 +20,13 @@ export function useFollowDawOnOpen({
   enabled,
   chapterIds,
   onChapter,
+  busy,
 }: {
   enabled: boolean;
   chapterIds: readonly string[] | undefined;
   onChapter: (chapterId: string) => void;
+  /** A take is starting or running: the answer is held back (asked again soon), never moves the Booth under it. */
+  busy?: () => boolean;
 }) {
   const place = usePort('dawPlace');
   const daw = usePort('daw');
@@ -32,6 +35,8 @@ export function useFollowDawOnOpen({
   const openedAt = useRef<number | undefined>(undefined);
   const onChapterRef = useRef(onChapter);
   onChapterRef.current = onChapter;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
   const ready = enabled && chapterIds !== undefined && chapterIds.length > 0;
   const ids = useRef(chapterIds);
   ids.current = chapterIds;
@@ -68,6 +73,11 @@ export function useFollowDawOnOpen({
         .then((answer) => {
           if (!live) return;
           if (!answer.ok) return noAnswer();
+          // A take that is starting or running keeps its chapter; the DAW has answered, so it is asked again soon (a take that fails to start frees the follow).
+          if (busyRef.current?.()) {
+            reachable = true;
+            return noAnswer();
+          }
           settled.current = true;
           // An answer after the time is up is too late to move a Booth the narrator has been using.
           if (Date.now() >= deadline) return;
