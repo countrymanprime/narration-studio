@@ -69,7 +69,7 @@ function Harness({ caps, clock = CLOCK }: { caps: DawCapabilities | null; clock?
   useFollowScroll(root, playback);
   return (
     <div ref={root}>
-      <output data-testid="state">{JSON.stringify({ playT: page.state.playT, follow: playback.follow })}</output>
+      <output data-testid="state">{JSON.stringify({ playT: page.state.playT, follow: playback.follow, playing: playback.playing })}</output>
       <ScriptDoc />
     </div>
   );
@@ -94,7 +94,7 @@ const tree = (api: ReturnType<typeof makeApi>, caps: DawCapabilities | null = DA
   </ApiProvider>
 );
 const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper) => render(tree(makeApi(), caps));
-const state = () => JSON.parse(screen.getByTestId('state').textContent ?? '{}') as { playT: number | null; follow: boolean };
+const state = () => JSON.parse(screen.getByTestId('state').textContent ?? '{}') as { playT: number | null; follow: boolean; playing: boolean };
 const lit = (): string | null => document.querySelector('[data-now]')?.getAttribute('data-k') ?? null;
 /** Lets one poll's read answer. */
 const poll = async (ms = 250) => {
@@ -140,6 +140,68 @@ describe('lit-word-follows-the-daw-while-it-plays', () => {
     act(() => page.dispatch({ type: 'place', key: 'p-1:0' }));
     expect(state().playT).toBeNull();
     expect(lit()).toBeNull();
+  });
+  it('a DAW stop keeps the word lit but the bar reads Play, and Space plays instead of clearing the light', async () => {
+    mount();
+    dawAt(1.3);
+    await poll();
+    expect(state().playing).toBe(true);
+    dawAt(1.3, 'stopped');
+    await poll();
+    expect(lit()).toBe('p-1:3');
+    expect(state().playT).not.toBeNull();
+    expect(state().playing).toBe(false);
+    // The DAW plays the same word again: the bar reads Pause again.
+    dawAt(1.3);
+    await poll();
+    expect(state().playing).toBe(true);
+    dawAt(1.3, 'stopped');
+    await poll();
+    expect(state().playing).toBe(false);
+    act(() => playback.toggle());
+    await poll();
+    expect(state().playing).toBe(true);
+  });
+  it('a stop heard while the page is hidden also leaves the bar on Play when it shows again', async () => {
+    mount();
+    dawAt(1.3);
+    await poll();
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    dawAt(1.3, 'stopped');
+    await poll();
+    hidden.mockReturnValue('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await poll();
+    expect(lit()).toBe('p-1:3');
+    expect(state().playing).toBe(false);
+  });
+  it('a stop only the backstop read sees leaves the bar on Play', async () => {
+    mount();
+    dawAt(1.3);
+    await poll();
+    expect(state().playing).toBe(true);
+    // The stop's event was lost: the read finds it.
+    transport = { ...transport, playState: 'stopped' };
+    await poll(BACKSTOP_MS + 100);
+    expect(lit()).toBe('p-1:3');
+    expect(state().playing).toBe(false);
+  });
+  it('while a word is held after a stop, skip moves the cursor and plays nothing', async () => {
+    mount();
+    dawAt(1.3);
+    await poll();
+    dawAt(1.3, 'stopped');
+    await poll();
+    expect(state().playing).toBe(false);
+    expect(state().playT).not.toBeNull();
+    act(() => playback.skip(1));
+    expect(page.state.cursor).not.toBeNull();
+    expect(state().playing).toBe(false);
   });
   it('lights nothing while the DAW plays a gap', async () => {
     mount();
