@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { overlay } from '../../../overlay/overlayService';
 import { RATES, rateLabel, type OutputPrefs } from '../../engine/outputPrefs';
 import type { MonitorLevelState } from '../../booth/frame/useMonitorLevel';
 import { Button } from '../../primitives/Button';
@@ -26,6 +27,7 @@ export type OutputControlsProps = {
   children?: ReactNode;
 };
 
+const UNLISTED = 'This computer would not list its outputs, so the choice is off. Sound plays on the system default.';
 const HEADING = 'text-xs font-semibold text-[var(--text-muted)] uppercase';
 
 function Note({ children, alert = false }: { children: ReactNode; alert?: boolean }) {
@@ -61,15 +63,16 @@ export function DeviceRow({
   ];
   // With no list and a saved output the choice stays on, so the system default can still be picked; it is off while loading, or when there is nothing to clear.
   const off = devices.phase === 'loading' || (unlisted && prefs.device === '');
+  // A refusal is said once as a toast, never as red text in the popover that moves the rows under it (#4044, frontend-primitives rule 7).
+  const refusal = unlisted ? UNLISTED : deviceProblem;
+  useEffect(() => {
+    if (refusal) overlay.toast(refusal);
+  }, [refusal]);
   return (
     <div className="flex flex-col gap-1.5">
       {heading && <span className={HEADING}>Output</span>}
       <Select label="Output device" fullWidth value={prefs.device} options={options} disabled={off} onChange={(device) => onChange({ device })} />
       {devices.phase === 'loading' ? <Note>Listing outputs…</Note> : null}
-      {devices.phase === 'ready' && devices.status === 'unavailable' ? (
-        <Note alert>This computer would not list its outputs, so the choice is off. Sound plays on the system default.</Note>
-      ) : null}
-      {deviceProblem ? <Note alert>{deviceProblem}</Note> : null}
       {missing || (devices.phase === 'ready' && devices.status === 'unavailable') ? (
         <Button variant="secondary" size="sm" className="self-start" onClick={onCheckDevices}>
           Check again

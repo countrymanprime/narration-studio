@@ -18,14 +18,18 @@ export const outputsSupported = (): boolean =>
 // The browser lists the system default and communications devices again under these ids; they are the "System default" choice, not outputs.
 const VIRTUAL = new Set(['default', 'communications']);
 
-/** The outputs the webview names. Without names (the audio system gives none until a device has been used) or without `setSinkId`, there is no choice to offer. */
+/**
+ * The outputs the webview reports. An output the webview gives no name (WebView2 hides output names until the page holds a media permission, which
+ * this app never asks for) is listed as "Output 1", "Output 2" in the webview's order, so the choice is never lost to blank labels. Only a webview
+ * without `setSinkId`, or an `enumerateDevices` that throws or lists no output at all, has no choice to offer.
+ */
 export async function listAudioOutputs(): Promise<OutputListing> {
   if (!outputsSupported()) return { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };
   try {
     const all = await navigator.mediaDevices.enumerateDevices();
     const outputs = all
-      .filter((d) => d.kind === 'audiooutput' && !VIRTUAL.has(d.deviceId) && d.label.trim() !== '')
-      .map((d) => ({ id: d.deviceId, label: d.label }));
+      .filter((d) => d.kind === 'audiooutput' && !VIRTUAL.has(d.deviceId))
+      .map((d, at) => ({ id: d.deviceId, label: d.label.trim() !== '' ? d.label : `Output ${at + 1}` }));
     return outputs.length > 0 ? { status: 'ok', outputs } : { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };
   } catch {
     return { status: 'unavailable', message: OUTPUTS_UNAVAILABLE };

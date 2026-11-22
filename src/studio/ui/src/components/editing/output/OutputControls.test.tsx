@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { overlay } from '../../../overlay/overlayService';
 import { DEFAULT_OUTPUT, type OutputPrefs } from '../../engine/outputPrefs';
 import { MonitorRow, OutputControls, type OutputControlsProps } from './OutputControls';
 import type { DeviceListing } from './useOutputDevices';
@@ -134,11 +135,14 @@ describe('the Output popover', () => {
   // Changed for qa-breaker B2: with a saved output and no list, the choice stays on so System default can be picked; it is off only when there is nothing to clear.
   it('says it would not list the outputs and offers a way out; a saved output can still be cleared to the system default', async () => {
     const onChangeSpy = vi.fn();
+    const toast = vi.spyOn(overlay, 'toast');
     render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} start={{ device: 'Gone' }} onChangeSpy={onChangeSpy} />);
     const dialog = await openOutput();
     const select = within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLSelectElement;
     expect(select.disabled).toBe(false);
-    expect(within(dialog).getByRole('alert').textContent).toMatch(/would not list its outputs/);
+    // #4044: said once as a toast, never as red text under the list.
+    expect(toast).toHaveBeenCalledWith(expect.stringMatching(/would not list its outputs/));
+    expect(within(dialog).queryByRole('alert')).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
     await userEvent.selectOptions(select, 'System default');
     expect(onChangeSpy).toHaveBeenCalledWith({ device: '' });
@@ -163,9 +167,11 @@ describe('the Output popover', () => {
   });
 
   it('shows why the chosen output could not be used', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
     render(<Host deviceProblem="Could not play on Headphones. Playing on the system default until it is back." start={{ device: 'Headphones' }} />);
     const dialog = await openOutput();
-    expect(within(dialog).getByRole('alert').textContent).toContain('Could not play on Headphones');
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('Could not play on Headphones'));
+    expect(within(dialog).queryByRole('alert')).toBeNull();
   });
 
   it('keeps a very long, emoji and right-to-left output name whole in the list', async () => {

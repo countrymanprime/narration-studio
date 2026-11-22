@@ -56,7 +56,7 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/settings/controls/DeliveryBodies.tsx': 1,
   'components/settings/controls/EngineBody.tsx': 2,
   'components/settings/controls/MwKeyBody.tsx': 2,
-  'components/settings/controls/SampleOutputBody.tsx': 2,
+  'components/settings/controls/SampleOutputBody.tsx': 0,
   'components/settings/page/MarksPanel.tsx': 1,
   'components/settings/page/ModelsPane.tsx': 2,
   'components/settings/page/ScopedFieldsPanel.tsx': 1,

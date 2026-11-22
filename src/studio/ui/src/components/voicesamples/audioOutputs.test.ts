@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // The state matrix for choosing where voice samples play (docs/prds/character-voice-samples.prd.md, phase 7, the approved mock's section 4).
 //
-//   empty (no outputs, or none named)    'no outputs at all, or outputs with no names, is unavailable'
+//   empty (no outputs at all)            'no outputs at all is unavailable'
+//   outputs with blank names             'outputs with blank names are listed as Output 1, Output 2, in the webview's order'
 //   one, many                            'lists each named output, not the virtual default or communications ones'
 //   system default                       'an empty choice resets the element to the system default'
 //   saved device gone                    'a device that is not connected is said so and the element is reset to the default'
@@ -50,11 +51,33 @@ describe('listing the outputs', () => {
     });
   });
 
-  it('no outputs at all, or outputs with no names, is unavailable', async () => {
-    devices = [dev('default', ''), dev('a1', ''), dev('b2', '')];
+  it('no outputs at all is unavailable', async () => {
+    devices = [dev('default', ''), dev('communications', '')];
     expect((await listAudioOutputs()).status).toBe('unavailable');
     devices = [];
     expect((await listAudioOutputs()).status).toBe('unavailable');
+  });
+
+  // #4044: WebView2 gives output names only to a page that holds a media permission, and this app asks for none.
+  it("outputs with blank names are listed as Output 1, Output 2, in the webview's order", async () => {
+    devices = [dev('default', ''), dev('a1', ''), dev('b2', '   '), dev('c3', 'Speakers (Realtek)')];
+    expect(await listAudioOutputs()).toEqual({
+      status: 'ok',
+      outputs: [
+        { id: 'a1', label: 'Output 1' },
+        { id: 'b2', label: 'Output 2' },
+        { id: 'c3', label: 'Speakers (Realtek)' },
+      ],
+    });
+  });
+
+  it('a choice saved as Output 2 finds the second blank-named output again', async () => {
+    devices = [dev('a1', ''), dev('b2', '')];
+    const element = audio();
+    const sink = vi.fn().mockResolvedValue(undefined);
+    (element as unknown as { setSinkId: typeof sink }).setSinkId = sink;
+    expect(await setOutput(element, 'Output 2')).toEqual({ ok: true });
+    expect(sink).toHaveBeenCalledWith('b2');
   });
 
   it('a webview with no setSinkId lists nothing and says so', async () => {

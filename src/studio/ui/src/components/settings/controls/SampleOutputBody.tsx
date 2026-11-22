@@ -92,6 +92,19 @@ export function SampleOutputBody() {
     return () => window.clearInterval(timer);
   }, [missing]);
 
+  // A list that would not come, or a saved output that is gone, is said once as a toast, never as red text that moves the row (#4044).
+  const refusal =
+    engine === 'daw' && hasProject
+      ? undefined
+      : listing.phase === 'ready' && listing.status === 'unavailable'
+        ? listing.message
+        : missing
+          ? `${value} is not connected. Voice samples play on the system default until it is back.`
+          : undefined;
+  useEffect(() => {
+    if (refusal) overlay.toast(refusal);
+  }, [refusal]);
+
   const choose = (next: string) => {
     setSampleOutput(next);
     void store.write(row, 'project', next === '' ? null : next);
@@ -126,19 +139,6 @@ export function SampleOutputBody() {
   // The select at the settings' field width, its buttons on one row under it (the Microphone row's arrangement), then the notes.
   return (
     <div className="flex w-full min-w-0 flex-col items-start gap-2">
-      {unavailable && (
-        <p
-          role="alert"
-          className="m-0 max-w-[60ch] rounded-[var(--radius-card)] bg-[var(--danger-soft)] px-3 py-2 text-sm break-words text-[var(--danger-text)]"
-        >
-          {unavailable}
-        </p>
-      )}
-      {missing && (
-        <p role="alert" className="m-0 max-w-[60ch] rounded-[var(--radius-card)] bg-[var(--warn-soft)] px-3 py-2 text-sm break-words text-[var(--warn-text)]">
-          {value} is not connected. Voice samples play on the system default until it is back.
-        </p>
-      )}
       <Select
         label="Voice sample output"
         id={`set-${row.id}`}
