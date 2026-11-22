@@ -89,6 +89,11 @@ html[data-motion='reduce'] {
   /* The cue of a box that scrolls (`scroll-x-edges`, `scroll-y-edges`): a shade at the edge that has more beyond it. Black on a light surface,
      a light glow on a dark one (a black shade is invisible there); src/scrollEdges.test.ts holds each to a visible step off --surface. */
   --scroll-edge: rgba(0, 0, 0, 0.2);
+  /* The shade starts this far inside the box. The cover that hides it at the end of the scroll moves with the content, and the content of a
+     box at a fractional position (a centred dialog, a 125% or 150% display) is clipped up to one device pixel short of the box's edge: a
+     shade drawn in that row stayed lit at the end of the scroll (#3832). 1px clears it at 100% and 200%; at 125%, 150% and 175% that pixel
+     is up to 0.8px and the shade's own edge is smoothed over the next one, which 1.5px clears. */
+  --scroll-edge-inset: 1.5px;
   --surface-2: #f4f2ec;
   --surface-3: #dcd8cd;
   --border: #dcd7cb;
@@ -486,22 +491,24 @@ html[data-motion='reduce'] {
   }
 }
 /* A box that scrolls sideways shows a soft shadow on the edge that has more beyond it: the shadows stay put (`scroll`) and a cover in
-   the box's own colour (`local`) moves with the content and hides each one at the end of the scroll. Pickups' table uses it. Layered, so
-   a utility on the same element still wins. */
+   the box's own colour (`local`) moves with the content and hides each one at the end of the scroll. Pickups' table uses it. Each shadow
+   sits --scroll-edge-inset inside its edge, so none is drawn in the row the cover cannot reach (tests/visual/scroll-edges-end.spec.ts
+   measures it). The shadow is drawn across the whole box, a scroll bar's strip included, where the cover does not reach: in a dark theme a
+   light block shows there (named on #3832, and a follow-up). Layered, so a utility on the same element still wins. */
 @layer components {
   .scroll-x-edges {
     background:
       linear-gradient(to right, var(--surface) 30%, transparent) left center / 2rem 100% no-repeat local,
       linear-gradient(to left, var(--surface) 30%, transparent) right center / 2rem 100% no-repeat local,
-      linear-gradient(to right, var(--scroll-edge), transparent) left center / 0.75rem 100% no-repeat scroll,
-      linear-gradient(to left, var(--scroll-edge), transparent) right center / 0.75rem 100% no-repeat scroll;
+      linear-gradient(to right, var(--scroll-edge), transparent) left var(--scroll-edge-inset) top 0 / 0.75rem 100% no-repeat scroll,
+      linear-gradient(to left, var(--scroll-edge), transparent) right var(--scroll-edge-inset) top 0 / 0.75rem 100% no-repeat scroll;
   }
   /* Its vertical twin, for a box that scrolls up and down inside a dialog (Check recordings' form, alignment audit XPF-2). */
   .scroll-y-edges {
     background:
       linear-gradient(var(--surface) 30%, transparent) center top / 100% 2rem no-repeat local,
       linear-gradient(to top, var(--surface) 30%, transparent) center bottom / 100% 2rem no-repeat local,
-      linear-gradient(var(--scroll-edge), transparent) center top / 100% 0.75rem no-repeat scroll,
-      linear-gradient(to top, var(--scroll-edge), transparent) center bottom / 100% 0.75rem no-repeat scroll;
+      linear-gradient(var(--scroll-edge), transparent) left 0 top var(--scroll-edge-inset) / 100% 0.75rem no-repeat scroll,
+      linear-gradient(to top, var(--scroll-edge), transparent) left 0 bottom var(--scroll-edge-inset) / 100% 0.75rem no-repeat scroll;
   }
 }

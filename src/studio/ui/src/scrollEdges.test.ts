@@ -39,6 +39,29 @@ describe('scroll edge shadows', () => {
     });
   }
 
+  // What a jsdom test can hold of the geometry; tests/visual/scroll-edges-end.spec.ts measures the pixels.
+  it('every shade starts --scroll-edge-inset inside its edge', () => {
+    const shadesOf = (axis: 'x' | 'y') =>
+      (css.match(new RegExp(`\\.scroll-${axis}-edges \\{([^}]*)\\}`))?.[1] ?? '').split('\n').filter((line) => /no-repeat scroll/.test(line));
+    const geometry = (line: string) => line.replace(/^.*transparent\) /, '').replace(/[,;]$/, '');
+    expect(shadesOf('y').map(geometry)).toEqual([
+      'left 0 top var(--scroll-edge-inset) / 100% 0.75rem no-repeat scroll',
+      'left 0 bottom var(--scroll-edge-inset) / 100% 0.75rem no-repeat scroll',
+    ]);
+    expect(shadesOf('x').map(geometry)).toEqual([
+      'left var(--scroll-edge-inset) top 0 / 0.75rem 100% no-repeat scroll',
+      'right var(--scroll-edge-inset) top 0 / 0.75rem 100% no-repeat scroll',
+    ]);
+  });
+
+  it('the inset clears the pixel the cover cannot reach, in both themes', () => {
+    const { light, dark } = parseThemes(css);
+    // One device pixel is 0.8 CSS px at 125%, and the shade's smoothed edge takes part of the next: 1px left a lit row at 125%, 150% and 175%.
+    expect(parseFloat(light['scroll-edge-inset'])).toBeGreaterThanOrEqual(1.5);
+    expect(light['scroll-edge-inset']).toMatch(/^[\d.]+px$/);
+    expect(dark['scroll-edge-inset']).toBe(light['scroll-edge-inset']);
+  });
+
   it('styles.css declares both directions', () => {
     expect(css).toContain('.scroll-x-edges {');
     expect(css).toContain('.scroll-y-edges {');
