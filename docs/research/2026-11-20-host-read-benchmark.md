@@ -200,7 +200,7 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 
 ## The Booth's follow on open: asked every 2 s against once
 
-[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. A Booth opened with no chapter in the address asks the DAW where the narrator is (`DawPlace`) and opens on that chapter. While the DAW had not answered it asked again every 2 s for 20 s (up to 10 asks); it now asks once and again when the DAW says it is reachable (its capabilities event, which the app's session also sends on a focus or a Check again), for the same 20 s, one ask at a time, and every 2 s only while a DAW that says it is reachable still refuses (REAPER loading its project: no event says it is ready). Same rig and method (`reads --runs 3`, medians): `DawPlace` joins its list.
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. A Booth opened with no chapter in the address asks the DAW where the narrator is (`DawPlace`) and opens on that chapter. While the DAW had not answered it asked again every 2 s for 20 s (up to 10 asks); it now asks once and again when the DAW says it is reachable (its capabilities event, which the app's session also sends on a focus or a Check again), for the same 20 s, one ask at a time, and, only while a DAW that says it is reachable still refuses (REAPER loading its project: no event says it is ready), again after 2 s and then 10 s (a third retry would fall after the 20 s, so at most 3 asks in all). Same rig and method (`reads --runs 3`, medians): `DawPlace` joins its list.
 
 | Book | `DawPlace`, no DAW, first call \| warm | Answer | Asks while the DAW does not answer: before \| after |
 | --- | --- | --- | --- |

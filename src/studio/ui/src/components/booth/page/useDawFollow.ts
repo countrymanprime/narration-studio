@@ -4,8 +4,8 @@ import { usePort } from '../../../ports/usePort';
 
 /** How long after the Booth opens a DAW that connects is still followed: one that connected later is not, since the narrator has been working by then. */
 const ASK_FOR_MS = 20_000;
-/** A DAW that says it is reachable but refuses (REAPER is still loading its project) has no event to say it is ready, so that one case is asked again on a timer. */
-const RETRY_REACHABLE_MS = 2000;
+/** A DAW that says it is reachable but refuses (REAPER is still loading its project) has no event to say it is ready, so that one case is asked again on a timer that slows down: 2 s, then 10 s, then 30 s. */
+const RETRY_REACHABLE_MS = [2000, 10_000, 30_000];
 
 /**
  * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW may not have
@@ -46,6 +46,7 @@ export function useFollowDawOnOpen({
     let inFlight = false;
     let owed = false;
     // The host sends no event for a state the DAW is already in when the Booth opens, so the session's last picture is where reachability starts.
+    let retries = 0;
     let reachable = session.getState().caps?.reachable === true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // The window opens once, with the first ready effect: a Booth that is enabled again later is not given a new one.
@@ -53,10 +54,13 @@ export function useFollowDawOnOpen({
     const deadline = openedAt.current + ASK_FOR_MS;
     // No answer: a DAW that has not connected yet is asked again by its event; one that says it is reachable and still refuses has no event coming, so it is asked again soon.
     const noAnswer = () => {
-      if (live && reachable && !settled.current && Date.now() < deadline) {
-        clearTimeout(timer);
-        timer = setTimeout(ask, RETRY_REACHABLE_MS);
-      }
+      if (!live || !reachable || settled.current) return;
+      const wait = RETRY_REACHABLE_MS[Math.min(retries, RETRY_REACHABLE_MS.length - 1)]!;
+      // A retry that would fall after the window is not made: its answer would be dropped.
+      if (Date.now() + wait >= deadline) return;
+      retries++;
+      clearTimeout(timer);
+      timer = setTimeout(ask, wait);
     };
     function ask() {
       // An event heard while a retry is waiting is that retry's answer: one chain of asks, not one more each.

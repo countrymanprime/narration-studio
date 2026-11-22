@@ -161,7 +161,12 @@ describe('useFollowDawOnOpen', () => {
     act(() => take(reachable));
     view.rerender({ enabled: true });
     await act(async () => {});
-    await act(async () => void (await vi.advanceTimersByTimeAsync(4000)));
+    // The retries slow down: the second ask 2 s after the first, the third 10 s after the second.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+    await act(async () => void (await vi.advanceTimersByTimeAsync(9000)));
+    expect(dawPlace).toHaveBeenCalledTimes(2);
+    await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
     expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-1');
     expect(dawPlace).toHaveBeenCalledTimes(3);
   });
@@ -177,10 +182,11 @@ describe('useFollowDawOnOpen', () => {
     act(() => events.emit(reachable));
     await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
     act(() => events.emit(reachable));
-    await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
     const before = dawPlace.mock.calls.length;
-    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
-    // One chain: the 2 s after the last ask, not one more for each event heard.
+    // One chain: the first retry's 2 s timer is replaced by the next, which waits 10 s, not one more timer for each event heard.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(9000)));
+    expect(dawPlace.mock.calls.length - before).toBe(0);
+    await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
     expect(dawPlace.mock.calls.length - before).toBe(1);
     view.unmount();
     const after = dawPlace.mock.calls.length;
@@ -220,11 +226,11 @@ describe('useFollowDawOnOpen', () => {
     const events = dawEvents();
     renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter, busy: () => busy }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
     await act(async () => {});
-    await act(async () => void (await vi.advanceTimersByTimeAsync(4000)));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(3000)));
     expect(onChapter).not.toHaveBeenCalled();
-    // The start failed and no take ran: the DAW is asked again and the Booth follows it.
+    // The start failed and no take ran: the DAW is asked again (the retries slow down: 2 s, then 10 s) and the Booth follows it.
     busy = false;
-    await act(async () => void (await vi.advanceTimersByTimeAsync(2000)));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(10_000)));
     expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-2');
   });
 
@@ -237,7 +243,8 @@ describe('useFollowDawOnOpen', () => {
     await act(async () => {});
     await act(async () => void (await vi.advanceTimersByTimeAsync(30_000)));
     expect(onChapter).not.toHaveBeenCalled();
-    expect(dawPlace.mock.calls.length).toBeLessThanOrEqual(12);
+    // Asked at the start and after 2 s and 12 s: the retries slow down and none falls after the window.
+    expect(dawPlace.mock.calls.length).toBeLessThanOrEqual(3);
   });
 
   it('turning the follow off and on again does not open a new window', async () => {
