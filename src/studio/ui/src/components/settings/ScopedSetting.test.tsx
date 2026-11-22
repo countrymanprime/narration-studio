@@ -239,7 +239,7 @@ describe('ScopedSetting controls', () => {
     expect(screen.getByRole('switch', { name: 'Notify me' }).getAttribute('aria-checked')).toBe('false');
   });
 
-  it('offers Reset on a project bool that has an override', () => {
+  it('offers Reset, an icon button named for the setting, on a project bool that has an override', () => {
     const clear = vi.fn();
     render(
       <TooltipProvider>
@@ -252,7 +252,7 @@ describe('ScopedSetting controls', () => {
         />
       </TooltipProvider>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Notify me' }));
     expect(clear).toHaveBeenCalledTimes(1);
   });
 
@@ -263,20 +263,20 @@ describe('ScopedSetting controls', () => {
         <ScopedSetting field={{ ...FIELD, isSet: true, value: 'small' }} scope="project" value="small" change={vi.fn()} onClearOverride={clear} />
       </TooltipProvider>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Model size' }));
     expect(clear).toHaveBeenCalledTimes(1);
   });
 
   it('offers no Reset on a global setting or on a project setting with no override', () => {
     renderSetting({ ...FIELD, isSet: true });
-    expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Reset/ })).toBeNull();
     cleanup();
     render(
       <TooltipProvider>
         <ScopedSetting field={FIELD} scope="project" value="" change={vi.fn()} onClearOverride={vi.fn()} />
       </TooltipProvider>,
     );
-    expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Reset/ })).toBeNull();
   });
   describe('a number', () => {
     const LIMIT: ScopedSettingField = {
@@ -328,13 +328,51 @@ describe('ScopedSetting controls', () => {
       expect(screen.getByPlaceholderText('Inherits Global')).toBeTruthy();
     });
 
-    it('says what is wrong with a value that cannot be saved, in place of the range', () => {
+    // This test pinned a red sentence in place of the range ("says what is wrong with a value that cannot be saved"). The owner's rule CS-N1
+    // (#3681) changed that on purpose: the box holds the value until it is left, then reports the nearest limit, and the range note stays.
+    it('holds a value past the range in the box, unreported, and reports the nearest limit when the box is left', () => {
+      const change = renderNumber(LIMIT, 'global');
+      const box = screen.getByRole('textbox', { name: 'True peak, highest' }) as HTMLInputElement;
+      fireEvent.change(box, { target: { value: '5' } });
+      expect(change).not.toHaveBeenCalled();
+      expect(box.value).toBe('5');
+      fireEvent.blur(box);
+      expect(change).toHaveBeenCalledExactlyOnceWith('0');
+      expect(box.getAttribute('aria-describedby')).toBe(screen.getByText('From -60 to 0 dBTP').id);
+      expect(box.getAttribute('aria-invalid')).toBeNull();
+    });
+
+    // unsaved-drafts.spec.ts: text that is not a number is the form's value, so the Settings page asks before an exit drops it.
+    it('hands text that is not a number to the form as it is typed, and shows it, marked, while the form holds it', () => {
+      const change = renderNumber(LIMIT, 'global');
+      fireEvent.change(screen.getByRole('textbox', { name: 'True peak, highest' }), { target: { value: 'abc' } });
+      expect(change).toHaveBeenCalledExactlyOnceWith('abc');
+      cleanup();
+      renderNumber(LIMIT, 'global', 'abc');
+      const box = screen.getByRole('textbox', { name: 'True peak, highest' }) as HTMLInputElement;
+      expect(box.value).toBe('abc');
+      expect(box.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('marks a stored value the range refuses, and keeps the range as its description', () => {
       renderNumber(LIMIT, 'global', '5');
       const box = screen.getByRole('textbox', { name: 'True peak, highest' });
       expect(box.getAttribute('aria-invalid')).toBe('true');
-      const message = screen.getByText('Enter a value from -60 to 0 dBTP.');
-      expect(box.getAttribute('aria-describedby')).toBe(message.id);
-      expect(screen.queryByText('From -60 to 0 dBTP')).toBeNull();
+      expect(box.getAttribute('aria-describedby')).toBe(screen.getByText('From -60 to 0 dBTP').id);
+    });
+
+    it('reports a value between steps on the step, and an emptied box as ""', () => {
+      const change = renderNumber({ ...LIMIT, value: '-3', isSet: true }, 'global');
+      const box = screen.getByRole('textbox', { name: 'True peak, highest' }) as HTMLInputElement;
+      fireEvent.change(box, { target: { value: '-3.26' } });
+      expect(change).toHaveBeenLastCalledWith('-3.3');
+      fireEvent.change(box, { target: { value: '' } });
+      expect(change).toHaveBeenLastCalledWith('');
+    });
+
+    it('offers Reset, named for the setting, on a project number that has an override', () => {
+      renderNumber({ ...LIMIT, value: '-1', isSet: true, effectiveValue: '-1', effectiveSource: 'project' }, 'project');
+      expect(screen.getByRole('button', { name: 'Reset True peak, highest' })).toBeTruthy();
     });
   });
 

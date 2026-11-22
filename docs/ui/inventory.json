@@ -93,7 +93,7 @@
       "source": "src/components/settings/BackupsSection.tsx",
       "stories": [
         "Shown",
-        "Project Override And Out Of Range",
+        "Project Override",
         "Hidden Reason",
         "Load Error",
         "Save Refused"
@@ -412,7 +412,6 @@
         "src/components/settings/DeliveryProfilesPanel.tsx",
         "src/components/settings/KeyboardPanel.tsx",
         "src/components/settings/RetailSamplePanel.tsx",
-        "src/components/settings/ScopedSetting.tsx",
         "src/components/settings/UpdatesPanel.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
         "src/components/settings/controls/CreditsBody.tsx",
@@ -1687,6 +1686,7 @@
         "src/components/proof/inspector/TreatAsSame.tsx",
         "src/components/proof/inspector/TrimGap.tsx",
         "src/components/proof/notes/NotesPanel.tsx",
+        "src/components/proof/proofOptions/ProofOptions.tsx",
         "src/components/proof/spot/SpotTakes.tsx",
         "src/components/recordingcheck/CheckRecordingsButton.tsx",
         "src/components/schedule/MilestoneTable.tsx",
@@ -1712,6 +1712,7 @@
         "src/components/settings/CreditsPanel.tsx",
         "src/components/settings/DeliveryProfilesPanel.tsx",
         "src/components/settings/KeyboardPanel.tsx",
+        "src/components/settings/ScopedSetting.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/analysis/ToolRow.tsx",
         "src/components/settings/controls/AppearanceBodies.tsx",
@@ -2374,7 +2375,11 @@
         "Invalid",
         "Disabled",
         "Clamps On Blur",
-        "Arrow Keys Step"
+        "Arrow Keys Step",
+        "Empty Is Not Set",
+        "Emptied Reports Null",
+        "Settle Reports On Enter",
+        "Arrow Lands On The Next Step"
       ],
       "consumers": [
         "src/components/booth/frame/LevelsMenu.tsx",
@@ -2383,7 +2388,7 @@
         "src/components/editing/effects/CoverageStrip.tsx",
         "src/components/editing/effects/EffectSettings.tsx",
         "src/components/editing/range/replace/ReplaceDialog.tsx",
-        "src/components/proof/proofOptions/ProofOptions.tsx"
+        "src/components/settings/value/SettingNumber.tsx"
       ],
       "a11yDebt": false
     },

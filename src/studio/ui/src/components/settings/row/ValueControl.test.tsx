@@ -128,7 +128,7 @@ describe('ValueControl, a colour (#3680, S4)', () => {
   });
 });
 
-// One settle rule for every box of a plain setting (`useSettledDraft`): the text and number boxes were rewritten on it with the colour's.
+// A box of a plain setting saves when the narrator is done with it, never per key: text on `useSettledDraft`, a number on `NumberInput`.
 describe('ValueControl, a text or number box settles the same way', () => {
   const box = (name: string) => screen.getByRole('textbox', { name }) as HTMLInputElement;
 
@@ -159,7 +159,9 @@ describe('ValueControl, a text or number box settles the same way', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('number: a value in range is saved trimmed on leaving; one out of range is refused with the reason and not saved', () => {
+  // This test pinned the red refusal line of #2989 ("one out of range is refused with the reason and not saved"). The owner's rule CS-N1
+  // (#3681) changed that on purpose: the box saves the nearest limit, and the range note stays under it.
+  it('number: a value in range is saved trimmed on leaving; one out of range is saved as the nearest limit, with no refusal line', () => {
     const onChange = vi.fn();
     render(<Row label="Gap" kind="number" start="2" onChange={onChange} />);
     fireEvent.change(box('Gap'), { target: { value: ' 5 ' } });
@@ -168,8 +170,33 @@ describe('ValueControl, a text or number box settles the same way', () => {
     expect(onChange).toHaveBeenCalledExactlyOnceWith('5');
     fireEvent.change(box('Gap'), { target: { value: '99' } });
     fireEvent.keyDown(box('Gap'), { key: 'Enter' });
-    expect(onChange).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('alert').textContent).toBeTruthy();
+    expect(onChange).toHaveBeenLastCalledWith('10');
+    expect(box('Gap').value).toBe('10');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(box('Gap').getAttribute('aria-invalid')).toBeNull();
+    expect(screen.getByText('From 0 to 10 s')).toBeTruthy();
+  });
+
+  it('number: an unset value is an empty box, an emptied one is saved as "", and the row unit wins over the host one', () => {
+    const onChange = vi.fn();
+    const number = { min: 0, max: 10, step: 1, unit: 's' };
+    const unitRow = { id: 'row.id', label: 'Gap', unit: 'seconds' } as SettingMeta;
+    const view = render(<ValueControl row={unitRow} field={field({ kind: 'number', number })} value="" id="control" onChange={onChange} />);
+    expect(box('Gap').value).toBe('');
+    expect(box('Gap').id).toBe('control');
+    expect(screen.getByText('seconds')).toBeTruthy();
+    view.rerender(<ValueControl row={unitRow} field={field({ kind: 'number', number })} value="4" id="control" onChange={onChange} />);
+    fireEvent.change(box('Gap'), { target: { value: '' } });
+    fireEvent.blur(box('Gap'));
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('');
+  });
+
+  it('number: the range note describes the box after the row description, and a stored number past the range is marked', () => {
+    const number = { min: 0, max: 10, step: 1, unit: 's' };
+    render(<ValueControl row={row('Gap')} field={field({ kind: 'number', number })} value="99" id="control" describedBy="about" onChange={vi.fn()} />);
+    const [about, note] = (box('Gap').getAttribute('aria-describedby') ?? '').split(' ');
+    expect(about).toBe('about');
+    expect(document.getElementById(note)?.textContent).toBe('From 0 to 10 s');
     expect(box('Gap').getAttribute('aria-invalid')).toBe('true');
   });
 });

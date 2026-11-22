@@ -46,7 +46,6 @@ const EXEMPT: Record<string, string> = {
   'proof/ProoferSheet.tsx': 'a file chooser, no text',
   'proof/inspector/Inspector.tsx': KEPT,
   'proof/notes/NotesPanel.tsx': FILTER,
-  'proof/proofOptions/ProofOptions.tsx': BLUR,
   'schedule/ContractPanel.tsx': BLUR,
   'schedule/MilestoneDialog.tsx': MODAL,
   'schedule/MilestoneTable.tsx': BLUR,
@@ -60,6 +59,8 @@ const EXEMPT: Record<string, string> = {
   'settings/controls/ShortcutsBody.tsx': FILTER,
   'settings/page/SettingsPage.tsx': FILTER,
   'settings/row/ValueControl.tsx': BLUR,
+  'settings/value/SettingNumber.tsx':
+    'the number box of a Settings row, of the Backups section and of an options dialog saves when it loses focus or on Enter, and an exit takes the focus off the field first (settleFocusedField in App.tsx); in a Settings panel its edits are the Settings form, which already asks (ScopedFieldsPanel)',
   'storybible/EntryText.tsx': INSIDE,
   'storybible/Guide.tsx': FILTER,
   'storybible/PropertiesSection.tsx': INSIDE,

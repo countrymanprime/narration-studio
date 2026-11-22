@@ -172,5 +172,78 @@ describe('useSettledDraft', () => {
       rerender(<Box value="DD0004" onSettle={() => save} />);
       expect(input().value).toBe('DD0004');
     });
+
+    it('without read, a refused save leaves the draft in the box', async () => {
+      const { save, answer } = slowSave();
+      render(<Box value="BB0001" onSettle={() => save} />);
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'BB0002{Enter}');
+      await act(async () => answer(false));
+      expect(input().value).toBe('BB0002');
+    });
+  });
+
+  // NumberInput commit="settle" is the caller of these options; its own tests hold the number behaviour.
+  describe('read and settleOnUnmount', () => {
+    const upper = (draft: string) => (draft.trim() === '' ? null : draft.trim().toUpperCase());
+
+    function ReadBox({ value, onSettle, settleOnUnmount }: { value: string; onSettle: (text: string) => void | Promise<unknown>; settleOnUnmount?: boolean }) {
+      const box = useSettledDraft(value, onSettle, { read: upper, settleOnUnmount });
+      return <input aria-label="Name" value={box.draft} onChange={(event) => box.setDraft(event.target.value)} {...box.boxProps} />;
+    }
+
+    it('settles what the draft reads as, and puts the value back for a draft that reads as nothing or as the value', async () => {
+      const onSettle = vi.fn();
+      render(<ReadBox value="AB" onSettle={onSettle} />);
+      await userEvent.type(input(), 'c{Enter}');
+      expect(onSettle).toHaveBeenCalledExactlyOnceWith('ABC');
+      expect(input().value).toBe('AB');
+      await userEvent.clear(input());
+      await userEvent.type(input(), ' {Enter}');
+      expect(input().value).toBe('AB');
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'ab {Enter}');
+      expect(input().value).toBe('AB');
+      expect(onSettle).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the text being saved until the save ends, then the value; the stored value typed meanwhile is sent after it', async () => {
+      const ends: ((kept: boolean) => void)[] = [];
+      const onSettle = vi.fn(() => new Promise<boolean>((resolve) => ends.push(resolve)));
+      render(<ReadBox value="AB" onSettle={onSettle} />);
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'cd{Enter}{Enter}');
+      expect(input().value).toBe('CD');
+      await userEvent.clear(input());
+      await userEvent.type(input(), 'ab{Enter}');
+      expect(onSettle.mock.calls).toEqual([['CD'], ['AB']]);
+      await act(async () => ends[0](true));
+      expect(input().value).toBe('AB');
+      await act(async () => ends[1](false));
+      expect(input().value).toBe('AB');
+    });
+
+    it('settleOnUnmount settles a standing draft once, and nothing after Escape or Enter', async () => {
+      const onSettle = vi.fn();
+      const held = render(<ReadBox value="AB" onSettle={onSettle} settleOnUnmount />);
+      await userEvent.type(input(), 'c');
+      held.unmount();
+      expect(onSettle).toHaveBeenCalledExactlyOnceWith('ABC');
+      const escaped = render(<ReadBox value="AB" onSettle={onSettle} settleOnUnmount />);
+      await userEvent.type(input(), 'c{Escape}');
+      escaped.unmount();
+      const entered = render(<ReadBox value="AB" onSettle={onSettle} settleOnUnmount />);
+      await userEvent.type(input(), 'd{Enter}');
+      entered.unmount();
+      expect(onSettle.mock.calls).toEqual([['ABC'], ['ABD']]);
+    });
+
+    it('without settleOnUnmount a draft is dropped with the box', async () => {
+      const onSettle = vi.fn();
+      const { unmount } = render(<ReadBox value="AB" onSettle={onSettle} />);
+      await userEvent.type(input(), 'c');
+      unmount();
+      expect(onSettle).not.toHaveBeenCalled();
+    });
   });
 });

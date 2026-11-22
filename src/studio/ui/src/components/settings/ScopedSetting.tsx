@@ -7,8 +7,9 @@ import { TagInput } from '../primitives/TagInput';
 import { TextField } from '../primitives/TextField';
 import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { proofingChoiceLabel } from '../proof/options';
-import { describeNumberRange, numberProblem } from './numberSetting';
-import { Button } from '../primitives/Button';
+import { describeNumberRange } from './numberSetting';
+import { SettingNumber } from './value/SettingNumber';
+import { IconButton } from '../primitives/IconButton';
 import { ColourField } from '../primitives/ColourField';
 
 // Terms of a "tags" field are comma-joined (a term never holds a comma; TagInput.tsx commits on Enter or a typed
@@ -93,7 +94,7 @@ const optionTip = (field: ScopedSettingField, value: string) =>
 // Between `md` and `lg` the label takes its 12rem minimum and the control the rest; from `lg` the label may grow to 16rem again.
 const ROW_CLASSES =
   'grid grid-cols-1 gap-2 border-b border-[var(--border)] py-4 md:grid-cols-[var(--scoped-label,12rem)_minmax(0,1fr)] md:items-start md:gap-5 lg:grid-cols-[minmax(var(--scoped-label,12rem),var(--scoped-label-max,16rem))_minmax(0,1fr)]';
-// The controls (a select, or a swatch and a hex box) and the Reset link. The row may wrap so Reset drops under the control only
+// The controls (a select, or a swatch and a hex box) and the Reset button. The row may wrap so Reset drops under the control only
 // when there is no room beside it, and a control stops growing at 28rem so every select is the same width from md up.
 const CONTROLS_CLASSES = 'flex min-w-0 max-w-md flex-wrap items-center gap-[0.6rem]';
 // A boolean row: the switch with its label, the hint icon and Reset on one wrapping line.
@@ -155,8 +156,7 @@ function NumberSetting({
   resetButton: ReactNode;
 }) {
   const hintId = useId();
-  const problem = numberProblem(range, value);
-  const hint = problem ?? describeNumberRange(range);
+  const hint = describeNumberRange(range);
   return (
     <div className={ROW_CLASSES}>
       <div className="text-[0.82rem] font-medium text-[var(--text-muted)] md:pt-2">
@@ -164,24 +164,25 @@ function NumberSetting({
       </div>
       <div className={CONTROLS_CLASSES}>
         {/* A number box is one short width, 10rem (room for its "Inherits 0.8" placeholder), with or without a unit after it, so the boxes down a panel line up (alignment audit XSE2-22);
-            the unit stays beside its box at every width. */}
-        <div className="flex min-w-0 items-center gap-[0.6rem]">
-          <TextField
-            label={field.label}
-            mono
-            inputMode="decimal"
-            className="w-40 min-w-0"
-            placeholder={numberPlaceholder(field, scope)}
-            value={value}
-            onChange={(next) => change(next.trim())}
-            aria-invalid={problem ? true : undefined}
-            aria-describedby={hint ? hintId : undefined}
-          />
-          {range.unit && <span className="flex-none text-[0.82rem] text-[var(--text-muted)]">{range.unit}</span>}
-        </div>
+            the unit stays beside its box at every width. The form is the draft, so a valid number is the form's value as it is typed; one out of
+            range becomes the nearest allowed value when the box is left, and text that is not a number is the form's value too as it is typed (`onRefused`), so the
+            form asks before the narrator leaves. Keyed by the scope, so nothing typed under one scope shows under the other. */}
+        <SettingNumber
+          key={scope}
+          label={field.label}
+          value={value}
+          range={range}
+          commit="input"
+          allowEmpty
+          className="w-40 min-w-0"
+          placeholder={numberPlaceholder(field, scope)}
+          describedBy={hint ? hintId : undefined}
+          onChange={change}
+          onRefused={change}
+        />
         {resetButton}
         {hint && (
-          <p id={hintId} className="basis-full text-xs" style={{ color: problem ? 'var(--danger-text)' : 'var(--text-muted)' }}>
+          <p id={hintId} className="basis-full text-xs text-[var(--text-muted)]">
             {hint}
           </p>
         )}
@@ -209,9 +210,7 @@ export function ScopedSetting({
   // Spaces alone are no value in a text box: they would save as "  ", read "Not set" and still be marked Changed (#3231).
   const effective = value || field.effectiveValue;
   const resetButton = scope === 'project' && field.isSet && (
-    <Button variant="link" className="ml-auto flex-none text-[0.75rem] text-[var(--accent)]" onClick={onClearOverride}>
-      Reset
-    </Button>
+    <IconButton action="undo" label={`Reset ${field.label}`} className="ml-auto flex-none border-transparent" onClick={onClearOverride} />
   );
   if (field.kind === 'number' && field.number) {
     return <NumberSetting field={field} tool={tool} range={field.number} scope={scope} value={value} change={change} resetButton={resetButton} />;
@@ -258,7 +257,7 @@ export function ScopedSetting({
           </div>
         ) : isColor ? (
           // The pair takes the row's free width: the hex box settles on Enter or on leaving it, so a half-typed code never marks the form changed.
-          // Text left in the box that is not a colour is the form's value too (`onRefused`), as a number out of range is: the form then asks before
+          // Text left in the box that is not a colour is the form's value too (`onRefused`), as text that is not a number is: the form then asks before
           // the narrator leaves, and Discard takes it away. Keyed by the scope, so nothing typed under one scope shows under the other.
           // An emptied box is "not set" under This project, where the colour then comes from Global. Global has nothing to fall back to and the
           // host refuses '' there, so the box refuses it: it is marked, and the form is not handed a value it could only fail to save.
