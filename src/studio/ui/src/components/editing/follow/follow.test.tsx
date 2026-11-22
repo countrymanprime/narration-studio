@@ -370,6 +370,40 @@ describe('poll-is-bounded', () => {
     act(() => page.dispatch({ type: 'place', key: 'p-1:0' }));
     expect(lit()).toBeNull();
   });
+  it("a DAW lost as the app's own play starts on the word the DAW had lit leaves the app's play running", async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    const litT = state().playT as number;
+    expect(litT).not.toBeNull();
+    // The page's play halts, then the narrator plays from that same second before the DAW's loss is seen.
+    act(() => page.dispatch({ type: 'play', t: null }));
+    act(() => page.dispatch({ type: 'play', t: litT }));
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    expect(state().playT).toBe(litT);
+  });
+  it('a stop heard while the page is hidden is tracked: a DAW lost after it keeps the word, as any stop does', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    dawAt(1.3, 'stopped');
+    await poll(10);
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    hidden.mockReturnValue('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+  });
   it('a DAW that drops and comes back while still playing is not a new play: the follow the narrator turned off stays off', async () => {
     const api = makeApi();
     const view = render(tree(api, DAW_SETUPS.reaper));
