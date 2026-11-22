@@ -1,12 +1,13 @@
 package runlog
 
 import (
+	"desktop/internal/persist"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"sort"
+	"strings"
 	"time"
 )
 
@@ -64,34 +65,20 @@ func (w *stderrFileWriter) Write(p []byte) (int, error) {
 
 func (w *stderrFileWriter) Close() error { return nil }
 
-// pruneRunFiles keeps the newest maxRunFiles files in dir and drops any older than maxRunFileAge, run on every Begin
-// so a burst of short runs cannot fill the disk and a quiet week does not keep stale debug detail around. A
-// missing dir (nothing has run yet) is not an error.
-func (l *Logger) pruneRunFiles(dir string) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return
-	}
-	type file struct {
-		path    string
-		modTime time.Time
-	}
-	files := make([]file, 0, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-		files = append(files, file{filepath.Join(dir, entry.Name()), info.ModTime()})
-	}
-	sort.Slice(files, func(i, j int) bool { return files[i].modTime.After(files[j].modTime) })
-	now := l.now()
-	for i, f := range files {
-		if i >= maxRunFiles || now.Sub(f.modTime) > maxRunFileAge {
-			_ = os.Remove(f.path)
-		}
-	}
+// pruneBudget is the most a Begin spends pruning logs/runs; a variable so a test can make it run out.
+var pruneBudget = time.Second
+
+// pruneStop is the stop a Begin gives its prune for a deadline; a variable so a test can stop a pass part-way.
+var pruneStop = func(deadline time.Time) func() bool { return func() bool { return time.Now().After(deadline) } }
+
+// runFilesRule is what Begin prunes logs/runs by (persist.PruneFolder): the newest maxRunFiles run files stay and any older than
+// maxRunFileAge go, so a long burst of runs does not fill the disk and a quiet week does not keep stale debug detail around. A run file
+// written in the last hour is never removed, whatever the count, so a sidecar that wrote only at its start and is still running keeps its
+// earlier lines (a burst of more than maxRunFiles runs within an hour therefore keeps them all until the hour has passed). Only
+// <run-id>.stderr.jsonl files are runs' (anything else in the folder is left alone) and nothing is removed through a link.
+var runFilesRule = persist.PruneRule{
+	Group:      func(name string) (string, bool) { return name, strings.HasSuffix(name, ".stderr.jsonl") },
+	KeepGroups: maxRunFiles,
+	MaxAge:     maxRunFileAge,
+	Guard:      time.Hour,
 }

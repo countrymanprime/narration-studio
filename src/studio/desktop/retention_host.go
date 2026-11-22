@@ -13,7 +13,7 @@ import (
 
 // Retention (#3816): the host keeps the project's derived files bounded by a pass in the background, started when a project
 // is opened and when a recording check ends, and never while one runs. Each step reports how much its store holds in the host log;
-// the ledger step (retention_ledger.go) deletes what no reader selects any more, the cache step (retention_cache.go) what an entry's kind lets it keep, and the stores' other deletes are wired one at a
+// the ledger step (retention_ledger.go) deletes what no reader selects any more, the cache step (retention_cache.go) what an entry's kind lets it keep, the folder steps (retention_files.go) the previews and the Transcript Compare files, and the stores' other deletes are wired one at a
 // time behind it.
 
 // startRetentionLocked replaces the project's retention runner with one over the stores of the project just configured, and
@@ -44,6 +44,8 @@ func (h *Host) startRetentionLocked(checks *coverage.Service, ledger *evidence.L
 			measure:      measureDirs(ledgerRetentionDirs(project)),
 		},
 		cacheRetention{cache: evidence.NewCacheStore(project), policies: cacheRetentionPolicies, now: time.Now},
+		previewRetention(project),
+		compareRetention(project),
 	}
 	h.retention = retention.New(steps, checks.Busy, h.logRetention)
 	h.retention.Kick("open")
