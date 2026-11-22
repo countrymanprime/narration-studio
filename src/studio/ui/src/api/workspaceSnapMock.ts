@@ -1,4 +1,5 @@
 import type { WorkspaceSnapApi, WorkspaceSnapResult } from './contracts/workspaceSnap';
+import { clamp } from '../clamp';
 
 // The mock's snap: no audio, so a cut moves by a stable offset inside 2 ms, a function of the time alone (the research
 // mock's own rule, docs/research/mockups/research-mock/src/providers/alignment.ts), so tests are deterministic.
@@ -14,7 +15,7 @@ export function mockSnapTime(sourceTime: number): number {
   const ms = Math.round(sourceTime * 1000);
   const snapped = Math.max(0, (ms + ((hashOf('zc' + ms) % 5) - 2)) / 1000);
   // The rounding to a millisecond can add up to 0.5 ms to the offset: clamp to the 2 ms reach.
-  return Math.min(sourceTime + 0.002, Math.max(sourceTime - 0.002, snapped));
+  return clamp(snapped, sourceTime - 0.002, sourceTime + 0.002);
 }
 
 export function createWorkspaceSnapMock(): WorkspaceSnapApi {

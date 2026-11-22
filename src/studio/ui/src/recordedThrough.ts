@@ -34,7 +34,7 @@ export const recordedAtOf = (chapter: { recordedThrough?: RecordedThrough; recor
  */
 export function throughPercent({ through, audio }: RecordedAt): number {
   if (through.complete) return 100;
-  return through.percent <= 0 ? (audio ? 1 : 0) : Math.min(99, Math.max(1, through.percent));
+  return through.percent <= 0 ? (audio ? 1 : 0) : clamp(through.percent, 1, 99);
 }
 
 /** What a page says about how far a chapter is recorded (`recordedThrough`): `short` for a chapter list, `text` for the Booth's top bar. */

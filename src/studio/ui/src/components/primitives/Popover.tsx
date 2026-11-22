@@ -2,6 +2,7 @@ import { anotherPopoverTakesFocus, handFocusToPage } from './focusReturn';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
+import { clamp } from '../../clamp';
 
 // A layer above a dialog carries this attribute on its popup, so Dialog.tsx's Escape handler can tell that a key is
 // meant for the popover that is showing (device pickers, a settings panel) and not for the dialog it sits in - the
@@ -16,7 +17,7 @@ const POPUP_GUTTER = 16;
 const MIN_POPUP_ROOM = 120;
 /** How much of the window's bottom the bars fixed along it keep from a popup: all of them, unless that would leave the popup under `MIN_POPUP_ROOM` to read in. */
 export function popupBottomReserve(bars: number, windowHeight: number): number {
-  return Math.max(0, Math.min(bars, windowHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM));
+  return clamp(bars, 0, windowHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM);
 }
 /** The window's inner height, kept current: a popover open while the window is resized (or its bars change) is placed again for the new size. */
 export function useWindowHeight(): number {

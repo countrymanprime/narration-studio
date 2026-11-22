@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Track } from '../../types';
 import { buildPlaylist } from '../proof/playlist';
+import { clamp } from '../../clamp';
 
 const SKIP_SECONDS = 30;
 
@@ -125,7 +126,7 @@ export function useTrackPlayback(tracks: Track[], trackIndex: number, onTrackInd
       // must not wait an extra render for a 'durationchange' that may already have fired before this component saw it.
       if (!active || !Number.isFinite(audio.duration)) return;
       const end = Math.min(active.sourceEnd, audio.duration);
-      audio.currentTime = Math.max(active.sourceStart, Math.min(end, audio.currentTime + seconds));
+      audio.currentTime = clamp(audio.currentTime + seconds, active.sourceStart, end);
       setCurrentTime(audio.currentTime - active.sourceStart);
     },
     [playlist, itemIndex],

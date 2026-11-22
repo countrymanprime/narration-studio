@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { centreWindow, EDITING_SCALE, followSecond, nudgeWindow, stepLength, zoomWindow, zoomWindowAt, type TimeWindow } from '../../proof/frame/windowMath';
+import { clamp } from '../../../clamp';
 
 /** Wheel distance that makes one zoom step: a notched mouse wheel is 100 a notch, a trackpad pinch sends many small ones. */
 const WHEEL_STEP = 50;
@@ -50,7 +51,7 @@ export interface RibbonViewOptions {
 }
 
 const clampTo = (w: TimeWindow, total: number): TimeWindow =>
-  centreWindow({ start: 0, len: Math.min(Math.max(w.len, 0), total) }, w.start + w.len / 2, total, EDITING_SCALE);
+  centreWindow({ start: 0, len: clamp(w.len, 0, total) }, w.start + w.len / 2, total, EDITING_SCALE);
 
 /**
  * Which part of the waveform shows, and how it zooms and scrolls (the Proof waveform's window maths on the finer Editing scale). The view
@@ -155,7 +156,7 @@ export function useRibbonView(total: number, playhead: number | null, surface: H
         if (Math.abs(sum) < WHEEL_STEP) return;
         const dir = sum < 0 ? -1 : 1;
         sum = 0;
-        const at = v.start + (rect.width ? Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)) : 0.5) * v.len;
+        const at = v.start + (rect.width ? clamp((event.clientX - rect.left) / rect.width, 0, 1) : 0.5) * v.len;
         handZoom.current = true;
         set(zoomWindowAt(v, dir, len, at, EDITING_SCALE), false);
         return;

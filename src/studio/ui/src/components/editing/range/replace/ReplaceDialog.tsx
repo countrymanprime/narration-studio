@@ -14,6 +14,7 @@ import { DialogFooter } from '../common/DialogFooter';
 import type { ReplaceAsk } from './replaceCommand';
 import { plural } from '../../../../plural';
 import { hasVisibleText } from '../../../../visibleText';
+import { clamp } from '../../../../clamp';
 
 /** The fades at each seam the dialog offers, in milliseconds (the host takes 0 to 500); 10 ms is the cut's default seam. */
 const REPLACE_FADES = [0, 5, 10, 25, 50] as const;
@@ -455,7 +456,7 @@ function StretchWave({
   const at = (event: ReactPointerEvent<SVGSVGElement>): number => {
     const box = ref.current?.getBoundingClientRect();
     if (!box || box.width === 0) return 0;
-    return Math.min(length, Math.max(0, ((event.clientX - box.left) / box.width) * length));
+    return clamp(((event.clientX - box.left) / box.width) * length, 0, length);
   };
   const x = (t: number) => (length > 0 ? (t / length) * 1000 : 0);
   return (

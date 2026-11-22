@@ -373,7 +373,7 @@ function mockReconcile(
   const place = (word: number, confident: boolean): TeleprompterResumePlace => ({
     word,
     number: word + 1,
-    sentence: tokens > 0 ? sentenceAround(words, Math.min(Math.max(word - 1, 0), tokens - 1), breaks) : null,
+    sentence: tokens > 0 ? sentenceAround(words, clamp(word - 1, 0, tokens - 1), breaks) : null,
     confident,
   });
   const daw = located?.word != null && located.tokens === tokens ? { ...place(located.word, located.confident), source } : null;
@@ -696,7 +696,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       state = { ...state, phase: 'running', message: LISTENING };
       publish();
       emit(script);
-      const from = Math.min(Math.max(0, options.startWord ?? 0), words.length);
+      const from = clamp(options.startWord ?? 0, 0, words.length);
       if (from > 0) emit(position(from, 'listening'));
       replay(words, from);
       return { status: 'started' };

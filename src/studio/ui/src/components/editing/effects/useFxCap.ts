@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ScopedSettingField } from '../../../api/contracts/system';
 import { usePort } from '../../../ports/usePort';
 import { FX_CAP_MAX, FX_CAP_MIN, FX_CAP_PCT } from './effectsMath';
+import { clamp } from '../../../clamp';
 
 /** Editing.fx_cap_pct: the share of a chapter, a whole percent, effects may cover before the tab warns. The host keeps it for the project. */
 const TOOL = 'Editing';
@@ -66,7 +67,7 @@ export function useFxCap(): FxCapState {
 
   const setCap = useCallback(
     (pct: number) => {
-      const next = Math.min(FX_CAP_MAX, Math.max(FX_CAP_MIN, Math.round(pct)));
+      const next = clamp(Math.round(pct), FX_CAP_MIN, FX_CAP_MAX);
       setLocal(next);
       // Only the newest save speaks: an older one that fails after a newer one succeeded must not put its error up or its old value back.
       const mine = ++saves.current;

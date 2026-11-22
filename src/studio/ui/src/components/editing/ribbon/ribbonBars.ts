@@ -1,4 +1,5 @@
 import type { PeakColumn } from './peaksWindow';
+import { clamp } from '../../../clamp';
 
 /*
  * The ribbon's bars: thin rounded bars on a 1 px gap, each one centred on the middle line, so the shape is symmetric and reads as peaks and
@@ -46,7 +47,7 @@ export function levelOf(v: number, scale: PeakScale): number {
   const level = Math.abs(v) - 1;
   if (!(level > 0)) return 0;
   const ref = Math.max(1, scale.ref - 1);
-  return Math.max(0, Math.min(1, 1 + (20 * Math.log10(level / ref)) / DISPLAY_RANGE_DB));
+  return clamp(1 + (20 * Math.log10(level / ref)) / DISPLAY_RANGE_DB, 0, 1);
 }
 
 export interface BarLayout {
@@ -66,7 +67,7 @@ export function barLayout(width: number, fixedCount?: number): BarLayout {
   if (!(width > 0)) return { count: 1, pitch: BAR_WIDTH + BAR_GAP, barWidth: BAR_WIDTH };
   const count = fixedCount && fixedCount > 0 ? Math.floor(fixedCount) : Math.max(1, Math.floor((width + BAR_GAP) / (BAR_WIDTH + BAR_GAP)));
   const pitch = (width + BAR_GAP) / count;
-  return { count, pitch, barWidth: Math.max(1, Math.min(pitch - BAR_GAP, width)) };
+  return { count, pitch, barWidth: clamp(pitch - BAR_GAP, 1, width) };
 }
 
 /** A column's half height in pixels: the larger of its two peaks on the display scale (`levelOf`), as a share of `mid` under the headroom, never under the hairline. */
@@ -78,7 +79,7 @@ export function halfHeight(column: PeakColumn, mid: number, scale: PeakScale = F
 /** A column's RMS half height in pixels on the same scale as its peak (never above it), or null when the host sent no RMS: the solid core inside the peaks, as REAPER draws it. */
 export function rmsHalfHeight(column: PeakColumn, mid: number, scale: PeakScale = FULL_SCALE): number | null {
   if (column[2] === undefined) return null;
-  return Math.min(halfHeight(column, mid, scale), Math.max(MIN_BAR_HEIGHT / 2, levelOf(column[2], scale) * mid * PEAK_HEADROOM));
+  return clamp(levelOf(column[2], scale) * mid * PEAK_HEADROOM, MIN_BAR_HEIGHT / 2, halfHeight(column, mid, scale));
 }
 
 /** The host publishes the position a few times a second; between updates the drawing moves the playhead on at the playing rate, but never further than this. */
@@ -86,7 +87,7 @@ export const MAX_EXTRAPOLATE_MS = 400;
 
 /** Where the playhead is `sinceMs` after the host last said it was at `playhead`, held inside the window. */
 export function playheadAt(playhead: number, sinceMs: number, t1: number): number {
-  return Math.min(t1, playhead + Math.max(0, Math.min(sinceMs, MAX_EXTRAPOLATE_MS)) / 1000);
+  return Math.min(t1, playhead + clamp(sinceMs, 0, MAX_EXTRAPOLATE_MS) / 1000);
 }
 
 /** The fractional bar index of time `t` in the window `[t0, t1]`: 0 at the left edge, `count` at the right. */

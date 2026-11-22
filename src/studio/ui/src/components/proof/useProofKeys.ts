@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useCommandProvider } from '../../input/commandProviders';
 import { useCommand } from '../../input/useCommand';
 import { HEAR_LABEL, STOP_HEARING_LABEL } from './inspector/HearIt';
+import { clamp } from '../../clamp';
 
 /** The Inspector's decision buttons by name: a key presses the button, so the stale-evidence guard and the toast are the button's own. */
 export const DECISIONS = { pickup: 'Needs pickup', edit: 'Fix in edit', waive: 'Fine as read', defer: 'Defer' } as const;
@@ -47,7 +48,7 @@ export function useProofKeys({
   const move = (delta: -1 | 1, target: EventTarget | null) => {
     if (inNotes(target) || order.length === 0) return;
     const at = selectedId === null ? -1 : order.indexOf(selectedId);
-    const next = order[at < 0 ? (delta > 0 ? 0 : order.length - 1) : Math.min(order.length - 1, Math.max(0, at + delta))];
+    const next = order[at < 0 ? (delta > 0 ? 0 : order.length - 1) : clamp(at + delta, 0, order.length - 1)];
     if (next !== undefined) select(next);
   };
   useCommand('proof.note.next', ({ target }) => move(1, target));

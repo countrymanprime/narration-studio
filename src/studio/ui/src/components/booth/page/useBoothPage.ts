@@ -27,6 +27,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { limited, PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
 import { sentenceOr } from '../record/sentenceOr';
 import { sayListeningStillOpen, useStopFailedSentence } from '../listening/useStopFailedSentence';
+import { clamp } from '../../../clamp';
 
 /** The toast of a roll the DAW never answered, and of one that landed late: the second replaces the first, and the first goes when the take or the Booth does. */
 const ROLL_TIMEOUT_TOPIC = 'booth-roll-timeout';
@@ -853,7 +854,7 @@ export function useBoothPage(options: BoothPageOptions) {
       // does not move the reading (an arrow at the end) changes nothing, unless `force` (a pickup line is an explicit entry even on the phrase the
       // cursor is on).
       const now = latest.current;
-      const phrase = Math.min(Math.max(next.cur, 0), Math.max(now.units.length - 1, 0));
+      const phrase = clamp(next.cur, 0, now.units.length - 1);
       const retry = letGoPhrase.current === phrase;
       letGoPhrase.current = null;
       if (phrase !== now.at.cur || force || retry) setMovedTo(choose && !now.recording ? phrase : null);
@@ -1522,8 +1523,7 @@ export function useBoothPage(options: BoothPageOptions) {
   };
 }
 
-const clampAt = (at: UnitPosition, count: number): UnitPosition =>
-  count === 0 ? START : { cur: Math.max(0, Math.min(at.cur, count - 1)), wcur: Math.max(0, at.wcur) };
+const clampAt = (at: UnitPosition, count: number): UnitPosition => (count === 0 ? START : { cur: clamp(at.cur, 0, count - 1), wcur: Math.max(0, at.wcur) });
 
 /**
  * Holds the take while the context menu that is opening stays open: the menu is the document's `role="menu"` once it renders, and

@@ -2,6 +2,7 @@
 // window as the start tone and the theme are; storage can be missing or blocked, and then it reads as the default.
 
 import { announceBrowserSettingChange } from '../../../browserSettings';
+import { clamp } from '../../../clamp';
 
 export const SCROLL_STEP_STORAGE_KEY = 'narration-ui-ribbon-scroll-step';
 export const SCROLL_STEP_DEFAULT = 20;
@@ -11,7 +12,7 @@ export const SCROLL_STEP_MAX = 30;
 /** A step in seconds, kept within the range Settings offers; anything that is not a number is the default. */
 export function clampScrollStep(seconds: number): number {
   if (!Number.isFinite(seconds)) return SCROLL_STEP_DEFAULT;
-  return Math.min(SCROLL_STEP_MAX, Math.max(SCROLL_STEP_MIN, Math.round(seconds)));
+  return clamp(Math.round(seconds), SCROLL_STEP_MIN, SCROLL_STEP_MAX);
 }
 
 export function readScrollStep(): number {

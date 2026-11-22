@@ -6,6 +6,7 @@ import { TextField } from '../../../../primitives/TextField';
 import { suggestionReasonLine } from '../../../../manuscript/dialogueCues.selectors';
 import type { Phrase } from '../../data/script.selectors';
 import { searchSpeakers, speakerColourIndexOf, type SpeakerChoice } from './speakerChoices';
+import { clamp } from '../../../../../clamp';
 
 // Who says this phrase (the mock's `SpeakerPicker`): a search box, this chapter's speakers first and everyone when searching, a
 // swatch per name, the entry beneath each name, and "Confirm “X”" first for a suggestion, with the local model's reason beneath it
@@ -99,7 +100,7 @@ export function SpeakerPicker({
           onKeyDown={(event) => {
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
               event.preventDefault();
-              setActive(Math.max(0, Math.min(rows.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1))));
+              setActive(clamp(current + (event.key === 'ArrowDown' ? 1 : -1), 0, rows.length - 1));
             } else if (event.key === 'Enter') {
               event.preventDefault();
               choose(rows[current]);

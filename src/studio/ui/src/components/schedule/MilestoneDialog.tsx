@@ -9,6 +9,7 @@ import { TextField } from '../primitives/TextField';
 import { blankDraft, draftOf, type DraftBounds, type MilestoneDraft } from './draft';
 import { measureOptions } from './measures';
 import type { PlatformCapability } from './profiles';
+import { clamp } from '../../clamp';
 
 export type MilestoneDialogProps = {
   /** The milestone being edited; none adds a new one. */
@@ -85,7 +86,7 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
                 inputMode="numeric"
                 value={String(draft.chapters)}
                 onChange={(text) => set({ chapters: digits(text) })}
-                onBlur={() => set({ chapters: Math.max(1, Math.min(Math.max(1, bounds.chapters), draft.chapters)) })}
+                onBlur={() => set({ chapters: clamp(draft.chapters, 1, bounds.chapters) })}
                 className="w-20!"
               />
             )}
@@ -96,7 +97,7 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
                 inputMode="numeric"
                 value={String(draft.minutes)}
                 onChange={(text) => set({ minutes: digits(text) })}
-                onBlur={() => set({ minutes: Math.max(1, Math.min(bounds.minutes, draft.minutes)) })}
+                onBlur={() => set({ minutes: clamp(draft.minutes, 1, bounds.minutes) })}
                 className="w-20!"
               />
             )}

@@ -1,5 +1,6 @@
 import { HEADING_PARAGRAPH, type HeardAnswer, type HeardWord as PortWord } from '../../../ports/alignment';
 import { buildDoc, type Aligner, type ChapterDoc, type ChapterInput, type Heard, type HeardWord, type ScriptParagraph } from '../model';
+import { clamp } from '../../../clamp';
 
 /** A quoted stretch of a paragraph: UTF-16 offsets into its text, and the cue it is the quote of. */
 export interface QuotedPhrase {
@@ -26,12 +27,12 @@ export function unitsOf(p: TextParagraph): ScriptParagraph['units'] {
   const text = p.text;
   const isSpace = (at: number): boolean => /\s/.test(text[at] ?? ' ');
   const back = (at: number): number => {
-    let i = Math.min(Math.max(at, 0), text.length);
+    let i = clamp(at, 0, text.length);
     while (i > 0 && i < text.length && !isSpace(i) && !isSpace(i - 1)) i--;
     return i;
   };
   const forward = (at: number): number => {
-    let i = Math.min(Math.max(at, 0), text.length);
+    let i = clamp(at, 0, text.length);
     while (i > 0 && i < text.length && !isSpace(i) && !isSpace(i - 1)) i++;
     return i;
   };

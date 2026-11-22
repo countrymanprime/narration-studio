@@ -21,6 +21,7 @@ import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitl
 import { ScriptLine } from './ScriptLine';
 import { FINE_LABEL, fineUnavailable, NO_NOTE, PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
+import { clamp } from '../../../clamp';
 
 /** What a removal gives back to undo it: the page's journal entry. */
 export type RemoveUndo = () => Promise<{ ok: true } | { ok: false; refusal: { reason: string } }>;
@@ -290,7 +291,7 @@ export function PickupsTable({
     const at = rows.indexOf(event.currentTarget);
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      const next = rows[Math.max(0, Math.min(rows.length - 1, at + (event.key === 'ArrowDown' ? 1 : -1)))];
+      const next = rows[clamp(at + (event.key === 'ArrowDown' ? 1 : -1), 0, rows.length - 1)];
       setSelected(next.getAttribute(PICKUP_ROW));
       next.focus();
     } else if (event.key === ' ') {

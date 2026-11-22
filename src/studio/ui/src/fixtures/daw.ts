@@ -14,6 +14,7 @@ import type {
 } from '../api/contracts/daw';
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import type { MeasureReport } from '../api/contracts/measure';
+import { clamp } from '../clamp';
 
 // The mock DAW's setups as data (the research mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity. Each is a `DawCapabilities` the existing schema accepts and names
@@ -257,7 +258,7 @@ export function quietestOf(file: RunFile): { start: number; length: number; mess
   const { duration_seconds: duration, noise_floor_start_seconds: quietest } = file.report;
   if (quietest === null || !(duration > 0)) return { refused: `${name} has no quiet stretch to play: the measurement found no room tone in it.` };
   const length = Math.min(QUIETEST_PLAY_SECONDS, duration);
-  const start = Math.max(0, Math.min(quietest + NOISE_WINDOW_SECONDS / 2 - length / 2, duration - length));
+  const start = clamp(quietest + NOISE_WINDOW_SECONDS / 2 - length / 2, 0, duration - length);
   return { start, length, message: `Playing the quietest ${length} s of ${name}, from ${start} s.` };
 }
 
