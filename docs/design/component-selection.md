@@ -164,7 +164,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 
 - **CS-T1** A control with a visible label, a hint or an error is a `Field`; a bare control with only an accessible name is a `TextField`. Every control has a name (`ControlNaming`: `label`, or an `id` a visible `<label htmlFor>` points at).
 - **CS-T2** Text that is code (an id, a hex colour, a number) uses `mono`, which is a `TextField` prop (`NumberInput` sets it). `Field` has none, so a labelled code value is a `TextField mono` under its own `<label>`.
-- **CS-T3** A text box that settles (Settings rows) keeps the draft while typing and saves on Enter or blur; Escape puts back the stored value (the settled text box in `components/settings/row/ValueControl.tsx`; a number does the same through `NumberInput commit="settle"`). A half-typed value is never saved.
+- **CS-T3** A text box that settles (Settings rows) keeps the draft while typing and saves on Enter or blur; Escape puts back the stored value (`useSettledDraft` in `components/primitives/settledDraft.ts`, which the settled text box in `components/settings/row/ValueControl.tsx`, `ColourField`'s hex box and `NumberInput commit="settle"` all use). A half-typed value is never saved.
 - **CS-T4** A placeholder is an example of the value ("Your name as the narrator"), never the label and never an instruction.
 - **CS-T5** Text of several lines is `Field textarea`. **New**.
 
