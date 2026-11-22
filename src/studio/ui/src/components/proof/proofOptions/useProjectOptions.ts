@@ -9,6 +9,8 @@ type ProjectOptions = {
   error: string;
   /** Saves `value` at the project layer; `null` hands the setting back to the computer-wide value or the default. Resolves to whether the host kept it. */
   set: (key: string, value: string | null) => Promise<boolean>;
+  /** Drops the error, for the moment the options go off screen: one that comes after is then news the narrator has not read. */
+  forgetError: () => void;
 };
 
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -66,5 +68,7 @@ export function useProjectOptions(
     [system, tool, onSaved],
   );
 
-  return { fields, error, set };
+  const forgetError = useCallback(() => setError(''), []);
+
+  return { fields, error, set, forgetError };
 }

@@ -306,6 +306,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/proof/CompareRun.tsx#2': yes('The saved vocabulary hints read changes nothing; Retry reads them again.'),
   'src/components/proof/CompareRun.tsx#3': no(AU),
   'src/components/proof/CompareRun.tsx#4': no(RC),
+  'src/components/proof/proofOptions/ProofOptions.tsx#1': no(
+    'A save the options dialog started ended after it closed: the dialog opens again from Jump to or run, and Settings has the same setting, where it saves again.',
+  ),
   'src/components/proof/CompareRun.tsx#5': no(RC),
   'src/components/proof/CompareRun.tsx#6': no(DS),
   'src/components/proof/CompareRun.tsx#7': no(DS),

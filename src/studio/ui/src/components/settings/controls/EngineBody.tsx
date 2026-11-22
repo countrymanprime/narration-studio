@@ -254,7 +254,7 @@ export function EngineBody() {
   });
   const notInstalled = choice.options.find((option) => option.daw === daw)?.installed === false;
   const linkable = state === 'not_linked' || linkedFile !== null;
-  // Another tool takes the Audacity backups row off the page, and with it a value typed in it and not saved yet (one outside its range cannot be saved): the
+  // Another tool takes the Audacity backups row off the page, and with it a value typed in it and not saved yet (text that is not a number cannot be saved): the
   // switch asks first, as a change of category does. Only that value asks: a key or an edit held elsewhere stays where it is, as it did before. The question
   // comes at the choice itself, after the built-in recorder's own "Stop recording?" confirm, so keeping the tool there keeps the value.
   const switchTo = (next: ChoosableDaw) => {

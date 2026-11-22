@@ -435,6 +435,18 @@ export function ProofPage({
     requestAnimationFrame(() => inspectorPanel.current?.scrollIntoView?.({ block: 'start' }));
   }, [selectedId, chapter?.id]);
 
+  // The control that had focus can leave the page with the chapter view (Escape to All chapters, the chapter step, the jump menu, Back), which
+  // drops focus to <body>: once the view has changed, an empty focus goes to the chapter picker. A focus that is somewhere (a control that
+  // stays, a question about leaving the chapter) is left alone.
+  const view = all ? ALL_CHAPTERS : (chapter?.id ?? '');
+  const shownView = useRef(view);
+  useEffect(() => {
+    const before = shownView.current;
+    shownView.current = view;
+    // `''` is the chapter list still loading (a cold load of a chapter link), not a view the narrator left.
+    if (before === '' || before === view) return;
+    if (document.activeElement === document.body || document.activeElement === null) document.querySelector<HTMLElement>('[data-chapter-picker]')?.focus();
+  }, [view]);
   useProofKeys({ order, selectedId, select: pickNote, step: pickStep, allChapters: all, toAllChapters: () => pickChapter(ALL_CHAPTERS) });
   useProofPageCommands({
     chapters,

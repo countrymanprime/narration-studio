@@ -345,6 +345,81 @@ describe('poll-is-bounded', () => {
     await poll(10);
     expect(lit()).toBe('p-1:3');
   });
+  it('caps going unreachable mid-play ends the DAW play: the word clears and the bar leaves Pause', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    // The DAW stops answering before its stop was heard: nothing will end the play, so it ends here.
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    expect(state().playT).toBeNull();
+    expect(lit()).toBeNull();
+  });
+  it('caps going unreachable after a stop leaves the word lit, as the stop does: it clears when the cursor moves', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    dawAt(1.3, 'stopped');
+    await poll(10);
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    act(() => page.dispatch({ type: 'place', key: 'p-1:0' }));
+    expect(lit()).toBeNull();
+  });
+  it("a DAW lost as the app's own play starts on the word the DAW had lit leaves the app's play running", async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    const litT = state().playT as number;
+    expect(litT).not.toBeNull();
+    // The page's play halts, then the narrator plays from that same second before the DAW's loss is seen.
+    act(() => page.dispatch({ type: 'play', t: null }));
+    act(() => page.dispatch({ type: 'play', t: litT }));
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    expect(state().playT).toBe(litT);
+  });
+  it('a stop heard while the page is hidden is tracked: a DAW lost after it keeps the word, as any stop does', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    dawAt(1.3, 'stopped');
+    await poll(10);
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    hidden.mockReturnValue('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+  });
+  it('a DAW that drops and comes back while still playing is not a new play: the follow the narrator turned off stays off', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    expect(playback.follow).toBe(true);
+    act(() => playback.setFollow(false));
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    view.rerender(tree(api, DAW_SETUPS.reaper));
+    // The DAW still plays: its next heartbeat says so.
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    expect(playback.follow).toBe(false);
+  });
   it('waits for a slow read before asking again', async () => {
     vi.mocked(client.projectState).mockImplementation(() => new Promise(() => {}));
     mount();

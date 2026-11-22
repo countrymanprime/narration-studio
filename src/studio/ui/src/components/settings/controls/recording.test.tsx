@@ -35,7 +35,7 @@ function RegistryProbe() {
 // rebuilt once while the page reads which tool the project records with, and a box found before that is gone.
 async function typeHeldBackupsValue(): Promise<void> {
   await waitFor(() => {
-    fireEvent.change(screen.getByRole('textbox', { name: 'Keep backups for (days)' }), { target: { value: '999' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Keep backups for (days)' }), { target: { value: 'abc' } });
     expect(registry.heldNow().length).toBeGreaterThan(0);
   });
 }
@@ -259,7 +259,7 @@ describe('Recording & DAW: Record with', () => {
     await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
 
-  it('switching Record with asks first (the shell question) while an Audacity backups value outside its range is held, and goes ahead when the question lets it', async () => {
+  it('switching Record with asks first (the shell question) while an Audacity backups value that is not a number is held, and goes ahead when the question lets it', async () => {
     const api = createMockApi(
       {},
       { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity', connected: true }, audacityLink: { module: 'on', running: true, pipe: 'silent' } },
@@ -273,7 +273,7 @@ describe('Recording & DAW: Record with', () => {
     fireEvent.click(screen.getByRole('radio', { name: /^REAPER/ }));
     await waitFor(() => expect(held).toHaveLength(1));
     expect(choose).not.toHaveBeenCalled();
-    expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('999');
+    expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('abc');
     held[0]!();
     await waitFor(() => expect(choose).toHaveBeenCalledWith('REAPER'));
   });
@@ -313,7 +313,7 @@ describe('Recording & DAW: Record with', () => {
     fireEvent.click(within(stop).getByRole('button', { name: /^Keep / }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(choose).not.toHaveBeenCalled();
-    expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('999');
+    expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('abc');
   });
 
   it('switching Record with goes ahead at once when nothing is held', async () => {

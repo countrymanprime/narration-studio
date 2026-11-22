@@ -1,4 +1,4 @@
-// A double click on a Record with radio while an Audacity backups value outside its range is held keeps the value: the "Unsaved changes" question opens with its way on
+// A double click on a Record with radio while an Audacity backups value that is not a number is held keeps the value: the "Unsaved changes" question opens with its way on
 // under the radio, and the second click must not press it (#4011).
 import { expect, test } from '@playwright/test';
 import { settlePage } from './helpers/settle';
@@ -11,7 +11,7 @@ for (const gap of [0, 250]) {
     await settlePage(page);
     // Settings opens on Recording & DAW.
     const days = page.getByRole('textbox', { name: 'Keep backups for (days)' });
-    await days.fill('999');
+    await days.fill('abc');
     const reaper = page.getByRole('radio', { name: /^REAPER/ });
     if (gap === 0) await reaper.dblclick();
     else {
@@ -29,7 +29,7 @@ for (const gap of [0, 250]) {
     await page.waitForTimeout(300);
     await expect(page.getByRole('alertdialog', { name: 'Unsaved changes' })).toBeVisible();
     await page.getByRole('button', { name: 'Keep editing' }).click();
-    await expect(days).toHaveValue('999');
+    await expect(days).toHaveValue('abc');
     await expect(page.getByRole('radio', { name: /^Audacity/ })).toBeChecked();
   });
 }

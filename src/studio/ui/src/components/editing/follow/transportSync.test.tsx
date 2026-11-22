@@ -195,6 +195,13 @@ describe('daw-to-app', () => {
     act(() => daw.moveInDaw({ playing: false }));
     expect(lit()).toBe('p-2:1');
   });
+  it('does not light the word of a DAW that plays another project, whatever its heartbeat says: the transport event carries no project', async () => {
+    // The lease is refused (another project is open), and the heartbeat transport still says the DAW plays at one word: it is the other project's play.
+    mount(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: false, position: at(1.3) } } });
+    daw.openProject('other');
+    await wait(LEASE_RENEW_MS + 10);
+    expect(lit()).toBeNull();
+  });
   it('ignores a DAW that has another project open', async () => {
     mount(DAW_SETUPS.reaper, { daw: {}, dawScript: 'different' });
     await wait(LEASE_RENEW_MS + 10);
