@@ -120,7 +120,7 @@ func TestAProjectSwitchDoesNotWaitForARetentionPassUnderTheHostLock(t *testing.T
 	switched := make(chan struct{})
 	go func() {
 		host.mu.Lock()
-		host.startRetentionLocked(host.coverage) // cancels the slow runner under the lock
+		host.startRetentionLocked(host.coverage, host.ledger) // cancels the slow runner under the lock
 		host.mu.Unlock()
 		close(switched)
 	}()
@@ -140,4 +140,39 @@ func (s slowStep) Run(context.Context, func() bool) retention.Report {
 	close(s.started)
 	<-s.release
 	return retention.Report{}
+}
+
+// Opening a project removes the ledger record a newer complete check superseded, and keeps the newer one and a cancelled re-check.
+func TestOpeningAProjectDropsASupersededLedgerRecord(t *testing.T) {
+	project := twoTakeCoverageProject(t)
+	seed := evidence.NewLedgerStore(project)
+	start := time.Date(2026, 5, 1, 8, 0, 0, 0, time.UTC)
+	for i, rec := range []struct {
+		id      string
+		outcome evidence.LedgerOutcome
+	}{{"r0", evidence.LedgerComplete}, {"r1", evidence.LedgerComplete}, {"r2", evidence.LedgerPartial}} {
+		at := start.Add(time.Duration(i) * time.Minute)
+		_, err := seed.Write(evidence.LedgerRecord{
+			ID: rec.id, AnalyzerID: coverage.AnalyzerID, AnalyzerVersion: "1", Scope: evidence.LedgerScope{DocumentID: "d", ChapterID: "c-0001"},
+			StartedAt: at, CompletedAt: at.Add(time.Second), Outcome: rec.outcome,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	host := coverageHost(t, project, true, fakeAlignedCoverageSidecarWithSkip())
+	waitForRetentionPass(t, host, "open")
+	host.closeRetention()
+	left, err := evidence.NewLedgerStore(project).All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, record := range left {
+		ids = append(ids, record.ID)
+	}
+	slices.Sort(ids)
+	if !slices.Equal(ids, []string{"r1", "r2"}) {
+		t.Fatalf("the ledger holds %v after the open pass, want r1 and r2", ids)
+	}
 }

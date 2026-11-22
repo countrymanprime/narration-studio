@@ -14,7 +14,7 @@ import (
 // ends, and the pipe is left.
 func TestTheSweepLeavesANamedPipeNamedLikeAnOrphan(t *testing.T) {
 	f, _, _, _ := checkedTwiceThenFailed(t)
-	writeStored(t, f.service, "orphan")
+	writeStoredSummary(t, f.service, "orphan")
 	pipes := []string{filepath.Join(resultsDir(f.dir), "pipe.json"), filepath.Join(summariesDir(f.dir), "pipe.json")}
 	for _, pipe := range pipes {
 		if err := syscall.Mkfifo(pipe, 0o600); err != nil {

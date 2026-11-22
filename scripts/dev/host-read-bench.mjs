@@ -6,11 +6,14 @@
 //   node scripts/dev/host-read-bench.mjs seed  <new-folder> [--size 1h|17h|40h|300] [--chapters N] [--paragraphs N] [--items N]
 //                                                           [--tracks N] [--checked N] [--checks N]
 //   node scripts/dev/host-read-bench.mjs reads <seeded-folder> [--runs N]
+//   node scripts/dev/host-read-bench.mjs retention <seeded-folder>
 //
 // `seed` writes the book through the host's own code (TestSeedAPerfBook, src/studio/desktop/perfbook_test.go). --size picks a measured
 // size: 1h is 3 chapters, 17h is 44, 40h is 103 (40 paragraphs of about 88 words each), 300 is 300 chapters of 6 paragraphs; the other
 // options override it. --items is the takes on each chapter's track (100), --tracks the extra empty tracks, --checked how many chapters
 // have a recording check (all) and --checks how many times each was checked (1).
+// `retention` runs the ledger retention pass (#3816) twice over a copy of the book and prints what each pass cost and removed, and the first call
+// of three ledger-walking reads before and after (TestPrintTheRetentionPass, retention_perf_test.go); seed with --checks 3 for superseded records.
 // `reads` prints one Markdown table a run (TestPrintTheHostReadTable, perfreads_test.go); each run is a new process, so its first calls
 // meet nothing in memory. Needs Go and, on Linux, the Wails GTK libraries (.github/actions/setup-toolchain/action.yml).
 import { spawnSync } from 'node:child_process';
@@ -23,7 +26,7 @@ const [verb, folder, ...rest] = process.argv.slice(2);
 const args = Object.fromEntries(rest.flatMap((arg, i) => (arg.startsWith('--') ? [[arg.slice(2), rest[i + 1]]] : [])));
 
 function usage(message) {
-  console.error(`${message}\nusage: host-read-bench.mjs seed <new-folder> [--size 1h|17h|40h|300] [--chapters N ...] | reads <seeded-folder> [--runs N]`);
+  console.error(`${message}\nusage: host-read-bench.mjs seed <new-folder> [--size 1h|17h|40h|300] [--chapters N ...] | reads <seeded-folder> [--runs N] | retention <seeded-folder>`);
   process.exit(2);
 }
 
@@ -41,7 +44,7 @@ function goTest(test, env) {
   return run.stdout;
 }
 
-if (!folder || !['seed', 'reads'].includes(verb)) usage('name a verb and a folder');
+if (!folder || !['seed', 'reads', 'retention'].includes(verb)) usage('name a verb and a folder');
 if (verb === 'seed') {
   if (args.size && !SIZES[args.size]) usage(`--size is one of ${Object.keys(SIZES).join(', ')}`);
   const spec = [SIZES[args.size] ?? '', ...OPTIONS.filter((name) => args[name] !== undefined).map((name) => `${name}=${args[name]}`)].join(' ').trim();
@@ -50,6 +53,14 @@ if (verb === 'seed') {
   const started = Date.now();
   goTest('TestSeedAPerfBook', { NARRATION_PERF_SEED: spec });
   console.log(`seeded ${resolve(folder)} (${spec}) in ${((Date.now() - started) / 1000).toFixed(1)} s`);
+} else if (verb === 'retention') {
+  const out = goTest('TestPrintTheRetentionPass', { NARRATION_PERF_RETENTION: '1' });
+  const at = out.indexOf('\nRetention pass on ');
+  if (at < 0) {
+    console.error(out, '\nno retention table in the test output: is the folder a seeded book?');
+    process.exit(1);
+  }
+  console.log(out.slice(at).split('\n--- ')[0].trimEnd());
 } else {
   const runs = Number(args.runs ?? 1);
   if (!Number.isInteger(runs) || runs < 1) usage('--runs is a whole number of at least 1');
