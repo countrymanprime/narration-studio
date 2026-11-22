@@ -575,6 +575,47 @@ describe('CompareRun "may have changed since comparison"', () => {
       expect(screen.queryByText(/may have changed/)).toBeNull();
     });
 
+    it('a late answer ends the wait: the retry it queued is cancelled, and a slow REAPER is not asked again and again', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        // The answer comes 21 s after the ask: after the 20 s mark queued a retry, before it fires.
+        const { api, projectStateCheck } = hostWith(undefined, async (publish) => {
+          setTimeout(() => publish(state('success', 41)), 21_000);
+          return { status: 'started' as const };
+        });
+        render(<ApiProvider api={api}>{results()}</ApiProvider>);
+        await screen.findByText(/2 discrepancies/);
+        await advance(21_500);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await advance(120_000);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('the newest comparison asked is the one that counts, whichever finishes first', async () => {
+      const deferred: Array<(result: { changed: boolean }) => void> = [];
+      let emit: (edit: { changeCount: number }) => void = () => {};
+      const subscribeDawProjectEdited = vi.fn((listener: typeof emit) => ((emit = listener), () => {}));
+      const projectStateChangedSince = vi.fn(() => new Promise<{ changed: boolean }>((resolve) => deferred.push(resolve)));
+      const projectStateCheck = vi.fn().mockResolvedValue({ status: 'started' as const });
+      const api = createMockApi({ subscribeDawProjectEdited, projectStateChangedSince, projectStateCheck } as never);
+      render(
+        <ApiProvider api={api}>
+          <CompareRun {...resultsProps()} />
+        </ApiProvider>,
+      );
+      await screen.findByText(/2 discrepancies/);
+      act(() => emit({ changeCount: 44 }));
+      act(() => emit({ changeCount: 41 }));
+      expect(deferred.length).toBe(2);
+      // The newer comparison (41, unchanged) is answered first, then the older (44, changed): the older does not undo it.
+      await act(async () => deferred[1]!({ changed: false }));
+      await act(async () => deferred[0]!({ changed: true }));
+      expect(screen.queryByText(/may have changed/)).toBeNull();
+    });
+
     it('a check REAPER never answers is treated as failed after 20 s and asked again', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       try {

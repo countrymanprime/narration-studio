@@ -337,7 +337,10 @@ export function CompareRun({
       if (!active || !asked) return;
       if (update.phase === 'error') return askAgain();
       if (update.phase !== 'success' || update.changeCount === undefined) return;
+      // An answer, however late, ends the wait: the retry it queued is not needed.
       window.clearTimeout(unanswered);
+      window.clearTimeout(timer);
+      timer = undefined;
       attempt = 0;
       compare(update.changeCount);
     });
