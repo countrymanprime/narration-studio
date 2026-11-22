@@ -201,7 +201,7 @@ the last 5 seconds, and the card says whether its open project matches the linke
   REAPER starts it each time it opens, so REAPER connects with no step in REAPER. Off, the app writes nothing into
   REAPER and REAPER does not connect.
 
-**Favourite effects** (beside the effects coverage cap), **Audacity backups**, **Silence cleanup thresholds** (under Editing checks) and **Punch pre-roll** (under Take cues) are rows here too; [Editing](editing.md), the Booth and Master & QC have a shortcut to the same settings.
+**Favourite effects** (beside the effects coverage cap), **Audacity backups** (only while the project records with Audacity), **Silence cleanup thresholds** (under Editing checks) and **Punch pre-roll** (under Take cues) are rows here too; [Editing](editing.md), the Booth and Master & QC have a shortcut to the same settings.
 
 **Editing checks** are three limits the [Editing](editing.md) page measures a chapter against: **Longest empty gap** (silence between words), **Longest leading silence** and **Longest trailing silence**, each in seconds. They are empty until you choose them, and an empty limit is not checked. Each is for this computer, and a project may use its own.
 

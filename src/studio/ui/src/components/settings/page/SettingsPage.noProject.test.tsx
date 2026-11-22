@@ -87,7 +87,6 @@ describe('Settings with no project: every category', () => {
       ['stt.rules', 'Speech to text'],
       ['stt.compareColours', 'Speech to text'],
       ['daw.fxFavourites', 'Recording & DAW'],
-      ['daw.backups', 'Recording & DAW'],
       ['editing.cleanup', 'Recording & DAW'],
       ['proofing.preview', 'Delivery'],
       ['project.stages', 'Project'],

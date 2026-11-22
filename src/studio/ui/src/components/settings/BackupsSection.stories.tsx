@@ -65,7 +65,7 @@ type Story = StoryObj<typeof meta>;
 export const Shown: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('heading', { name: 'Backups' })).toBeTruthy();
+    await expect(canvas.getByRole('region', { name: 'Backups' })).toBeTruthy();
     await expect(canvas.getByText(/Audacity keeps a copy of the audio around an edit, about 2 minutes either side, for 7 days/)).toBeTruthy();
     await expect(canvas.getByRole('textbox', { name: 'Keep backups for (days)' })).toBeTruthy();
   },

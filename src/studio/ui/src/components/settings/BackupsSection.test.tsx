@@ -83,7 +83,7 @@ describe('BackupsSection', () => {
 
   it('shown-for-a-daw-that-reports-it: the window and the retention rows, with help computed from the value', async () => {
     renderSection();
-    expect(await screen.findByRole('heading', { name: 'Backups' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Backups' })).toBeTruthy();
     expect((await windowBox()).getAttribute('placeholder')).toBe('Inherits 120');
     expect((await retentionBox()).getAttribute('placeholder')).toBe('Inherits 7');
     expect(screen.getByText(/about 2 minutes either side/)).toBeTruthy();
@@ -142,7 +142,7 @@ describe('BackupsSection', () => {
         capabilities: { ...DAW_SETUPS.audacity.capabilities, backups: { level: 'experimental', available: false, reason: 'not_running', message: quiet } },
       },
     });
-    expect(await screen.findByRole('heading', { name: 'Backups' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Backups' })).toBeTruthy();
     expect(await screen.findByText(quiet)).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
   });

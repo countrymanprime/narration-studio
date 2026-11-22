@@ -4,7 +4,6 @@ import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../types';
 import { IconButton } from '../primitives/IconButton';
-import { SectionLabel } from '../primitives/SectionLabel';
 import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
@@ -62,10 +61,8 @@ export function BackupsView({ daw, reason, loadError, onRetry, rows, drafts, onC
   const windowRow = row(WINDOW_KEY);
   const retention = row(RETENTION_KEY);
   return (
-    <section aria-labelledby="daw-backups-label" className="space-y-2 pt-3">
-      <SectionLabel as="h3" id="daw-backups-label">
-        Backups
-      </SectionLabel>
+    // The Settings row above already carries the heading ("Audacity backups"), so the section is named, not headed again.
+    <section aria-label="Backups" className="space-y-2 pt-3">
       {loadError ? (
         <div
           className="flex flex-wrap items-center gap-3 rounded-md p-3"
