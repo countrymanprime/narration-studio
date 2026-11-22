@@ -204,11 +204,11 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 | Booth | 1 h | 5 h | 17 h | 40 h |
 | --- | --- | --- | --- | --- |
 | Cold, before | 62 / 144 | 62 / 154 | 62 / 177 | 62 / 220 |
-| Cold, after | 62 / 144 | 62 / 154 | 62 / 177 | 62 / 220 |
+| Cold, after | 63 / 145 | 62 / 155 | 62 / 178 | 63 / 221 |
 | Warm, before | 51 / 107 | 51 / 112 | 51 / 122 | 51 / 140 |
-| Warm, after | 50 / 106 | 50 / 108 | 50 / 113 | 50 / 122 |
+| Warm, after | 50 / 106 | 50 / 108 | 50 / 113 | 51 / 123 |
 
-The Booth's cold start reads the list once either way. The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
+The Booth's cold start reads the list once either way (the one call more in two cells is run-to-run noise: three runs, median). The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
 ## The track list: a 5 s poll against REAPER's change event
 

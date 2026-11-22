@@ -16,6 +16,7 @@ const COVERED: Record<string, readonly string[]> = {
   'components/editing/EditingPage.tsx': ['components/editing/EditingPage.test.tsx'],
   'components/proof/ProofPage.tsx': ['components/proof/ProofPage.test.tsx'],
   'components/proof/ProofChapterPage.tsx': ['components/proof/ProofChapterPage.test.tsx'],
+  'components/booth/page/useBoothData.ts': ['components/booth/page/BoothNextPage.test.tsx'],
   'components/booth/companion/CompanionPage.tsx': ['components/booth/companion/CompanionPage.test.tsx'],
   'components/pickups/PickupsPage.tsx': ['components/pickups/PickupsPage.test.tsx'],
   'components/production/useChapterTools.tsx': ['components/production/ProductionPage.test.tsx'],
@@ -23,7 +24,7 @@ const COVERED: Record<string, readonly string[]> = {
   'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
   // The pipeline's cells take the list from the store (ensure/load) and fall back to the port with no store; the credits pairing is checked in ProductionPage.test.tsx.
   'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
-  'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx', 'components/booth/page/BoothNextPage.test.tsx'],
+  'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],
   'studio/slots.ts': ['components/layout/useGoToCommands.test.tsx', 'components/layout/AddressGate.test.tsx', 'components/delivery/page/DeliveryPage.test.tsx'],
