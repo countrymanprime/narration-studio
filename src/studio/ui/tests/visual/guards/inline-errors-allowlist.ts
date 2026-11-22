@@ -1,9 +1,11 @@
 // Files that draw an error in a page's flow, with how many, as guards/inlineErrors.ts counts them (an error drawn in some states, or always
-// drawn with text that comes and goes, outside an overlay and outside a slot with a fixed min-height). An error that appears in flow shifts
-// the layout under the narrator; it belongs in a toast, a modal or an always-present fixed result box (docs/design/design-system.md#errors).
-// Every entry is in docs/research/2026-11-inline-error-audit.md, which says how each is fixed; issue #4045 fixes them page by page.
-// The list may only shrink: guards/inlineErrors.test.ts fails on a file that draws more than listed and on an entry that is now lower,
-// so fixing one means lowering its number here.
+// drawn with text that comes and goes, outside an overlay and outside an always-drawn slot with a fixed min-height). An error that appears
+// in flow shifts the layout under the narrator; it belongs in a toast, a modal or an always-present fixed result box
+// (docs/design/design-system.md#errors). Every entry is in docs/research/2026-11-inline-error-audit.md, which says how each is fixed; issue
+// #4045 fixes them page by page.
+// guards/inlineErrors.test.ts fails on a file that draws more than listed and on an entry higher than the guard finds, so fixing one means
+// lowering its number here. Nothing checks a number against the base branch: raising one to let a new error in is refused in review, and
+// the only rise this list takes is the guard learning to see more.
 export const INLINE_ERRORS: Record<string, number> = {
   'components/booth/CompanionShell.tsx': 1,
   'components/booth/ReadAlongView.tsx': 1,
@@ -11,10 +13,10 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/booth/companion/CompanionHost.tsx': 1,
   'components/booth/frame/BoothFooter.tsx': 1,
   'components/booth/page/BoothNextPage.tsx': 1,
-  'components/booth/record/RecordSetup.tsx': 2,
   'components/booth/side/VoicesInChapter.tsx': 2,
   'components/delivery/page/OutputPanel.tsx': 2,
   'components/delivery/profile/ProfileCard.tsx': 3,
+  'components/editing/EditingCheckPanel.tsx': 4,
   'components/editing/backups/BackupsInspector.tsx': 1,
   'components/editing/cleanup/CleanupTab.tsx': 1,
   'components/editing/effects/AddEffect.tsx': 2,
@@ -29,9 +31,11 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/engine/AudacityLinkCard.tsx': 2,
   'components/engine/ChapterLinksTable.tsx': 1,
   'components/engine/ChapterSyncPanel.tsx': 1,
+  'components/engine/EnginePanel.tsx': 3,
   'components/layout/AddressGate.tsx': 1,
   'components/layout/LoadError.tsx': 1,
   'components/layout/NotFoundPage.tsx': 1,
+  'components/mapping/ChapterTrackLinkFix.tsx': 2,
   'components/master/FileRulesPanel.tsx': 1,
   'components/master/MasterToSpecPanel.tsx': 1,
   'components/master/MasteringChain.tsx': 1,
@@ -40,6 +44,8 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/pickups/list/PickupsTable.tsx': 2,
   'components/primitives/ErrorBoundary.tsx': 1,
   'components/primitives/Field.tsx': 1,
+  'components/production/ChapterTrackPanel.tsx': 4,
+  'components/production/CreditsRowPanel.tsx': 1,
   'components/production/ProductionPage.tsx': 2,
   'components/production/readiness/ReadinessPanel.tsx': 2,
   'components/project/ProjectPicker.tsx': 2,
@@ -51,10 +57,9 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/proof/checkcard/CheckCard.tsx': 2,
   'components/proof/inspector/EvidenceChangedBanner.tsx': 1,
   'components/proof/inspector/FindingThread.tsx': 1,
-  'components/proof/inspector/Inspector.tsx': 1,
+  'components/proof/inspector/Inspector.tsx': 2,
   'components/proof/inspector/InspectorActions.tsx': 1,
   'components/proof/inspector/TrimGap.tsx': 1,
-  'components/recordingcheck/background/BackgroundChecks.tsx': 1,
   'components/schedule/SchedulePage.tsx': 2,
   'components/script/page/chapters/CreditsSection.tsx': 1,
   'components/script/page/rail/threads/ThreadsTab.tsx': 1,
@@ -72,7 +77,7 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/settings/controls/DefinitionsBody.tsx': 1,
   'components/settings/controls/DeliveryBodies.tsx': 1,
   'components/settings/controls/EngineBody.tsx': 3,
-  'components/settings/controls/MicBody.tsx': 1,
+  'components/settings/controls/MicBody.tsx': 3,
   'components/settings/controls/MwKeyBody.tsx': 3,
   'components/settings/controls/SampleOutputBody.tsx': 2,
   'components/settings/controls/modelsControls.tsx': 1,
@@ -83,6 +88,7 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/settings/page/SettingsPage.tsx': 2,
   'components/settings/page/StoryBibleTypesPanel.tsx': 1,
   'components/settings/row/SettingRowView.tsx': 2,
+  'components/stages/StageEvidence.tsx': 2,
   'components/stages/StageSuggestion.tsx': 1,
   'components/storybible/CommonsAudioLookup.tsx': 1,
   'components/storybible/DialogueCueAttribution.tsx': 1,

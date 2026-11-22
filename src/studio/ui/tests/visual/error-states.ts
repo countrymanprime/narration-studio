@@ -1,30 +1,40 @@
 import type { Page } from '@playwright/test';
+import type { NarrationApi } from '../../src/types';
 import { goToPage, openAdvanced, openSettings, showSettingsRow } from './drivers/shared';
 
 // The states error-shift.spec.ts measures: one page, drawn once with the host answering and once with the named host calls failing, and the
 // elements outside the error's own slot must not move between the two (docs/design/design-system.md#errors, issue #4045).
 //
-// A state that shifts today carries `expectShift`, the pull request of #4045 that fixes it: the spec expects it to shift, so the fix fails the
-// spec until that pull request deletes the field. A page's pull request adds its fixed states here.
+// A registry beside tests/visual/catalog/, not a part of it: the catalog holds one picture per page state, and an entry here is a pair, the
+// same page with the host answering and failing, compared box by box. A #4045 pull request that fixes a page adds its fixed states here, and
+// adds the error's own picture to the catalog as any new state does. Every fix that keeps an error in a reserved slot (fix shape S in
+// docs/research/2026-11-inline-error-audit.md) registers its pair here, with `slot` naming the slot: the guard in guards/inlineErrors.ts
+// trusts a `min-h-` class, and only this spec sees whether the message fits in it.
+//
+// A state that shifts today carries `expectShift`, the pull request of #4045 that fixes it and a neighbour that moves: the spec expects that
+// neighbour to move, so the fix fails the spec until that pull request deletes the field.
 
 /** One page's ok and failing pair. */
 export interface ErrorState {
   /** `<page> / <state>`, as the catalog names a page (tests/visual/catalog/). */
   name: string;
   /** The mock api methods that reject while the host is failing, with the message they reject with. */
-  failing: Record<string, string>;
+  failing: Partial<Record<keyof NarrationApi, string>>;
   /** `start`: they fail from the page's first call. `after-open`: they answer until `open` has run, then fail. */
   failFrom: 'start' | 'after-open';
   /** Reaches the page in its ok state. */
   open: (page: Page) => Promise<void>;
   /** What makes the failing call happen after `open` (a save, a read again), run in both states; none when opening is enough. */
   provoke?: (page: Page) => Promise<void>;
-  /** Waits for the state to be drawn: in the failing run, for the error to show. */
+  /**
+   * Waits for the state to be drawn: in the failing run, for the error to show; in the run that answers, for what the answer draws. For an
+   * `after-open` state the spec has already waited for every failing method's call to settle.
+   */
   ready: (page: Page, failing: boolean) => Promise<void>;
   /** The error's own slot: it and what is in it may change. Elements with role status or alert, toasts and fixed layers are never measured. */
   slot?: string;
-  /** The #4045 pull request that stops this state shifting; while set, the spec expects a shift. */
-  expectShift?: string;
+  /** While set, the spec expects `neighbour`, an element outside the error, to move by at least a pixel; `pr` is the #4045 pull request that stops it. */
+  expectShift?: { pr: string; neighbour: string };
 }
 
 const WORKER_PLAN_FAILURE = 'The speech model could not be measured on this computer.';
@@ -48,7 +58,7 @@ export const ERROR_STATES: ErrorState[] = [
       await (failing ? note.filter({ hasText: WORKER_PLAN_FAILURE }) : note.filter({ hasNotText: 'Working out' })).waitFor();
     },
     slot: '[data-live="workerPlan"]',
-    expectShift: 'PR 2',
+    expectShift: { pr: 'PR 2', neighbour: '[data-row="stt.chunk"]' },
   },
   {
     // A delivery profile that cannot be read is a toast with Retry; the page keeps its frame and judges against the neutral profile.
@@ -80,9 +90,11 @@ export const ERROR_STATES: ErrorState[] = [
       await page.keyboard.press('Tab');
     },
     ready: async (page, failing) => {
-      if (failing) await page.locator('[data-row="project.narrator"] [aria-invalid="true"]').first().waitFor();
+      const row = page.locator('[data-row="project.narrator"]');
+      // Saved, the row marks the value as changed from the default; refused, the control is marked invalid.
+      await (failing ? row.locator('[aria-invalid="true"]').first() : row.getByText('Changed', { exact: true })).waitFor();
     },
-    expectShift: 'PR 2',
+    expectShift: { pr: 'PR 2', neighbour: '[data-row="project.credits"]' },
   },
   {
     // A read again that fails keeps the list and puts a strip above it (audit: PickupsTable:352).
@@ -99,7 +111,7 @@ export const ERROR_STATES: ErrorState[] = [
     ready: async (page, failing) => {
       if (failing) await page.getByText('Can’t tell if this list is current.').waitFor();
     },
-    expectShift: 'PR 7',
+    expectShift: { pr: 'PR 7', neighbour: 'table' },
   },
   {
     // The minute's read again that fails puts a strip above the heading (audit: SchedulePage:234).
@@ -115,6 +127,6 @@ export const ERROR_STATES: ErrorState[] = [
     ready: async (page, failing) => {
       if (failing) await page.getByText(/Couldn't read the schedule again/).waitFor();
     },
-    expectShift: 'PR 8',
+    expectShift: { pr: 'PR 8', neighbour: 'h1' },
   },
 ];

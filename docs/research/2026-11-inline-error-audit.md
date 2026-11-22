@@ -87,7 +87,7 @@ Allowed (no change): `WorkerPlanNote`, `AssetNote` badge, number boxes' `aria-in
 | `booth/frame/BoothFooter.tsx:184` | "The text cannot follow your voice" (an extra row below 1024 px, a wrapping cell above) | no | T for the error cases; Record options already shows a warn badge; or S |
 | `booth/record/RecordSetup.tsx:103,148,253`, `booth/record/ChapterLinkNotice.tsx:54` | connection chip row appears above the footer | no | S: `ConnectionIndicator` in the always-present header slot, as `editing/page/useChapterLink.tsx` does |
 | `booth/UnresolvedCreditsWarning.tsx:10` | credits tokens have no value box | no | the existing `HeaderChip` (`booth/page/CreditsWarning.tsx`) |
-| `booth/record/RecordSetup.tsx:288` | turned-away alert | yes | F: inside `ConnectionResolveDialog` |
+| `booth/record/RecordSetup.tsx:288` | turned-away alert | yes | F: inside `ConnectionResolveDialog`, which the guard now reads as a dialog |
 
 Compliant: whole-page `LoadError`, `BoothUnavailable`, `LevelsMenu` (popover, plus fixed line and toast).
 
@@ -110,7 +110,7 @@ Compliant: whole-page `LoadError`, `BoothUnavailable`, `LevelsMenu` (popover, pl
 | `editing/takes/TakeCompare.tsx:47` | not comparable, pick two different takes, skip reasons | no | R on A and B; skips as a toast |
 | `editing/page/EditOffNotice.tsx:6` | "Delete, Mute and Add FX are off" strip | no | R (buttons already carry `disabledReason`) |
 | `editing/page/NoAudioBanner.tsx:39` | no audio banner above the script | no | S: `ConnectionIndicator` in the header slot plus a dialog; T for `unreadable` |
-| `editing/EditingCheckPanel.tsx:336,343,415`, `editing/output/OutputControls.tsx:31,69,96` | alerts inside a `SlideOver` / a `Popover` | yes (3 + 1) | F |
+| `editing/EditingCheckPanel.tsx:336,343,415`, `editing/output/OutputControls.tsx:31,69,96` | alerts inside a `SlideOver` / a `Popover` | yes (3 + 1) | `EditingCheckPanel`: T (a slide-over's body is in scope, #4045); `OutputControls`: F |
 
 ## Script (script/**)
 
@@ -132,7 +132,7 @@ Compliant: whole-page `LoadError`, `BoothUnavailable`, `LevelsMenu` (popover, pl
 | `engine/ChapterSyncPanel.tsx:175` | "REAPER has changes that aren't saved yet" | no | header `StatusBadge` + `TooltipTarget` |
 | `engine/ToolResult.tsx` | result box, only drawn in 5 dialogs | yes | F |
 | `stages/StageSuggestion.tsx:33` | "Couldn't check" in the same `Note` box as "Checking..." | no | keep the box; add the toast in `ProofingStagePanel` |
-| `stages/StageEvidence.tsx:64` | "Couldn't check this chapter" replaces the slide-over body | yes | T (optional); it replaces an overlay body |
+| `stages/StageEvidence.tsx:64` | "Couldn't check this chapter" replaces the slide-over body | yes | T; a slide-over's body is in scope (#4045) |
 | `mapping/ChapterTrackLinkFix.tsx:41` | "The REAPER tracks could not be listed" | no | T; keep a fixed muted line |
 | `project/ProjectPicker.tsx:263` | switch, open, browse, pin failed under the title | yes | `notify` |
 | `project/ProjectPicker.tsx:290` | "Couldn't load recent projects." replaces the empty body | no | T with reload |
@@ -207,9 +207,9 @@ Allowed: `master/DiagnosticsTables.tsx:94` (row's own cell), `storybible/voicesa
 
 ## What the widened guard counts against these tables
 
-Added after the guard was widened under #4045 (same base). The guard's rule is in [design-system.md#errors](../design/design-system.md#errors). On this tree it counts 123 elements in 87 files; the shrink-only list `src/studio/ui/tests/visual/guards/inline-errors-allowlist.ts` holds those counts. Before, it counted 77 `role="alert"` elements in 61 files.
+Added after the guard was widened under #4045 (same base). The guard's rule is in [design-system.md#errors](../design/design-system.md#errors). The first widening counted 123 elements in 87 files, where the old guard counted 77 `role="alert"` elements in 61 files; the second pass below sets the counts the shrink-only list `src/studio/ui/tests/visual/guards/inline-errors-allowlist.ts` holds.
 
-Taken off the list because the element is inside an overlay: `editing/EditingCheckPanel.tsx` (3, its own `SlideOver`), `engine/EnginePanel.tsx` (1, its own `SlideOver`, so the warn cards at :287 and :299 are inside it too), `engine/ToolResult.tsx` (1), `production/ChapterTrackPanel.tsx` (2, its own `SlideOver`, with the line at :287), `production/CreditsRowPanel.tsx` (1, its own `SlideOver`), `proof/proofOptions/ProofOptions.tsx` (1, its own `Dialog`), `recordingcheck/CheckResult.tsx` (2), `recordingcheck/RunningView.tsx` (1), `settings/DeliveryProfileEditor.tsx` (2, its own `Dialog`) and `stages/StageEvidence.tsx` (1, its own `SlideOver`). `mapping/ChapterTrackLinkFix.tsx:41` is drawn only in `CheckResult` and the `EditingCheckPanel` slide-over, so it is not counted either.
+Taken off the list by the first widening because the element is inside an overlay (the second pass puts the slide-over files back): `editing/EditingCheckPanel.tsx` (3, its own `SlideOver`), `engine/EnginePanel.tsx` (1, its own `SlideOver`, so the warn cards at :287 and :299 are inside it too), `engine/ToolResult.tsx` (1), `production/ChapterTrackPanel.tsx` (2, its own `SlideOver`, with the line at :287), `production/CreditsRowPanel.tsx` (1, its own `SlideOver`), `proof/proofOptions/ProofOptions.tsx` (1, its own `Dialog`), `recordingcheck/CheckResult.tsx` (2), `recordingcheck/RunningView.tsx` (1) and `settings/DeliveryProfileEditor.tsx` (2, its own `Dialog`). `mapping/ChapterTrackLinkFix.tsx:41` is drawn only in `CheckResult` and the `EditingCheckPanel` slide-over, so it is not counted either.
 
 Counted, not in the tables above:
 
@@ -217,7 +217,6 @@ Counted, not in the tables above:
 | - | - |
 | `booth/companion/CompanionHost.tsx:113`, `booth/page/BoothNextPage.tsx:937`, `editing/page/EditingBody.tsx:628`, `editing/takes/prep/usePrepSteps.tsx:173` | the callers that draw `UnresolvedCreditsWarning`, `ChapterLinkNotice`, `EditOffNotice` and `PrepStatus` under a condition |
 | `master/FileRulesPanel.tsx:49` | "Advice:" line in warn colour under a file's rule |
-| `recordingcheck/background/BackgroundChecks.tsx:141` | the background checks notice |
 | `script/page/rail/words/WordCard.tsx:91`, `storybible/source/NamePronunciation.tsx:215` | `CandidatesCheckAgain` in place of the candidates when the lookup failed |
 | `settings/UpdatesPanel.tsx:116` | the result block holding the failure line (listed above as allowed at :126) |
 | `settings/page/ScopedFieldsPanel.tsx:307` | "Unsaved changes" in warn colour above Save |
@@ -226,3 +225,26 @@ Counted, not in the tables above:
 Not seen by the guard, so the tables are their only record: the reason lines `settings/row/SettingRowView.tsx:268`, `editing/cleanup/CleanupInspector.tsx:114`, `editing/effects/AddEffect.tsx:85,93` and `editing/takes/TakeCompare.tsx:47` (a `reason` or `message` is not an error by its name alone: counting those names added 26 elements, 6 of them in these tables); the connection chip rows in `booth/record/RecordSetup.tsx`; `editing/page/NoAudioBanner.tsx`, which decides inside itself whether to draw; the add-name note `storybible/GuideDetail.tsx:1086`; and `layout/StartupScreen.tsx`.
 
 The layout-shift spec `src/studio/ui/tests/visual/error-shift.spec.ts` also found that `WorkerPlanNote`, listed above as allowed, is not a fixed slot at 1440 and 1100 px: the plan the mock answers takes four lines, one more than its `min-h-[3lh]`, so the Speech to text row is 19.5 px shorter when the plan cannot be worked out.
+
+## Second pass of the guard
+
+Added after review of the first widening (same base). The guard now counts 139 elements in 91 files, 16 more than the first widening. A slide-over's body is in scope (#4045): a slide-over is a panel beside the page whose own content an error shifts, so the guard counts what a `SlideOver` draws, in its own file or another's; a modal dialog, a popover, a menu and a toast stay exempt.
+
+| File | First widening | Now | Why |
+| - | - | - | - |
+| `booth/record/RecordSetup.tsx` | 2 | 0 | the turned-away alert and the facts line at :289 and :293 are inside `ConnectionResolveDialog`, whose every return is a dialog |
+| `recordingcheck/background/BackgroundChecks.tsx` | 1 | 0 | `BackgroundChecksNotice`, drawn at :141, returns a `Dialog` |
+| `proof/inspector/Inspector.tsx` | 1 | 2 | :165 draws `EvidenceChangedBanner` in some states, an exported component whose element is marked |
+| `settings/controls/MicBody.tsx` | 1 | 3 | the views returned at :165 (the DAW cannot be asked) and :216 (the microphones could not be listed) say a failure; the table above lists the lines in them as allowed |
+| `stages/StageEvidence.tsx` | 0 | 2 | its slide-over: :69, and the warn section at :111 |
+| `editing/EditingCheckPanel.tsx` | 0 | 4 | its slide-over: :337, :344, :416 and the danger card at :349 |
+| `engine/EnginePanel.tsx` | 0 | 3 | its slide-over: :199 and the warn cards at :288 and :302 |
+| `production/ChapterTrackPanel.tsx` | 0 | 4 | its slide-over: :167, :177, :214 and the tracks line at :288 |
+| `production/CreditsRowPanel.tsx` | 0 | 1 | its slide-over: :67 |
+| `mapping/ChapterTrackLinkFix.tsx` | 0 | 2 | drawn in the `EditingCheckPanel` slide-over, so off `DRAWN_IN_OVERLAY`: :39, :43 |
+
+The Booth's real entries above include the connection chip rows of `booth/record/RecordSetup.tsx` (:103, :148, :253), which the guard does not count: they are drawn from a connection state, not an error mark.
+
+What changed in the guard: a fixed slot exempts its contents only when the slot itself is always drawn, and only a `min-h-` that reserves a line counts as one. It looks through `.map` callbacks and calls, reads the view after an early return and a `case 'error':`, an error's `.message`, templates and drawn strings, `empty:hidden` and `hidden={…}`, and reads `noErrors`, `errors.length === 0` and a confirm's "You can't undo this" as no error. It learns from every file which exported components are dialogs, which are notices, and which are drawn only in an overlay (in what `overlay.open` renders, or in a component drawn only there); that replaced the exemption by file name, under which a file such as `HideOthersConfirm.tsx` or `JumpMenu.tsx` was never read. `DRAWN_IN_OVERLAY` keeps the one file it cannot learn, `primitives/Toast.tsx` (the toast region itself). `ProofOptions.tsx` and `ToolResult.tsx` came off it: each draws its own `Dialog` or is drawn only in one, so the exemption hid nothing.
+
+Still not seen: JSX kept in a variable and drawn elsewhere (`let line = <p>…</p>`), an exported component imported under another name, and whether a message fits its `min-h-` slot. The last is what `error-shift.spec.ts` measures, so a fix of shape S registers its ok and failing pair in `tests/visual/error-states.ts`.
