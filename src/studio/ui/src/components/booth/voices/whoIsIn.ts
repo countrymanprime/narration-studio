@@ -3,7 +3,7 @@
 // new track gets.
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 import type { Track } from '../../../api/contracts/tracks';
-import type { Voice } from '../../engine/voices';
+import { shiftDigitOfPlace, type Voice } from '../../engine/voices';
 import { plural } from '../../../plural';
 import { trackName } from '../../tracks/trackName';
 
@@ -17,6 +17,9 @@ export const lineCount = (lines: number) => `${plural(lines, 'line')}`;
 /** The keys that choose a voice: Num N, Shift and Num N past nine, none past nineteen (the key hint draws them, `Kbd`). */
 export const voiceChord = (voice: Pick<Voice, 'key' | 'shift'>): string[] =>
   voice.key ? [keyName(voice.key)] : voice.shift !== undefined ? ['Shift', keyName(voice.shift)] : [];
+
+/** A chord as text, the way `Kbd` names it to a screen reader ("Shift + Num 1"): the one spelling the badge, the track list and the voice control use. */
+export const chordText = (chord: readonly string[]): string => chord.join(' + ');
 
 export type WhoCharacter = {
   id: string;
@@ -77,10 +80,8 @@ export function keyForNewTrack(voices: readonly Voice[], name: string): string {
 
 /** The keys a new track named `name` gets (`keyForNewTrack`, then Shift and a digit for the 10th to the 19th): empty past nineteen. */
 export function chordForNewTrack(voices: readonly Voice[], name: string): string[] {
-  const key = keyForNewTrack(voices, name);
-  if (key) return [keyName(key)];
   const place = voices.filter((voice) => !voice.narrator).length + 1;
-  return place >= 10 && place <= 19 ? ['Shift', keyName(String(place - 10))] : [];
+  return voiceChord({ key: keyForNewTrack(voices, name), shift: shiftDigitOfPlace(place) });
 }
 
 /** A new track's name: the character's when one is ticked, else "Extras" (the mock's shared track), numbered past the names the chapter's

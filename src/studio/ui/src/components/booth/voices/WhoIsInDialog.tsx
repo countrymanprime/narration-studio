@@ -10,7 +10,7 @@ import { SectionLabel } from '../../primitives/SectionLabel';
 import { Select } from '../../primitives/Select';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { CharacterBadge } from './CharacterBadge';
-import { chordForNewTrack, defaultTrackName, keyName, voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
+import { chordForNewTrack, chordText, defaultTrackName, keyName, voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 import { hasVisibleText } from '../../../visibleText';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
@@ -213,7 +213,7 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
             onChange={setExisting}
             options={others.map((voice) => ({
               value: voice.guid,
-              label: voiceChord(voice).length ? `${voiceChord(voice).join(' ')} · ${voiceName(voice)}` : voiceName(voice),
+              label: voiceChord(voice).length ? `${chordText(voiceChord(voice))} · ${voiceName(voice)}` : voiceName(voice),
             }))}
           />
         ) : null}

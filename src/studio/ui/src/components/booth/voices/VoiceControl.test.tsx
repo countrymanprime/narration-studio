@@ -217,7 +217,7 @@ describe('the voice control', () => {
     expect(list.textContent).not.toContain('Hatter');
   });
 
-  it('a voice past nine is listed with Shift and its digit, which a screen reader hears as Shift Num N (#3989)', async () => {
+  it('a voice past nine is listed as Shift and its digit, which a screen reader hears as Shift + Num N (#3989)', async () => {
     const eleventh: Voice = { guid: 'e', name: 'Dormouse', key: '', shift: '1', narrator: false, notVoice: false, characters: [] };
     render(
       <VoiceControl
@@ -231,7 +231,7 @@ describe('the voice control', () => {
       />,
     );
     const row = within(await screen.findByRole('listbox', { name: 'Voices of this chapter' })).getByRole('option', { name: /Dormouse/ });
-    expect(row.textContent).toContain('⇧1');
-    expect(row.textContent).toContain('Shift Num');
+    expect(row.textContent).toContain('Shift 1');
+    expect(row.textContent).toContain('Shift + Num');
   });
 });

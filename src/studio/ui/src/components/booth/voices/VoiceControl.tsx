@@ -10,31 +10,23 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { VOICE_CONTROL_ID, type BoothVoices } from './useBoothVoices';
 import { CharacterBadge } from './CharacterBadge';
-import { voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
+import { chordText, voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 
 /** A "No track" row's option id: a character, never a track GUID. */
 const CHARACTER = 'character:';
 /** The empty search's "add a track" row: no number to type, so the narrator need not know which lanes exist. */
 const ADD_LANE = 'add-lane';
 
-const keyLabel = (voice: Voice) => voiceChord(voice).join(' ');
+const keyLabel = (voice: Voice) => chordText(voiceChord(voice));
 /** The number-pad key as the number alone ("2"); a screen reader still hears which key it is ("Num 2"). */
 function KeyNumber({ voice }: { voice: Voice }) {
-  // Past nine the key is Shift and a digit: "⇧1" is the 11th voice, read as "Shift Num 1".
-  if (!voice.key && voice.shift !== undefined)
-    return (
-      <span className="flex-none font-mono font-semibold whitespace-nowrap text-[var(--text)]">
-        <span className="sr-only">Shift Num </span>
-        <span aria-hidden="true">⇧</span>
-        {voice.shift}
-        <span className="sr-only">, </span>
-      </span>
-    );
-  if (!voice.key) return null;
+  // Past nine the key is Shift and a digit: drawn "Shift 1", read as "Shift + Num 1".
+  const shifted = !voice.key && voice.shift !== undefined;
+  if (!voice.key && !shifted) return null;
   return (
     <span className="flex-none font-mono font-semibold whitespace-nowrap text-[var(--text)]">
-      <span className="sr-only">Num </span>
-      {voice.key}
+      <span className="sr-only">{shifted ? 'Shift + Num ' : 'Num '}</span>
+      {shifted ? `Shift ${voice.shift}` : voice.key}
       <span className="sr-only">, </span>
     </span>
   );

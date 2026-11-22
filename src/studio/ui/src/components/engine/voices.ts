@@ -22,6 +22,9 @@ export type Voice = {
 };
 
 const NARRATOR = 'narrator';
+
+/** The number-pad digit that, with Shift held, chooses the voice in `place` (1 is the first voice after the Narrator): "0" for the 10th to "9" for the 19th, undefined elsewhere. */
+export const shiftDigitOfPlace = (place: number): string | undefined => (place >= 10 && place <= 19 ? String(place - 10) : undefined);
 const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
 
 /** The direct children of the folder `folderGuid` among `tracks` (file order, with depth), or [] when it is not a folder. */
@@ -102,7 +105,7 @@ export function folderVoices(
     const narrator = !narratorSeen && (same(track.name, NARRATOR) || (!anyNamed && setup.narratorGuids.includes(track.guid.toLowerCase())));
     if (narrator) narratorSeen = true;
     const key = narrator ? '0' : next <= 9 ? String(next) : '';
-    const shift = !narrator && next >= 10 && next <= 19 ? String(next - 10) : undefined;
+    const shift = narrator ? undefined : shiftDigitOfPlace(next);
     if (!narrator) next += 1;
     return {
       guid: track.guid,
