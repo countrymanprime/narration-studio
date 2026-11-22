@@ -752,6 +752,8 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     // The second stretch is asked at 1 s and answered at 6 s; the first is answered at 3 s, in between.
     await wait(4_400);
     expect(state().playing).toBe(true);
+    // The first stretch's late answer is not a stop of the newer one: no stop reaches the DAW behind the second play.
+    expect(calls('stop')).toHaveLength(0);
   });
   it('an error from the file of an earlier app play does not end the DAW play that took over from it', async () => {
     const api = createMockApi({}, { daw: {} });

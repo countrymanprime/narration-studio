@@ -349,7 +349,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         }
         return why || 'The DAW did not play it.';
       }
-      if (epoch.current !== mineEpoch) stopDaw(); // stopped while the DAW was being asked
+      // Stopped (or given up) while the DAW was being asked: its answer stops the DAW again. A newer play of the page (it owns now) is not this play: it is left running.
+      if (epoch.current !== mineEpoch && !owns.current) stopDaw();
       return null;
     },
     stop: () => {
