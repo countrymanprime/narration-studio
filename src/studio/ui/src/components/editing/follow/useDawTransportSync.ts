@@ -54,7 +54,8 @@ export interface DawTransportSyncOptions {
   /** The narrator stopped the DAW while the app's play was the DAW's. */
   onStopped(): void;
   /** The DAW stopped answering during the app's play. */
-  onLost(): void;
+  /** The DAW stopped answering during the app's play; `message` is what to say (the page offers Retry with it). */
+  onLost(message: string): void;
   /** The DAW started playing by itself: the text follows it, as it does the app's own play. */
   onDawPlay(): void;
   notify(text: string): void;
@@ -135,8 +136,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     if (owns.current) {
       owns.current = false;
       range.current = null;
-      l.onLost();
-      l.notify(LOST);
+      epoch.current += 1;
+      l.onLost(LOST);
     } else if (mine.current != null && l.state.playT === mine.current) {
       mine.current = null;
       l.dispatch({ type: 'play', t: null });
@@ -277,8 +278,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       if (Date.now() - lastHeard.current <= (leased ? SILENT_MS : UNWATCHED_MS)) return;
       owns.current = false;
       dawPlaying.current = false;
-      live.current.onLost();
-      live.current.notify(LOST);
+      epoch.current += 1;
+      live.current.onLost(LOST);
       if (!leased) stopDaw();
     }, 1000);
     return () => clearInterval(timer);
@@ -296,7 +297,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     notPlacedWhy: (docT, daw) =>
       live.current.clock?.whyNotPlaced(docT, daw) ??
       (live.current.clockPending ? `${daw} has not yet said where the words sit in its project.` : null) ??
-      `The app could not read where the words sit in ${daw}'s project. Check that ${daw} is open on this book with the chapter's track linked.`,
+      (live.current.caps ? null : `${daw} has not answered yet, so the app cannot tell where the words sit in its project.`) ??
+      `The app could not read where the words sit in ${daw === 'The DAW' ? 'the DAW' : daw}'s project. Check that ${daw === 'The DAW' ? 'the DAW' : daw} is open on this book with the chapter's track linked.`,
     start: async (docT, endDocT) => {
       const l = live.current;
       const project = l.clock?.projectAt(docT) ?? null;

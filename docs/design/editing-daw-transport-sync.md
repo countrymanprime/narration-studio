@@ -80,7 +80,7 @@ Drift. While REAPER plays for the page, the app's audio is silent, so there is o
 | Chapter not linked, or no audio | No table or no placed word: every second maps to null; Play plays in the app and says the part is not in REAPER's project; nothing is written | `wordClock.test.ts`, `transportSync.test.tsx` (no word placed) |
 | Recording | Reads are ignored, writes are refused with REAPER's sentence; Play plays nothing, in REAPER or the app | Lua and `transportsync_test.go`; the page's toast on a refusal is `transportSync.test.tsx` |
 | Capability unavailable (the DAW does not report it) | No lease; Play plays in the app and says the capability's sentence | `transportSync.test.tsx` |
-| DAW not answered yet | The DAW is asked to play all the same: no capability read, no notice | `transportSync.test.tsx` (asks the DAW to play before it has answered ...) |
+| DAW not answered yet | Play is not held back: the DAW is asked, but with no capabilities there is no word table to place the words, so the app plays at once and says the DAW has not answered yet | `transportSync.test.tsx` |
 | Watch lease never answered | Play asks the DAW and plays; no check stands between the click and the play | `transportSync.test.tsx` (plays at once with the link and the word time held) |
 | Word table still being read, or never answering | The app plays at once and says the DAW has not yet said where the words sit; a late table applies from the next play | `transportSync.test.tsx`, `useWordClock.test.tsx` |
 | A play that did nothing | The notice says why and offers Retry, which plays again | `transportSync.test.tsx` |

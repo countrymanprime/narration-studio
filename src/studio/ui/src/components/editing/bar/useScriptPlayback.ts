@@ -21,6 +21,8 @@ import { playable, playingKey } from '../script/playing';
 import { clamp } from '../../../clamp';
 
 export const AUDIO_FAILED = "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.";
+/** The toast topic of a notice that offers Retry: a newer play withdraws it, so a Retry on screen is always for the newest play. */
+const PLAY_TOPIC = 'editing-play-retry';
 const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
 const NOTHING_FOR_HEADING = 'Nothing was recorded for the heading.';
 const NOTHING_FOR_WORD = 'Nothing was recorded for this word.';
@@ -53,10 +55,10 @@ export interface ScriptPlaybackOptions {
   /** Says something to the narrator; `retry`, given when nothing played, plays again. */
   notify?: (text: string, retry?: () => void) => void;
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
-   * do. Null `caps` (not answered yet) plays nothing unless the read failed; absent `sync` plays in the app. */
+   * do. Null `caps` (not answered yet) is asked to play all the same, so no check stands between a click and the play; a read that failed is said and the app plays; absent `sync` plays in the app. */
   sync?: {
     clock: WordClock | null;
-    /** The host has not yet said where the words play: Play waits and the page says it is checking, as it does before the watch lease is answered. */
+    /** The host has not yet said where the words play: nothing is placed yet, so a play goes to the app at once and says so. */
     clockPending?: boolean;
     caps: DawCapabilities | null;
     read?: DawRead;
@@ -79,7 +81,7 @@ export interface ScriptPlaybackOptions {
 export function useScriptPlayback({
   playlist,
   mediaUrl,
-  notify = (text, retry) => overlay.toast(text, retry ? { tone: 'error', action: retryAction(retry) } : undefined),
+  notify = (text, retry) => overlay.toast(text, retry ? { tone: 'error', action: retryAction(retry), topic: PLAY_TOPIC } : undefined),
   sync,
   sound,
   output,
@@ -146,6 +148,7 @@ export function useScriptPlayback({
     mounted.current = true;
     return () => {
       mounted.current = false;
+      overlay.dismissTopic(PLAY_TOPIC);
     };
   }, []);
 
@@ -210,6 +213,7 @@ export function useScriptPlayback({
       const ask = ++asks.current;
       const wanted = (): boolean => asks.current === ask;
       const asked = ++playsAsked.current;
+      overlay.dismissTopic(PLAY_TOPIC);
       const stopsAt = stopAt.current;
       lastAsk.current = { t, stopsAt, asked };
       // A read that failed is asked again, so the DAW plays the next press once it answers.
@@ -330,11 +334,15 @@ export function useScriptPlayback({
     // A play of a selection leaves the selection; placing the cursor would drop it.
     if (key && !s.sel) send({ type: 'place', key });
   }, [halt]);
-  const onLost = useCallback((): void => {
+  const onLost = useCallback((message: string): void => {
+    // A play still being asked of the DAW is given up with it: its late answer must not hand the play to the app after the page said it stopped.
+    asks.current += 1;
     audioRef.current?.pause();
     stopAt.current = null;
     window.clearTimeout(stopTimer.current);
     live.current.dispatch({ type: 'play', t: null });
+    const again = lastAsk.current;
+    live.current.notify(message, again ? () => mounted.current && playsAsked.current === again.asked && goAgain.current(again.t, again.stopsAt) : undefined);
   }, []);
   const syncing = useDawTransportSync({
     clock: sync?.clock ?? null,

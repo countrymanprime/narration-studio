@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { overlay } from '../../../overlay/overlayService';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -621,6 +622,42 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(state().playing).toBe(false);
     expect(notices.join(' ')).toMatch(/stopped answering/);
     expect(calls('stop').length).toBeGreaterThan(0);
+  });
+  it('a play the page already reported lost never falls back to the app when its late refusal arrives, and the notice offers Retry', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    let answerPlay: (r: { ok: boolean; message: string }) => void = () => {};
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      // The watch is never answered and the play is held: the DAW link has stalled.
+      if (action === 'watch') return new Promise(() => {});
+      if (action === 'play') return new Promise((resolve) => (answerPlay = resolve as typeof answerPlay));
+      return (real as (...a: unknown[]) => unknown)(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(15_000);
+    expect(notices.join(' ')).toMatch(/stopped answering/);
+    expect(retries.length).toBeGreaterThan(0);
+    // The DAW's refusal comes after the page gave the play up: the app does not take it over.
+    await act(async () => answerPlay({ ok: false, message: 'late refusal' }));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
+  });
+  it('a newer play withdraws the Retry offered for an older one', async () => {
+    await ready();
+    const dismissed = vi.spyOn(overlay, 'dismissTopic');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(dismissed).toHaveBeenCalledWith('editing-play-retry');
   });
   it('a word table still being read does not stop the click: the app plays at once and says the DAW has not yet said where the words sit (#4043)', async () => {
     mount(DAW_SETUPS.reaper, undefined, null, true);
