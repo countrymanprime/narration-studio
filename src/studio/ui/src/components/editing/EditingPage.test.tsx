@@ -336,6 +336,29 @@ describe('EditingPage', () => {
       window.localStorage.clear();
     });
 
+    it("draws no chapter of the old project, and says nothing of a project change, while the new project's list is read (qa breaks 1 and 2)", async () => {
+      let releaseB = () => {};
+      const gate = new Promise<void>((resolve) => (releaseB = resolve));
+      let project: 'a' | 'b' = 'a';
+      const api = pageApi({
+        manuscriptChapters: async () => {
+          if (project === 'b') await gate;
+          return project === 'a' ? [chapterOf('a1', 'Alpha One', 0)] : [chapterOf('b1', 'Beta One', 0)];
+        },
+      });
+      const view = render(treeFor(api, '/a'));
+      await screen.findByText('This chapter has no text yet.');
+      project = 'b';
+      act(() => storeRef.current!.reset()); // system:attached first
+      view.rerender(treeFor(api, '/b'));
+      await act(async () => {});
+      expect(screen.queryByText('Alpha One')).toBeNull();
+      expect(screen.queryByText(/project changed/i)).toBeNull();
+      await act(async () => releaseB());
+      await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('b1'));
+      window.localStorage.clear();
+    });
+
     it("a re-attach of the same project while the page's read is out shows the list, not a project-changed error (R10-4)", async () => {
       let release = () => {};
       let first = true;
@@ -401,6 +424,7 @@ describe('EditingPage', () => {
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
         <EditingHost api={pageApi(api)} daw={dawFor('reaper')} journal={newJournal()}>
+          <AppTellsStore folder={projectFolder} />
           <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} />
         </EditingHost>
       </PageFooterProvider>
@@ -421,6 +445,7 @@ describe('EditingPage', () => {
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
         <EditingHost api={pageApi(api)} daw={dawFor('reaper')} journal={newJournal()}>
+          <AppTellsStore folder={projectFolder} />
           <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} />
         </EditingHost>
       </PageFooterProvider>

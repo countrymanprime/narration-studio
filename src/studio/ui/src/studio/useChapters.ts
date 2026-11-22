@@ -67,19 +67,20 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
  * `read()` serves what the store holds, or waits for the read of it in flight, and `read(true)` (a Retry, a Check again, a refresh after a take) reads it now.
  * A page that keys its own state by the project (the Editor's saved chapter) passes its project folder: the list it gets was read for that project, or the
  * read fails with "The project changed while its chapters were being read." A re-read of a held list that failed is a failure of the read, as before the store.
- * Without a <StudioProvider> it reads the port, as every reader did before the slot.
+ * `settled` (the default) waits for a re-read in flight and fails when it failed; a page that only shows the list (Production's pipeline cells) passes false and keeps
+ * the held list. Without a <StudioProvider> it reads the port, as every reader did before the slot.
  */
-export function useReadChapters(project?: string): (fresh?: boolean) => Promise<ManuscriptChapter[]> {
+export function useReadChapters(project?: string, settled = true): (fresh?: boolean) => Promise<ManuscriptChapter[]> {
   const store = useOptionalStoreHandle();
   const manuscript = usePort('manuscript');
   return useCallback(
     async (fresh = false) => {
       if (!store) return manuscript.manuscriptChapters();
-      await (fresh ? store.load('chapters', { project }) : store.ensure('chapters', { project, settled: true }));
+      await (fresh ? store.load('chapters', { project }) : store.ensure('chapters', { project, settled }));
       const held = store.getState().slots.chapters;
       if (!held) throw store.getState().errors.chapters ?? new Error('The chapter list is not held.');
       return [...held];
     },
-    [store, manuscript, project],
+    [store, manuscript, project, settled],
   );
 }
