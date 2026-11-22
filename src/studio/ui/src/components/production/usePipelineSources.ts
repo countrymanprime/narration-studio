@@ -3,6 +3,7 @@ import type { Finding } from '../../api/contracts/findings';
 import type { ManuscriptChapter, MeasureFileResult, MeasureJob } from '../../types';
 import { usePort } from '../../ports/usePort';
 import { useOptionalStoreHandle } from '../../studio/StudioProvider';
+import { useReadChapters } from '../../studio/useChapters';
 import { chapterIdOfPrepId } from '../credits/creditsEntries';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
@@ -61,7 +62,7 @@ export function usePipelineSources(
   const findings = usePort('findings');
   const measure = usePort('measure');
   const scriptPrep = usePort('scriptPrep');
-  const manuscript = usePort('manuscript');
+  const readChapters = useReadChapters();
   const store = useOptionalStoreHandle();
   // Each reset of the store is a project switch: what was read before it is the old project's, whatever the refresh key says.
   const generation = useSyncExternalStore(
@@ -97,12 +98,8 @@ export function usePipelineSources(
       // A held list is served on a first ask and in a new project (the store was emptied: it reads); a new refresh key in the same project reads it now.
       const previous = asked.current;
       asked.current = { generation, key: refreshKey };
-      const readList = async () => {
-        if (!store) return manuscript.manuscriptChapters();
-        if (previous && previous.generation === generation && previous.key !== refreshKey) await store.load('chapters');
-        else await store.ensure('chapters');
-        return store.getState().slots.chapters;
-      };
+      const fresh = previous !== undefined && previous.generation === generation && previous.key !== refreshKey;
+      const readList = () => readChapters(fresh);
       const tag = `${generation}:${refreshKey}`;
       void Promise.all([readList().catch(() => undefined), measure.measureState().catch(() => undefined)]).then(
         ([chapters, job]) => live && setPair({ tag, chapters, job }),
@@ -116,7 +113,7 @@ export function usePipelineSources(
       live = false;
       clearTimeout(timer);
     };
-  }, [active, refreshKey, generation, store, findings, measure, scriptPrep, manuscript]);
+  }, [active, refreshKey, generation, store, findings, measure, scriptPrep, readChapters]);
 
   const proof = proofRead?.generation === generation ? proofRead.value : undefined;
   const prep = prepRead?.generation === generation ? prepRead.value : undefined;

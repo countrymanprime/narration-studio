@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import userEvent from '@testing-library/user-event';
+import { useEffect } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,8 +12,9 @@ import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
 import { createJournal } from '../../studio/journal/createJournal';
+import { useStoreHandle } from '../../studio/StudioProvider';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
-import type { NarrationApi } from '../../types';
+import type { ManuscriptChapter, NarrationApi } from '../../types';
 import { clock } from '../../clock';
 import { useSelectionActions } from './bar/selectionActions';
 import { drawSections } from './drawer/drawerSections';
@@ -99,6 +101,13 @@ const press = (key: string, init: KeyboardEventInit = {}) =>
     fireEvent.keyDown(document.body, { key, code: codeOf(key), ...init });
   });
 const drawerButton = () => screen.getByRole('button', { name: 'Clean up and effects' });
+
+/** What App does with each bootstrap: tells the store which project the app is on, in the same commit as the page's new folder prop. */
+function AppTellsStore({ folder }: { folder: string }) {
+  const store = useStoreHandle();
+  useEffect(() => store.setProject(folder), [store, folder]);
+  return null;
+}
 
 describe('EditingPage', () => {
   it('the-page-is-the-script', async () => {
@@ -247,10 +256,116 @@ describe('EditingPage', () => {
     window.localStorage.clear();
   });
 
+  it('reads the chapter list once for the page and everything beside it, and again when the project folder changes', async () => {
+    const api = pageApi();
+    const read = vi.spyOn(api, 'manuscriptChapters');
+    const tree = (projectFolder: string) => (
+      <PageFooterProvider value={null}>
+        <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
+          <AppTellsStore folder={projectFolder} />
+          <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} chapterId="c2" />
+        </EditingHost>
+      </PageFooterProvider>
+    );
+    const view = render(tree('/a'));
+    await screen.findByText('This chapter has no text yet.');
+    expect(read).toHaveBeenCalledTimes(1);
+    view.rerender(tree('/b'));
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    window.localStorage.clear();
+  });
+
+  describe('the chapter list it read is the shared one, for its project (#3658, #3998)', () => {
+    const chapterOf = (id: string, title: string, index: number) =>
+      ({ id, title, index, wordCount: 10, status: 'not_started', contentKind: 'narration' }) as ManuscriptChapter;
+    const storeRef: { current: ReturnType<typeof useStoreHandle> | null } = { current: null };
+    function Probe() {
+      storeRef.current = useStoreHandle();
+      return null;
+    }
+    const treeFor = (api: NarrationApi, projectFolder: string, chapterId?: string) => (
+      <PageFooterProvider value={null}>
+        <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
+          <Probe />
+          <AppTellsStore folder={projectFolder} />
+          <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} chapterId={chapterId} />
+        </EditingHost>
+      </PageFooterProvider>
+    );
+
+    it('keeps the chapter on screen, and the saved one, when the store later lists it differently (a re-split)', async () => {
+      let list = [chapterOf('c1', 'Chapter One', 0), chapterOf('c2', 'Chapter Two', 1)];
+      const api = pageApi({ manuscriptChapters: async () => list });
+      render(treeFor(api, '/p', 'c1'));
+      await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./p')).toBe('c1'));
+      list = [chapterOf('c1a', 'Chapter One (part 1)', 0), chapterOf('c1b', 'Chapter One (part 2)', 1), chapterOf('c2', 'Chapter Two', 2)];
+      await act(async () => storeRef.current!.load('chapters'));
+      await act(async () => {});
+      expect(screen.queryByText('Chapter One (part 1)')).toBeNull();
+      expect(window.localStorage.getItem('narration.editing.lastChapter./p')).toBe('c1');
+      window.localStorage.clear();
+    });
+
+    it("saves nothing under the old folder when the store resets before the folder prop changes, then reads the new project's list for the new folder (R10-1)", async () => {
+      let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
+      const read = vi.fn(async () => list);
+      const api = pageApi({ manuscriptChapters: read });
+      window.localStorage.setItem('narration.editing.lastChapter./a', 'a2');
+      const view = render(treeFor(api, '/a'));
+      await screen.findByText('This chapter has no text yet.');
+      list = [chapterOf('b1', 'Beta One', 0), chapterOf('b2', 'Beta Two', 1)];
+      // system:attached first: the store is emptied and waits for the bootstrap; nothing is read for the old folder.
+      act(() => storeRef.current!.reset());
+      await act(async () => {});
+      expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('a2');
+      view.rerender(treeFor(api, '/b'));
+      await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('b1'));
+      expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('a2');
+      window.localStorage.clear();
+    });
+
+    it("serves the old project's held list under the new folder never: the folder prop changes before the store resets (R10-10)", async () => {
+      let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
+      const api = pageApi({ manuscriptChapters: async () => list });
+      const view = render(treeFor(api, '/a'));
+      await screen.findByText('This chapter has no text yet.');
+      list = [chapterOf('b1', 'Beta One', 0), chapterOf('b2', 'Beta Two', 1)];
+      view.rerender(treeFor(api, '/b'));
+      await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('b1'));
+      expect(window.localStorage.getItem('narration.editing.lastChapter./b')).not.toBe('a1');
+      window.localStorage.clear();
+    });
+
+    it("a re-attach of the same project while the page's read is out shows the list, not a project-changed error (R10-4)", async () => {
+      let release = () => {};
+      let first = true;
+      const api = pageApi({
+        manuscriptChapters: async () => {
+          if (first) {
+            first = false;
+            await new Promise<void>((resolve) => (release = resolve));
+          }
+          return [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
+        },
+      });
+      render(treeFor(api, '/a'));
+      await act(async () => {});
+      act(() => storeRef.current!.reset());
+      await act(async () => release());
+      await act(async () => {
+        storeRef.current!.setProject('/a');
+      });
+      await screen.findByText('This chapter has no text yet.');
+      expect(screen.queryByText(/project changed/i)).toBeNull();
+      window.localStorage.clear();
+    });
+  });
+
   it("does not save the old project's chapter under a new project folder", async () => {
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
         <EditingHost api={pageApi()} daw={dawFor('reaper')} journal={newJournal()}>
+          <AppTellsStore folder={projectFolder} />
           <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} chapterId="c2" />
         </EditingHost>
       </PageFooterProvider>

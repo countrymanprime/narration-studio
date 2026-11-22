@@ -5,7 +5,7 @@ import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
-import { usePort } from '../../ports/usePort';
+import { useReadChapters } from '../../studio/useChapters';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
 import { Panel } from '../primitives/Panel';
@@ -97,7 +97,7 @@ function EditingLoaded({
   dawConnectGraceMs = DAW_CONNECT_GRACE_MS,
   projectFolder = '',
 }: EditingPageProps) {
-  const manuscript = usePort('manuscript');
+  const readChapters = useReadChapters(projectFolder);
   const keymap = useUserKeymap();
   const daw = useDawStatus();
   // The DAW dialog is the shared chip's (`DawConnectionChip`); the page is told when it is up, so the chapter-link dialog waits for it.
@@ -119,11 +119,14 @@ function EditingLoaded({
 
   useEffect(() => {
     let live = true;
-    manuscript.manuscriptChapters().then(
+    // The first read of the page serves the store's list; a Retry reads it now. The list is for this folder or the read fails (the store knows the project).
+    readChapters(attempt > 0).then(
       (all) => {
         if (!live) return;
         setChapters(all.filter(isNarrationChapter));
         setChaptersOf(projectFolder);
+        setError(null);
+        setErrorDetails(undefined);
       },
       (e: unknown) => {
         if (!live) return;
@@ -134,7 +137,7 @@ function EditingLoaded({
     return () => {
       live = false;
     };
-  }, [manuscript, attempt, projectFolder]);
+  }, [readChapters, attempt, projectFolder]);
   // Retry: forgets the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
   const retry = useCallback(() => {
     setError(null);

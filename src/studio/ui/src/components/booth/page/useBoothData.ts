@@ -9,6 +9,7 @@ import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
+import { useReadChapters } from '../../../studio/useChapters';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
@@ -59,7 +60,8 @@ function useCreditsPreviews(): { previews: Partial<Record<CreditsKind, CreditsRe
  * the first. `correctCue` records the narrator's speaker for a quote and reads the cues again.
  */
 export function useBoothData(target: BoothChapterTarget | null) {
-  const manuscript = usePort('manuscript');
+  // The chapter list is the store's, shared with the other pages: opening the Booth does not read what is held, a Retry and a take's refresh read it now.
+  const readChapters = useReadChapters();
   const storyBible = usePort('storyBible');
   const teleprompter = usePort('teleprompter');
   const journal = useJournalOrOwn();
@@ -84,17 +86,16 @@ export function useBoothData(target: BoothChapterTarget | null) {
   const recordedRead = useRef(0);
   const refreshRecorded = useCallback(() => {
     const mine = ++recordedRead.current;
-    void manuscript
-      .manuscriptChapters()
+    void readChapters(true)
       .then((all) => mine === recordedRead.current && setRecorded(recordedOf(all)))
       .catch(() => {});
-  }, [manuscript]);
+  }, [readChapters]);
 
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
     const mine = ++recordedRead.current;
-    void Promise.all([manuscript.manuscriptChapters(), teleprompter.teleprompterState().catch(() => undefined)])
+    void Promise.all([readChapters(attempt > 0), teleprompter.teleprompterState().catch(() => undefined)])
       .then(([all, host]) => {
         if (!live) return;
         const narration = all.filter(isNarrationChapter);
@@ -112,7 +113,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
     return () => {
       live = false;
     };
-  }, [manuscript, teleprompter, attempt]);
+  }, [readChapters, teleprompter, attempt]);
 
   useEffect(() => {
     let live = true;
