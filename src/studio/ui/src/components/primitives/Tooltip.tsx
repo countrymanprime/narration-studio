@@ -313,6 +313,9 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
         onBlur={(event) => {
           // Focus moving onto the popup itself (a press on its text) is not leaving.
           if (popupRef.current?.contains(event.relatedTarget as Node | null)) return;
+          // Tab from the icon lands on the library's focus guard, which closes the note and moves focus on to the next control. Closing here first
+          // unmounts the guard before it runs, and focus falls to <body>.
+          if ((event.relatedTarget as Element | null)?.hasAttribute?.('data-base-ui-focus-guard')) return;
           openedByFocus.current = false;
           setOpen(false);
         }}

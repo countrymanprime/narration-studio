@@ -320,7 +320,13 @@ export function EditingCheckPanel({
             look="segmented"
             value={sourceChoice}
             onChange={(value) => switchSource(value as EditingSourceChoice)}
-            options={SOURCE_CHOICE_OPTIONS.map((option) => ({ ...option, disabled: action.isPending('source') }))}
+            // A chip keeps its `title` and gains a `disabledReason` while saving, so it is the same element throughout: a natively disabled chip, or one that is
+            // rebuilt around a new wrapper, drops keyboard focus to the page.
+            options={SOURCE_CHOICE_OPTIONS.map((option) => ({
+              ...option,
+              title: SOURCE_NOTE[option.value],
+              ...(action.isPending('source') && { disabledReason: 'Saving the choice…' }),
+            }))}
           />
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             {SOURCE_NOTE[sourceChoice]}
