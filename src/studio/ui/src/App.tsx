@@ -1324,6 +1324,8 @@ function AppRoutes() {
       cancelLabel={canSave ? 'Cancel' : 'Keep editing'}
       // The way to stay (Cancel, or Keep editing) always takes the focus first: Enter never discards or saves by default.
       focusCancel
+      // A double click on the control that raised this question lands its second click on the way on, which opens under it.
+      echoGuard
       pending={resolving}
       {...(canSave ? { danger: () => discardMove(pendingMove), dangerLabel: 'Discard & continue' } : { danger: undefined, dangerLabel: undefined })}
       confirm={() => {

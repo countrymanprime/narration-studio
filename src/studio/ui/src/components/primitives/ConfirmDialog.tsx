@@ -34,6 +34,9 @@ type ConfirmDialogProps = {
   stayOnBody?: boolean;
   // Enter and Space are not taken (see `Dialog`'s `holdEnter`): for the first moments of a question a double press may have raised.
   holdEnter?: boolean;
+  // The way on (confirm, danger, secondary) ignores a mouse press that is the second of a double click on the control that opened the dialog, which
+  // the dialog now covers (`useEchoGuard`): for a question whose way on loses something typed.
+  echoGuard?: boolean;
   // Where focus goes on close when the button that opened the dialog is gone (the confirmed action removed it): see `Dialog`.
   returnFocus?: () => HTMLElement | null;
   children?: ReactNode;
@@ -59,6 +62,7 @@ export function ConfirmDialog({
   focusCancel = false,
   stayOnBody = false,
   holdEnter = false,
+  echoGuard = false,
   returnFocus,
   children,
 }: ConfirmDialogProps) {
@@ -80,17 +84,22 @@ export function ConfirmDialog({
           </Button>
           <div className="flex gap-2 [@media(max-height:400px)]:gap-1">
             {danger && (
-              <Button variant="danger-solid" disabled={pending} onClick={danger}>
+              <Button variant="danger-solid" disabled={pending} replacesPressed={echoGuard ? 'covered' : undefined} onClick={danger}>
                 {dangerLabel}
               </Button>
             )}
             {secondary && (
-              <Button variant="secondary" disabled={pending} onClick={secondary}>
+              <Button variant="secondary" disabled={pending} replacesPressed={echoGuard ? 'covered' : undefined} onClick={secondary}>
                 {secondaryLabel}
               </Button>
             )}
             {/* A confirm that destroys data is the filled red, heavier than Cancel's outline (alignment audit R4SB-4, R3SB1-14). */}
-            <Button variant={confirmVariant === 'danger' ? 'danger-solid' : 'primary'} pending={pending} onClick={confirm}>
+            <Button
+              variant={confirmVariant === 'danger' ? 'danger-solid' : 'primary'}
+              pending={pending}
+              replacesPressed={echoGuard ? 'covered' : undefined}
+              onClick={confirm}
+            >
               {confirmLabel}
             </Button>
           </div>

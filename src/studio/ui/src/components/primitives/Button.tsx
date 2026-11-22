@@ -60,7 +60,8 @@ type Props = ComponentProps<'button'> & {
   // its reason is a tooltip a keyboard reaches; a press does nothing. A button that is sometimes off passes `''` while it is on, so the tooltip wrapper stays and focus is not lost when the reason comes and goes. A button that is off with no reason is a button that "does nothing" (#3276).
   disabledReason?: string;
   // This button takes the place of the one just pressed: it ignores a press that comes right after a click on a control that has since left the page (`useEchoGuard`), the second click of a double click. A caller that swaps one button for another at the same spot gives each a distinct `key`.
-  replacesPressed?: boolean;
+  // 'covered': a dialog's way on, which ignores only the second click of a real double click on the control that raised the dialog (`useEchoGuard`).
+  replacesPressed?: boolean | 'covered';
 };
 
 // The look lives here and nowhere else: a caller's `className` is for layout (margin, width, flex, visibility), never for padding,

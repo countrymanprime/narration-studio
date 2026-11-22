@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmDialog } from './ConfirmDialog';
+import { forgetEchoClicks } from './echoGuard';
 
 afterEach(cleanup);
 
@@ -297,5 +298,60 @@ describe('ConfirmDialog stay button', () => {
     expect(stay.hasAttribute('data-stay-button')).toBe(true);
     await waitFor(() => expect(document.activeElement).toBe(stay));
     expect(screen.getByRole('button', { name: 'Discard & continue' }).hasAttribute('data-stay-button')).toBe(false);
+  });
+});
+
+describe('ConfirmDialog echoGuard', () => {
+  // A control whose press opens the question, as the Record with radio does: a double click lands its second click on the way on.
+  function Raiser({ echoGuard, confirm }: { echoGuard?: boolean; confirm: () => void }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          Raise
+        </button>
+        {open && (
+          <ConfirmDialog
+            title="Unsaved changes"
+            body="Discard it?"
+            confirmLabel="Discard & continue"
+            confirm={confirm}
+            cancel={() => setOpen(false)}
+            echoGuard={echoGuard}
+          />
+        )}
+      </>
+    );
+  }
+
+  it('ignores the second click of a real double click on the control that raised it, and holds nobody else', async () => {
+    forgetEchoClicks();
+    const confirm = vi.fn();
+    render(<Raiser echoGuard confirm={confirm} />);
+    const raise = screen.getByRole('button', { name: 'Raise' });
+    fireEvent.click(raise);
+    const discard = await screen.findByRole('button', { name: 'Discard & continue' });
+    // A press with a click count of one is the narrator moving to the button and pressing it: it goes through, however soon.
+    fireEvent.click(discard, { detail: 1 });
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it('ignores a click whose count is two on the way on (the second click of a double click on the control that raised it)', async () => {
+    forgetEchoClicks();
+    const confirm = vi.fn();
+    render(<Raiser echoGuard confirm={confirm} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Raise' }), { detail: 1 });
+    const discard = await screen.findByRole('button', { name: 'Discard & continue' });
+    fireEvent.click(discard, { detail: 2 });
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('does nothing of the kind without echoGuard', async () => {
+    forgetEchoClicks();
+    const confirm = vi.fn();
+    render(<Raiser confirm={confirm} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Raise' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard & continue' }));
+    expect(confirm).toHaveBeenCalledOnce();
   });
 });
