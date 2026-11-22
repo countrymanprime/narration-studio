@@ -66,6 +66,8 @@ const modelLabel = (value: string) => MODEL_OPTIONS.find((option) => option.valu
 const PROJECT_STATE_BACKSTOP_MS = 300_000;
 // A check that failed is asked again after these (the edits made before the results opened are not announced again).
 const RETRY_AFTER_MS = [5_000, 30_000];
+// A check REAPER has not answered by then is treated as a failed one.
+const UNANSWERED_AFTER_MS = 20_000;
 
 /** Whether "Start comparison" can run, and why not: the run
  * needs a linked REAPER project file and the DAW port's `review` capability
@@ -299,32 +301,43 @@ export function CompareRun({
     if (!showingResults || compareBaseline === undefined) return;
     let active = true;
     let timer: number | undefined;
+    let unanswered: number | undefined;
     let attempt = 0;
-    // The counter is compared with the baseline wherever it was heard: in a read's answer, or in an edit the host announced.
+    let asked = false;
+    let latest = 0;
+    // The counter is compared with the baseline wherever it was heard: in a read's answer, or in an edit the host announced. The newest comparison asked is the one that counts.
     const compare = (count: number) => {
       if (!active) return;
+      const mine = ++latest;
       void api
         .projectStateChangedSince(count, compareBaseline)
         .then(({ changed }) => {
-          if (active) setProjectMayHaveChanged(changed);
+          if (active && mine === latest) setProjectMayHaveChanged(changed);
         })
         .catch(() => {});
     };
-    // The edits made before the results opened are not announced again, so the check made now is their only source: a check that fails, or whose answer is
-    // an error, is asked again soon (5 s, 30 s) before it is left to the backstop.
-    const check = () => {
-      window.clearTimeout(timer);
-      void api.projectStateCheck().catch(askAgain);
-    };
+    // The edits made before the results opened are not announced again, so the check made now is their only source: a check that fails, whose answer is an
+    // error, or that is not answered in time is asked again soon (5 s, 30 s) before it is left to the backstop. The host reports a failure twice (an error
+    // state and a rejected call): one retry is waiting at a time, so the two count once.
     const askAgain = () => {
-      if (!active || attempt >= RETRY_AFTER_MS.length) return;
-      window.clearTimeout(timer);
+      window.clearTimeout(unanswered);
+      if (!active || timer !== undefined || attempt >= RETRY_AFTER_MS.length) return;
       timer = window.setTimeout(check, RETRY_AFTER_MS[attempt++]);
     };
+    function check() {
+      window.clearTimeout(timer);
+      timer = undefined;
+      asked = true;
+      window.clearTimeout(unanswered);
+      unanswered = window.setTimeout(askAgain, UNANSWERED_AFTER_MS);
+      void api.projectStateCheck().catch(askAgain);
+    }
+    // What the state replays when it is subscribed to (a check from before these results opened) is not this opening's answer: only what comes after its own check counts.
     const unsubscribe = api.subscribeProjectState((update) => {
-      if (!active) return;
+      if (!active || !asked) return;
       if (update.phase === 'error') return askAgain();
       if (update.phase !== 'success' || update.changeCount === undefined) return;
+      window.clearTimeout(unanswered);
       attempt = 0;
       compare(update.changeCount);
     });
@@ -336,6 +349,7 @@ export function CompareRun({
       unsubscribe();
       unsubscribeEdits();
       window.clearTimeout(timer);
+      window.clearTimeout(unanswered);
       window.clearInterval(backstop);
     };
   }, [api, showingResults, compareBaseline]);

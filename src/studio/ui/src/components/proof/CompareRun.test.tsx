@@ -463,26 +463,27 @@ describe('CompareRun "may have changed since comparison"', () => {
       expect(screen.queryByText(/may have changed/)).toBeNull();
     });
 
+    // The mock host answers each check with its own state (what the real one does when REAPER answers); the spy counts the asks.
+    const asked = () => {
+      const api = createMockApi();
+      return { api, projectStateCheck: vi.spyOn(api, 'projectStateCheck') };
+    };
+    const results = () => <CompareRun {...resultsProps()} />;
+    const advance = (ms: number) => act(async () => void (await vi.advanceTimersByTimeAsync(ms)));
+
     it('a check that fails is asked again soon, not left to the backstop, because the edits made earlier are not announced again', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       try {
-        let asked = 0;
-        const projectStateCheck = vi.fn(async () => {
-          if (++asked === 1) throw new Error('REAPER is not answering');
-          return { status: 'started' as const };
-        });
-        render(
-          <ApiProvider api={createMockApi({ projectStateCheck } as never)}>
-            <CompareRun {...resultsProps()} />
-          </ApiProvider>,
-        );
+        const { api, projectStateCheck } = asked();
+        projectStateCheck.mockRejectedValueOnce(new Error('REAPER is not answering'));
+        render(<ApiProvider api={api}>{results()}</ApiProvider>);
         await screen.findByText(/2 discrepancies/);
         expect(projectStateCheck).toHaveBeenCalledTimes(1);
-        await act(async () => void (await vi.advanceTimersByTimeAsync(5_100)));
+        await advance(5_100);
         expect(projectStateCheck).toHaveBeenCalledTimes(2);
-        // The first retry answered; a failure that keeps coming is asked again at 30 s, then left to the backstop.
-        await act(async () => void (await vi.advanceTimersByTimeAsync(60_000)));
-        expect(projectStateCheck.mock.calls.length).toBe(2);
+        // The retry was answered: nothing more is asked before the backstop.
+        await advance(60_000);
+        expect(projectStateCheck).toHaveBeenCalledTimes(2);
       } finally {
         vi.useRealTimers();
       }
@@ -491,22 +492,102 @@ describe('CompareRun "may have changed since comparison"', () => {
     it('a check that keeps failing is asked again at 5 s and 30 s, then only on the backstop', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       try {
-        const projectStateCheck = vi.fn().mockRejectedValue(new Error('REAPER is not answering'));
-        render(
-          <ApiProvider api={createMockApi({ projectStateCheck } as never)}>
-            <CompareRun {...resultsProps()} />
-          </ApiProvider>,
-        );
+        const { api, projectStateCheck } = asked();
+        projectStateCheck.mockRejectedValue(new Error('REAPER is not answering'));
+        render(<ApiProvider api={api}>{results()}</ApiProvider>);
         await screen.findByText(/2 discrepancies/);
         expect(projectStateCheck).toHaveBeenCalledTimes(1);
-        await act(async () => void (await vi.advanceTimersByTimeAsync(5_100)));
+        await advance(5_100);
         expect(projectStateCheck).toHaveBeenCalledTimes(2);
-        await act(async () => void (await vi.advanceTimersByTimeAsync(30_100)));
+        await advance(30_100);
         expect(projectStateCheck).toHaveBeenCalledTimes(3);
-        await act(async () => void (await vi.advanceTimersByTimeAsync(200_000)));
+        await advance(200_000);
         expect(projectStateCheck).toHaveBeenCalledTimes(3);
-        await act(async () => void (await vi.advanceTimersByTimeAsync(70_000)));
+        await advance(70_000);
         expect(projectStateCheck).toHaveBeenCalledTimes(4);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    // A host whose project-state surface is driven by the test: `replay` is the state it hands a new subscriber, `check` what an ask does.
+    const hostWith = (replay: unknown | undefined, check: (publish: (state: unknown) => void) => Promise<{ status: 'started' }>) => {
+      const listeners = new Set<(state: unknown) => void>();
+      const publish = (state: unknown) => listeners.forEach((listener) => listener(state));
+      const projectStateCheck = vi.fn(() => check(publish));
+      const subscribeProjectState = vi.fn((listener: (state: unknown) => void) => {
+        listeners.add(listener);
+        if (replay !== undefined) listener(replay);
+        return () => listeners.delete(listener);
+      });
+      return { api: { ...createMockApi(), projectStateCheck, subscribeProjectState } as never, projectStateCheck };
+    };
+    const state = (phase: string, changeCount: number | null = null) => ({
+      runId: 'r',
+      phase,
+      message: '',
+      changeCount,
+      projectFile: '',
+      savedModifiedAt: null,
+    });
+
+    it('a failure the host reports twice (an error state and a rejected call) is one failure: the retries are 5 s and 30 s, not both used at once', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const { api, projectStateCheck } = hostWith(undefined, async (publish) => {
+          publish(state('error'));
+          throw new Error('the REAPER bridge is unavailable');
+        });
+        render(<ApiProvider api={api}>{results()}</ApiProvider>);
+        await screen.findByText(/2 discrepancies/);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await advance(5_100);
+        expect(projectStateCheck).toHaveBeenCalledTimes(2);
+        await advance(30_100);
+        expect(projectStateCheck).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('an old error the state replays on subscribe does not use up a retry, and an old count it replays is not shown', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        // The state from an earlier opening says error; a count of 99 would be "changed" against 41.
+        const { api, projectStateCheck } = hostWith(state('error'), async () => {
+          throw new Error('the REAPER bridge is unavailable');
+        });
+        render(<ApiProvider api={api}>{results()}</ApiProvider>);
+        await screen.findByText(/2 discrepancies/);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await advance(5_100);
+        expect(projectStateCheck).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('an old count the state replays on subscribe is not this opening’s answer: no note until its own check answers', async () => {
+      const { api } = hostWith(state('success', 99), async () => ({ status: 'started' as const }));
+      render(<ApiProvider api={api}>{results()}</ApiProvider>);
+      await screen.findByText(/2 discrepancies/);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      expect(screen.queryByText(/may have changed/)).toBeNull();
+    });
+
+    it('a check REAPER never answers is treated as failed after 20 s and asked again', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        // The ask is accepted and nothing is ever published.
+        const projectStateCheck = vi.fn().mockResolvedValue({ status: 'started' as const });
+        const api = createMockApi({ projectStateCheck } as never);
+        render(<ApiProvider api={api}>{results()}</ApiProvider>);
+        await screen.findByText(/2 discrepancies/);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await advance(19_000);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await advance(7_000);
+        expect(projectStateCheck).toHaveBeenCalledTimes(2);
       } finally {
         vi.useRealTimers();
       }
@@ -533,17 +614,13 @@ describe('CompareRun "may have changed since comparison"', () => {
     it('asks REAPER once when the results open, then only on a slow backstop, not every 30 s', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       try {
-        const { api, projectStateCheck } = quietApi();
-        render(
-          <ApiProvider api={api}>
-            <CompareRun {...resultsProps()} />
-          </ApiProvider>,
-        );
+        const { api, projectStateCheck } = asked();
+        render(<ApiProvider api={api}>{results()}</ApiProvider>);
         await screen.findByText(/2 discrepancies/);
         expect(projectStateCheck).toHaveBeenCalledTimes(1);
-        await act(async () => void (await vi.advanceTimersByTimeAsync(120_000)));
+        await advance(120_000);
         expect(projectStateCheck).toHaveBeenCalledTimes(1);
-        await act(async () => void (await vi.advanceTimersByTimeAsync(181_000)));
+        await advance(181_000);
         expect(projectStateCheck).toHaveBeenCalledTimes(2);
       } finally {
         vi.useRealTimers();
