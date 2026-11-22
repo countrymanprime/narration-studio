@@ -14,6 +14,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { DEFAULT_OUTPUT, deviceProblem, type OutputPrefs } from '../../engine/outputPrefs';
+import { overlay } from '../../../overlay/overlayService';
 import { EditingPageProvider } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import { useScriptPlayback, type ScriptPlayback } from './useScriptPlayback';
@@ -64,7 +65,9 @@ const rerender = (view: ReturnType<typeof mount>, output: OutputPrefs) => view.r
 const flush = () => act(async () => void (await Promise.resolve()));
 
 let outputs: { kind: string; deviceId: string; label: string }[];
+let toast: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast');
   instances.length = 0;
   refuse = false;
   onOutputDevice.mockClear();
@@ -136,6 +139,8 @@ describe('the output device', () => {
     await flush();
     expect(instances[0].setSinkId).toHaveBeenLastCalledWith('');
     expect(onOutputDevice).toHaveBeenLastCalledWith(deviceProblem('Studio monitors'));
+    // #4044: said where it arises, so a closed Output popover does not hide it.
+    expect(toast).toHaveBeenCalledWith(deviceProblem('Studio monitors'));
   });
 
   it('says so when the audio system refuses the output', async () => {

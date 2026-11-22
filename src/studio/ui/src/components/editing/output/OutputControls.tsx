@@ -1,5 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
-import { overlay } from '../../../overlay/overlayService';
+import type { ReactNode } from 'react';
 import { RATES, rateLabel, type OutputPrefs } from '../../engine/outputPrefs';
 import type { MonitorLevelState } from '../../booth/frame/useMonitorLevel';
 import { Button } from '../../primitives/Button';
@@ -17,8 +16,6 @@ export type OutputControlsProps = {
   prefs: OutputPrefs;
   onChange: (patch: Partial<OutputPrefs>) => void;
   devices: DeviceListing;
-  /** Why the chosen output could not be used (the sound plays on the system default meanwhile), or null. */
-  deviceProblem: string | null;
   /** Reads the outputs again now. */
   onCheckDevices: () => void;
   /** Opens the popover at first; a story draws its states this way. */
@@ -44,11 +41,10 @@ function Note({ children, alert = false }: { children: ReactNode; alert?: boolea
 export function DeviceRow({
   prefs,
   devices,
-  deviceProblem,
   onChange,
   onCheckDevices,
   heading = true,
-}: Pick<OutputControlsProps, 'prefs' | 'devices' | 'deviceProblem' | 'onChange' | 'onCheckDevices'> & { heading?: boolean }) {
+}: Pick<OutputControlsProps, 'prefs' | 'devices' | 'onChange' | 'onCheckDevices'> & { heading?: boolean }) {
   // Two outputs with the same name are one choice: the choice is kept by name (qa-breaker B3).
   const listed = (devices.phase === 'ready' && devices.status === 'ok' ? devices.outputs : []).filter(
     (output, at, all) => all.findIndex((other) => other.label === output.label) === at,
@@ -61,11 +57,6 @@ export function DeviceRow({
   ];
   // With no list the choice stays on with the system default (and a saved output, so it can be cleared); it is off only while loading, so it is never a dead control.
   const off = devices.phase === 'loading';
-  // A refusal is said as a toast, never as red text in the popover that moves the rows under it (#4044, frontend-primitives rule 7); the list's own
-  // refusal is said by `useOutputDevices` when the list turns unavailable.
-  useEffect(() => {
-    if (deviceProblem) overlay.toast(deviceProblem);
-  }, [deviceProblem]);
   return (
     <div className="flex flex-col gap-1.5">
       {heading && <span className={HEADING}>Output</span>}
@@ -104,7 +95,7 @@ export function MonitorRow({ daw }: { daw: DawMonitor }) {
  * is the sound this page plays (the chapter and a take); `children` are the rows below the device: with a DAW, `DawMonitorRow`. No modal
  * (docs/design/editing-output-audio.md).
  */
-export function OutputControls({ prefs, onChange, devices, deviceProblem, onCheckDevices, defaultOpen, children }: OutputControlsProps) {
+export function OutputControls({ prefs, onChange, devices, onCheckDevices, defaultOpen, children }: OutputControlsProps) {
   return (
     <div role="group" aria-label="Output" className="flex items-center gap-1.5">
       <IconButton
@@ -135,7 +126,7 @@ export function OutputControls({ prefs, onChange, devices, deviceProblem, onChec
             <Note>The pitch of the voice is kept.</Note>
           </div>
           <Slider label="Volume" valueText={`${prefs.volume}%`} value={prefs.volume} onValueChange={(volume) => onChange({ volume })} />
-          <DeviceRow prefs={prefs} devices={devices} deviceProblem={deviceProblem} onChange={onChange} onCheckDevices={onCheckDevices} />
+          <DeviceRow prefs={prefs} devices={devices} onChange={onChange} onCheckDevices={onCheckDevices} />
           {children}
         </div>
       </Popover>

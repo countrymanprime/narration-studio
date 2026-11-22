@@ -5,6 +5,8 @@ import { Button } from '../../primitives/Button';
 import { HelpButton } from '../../primitives/HelpButton';
 import { Select } from '../../primitives/Select';
 import { useOutputDevices } from '../../editing/output/useOutputDevices';
+import { CheckedStamp, useCheckedAt } from '../../primitives/CheckedStamp';
+import { missingOutputSentence } from '../../voicesamples/audioOutputs';
 import { setSampleOutput } from '../../voicesamples/samplePlayerStore';
 import { playTestSound } from '../../voicesamples/testSound';
 import { overlay } from '../../../overlay/overlayService';
@@ -16,9 +18,6 @@ import { FIELD_WIDTH } from './MicBody';
 
 /** How often the list is read again while the saved output is missing, so a speaker plugged back in is found without the narrator pressing anything. */
 const RECHECK_MS = 5000;
-
-/** A note under the control: muted 13 px, one width with the row's description. */
-const NOTE_CLASS = 'max-w-[60ch] text-[0.8125rem] break-words text-[var(--text-muted)]';
 
 /** The words behind the control's "?": what it changes and what it does not. */
 const NOTE = 'Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.';
@@ -45,13 +44,14 @@ export function SampleOutputBody() {
   const value = project?.effectiveValue ?? '';
   // The one reader of this computer's outputs (also the Editing popover's): its refusals are toasts, again on every Check again (#4044).
   const builtin = !(engine === 'daw' && hasProject);
+  const [checkedAt, markChecked, reads] = useCheckedAt();
   const {
     listing,
     refresh: check,
     watch: load,
   } = useOutputDevices({
     saved: engine === 'builtin' ? value : '',
-    missingSentence: (name) => `${name} is not connected. Voice samples play on the system default until it is back.`,
+    missingSentence: (name) => missingOutputSentence(name, 'Voice samples play'),
     missingAtOnce: true,
     announce: builtin,
   });
@@ -75,8 +75,13 @@ export function SampleOutputBody() {
     if (engine !== undefined) setSampleOutput(engine === 'builtin' ? value : '');
   }, [engine, value]);
 
+  // The stamp is the answer to a press that finds the same list: the time of the last finished read (rule 9).
+  const readAt = listing.phase === 'ready' ? listing.checkedAt : 0;
+  useEffect(() => {
+    if (readAt) markChecked();
+  }, [readAt, markChecked]);
   const outputs = listing.phase === 'ready' && listing.status === 'ok' ? listing.outputs : [];
-  const missing = engine === 'builtin' && listing.phase === 'ready' && listing.status === 'ok' && value !== '' && !outputs.some((o) => o.label === value);
+  const missing = engine === 'builtin' && listing.phase === 'ready' && value !== '' && !outputs.some((o) => o.label === value);
   const recheck = useRef(load);
   recheck.current = load;
   useEffect(() => {
@@ -123,7 +128,7 @@ export function SampleOutputBody() {
         label="Voice sample output"
         id={`set-${row.id}`}
         className={FIELD_WIDTH}
-        value={unavailable ? '' : value}
+        value={value}
         onChange={choose}
         disabled={engine === undefined || !hasProject}
         options={[
@@ -138,15 +143,10 @@ export function SampleOutputBody() {
         </Button>
         {testButton}
         <HelpButton label={HELP_LABEL}>{NOTE}</HelpButton>
+        <CheckedStamp at={checkedAt} reads={reads} />
         {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for outputs…</span>}
       </div>
       {!hasProject && <span className="text-[0.8125rem] text-[var(--text-muted)]">Open a project to choose where its voice samples play.</span>}
-      {missing && listing.phase === 'ready' && (
-        <span className={NOTE_CLASS}>
-          Last checked {new Date(listing.checkedAt).toLocaleTimeString()}. The list is read again when you open Settings, when the window gets focus, and while
-          this output is missing.
-        </span>
-      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import { expect, fn, within } from 'storybook/test';
-import { DEFAULT_OUTPUT, deviceProblem, type OutputPrefs } from '../../engine/outputPrefs';
+import { DEFAULT_OUTPUT, type OutputPrefs } from '../../engine/outputPrefs';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { MonitorRow, OutputControls } from './OutputControls';
 import type { DeviceListing } from './useOutputDevices';
@@ -24,7 +24,6 @@ const meta = {
   component: Bar,
   args: {
     devices: outputs(['Speakers (Realtek)', 'Headphones (Focusrite USB Audio)']),
-    deviceProblem: null,
     onCheckDevices: fn(),
   },
 } satisfies Meta<typeof Bar>;
@@ -55,10 +54,6 @@ export const NoOutputsListed: Story = {
 
 /** A saved output that is unplugged stays chosen and says so; the sound plays on the system default until it is back. */
 export const SavedOutputNotConnected: Story = { args: { defaultOpen: true, start: { device: 'Studio monitors (USB)' } } };
-
-export const OutputRefused: Story = {
-  args: { defaultOpen: true, start: { device: 'Headphones (Focusrite USB Audio)' }, deviceProblem: deviceProblem('Headphones (Focusrite USB Audio)') },
-};
 
 /** Names the audio system gives are long, in any script, and sometimes carry emoji. */
 export const LongAndForeignNames: Story = {

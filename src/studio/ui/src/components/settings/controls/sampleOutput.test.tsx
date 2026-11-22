@@ -172,6 +172,27 @@ describe('Voice sample output: the built-in recorder', () => {
     expect(within(row()).queryByRole('alert')).toBeNull();
   });
 
+  // #4044, rule 9: a press that finds the same list still answers, with the time of the read.
+  it('Refresh the list answers with the time of the read even when the list is the same', async () => {
+    await renderRow();
+    await picker();
+    const before = await within(row()).findByRole('status');
+    fireEvent.click(within(row()).getByRole('button', { name: 'Refresh the list' }));
+    await waitFor(() => expect(within(row()).getByRole('status').textContent).toMatch(/\(\d+\)$/));
+    expect(before.textContent).toMatch(/^Checked /);
+  });
+
+  it('with the list unavailable the saved output stays shown and can be cleared to the system default', async () => {
+    const api = createMockApi({}, { recording: { engine: 'builtin' } });
+    await api.saveSettings('VoiceSamples', 'project', { output_device: 'Studio monitors (Scarlett)' });
+    delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
+    await renderRow(api);
+    const select = await picker();
+    await waitFor(() => expect(select.value).toBe('Studio monitors (Scarlett)'));
+    expect(select.disabled).toBe(false);
+    expect(optionNames(select)).toEqual(['System default', 'Studio monitors (Scarlett), not connected']);
+  });
+
   it('the list is read again when the window gets focus', async () => {
     await renderRow();
     const select = await picker();

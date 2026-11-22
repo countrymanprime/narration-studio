@@ -21,6 +21,7 @@ import { DEFAULT_SORT, ENTRY_SORT_STORAGE_KEY, loadEntrySort, saveEntrySort, typ
 import { RATES, rateLabel, useOutputPrefs } from '../../engine/outputPrefs';
 import { DeviceRow } from '../../editing/output/OutputControls';
 import { useOutputDevices } from '../../editing/output/useOutputDevices';
+import { missingOutputSentence } from '../../voicesamples/audioOutputs';
 import { TEXT_SIZE, textSizePx } from '../../booth/reading/BoothText';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
@@ -128,7 +129,7 @@ export function PlaybackBody() {
   const { prefs, change } = useOutputPrefs();
   const { listing, refresh } = useOutputDevices({
     saved: prefs.device,
-    missingSentence: (name) => `${name} is not connected. Sound plays on the system default until it is back.`,
+    missingSentence: (name) => missingOutputSentence(name, 'Sound plays'),
   });
   return (
     <div className={`flex flex-col gap-3 ${READER_FIELD}`}>
@@ -151,7 +152,7 @@ export function PlaybackBody() {
       <Checkbox checked={prefs.muted} onChange={(muted) => change({ muted })}>
         Silence playback
       </Checkbox>
-      <DeviceRow prefs={prefs} devices={listing} deviceProblem={null} onChange={change} onCheckDevices={refresh} heading={false} />
+      <DeviceRow prefs={prefs} devices={listing} onChange={change} onCheckDevices={refresh} heading={false} />
     </div>
   );
 }

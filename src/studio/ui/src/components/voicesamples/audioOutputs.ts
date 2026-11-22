@@ -40,6 +40,9 @@ export async function listAudioOutputs(): Promise<OutputListing> {
   }
 }
 
+/** What is said of a saved output that is not connected; `plays` is what sounds on the system default meanwhile ("Sound plays", "Voice samples play"). */
+export const missingOutputSentence = (label: string, plays: string): string => `${label} is not connected. ${plays} on the system default until it is back.`;
+
 export type SinkResult = { ok: true } | { ok: false; message: string };
 
 async function toDefault(element: Sinkable): Promise<void> {
@@ -64,7 +67,7 @@ export async function setOutput(element: Sinkable, label: string): Promise<SinkR
   const found = listing.status === 'ok' ? listing.outputs.find((o) => o.label === label) : undefined;
   if (!found) {
     await toDefault(element);
-    return { ok: false, message: `${label} is not connected. Voice samples play on the system default until it is back.` };
+    return { ok: false, message: missingOutputSentence(label, 'Voice samples play') };
   }
   try {
     await element.setSinkId(found.id);

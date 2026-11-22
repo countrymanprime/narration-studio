@@ -25,7 +25,7 @@ afterEach(() => {
 
 function Row() {
   const { listing, refresh } = useOutputDevices();
-  return <DeviceRow prefs={DEFAULT_OUTPUT} devices={listing} deviceProblem={null} onChange={() => {}} onCheckDevices={refresh} />;
+  return <DeviceRow prefs={DEFAULT_OUTPUT} devices={listing} onChange={() => {}} onCheckDevices={refresh} />;
 }
 
 describe('the Editing page output list', () => {
@@ -72,5 +72,34 @@ describe('the Editing page output list', () => {
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Studio monitors is gone.'));
     act(() => result.current.refresh());
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
+  });
+
+  it('a refusal is said once, not again on every later read, and again on a press', async () => {
+    enumerate.mockRejectedValue(new Error('NotAllowedError'));
+    const toast = vi.spyOn(overlay, 'toast');
+    const { result } = renderHook(() => useOutputDevices());
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    act(() => void window.dispatchEvent(new Event('focus')));
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(enumerate).toHaveBeenCalledTimes(3));
+    expect(toast).toHaveBeenCalledTimes(1);
+    act(() => result.current.refresh());
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
+    enumerate.mockReset();
+  });
+
+  it('no output at all draws no toast and leaves the select on with the system default', async () => {
+    devices = [{ kind: 'audiooutput', deviceId: 'default', label: 'Default' }];
+    const toast = vi.spyOn(overlay, 'toast');
+    render(<Row />);
+    const select = await screen.findByRole('combobox', { name: 'Output device' });
+    await waitFor(() => expect(enumerate).toHaveBeenCalled());
+    expect((select as HTMLInputElement).disabled).toBe(false);
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual(['System default']);
+    expect(toast).not.toHaveBeenCalled();
   });
 });

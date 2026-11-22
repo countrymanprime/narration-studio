@@ -3,7 +3,6 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { overlay } from '../../../overlay/overlayService';
 import { DEFAULT_OUTPUT, type OutputPrefs } from '../../engine/outputPrefs';
 import { MonitorRow, OutputControls, type OutputControlsProps } from './OutputControls';
 import type { DeviceListing } from './useOutputDevices';
@@ -27,7 +26,6 @@ function Host(props: Partial<OutputControlsProps> & { start?: Partial<OutputPref
         setPrefs((p) => ({ ...p, ...patch }));
       }}
       devices={props.devices ?? ready(['Studio monitors', 'Headphones'])}
-      deviceProblem={props.deviceProblem ?? null}
       onCheckDevices={props.onCheckDevices ?? (() => {})}
     >
       {props.children}
@@ -163,14 +161,6 @@ describe('the Output popover', () => {
     expect(options).toEqual(['System default', 'Speakers', 'Headphones']);
     expect(errors).not.toHaveBeenCalled();
     errors.mockRestore();
-  });
-
-  it('shows why the chosen output could not be used', async () => {
-    const toast = vi.spyOn(overlay, 'toast');
-    render(<Host deviceProblem="Could not play on Headphones. Playing on the system default until it is back." start={{ device: 'Headphones' }} />);
-    const dialog = await openOutput();
-    expect(toast).toHaveBeenCalledWith(expect.stringContaining('Could not play on Headphones'));
-    expect(within(dialog).queryByRole('alert')).toBeNull();
   });
 
   it('keeps a very long, emoji and right-to-left output name whole in the list', async () => {

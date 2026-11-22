@@ -500,11 +500,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/settings/controls/SampleOutputBody.tsx',
-    text: 'Last checked …. The list is read again when you open Settings, when the window gets focus, and while this output is missing.',
-    class: 'state',
-  },
-  {
     file: 'components/settings/page/ModelsPane.tsx',
     text: 'The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.',
     class: 'overlay',

@@ -3,6 +3,7 @@
 // by name, not by id, for the reason `voicesamples/audioOutputs.ts` gives.
 import { useCallback, useEffect } from 'react';
 import { announceBrowserSettingChange, useBrowserSetting } from '../../browserSettings';
+import { overlay } from '../../overlay/overlayService';
 import { setOutput } from '../voicesamples/audioOutputs';
 import { clamp } from '../../clamp';
 
@@ -109,7 +110,12 @@ export function useAppliedOutput(
     const el = getElement();
     if (!el || device === undefined) return;
     let stale = false;
-    void setOutput(el, device).then((result) => !stale && onDevice?.(result.ok ? null : deviceProblem(device)));
+    void setOutput(el, device).then((result) => {
+      if (stale) return;
+      // Said where the problem arises, not in the Output popover that may be closed (#4044); the sound is already back on the default.
+      if (!result.ok) overlay.toast(deviceProblem(device));
+      onDevice?.(result.ok ? null : deviceProblem(device));
+    });
     return () => {
       stale = true;
     };
