@@ -145,6 +145,26 @@ describe('AddPickup', () => {
     expect(onAdd).toHaveBeenCalledWith('c1', 313, 'The salt was thick.');
   });
 
+  it('a pasted Proof position (00:05:12.500) is accepted and shown as the nearest second once the box is left', async () => {
+    const { onAdd, user } = setup();
+    const time = screen.getByRole('textbox', { name: 'Time in the recording' });
+    await user.type(time, '00:05:12.500');
+    await user.tab();
+    expect((time as HTMLInputElement).value).toBe('00:05:13');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'The salt was thick.');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(onAdd).toHaveBeenCalledWith('c1', 313, 'The salt was thick.');
+  });
+
+  it('refuses a time past 99:59:59, which the Time column could not hold, with the way to type it', async () => {
+    const { onAdd, user } = setup();
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '100:00:00');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(problemWith(screen.getByRole('textbox', { name: 'Time in the recording' })).says).toBe('Type the time like 00:05:12.');
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
   it('a line with no usable time is refused', async () => {
     const { onAdd, user, toasts } = setup();
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
@@ -175,7 +195,7 @@ describe('AddPickup', () => {
     expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('01:39:00');
   });
 
-  it.each(['-1', '0', '5:99', '05:12.55', '1e3', '∞', 'Infinity', '5:12 pm', '', '   ', '１２:００', '99999999:00'])(
+  it.each(['-1', '0', '5:99', '05:12.5555', '1e3', '∞', 'Infinity', '5:12 pm', '', '   ', '１２:００', '99999999:00'])(
     'absurd time %j is refused with the way to type it, and nothing is sent',
     async (text) => {
       const { onAdd, user, toasts } = setup();

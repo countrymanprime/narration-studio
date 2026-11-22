@@ -145,3 +145,24 @@ describe('a pickup time is hh:mm:ss to the nearest second', () => {
     expect(parseClock(pickupTime(312))).toBe(312);
   });
 });
+
+// #3937 (qa): the Add box reads a position as Proof writes it, and never writes a time it then refuses.
+describe('parseClock and pickupTime agree', () => {
+  it('reads a Proof position (hh:mm:ss.fff) and rounds it like a typed tenth', () => {
+    expect(parseClock('00:05:12.500')).toBe(312.5);
+    expect(parseClock('5:12.25')).toBe(312.25);
+    expect(pickupTime(parseClock('00:05:12.500')!)).toBe('00:05:13');
+    expect(parseClock('00:05:12.5555')).toBeNull();
+  });
+  it('refuses a time that rounds past 99:59:59, so the column always holds what is written', () => {
+    expect(parseClock('99:59:59')).toBe(359999);
+    expect(parseClock('99:59:59.4')).toBe(359999.4);
+    expect(parseClock('99:59:59.5')).toBeNull();
+    expect(parseClock('100:00:00')).toBeNull();
+    expect(parseClock('99999:59:59')).toBeNull();
+  });
+  it('writes back, in a form it accepts, every time it accepts', () => {
+    for (const text of ['0:00', '0:00.4', '5:12', '05:12.5', '59:59.5', '1:00:00', '1:02:05.5', '00:05:12.999', '99:59:59', '99:59:59.4', '5999:59'])
+      expect(parseClock(pickupTime(parseClock(text) ?? 0)), text).not.toBeNull();
+  });
+});

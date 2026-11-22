@@ -98,13 +98,20 @@ export function pickupTime(seconds: number | null): string {
   return clock(seconds, { hms: true });
 }
 
-/** "5:12", "05:12", "05:12.5" or, from an hour, "1:02:05.5" (and what `pickupTime` writes, "00:05:12") to seconds; null for anything else, including minutes or seconds past 59 ("5:99"). */
+/** The longest time the Time column holds ("99:59:59"): a recording is never 100 hours long, and a time that rounds past it is not one `parseClock` accepts, so what it accepts `pickupTime` writes back in a form it accepts again. */
+const LONGEST_TIME = 99 * 3600 + 59 * 60 + 59;
+
+/**
+ * "5:12", "05:12", "05:12.5", "00:05:12.500" (a position as Proof writes it, to the millisecond) or, from an hour, "1:02:05.5" (and what `pickupTime` writes, "00:05:12") to seconds;
+ * null for anything else, including minutes or seconds past 59 ("5:99") and a time that rounds past 99:59:59.
+ */
 export function parseClock(text: string): number | null {
-  const match = /^(\d{1,5})(?::([0-5]\d))?:([0-5]\d)(?:\.(\d))?$/.exec(text.trim());
+  const match = /^(\d{1,5})(?::([0-5]\d))?:([0-5]\d)(?:\.(\d{1,3}))?$/.exec(text.trim());
   if (!match) return null;
-  const [, first, minutes, seconds, tenth] = match;
+  const [, first, minutes, seconds, fraction] = match;
   const whole = minutes === undefined ? Number(first) * 60 + Number(seconds) : Number(first) * 3600 + Number(minutes) * 60 + Number(seconds);
-  return whole + (tenth ? Number(tenth) / 10 : 0);
+  const total = whole + (fraction ? Number(`0.${fraction}`) : 0);
+  return Math.round(total) > LONGEST_TIME ? null : total;
 }
 
 /** A host reason as a sentence a narrator can read: no "Error: " prefix, a capital, and a full stop. */
