@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -964,6 +965,19 @@ func chosenPronunciationKey(entities []map[string]any, id string, alias *int) st
 	return ""
 }
 
+// previewUsedRefresh is how often a cache hit moves a preview file's time: a minute, inside the ten minutes the prune pass leaves a used preview alone.
+const previewUsedRefresh = time.Minute
+
+// PreviewFolder is where the rendered previews are kept, below the project folder: one <sha256>.wav a voice, spoken text and chosen
+// pronunciation. Nothing persisted names a file there; a missing one is rendered again.
+func PreviewFolder() string { return filepath.Join("ManuscriptGuide", "audio", "tts") }
+
+// previewFile matches the name previewFileName makes: 64 hex digits and ".wav". A sidecar's <name>.<pid>.part file does not match.
+var previewFile = regexp.MustCompile(`^[0-9a-f]{64}\.wav$`)
+
+// IsPreviewFile reports whether name is a rendered preview's file name, which is how a prune pass tells previews from a render's partial file or a stray one.
+func IsPreviewFile(name string) bool { return previewFile.MatchString(name) }
+
 // cachedPreview returns a previously rendered WAV. A file with no samples
 // (a run that failed) is a miss, not audio.
 func cachedPreview(path string) ([]byte, bool) {
@@ -1085,12 +1099,15 @@ func (s *Service) PreviewText(text, ipa string, voice PreviewVoice) ([]byte, err
 // behind, so the next attempt always starts clean.
 func (s *Service) render(voice PreviewVoice, spoken, pronunciationKey, guidePath, entityID string, extra ...string) ([]byte, error) {
 	name := previewFileName(voice, spoken, pronunciationKey)
-	dir := filepath.Join(s.project, "ManuscriptGuide", "audio", "tts")
+	dir := filepath.Join(s.project, PreviewFolder())
 	out := filepath.Join(dir, name)
 	lock := s.previewLock(name)
 	lock.Lock()
 	defer lock.Unlock()
 	if audio, ok := cachedPreview(out); ok {
+		// The file's time is its last use for the prune pass (persist.MarkUsed, at most once a minute): a preview the narrator played in the last
+		// nine minutes is never removed to meet the cap (the prune guard is ten), whatever its age before.
+		persist.MarkUsed(dir, name, previewUsedRefresh, time.Now())
 		return audio, nil
 	}
 	args := append([]string{"render-audio", "--guide", guidePath, "--entity-id", entityID, "--audio-dir", dir, "--piper-model", voice.Model, "--output-name", name}, extra...)

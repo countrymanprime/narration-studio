@@ -62,8 +62,12 @@ const CHUNK_LENGTH_TOOLTIP = [
 ].join(' ');
 const modelLabel = (value: string) => MODEL_OPTIONS.find((option) => option.value === value)?.label ?? value;
 
-/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown: a background hint, not a status light, so it polls far less often than useReaperStatus's 3 s connection check. */
-const PROJECT_STATE_POLL_MS = 30_000;
+/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown. The edit event (`daw_project_edited`) carries every change; this slow check is only the backstop for one that was lost. */
+const PROJECT_STATE_BACKSTOP_MS = 300_000;
+// A check that failed is asked again after these (the edits made before the results opened are not announced again).
+const RETRY_AFTER_MS = [5_000, 30_000];
+// A check REAPER has not answered by then is treated as a failed one.
+const UNANSWERED_AFTER_MS = 20_000;
 
 /** Whether "Start comparison" can run, and why not: the run
  * needs a linked REAPER project file and the DAW port's `review` capability
@@ -284,35 +288,72 @@ export function CompareRun({
     else void api.transcriptReset().catch((error) => notify(describeApiError(error), 'error'));
   };
 
-  // "Changed since comparison": REAPER's own edit counter, checked on a
-  // low-frequency background poll only while results are shown, against the count the comparison started from
+  // "Changed since comparison": REAPER's own edit counter, heard from the host's `daw_project_edited` event (one check when the results open, and a
+  // slow backstop) only while results are shown, against the count the comparison started from
   // (results.projectChangeCount). The counter is only meaningful within one REAPER session of the project — it resets
   // when the project is reopened — so this is worded as "may have changed", never certainty, and nothing here ever
   // re-runs the comparison. No baseline (an older or offline comparison) means no check is made and no label shown.
   const compareBaseline = results.projectChangeCount;
   const [projectMayHaveChanged, setProjectMayHaveChanged] = useState(false);
   useEffect(() => {
-    if (!showingResults || compareBaseline === undefined) {
-      setProjectMayHaveChanged(false);
-      return;
-    }
+    // Nothing is claimed until this baseline has been compared with REAPER's count (the note of an earlier baseline is not this one's).
+    setProjectMayHaveChanged(false);
+    if (!showingResults || compareBaseline === undefined) return;
     let active = true;
-    const unsubscribe = api.subscribeProjectState((update) => {
-      if (!active || update.phase !== 'success' || update.changeCount === undefined) return;
+    let timer: number | undefined;
+    let unanswered: number | undefined;
+    let attempt = 0;
+    let asked = false;
+    let latest = 0;
+    // The counter is compared with the baseline wherever it was heard: in a read's answer, or in an edit the host announced. The newest comparison asked is the one that counts.
+    const compare = (count: number) => {
+      if (!active) return;
+      const mine = ++latest;
       void api
-        .projectStateChangedSince(update.changeCount, compareBaseline)
+        .projectStateChangedSince(count, compareBaseline)
         .then(({ changed }) => {
-          if (active) setProjectMayHaveChanged(changed);
+          if (active && mine === latest) setProjectMayHaveChanged(changed);
         })
         .catch(() => {});
+    };
+    // The edits made before the results opened are not announced again, so the check made now is their only source: a check that fails, whose answer is an
+    // error, or that is not answered in time is asked again soon (5 s, 30 s) before it is left to the backstop. The host reports a failure twice (an error
+    // state and a rejected call): one retry is waiting at a time, so the two count once.
+    const askAgain = () => {
+      window.clearTimeout(unanswered);
+      if (!active || timer !== undefined || attempt >= RETRY_AFTER_MS.length) return;
+      timer = window.setTimeout(check, RETRY_AFTER_MS[attempt++]);
+    };
+    function check() {
+      window.clearTimeout(timer);
+      timer = undefined;
+      asked = true;
+      window.clearTimeout(unanswered);
+      unanswered = window.setTimeout(askAgain, UNANSWERED_AFTER_MS);
+      void api.projectStateCheck().catch(askAgain);
+    }
+    // What the state replays when it is subscribed to (a check from before these results opened) is not this opening's answer: only what comes after its own check counts.
+    const unsubscribe = api.subscribeProjectState((update) => {
+      if (!active || !asked) return;
+      if (update.phase === 'error') return askAgain();
+      if (update.phase !== 'success' || update.changeCount === undefined) return;
+      // An answer, however late, ends the wait: the retry it queued is not needed.
+      window.clearTimeout(unanswered);
+      window.clearTimeout(timer);
+      timer = undefined;
+      attempt = 0;
+      compare(update.changeCount);
     });
-    const check = () => void api.projectStateCheck().catch(() => {});
+    const unsubscribeEdits = api.subscribeDawProjectEdited((edit) => compare(edit.changeCount));
     check();
-    const timer = window.setInterval(check, PROJECT_STATE_POLL_MS);
+    const backstop = window.setInterval(check, PROJECT_STATE_BACKSTOP_MS);
     return () => {
       active = false;
       unsubscribe();
-      window.clearInterval(timer);
+      unsubscribeEdits();
+      window.clearTimeout(timer);
+      window.clearTimeout(unanswered);
+      window.clearInterval(backstop);
     };
   }, [api, showingResults, compareBaseline]);
 

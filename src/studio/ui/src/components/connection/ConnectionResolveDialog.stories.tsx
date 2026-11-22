@@ -148,7 +148,7 @@ export const Refused: Story = {
 /** The host started REAPER and it never answered in time: the dialog says so and keeps Check again. */
 export const Failed: Story = {
   args: {
-    props: { ...off, pollMs: 10, polls: 2 },
+    props: { ...off, waitMs: 30 },
     api: {
       dawChoice: async () => choice(),
       dawCapabilities: async () => structuredClone(DAW_SETUPS['reaper-off']),

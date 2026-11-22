@@ -60,6 +60,9 @@ const SOURCE_CHOICE_OPTIONS = [
   { value: 'render', label: 'Rendered file' },
 ] as const satisfies readonly { value: EditingSourceChoice; label: string }[];
 
+// Why the source chips and "Check editing" are off while the source choice saves.
+const SAVING_SOURCE = 'Saving the source choice…';
+
 const STATE_TONE: Record<StageSignalState, StatusTone> = { met: 'success', not_met: 'danger', unknown: 'neutral' };
 
 /** The causes that say a check never ran on this chapter's current audio, so the saved-project basis means nothing yet. */
@@ -320,7 +323,12 @@ export function EditingCheckPanel({
             look="segmented"
             value={sourceChoice}
             onChange={(value) => switchSource(value as EditingSourceChoice)}
-            options={SOURCE_CHOICE_OPTIONS.map((option) => ({ ...option, disabled: action.isPending('source') }))}
+            // `''` while idle, so a chip is the same element when the reason arrives and keeps keyboard focus through the save. While any other step
+            // (starting or stopping the check) runs a press would be dropped by `usePendingAction`, so the chips say why they are off.
+            options={SOURCE_CHOICE_OPTIONS.map((option) => ({
+              ...option,
+              disabledReason: action.isPending('source') ? SAVING_SOURCE : action.isBusy ? 'Another step is running…' : '',
+            }))}
           />
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             {SOURCE_NOTE[sourceChoice]}
@@ -388,7 +396,13 @@ export function EditingCheckPanel({
             )}
 
             {!thisChapterRunning && (
-              <Button onClick={() => void start()} pending={action.isPending('start')} disabled={otherRunning}>
+              <Button
+                onClick={() => void start()}
+                pending={action.isPending('start')}
+                // Off with a reason, never natively `disabled`: a disabled button inside the hint's wrapper becomes a nameless tab stop. `''` while on.
+                // A press while the source choice saves would otherwise be dropped by `usePendingAction` with nothing said.
+                disabledReason={otherRunning ? 'Another chapter is being checked.' : action.isPending('source') ? SAVING_SOURCE : ''}
+              >
                 {checked ? 'Check again' : 'Check editing'}
               </Button>
             )}

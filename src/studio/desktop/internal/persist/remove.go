@@ -13,7 +13,7 @@ import (
 // IsRegular reports whether rel beneath the folder root is a regular file, by RemoveRegular's rules: the answer a
 // delete of the same path would act on, for a caller that has work to do before it deletes.
 func IsRegular(root, rel string) (bool, error) {
-	return onRegular(root, rel, func(*os.Root) error { return nil })
+	return onRegular(root, rel, nil, func(*os.Root) error { return nil })
 }
 
 // RemoveRegular deletes the regular file at rel beneath the folder root, and reports whether it deleted one. It is for
@@ -28,7 +28,14 @@ func IsRegular(root, rel string) (bool, error) {
 // The folders are checked and then the file is deleted, so a folder swapped for a link between the two is followed;
 // the os.Root still keeps that delete inside root.
 func RemoveRegular(root, rel string) (bool, error) {
-	removed, err := onRegular(root, rel, func(folder *os.Root) error { return folder.Remove(rel) })
+	return RemoveRegularIf(root, rel, nil)
+}
+
+// RemoveRegularIf is RemoveRegular for a caller that listed the file earlier: still is given the file as the delete's own look finds it, and a
+// file it refuses (replaced or written to since) is left where it is and reported as nothing deleted, with no error. A nil still deletes any
+// regular file, as RemoveRegular does. This leaves only the instructions between that look and the delete for a file to be swapped in.
+func RemoveRegularIf(root, rel string, still func(fs.FileInfo) bool) (bool, error) {
+	removed, err := onRegular(root, rel, still, func(folder *os.Root) error { return folder.Remove(rel) })
 	if removed {
 		Advance()
 	}
@@ -83,7 +90,7 @@ func isRealFolder(mode fs.FileMode) bool { return mode&fs.ModeSymlink == 0 && mo
 var beforeAct = func() {}
 
 // onRegular runs act when rel beneath root is a regular file in real folders, and reports whether act ran and succeeded.
-func onRegular(root, rel string, act func(*os.Root) error) (bool, error) {
+func onRegular(root, rel string, still func(fs.FileInfo) bool, act func(*os.Root) error) (bool, error) {
 	folder, err := os.OpenRoot(root)
 	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
@@ -97,6 +104,9 @@ func onRegular(root, rel string, act func(*os.Root) error) (bool, error) {
 	}
 	info, err := lstatSettled(folder, rel)
 	if err == nil && info.Mode().IsRegular() {
+		if still != nil && !still(info) {
+			return false, nil
+		}
 		beforeAct()
 		if err = act(folder); err == nil {
 			return true, nil

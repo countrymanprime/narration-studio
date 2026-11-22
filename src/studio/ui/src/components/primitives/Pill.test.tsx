@@ -7,6 +7,18 @@ import { Pill } from './Pill';
 afterEach(cleanup);
 
 describe('Pill', () => {
+  it("is the same element, still focused, when a reason arrives for a caller that passes '' while it has none", () => {
+    const { rerender } = render(<Pill label="Rendered file" active={false} disabledReason="" />);
+    const before = screen.getByRole('button', { name: 'Rendered file' });
+    before.focus();
+    rerender(<Pill label="Rendered file" active={false} disabledReason="Saving the choice…" />);
+    const after = screen.getByRole('button', { name: 'Rendered file' });
+    expect(after).toBe(before);
+    expect(document.activeElement).toBe(after);
+    expect(after.getAttribute('aria-disabled')).toBe('true');
+    expect(after.getAttribute('aria-describedby')).toBeTruthy();
+  });
+
   it('does not invoke a disabled constrained pill', () => {
     const select = vi.fn();
     render(<Pill label="10m" active={false} disabled onClick={select} />);

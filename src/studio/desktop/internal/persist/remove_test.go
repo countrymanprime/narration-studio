@@ -391,7 +391,7 @@ func TestADeleteRefusedForAccessIsAnErrorUnlessTheFileIsGone(t *testing.T) {
 		t.Fatal(err)
 	}
 	denied := func(*os.Root) error { return &fs.PathError{Op: "remove", Path: path, Err: fs.ErrPermission} }
-	if removed, err := onRegular(dir, "a.json", denied); removed || !errors.Is(err, fs.ErrPermission) {
+	if removed, err := onRegular(dir, "a.json", nil, denied); removed || !errors.Is(err, fs.ErrPermission) {
 		t.Fatalf("onRegular = %v, %v; want the refusal for a file that is still there", removed, err)
 	}
 	defer func(old func(*os.Root, string) (fs.FileInfo, error), wait time.Duration) {
@@ -406,7 +406,7 @@ func TestADeleteRefusedForAccessIsAnErrorUnlessTheFileIsGone(t *testing.T) {
 		}
 		return nil, &fs.PathError{Op: "statat", Path: name, Err: fs.ErrNotExist} // the re-check after the refusal does not
 	}
-	if removed, err := onRegular(dir, "a.json", denied); removed || err != nil {
+	if removed, err := onRegular(dir, "a.json", nil, denied); removed || err != nil {
 		t.Fatalf("onRegular = %v, %v; want nothing removed and no error when the file is gone on the re-check", removed, err)
 	}
 }

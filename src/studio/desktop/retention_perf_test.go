@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"desktop/internal/comparerun"
 	"desktop/internal/evidence"
+	"desktop/internal/guide"
 	"desktop/internal/stages"
 )
 
@@ -19,6 +21,10 @@ const perfRetentionEnv = "NARRATION_PERF_RETENTION"
 // perfCacheEntriesEnv adds that many analysis cache entries of each kind to the copy before the cache step runs (#3816), a third of
 // each aged past the kind's limits, so the cache pass has something to remove.
 const perfCacheEntriesEnv = "NARRATION_PERF_CACHE_ENTRIES"
+
+// perfFilesEnv adds that many TTS previews (64 KB each, the least recently used first over the cap) and that many Transcript Compare
+// runs (three files each, the newest 20 and 7 days) to the copy before the folder steps run.
+const perfFilesEnv = "NARRATION_PERF_FILES"
 
 // TestPrintTheRetentionPass runs the ledger retention step (#3816) over a copy of the seeded book in NARRATION_PERF_BOOK, twice, and
 // prints what each pass cost and removed, with the first call of two reads that walk the ledger before the pass and after it.
@@ -62,7 +68,7 @@ func TestPrintTheRetentionPass(t *testing.T) {
 			t.Fatalf("pass %d: %v", pass, report.Err)
 		}
 	}
-	cacheTable := perfCachePass(t, dir)
+	cacheTable := perfCachePass(t, dir) + perfFilesPass(t, dir)
 	after := freshPerfHost(t, dir)
 	table := "| Read, first call on a host that has read nothing | Before the pass, ms | After, ms |\n| --- | --- | --- |\n"
 	for i, read := range walk {
@@ -117,6 +123,59 @@ func perfCachePass(t *testing.T, dir string) string {
 		}
 		out += fmt.Sprintf("| %d | %.0f | %d \u2192 %d | %.2f \u2192 %.2f | %d |\n", pass, ms(time.Since(started)), report.FilesBefore, report.FilesAfter,
 			float64(report.BytesBefore)/1e6, float64(report.BytesAfter)/1e6, report.Removed)
+	}
+	return out
+}
+
+// perfFilesPass fills the copy with NARRATION_PERF_FILES previews and Transcript Compare runs and runs the two folder steps twice each. It
+// answers "" when none were asked for. Previews are 64 KB, so 1,024 fit the 64 MB cap and more are over it; run i is 25+i hours old (past the day a run is left alone), so runs past 168 hours
+// and past the newest 20 are removed.
+func perfFilesPass(t *testing.T, dir string) string {
+	t.Helper()
+	var each int
+	if _, err := fmt.Sscan(os.Getenv(perfFilesEnv), &each); err != nil || each <= 0 {
+		return ""
+	}
+	now := time.Now()
+	previews := filepath.Join(dir, guide.PreviewFolder())
+	diffs := filepath.Join(dir, comparerun.DiffFolder())
+	for _, folder := range []string{previews, diffs} {
+		if err := os.MkdirAll(folder, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	blob := make([]byte, 64<<10)
+	stamp := func(path string, age time.Duration) {
+		when := now.Add(-age)
+		if err := os.Chtimes(path, when, when); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for i := range each {
+		path := filepath.Join(previews, fmt.Sprintf("%064x.wav", i))
+		if err := os.WriteFile(path, blob, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		stamp(path, time.Duration(i+20)*time.Minute) // none within the ten minutes the cap leaves alone
+		for _, ext := range []string{".diff", ".manuscript.txt", ".recorded.txt"} {
+			path := filepath.Join(diffs, fmt.Sprintf("Chapter_%016d%s", i, ext))
+			if err := os.WriteFile(path, blob[:4<<10], 0o600); err != nil {
+				t.Fatal(err)
+			}
+			stamp(path, time.Duration(25+i)*time.Hour)
+		}
+	}
+	out := fmt.Sprintf("\n%d previews of 64 KB and %d Transcript Compare runs of three files\n\n| Step | Pass | ms | Files | MB | Removed |\n| --- | --- | --- | --- | --- | --- |\n", each, each)
+	for _, step := range []folderRetention{previewRetention(dir), compareRetention(dir)} {
+		for pass := 1; pass <= 2; pass++ {
+			started := time.Now()
+			report := step.Run(context.Background(), func() bool { return false })
+			if report.Err != nil {
+				t.Fatalf("%s pass %d: %v", step.Name(), pass, report.Err)
+			}
+			out += fmt.Sprintf("| %s | %d | %.0f | %d \u2192 %d | %.2f \u2192 %.2f | %d |\n", step.Name(), pass, ms(time.Since(started)), report.FilesBefore, report.FilesAfter,
+				float64(report.BytesBefore)/1e6, float64(report.BytesAfter)/1e6, report.Removed)
+		}
 	}
 	return out
 }
