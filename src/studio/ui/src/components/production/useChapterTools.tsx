@@ -130,7 +130,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
         setChapters(await readChapters(afterWrite));
       } catch (error) {
         setChapters([]);
-        notify(describeApiError(error), 'error');
+        // A list that cannot be read on a mount is the page's error card (the shared list's error path); only a read after a write this page made says it here.
+        if (afterWrite) notify(describeApiError(error), 'error');
       }
     },
     [readChapters, notify],
