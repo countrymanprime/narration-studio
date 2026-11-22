@@ -16,7 +16,7 @@ import { buildWordClock, type WordClock } from './wordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { LEASE_RENEW_MS, SILENT_MS } from './useDawTransportSync';
-import { CHECKING, READ_FAILED, type DawRead } from '../../../playback/providers';
+import { READ_FAILED, type DawRead } from '../../../playback/providers';
 
 const FELL_BACK = 'Played in the app instead.';
 
@@ -511,13 +511,25 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(notices.join(' ')).toMatch(/does not have this book's project open/);
     expect(notices.join(' ')).toContain(FELL_BACK);
   });
-  it('plays nothing before the DAW first answers, so a DAW that can play is never passed over', async () => {
-    await ready(null);
+  it('asks the DAW to play before it has answered what it can do: no capability read and no check stand between the click and the play (#4043)', async () => {
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const reads = vi.spyOn(api, 'dawCapabilities');
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={null} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    const before = reads.mock.calls.length;
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
+    expect(reads.mock.calls.length).toBe(before);
+    expect(calls('play')).toHaveLength(1);
     expect(audio.play).not.toHaveBeenCalled();
-    expect(daw.syncCalls()).toHaveLength(0);
-    expect(notices).toEqual([CHECKING]);
+    expect(notices).toEqual([]);
   });
   it('plays at once with the link and the word time held, whatever the watch lease says: no check stands between the click and the play (#4043)', async () => {
     // The lease is never answered, as a REAPER busy with another command leaves it.
@@ -558,14 +570,35 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     await wait(10);
     expect(calls('play').length).toBe(asked + 1);
   });
-  it('plays nothing while the host has not yet said where the words play, and says it is checking', async () => {
+  it('a word table still being read does not stop the click: the play goes to the DAW the moment the table arrives (#4043)', async () => {
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const tree = (clock: WordClock | null, pending: boolean) => (
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} clock={clock} pending={pending} />
+        </EditingPageProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(null, true));
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(200);
+    expect(notices).toEqual([]);
+    expect(calls('play')).toHaveLength(0);
+    view.rerender(tree(CLOCK, false));
+    await wait(200);
+    expect(calls('play')).toHaveLength(1);
+    expect(notices).toEqual([]);
+  });
+  it('a word table that never arrives ends in a play of the app and says the words could not be placed', async () => {
     mount(DAW_SETUPS.reaper, undefined, null, true);
     await wait(10);
     act(() => playback.playFrom(t0('p-2:1')));
-    await wait(10);
-    expect(audio.play).not.toHaveBeenCalled();
+    await wait(7500);
     expect(calls('play')).toHaveLength(0);
-    expect(notices).toEqual([CHECKING]);
+    expect(audio.play).toHaveBeenCalled();
+    expect(notices.join(' ')).toMatch(/could not be placed|not been placed/);
   });
   it('says a failed read of the DAW, asks again, and plays the app rather than checking for ever', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);

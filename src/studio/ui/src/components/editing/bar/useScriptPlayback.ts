@@ -8,7 +8,7 @@ import { firstFrom, leadStart } from '../model';
 import type { SoundAt } from '../ribbon/useChapterSound';
 import type { WordClock } from '../follow/wordClock';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
-import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { APP, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
 import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { usePort } from '../../../ports/usePort';
 import { fadeOutAndPause, STOP_FADE_SECONDS } from './playbackStop';
@@ -199,11 +199,12 @@ export function useScriptPlayback({
         providers.push({
           name,
           readiness: (at) => {
-            const declared = dawReadiness(now, 'transport_sync', !!dawRead?.failed);
+            // A DAW that has not yet answered what it can do is asked to play all the same: no check stands between the click and the play, and the
+            // play call reports any failure (the host refuses what the DAW cannot do). A read that failed is said and asked again instead.
+            const declared = now === null && !dawRead?.failed ? { ready: true as const } : dawReadiness(now, 'transport_sync', !!dawRead?.failed);
             if (!declared.ready) return declared;
             const remote = remoteRef.current;
-            const refusal = remote ? remote.refusal(at) : 'pending';
-            if (refusal === 'pending') return { ready: false, why: CHECKING, wait: true };
+            const refusal = remote ? remote.refusal(at) : null;
             if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
             if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
@@ -321,7 +322,7 @@ export function useScriptPlayback({
     onDawPlay: () => setFollowState(true),
     notify,
   });
-  remoteRef.current = syncing.active ? syncing.remote : undefined;
+  remoteRef.current = syncing.remote;
 
   useEffect(() => {
     const el = audio();
