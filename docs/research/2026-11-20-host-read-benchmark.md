@@ -313,16 +313,17 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - The saving is the count of asks (each a request through the bridge to REAPER while it runs): 9 in 10 fewer over an hour. The label also appears at the edit instead of up to 30 s later.
 - **Not measured:** the round trip of a check to a live REAPER, the label's delay after a real edit, and a comparison left open for hours.
 
-## Editing's heartbeat follow of the DAW's play: four reads a second against a transport event
+## Editing's heartbeat follow of the DAW's play: four reads a second against the transport event
 
-[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. When the transport sync is not holding its watch lease (another project open, a recording, the capability off) the Editing page lights the word REAPER is playing from a fallback, `useDawPlayPosition`, which read `DawProjectState` four times a second whenever the DAW was reachable and the page visible, played or not. The host already announces a play starting and stopping (`daw_transport_changed`, held by the app's DAW session), so the fallback now reads four times a second only while the DAW plays and every 2 s otherwise (the backstop for a lost transport event); the read made when the announcement arrives sees the start or the stop at once. Same rig and method, one existing row (`DawProjectState`): `0.0` ms warm at every size (3, 44, 300 chapters; the rig has no DAW, so it times the host's immediate answer, not a live REAPER round trip), so the saving is a count.
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. When the transport sync is not holding its watch lease (another project open, a recording, the capability off) the Editing page lights the word REAPER is playing from a fallback, `useDawPlayPosition`, which read `DawProjectState` four times a second whenever the DAW was reachable and the page visible, played or not. The read answers from the host's heartbeat cache, which the host refreshes about every 1.5 s, so most of those reads returned the value the one before had. The host already pushes the same position: `daw_transport_changed` carries `position` (project seconds, as of the last heartbeat) while the DAW plays and is pushed again each time it moves, and the app's DAW session holds it. The fallback now follows that event and reads `DawProjectState` only every 30 s, as the backstop for an event that was lost. Same rig and method, one existing row (`DawProjectState`): `0.0` ms warm at every size (3, 44, 300 chapters; the rig has no DAW, so it times the host's immediate answer from its cache), so the saving is a count of calls from the page to the host.
 
-| Editing page visible, DAW reachable | Reads a minute before | After, DAW stopped | After, DAW playing |
-| --- | --- | --- | --- |
-| each minute | 240 | 30 | 240 |
+| Editing page visible, DAW reachable | Reads a minute before | After |
+| --- | --- | --- |
+| DAW stopped | 240 | 2 |
+| DAW playing | 240 | 2 (the position comes on the event, about every 1.5 s) |
 
-- Eight times fewer reads while the DAW is not playing (the usual state of a page left open), each a request through the bridge to REAPER when one runs; no change while it plays, and the word is lit as soon as the play is announced instead of at the next tick.
-- **Not measured:** the round trip of a read to a live REAPER, the delay between a real play and the transport event, and what the page costs while REAPER plays for hours.
+- A hundred and twenty times fewer calls to the host, stopped or playing; the word is lit from the event as the heartbeat moves (every 1.5 s, the same steps the 4 Hz read saw).
+- **Not measured:** the delay between a real play and its transport event in a running app, and what the page costs while REAPER plays for hours.
 
 ## Not measured
 

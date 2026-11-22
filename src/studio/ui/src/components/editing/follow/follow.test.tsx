@@ -16,7 +16,7 @@ import { ScriptDoc } from '../script/ScriptDoc';
 import { marksDoc } from '../script/scriptFixtures';
 import { buildWordClock } from './wordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
-import { POLL_MS, useDawPlayPosition } from './useDawPlayPosition';
+import { BACKSTOP_MS, useDawPlayPosition } from './useDawPlayPosition';
 import { useFollowScroll } from './useFollowScroll';
 
 const doc = marksDoc();
@@ -74,13 +74,13 @@ function Harness({ caps }: { caps: DawCapabilities | null }) {
   );
 }
 
-/** The host's transport event: what tells the page a play started or stopped, so the position is read often only while the DAW plays. */
-let announceTransport: (next: { playing: boolean; recording: boolean }) => void = () => {};
+/** The host's transport event: it says a play started or stopped and carries the position (as of the last heartbeat) while the DAW plays. */
+let announceTransport: (next: { playing: boolean; recording: boolean; position?: number }) => void = () => {};
 const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper) =>
   render(
     <ApiProvider
       api={createMockApi({
-        subscribeDawTransport: (listener: (next: { playing: boolean; recording: boolean }) => void) => {
+        subscribeDawTransport: (listener: (next: { playing: boolean; recording: boolean; position?: number }) => void) => {
           announceTransport = listener;
           return () => {};
         },
@@ -96,14 +96,16 @@ const mount = (caps: DawCapabilities | null = DAW_SETUPS.reaper) =>
 const state = () => JSON.parse(screen.getByTestId('state').textContent ?? '{}') as { playT: number | null; follow: boolean };
 const lit = (): string | null => document.querySelector('[data-now]')?.getAttribute('data-k') ?? null;
 /** Lets one poll's read answer. */
-const poll = async (ms = POLL_MS) => {
+const poll = async (ms = 250) => {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(ms);
   });
 };
 const dawAt = (docT: number, playState: DawProjectState['playState'] = 'playing') => {
   transport = { ...transport, playState, playPosition: at(docT) };
-  act(() => announceTransport({ playing: playState === 'playing', recording: false }));
+  // As the host's payload is shaped: the play bit is also set while recording, and the position comes only while the DAW plays or records.
+  const playing = playState !== 'stopped';
+  act(() => announceTransport({ playing, recording: playState === 'recording', ...(playing ? { position: at(docT) } : {}) }));
 };
 
 beforeEach(() => {
@@ -160,6 +162,8 @@ describe('own-playback-wins', () => {
     expect(state().playT).toBe(own);
     expect(lit()).toBe('p-2:5');
     act(() => playback.stop());
+    // The next heartbeat's event (the DAW keeps playing) is followed again.
+    dawAt(1.3);
     await poll();
     expect(lit()).toBe('p-1:3');
   });
@@ -217,7 +221,7 @@ describe('only-reads', () => {
     dawAt(1.3);
     await poll();
     dawAt(1.3, 'stopped');
-    await poll();
+    await poll(BACKSTOP_MS + 100);
     const called = spies.filter(([, spy]) => spy.mock.calls.length).map(([name]) => name);
     expect(called).toEqual(['projectState']);
   });
@@ -232,7 +236,7 @@ describe('no-position-no-follow', () => {
     const toast = vi.spyOn(overlay, 'toast');
     dawAt(1.3);
     mount(caps);
-    await poll(POLL_MS * 4);
+    await poll(BACKSTOP_MS * 2);
     expect(client.projectState).not.toHaveBeenCalled();
     expect(state().playT).toBeNull();
     expect(toast).not.toHaveBeenCalled();
@@ -241,73 +245,84 @@ describe('no-position-no-follow', () => {
     const toast = vi.spyOn(overlay, 'toast');
     vi.mocked(client.projectState).mockRejectedValue(new Error('gone'));
     mount();
-    await poll(POLL_MS * 4);
+    await poll(BACKSTOP_MS * 2);
     expect(state().playT).toBeNull();
     expect(toast).not.toHaveBeenCalled();
   });
 });
 
 describe('poll-is-bounded', () => {
-  it('reads at most four times a second while visible, and stops when hidden or unmounted', async () => {
+  it('reads nothing while the transport events flow, and once each backstop while visible; nothing when hidden or unmounted', async () => {
     const view = mount();
-    await poll(1000);
-    const perSecond = vi.mocked(client.projectState).mock.calls.length;
-    expect(perSecond).toBeGreaterThan(0);
-    expect(perSecond).toBeLessThanOrEqual(5);
+    // A DAW that plays for a minute is followed from its events alone.
+    dawAt(1.3);
+    await poll(10_000);
+    dawAt(4.2);
+    await poll(10_000);
+    expect(vi.mocked(client.projectState).mock.calls.length).toBe(0);
+    expect(lit()).toBe('p-2:1');
+    await poll(BACKSTOP_MS);
+    const backstop = vi.mocked(client.projectState).mock.calls.length;
+    expect(backstop).toBeGreaterThan(0);
+    expect(backstop).toBeLessThanOrEqual(2);
     const hidden = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    const before = vi.mocked(client.projectState).mock.calls.length;
-    await poll(2000);
-    expect(vi.mocked(client.projectState).mock.calls.length).toBe(before);
+    await poll(BACKSTOP_MS * 2);
+    expect(vi.mocked(client.projectState).mock.calls.length).toBe(backstop);
     hidden.mockReturnValue('visible');
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await poll(1000);
+    await poll(BACKSTOP_MS);
     const after = vi.mocked(client.projectState).mock.calls.length;
-    expect(after).toBeGreaterThan(before);
+    expect(after).toBeGreaterThan(backstop);
     view.unmount();
-    await poll(2000);
+    await poll(BACKSTOP_MS * 2);
     expect(vi.mocked(client.projectState).mock.calls.length).toBe(after);
   });
-  it('reads every 2 s while the DAW does not play, and four times a second while it plays', async () => {
-    mount();
-    await poll(10_000);
-    const idle = vi.mocked(client.projectState).mock.calls.length;
-    expect(idle).toBeGreaterThanOrEqual(4);
-    expect(idle).toBeLessThanOrEqual(7);
-    dawAt(1.3);
-    const playingFrom = vi.mocked(client.projectState).mock.calls.length;
-    await poll(2000);
-    const playing = vi.mocked(client.projectState).mock.calls.length - playingFrom;
-    expect(playing).toBeGreaterThanOrEqual(7);
-    expect(playing).toBeLessThanOrEqual(10);
-    dawAt(2.0, 'stopped');
-    const stoppedFrom = vi.mocked(client.projectState).mock.calls.length;
-    await poll(10_000);
-    expect(vi.mocked(client.projectState).mock.calls.length - stoppedFrom).toBeLessThanOrEqual(7);
-  });
-  it('reads a play the transport event announces at once, not at the next idle tick', async () => {
+  it('lights a play the transport event announces at once, from the position the event carries', async () => {
     mount();
     await poll(500);
     dawAt(1.3);
     await poll(10);
     expect(lit()).toBe('p-1:3');
+    expect(client.projectState).not.toHaveBeenCalled();
   });
-  it('still finds a play whose transport event was lost, at the idle backstop', async () => {
+  it('does not follow a take: a DAW that records is not a play, whatever its play bit says', async () => {
+    mount();
+    dawAt(1.3, 'recording');
+    await poll(500);
+    expect(lit()).toBeNull();
+    expect(state().playT).toBeNull();
+  });
+  it('a stop is heard from the event: the last word stays lit and a later play starts afresh (follow turns on again)', async () => {
+    mount();
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    dawAt(1.3, 'stopped');
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    act(() => playback.setFollow(false));
+    dawAt(4.2);
+    await poll(10);
+    expect(playback.follow).toBe(true);
+  });
+  it('still finds a play or a stop whose transport event was lost, at the backstop', async () => {
     mount();
     await poll(500);
-    // The DAW plays but no transport event comes: the backstop read finds it.
+    // The DAW plays but no event comes: the backstop read finds it.
     transport = { ...transport, playState: 'playing', playPosition: at(1.3) };
-    await poll(2100);
+    await poll(BACKSTOP_MS + 100);
     expect(lit()).toBe('p-1:3');
+    expect(client.projectState).toHaveBeenCalled();
   });
   it('waits for a slow read before asking again', async () => {
     vi.mocked(client.projectState).mockImplementation(() => new Promise(() => {}));
     mount();
-    await poll(2000);
+    await poll(BACKSTOP_MS * 3 + 100);
     expect(client.projectState).toHaveBeenCalledTimes(1);
   });
 });

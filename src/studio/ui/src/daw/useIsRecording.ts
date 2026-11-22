@@ -7,8 +7,3 @@ import { useDawState } from './useDawSession';
 export function useIsRecording(): boolean {
   return useDawState((state) => state.transport.recording);
 }
-
-/** Whether the DAW plays, from the app's one DAW session (`daw_transport_changed`): the reader a screen asks to know a play has started or ended without reading the DAW. A session not yet heard from answers false. */
-export function useIsPlaying(): boolean {
-  return useDawState((state) => state.transport.playing);
-}
