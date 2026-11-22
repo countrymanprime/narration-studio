@@ -38,6 +38,9 @@ import { bookFigures, checkCounts, deliveryCounts, stageSegments, type OverviewT
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
+import { composeOverview } from './composeOverview';
+import { useChapters } from '../../studio/useChapters';
+import { useOptionalStoreHandle } from '../../studio/StudioProvider';
 import { useDawConnection } from '../connection/useDawConnection';
 import { useDawStatus } from '../connection/useDawStatus';
 import { DAW_CONNECT_GRACE_MS } from '../connection/useDawConnecting';
@@ -139,6 +142,7 @@ export function ProductionPage({
   dawConnectGraceMs?: number;
 }) {
   const production = usePort('production');
+  const store = useOptionalStoreHandle();
   const chapterSyncPort = usePort('chapterSync');
   const measurements = usePort('measurements');
   const found = Boolean(data.manuscript);
@@ -179,11 +183,17 @@ export function ProductionPage({
 
   const measured = useMeasured(measurements, '', sessionIds);
   const layout = useVoiceLayout();
-  const wph = effectiveWph(rateBasis, paceChapters(load.status === 'ready' ? load.overview.chapters : []), measured.answers?.chapterLengths);
+  // The chapters are the shared list (the store's slot), with the host's per-chapter numbers from the overview: one list of chapters on every page.
+  const shared = useChapters(found);
+  const composed = useMemo(
+    () => (load.status === 'ready' && shared.chapters ? composeOverview(load.overview, shared.chapters) : undefined),
+    [load, shared.chapters],
+  );
+  const wph = effectiveWph(rateBasis, paceChapters(composed?.chapters ?? []), measured.answers?.chapterLengths);
   const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
 
-  const overview = found && load.status === 'ready' ? load.overview : undefined;
+  const overview = found ? composed : undefined;
   const narrated = useMemo(() => (overview ? overview.chapters.filter(isNarrationChapter) : []), [overview]);
   const nameOf = useCallback(
     (chapterId: string) => {
@@ -344,13 +354,17 @@ export function ProductionPage({
       : measured.answers.pickupSessionSeconds
     : { ok: false as const, reason: 'Reading the pickup sessions…' };
 
-  if (load.status === 'error')
+  // A chapter list that cannot be read is the page's error like any other page's, with the shared list read again by Retry.
+  const failure = load.status === 'error' ? load.message : found && shared.error && !shared.chapters ? apiErrorMessage(shared.error) : undefined;
+  const loading = load.status === 'loading' || (found && load.status === 'ready' && !composed && !failure);
+  if (failure !== undefined)
     return (
       <LoadError
         title="Production"
-        message={load.message}
+        message={failure}
         retry={() => {
           setLoad({ status: 'loading' });
+          void store?.load('chapters').catch(() => undefined);
           void read();
         }}
       />
@@ -361,7 +375,7 @@ export function ProductionPage({
       {connection.off && <div className="flex">{connection.indicator}</div>}
       {connection.dialog}
       <PageHeader
-        loading={load.status === 'loading'}
+        loading={loading}
         chapters={narrated.length}
         words={k.words}
         k={k}
@@ -378,7 +392,7 @@ export function ProductionPage({
       />
       {manuscriptImport.dialogs}
       {manuscriptImport.creditsBanner}
-      {load.status === 'loading' && <ProductionSkeleton />}
+      {loading && <ProductionSkeleton />}
       {timer.problem && (
         <p role="alert" className="text-sm" style={DANGER}>
           {timer.problem}
