@@ -13,7 +13,7 @@ export const SILENT_MS = 3000;
 /** How often the DAW's play head is carried on between two of its readings, so the lit word advances word by word and does not wait for the next reading. */
 export const EXTRAPOLATE_MS = 50;
 /** How long a play asked before the watch lease was answered may go without a position before the page stops it and the DAW. */
-export const UNWATCHED_MS = 10_000;
+const UNWATCHED_MS = 10_000;
 /** The most a reading is carried on: a DAW that has gone quiet is not followed past this, the silent timer stops the page's play. */
 const MAX_EXTRAPOLATE_SECONDS = 0.6;
 /** A run of cursor moves in the page is written to the DAW once, this long after the last. */
