@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { ManuscriptChapter } from '../types';
 import { usePort } from '../ports/usePort';
 import { useOptionalStoreHandle } from './StudioProvider';
@@ -27,44 +27,24 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     () => store?.getState().errors.chapters,
     () => undefined,
   );
-  // A reset while a read is out changes neither `held` nor `error`: the generation is what makes the effect below ask again for the new project.
-  const generation = useSyncExternalStore(
-    store ? store.subscribe : noSubscribe,
-    () => store?.generation() ?? 0,
-    () => 0,
-  );
   const [own, setOwn] = useState<readonly ManuscriptChapter[]>();
-  // Ask when the list is not held and no read of it has failed: first mount, a project switch that emptied the slot, a read the switch dropped. A failure is
-  // not asked again by this hook (an event or the caller's `refreshKey` does), so a host that is down is not read in a loop.
-  // A read that a project switch dropped answers with nothing held and no failure: ask once more (at most three times in a row, so a slot that keeps
-  // being emptied is not read in a loop).
-  const [again, setAgain] = useState(0);
-  const retries = useRef(0);
-  useEffect(() => {
-    if (held !== undefined) retries.current = 0;
-  }, [held]);
+  // Ask when the list is not held and no read of it has failed: first mount, a project switch that emptied the slot. A read the switch dropped is read
+  // again by `ensure` itself. A failure is not asked again by this hook (an event or the caller's `refreshKey` does), so a host that is down is not read in a loop.
   // A reader that mounts on a list whose read failed asks once more.
   useEffect(() => {
     if (store && enabled && store.getState().errors.chapters !== undefined && store.getState().slots.chapters === undefined)
       void store.load('chapters').catch(() => undefined);
   }, [store, enabled]);
+  // A reset while a read is out changes neither `held` nor `error`: the generation is what asks again for the new project after `ensure` gave up its three reads.
+  const generation = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.generation() ?? 0,
+    () => 0,
+  );
   useEffect(() => {
     if (!store || !enabled || held !== undefined || error !== undefined) return;
-    let live = true;
-    void store
-      .ensure('chapters')
-      .catch(() => undefined)
-      .then(() => {
-        const now = store.getState();
-        if (live && now.slots.chapters === undefined && now.errors.chapters === undefined && retries.current < 3) {
-          retries.current += 1;
-          setAgain((n) => n + 1);
-        }
-      });
-    return () => {
-      live = false;
-    };
-  }, [store, enabled, held, error, again, generation]);
+    void store.ensure('chapters').catch(() => undefined);
+  }, [store, enabled, held, error, generation]);
   useEffect(() => {
     if (store && enabled && refreshKey > 0) void store.load('chapters').catch(() => undefined);
   }, [store, enabled, refreshKey]);

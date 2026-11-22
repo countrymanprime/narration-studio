@@ -157,8 +157,7 @@ describe('project-switch-clears-both', () => {
     expect(await result.current.journal.entries()).toEqual([]);
     release([chapter('a1')]);
     await act(() => inFlight);
-    expect(result.current.chapters).toBeUndefined();
-    await act(() => result.current.store.load('chapters'));
+    // The late A answer was dropped, never written; the load read again for the project the app is on.
     expect(result.current.chapters?.map((c) => c.id)).toEqual(['b1', 'b2']);
   });
 });

@@ -515,6 +515,42 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(within(appToasts('alert')).getByText(/the host is busy/)).toBeTruthy();
   });
 
+  it("applies only the newest bootstrap, and the attach's own answer whichever listener hears the attach first (#3998)", async () => {
+    // Every subscriber hears the event: the store's reset (StudioProvider) and App's refresh. The host calls them in registration order; the test also calls them
+    // in the other order, because the answer to the attach must not be judged against a generation read before the reset.
+    const listeners: Array<(state: { attached: boolean }) => void> = [];
+    const send = (order: 'forward' | 'reverse') =>
+      (order === 'forward' ? [...listeners] : [...listeners].reverse()).forEach((listener) => listener({ attached: true }));
+    const source = createMockApi();
+    const first = await source.bootstrap();
+    const named = (name: string) => ({ ...first, projectFolder: `/${name}`, projectName: name });
+    let late: ((value: Awaited<ReturnType<typeof source.bootstrap>>) => void) | undefined;
+    // Before the first attach the host answers Alpha; the first ask after it does not answer yet; every later ask answers Beta at once.
+    let attaches = 0;
+    let asked = 0;
+    renderApp({
+      bootstrap: () => {
+        if (attaches === 0) return Promise.resolve(named('Alpha'));
+        if (++asked === 1) return new Promise((resolve) => (late = resolve));
+        return Promise.resolve(named('Beta'));
+      },
+      subscribeProjectAttach: (listener) => {
+        listeners.push(listener);
+        return () => {};
+      },
+    });
+    await waitFor(() => expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0));
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(1));
+    attaches = 1;
+    act(() => send('reverse')); // App's listener first: its refresh does not answer yet
+    await waitFor(() => expect(asked).toBeGreaterThan(0));
+    act(() => send('forward')); // the host attached again: the newest ask answers at once
+    await waitFor(() => expect(screen.getAllByText('Beta').length).toBeGreaterThan(0));
+    await act(async () => late!(named('Alpha'))); // the older answer arrives last and is dropped
+    expect(screen.queryAllByText('Alpha')).toHaveLength(0);
+    expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
+  });
+
   it('choosing a manuscript file: busy while the host dialog is open, one dialog, and a failure is a toast', async () => {
     // The rebuilt header has no Replace manuscript (Settings keeps it); the empty state's import button is the same hook.
     const source = createMockApi();
