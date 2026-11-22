@@ -111,17 +111,22 @@ describe('BackupsSection', () => {
     await waitFor(() => expect(project.saveSettings).toHaveBeenCalledWith('DAW', 'project', { 'backups.retention_days': '30' }));
   });
 
-  it("edits-save-through-scoped-settings: a value outside the store's bounds shows the store's sentence and is not saved", async () => {
+  // This test pinned the store's red sentence for a value outside its bounds, with nothing saved. The owner's rule CS-N1 (#3681) changed
+  // that on purpose: the box saves the nearest limit when it is left, and the range note stays under it.
+  it("edits-save-through-scoped-settings: a value outside the store's bounds is saved as the nearest limit when the box is left", async () => {
     const { saveSettings } = renderSection();
     const box = await windowBox();
     fireEvent.change(box, { target: { value: '600' } });
-    fireEvent.blur(box);
-    expect(screen.getByText('Enter a value from 10 to 300 s.')).toBeTruthy();
-    const days = await retentionBox();
-    fireEvent.change(days, { target: { value: '400' } });
-    fireEvent.blur(days);
-    expect(screen.getByText('Enter a value from 1 to 365 days.')).toBeTruthy();
     expect(saveSettings).not.toHaveBeenCalled();
+    fireEvent.blur(box);
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'backups.window_seconds': '300' }));
+    const days = await retentionBox();
+    fireEvent.change(days, { target: { value: '0' } });
+    fireEvent.blur(days);
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'backups.retention_days': '1' }));
+    expect(saveSettings).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('From 10 to 300 s')).toBeTruthy();
+    expect(screen.queryByText(/^Enter a value/)).toBeNull();
   });
 
   it("edits-save-through-scoped-settings: a refused save shows the host's reason", async () => {
@@ -193,20 +198,20 @@ describe('BackupsSection', () => {
     expect(await windowBox()).toBeTruthy();
   });
 
-  // #3877 N6: a value outside its range stays in its box without being saved, and leaving the category or the page dropped it without a word.
-  it('a value outside its range is held: leaving asks, and Discard puts the box back', async () => {
-    renderSection();
+  // #3877 N6 held a value outside its range in its box as an unsaved draft that leaving asked about. Since CS-N1 (#3681) there is no such
+  // draft: the value is saved as the nearest limit when the box is left, and every exit takes the focus off the box first.
+  it('a value outside its range is not an unsaved draft: leaving the box saves the nearest limit', async () => {
+    const { saveSettings } = renderSection();
     const box = await retentionBox();
-    expect(registry.heldNow()).toEqual([]);
     fireEvent.change(box, { target: { value: '400' } });
-    expect(registry.heldNow().map((held) => held.label)).toEqual(['a backups value outside its range']);
-    act(() => registry.discard());
-    await waitFor(() => expect((box as HTMLInputElement).value).toBe(''));
     expect(registry.heldNow()).toEqual([]);
+    fireEvent.blur(box);
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledExactlyOnceWith('DAW', 'global', { 'backups.retention_days': '365' }));
   });
 
-  // #3877 B1 of the second qa pass: a save re-read the rows and cleared every box's value, so a refused value held in the other box vanished.
-  it('a held out-of-range value survives a save of the other box', async () => {
+  // #3877 B1 of the second qa pass: a save re-read the rows and cleared every box, so what was typed in the other box vanished. It still
+  // must not; what changed (CS-N1) is that the value past the range is then saved as the limit, not held.
+  it('a value typed in one box survives a save of the other box, and is saved as the nearest limit when its box is left', async () => {
     const { saveSettings } = renderSection();
     const window = await windowBox();
     fireEvent.change(window, { target: { value: '5' } });
@@ -216,6 +221,7 @@ describe('BackupsSection', () => {
     await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'backups.retention_days': '30' }));
     await act(async () => undefined);
     expect((window as HTMLInputElement).value).toBe('5');
-    expect(registry.heldNow().map((held) => held.label)).toEqual(['a backups value outside its range']);
+    fireEvent.blur(window);
+    await waitFor(() => expect(saveSettings).toHaveBeenLastCalledWith('DAW', 'global', { 'backups.window_seconds': '10' }));
   });
 });

@@ -1185,18 +1185,21 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'project', { max_missing_run: '7' });
   });
 
-  it('does not send a number its own box refuses: Save says why it waits and the host is not asked', async () => {
+  // Rewritten for CS-N1 (owner, #3681): a number past its range is no longer held back with a refusal; leaving the box moves it to the
+  // nearest limit, and that limit is what Save sends.
+  it('saves a number typed past its range as the nearest limit once its box is left', async () => {
     const saveSettings = vi.fn(createMockApi().saveSettings);
     renderApp({ saveSettings });
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
     const rules = await openKeptPanel('stt.rules', 'Recording check');
 
-    // The share of a paragraph is 0 to 1: 5 is marked by the box, and Save does not offer to send it.
-    fireEvent.change(await within(rules).findByRole('textbox', { name: 'Share of each paragraph that must be read' }), { target: { value: '5' } });
-    const save = await within(rules).findByRole('button', { name: 'Save' });
-    expect(save.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(save);
-    expect(saveSettings).not.toHaveBeenCalled();
+    // The share of a paragraph is 0 to 1: 5 becomes 1 when the box is left.
+    const share = (await within(rules).findByRole('textbox', { name: 'Share of each paragraph that must be read' })) as HTMLInputElement;
+    fireEvent.change(share, { target: { value: '5' } });
+    fireEvent.blur(share);
+    expect(share.value).toBe('1');
+    fireEvent.click(within(rules).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { min_paragraph_present: '1' }));
   });
 
   it('offers the recording check settings at their defaults and saves a changed threshold', async () => {

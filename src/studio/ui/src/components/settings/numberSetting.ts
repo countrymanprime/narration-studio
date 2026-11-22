@@ -32,3 +32,31 @@ export function numberProblem(range: NumberSettingRange, text: string): string |
   }
   return undefined;
 }
+
+const decimals = (n: number): number => (String(n).split('.')[1] ?? '').length;
+
+/**
+ * `n` moved to the nearest value the host accepts for `range`: on a step counted from `min` (from 0 with no `min`, the host's origin rule),
+ * a half step going up, and inside `min` and `max`. A `max` between steps gives the last step below it.
+ */
+export function snapToStep(range: NumberSettingRange, n: number): number {
+  const { min, max, step } = range;
+  const bounded = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
+  if (step === null || step <= 0) return bounded;
+  const origin = min ?? 0;
+  const places = Math.max(decimals(step), decimals(origin));
+  // The tolerance sends a half step up although its quotient is a hair under (0.15 / 0.1 is 1.4999999999999998).
+  const onStep = (steps: number): number => Number((origin + steps * step).toFixed(places));
+  const steps = Math.round((bounded - origin) / step + STEP_TOLERANCE);
+  const snapped = onStep(steps);
+  return max !== null && snapped > max ? onStep(steps - 1) : snapped;
+}
+
+/**
+ * `n` as the text the host is sent for `range`: snapped as `snapToStep` does, or undefined when that number cannot be written as the plain
+ * decimal the host reads (from 1e21 JavaScript writes an exponent, which the host refuses).
+ */
+export function acceptedNumberText(range: NumberSettingRange, n: number): string | undefined {
+  const text = String(snapToStep(range, n));
+  return numberProblem(range, text) === undefined ? text : undefined;
+}

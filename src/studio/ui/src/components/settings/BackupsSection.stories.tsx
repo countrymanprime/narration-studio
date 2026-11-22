@@ -71,16 +71,16 @@ export const Shown: Story = {
   },
 };
 
-// A project override is edited at the project layer, with its Reset; a window past the store's range shows the store's sentence.
-export const ProjectOverrideAndOutOfRange: Story = {
+// A project override is edited at the project layer, with its Reset button. A window past the store's range is not a state to draw: the
+// box saves the nearest limit when it is left (BackupsSection.test.tsx).
+export const ProjectOverride: Story = {
   args: {
     rows: [ROWS[0], { field: { ...ROWS[1].field, value: '14', isSet: true, effectiveValue: '14', effectiveSource: 'project' }, scope: 'project' }],
-    drafts: { 'backups.window_seconds': '600' },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Enter a value from 10 to 300 s.')).toBeTruthy();
-    await expect(canvas.getByRole('button', { name: 'Reset' })).toBeTruthy();
+    await expect(canvas.getByText('From 10 to 300 s')).toBeTruthy();
+    await expect(canvas.getByRole('button', { name: 'Reset Keep backups for (days)' })).toBeTruthy();
   },
 };
 

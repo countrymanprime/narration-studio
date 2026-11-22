@@ -1,15 +1,20 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { providedCommands } from '../../../input/commandProviders';
+import { overlay } from '../../../overlay/overlayService';
 import type { ScopedSettingField } from '../../../types';
 import type { NarrationApi } from '../../../types';
 import { ProofOptions } from './ProofOptions';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const number = (key: string, label: string, value: string, isSet = false): ScopedSettingField => ({
   key,
@@ -94,9 +99,14 @@ describe('Proof options', () => {
     const { save, open } = mount();
     await open();
     const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    // Nothing is saved while typing: "60" is in range and was once saved on the way to 600 (#3681).
+    fireEvent.change(box, { target: { value: '6' } });
+    fireEvent.change(box, { target: { value: '60' } });
     fireEvent.change(box, { target: { value: '600' } });
+    expect(save).not.toHaveBeenCalled();
     fireEvent.blur(box);
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { target: '600' }));
+    expect(save).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByRole('combobox', { name: 'Preset' }), { target: { value: 'spot_check' } });
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { preset: 'spot_check' }));
   });
@@ -165,7 +175,7 @@ describe('Proof options', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { suggest: 'false' }));
   });
 
-  it('offers Reset only on a setting this project overrides, and Reset hands the setting back to the default', async () => {
+  it('offers Reset, an icon button named for the setting, only on a setting this project overrides, and Reset hands the setting back to the default', async () => {
     const { save, open } = mount();
     await open();
     await screen.findByRole('textbox', { name: 'Tint hex' });
@@ -195,5 +205,62 @@ describe('Proof options', () => {
     fireEvent.change(await screen.findByRole('combobox', { name: 'Preset' }), { target: { value: 'spot_check' } });
     expect((await screen.findByRole('alert')).textContent).toContain('read-only');
     expect((screen.getByRole('combobox', { name: 'Preset' }) as HTMLSelectElement).value).toBe('sample');
+  });
+
+  it('an emptied number hands the setting back, as Reset does, and an unset one is an empty box', async () => {
+    const { save, open } = mount({
+      settingsForScope: async () => ({ Demo: [number('target', 'Target length (seconds)', '300', true), number('gap', 'Gap', '')] }),
+    });
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    fireEvent.change(box, { target: { value: '' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    await waitFor(() => expect(save).toHaveBeenCalledExactlyOnceWith('Demo', 'project', { target: null }));
+  });
+
+  // The press outside takes the box away with no blur: what was typed is saved, as leaving the box saves it.
+  it('a number typed and then dismissed by an outside press is saved', async () => {
+    const { save, open } = mount();
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    fireEvent.change(box, { target: { value: '200' } });
+    expect(save).not.toHaveBeenCalled();
+    // A press right after the dialog opens is read as the second click of the double click that opened it.
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + 60_000);
+    await userEvent.setup().click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(save).toHaveBeenCalledExactlyOnceWith('Demo', 'project', { target: '200' });
+  });
+
+  it('a number typed and then dropped with Escape is not saved', async () => {
+    const { save, open } = mount();
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    const user = userEvent.setup();
+    await user.clear(box);
+    await user.type(box, '200');
+    await user.keyboard('{Escape}{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  // The save goes out as the dialog closes, so its refusal has no dialog to show in.
+  it('a save refused after the dialog closed is reported as a toast, and one the dialog showed is not said again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    let refuse: () => void = () => undefined;
+    const save = vi.fn(() => new Promise<never>((_, reject) => (refuse = () => reject(new Error('The settings file is read-only.')))));
+    const { open } = mount({ saveSettings: save } as Partial<NarrationApi>);
+    await open();
+    const box = await screen.findByRole('textbox', { name: 'Target length (seconds)' });
+    const user = userEvent.setup();
+    await user.clear(box);
+    await user.type(box, '200');
+    await user.click(screen.getAllByRole('button', { name: 'Close' }).at(-1)!);
+    expect(save).toHaveBeenCalledExactlyOnceWith('Demo', 'project', { target: '200' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(toast).not.toHaveBeenCalled();
+    await act(async () => refuse());
+    expect(toast).toHaveBeenCalledExactlyOnceWith('The settings file is read-only.', expect.objectContaining({ tone: 'error' }));
   });
 });
