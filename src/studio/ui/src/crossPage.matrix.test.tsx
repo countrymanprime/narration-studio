@@ -165,7 +165,10 @@ describe('cross-page matrix: a bad address always has a way out', () => {
     await blocked('Booth');
     fireEvent.click(screen.getByRole('button', { name: 'Open Booth' }));
     await heading('Booth');
-    expect(here()).toBe('/booth');
+    // The bad chapter is gone from the address. The Booth may already have put the chapter the narrator left it on there (it reads the held list at once), so
+    // the address is /booth or /booth with that chapter, never the bad one.
+    expect(here()).toMatch(/^\/booth(\?chapter=chapter-\d+)?$/);
+    expect(here()).not.toContain('nope');
     expect(screen.queryByText('This link could not be opened')).toBeNull();
   });
 
