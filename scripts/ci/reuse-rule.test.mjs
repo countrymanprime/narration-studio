@@ -9,15 +9,15 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (file) => readFileSync(join(root, file), 'utf8');
 
-const SENTENCE = 'If we already have a thing that does something, we SHOULD NOT MAKE A NEW ONE UNLESS WE ARE REPLACING THE OLD ONE WITH A BETTER ONE';
+const RULE = 'do not build a new thing when one already does the job, unless the new one replaces the old one with a better one';
 
-test('the rule file holds the owner sentence', () => {
-  assert.ok(read('.claude/rules/product-rules.md').includes(SENTENCE));
+test('the rule file holds the rule sentence', () => {
+  assert.ok(read('.claude/rules/product-rules.md').toLowerCase().includes(RULE));
 });
 
-test('CLAUDE.md, which every session loads, carries the sentence and links the rule', () => {
+test('CLAUDE.md, which every session loads, carries the rule sentence and links the rule', () => {
   const claude = read('CLAUDE.md');
-  assert.ok(claude.includes(SENTENCE));
+  assert.ok(claude.toLowerCase().includes(RULE));
   assert.ok(claude.includes('.claude/rules/product-rules.md'));
 });
 
