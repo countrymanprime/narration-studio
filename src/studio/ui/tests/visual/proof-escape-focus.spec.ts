@@ -42,7 +42,7 @@ const ROUTES: { name: string; leaves: boolean; focus: 'differences' | 'check' | 
 ];
 
 for (const route of ROUTES) {
-  test(`Proof: ${route.name} out of the chapter leaves focus on the chapter picker, not <body>`, async ({ page }) => {
+  test(`Proof: ${route.name} out of the chapter leaves focus on the chapter picker, not the page body`, async ({ page }) => {
     await openChapterOne(page);
     if (route.focus === 'differences') {
       await page.getByRole('button', { name: 'Compare with the script' }).click();
