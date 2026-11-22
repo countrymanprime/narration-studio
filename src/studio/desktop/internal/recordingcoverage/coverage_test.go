@@ -488,3 +488,67 @@ func TestTwoWordsAcrossALineBreakAreNotAWholeLineSaidAgain(t *testing.T) {
 	}
 	eq(t, RepeatOf([]string{"hotel", "india"}, doc, lines, intp(3), nil), &Repeat{Start: 2, End: 4, First: 0, Last: 2})
 }
+
+func TestAWordSaidTwiceInARowKeepsTheLastCopyAndTheEarlierOneIsExtra(t *testing.T) {
+	// Issue #4047: "back" misspoken and said again a second later. The correction is the word the line goes on from, so the first copy is the extra.
+	said := strings.Fields(p1 + " " + p2)
+	for at := range said {
+		doubled := append(append(append([]string{}, said[:at+1]...), said[at]), said[at+1:]...)
+		a := aligned(t, []string{p1, p2}, strings.Join(doubled, " "), "")
+		tokens, extras := a.AlignTokens(DefaultParams)
+		if len(extras) != 1 || extras[0] != [2]int{at, at + 1} {
+			t.Fatalf("word %d said twice: extras %v, want the first copy [%d %d)", at, extras, at, at+1)
+		}
+		if tokens[at].Audio == nil || *tokens[at].Audio != at+1 || tokens[at].Status != StatusRead {
+			t.Fatalf("word %d said twice: token %+v, want read as the second copy %d", at, tokens[at], at+1)
+		}
+	}
+}
+
+func TestAScriptWordThatIsSaidTwiceByTheScriptIsStillTwoWords(t *testing.T) {
+	a := aligned(t, []string{"very very good indeed they said"}, "very very good indeed they said", "")
+	tokens, extras := a.AlignTokens(DefaultParams)
+	eq(t, len(extras), 0)
+	eq(t, []int{*tokens[0].Audio, *tokens[1].Audio}, []int{0, 1})
+}
+
+func TestAScriptWordSaidMoreOftenThanTheScriptKeepsItsLastCopiesLikeTheEditingPage(t *testing.T) {
+	// The same cases are in ui/src/components/editing/model/align.test.ts; the two must name the same copies as extra.
+	for _, c := range []struct {
+		script, said string
+		heard        []int
+	}{
+		{"no no no", "no no no no no", []int{2, 3, 4}},
+		{"very very good", "very very very good", []int{1, 2, 3}},
+		{"no way", "no no no way", []int{2, 3}},
+	} {
+		a := aligned(t, []string{c.script}, c.said, "")
+		tokens, _ := a.AlignTokens(DefaultParams)
+		got := []int{}
+		for _, token := range tokens {
+			got = append(got, *token.Audio)
+		}
+		eq(t, got, c.heard)
+	}
+}
+
+func TestAFirstBodyWordSaidTwiceAfterTheHeadingIsFlaggedOnItsFirstCopy(t *testing.T) {
+	// Issue #4047: what is said before the chapter's first word heard is the heading, so the heading must be taken out before the last copy is kept,
+	// or the first copy is swallowed by it and the fumble is never flagged (on main it was not).
+	a := aligned(t, []string{"alice sat"}, "chapter one alice alice sat", "chapter one")
+	tokens, extras := a.AlignTokens(DefaultParams)
+	eq(t, *tokens[2].Audio, 3)
+	eq(t, extras, [][2]int{{2, 3}})
+}
+
+func TestAFillerBetweenTheTwoCopiesStillKeepsTheLastCopy(t *testing.T) {
+	// Issue #4047: "alice", "um", "alice": the correction is the last copy, and the misspoken one and the filler are extra.
+	a := aligned(t, []string{"we go home", "go now please thanks"}, "we go home go um go now please thanks", "")
+	tokens, extras := a.AlignTokens(DefaultParams)
+	eq(t, *tokens[3].Audio, 5)
+	eq(t, extras, [][2]int{{3, 5}})
+	a = aligned(t, []string{"alice sat"}, "chapter one alice um alice sat", "chapter one")
+	tokens, extras = a.AlignTokens(DefaultParams)
+	eq(t, *tokens[2].Audio, 4)
+	eq(t, extras, [][2]int{{2, 4}})
+}

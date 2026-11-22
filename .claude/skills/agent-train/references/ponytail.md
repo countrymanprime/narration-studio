@@ -37,7 +37,7 @@ Never cut: validation at trust boundaries, error handling that prevents data los
 
 ## Reuse what exists
 
-The owner's rule, [one thing per job](../../../rules/product-rules.md), binds every step here: search first, write `Existing thing searched:` in the PR's Reuse section, and a new thing names what it replaces and deletes it.
+The owner's rule, [one thing per job](../../../rules/product-rules.md), binds every step here: search first, write `Existing thing searched:` in the PR's Reuse section, and a new thing either names what it replaces (and deletes it) or names a `Builds new because:` reason (a) or (b).
 
 Before building any UI, or any logic a page already has:
 

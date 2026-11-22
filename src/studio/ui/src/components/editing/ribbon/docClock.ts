@@ -1,5 +1,4 @@
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
-import type { HeardAnswer } from '../../../ports/alignment';
 import { RUNWAY_SECONDS, type ChapterDoc } from '../model';
 
 /**
@@ -61,7 +60,7 @@ interface Anchor {
 }
 
 /**
- * Where each item's source seconds sit on the document clock. A heard script word has both: its source time (`off0`, on its item) and its
+ * Where each item's source seconds sit on the document clock. A heard word has both: its source time (`src`, on its item) and its
  * document time (`t0`, in the doc), so `shift = t0 - off0`; a run of words at one shift is one piece, running from its first word to the next
  * run's first word.
  *
@@ -70,18 +69,15 @@ interface Anchor {
  * and the cut's own audio is not known here, so at most 0.35 s of audio next to the cut can be drawn where it is no longer heard (less when
  * the next word comes sooner), and the lead-in of the first word after the cut is not drawn. A word that was cut has no place of its own and is not an anchor.
  */
-export function itemClocks(doc: ChapterDoc, answer: HeardAnswer): ItemClocks {
+export function itemClocks(doc: ChapterDoc): ItemClocks {
   const byItem = new Map<number, Anchor[]>();
-  if (answer.heard) {
-    for (const w of answer.heard.words) {
-      if (w.paragraphId === undefined || w.ordinal === undefined) continue;
-      const at = doc.index.get(`${w.paragraphId}:${w.ordinal}`);
-      const it = at === undefined ? undefined : doc.items[at];
-      if (!it || it.cut || it.st === 'miss' || it.t0 == null || it.t1 == null) continue;
-      const list = byItem.get(w.item) ?? [];
-      list.push({ shift: it.t0 - w.off0, from: it.t0, to: it.t1 });
-      byItem.set(w.item, list);
-    }
+  // Each word brings its own place in the recording (`src`), so which script word it is set against cannot move the clock: a word said and not in the
+  // script anchors it as well as a script word does.
+  for (const it of doc.items) {
+    if (!it.src || it.cut || it.st === 'miss' || it.t0 == null || it.t1 == null) continue;
+    const list = byItem.get(it.src.item) ?? [];
+    list.push({ shift: it.t0 - it.src.start, from: it.t0, to: it.t1 });
+    byItem.set(it.src.item, list);
   }
   const out = new Map<number, ClockPiece[]>();
   for (const [item, anchors] of byItem) {
