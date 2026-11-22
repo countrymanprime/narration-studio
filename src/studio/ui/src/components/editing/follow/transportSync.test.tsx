@@ -704,6 +704,83 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(state().playing).toBe(false);
     expect(calls('stop')).toHaveLength(0);
   });
+  it('an open play whose answer comes late is given the whole unwatched limit from the answer, not from the ask', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      if (action === 'watch') return new Promise(() => {});
+      if (action === 'play') return new Promise((resolve) => setTimeout(() => resolve((real as (...a: unknown[]) => unknown)(action, ...rest) as never), 9000));
+      return (real as (...a: unknown[]) => unknown)(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(12_000);
+    // Accepted at 9 s: the page has waited three seconds for a position, not twelve.
+    expect(state().playing).toBe(true);
+    expect(notices).toEqual([]);
+  });
+  it('a slow answer to an older stretch does not start the clock of a newer one that is still being asked', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    let asked = 0;
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      if (action === 'watch') return new Promise(() => {});
+      if (action === 'playRange') {
+        const delay = ++asked === 1 ? 3000 : 5000;
+        return new Promise((resolve) => setTimeout(() => resolve((real as (...a: unknown[]) => unknown)(action, ...rest) as never), delay));
+      }
+      return (real as (...a: unknown[]) => unknown)(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:1') + 0.4));
+    await wait(1_000);
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:1') + 0.4));
+    // The second stretch is asked at 1 s and answered at 6 s; the first is answered at 3 s, in between.
+    await wait(4_400);
+    expect(state().playing).toBe(true);
+  });
+  it('an error from the file of an earlier app play does not end the DAW play that took over from it', async () => {
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const tree = (clock: WordClock | null) => (
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} clock={clock} />
+        </EditingPageProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(null));
+    await wait(10);
+    act(() => playback.playFrom(t0('p-1:3')));
+    await wait(10);
+    expect(audio.play).toHaveBeenCalled();
+    // The word table arrives and the narrator skips: the DAW plays it, and the old file's late error comes after.
+    view.rerender(tree(CLOCK));
+    await wait(10);
+    act(() => playback.skip(1));
+    await wait(10);
+    expect(calls('play')).toHaveLength(1);
+    act(() => {
+      audio.dispatchEvent(new Event('error'));
+    });
+    await wait(10);
+    expect(notices.join(' ')).not.toMatch(/couldn't be played/);
+    expect(state().playing).toBe(true);
+  });
   it('an error from the audio element does not end a play the DAW plays', async () => {
     await ready();
     act(() => playback.playFrom(t0('p-2:1')));
@@ -757,7 +834,7 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(calls('playRange')).toHaveLength(asked + 1);
     // The same stretch: from the word's second to the end of its 0.4 s.
     expect(calls('playRange').at(-1)).toMatchObject({ seconds: at(t0('p-2:1')) });
-    expect(calls('playRange').at(-1)).toHaveProperty('until');
+    expect(calls('playRange').at(-1)).toMatchObject({ until: expect.closeTo(at(t0('p-2:1') + 0.4), 3) });
     expect(state().follow).toBe(true);
   });
   it('the default notice offers Retry on the chapter-wide topic, and Retry plays the same second', async () => {
