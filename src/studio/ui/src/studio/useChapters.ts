@@ -35,10 +35,16 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     if (store && enabled && store.getState().errors.chapters !== undefined && store.getState().slots.chapters === undefined)
       void store.load('chapters').catch(() => undefined);
   }, [store, enabled]);
+  // A reset while a read is out changes neither `held` nor `error`: the generation is what asks again for the new project after `ensure` gave up its three reads.
+  const generation = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.generation() ?? 0,
+    () => 0,
+  );
   useEffect(() => {
     if (!store || !enabled || held !== undefined || error !== undefined) return;
     void store.ensure('chapters').catch(() => undefined);
-  }, [store, enabled, held, error]);
+  }, [store, enabled, held, error, generation]);
   useEffect(() => {
     if (store && enabled && refreshKey > 0) void store.load('chapters').catch(() => undefined);
   }, [store, enabled, refreshKey]);

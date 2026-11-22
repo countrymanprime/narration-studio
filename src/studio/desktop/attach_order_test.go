@@ -11,7 +11,7 @@ import (
 // TestBootstrapAndSystemAttachedOrderAcrossAProjectSwitch records the order the UI's chapter store has to expect (#3998).
 //
 // ProjectSwitch changes h.config under h.mu, unlocks, then touches the recents file and starts background work, and only then emits system:attached
-// (bindings.go; onSecondInstance in app.go and attachBridgeSession in dawautoconnect.go do the same). Bootstrap reads the config under the same lock
+// (bindings.go; onSecondInstance in app.go and attachBridgeSession in dawautoconnect.go have the same shape in the code, but only ProjectSwitch is driven here). Bootstrap reads the config under the same lock
 // (services.go), and the window also asks for one on focus and on DAW reachability changes. That gives two orders, and the UI must handle both:
 //
 //   - bootstrap first: a Bootstrap answered between the config change and the emit already names the new folder, so the folder prop can change
@@ -25,7 +25,10 @@ import (
 func TestBootstrapAndSystemAttachedOrderAcrossAProjectSwitch(t *testing.T) {
 	host := newStressHost(t)
 	host.ctx = context.Background()
-	projects := []string{t.TempDir(), t.TempDir(), t.TempDir()}
+	projects := make([]string, 5) // five in turn: the old folder is none of the folders a reader paused for a switch or two can see
+	for i := range projects {
+		projects[i] = t.TempDir()
+	}
 
 	var emitted atomic.Int64 // system:attached (attached) events sent so far
 	emitEventSink = func(name string, _ any) {
@@ -33,7 +36,7 @@ func TestBootstrapAndSystemAttachedOrderAcrossAProjectSwitch(t *testing.T) {
 			emitted.Add(1)
 		}
 	}
-	t.Cleanup(func() { emitEventSink = nil })
+	t.Cleanup(func() { host.waitForBackground(); emitEventSink = nil }) // the attach starts chapter sync, which emits events of its own
 
 	var mu sync.Mutex
 	var violations []string
@@ -53,14 +56,15 @@ func TestBootstrapAndSystemAttachedOrderAcrossAProjectSwitch(t *testing.T) {
 			folder, _ := host.Bootstrap()["projectFolder"].(string)
 			mu.Lock()
 			total++
-			// After e events the config is on switch e's project, or already on switch e+1's while its event is not out yet. Three projects in turn
-			// make the one before (the old folder) a third name, so naming it is a violation.
+			// After e events the config is on switch e's project, or already on switch e+1's while its event is not out yet. Five projects in turn
+			// make the one before (the old folder) a name no nearby switch uses, so naming it is a violation.
 			if eventsBefore > 0 {
 				e := int(eventsBefore)
-				if folder == projects[(e-2+3)%3] {
+				// A reader paused through more than one switch did not ask after the event: only answers with at most one switch since count.
+				if folder == projects[(e-2+5)%5] && emitted.Load() <= eventsBefore+1 {
 					violations = append(violations, folder)
 				}
-				if folder == projects[e%3] && emitted.Load() == eventsBefore {
+				if folder == projects[e%5] && emitted.Load() == eventsBefore {
 					beforeEvent++ // named switch e+1's folder before that switch's event was emitted
 				}
 			}
@@ -70,15 +74,15 @@ func TestBootstrapAndSystemAttachedOrderAcrossAProjectSwitch(t *testing.T) {
 
 	const switches = 40
 	for i := range switches {
-		if _, err := host.ProjectSwitch(projects[i%3], ""); err != nil {
+		if _, err := host.ProjectSwitch(projects[i%5], ""); err != nil {
 			t.Fatal(err)
 		}
 		if got := emitted.Load(); got != int64(i+1) {
 			t.Fatalf("switch %d: system:attached must be emitted once, before the binding answers, got %d", i, got)
 		}
 		// The event is out: a bootstrap that starts now names the folder just switched to.
-		if folder := host.Bootstrap()["projectFolder"]; folder != projects[i%3] {
-			t.Fatalf("switch %d: a Bootstrap after system:attached names %v, want %q", i, folder, projects[i%3])
+		if folder := host.Bootstrap()["projectFolder"]; folder != projects[i%5] {
+			t.Fatalf("switch %d: a Bootstrap after system:attached names %v, want %q", i, folder, projects[i%5])
 		}
 	}
 	close(stop)

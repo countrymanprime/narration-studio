@@ -118,13 +118,9 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   let confirmed = true;
   const owners = new Map<string, string | undefined>();
   const waiters = new Set<() => void>();
-  // Settles when the epoch it was made for ends (a reset), so a reader waiting on a read that was dropped, and may never answer, is released to read again.
-  const newEpochEnd = () => {
-    let resolve!: () => void;
-    const promise = new Promise<void>((r) => (resolve = r));
-    return { promise, resolve };
-  };
-  let epochEnds = newEpochEnd();
+  // Releases of the readers waiting on a read, called when a reset ends their epoch: a reader waiting on a read that was dropped, and may never answer, reads again.
+  // A reader takes its release out when it settles, so a store that is never reset holds none.
+  const releases = new Set<() => void>();
   const requests = new Map<string, number>();
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((l) => l());
@@ -236,10 +232,14 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   function readUntilKept(name: keyof R & string, options: ReadOptions, once: () => Promise<void>, round = 0): Promise<void> {
     const start = () => {
       const before = epoch;
-      return Promise.race([once(), epochEnds.promise]).then(() => {
-        if (epoch === before || holds(name, options.project) || round >= 2) return;
-        return readUntilKept(name, options, once, round + 1);
-      });
+      let release = () => {};
+      const dropped = new Promise<void>((resolve) => releases.add((release = resolve)));
+      return Promise.race([once(), dropped])
+        .finally(() => releases.delete(release))
+        .then(() => {
+          if (epoch === before || holds(name, options.project) || round >= 2) return;
+          return readUntilKept(name, options, once, round + 1);
+        });
     };
     // A reader that waits for nothing starts its read in the same turn, as every reader did before the gate.
     const waiting = gate(options.project);
@@ -304,8 +304,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   /** Empties what is held and drops the reads in flight. */
   function clearHeld() {
     epoch += 1;
-    epochEnds.resolve();
-    epochEnds = newEpochEnd();
+    releases.forEach((release) => release());
+    releases.clear();
     ensuring.clear();
     applied.clear();
     flights.clear();

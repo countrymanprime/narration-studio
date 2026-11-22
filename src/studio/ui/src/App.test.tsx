@@ -515,6 +515,35 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(within(appToasts('alert')).getByText(/the host is busy/)).toBeTruthy();
   });
 
+  it('applies only the newest bootstrap: one asked before an attach that answers after it never puts the old project back (#3998)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    const source = createMockApi();
+    const first = await source.bootstrap();
+    const named = (name: string) => ({ ...first, projectFolder: `/${name}`, projectName: name });
+    let late: ((value: Awaited<ReturnType<typeof source.bootstrap>>) => void) | undefined;
+    let calls = 0;
+    renderApp({
+      bootstrap: () => {
+        calls += 1;
+        if (calls === 1) return Promise.resolve(named('Alpha'));
+        if (calls === 2) return new Promise((resolve) => (late = resolve));
+        return Promise.resolve(named('Beta'));
+      },
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await waitFor(() => expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0));
+    await waitFor(() => expect(attach).toBeDefined());
+    act(() => attach!({ attached: true })); // a bootstrap is asked for and does not answer yet (call 2)
+    act(() => attach!({ attached: true })); // the host attached again: the newest ask (call 3) answers at once
+    await waitFor(() => expect(screen.getAllByText('Beta').length).toBeGreaterThan(0));
+    await act(async () => late!(named('Alpha'))); // the older answer arrives last
+    expect(screen.queryAllByText('Alpha')).toHaveLength(0);
+    expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
+  });
+
   it('choosing a manuscript file: busy while the host dialog is open, one dialog, and a failure is a toast', async () => {
     // The rebuilt header has no Replace manuscript (Settings keeps it); the empty state's import button is the same hook.
     const source = createMockApi();
