@@ -195,6 +195,24 @@ describe('daw-to-app', () => {
     act(() => daw.moveInDaw({ playing: false }));
     expect(lit()).toBe('p-2:1');
   });
+  it('hands the follow to the heartbeat when the watch lease is refused, and keeps it away while the lease is held or being asked', async () => {
+    // Pending: the stream is about to be heard, so the heartbeat follow stays down.
+    mount();
+    expect(playback.syncActive).toBe(true);
+    await wait(10);
+    // Held: the stream lights the word.
+    expect(playback.syncActive).toBe(true);
+    cleanup();
+    // Refused (another project is open): the stream says nothing, so the heartbeat follow is given the capabilities.
+    mount(DAW_SETUPS.reaper, { daw: {}, dawScript: 'different' });
+    await wait(LEASE_RENEW_MS + 10);
+    expect(playback.syncActive).toBe(false);
+    // The DAW without the capability is not synced either.
+    cleanup();
+    mount(DAW_SETUPS['reaper-off']);
+    await wait(10);
+    expect(playback.syncActive).toBe(false);
+  });
   it('ignores a DAW that has another project open', async () => {
     mount(DAW_SETUPS.reaper, { daw: {}, dawScript: 'different' });
     await wait(LEASE_RENEW_MS + 10);

@@ -103,6 +103,18 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
     };
   }, [daw, apply, enabled, visible]);
 
+  // The DAW stopped answering (or the watch stream took over) while the page showed a play of it: no event will end that play, so it ends here and the
+  // word it lit may then be cleared by the cursor, as after a stop.
+  useEffect(() => {
+    if (enabled) return;
+    dawPlaying.current = false;
+    const { state: s, dispatch: send } = live.current;
+    if (mine.current != null && s.playT === mine.current) {
+      mine.current = null;
+      send({ type: 'play', t: null });
+    }
+  }, [enabled]);
+
   // After the DAW stops, the word it reached stays lit until the cursor or the selection moves.
   const { cursor, sel } = state;
   useEffect(() => {

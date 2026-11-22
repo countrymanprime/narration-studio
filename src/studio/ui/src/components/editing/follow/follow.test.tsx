@@ -345,6 +345,28 @@ describe('poll-is-bounded', () => {
     await poll(10);
     expect(lit()).toBe('p-1:3');
   });
+  it('caps going unreachable mid-play ends the DAW play: a cursor move clears the word', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    // The DAW stops answering before its stop was heard: nothing will end the play, so it ends here.
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    expect(state().playT).toBeNull();
+    expect(lit()).toBeNull();
+  });
+  it('hands over without leaving a stale word: when the stream takes the follow, the word the fallback lit is cleared', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    view.rerender(tree(api, null));
+    await poll(10);
+    expect(state().playT).toBeNull();
+  });
   it('waits for a slow read before asking again', async () => {
     vi.mocked(client.projectState).mockImplementation(() => new Promise(() => {}));
     mount();
