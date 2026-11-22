@@ -1,4 +1,4 @@
-import { focusIsInAnotherPopover, handFocusToPage } from './focusReturn';
+import { anotherPopoverTakesFocus, handFocusToPage } from './focusReturn';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
@@ -132,9 +132,9 @@ export function Popover({
             finalFocus={() => {
               // `focusPageOnClose` is asked first: it has side effects of its own (the voice button resets what a pick set), whatever focus does next.
               const toPage = focusPageOnClose?.() ?? false;
-              // Another popover that opened while this one was leaving has the focus now (its exit waits a frame). Giving focus back to this one's trigger would take it
-              // from the new popover, and Escape would no longer close that (#3949). Base UI's own check for this is off while `finalFocus` is a function.
-              if (focusIsInAnotherPopover(popup.current)) return false;
+              // Another popover or menu that opened while this one was leaving has the focus, or is about to take it (its exit waits a frame). Giving focus back to this one's
+              // trigger would take it from the new popup, which closes when focus leaves it (#3949). Base UI's own check for this is off while `finalFocus` is a function.
+              if (anotherPopoverTakesFocus(popup.current, opened.by)) return false;
               return toPage ? handFocusToPage() : backToOpener();
             }}
             aria-label={label}
