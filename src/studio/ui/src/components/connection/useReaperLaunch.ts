@@ -14,12 +14,12 @@ export type LaunchState =
   /** The host started it and the bridge never answered in time. */
   | { phase: 'failed'; message: string };
 
-const POLL_MS = 1000;
-const POLLS = 10;
+/** How long the app waits for the DAW to answer after the launcher ran, then reads it once more before saying it did not. */
+const WAIT_MS = 10_000;
 
 /**
- * Starts the DAW with the host's launcher (`DawLaunch`) and then reads the capabilities until the bridge answers: the Start button of the
- * not-connected dialog. A REAPER already open runs the launcher in place. `onCaps` hands each read to the page so its picture follows, and the
+ * Starts the DAW with the host's launcher (`DawLaunch`) and then waits for the capabilities event that says the bridge answers (the host
+ * announces it; nothing here asks every second), up to `waitMs`, with one read at the end: the Start button of the not-connected dialog. A REAPER already open runs the launcher in place. `onCaps` hands each read this hook makes to the page so its picture follows, and the
  * dialog closes when the page stops drawing it. Leaving the dialog stops the waiting.
  */
 export function useReaperLaunch({
@@ -27,15 +27,13 @@ export function useReaperLaunch({
   name,
   onCaps,
   onLaunched,
-  pollMs = POLL_MS,
-  polls = POLLS,
+  waitMs = WAIT_MS,
 }: {
   daw: DawKind;
   name: string;
   onCaps?: (caps: DawCapabilities) => void;
   onLaunched?: (path: string) => void;
-  pollMs?: number;
-  polls?: number;
+  waitMs?: number;
 }): { state: LaunchState; start: () => void } {
   const project = usePort('project');
   const system = usePort('system');
@@ -43,10 +41,13 @@ export function useReaperLaunch({
   const [state, setState] = useState<LaunchState>({ phase: 'idle' });
   const alive = useRef(true);
   const running = useRef(false);
+  // Ends a wait in progress when the dialog goes away, so its timer and subscription are not held to the deadline.
+  const leave = useRef<() => void>(() => {});
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
+      leave.current();
     };
   }, []);
 
@@ -54,35 +55,79 @@ export function useReaperLaunch({
     if (running.current) return;
     running.current = true;
     const say = (next: LaunchState) => alive.current && setState(next);
+    let heard = false;
+    const readOnce = async () => {
+      const next = await dawPort.capabilities();
+      if (!alive.current) return false;
+      // An announcement heard while this read was out is newer than the read: the older picture it brings is not taken over it.
+      if (heard) return true;
+      onCaps?.(next);
+      return next.reachable;
+    };
     void (async () => {
       say({ phase: 'starting' });
-      const started = await startDaw({ project, system }, daw);
-      if (!started.ok) {
-        say({ phase: 'refused', message: started.message });
-        running.current = false;
-        return;
-      }
-      onLaunched?.(started.path);
-      say({ phase: 'waiting' });
+      // Listening starts before the launcher runs: the host announces the DAW answering (`subscribeCapabilities`) and a REAPER already open can
+      // answer before the launcher returns, with no later event for a picture that has not changed.
+      let wake: (reached: boolean) => void = () => {};
+      const stop: { off?: () => void } = {};
+      stop.off = dawPort.subscribeCapabilities?.((next) => {
+        // The picture comes from the app's own session (it is what the page already shows), so it is not handed back through `onCaps`: that is the session taking its own picture, which announces it again.
+        if (!alive.current || heard) return;
+        if (next.reachable) {
+          heard = true;
+          wake(true);
+        }
+      });
+      const release = () => {
+        stop.off?.();
+        stop.off = undefined;
+      };
+      // A subscription that answered before it returned is released here; otherwise `finally` releases it.
+      if (heard) release();
       try {
-        for (let attempt = 0; attempt < polls && alive.current; attempt++) {
-          await new Promise((resolve) => setTimeout(resolve, pollMs));
-          if (!alive.current) break;
-          const next = await dawPort.capabilities();
-          onCaps?.(next);
-          if (next.reachable) {
-            say({ phase: 'idle' });
-            return;
-          }
+        const started = await startDaw({ project, system }, daw);
+        if (!started.ok) {
+          say({ phase: 'refused', message: started.message });
+          return;
+        }
+        onLaunched?.(started.path);
+        // The dialog may have gone while the launcher ran: no more reads, nothing said.
+        if (!alive.current) return;
+        say({ phase: 'waiting' });
+        // One read now, for a change the event did not carry; then the event, up to `waitMs`; then one read at the deadline.
+        let reached = heard || (await readOnce());
+        if (!reached && alive.current) {
+          reached = await new Promise<boolean>((resolve) => {
+            const timer = setTimeout(() => resolve(false), waitMs);
+            wake = (answered) => {
+              clearTimeout(timer);
+              resolve(answered);
+            };
+            leave.current = () => wake(false);
+            if (heard) wake(true);
+          });
+          reached = reached || (alive.current && (await readOnce())) || heard;
+        }
+        if (!alive.current) return;
+        if (reached) {
+          say({ phase: 'idle' });
+          return;
         }
         say({ phase: 'failed', message: `${name} was started and has not answered yet. Check again in a moment, or open it by hand.` });
       } catch (error) {
+        // A failed read after an announcement said the DAW answers is not a failure: the announcement is the newer word.
+        if (heard) {
+          say({ phase: 'idle' });
+          return;
+        }
         say({ phase: 'failed', message: `${name} was started, but this app could not tell whether it answered: ${apiErrorMessage(error)}` });
       } finally {
+        release();
+        leave.current = () => {};
         running.current = false;
       }
     })();
-  }, [daw, name, onCaps, onLaunched, pollMs, polls, project, system, dawPort]);
+  }, [daw, name, onCaps, onLaunched, waitMs, project, system, dawPort]);
 
   return { state, start };
 }

@@ -52,9 +52,8 @@ export type ReaperOffDialogProps = {
   linked?: boolean;
   /** The host started the DAW (`DawLaunch` answered) with this executable path. */
   onLaunched?: (path: string) => void;
-  /** How often, and how many times, the DAW is asked after Start before the dialog says it has not answered (stories and tests shorten it). */
-  pollMs?: number;
-  polls?: number;
+  /** How long the dialog waits for the DAW to answer after Start before it says it has not (stories and tests shorten it). */
+  waitMs?: number;
   /** The way out the header X takes. */
   onClose: () => void;
   /** More for the body: the Booth's connect steps. */
@@ -79,8 +78,7 @@ export function ReaperOffDialog({
   startLabel,
   linked,
   onLaunched,
-  pollMs,
-  polls,
+  waitMs,
   onClose,
   children,
 }: ReaperOffDialogProps) {
@@ -101,7 +99,7 @@ export function ReaperOffDialog({
       live = false;
     };
   }, [choiceApi, checkedAt]);
-  const launch = useReaperLaunch({ daw, name, onCaps, onLaunched, pollMs, polls });
+  const launch = useReaperLaunch({ daw, name, onCaps, onLaunched, waitMs });
   const [checking, setChecking] = useState(false);
   // "Link project file…" is the app's one link action (the same one the engine panel and Settings press); the dialog follows it with a check, so the page
   // and every other page that draws this dialog read the new link without a reload.
