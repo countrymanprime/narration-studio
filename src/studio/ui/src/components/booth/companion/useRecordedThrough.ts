@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { recordedAtOf, type RecordedAt } from '../../../recordedThrough';
-import { usePort } from '../../../ports/usePort';
+import { useReadChapters } from '../../../studio/useChapters';
 
 /**
  * How far the chapter is recorded (`recordedThrough`, the host's one value every page shows), read when the Companion opens and again each time a
@@ -11,14 +11,18 @@ export function useRecordedThrough(
   chapterId: string,
   active: boolean,
 ): { recorded: RecordedAt | undefined; recordedSeconds: number | null | undefined; reading: boolean } {
-  const manuscript = usePort('manuscript');
+  const readChapters = useReadChapters();
+  const ran = useRef(false);
   const [recorded, setRecorded] = useState<RecordedAt>();
   const [seconds, setSeconds] = useState<number | null>();
   const [read, setRead] = useState(false);
   useEffect(() => {
     if (active) return;
     let live = true;
-    manuscript.manuscriptChapters().then(
+    // Active ends when a take ends: that read is of what the take changed, so it reads now; the first one serves what the store holds.
+    const fresh = ran.current;
+    ran.current = true;
+    readChapters(fresh).then(
       (chapters) => {
         if (!live) return;
         const found = chapters.find((chapter) => chapter.id === chapterId);
@@ -31,6 +35,6 @@ export function useRecordedThrough(
     return () => {
       live = false;
     };
-  }, [manuscript, chapterId, active]);
+  }, [readChapters, chapterId, active]);
   return { recorded, recordedSeconds: seconds, reading: !read };
 }

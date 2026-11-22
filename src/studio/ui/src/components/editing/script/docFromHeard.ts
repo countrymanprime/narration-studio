@@ -1,4 +1,5 @@
 import { HEADING_PARAGRAPH, type HeardAnswer, type HeardWord as PortWord } from '../../../ports/alignment';
+import { normKey } from '../model/align';
 import { buildDoc, type Aligner, type ChapterDoc, type ChapterInput, type Heard, type HeardWord, type ScriptParagraph } from '../model';
 import { clamp } from '../../../clamp';
 
@@ -17,7 +18,7 @@ export interface TextParagraph {
 }
 
 /** Seconds of lead-in before a stretch's first word, so the model's offsets begin just after zero. */
-const LEAD = 0.15;
+export const LEAD = 0.15;
 
 /**
  * The units of a paragraph: its quotes and the narration around them. A boundary is moved out to the whitespace around the word it fell in, so
@@ -72,13 +73,38 @@ const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({
  * The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it, except
  * a restart (a run that says the script words after it again), which goes with the script word after it, the line it restarts.
  */
-export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repeats'>>(words: readonly W[], first: string | undefined): Map<string, W[]> {
+export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repeats' | 'ordinal' | 'text'> & Partial<Pick<PortWord, 'off0' | 'off1'>>>(
+  words: readonly W[],
+  first: string | undefined,
+): Map<string, W[]> {
   const out = new Map<string, W[]>();
+  // For each word: the next word of the script after it, and where the run of added words it is in begins.
+  const upNext: number[] = new Array<number>(words.length).fill(-1);
+  for (let k = words.length - 1, next = -1; k >= 0; k--) {
+    if (words[k].paragraphId !== undefined) next = k;
+    upNext[k] = next;
+  }
+  const runStart = words.map((_, k) => k);
+  for (let k = 1; k < words.length; k++) if (words[k].paragraphId === undefined && words[k - 1].paragraphId === undefined) runStart[k] = runStart[k - 1];
+  /** A run of added words straight before the first word of a line, that starts by saying that word, is a start of that line said again (a misspoken first word). It is the line's when it is nearer that line's first word than the word before it. */
+  const startsNextLine = (k: number): boolean => {
+    const next = words[upNext[k]];
+    if (!next || next.ordinal !== 0) return false;
+    // The run begins at the first word that says the line's first word again: a filler before it ("um go") stays with the line before.
+    let head = runStart[k];
+    while (head < upNext[k] && normKey(words[head].text) !== normKey(next.text)) head++;
+    if (head > k || head >= upNext[k]) return false;
+    const before = words[runStart[k] - 1];
+    const said = words[head];
+    if (said.off0 === undefined || said.off1 === undefined || next.off0 === undefined || !before || before.off1 === undefined) return true;
+    return next.off0 - said.off1 <= said.off0 - before.off1;
+  };
   let current = first;
   words.forEach((w, k) => {
     if (w.paragraphId !== undefined) current = w.paragraphId;
-    const restarts = w.paragraphId === undefined && w.repeats === 'next' ? words.slice(k + 1).find((n) => n.paragraphId !== undefined)?.paragraphId : undefined;
-    const pid = restarts ?? current;
+    // A restart says the words after it again; so does a word said and said again across a line break, which is the start of the next line.
+    const next = w.paragraphId === undefined && upNext[k] >= 0 && (w.repeats === 'next' || startsNextLine(k)) ? words[upNext[k]].paragraphId : undefined;
+    const pid = next ?? current;
     if (pid === undefined) return;
     out.set(pid, [...(out.get(pid) ?? []), w]);
   });
@@ -102,6 +128,7 @@ function alignerFor(heard: NonNullable<Extract<HeardAnswer, { heard: unknown }>[
         off0: Math.max(0, w.off0 - origin),
         off1: Math.max(0, w.off1 - origin),
         conf: w.conf ?? 1,
+        src: { item: w.item, start: w.off0 },
         ...(w.conf === null ? { unscored: true as const } : {}),
         ...(w.added ? { added: true } : {}),
         ...(w.repeats ? { repeats: w.repeats } : {}),

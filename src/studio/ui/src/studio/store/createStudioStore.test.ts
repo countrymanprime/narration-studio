@@ -205,9 +205,10 @@ describe('store-is-throwaway', () => {
     expect(store.generation()).toBe(2);
   });
 
-  it('reset() empties every slot and an in-flight load of the old project writes nothing', async () => {
+  it('reset() empties every slot, and an in-flight load of the old project writes nothing: the load reads again for the project it is on', async () => {
     const gate = deferred<unknown>();
-    const { store } = make({ a: { schema: isCount, load: () => gate.promise }, b: { schema: isName, load: () => Promise.resolve('Ada') } });
+    const load = vi.fn().mockReturnValueOnce(gate.promise).mockResolvedValue({ count: 2 });
+    const { store } = make({ a: { schema: isCount, load }, b: { schema: isName, load: () => Promise.resolve('Ada') } });
     await store.load('b');
     const inFlight = store.load('a');
     store.reset();
@@ -215,12 +216,15 @@ describe('store-is-throwaway', () => {
     expect(store.getState().errors).toEqual({});
     gate.resolve({ count: 9 });
     await inFlight;
-    expect(store.getState().slots.a).toBeUndefined();
+    // The answer the reset dropped was never written; the read the load made again was.
+    expect(store.getState().slots.a).toEqual({ count: 2 });
+    expect(load).toHaveBeenCalledTimes(2);
   });
 
   it('an in-flight failure after reset is not recorded either, and subscribers hear about the reset', async () => {
     const gate = deferred<unknown>();
-    const { store, onError } = make({ a: { schema: isCount, load: () => gate.promise } });
+    const load = vi.fn().mockReturnValueOnce(gate.promise).mockResolvedValue({ count: 1 });
+    const { store, onError } = make({ a: { schema: isCount, load } });
     const listener = vi.fn();
     store.subscribe(listener);
     const inFlight = store.load('a');
@@ -230,6 +234,21 @@ describe('store-is-throwaway', () => {
     await inFlight;
     expect(store.getState().errors).toEqual({});
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('a load that every reset drops is read at most three times, then settles with nothing held', async () => {
+    const gates = [deferred<unknown>(), deferred<unknown>(), deferred<unknown>(), deferred<unknown>()];
+    let n = 0;
+    const { store } = make({ a: { schema: isCount, load: () => gates[n++]!.promise } });
+    const inFlight = store.load('a');
+    for (const g of gates.slice(0, 3)) {
+      store.reset();
+      g.resolve({ count: 1 });
+      await flush();
+    }
+    await inFlight;
+    expect(n).toBe(3);
+    expect(store.getState().slots.a).toBeUndefined();
   });
 
   it('keeps its event subscriptions across a reset, so the new project hydrates on the next event', async () => {
@@ -584,5 +603,151 @@ describe('a read that never answers does not freeze a slot (#3658)', () => {
     second.resolve({ count: 2 });
     await flush();
     await flush();
+  });
+});
+
+describe('the store knows which project a held list belongs to (#3998)', () => {
+  /** A slot whose read answers with the project the host is on now, as `manuscriptChapters` does: the host, not the page, decides. */
+  const hostOn = (initial: string) => {
+    const host = { project: initial };
+    return { host, load: vi.fn(async () => ({ count: host.project === 'A' ? 1 : 2 })) };
+  };
+
+  it('records the project each held value was read for', async () => {
+    const { load } = hostOn('A');
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    await store.ensure('a', { project: 'A' });
+    expect(store.projectOf('a')).toBe('A');
+    expect(store.project()).toBe('A');
+  });
+
+  it('the folder changes before the store resets: the store is told, empties, and reads fresh for the new folder (R10-10)', async () => {
+    const { host, load } = hostOn('A');
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    await store.ensure('a', { project: 'A' });
+    host.project = 'B';
+    const asked = store.ensure('a', { project: 'B' });
+    store.setProject('B'); // the app's effect, in the same commit as the page's mount
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 2 });
+    expect(store.projectOf('a')).toBe('B');
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('the store resets before the folder changes: a reader on the old folder reads nothing until the host answers, then is told the project changed (R9-1, R10-1)', async () => {
+    const { host, load } = hostOn('A');
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    await store.ensure('a', { project: 'A' });
+    host.project = 'B';
+    store.reset(); // system:attached, before the bootstrap names B
+    const asked = store.ensure('a', { project: 'A' });
+    await flush();
+    expect(load).toHaveBeenCalledTimes(1); // nothing was read for A under B's list
+    store.setProject('B');
+    await expect(asked).rejects.toThrow('The project changed');
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('a re-attach of the same project resets the store: the reader waits for the answer, then is served, with no error (R10-4)', async () => {
+    const { load } = hostOn('A');
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    await store.ensure('a', { project: 'A' });
+    store.reset();
+    const asked = store.ensure('a', { project: 'A' });
+    store.setProject('A');
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    expect(store.projectOf('a')).toBe('A');
+  });
+
+  it('a read in flight when the same project is attached again is read again for the reader, not dropped into an empty answer', async () => {
+    const first = deferred<unknown>();
+    const load = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue({ count: 5 });
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    const asked = store.ensure('a', { project: 'A' });
+    store.reset();
+    store.setProject('A');
+    first.resolve({ count: 1 });
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 5 });
+  });
+
+  it('a reader that never hears the host answer is refused after the stuck age, not left waiting', async () => {
+    vi.useFakeTimers();
+    try {
+      const { load } = hostOn('A');
+      const { store } = make({ a: { schema: isCount, load } });
+      store.setProject('A');
+      store.reset();
+      const asked = store.ensure('a', { project: 'A' });
+      const outcome = expect(asked).rejects.toThrow('still being opened');
+      await vi.advanceTimersByTimeAsync(5001);
+      await outcome;
+      expect(load).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a reader that names no project reads as before, whatever the store is waiting for', async () => {
+    const { load } = hostOn('A');
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    store.reset();
+    await store.ensure('a');
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+
+  it('settled: a held list whose re-read failed is an error for the reader, and the store keeps the list for the pages that show it', async () => {
+    const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockRejectedValue(new Error('host down'));
+    const { store, events } = make({ a: { schema: isCount, load, events: ['job:ended'] } });
+    store.start();
+    await store.load('a');
+    events.emit('job:ended');
+    await expect(store.ensure('a', { settled: true })).rejects.toThrow('host down');
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    await expect(store.ensure('a')).resolves.toBeUndefined();
+  });
+
+  it('settled: a held list is served once the re-read in flight answers, and a list nobody is re-reading is served at once', async () => {
+    const reread = deferred<unknown>();
+    const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockReturnValueOnce(reread.promise);
+    const { store, events } = make({ a: { schema: isCount, load, events: ['job:ended'] } });
+    store.start();
+    await store.load('a');
+    await store.ensure('a', { settled: true });
+    expect(load).toHaveBeenCalledTimes(1);
+    events.emit('job:ended');
+    let served = false;
+    const asked = store.ensure('a', { settled: true }).then(() => (served = true));
+    await flush();
+    expect(served).toBe(false);
+    reread.resolve({ count: 7 });
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 7 });
+  });
+
+  it('a read the host never answers gives way: the reader fails, and its Retry reads again (qa R-3)', async () => {
+    vi.useFakeTimers();
+    try {
+      const load = vi
+        .fn()
+        .mockReturnValueOnce(new Promise(() => undefined))
+        .mockResolvedValue({ count: 3 });
+      const { store } = make({ a: { schema: isCount, load } });
+      const asked = store.ensure('a');
+      const outcome = expect(asked).rejects.toThrow('did not answer');
+      await vi.advanceTimersByTimeAsync(15_001);
+      await outcome;
+      await store.load('a');
+      expect(store.getState().slots.a).toEqual({ count: 3 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
