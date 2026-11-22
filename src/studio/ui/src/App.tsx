@@ -458,9 +458,14 @@ function AppRoutes() {
     const active = document.activeElement;
     if (!active || active === document.body) focusPageMain();
   }, [projectPickerOpen]);
+  // Only the newest bootstrap asked for is applied: one that was asked before a project attach and answers after it names the project before, and the
+  // store would be told it is on that one (#3998).
+  const bootstrapSeq = useRef(0);
   const refreshBootstrap = useCallback(async () => {
+    const mine = ++bootstrapSeq.current;
     try {
       const next = await api.bootstrap();
+      if (mine !== bootstrapSeq.current) return;
       setDiagnosticId(next.diagnosticId);
       setData(next);
       setDataReadAt(Date.now());
@@ -750,8 +755,13 @@ function AppRoutes() {
   // replaces a cached value"), where the local state emptied it.
   const studio = useStoreHandle();
   const projectFolder = data?.projectFolder;
+  // The host's answer says which project the app is on: the store learns it from each bootstrap, empties for another project and confirms the same one
+  // after an attach, which readers that name their project wait for. Declared before the read below, so a new project is told first.
   useEffect(() => {
-    if (hasManuscript) void studio.load('chapters').catch(() => {});
+    if (data) studio.setProject(data.projectFolder);
+  }, [studio, data]);
+  useEffect(() => {
+    if (hasManuscript) void studio.load('chapters', { project: projectFolder }).catch(() => {});
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
