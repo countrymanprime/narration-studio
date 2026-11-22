@@ -289,6 +289,20 @@ describe('EditingCheckPanel', () => {
       await waitFor(() => expect(check.getAttribute('aria-disabled')).toBeNull());
     });
 
+    it('a source chip pressed while Check editing starts is off with a reason, never silently dropped', async () => {
+      const user = userEvent.setup();
+      const { api } = renderPanel({}, undefined, { editingStart: () => new Promise(() => undefined) });
+      const setSpy = vi.spyOn(api, 'editingSetSourceChoice');
+      const dialog = await panel();
+      await waitFor(() => within(dialog).getByRole('button', { name: 'Track items', pressed: true }));
+      await user.click(within(dialog).getByRole('button', { name: /^Check (editing|again)$/ }));
+      const chip = within(dialog).getByRole('button', { name: 'Rendered file' });
+      await waitFor(() => expect(chip.getAttribute('aria-disabled')).toBe('true'));
+      expect(chip.getAttribute('aria-describedby')).toBeTruthy();
+      await user.click(chip);
+      expect(setSpy).not.toHaveBeenCalled();
+    });
+
     it('while another chapter is being checked, Check editing is off with a reason and is not a nameless tab stop', async () => {
       renderPanel({}, undefined, {
         editingState: async () => ({

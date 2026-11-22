@@ -323,8 +323,12 @@ export function EditingCheckPanel({
             look="segmented"
             value={sourceChoice}
             onChange={(value) => switchSource(value as EditingSourceChoice)}
-            // `''` while idle, so a chip is the same element when the reason arrives and keeps keyboard focus through the save.
-            options={SOURCE_CHOICE_OPTIONS.map((option) => ({ ...option, disabledReason: action.isPending('source') ? SAVING_SOURCE : '' }))}
+            // `''` while idle, so a chip is the same element when the reason arrives and keeps keyboard focus through the save. While any other step
+            // (starting or stopping the check) runs a press would be dropped by `usePendingAction`, so the chips say why they are off.
+            options={SOURCE_CHOICE_OPTIONS.map((option) => ({
+              ...option,
+              disabledReason: action.isPending('source') ? SAVING_SOURCE : action.isBusy ? 'Another step is running…' : '',
+            }))}
           />
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             {SOURCE_NOTE[sourceChoice]}
