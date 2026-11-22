@@ -144,8 +144,8 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('p[role="alert"]', { hasText: 'The manuscript could not be read from this project.' }).waitFor();
     await page.getByRole('button', { name: 'Retry' }).waitFor();
     await page.getByRole('button', { name: 'Leave the Booth' }).waitFor();
-    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    // A toast from another failed read (the page the app opened on) removes itself on a real timer and would race the screenshot: dismiss any.
+    for (const dismiss of await page.getByRole('button', { name: 'Dismiss message' }).all()) await dismiss.click();
   },
   setup: (page) => readyToRecord(page),
   'refused-start': (page) => refusedStart(page),

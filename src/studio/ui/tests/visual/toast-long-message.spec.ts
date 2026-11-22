@@ -1,9 +1,8 @@
 // A toast whose message is one long unbroken word (a Windows path is the realistic case) wraps inside the window instead of running off both edges (#2793).
 import { expect, test } from '@playwright/test';
 import { settlePage } from './helpers/settle';
-import { clickNav } from './drivers/shared';
 
-// 230 characters with no space: the Booth's failed chapter read is toasted by `useErrorToast`, which cuts a message at 240.
+// 230 characters with no space: the Production page's failed credits read is toasted (`describeApiError`), which cuts a message at 240. (A failed chapter list is the page's error card, not a toast, since #4058.)
 const LONG_PATH = `C:\\Users\\narrator\\Documents\\Audiobooks\\${'VeryLongProjectFolderName\\'.repeat(8)}schedule.json`;
 
 for (const theme of ['light', 'dark'] as const) {
@@ -13,12 +12,11 @@ for (const theme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme: theme });
       await page.addInitScript((message) => {
         (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = {
-          manuscriptChapters: async () => Promise.reject(new Error(message)),
+          creditsTemplates: async () => Promise.reject(new Error(message)),
         };
       }, LONG_PATH);
       await page.goto('/');
       await settlePage(page);
-      await clickNav(page, 'Booth');
       const toast = page.locator('[data-tone="error"]').first();
       await toast.waitFor();
       const box = (await toast.boundingBox())!;
