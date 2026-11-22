@@ -40,9 +40,9 @@ test('project names are unique and the release project keeps its name', () => {
   assert.ok(names.includes('workspace'), 'nx.json release.projects names the root project, workspace');
 });
 
-test('the root project depends on every project whose commits already counted toward the release version', () => {
-  // The UI and desktop projects were separate before the split and never counted; everything else did. The site is not part of the released app.
-  const excluded = new Set(['workspace', 'ui', 'desktop', 'web']);
+test('the root project depends on every project that is part of the released app', () => {
+  // The UI and desktop are the application: a push that changes only them must still count toward the version (issue #4035), or the prerelease skips its Windows build. Only the site is not part of the released app.
+  const excluded = new Set(['workspace', 'web']);
   const root = projects.find((project) => project.root === '');
   const expected = projects.map((project) => project.config.name).filter((name) => !excluded.has(name)).sort();
 
