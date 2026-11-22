@@ -278,8 +278,10 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      // The press is spent on closing the note: a page's own Escape command (Proof's "All chapters") reads it as consumed and stays out.
-      event.preventDefault();
+      // An Escape pressed on the icon (or in its note) is spent on closing the note: a page's own Escape command (Proof's "All chapters") reads it as
+      // consumed and stays out. One pressed elsewhere, with a note left showing from the mouse, is not: a dialog answers it too (`dialog-early-escape`).
+      const target = event.target as Node | null;
+      if (target && (triggerRef.current?.contains(target) || popupRef.current?.contains(target))) event.preventDefault();
       openedByFocus.current = false;
       setOpen(false);
     };
