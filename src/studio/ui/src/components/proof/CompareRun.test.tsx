@@ -619,10 +619,10 @@ describe('CompareRun "may have changed since comparison"', () => {
         </ApiProvider>,
       );
       await screen.findByText(/2 discrepancies/);
-      act(() => emit({ changeCount: 43 }));
+      act(() => emit({ changeCount: 41 }));
       act(() => emit({ changeCount: 44 }));
       expect(deferred.length).toBe(2);
-      // The newer comparison (44, changed) is answered first, then the older (43, unchanged): the older does not undo it.
+      // The newer comparison (44, changed) is answered first, then the older (41, unchanged): the older does not undo it.
       await act(async () => deferred[1]!({ changed: true }));
       await act(async () => deferred[0]!({ changed: false }));
       expect(screen.queryByText(/may have changed/)).not.toBeNull();
@@ -647,6 +647,25 @@ describe('CompareRun "may have changed since comparison"', () => {
       await act(async () => {});
       expect(screen.queryByText(/may have changed/)).not.toBeNull();
       expect(projectStateChangedSince).not.toHaveBeenCalledWith(41, 41);
+    });
+
+    it('a count below the baseline after the note was hidden shows it: the project was reopened and its counter reset', async () => {
+      let emit: (edit: { changeCount: number }) => void = () => {};
+      const subscribeDawProjectEdited = vi.fn((listener: typeof emit) => ((emit = listener), () => {}));
+      const projectStateChangedSince = vi.fn(async (current: number, baseline: number) => ({ changed: current !== baseline }));
+      const projectStateCheck = vi.fn().mockResolvedValue({ status: 'started' as const });
+      const api = createMockApi({ subscribeDawProjectEdited, projectStateChangedSince, projectStateCheck } as never);
+      render(
+        <ApiProvider api={api}>
+          <CompareRun {...resultsProps()} />
+        </ApiProvider>,
+      );
+      await screen.findByText(/2 discrepancies/);
+      act(() => emit({ changeCount: 41 }));
+      await act(async () => {});
+      expect(screen.queryByText(/may have changed/)).toBeNull();
+      act(() => emit({ changeCount: 3 }));
+      expect(await screen.findByText(/may have changed/)).toBeTruthy();
     });
 
     it('a check REAPER never answers is treated as failed after 20 s and asked again', async () => {

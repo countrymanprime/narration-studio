@@ -1400,11 +1400,11 @@ export const WIRE_RENDER_CONFIG_ERROR: RenderConfigState = {
 /** The Go host's ProjectStateState before any check (mirrors tests/fixtures/contracts/project-state-idle.json). */
 export const WIRE_PROJECT_STATE_IDLE: ProjectStateState = { phase: 'idle', message: '', projectFile: '' };
 
-/** REAPER answered a change count for the saved project (mirrors tests/fixtures/contracts/project-state-checked.json). The
- * mock's last comparison started at count 41, so 42 reads as "changed since comparison". */
-/** The mock REAPER project's edit count at the time the mock comparison ran: the comparison's baseline, the mock DAW's counter and an unchanged project's check all start here. */
+/** The mock REAPER project's edit count when the mock comparison ran: the comparison's baseline, the mock DAW's counter at the start and an unchanged project's check answer. They agree at the start only: the check answer is fixed, the DAW's counter rises with each edit. */
 export const MOCK_PROJECT_CHANGE_COUNT = 41;
 
+/** REAPER answered a change count for the saved project (mirrors tests/fixtures/contracts/project-state-checked.json). The
+ * mock's last comparison started at `MOCK_PROJECT_CHANGE_COUNT`, so 42 reads as "changed since comparison". */
 export const WIRE_PROJECT_STATE_CHECKED: ProjectStateState = {
   runId: '1790000000000000',
   phase: 'success',
