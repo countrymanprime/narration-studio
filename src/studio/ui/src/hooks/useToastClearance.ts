@@ -13,10 +13,15 @@ function apply(): void {
     return;
   }
   let total = 0;
+  // Where the highest bar's top edge stands: what lies under it (the other bars, and any gap the page keeps between them) is all to be cleared.
+  let top = Number.POSITIVE_INFINITY;
   bars.forEach((bar) => {
-    total += bar.getBoundingClientRect().height + (Number.parseFloat(getComputedStyle(bar).marginBottom) || 0);
+    const rect = bar.getBoundingClientRect();
+    total += rect.height + (Number.parseFloat(getComputedStyle(bar).marginBottom) || 0);
+    if (rect.height > 0 && Number.isFinite(rect.top)) top = Math.min(top, rect.top);
   });
-  root.style.setProperty(TOAST_CLEAR_VAR, `${Math.ceil(total)}px`);
+  const fromTop = top < window.innerHeight ? window.innerHeight - top : 0;
+  root.style.setProperty(TOAST_CLEAR_VAR, `${Math.ceil(Math.max(total, fromTop))}px`);
 }
 
 /**

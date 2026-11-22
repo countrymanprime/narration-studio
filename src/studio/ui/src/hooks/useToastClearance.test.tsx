@@ -59,6 +59,15 @@ describe('useToastClearance with several bars', () => {
     expect(read()).toBe('');
   });
 
+  it('clears the gap the page keeps under a bar too, from where the bar stands to the window bottom', () => {
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(900);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 99, top: 662 } as DOMRect);
+    const { unmount } = render(<Bar />);
+    // 99 px of bar, and 139 px of the page under it (a bar, a gap and a footer): all of it is cleared, not only the bar's own height.
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('238px');
+    unmount();
+  });
+
   it("counts a bar's bottom margin, which is part of the space it takes", () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 100 } as DOMRect);
     function Spaced() {
