@@ -15,13 +15,13 @@ import (
 type FileState int
 
 const (
-	// FileSame: the same regular file, with the size and modification time it was listed with.
+	// FileSame means the same regular file is there, with the size and modification time it was listed with.
 	FileSame FileState = iota
-	// FileGone: nothing is there any more.
+	// FileGone means nothing is there any more.
 	FileGone
-	// FileNotRegular: a folder, link, pipe or device has taken the name.
+	// FileNotRegular means a folder, link, pipe or device has taken the name.
 	FileNotRegular
-	// FileChanged: a regular file whose size, modification time or identity is not the listed one (written or used since), or one that cannot be looked at.
+	// FileChanged means a regular file whose size, modification time or identity is not the listed one (written or used since), or one that cannot be looked at.
 	FileChanged
 )
 

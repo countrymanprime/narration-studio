@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -690,9 +691,14 @@ func TestRecheckSaysWhatBecameOfAListedFile(t *testing.T) {
 	if state, _ := Recheck(path, 10, listed.ModTime(), listed); state != FileChanged {
 		t.Fatalf("another file under the name: %v", state)
 	}
-	// A path that cannot be looked at (a file where a folder should be).
-	if state, current := Recheck(filepath.Join(path, "below"), 10, listed.ModTime(), listed); state != FileChanged || current != nil {
-		t.Fatalf("a path below a file: %v", state)
+	// A path that cannot be looked at (a file where a folder should be): "not a directory" elsewhere, which keeps the file, and "path not
+	// found" on Windows, which Go reads as not there (CI run of 6dc9e2b68 failed here on Windows with state 1, FileGone).
+	wantBelow := FileChanged
+	if runtime.GOOS == "windows" {
+		wantBelow = FileGone
+	}
+	if state, current := Recheck(filepath.Join(path, "below"), 10, listed.ModTime(), listed); state != wantBelow || current != nil {
+		t.Fatalf("a path below a file: %v, want %v", state, wantBelow)
 	}
 	if err := os.Remove(path); err != nil {
 		t.Fatal(err)
