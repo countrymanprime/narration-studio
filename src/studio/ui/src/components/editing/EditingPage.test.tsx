@@ -296,6 +296,36 @@ describe('EditingPage', () => {
       window.localStorage.clear();
     });
 
+    it("never gives a read the store dropped at a reset the next project's list, and shows no error once the next folder's list is read", async () => {
+      let release = () => {};
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      let project: 'a' | 'b' = 'a';
+      const api = pageApi({
+        manuscriptChapters: async () => {
+          if (project === 'a') await gate;
+          return project === 'a'
+            ? [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)]
+            : [chapterOf('b1', 'Beta One', 0), chapterOf('b2', 'Beta Two', 1)];
+        },
+      });
+      window.localStorage.setItem('narration.editing.lastChapter./a', 'a2');
+      const view = render(treeFor(api, '/a'));
+      await act(async () => {});
+      project = 'b';
+      await act(async () => {
+        storeRef.current!.reset();
+        void storeRef.current!.load('chapters');
+      });
+      await act(async () => release());
+      await act(async () => {});
+      expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('a2');
+      expect(screen.queryByText('Beta One')).toBeNull();
+      view.rerender(treeFor(api, '/b'));
+      await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('b1'));
+      expect(screen.queryByText('The project changed while its chapters were being read.')).toBeNull();
+      window.localStorage.clear();
+    });
+
     it("does not save the new project's chapter under the old project's key when the store resets before the folder changes", async () => {
       let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
       const api = pageApi({ manuscriptChapters: async () => list });

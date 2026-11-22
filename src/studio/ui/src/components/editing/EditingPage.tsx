@@ -7,6 +7,7 @@ import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { usePort } from '../../ports/usePort';
 import { useOptionalStoreHandle } from '../../studio/StudioProvider';
+import { readChapterSnapshot } from '../../studio/readChapterSnapshot';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
 import { Panel } from '../primitives/Panel';
@@ -121,24 +122,18 @@ function EditingLoaded({
   // The chapter list comes from the store the other pages share, so opening the Editor does not read what is held: the first ask joins or serves it, and a
   // Retry or a project that changed under the page reads it now. Without a store (a component rendered alone) the page reads the port, as it always did.
   const store = useOptionalStoreHandle();
-  const readFor = useRef('');
+  const firstFolder = useRef(projectFolder);
   useEffect(() => {
     let live = true;
-    const key = `${attempt}:${projectFolder}`;
-    const first = readFor.current === '';
-    readFor.current = key;
-    const read = async (): Promise<ManuscriptChapter[]> => {
-      if (!store) return manuscript.manuscriptChapters();
-      await (first ? store.ensure('chapters') : store.load('chapters'));
-      const held = store.getState().slots.chapters;
-      if (!held) throw store.getState().errors.chapters ?? new Error('The chapter list is not held.');
-      return [...held];
-    };
-    read().then(
+    // The first read of the page serves what the store holds; a Retry and a project that changed under the page read it now.
+    const fresh = attempt > 0 || projectFolder !== firstFolder.current;
+    (store ? readChapterSnapshot(store, fresh) : manuscript.manuscriptChapters()).then(
       (all) => {
         if (!live) return;
         setChapters(all.filter(isNarrationChapter));
         setChaptersOf(projectFolder);
+        setError(null);
+        setErrorDetails(undefined);
       },
       (e: unknown) => {
         if (!live) return;
