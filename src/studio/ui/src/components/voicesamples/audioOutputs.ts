@@ -44,7 +44,7 @@ export async function listAudioOutputs(): Promise<OutputListing> {
 export const missingOutputSentence = (label: string, plays: string): string => `${label} is not connected. ${plays} on the system default until it is back.`;
 
 /** Why a named output could not be used: it is not in the list, the list would not come (or the webview cannot choose), or the audio system refused it. */
-export type SinkFailure = 'missing' | 'unlisted' | 'refused';
+type SinkFailure = 'missing' | 'unlisted' | 'refused';
 export type SinkResult = { ok: true } | { ok: false; message: string; kind: SinkFailure };
 
 async function toDefault(element: Sinkable): Promise<void> {
