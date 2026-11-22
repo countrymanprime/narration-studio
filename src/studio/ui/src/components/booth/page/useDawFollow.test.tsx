@@ -14,7 +14,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { NarrationApi } from '../../../types';
 import { useDawSession } from '../../../daw/useDawSession';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
-import { forgetBoothMonitorAsked, useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { forgetBoothMonitorAsked, useArmBoothOnOpen, useFollowDawOnOpen, useLatchOnce, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
 
 afterEach(() => {
@@ -31,6 +31,18 @@ function wrapperFor(overrides: Partial<NarrationApi>) {
   const api = createMockApi(overrides);
   return ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
 }
+
+describe('useLatchOnce', () => {
+  it('stays true once the narrator acted, however the take goes on', () => {
+    const latch = { current: false };
+    const view = renderHook(({ acted }) => useLatchOnce(latch, acted), { initialProps: { acted: false } });
+    expect(latch.current).toBe(false);
+    view.rerender({ acted: true });
+    expect(latch.current).toBe(true);
+    view.rerender({ acted: false });
+    expect(latch.current).toBe(true);
+  });
+});
 
 describe('useFollowDawOnOpen', () => {
   const chapterIds = ['c-1', 'c-2'];
@@ -239,7 +251,7 @@ describe('useFollowDawOnOpen', () => {
     vi.useFakeTimers();
     const onChapter = vi.fn();
     let calls = 0;
-    // Asked at the start, after 2 s, after 12 s, and a last time just before 20 s.
+    // Asked at the start, after 2 s, after 12 s, and a last time 2 s before the window ends (18 s).
     const dawPlace = vi.fn(async () => (++calls < 4 ? refusal : answer({ chapterId: 'c-1', selected: 1 })));
     const events = dawEvents();
     let take: (caps: DawCapabilities) => void = () => {};
@@ -253,9 +265,9 @@ describe('useFollowDawOnOpen', () => {
     await act(async () => {});
     act(() => take(reachable));
     view.rerender({ enabled: true });
-    await act(async () => void (await vi.advanceTimersByTimeAsync(19_000)));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(17_900)));
     expect(onChapter).not.toHaveBeenCalled();
-    await act(async () => void (await vi.advanceTimersByTimeAsync(1000)));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(200)));
     expect(onChapter).toHaveBeenCalledExactlyOnceWith('c-1');
     expect(dawPlace).toHaveBeenCalledTimes(4);
   });

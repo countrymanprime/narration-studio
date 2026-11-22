@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useDawSession } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
 
@@ -6,9 +6,19 @@ import { usePort } from '../../../ports/usePort';
 const ASK_FOR_MS = 20_000;
 /** A DAW that says it is reachable but refuses (REAPER is still loading its project) has no event to say it is ready, so that one case is asked again on a timer that slows down: 2 s, then 10 s, then 30 s. */
 const RETRY_REACHABLE_MS = [2000, 10_000, 30_000];
-/** The last retry lands this long before the window ends; a retry closer than this to the previous one is not made. */
-const LAST_ASK_BEFORE_END_MS = 500;
+/** The last retry lands this long before the window ends, so a slow answer still counts; a retry sooner than `MIN_RETRY_MS` after the previous one is not made. */
+const LAST_ASK_BEFORE_END_MS = 2000;
 const MIN_RETRY_MS = 500;
+
+/**
+ * Keeps `latch` true from the first time `acted` is true: the narrator acted in the Booth (a take started or ran), and a take that has since ended does not
+ * undo that. Written in a layout effect, so a render React drops writes nothing.
+ */
+export function useLatchOnce(latch: MutableRefObject<boolean>, acted: boolean) {
+  useLayoutEffect(() => {
+    if (acted) latch.current = true;
+  }, [latch, acted]);
+}
 
 /**
  * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW may not have

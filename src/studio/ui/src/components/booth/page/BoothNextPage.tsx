@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { coldReadNoVoice, useBoothVoices } from '../voices/useBoothVoices';
 import { createdSentence, destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
@@ -73,7 +73,7 @@ import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
-import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { useArmBoothOnOpen, useFollowDawOnOpen, useLatchOnce, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useDawSoloesChapter } from '../../../hooks/useDawSoloesChapter';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
 import { useIsRecording } from '../../../daw/useIsRecording';
@@ -146,9 +146,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const overlay = useOverlay();
   // Whether the DAW records a take the app did not start, set where the control is known: the leave sends the DAW nothing then.
   const dawHoldsTake = useRef(false);
-  // Set by the session: a take is starting or running, whoever pressed Record, so a late answer from the DAW cannot move the Booth under it.
+  // Set by the session once the app's take has started or run, and kept for this visit to the Booth: the narrator has acted here, so a late answer from the DAW (even after the take) does not choose their chapter.
   const takeBusy = useRef(false);
-  const dawIsRecording = useIsRecording();
   useReleaseBoothMonitorOnLeave(
     (sentence) => sayDawArming(overlay, sentence),
     () => dawHoldsTake.current,
@@ -207,7 +206,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
     // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
     enabled: asked === null && planned === null,
     chapterIds,
-    busy: () => takeBusy.current || dawIsRecording,
+    busy: () => takeBusy.current,
     onChapter: (chapterId) => {
       selfOpened.current.add(chapterId);
       setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true });
@@ -513,14 +512,8 @@ function BoothSession({
   const dawHoldsOthersTake =
     (control.project === null ? !control.projectFailed : control.project.playState === 'recording') && !(control.recording && control.startedByApp);
   holdsTake.current = dawHoldsOthersTake;
-  // Not `dawRecording`: that holds until the transport has been read once. Written in a layout effect, so a render React drops writes nothing and a session that goes away leaves nothing behind.
-  const busyNow = control.recording || control.starting;
-  useLayoutEffect(() => {
-    takeBusy.current = busyNow;
-    return () => {
-      takeBusy.current = false;
-    };
-  }, [takeBusy, busyNow]);
+  // Not `dawRecording`: that holds until the transport has been read once, and a take the DAW holds that the app did not start is not the narrator acting here. A latch.
+  useLatchOnce(takeBusy, control.recording || control.starting);
   const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
