@@ -9,6 +9,7 @@ import { destinationFor } from '../../engine/destination';
 import { formatWhen } from '../../production/recordingCheckText';
 import { WPH } from '../../schedule/estimates';
 import { clock } from '../../../clock';
+import { hasAudio } from '../../../recordedThrough';
 import { plural } from '../../../plural';
 
 export type CardState = 'none' | 'checking' | 'current' | 'stale';
@@ -47,14 +48,14 @@ export function staleWhy(result: CoverageResult): StaleWhy {
 }
 
 /** Whether the chapter has a measured recording. Without one a stored check cannot be current: there is nothing for it to be a check of. */
-export const hasRecording = (seconds: number | undefined): boolean => seconds !== undefined && seconds > 0;
+export const hasRecording = (seconds: number | undefined): boolean => hasAudio(seconds);
 
 /** Why a chapter has no measured recording, in the words Production and the engine panel use (a folder in a Voice folders project), and whether the audio engine panel is where to fix it. */
 export const noRecordingWhy = (reason: RecordedUnavailable, layout: VoiceTracksLayout): { text: string; engine: boolean } =>
   reason === 'no_project' ? { text: 'No saved project could be read.', engine: false } : { text: destinationFor(layout).noRecordingWhy[reason], engine: true };
 
 /** The recorded length from the chapter's measured seconds, "—" when none. */
-export const recordedLabel = (seconds: number | undefined): string => (seconds !== undefined && seconds > 0 ? clock(seconds) : '—');
+export const recordedLabel = (seconds: number | undefined): string => (seconds !== undefined && hasAudio(seconds) ? clock(seconds) : '—');
 
 /** The script's length at the standard rate (an estimate), "—" when the chapter has no words. */
 export const estimateLabel = (wordCount: number): string => (wordCount > 0 ? `~${clock(Math.round((wordCount / WPH) * 3600))}` : '—');

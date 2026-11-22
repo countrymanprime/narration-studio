@@ -58,6 +58,28 @@ describe('the info icon (Tooltip)', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More information' }));
   });
 
+  it('marks the Escape that closes an open note as consumed, so a page Escape command stays out (Proof: all chapters)', async () => {
+    const user = userEvent.setup();
+    render(<Tooltip text={TEXT} />);
+    await user.tab();
+    await screen.findByRole('tooltip');
+    // fireEvent returns false when a handler called preventDefault on the (cancelable) event.
+    expect(fireEvent.keyDown(document.activeElement!, { key: 'Escape' })).toBe(false);
+  });
+
+  it("keeps the note open when focus moves onto the library's focus guard, which closes it and moves focus on (Tab left the icon on <body>, #3995)", async () => {
+    const user = userEvent.setup();
+    render(<Tooltip text={TEXT} />);
+    await user.tab();
+    await screen.findByRole('tooltip');
+    const guard = document.createElement('span');
+    guard.setAttribute('data-base-ui-focus-guard', '');
+    document.body.append(guard);
+    fireEvent.blur(screen.getByRole('button', { name: 'More information' }), { relatedTarget: guard });
+    expect(screen.queryByRole('tooltip')).not.toBeNull();
+    guard.remove();
+  });
+
   it('after Escape a press opens the note again and the next press closes it (Escape forgets that focus opened it)', async () => {
     const user = userEvent.setup();
     render(<Tooltip text={TEXT} />);

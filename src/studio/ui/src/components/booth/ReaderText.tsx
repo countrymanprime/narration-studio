@@ -11,6 +11,7 @@ import { TooltipTarget } from '../primitives/Tooltip';
 import { FLAG_KIND_ID, flagHint } from './readerFlags';
 import { scrollCursorIntoView } from './useFollowCursor';
 import { segmentWords, splitWords, type ReaderMark, type ReaderMarkTarget, type ReaderRow, type WordSegment } from './readerModel';
+import { clamp } from '../../clamp';
 
 type SkippedRange = [number, number];
 
@@ -187,7 +188,7 @@ function RowContent({
         words={row.words}
         gaps={row.gaps}
         start={row.start}
-        local={Math.max(-1, Math.min(cursor - row.start, row.words.length))}
+        local={clamp(cursor - row.start, -1, row.words.length)}
         skipped={skipped}
         onSeek={onSeek}
         marks={marks}

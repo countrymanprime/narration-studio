@@ -1,3 +1,4 @@
+import { clamp } from './clamp';
 /**
  * Shared dBFS math for `LevelMeter` (the primitive) and the Booth's live level (`components/booth/frame/useLevels.ts`):
  * the dBFS-to-percent width map, which zone a reading falls in relative to the peak ceiling, and the peak-hold
@@ -14,7 +15,7 @@ const HOT_MARGIN_DB = 6;
 
 /** `dbfs` as a 0-100% width between `floor` (0%) and 0 dBFS, digital full scale (100%), clamped at both ends. */
 export function percentInRange(dbfs: number, floor: number): number {
-  return Math.round(Math.min(100, Math.max(0, ((dbfs - floor) / -floor) * 100)));
+  return Math.round(clamp(((dbfs - floor) / -floor) * 100, 0, 100));
 }
 
 /** Which zone a reading falls in relative to `ceiling`: `over` at or above it, `hot` within `HOT_MARGIN_DB` below it, `body` otherwise. */

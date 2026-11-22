@@ -20,7 +20,7 @@ const meta = {
   component: BoothTop,
   decorators: [withApi],
   args: {
-    progress: '¶ 38 of 71 · 41% · ~8:10 of audio left',
+    progress: ['¶ 38 of 71', '41% read', '~8:10 of audio left'],
     recording: false,
     panelOpen: true,
     onTogglePanel: fn(),
@@ -35,7 +35,7 @@ type Story = StoryObj<typeof meta>;
 export const Ready: Story = {
   render: (args) => (
     <div className="w-full">
-      <BoothTop {...args} resume={<button className="text-sm">Resume at ¶ 38</button>} setup={<button className="text-sm">Built-in</button>} />
+      <BoothTop {...args} setup={<button className="text-sm">Built-in</button>} />
       <BoothFooter record={record} seconds={0} recording={false} mic={mic} roomTone="Room tone −58 dBFS" roomToneOk keymap={defaultKeymap()} />
     </div>
   ),

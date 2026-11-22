@@ -1,11 +1,10 @@
 import { MIN_RANGE, rangeLabel, type Span } from './rangeMath';
 import type { RangeInteraction } from './useRangeInteraction';
+import { clamp } from '../../../clamp';
 import { clock } from '../../../clock';
 
 /** The width of a handle, in pixels. It hangs outside the edge it moves, so the two never cover each other. */
 const HANDLE = 6;
-
-const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 
 /**
  * The range drawn over the waveform: its body, which moves all of it, and a slider handle on each edge. What the range comes to (its time and

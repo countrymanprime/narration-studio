@@ -5,6 +5,8 @@ description: Checks a proposed UI change against the design-system reference, it
 
 # design-spec-guard
 
+The owner's rule [the design system is the only source of UI](../../rules/product-rules.md) applies to every check below.
+
 ## Why this exists
 
 Agentic refactors on this repo have a history of silently reverting deliberate decisions — a modal's width gets "cleaned up" back to an arbitrary value, a button row gets re-aligned "for consistency" in the wrong direction, a filter gets removed because it looked redundant — because the agent doing the refactor had no way to know the current state was intentional. The look and behaviour are recorded in `docs/design/design-system.md` and the user guide and pinned by the visual, atlas and interaction tests; the architecture under them (primitives wrapping Base UI, the token system) is recorded in ADRs. This skill is the check.

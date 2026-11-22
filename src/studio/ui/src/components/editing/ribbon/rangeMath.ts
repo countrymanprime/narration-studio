@@ -3,6 +3,7 @@
  * words it covers. Seconds are on the document's clock (`DocItem.t0`), so a range and a word compare directly.
  */
 import type { DocItem } from '../model';
+import { clamp } from '../../../clamp';
 import { clock } from '../../../clock';
 import { plural } from '../../../plural';
 
@@ -19,7 +20,6 @@ export const EDGE_EPSILON = 0.005;
 /** A word is in the selection when the range lies over at least this fraction of it. */
 const SELECT_FRACTION = 0.5;
 
-const clamp = (value: number, low: number, high: number): number => Math.max(low, Math.min(high, value));
 const width = (bounds: Span): number => bounds.end - bounds.start;
 
 /** The span with each edge kept inside `bounds` and the two at least `min` apart (or all of `bounds` when that is narrower). A too-narrow span grows forward, or back from the far end. */

@@ -88,6 +88,10 @@ describe('a chapter with a recording', () => {
     await waitFor(() => expect(reading()).toBe('said'));
     const chip = screen.getByRole('group', { name: 'Recorded through ““Off with her head,”” (45%)' });
     expect(chip.textContent).toBe('Recorded 45%');
+    // The progress chips carry no percent of their own beside the Recorded chip's (#3970).
+    expect(document.querySelector('#bprog')?.textContent).not.toMatch(/%/);
+    // The Booth opens on the resume point itself, so there is no "Resume at" chip to offer it back (#3858).
+    expect(screen.queryByRole('button', { name: /Resume at/ })).toBeNull();
     // The chip says how far it is recorded; no green rail runs down the page beside the text (owner report, #2251).
     expect(document.querySelector('[data-recorded-extent], [data-recorded-rail]')).toBeNull();
   });
@@ -133,16 +137,6 @@ describe('a chapter with a recording', () => {
     await user.click(screen.getByRole('button', { name: /Change chapter/ }));
     const items = await screen.findAllByRole('menuitemradio');
     expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent)).toEqual(['45%', 'Complete']);
-  });
-
-  it('offers the way back to where it opened once the narrator looks elsewhere', async () => {
-    renderPage({ api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through() }) }) });
-    await waitFor(() => expect(reading()).toBe('said'));
-    expect(screen.queryByRole('button', { name: /Resume at ¶/ })).toBeNull();
-    act(() => void screen.getByText('Garden').click());
-    const back = await screen.findByRole('button', { name: 'Resume at ¶ 2' });
-    act(() => void back.click());
-    await waitFor(() => expect(reading()).toBe('said'));
   });
 
   // The host as the Booth sees it while a take is made: `recorded` is how far the chapters are recorded now, and a read made while `held`
@@ -268,7 +262,7 @@ describe('where Record starts, by entry and by how much of the chapter is record
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 
-  it('partly recorded, a click elsewhere and then back to the resume point: Record continues with no lookup', async () => {
+  it('partly recorded, a click elsewhere and then back to the resume point: an explicit entry wins, so Record looks that place up (#3858)', async () => {
     const { api, boothPunchTarget } = punchApi({ c1: through() });
     renderPage({ api });
     await waitFor(() => expect(reading()).toBe('said'));
@@ -277,7 +271,9 @@ describe('where Record starts, by entry and by how much of the chapter is record
     act(() => void screen.getByText('said').click());
     await waitFor(() => expect(reading()).toBe('said'));
     await record();
-    expect(boothPunchTarget).not.toHaveBeenCalled();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    // The lookup is for the phrase the reading is on (the resume point, paragraph p2), not any phrase.
+    expect((boothPunchTarget.mock.calls as unknown[][])[0]?.slice(0, 2)).toEqual(['c1', 'p2']);
   });
 
   it('nothing recorded, opened at the beginning: Record starts there with no lookup', async () => {

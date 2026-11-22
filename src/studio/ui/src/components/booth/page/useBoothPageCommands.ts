@@ -80,14 +80,19 @@ export function useBoothPageCommands(page: BoothCommands): void {
         // Never off: a press that cannot start a take opens the dialog that fixes it (BoothNextPage's onRecordBlocked).
         run: () => void toggleTake(),
       },
-      {
-        id: 'transport.roll',
-        label: 'Punch and roll from here',
-        group: 'Transport',
-        hint: keyOf('booth.roll'),
-        icon: 'retry',
-        run: punchAndRoll,
-      },
+      // Before a take Record is the press that starts one (#3858), so rolling again is offered only while a take runs.
+      ...(recording
+        ? [
+            {
+              id: 'transport.roll',
+              label: 'Roll again',
+              group: 'Transport',
+              hint: keyOf('booth.roll'),
+              icon: 'retry' as const,
+              run: punchAndRoll,
+            },
+          ]
+        : []),
       {
         id: 'transport.next',
         label: 'Next phrase',

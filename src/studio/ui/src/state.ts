@@ -1,4 +1,5 @@
 import type { Discrepancy, GuideEntity, GuideEvidence, ManuscriptChapter, TranscriptState } from './types';
+import { clamp } from './clamp';
 
 export const isTranscriptActive = (phase: TranscriptState['phase']) => phase === 'preparing' || phase === 'running' || phase === 'inspecting';
 // Reference-material sections (Contents, Characters, ...) stay in manuscript.json for data
@@ -162,8 +163,8 @@ export type WindowedExcerpt = { text: string; matchStart: number; matchLength: n
 // too, if text remains after the window).
 export function windowExcerpt(text: string, matchStart: number, matchLength: number, budget: number = SEARCH_EXCERPT_BUDGET): WindowedExcerpt {
   const length = text.length;
-  const start = Math.min(Math.max(matchStart, 0), length);
-  const matchLen = Math.min(Math.max(matchLength, 0), length - start);
+  const start = clamp(matchStart, 0, length);
+  const matchLen = clamp(matchLength, 0, length - start);
   const end = start + matchLen;
   if (length <= budget) return { text, matchStart: start, matchLength: matchLen };
   if (matchLen >= budget) {

@@ -2,12 +2,18 @@ package passagetakes
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"io"
 	"math"
 	"os"
-	"sync"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"desktop/internal/coverage"
+	"desktop/internal/evidence"
 	"desktop/internal/measure"
 	"desktop/internal/tracks"
 )
@@ -101,11 +107,13 @@ type Range struct {
 	Length float64
 }
 
-// Measure reads one range's figures; it is how the audio is decoded.
-type Measure func(Range) TakeMeasure
+// Measure reads one range's figures; it is how the audio is decoded. The bool reports whether every figure came from
+// the decoded audio: false is an answer for now (the file could not be read, its format is not measured) that
+// MeasureCache does not keep.
+type Measure func(Range) (TakeMeasure, bool)
 
 // Evidence answers the evidence of every candidate resolved offers, from the alignment, project and passage map it was
-// resolved from. It reads only. measures may be nil (nothing is measured on this host): every figure then says so.
+// resolved from. It changes nothing but the entries measures keeps. measures may be nil (nothing is measured on this host): every figure then says so.
 func Evidence(resolved Resolved, measures *MeasureCache) EvidenceView {
 	in, alternates := resolved.input, resolved.View
 	view := EvidenceView{
@@ -113,6 +121,7 @@ func Evidence(resolved Resolved, measures *MeasureCache) EvidenceView {
 		FirstParagraph: alternates.FirstParagraph, LastParagraph: alternates.LastParagraph, Message: alternates.Message,
 		Takes: make([]TakeEvidence, 0, len(alternates.Candidates)),
 	}
+	memo := hashes{}
 	tokens := passageTokens(in.View, alternates)
 	mapped := mappedSpans(in, alternates.FirstParagraph, alternates.LastParagraph)
 	for _, candidate := range alternates.Candidates {
@@ -123,9 +132,9 @@ func Evidence(resolved Resolved, measures *MeasureCache) EvidenceView {
 		case measures == nil:
 			evidence.Measure = unmeasured(ReasonNoMeasurer)
 		default:
-			evidence.Measure = measures.Get(Range{
+			evidence.Measure = measures.get(Range{
 				File: candidate.SourceFile, Kind: sourceKind(in.Project, candidate), Start: candidate.SourceStart, Length: candidate.SourceLength,
-			})
+			}, memo)
 		}
 		view.Takes = append(view.Takes, evidence)
 	}
@@ -203,15 +212,15 @@ func sourceKind(project tracks.Project, candidate Candidate) string {
 
 // MeasureRange measures a take range the one way every take is measured, so their figures compare: measure.MeasureTake
 // over the range for the level and noise floor (and every reason it gives), then the windowed diagnostics over the
-// same range for the longest pause and the breaths.
-func MeasureRange(r Range) TakeMeasure {
+// same range for the longest pause and the breaths. It answers false when the audio was not decoded for both.
+func MeasureRange(r Range) (TakeMeasure, bool) {
 	item := tracks.Item{Length: r.Length, Takes: []tracks.Take{{SourceFile: r.File, SourceKind: r.Kind, SourceAvailable: true, SOFFS: r.Start, PlayRate: 1}}}
 	metrics, err := measure.MeasureTake(measure.TakeInput{Item: item})
 	if err != nil {
-		return unmeasured("The take could not be measured (" + err.Error() + ").")
+		return unmeasured("The take could not be measured (" + err.Error() + ")."), false
 	}
 	if metrics.Audio == nil {
-		return unmeasured(sentence(metrics.Noise.Reason))
+		return unmeasured(sentence(metrics.Noise.Reason)), false
 	}
 	result := TakeMeasure{
 		RMS:     tenths(figure(metrics.Audio.RMSdBFS, "The take is silent, so it has no level.")),
@@ -223,7 +232,7 @@ func MeasureRange(r Range) TakeMeasure {
 	if err != nil {
 		why := "The take's pauses and breaths could not be read (" + err.Error() + ")."
 		result.Pause, result.Breaths = reasonOf(why), reasonOf(why)
-		return result
+		return result, false
 	}
 	result.Pause = valueOf(longestPause(diagnostics))
 	if diagnostics.Cleanup.SpeechLeveldBFS == nil {
@@ -237,7 +246,7 @@ func MeasureRange(r Range) TakeMeasure {
 		}
 		result.Breaths = valueOf(float64(breaths))
 	}
-	return result
+	return result, true
 }
 
 // longestPause is the longest silence with sound on both sides of it, rounded to the 50 ms the silence map resolves; a
@@ -268,47 +277,195 @@ func sentence(reason string) string {
 	return reason
 }
 
-// MeasureCache keeps each range's figures while its file is unchanged (same size and modification time), so asking
-// for a passage's evidence again decodes nothing. It holds at most measureCacheLimit ranges.
+// The evidence cache entry of one take range (evidence.CacheEntryKey with PlayedRange set, the per-range shape the
+// editing scan uses): measureAnalyzerVersion changes when MeasureRange derives a figure differently, measureBlobVersion
+// when the stored JSON changes shape.
+const (
+	MeasureAnalyzerID      = "passagetakes.measure"
+	measureAnalyzerVersion = "1"
+	measureBlobVersion     = 1
+)
+
+const reasonUnreadable = "This take's audio file cannot be read, so it was not measured."
+
+// measureBlob is the opaque JSON stored per take range: its figures and the SHA-256 of the whole file they were
+// measured from.
+type measureBlob struct {
+	SchemaVersion int         `json:"schemaVersion"`
+	SourceSHA256  string      `json:"sourceSha256"`
+	Measure       TakeMeasure `json:"measure"`
+}
+
+// MeasureCache keeps each range's figures in the project's evidence cache while its file is unchanged, so asking for a
+// passage's evidence again, in this run of the app or the next, decodes nothing.
+//
+// An entry is the file's as it was when it was measured: the key (path, size and a hash of the file's first, middle and
+// last 64 KB) only finds the entry: it cannot see an edit made in place elsewhere in a file of the same length, and the
+// modification time can be restored by a copy. So the entry carries the SHA-256 of the whole file and is answered only
+// while the file still hashes to it, as the delivery measurement is (measure.CachedMeasureFile); otherwise the file is
+// measured again and the entry written over. Every call hashes the file (0.24 to 0.43 s per hour of audio).
 type MeasureCache struct {
-	measure Measure
-	mu      sync.Mutex
-	// +checklocks:mu
-	entries map[cacheKey]TakeMeasure
+	measure       Measure
+	store         *evidence.CacheStore
+	projectFolder string
+	version       string
+	// identify is evidence.Identify; a test replaces it to answer a file that cannot be opened.
+	identify func(path, projectFolder string) (evidence.SourceIdentity, error)
+	// hash is sha256File; a test replaces it to count the hashes.
+	hash func(path string) (string, error)
 }
 
-type cacheKey struct {
-	Range
-	size     int64
-	modified time.Time
+// hashes are the SHA-256 sums one Evidence call has taken, by file as Identify sees it, so the takes of one recording hash it
+// once. It lives for that call only: kept longer, a file edited in place with its size and time kept would be answered by its
+// earlier sum.
+type hashes map[sumKey]string
+
+// sumKey is a file as Identify sees it: another size, sampled hash or modification time is another file to hash.
+type sumKey struct {
+	path, partial string
+	size          int64
+	modTime       time.Time
 }
 
-const measureCacheLimit = 512
-
-// NewMeasureCache is a cache over measure (MeasureRange in the host, a spy in tests).
-func NewMeasureCache(measure Measure) *MeasureCache {
-	return &MeasureCache{measure: measure, entries: map[cacheKey]TakeMeasure{}}
+// NewMeasureCache is a cache over measure (MeasureRange in the host, a spy in tests) that keeps its entries in store,
+// the evidence cache of the project in projectFolder. A nil store keeps nothing: every Get measures.
+func NewMeasureCache(measure Measure, store *evidence.CacheStore, projectFolder string) *MeasureCache {
+	if !filepath.IsAbs(projectFolder) {
+		// A store over no folder, or a relative one, would write under the working directory.
+		store = nil
+	}
+	return &MeasureCache{measure: measure, store: store, projectFolder: projectFolder, version: measureAnalyzerVersion, identify: evidence.Identify, hash: sha256File}
 }
 
-// Get is r's figures, measured once per version of its file. A file that cannot be read is a reason, not cached.
-func (c *MeasureCache) Get(r Range) TakeMeasure {
+// sum is the SHA-256 of the file identity describes: from memo when this call has taken it, and kept in memo (when there is one).
+func (c *MeasureCache) sum(path string, identity evidence.SourceIdentity, memo hashes) (string, error) {
+	k := sumKey{path: path, partial: identity.PartialHash, size: identity.Size, modTime: identity.ModTime}
+	if sum, ok := memo[k]; ok {
+		return sum, nil
+	}
+	sum, err := c.hash(path)
+	if err == nil && memo != nil {
+		memo[k] = sum
+	}
+	return sum, err
+}
+
+// Get is r's figures, measured once per version of its file. A path that is not a file is a reason of this package's;
+// a file that cannot be opened is measured, so it answers the measurer's own reason. Neither is stored, nor are
+// figures that did not come from decoded audio.
+func (c *MeasureCache) Get(r Range) TakeMeasure { return c.get(r, nil) }
+
+// get is Get with the hashes the calling Evidence has already taken.
+func (c *MeasureCache) get(r Range, memo hashes) TakeMeasure {
 	info, err := os.Stat(r.File)
 	if err != nil || !info.Mode().IsRegular() {
-		return unmeasured("This take's audio file cannot be read, so it was not measured.")
+		return unmeasured(reasonUnreadable)
 	}
-	key := cacheKey{Range: r, size: info.Size(), modified: info.ModTime()}
-	c.mu.Lock()
-	cached, found := c.entries[key]
-	c.mu.Unlock()
-	if found {
+	if c.store == nil {
+		measured, _ := c.measure(r)
+		return measured
+	}
+	identity, err := c.identify(r.File, c.projectFolder)
+	if err != nil {
+		// A file that is there but cannot be opened (no permission, locked by another program) has no identity to
+		// store under; the measurer cannot open it either, and its reason is the one that names why.
+		measured, _ := c.measure(r)
+		return measured
+	}
+	sum, err := c.sum(r.File, identity, memo)
+	if err != nil {
+		// Unreadable now: the measurer says why, and nothing is stored under a content nobody could hash.
+		measured, _ := c.measure(r)
+		return measured
+	}
+	key := c.key(identity, r)
+	if cached, found := c.read(key, sum); found {
 		return cached
 	}
-	measured := c.measure(r)
-	c.mu.Lock()
-	if len(c.entries) >= measureCacheLimit {
-		clear(c.entries)
+	measured, decoded := c.measure(r)
+	if decoded {
+		c.write(key, identity, sum, r.File, measured)
 	}
-	c.entries[key] = measured
-	c.mu.Unlock()
 	return measured
+}
+
+// key is r's entry for the file identity names. The parameters are everything besides the audio that MeasureRange's
+// figures depend on: the source kind, the diagnostic thresholds and the measure package's own version.
+func (c *MeasureCache) key(identity evidence.SourceIdentity, r Range) evidence.CacheEntryKey {
+	// DiagnosticOptions holds finite numbers only, so encoding it cannot fail.
+	options, _ := json.Marshal(measure.DefaultDiagnosticOptions())
+	return evidence.CacheEntryKey{
+		Source: identity, AnalyzerID: MeasureAnalyzerID, AnalyzerVersion: c.version,
+		ParamHash:   evidence.HashParts(r.Kind, string(options), strconv.Itoa(measure.AnalyzerVersion)),
+		PlayedRange: &evidence.PlayedRange{Start: r.Start, End: r.Start + r.Length},
+	}
+}
+
+// read is key's stored figures when they were measured from a file with the SHA-256 sum. An entry this package
+// cannot use (not its JSON, another blob version, a figure that is neither a value nor a reason) is deleted; one of a
+// file of other content is left for the write that follows the new measurement.
+func (c *MeasureCache) read(key evidence.CacheEntryKey, sum string) (TakeMeasure, bool) {
+	raw, found := c.store.Read(key)
+	if !found {
+		return TakeMeasure{}, false
+	}
+	var blob measureBlob
+	if err := json.Unmarshal(raw, &blob); err == nil && blob.SchemaVersion > measureBlobVersion {
+		// A newer build wrote it: it is a miss here, and stays for that build.
+		return TakeMeasure{}, false
+	}
+	if err := json.Unmarshal(raw, &blob); err != nil || blob.SchemaVersion != measureBlobVersion || !blob.Measure.complete() {
+		// The entry is replaced by the measurement that follows; one that cannot be removed only costs that measurement again.
+		_ = c.store.Delete(key)
+		return TakeMeasure{}, false
+	}
+	if blob.SourceSHA256 != sum {
+		return TakeMeasure{}, false
+	}
+	return blob.Measure, true
+}
+
+// write stores measured under key unless file changed while it was measured: the entry would carry the earlier
+// identity over the later audio. A failure to store is not reported, because the figures just measured are still
+// answered and the next call measures again.
+func (c *MeasureCache) write(key evidence.CacheEntryKey, identity evidence.SourceIdentity, sum, file string, measured TakeMeasure) {
+	if !measured.complete() {
+		return // read would delete it
+	}
+	after, err := c.identify(file, c.projectFolder)
+	if err != nil || after.Size != identity.Size || after.PartialHash != identity.PartialHash || !after.ModTime.Equal(identity.ModTime) {
+		return
+	}
+	// The sampled identity cannot see an edit elsewhere in the file that put its time back: hash again, so the figures are stored
+	// only for the content the sum names.
+	if again, err := c.hash(file); err != nil || again != sum {
+		return
+	}
+	if encoded, err := json.Marshal(measureBlob{SchemaVersion: measureBlobVersion, SourceSHA256: sum, Measure: measured}); err == nil {
+		_ = c.store.Write(key, encoded)
+	}
+}
+
+// complete reports whether every figure of m is a value or a reason, as every figure this package answers is.
+func (m TakeMeasure) complete() bool {
+	for _, f := range []Figure{m.Pause, m.RMS, m.NF, m.Clarity, m.Breaths} {
+		if f.OK != (f.Value != nil) || f.OK == (f.Reason != "") {
+			return false
+		}
+	}
+	return true
+}
+
+// sha256File is the hex SHA-256 of every byte of the file at path.
+func sha256File(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = file.Close() }() // read-only
+	digest := sha256.New()
+	if _, err := io.Copy(digest, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(digest.Sum(nil)), nil
 }

@@ -1,7 +1,8 @@
-import { handFocusToPage } from './focusReturn';
+import { anotherPopoverTakesFocus, handFocusToPage } from './focusReturn';
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
+import { clamp } from '../../clamp';
 
 // A layer above a dialog carries this attribute on its popup, so Dialog.tsx's Escape handler can tell that a key is
 // meant for the popover that is showing (device pickers, a settings panel) and not for the dialog it sits in - the
@@ -16,7 +17,7 @@ const POPUP_GUTTER = 16;
 const MIN_POPUP_ROOM = 120;
 /** How much of the window's bottom the bars fixed along it keep from a popup: all of them, unless that would leave the popup under `MIN_POPUP_ROOM` to read in. */
 export function popupBottomReserve(bars: number, windowHeight: number): number {
-  return Math.max(0, Math.min(bars, windowHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM));
+  return clamp(bars, 0, windowHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM);
 }
 /** The window's inner height, kept current: a popover open while the window is resized (or its bars change) is placed again for the new size. */
 export function useWindowHeight(): number {
@@ -39,6 +40,7 @@ const COMPACT_WIDTH = 'max-w-[min(20rem,calc(100vw-2rem))]';
 
 export function Popover({
   trigger,
+  anchor,
   label,
   side = 'bottom',
   // The mocks right-align a popover to its trigger (read-aloud-control-bar/03 and 04).
@@ -53,8 +55,6 @@ export function Popover({
   compact = false,
   children,
 }: {
-  // The trigger's own element (a `Button`, an `IconButton`), the same `render` pattern as `Menu` and `TooltipTarget`.
-  trigger: ReactElement;
   // The popup's accessible name (its content is often controls, not a sentence a `aria-describedby` could read).
   label: string;
   side?: 'top' | 'bottom' | 'left' | 'right';
@@ -77,9 +77,30 @@ export function Popover({
   // Asked as it closes: true sends focus to the page's <main> (unless the closing action put it elsewhere) instead of back to the trigger, for a trigger that would swallow the key after a pick (Enter reopening it). Escape and a click away leave it unset.
   focusPageOnClose?: () => boolean;
   children: ReactNode;
-}) {
+} & (
+  | {
+      // The trigger's own element (a `Button`, an `IconButton`), the same `render` pattern as `Menu` and `TooltipTarget`.
+      trigger: ReactElement;
+      anchor?: undefined;
+    }
+  | {
+      trigger?: undefined;
+      // Where a popover with no trigger of its own opens: the rectangle of the control that was pressed, one of many the page keeps a single popover
+      // for (a speaker chip in the Script reader). The caller controls `open`; the popup stays at this rectangle and does not follow the control,
+      // keeps the side and place it opened at while its content changes size (a list that shrinks as the narrator types), and gives focus back to
+      // what had it when the popup opened (the control pressed).
+      anchor: DOMRect;
+    }
+)) {
   const popup = useRef<HTMLDivElement>(null);
   const windowHeight = useWindowHeight();
+  const at = useMemo(() => anchor && { getBoundingClientRect: () => anchor }, [anchor]);
+  // With no trigger, Base UI hands focus back to the last control any popup remembered (the navigation button of a narrow window, #3823). So the
+  // control that has focus as this one opens is read here, while rendering, before the content can take focus, and named as the place to return to.
+  const isOpen = Boolean(anchor && open);
+  const [opened, setOpened] = useState<{ open: boolean; by: Element | null }>({ open: false, by: null });
+  if (opened.open !== isOpen) setOpened({ open: isOpen, by: isOpen ? document.activeElement : opened.by });
+  const backToOpener = () => (opened.by instanceof HTMLElement && opened.by.isConnected ? opened.by : true);
   // The bars fixed along the bottom of the page (the Booth's footer and its setup notice) count as the window's edge: a popup opened above them
   // stops short of them and scrolls inside itself rather than covering Record and the timer (alignment audit XBO-8). Their height is the one the
   // toasts keep clear of, `--toast-clear` on <html> (useToastClearance).
@@ -90,10 +111,13 @@ export function Popover({
   return (
     // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
     <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
-      <BasePopover.Trigger render={trigger} />
+      {trigger && <BasePopover.Trigger render={trigger} />}
       <BasePopover.Portal>
         {/* Measured on read-aloud-control-bar/03 and 04: 12 px from the trigger, 16 px padding, radius 8, at least 336 px wide. */}
         <BasePopover.Positioner
+          anchor={at}
+          // A rectangle never moves, so nothing is tracked: the popup is placed as it opens and when the window changes size, not when its content does.
+          disableAnchorTracking={Boolean(anchor)}
           side={side}
           align={align}
           sideOffset={sideOffset}
@@ -106,7 +130,14 @@ export function Popover({
           <BasePopover.Popup
             ref={popup}
             initialFocus={focusPopup ? popup : undefined}
-            finalFocus={() => (focusPageOnClose?.() ? handFocusToPage() : true)}
+            finalFocus={() => {
+              // `focusPageOnClose` is asked first: it has side effects of its own (the voice button resets what a pick set), whatever focus does next.
+              const toPage = focusPageOnClose?.() ?? false;
+              // Another popover or menu that opened while this one was leaving has the focus, or is about to take it (its exit waits a frame). Giving focus back to this one's
+              // trigger would take it from the new popup, which closes when focus leaves it (#3949). Base UI's own check for this is off while `finalFocus` is a function.
+              if (anotherPopoverTakesFocus(popup.current, opened.by)) return false;
+              return toPage ? handFocusToPage() : backToOpener();
+            }}
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
             className={`max-h-[var(--available-height)] w-max ${compact ? COMPACT_WIDTH : WIDTH} overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}

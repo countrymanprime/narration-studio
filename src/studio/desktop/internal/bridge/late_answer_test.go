@@ -280,19 +280,21 @@ func TestAWriteAnsweredAfterTheUsualWaitIsStillAnswered(t *testing.T) {
 		},
 	} {
 		t.Run(command, func(t *testing.T) {
-			actions, client, dir := newActionsSession(t, true)
-			fake := startFakeReaper(t, client, dir, func(cmd []string) [][]string {
-				time.Sleep(900 * time.Millisecond)
-				return [][]string{c.answer(cmd)}
+			onVirtualClock(t, func(t *testing.T) {
+				actions, client, dir := newActionsSession(t, true)
+				fake := startFakeReaper(t, client, dir, func(cmd []string) [][]string {
+					time.Sleep(900 * time.Millisecond)
+					return [][]string{c.answer(cmd)}
+				})
+				actions.SetTimeout(500 * time.Millisecond)
+				actions.SetLateWait(5 * time.Second)
+				if err := c.send(context.Background(), actions); err != nil {
+					t.Fatalf("%s answered late: %v", command, err)
+				}
+				if sent := fake.commands(); len(sent) != 1 || sent[0][1] != command {
+					t.Fatalf("REAPER read %v; want one %s", sent, command)
+				}
 			})
-			actions.SetTimeout(500 * time.Millisecond)
-			actions.SetLateWait(5 * time.Second)
-			if err := c.send(context.Background(), actions); err != nil {
-				t.Fatalf("%s answered late: %v", command, err)
-			}
-			if sent := fake.commands(); len(sent) != 1 || sent[0][1] != command {
-				t.Fatalf("REAPER read %v; want one %s", sent, command)
-			}
 		})
 	}
 }
@@ -300,112 +302,122 @@ func TestAWriteAnsweredAfterTheUsualWaitIsStillAnswered(t *testing.T) {
 // A write REAPER read and never answers is ErrAnswerLate, and one whose caller's deadline ends first is ErrAnswerLate wrapping the
 // deadline: either way the caller is told REAPER took it, never that nothing happened.
 func TestAWriteReadButNeverAnsweredIsErrAnswerLate(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
-	actions.SetTimeout(500 * time.Millisecond)
-	actions.SetLateWait(100 * time.Millisecond)
-	if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrAnswerLate) {
-		t.Fatalf("a stop never answered: %v, want ErrAnswerLate", err)
-	}
-	actions.SetLateWait(10 * time.Second)
-	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
-	defer cancel()
-	if _, err := actions.RecordStop(ctx); !errors.Is(err, ErrAnswerLate) || !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("a stop whose caller's deadline ended: %v, want ErrAnswerLate wrapping the deadline", err)
-	}
+	onVirtualClock(t, func(t *testing.T) {
+		actions, client, dir := newActionsSession(t, true)
+		startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
+		actions.SetTimeout(500 * time.Millisecond)
+		actions.SetLateWait(100 * time.Millisecond)
+		if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrAnswerLate) {
+			t.Fatalf("a stop never answered: %v, want ErrAnswerLate", err)
+		}
+		actions.SetLateWait(10 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
+		defer cancel()
+		if _, err := actions.RecordStop(ctx); !errors.Is(err, ErrAnswerLate) || !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("a stop whose caller's deadline ended: %v, want ErrAnswerLate wrapping the deadline", err)
+		}
+	})
 }
 
 // A write REAPER never read is taken back at the usual wait, however long the late wait: a closed REAPER is not waited on.
 func TestAWriteNeverReadIsTakenBackAtTheUsualWait(t *testing.T) {
-	actions, client, dir := newActionsSession(t, true)
-	fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
-	fake.stall(2 * time.Second)
-	actions.SetTimeout(500 * time.Millisecond)
-	actions.SetLateWait(10 * time.Second)
-	started := time.Now()
-	if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrNoAnswer) || errors.Is(err, ErrAnswerLate) {
-		t.Fatalf("err = %v, want plain ErrNoAnswer", err)
-	}
-	if time.Since(started) > 1500*time.Millisecond {
-		t.Fatalf("waited %v for a stop REAPER never read", time.Since(started))
-	}
-	if left := pendingCommands(t, dir); len(left) != 0 {
-		t.Fatalf("the stop is still in the session folder: %v", left)
-	}
+	onVirtualClock(t, func(t *testing.T) {
+		actions, client, dir := newActionsSession(t, true)
+		fake := startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
+		fake.stall(2 * time.Second)
+		actions.SetTimeout(500 * time.Millisecond)
+		actions.SetLateWait(10 * time.Second)
+		started := time.Now()
+		if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrNoAnswer) || errors.Is(err, ErrAnswerLate) {
+			t.Fatalf("err = %v, want plain ErrNoAnswer", err)
+		}
+		if time.Since(started) > 1500*time.Millisecond {
+			t.Fatalf("waited %v for a stop REAPER never read", time.Since(started))
+		}
+		if left := pendingCommands(t, dir); len(left) != 0 {
+			t.Fatalf("the stop is still in the session folder: %v", left)
+		}
+	})
 }
 
 // The navigator's moves are the same class: a move REAPER read and answered late is where REAPER went, one never answered is
 // ErrAnswerLate, and one whose caller's deadline ended is ErrAnswerLate wrapping the deadline.
 func TestANavigationREAPERReadIsWaitedFor(t *testing.T) {
-	navigator, client, dir := newNavigatorSession(t)
-	var silent atomic.Bool
-	startFakeReaper(t, client, dir, func(command []string) [][]string {
-		if silent.Load() {
-			return nil
+	onVirtualClock(t, func(t *testing.T) {
+		navigator, client, dir := newNavigatorSession(t)
+		var silent atomic.Bool
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			if silent.Load() {
+				return nil
+			}
+			time.Sleep(900 * time.Millisecond)
+			return [][]string{{"NAVIGATED", run(command), testItem, "1.000000"}}
+		})
+		navigator.SetTimeout(500 * time.Millisecond)
+		navigator.SetLateWait(5 * time.Second)
+		got, err := navigator.Navigate(context.Background(), Target{ItemGUID: testItem})
+		if err != nil || got.ItemGUID != testItem {
+			t.Fatalf("a move answered late: %+v, %v", got, err)
 		}
-		time.Sleep(900 * time.Millisecond)
-		return [][]string{{"NAVIGATED", run(command), testItem, "1.000000"}}
+		silent.Store(true)
+		navigator.SetLateWait(100 * time.Millisecond)
+		if _, err := navigator.Navigate(context.Background(), Target{ItemGUID: testItem}); !errors.Is(err, ErrAnswerLate) {
+			t.Fatalf("a move never answered: %v, want ErrAnswerLate", err)
+		}
+		navigator.SetLateWait(10 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
+		defer cancel()
+		if _, err := navigator.Navigate(ctx, Target{ItemGUID: testItem}); !errors.Is(err, ErrAnswerLate) || !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("a move whose caller's deadline ended: %v, want ErrAnswerLate wrapping the deadline", err)
+		}
 	})
-	navigator.SetTimeout(500 * time.Millisecond)
-	navigator.SetLateWait(5 * time.Second)
-	got, err := navigator.Navigate(context.Background(), Target{ItemGUID: testItem})
-	if err != nil || got.ItemGUID != testItem {
-		t.Fatalf("a move answered late: %+v, %v", got, err)
-	}
-	silent.Store(true)
-	navigator.SetLateWait(100 * time.Millisecond)
-	if _, err := navigator.Navigate(context.Background(), Target{ItemGUID: testItem}); !errors.Is(err, ErrAnswerLate) {
-		t.Fatalf("a move never answered: %v, want ErrAnswerLate", err)
-	}
-	navigator.SetLateWait(10 * time.Second)
-	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
-	defer cancel()
-	if _, err := navigator.Navigate(ctx, Target{ItemGUID: testItem}); !errors.Is(err, ErrAnswerLate) || !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("a move whose caller's deadline ended: %v, want ErrAnswerLate wrapping the deadline", err)
-	}
 }
 
 // A ping is a read: REAPER read it and did not answer, and it is plain ErrNoAnswer at the usual wait.
 func TestAPingKeepsTheUsualWait(t *testing.T) {
-	navigator, client, dir := newNavigatorSession(t)
-	startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
-	navigator.SetTimeout(500 * time.Millisecond)
-	started := time.Now()
-	if _, err := navigator.Ping(context.Background()); !errors.Is(err, ErrNoAnswer) || errors.Is(err, ErrAnswerLate) {
-		t.Fatalf("err = %v, want plain ErrNoAnswer", err)
-	}
-	if time.Since(started) > 1500*time.Millisecond {
-		t.Fatalf("a ping waited %v", time.Since(started))
-	}
+	onVirtualClock(t, func(t *testing.T) {
+		navigator, client, dir := newNavigatorSession(t)
+		startFakeReaper(t, client, dir, func(command []string) [][]string { return nil })
+		navigator.SetTimeout(500 * time.Millisecond)
+		started := time.Now()
+		if _, err := navigator.Ping(context.Background()); !errors.Is(err, ErrNoAnswer) || errors.Is(err, ErrAnswerLate) {
+			t.Fatalf("err = %v, want plain ErrNoAnswer", err)
+		}
+		if time.Since(started) > 1500*time.Millisecond {
+			t.Fatalf("a ping waited %v", time.Since(started))
+		}
+	})
 }
 
 // A gain change is an edit: one REAPER read and answered late is the change, and one never answered is ErrAnswerLate.
 func TestAGainChangeREAPERReadIsWaitedFor(t *testing.T) {
-	levels, client, dir := newLevelMatchSession(t)
-	var silent atomic.Bool
-	startFakeReaper(t, client, dir, func(command []string) [][]string {
-		if silent.Load() {
-			return nil
+	onVirtualClock(t, func(t *testing.T) {
+		levels, client, dir := newLevelMatchSession(t)
+		var silent atomic.Bool
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			if silent.Load() {
+				return nil
+			}
+			time.Sleep(900 * time.Millisecond)
+			return [][]string{{"GAIN_ITEM", run(command), testItem, "1.000000", "2.000000"}, {"GAIN_APPLIED", run(command), "1"}}
+		})
+		levels.SetTimeout(500 * time.Millisecond)
+		levels.SetLateWait(5 * time.Second)
+		candidates := []GainCandidate{{ItemGUID: testItem, DeltaDB: -3, FindingID: "f1"}}
+		got, err := levels.Apply(context.Background(), candidates)
+		if err != nil || len(got.Changed) != 1 {
+			t.Fatalf("a gain change answered late: %+v, %v", got, err)
 		}
-		time.Sleep(900 * time.Millisecond)
-		return [][]string{{"GAIN_ITEM", run(command), testItem, "1.000000", "2.000000"}, {"GAIN_APPLIED", run(command), "1"}}
+		silent.Store(true)
+		levels.SetLateWait(100 * time.Millisecond)
+		if _, err := levels.Apply(context.Background(), candidates); !errors.Is(err, ErrAnswerLate) {
+			t.Fatalf("a gain change never answered: %v, want ErrAnswerLate", err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
+		defer cancel()
+		levels.SetLateWait(10 * time.Second)
+		if _, err := levels.Apply(ctx, candidates); !errors.Is(err, ErrAnswerLate) || !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("a gain change whose caller's deadline ended: %v, want ErrAnswerLate wrapping the deadline", err)
+		}
 	})
-	levels.SetTimeout(500 * time.Millisecond)
-	levels.SetLateWait(5 * time.Second)
-	candidates := []GainCandidate{{ItemGUID: testItem, DeltaDB: -3, FindingID: "f1"}}
-	got, err := levels.Apply(context.Background(), candidates)
-	if err != nil || len(got.Changed) != 1 {
-		t.Fatalf("a gain change answered late: %+v, %v", got, err)
-	}
-	silent.Store(true)
-	levels.SetLateWait(100 * time.Millisecond)
-	if _, err := levels.Apply(context.Background(), candidates); !errors.Is(err, ErrAnswerLate) {
-		t.Fatalf("a gain change never answered: %v, want ErrAnswerLate", err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
-	defer cancel()
-	levels.SetLateWait(10 * time.Second)
-	if _, err := levels.Apply(ctx, candidates); !errors.Is(err, ErrAnswerLate) || !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("a gain change whose caller's deadline ended: %v, want ErrAnswerLate wrapping the deadline", err)
-	}
 }

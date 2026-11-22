@@ -129,11 +129,7 @@ test('a listening start that never answers ends the press with a sentence, and n
 test('a lookup of the chosen start that never answers ends the press with one error and no "Starting from" beside it', async ({ page }) => {
   await openWith(page, 'lookup');
   await arm(page);
-  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
+  await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
@@ -148,11 +144,7 @@ test('a lookup of the chosen start that never answers ends the press with one er
 test('a lookup refusal does not stay beside the take a later press starts', async ({ page }) => {
   await openWith(page, 'lookup');
   await arm(page);
-  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
+  await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
@@ -165,11 +157,7 @@ test('a lookup refusal does not stay beside the take a later press starts', asyn
 test('a voice choice that never answers ends a punch press with a sentence and starts no take', async ({ page }) => {
   await openWith(page, 'voiceChoice');
   await arm(page);
-  await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
-  await page
-    .getByRole('menuitem', { name: /Mark the start here/ })
-    .first()
-    .click();
+  await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking sends nothing (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   // The press waits PRESS_LIMITS_MS.voiceChoice (45 s): above the host's whole budget for the arm (laneCommandTimeout).

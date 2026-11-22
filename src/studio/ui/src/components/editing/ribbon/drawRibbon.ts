@@ -5,6 +5,7 @@ import type { RibbonLayout } from './ribbonLayout';
 
 import { kindColour, type KindId } from '../../../kinds/kindMap';
 import type { TintKind } from './ribbonLayout';
+import { clamp } from '../../../clamp';
 
 /** The registry kind each tinted span is, so a span is the colour the same words have in the script (kinds/kindMap.ts). */
 const TINT_KIND: Record<TintKind, KindId> = { extra: 'extra', mis: 'misread', low: 'low' };
@@ -169,7 +170,7 @@ function drawBars(
     ctx.fill();
   };
   // Bars whose centre the playhead has passed are played. With RMS the peaks are the faint outline and the RMS the solid core.
-  const split = headBar == null ? columns.length : Math.max(0, Math.min(columns.length, Math.ceil(headBar - 0.5)));
+  const split = headBar == null ? columns.length : clamp(Math.ceil(headBar - 0.5), 0, columns.length);
   const withRms = columns.some((c) => c[2] !== undefined);
   ctx.globalAlpha = withRms ? PEAK_OUTLINE_ALPHA : 1;
   fillBars(colors.bars, 0, split, false);

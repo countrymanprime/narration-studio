@@ -2,6 +2,7 @@ import type { ProductionMilestone } from '../../api/contracts/production';
 import { farDateProblem, isIsoDate, MAX_DATE_YEAR } from './dates';
 import { chaptersOf, measOf, minutesOf } from './measures';
 import { plural, formatCount } from '../../plural';
+import { clamp } from '../../clamp';
 
 /** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N". */
 export type MilestoneDraft = { name: string; date: string; measure: string; chapters: number; minutes: number; note: string; done: boolean };
@@ -48,8 +49,8 @@ export type DraftBounds = { chapters: number; minutes: number };
 
 /** The measure as stored: "first N" takes its N from the draft, kept between 1 and what the book has. */
 function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds): string {
-  if (draft.measure === 'chN') return `ch${Math.max(1, Math.min(Math.max(1, bounds.chapters), Math.round(draft.chapters) || chaptersOf(undefined)))}`;
-  if (draft.measure === 'minN') return `min${Math.max(1, Math.min(bounds.minutes, Math.round(draft.minutes) || minutesOf(undefined)))}`;
+  if (draft.measure === 'chN') return `ch${clamp(Math.round(draft.chapters) || chaptersOf(undefined), 1, bounds.chapters)}`;
+  if (draft.measure === 'minN') return `min${clamp(Math.round(draft.minutes) || minutesOf(undefined), 1, bounds.minutes)}`;
   return draft.measure;
 }
 

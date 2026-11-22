@@ -24,8 +24,8 @@ import (
 // restores the time, a save within the time step of a FAT volume) is not seen; a hash of the whole file would see it.
 
 const (
-	// peaksAnalyzerID and peaksVersion identify this package's entries in the evidence cache (evidence.CacheEntryKey).
-	peaksAnalyzerID = "peaks"
+	// PeaksAnalyzerID and peaksVersion identify this package's entries in the evidence cache (evidence.CacheEntryKey).
+	PeaksAnalyzerID = "peaks"
 	peaksVersion    = "2" // 2: entries carry the RMS bytes
 	// peaksBlobVersion is the cache entry's own schema version (the evidence store never looks inside the blob).
 	// 2: entries carry the source's modification time; an older entry is computed again.
@@ -98,7 +98,7 @@ func (p Peaks) whole() bool {
 func peaksCacheKey(identity evidence.SourceIdentity, perSecond int) evidence.CacheEntryKey {
 	return evidence.CacheEntryKey{
 		Source:          identity,
-		AnalyzerID:      peaksAnalyzerID,
+		AnalyzerID:      PeaksAnalyzerID,
 		AnalyzerVersion: peaksVersion,
 		ParamHash:       fmt.Sprintf("%d", perSecond),
 	}

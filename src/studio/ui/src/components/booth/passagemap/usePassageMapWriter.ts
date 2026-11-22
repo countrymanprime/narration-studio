@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { PASSAGE_MAP_MAX_SECONDS, type PassageMarkInput, type PassagePlace } from '../../../api/contracts/passageMap';
 import { usePort } from '../../../ports/usePort';
 import type { Notify } from '../../primitives/Toast';
+import { clamp } from '../../../clamp';
 
 export type PassageMapWriterDeps = {
   chapterId: string;
@@ -46,7 +47,7 @@ export function usePassageMapWriter(deps: PassageMapWriterDeps): PassageMapWrite
     // Never earlier than the mark before it, never past the day the host accepts: a clock hiccup must not get a whole run refused.
     const secAt = (run: Run, elapsed: number): number => {
       const last = run.marks[run.marks.length - 1].sec;
-      return Math.min(PASSAGE_MAP_MAX_SECONDS, Math.max(last, run.offset + elapsed));
+      return clamp(run.offset + elapsed, last, PASSAGE_MAP_MAX_SECONDS);
     };
 
     const drain = async (): Promise<void> => {

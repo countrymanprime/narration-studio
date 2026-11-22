@@ -12,6 +12,7 @@ import { KindMenu } from './KindMenu';
 import { lookupTarget } from './lookupTarget';
 import { MarkMenu } from './MarkMenu';
 import { TOOL_BUTTON } from './toolButton';
+import { clamp } from '../../../../../clamp';
 
 /** The record button's red: the mock's `--bad` on the ink pill, eased toward the surface so it holds 3:1 on the pill in both themes. */
 const RECORD_RED = 'border-0! bg-transparent! text-[color-mix(in_srgb,var(--danger)_60%,var(--surface))]! not-aria-disabled:hover:bg-white/15!';
@@ -73,8 +74,8 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
       const above = rect.top / zoom - ABOVE;
       // Kept inside the window: with the words scrolled out of view it waits at the nearest edge rather than follow them off screen.
       const lowest = window.innerHeight / zoom - box.height / zoom - EDGE;
-      el.style.left = `${Math.max(EDGE, Math.min(rect.left / zoom + rect.width / zoom / 2 - width / 2, document.documentElement.clientWidth - width - EDGE))}px`;
-      el.style.top = `${Math.max(EDGE, Math.min(above >= EDGE ? above : rect.bottom / zoom + BELOW, lowest))}px`;
+      el.style.left = `${clamp(rect.left / zoom + rect.width / zoom / 2 - width / 2, EDGE, document.documentElement.clientWidth - width - EDGE)}px`;
+      el.style.top = `${clamp(above >= EDGE ? above : rect.bottom / zoom + BELOW, EDGE, lowest)}px`;
     };
     place();
     window.addEventListener('scroll', place, true);

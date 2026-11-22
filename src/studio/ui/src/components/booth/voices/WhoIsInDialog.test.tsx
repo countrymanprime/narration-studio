@@ -12,7 +12,7 @@
 //   rapid double-fire                     'Add track is busy until the host answers, and a second press sends nothing more'
 //   leave mid-action                      the page closes the dialog on another chapter (BoothNextPage's effect on recordId); not tested here
 //   reload mid-action                     not tested: the dialog holds no saved state; a track the host added is listed by BoothVoiceGet
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Voice } from '../../engine/voices';
@@ -88,6 +88,15 @@ describe('Who is in Num N?', () => {
     await userEvent.type(nameField(), 'Court');
     await userEvent.click(screen.getByRole('checkbox', { name: /Duchess/ }));
     expect(nameField().value).toBe('Court');
+  });
+
+  it('a track name of only invisible characters is refused like a blank one (#3382 f)', async () => {
+    const props = show({ kind: 'key', key: 5 });
+    await userEvent.clear(nameField());
+    fireEvent.change(nameField(), { target: { value: String.fromCodePoint(0x200b, 0x200d) } });
+    expect(screen.getByText('The new track needs a name.')).toBeTruthy();
+    await userEvent.type(nameField(), '{Enter}');
+    expect(props.onAdd).not.toHaveBeenCalled();
   });
 
   it('a name a track of the chapter has is refused before anything is sent, and so is a blank one', async () => {
@@ -205,5 +214,36 @@ describe('Who records a character with no track?', () => {
     expect((screen.getByRole('radio', { name: 'An existing track' }) as HTMLInputElement).getAttribute('aria-checked')).toBe('true');
     await userEvent.click(screen.getByRole('button', { name: 'Use this track' }));
     expect(props.onUse).toHaveBeenCalledWith(voices[1], ['king']);
+  });
+
+  it('a track added from a search that found nothing starts named by what was typed (#3970)', () => {
+    show({ kind: 'key', key: 5, name: ' Duchess ' });
+    expect((screen.getByLabelText('Track name') as HTMLInputElement).value).toBe('Duchess');
+    // No one is ticked for it: the chapter's speakers with no track are not the Duchess.
+    expect(screen.queryAllByRole('checkbox', { checked: true })).toHaveLength(0);
+  });
+
+  it('a number past nine has no key to name: the dialog asks about the new track', () => {
+    show({ kind: 'key', key: 11 });
+    expect(screen.getByRole('dialog', { name: 'Who is in the new track?' })).toBeTruthy();
+  });
+
+  it('the 10th track is offered Shift and Num 0, and a track past nine is listed with its Shift keys (#3989)', async () => {
+    const nine: Voice[] = Array.from({ length: 9 }, (_, i) => ({
+      guid: `{v${i}}`,
+      name: `V${i}`,
+      key: String(i + 1),
+      narrator: false,
+      notVoice: false,
+      characters: [],
+    }));
+    const tenth: Voice = { guid: '{ten}', name: 'Ten', key: '', shift: '0', narrator: false, notVoice: false, characters: [] };
+    show({ kind: 'key', key: 10 }, { voices: nine });
+    expect(screen.getByRole('img', { name: 'Shift + Num 0' })).toBeTruthy();
+    cleanup();
+    show({ kind: 'key', key: 11 }, { voices: [...nine, tenth] });
+    await userEvent.click(screen.getByRole('radio', { name: /An existing track/ }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Track' }));
+    expect(screen.getByRole('option', { name: 'Shift + Num 0 · Ten' })).toBeTruthy();
   });
 });

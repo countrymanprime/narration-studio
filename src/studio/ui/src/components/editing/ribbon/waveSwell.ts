@@ -1,5 +1,6 @@
 import type { PeakColumn } from './peaksWindow';
 import { DISPLAY_RANGE_DB, type PeakScale } from './ribbonBars';
+import { clamp } from '../../../clamp';
 
 /*
  * The swell that runs over the waveform's own bars, like a stadium wave: the crest rides the playhead while the chapter plays, so the bars
@@ -44,7 +45,7 @@ export function swellProfile(d: number, width: number): number {
  * and ends with it off the right, eased in and out.
  */
 export function crestAt(phase: number, count: number): number {
-  const p = Math.max(0, Math.min(1, phase));
+  const p = clamp(phase, 0, 1);
   const eased = 0.5 - 0.5 * Math.cos(Math.PI * p);
   const width = swellWidth(count);
   const ahead = width * SWELL.aheadShare;
@@ -66,7 +67,7 @@ export function barSwell(i: number, count: number, crest: number | null): number
 
 /** A bar's half height scaled by `factor`, never past `room` (the lane's edge) and never shorter than it was. */
 export function swelledHalf(half: number, factor: number, room: number): number {
-  return Math.max(half, Math.min(half * factor, room));
+  return clamp(half * factor, half, room);
 }
 
 /** The level (share of the headroom) the placeholder bars stand at while the waveform is read: a low flat row for the swell to run over. */

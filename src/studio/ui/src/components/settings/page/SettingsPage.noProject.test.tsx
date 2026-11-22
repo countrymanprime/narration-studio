@@ -2,7 +2,6 @@
 // Settings with no project open (issue 3024): every category draws, the rows that are this computer's work, and the rows that need a project
 // say so and stay where they are, disabled. Nothing throws, nothing is blank, nothing asks the host for a project's data.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -10,7 +9,6 @@ import { createMockApi } from '../../../api/mockApi';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { CATEGORIES } from '../registry/categories';
-import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { needsProject, NEEDS_PROJECT_REASON } from '../registry/projectNeeds';
 import { SettingsPage } from './SettingsPage';
@@ -83,22 +81,28 @@ describe('Settings with no project: every category', () => {
     });
   }
 
-  it('Set on a page draws every entry; the panels that read project data are held back with the reason, the rest edit the computer', async () => {
+  it('the settings one page reads sit in their categories; the panels that read project data are held back with the reason, the rest edit the computer', async () => {
     const { notify } = await renderPage();
-    pick('Set on a page');
-    for (const item of PAGE_SETTINGS) {
+    const homes: ReadonlyArray<readonly [string, string]> = [
+      ['stt.rules', 'Speech to text'],
+      ['stt.compareColours', 'Speech to text'],
+      ['daw.fxFavourites', 'Recording & DAW'],
+      ['editing.cleanup', 'Recording & DAW'],
+      ['proofing.preview', 'Delivery'],
+      ['project.stages', 'Project'],
+    ];
+    for (const [id, category] of homes) {
+      pick(category);
       const entry = await waitFor(() => {
-        const found = document.querySelector<HTMLElement>(`[data-page-setting="${item.id}"]`);
-        if (!found) throw new Error(`no entry ${item.id}`);
+        const found = document.querySelector<HTMLElement>(`[data-row="${id}"]`);
+        if (!found) throw new Error(`no row ${id}`);
         return found;
       });
-      expect(entry.textContent).toContain(item.label);
-      fireEvent.click(within(entry).getByRole('button', { name: /Change it here for now/ }));
       await waitFor(() => expect(within(entry).queryByText('Reading the settings…')).toBeNull());
-      if (item.panel === 'backups') expect(within(entry).getByText(NEEDS_PROJECT_REASON)).toBeTruthy();
       // The scope switch has no "This project" to offer.
       expect(within(entry).queryByRole('radio', { name: 'This project' })).toBeNull();
     }
+    expect(document.querySelector('[data-cat="pages"]')).toBeNull();
     expect(notify).not.toHaveBeenCalled();
   });
 
@@ -126,7 +130,6 @@ describe('Settings with no project: every category', () => {
       pick(category.label);
       await screen.findByRole('heading', { level: 2, name: category.label });
     }
-    await userEvent.click(within(nav()).getByRole('button', { name: /^Set on a page/ }));
     // Let the Changed probes run.
     await new Promise((resolve) => setTimeout(resolve, 50));
     for (const [name, spy] of Object.entries(reads)) expect(spy, name).not.toHaveBeenCalled();

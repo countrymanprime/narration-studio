@@ -8,9 +8,10 @@ import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { POLL_MS, READY_POLL_MS, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
+import { POLL_MS, READY_FOLLOWING_POLL_MS, READY_POLL_MS, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -50,15 +51,28 @@ function liveDaw(initial: DawCapabilities | 'fail') {
       throw new Error('the host went away');
     },
   };
-  return { client, reads, set: (next: DawCapabilities | 'fail') => (truth = next), emit: (next: DawCapabilities) => emit(next) };
+  return {
+    client,
+    reads,
+    set: (next: DawCapabilities | 'fail') => (truth = next),
+    emit: (next: DawCapabilities) => emit(next),
+  };
 }
 
-function mount(initial: DawCapabilities | 'fail', api = createMockApi()) {
+function mount(initial: DawCapabilities | 'fail', api = createMockApi(), options: { follow?: boolean } = {}) {
   const daw = liveDaw(initial);
   const notify = vi.fn();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <ApiProvider api={api}>
-      <PortOverrides clients={{ daw: daw.client }}>{children}</PortOverrides>
+      <PortOverrides clients={{ daw: daw.client }}>
+        {options.follow ? (
+          <ProjectTrackProviders projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            {children}
+          </ProjectTrackProviders>
+        ) : (
+          children
+        )}
+      </PortOverrides>
     </ApiProvider>
   );
   return { ...daw, notify, ...renderHook(() => useRecordControl({ chapterId: 'c1', notify }), { wrapper }) };
@@ -455,6 +469,83 @@ describe('another project opened in the DAW while Record is ready or a take runs
     await waitFor(() => expect(daw.result.current.facts.openProject).toBe('different'));
     expect(daw.result.current.disabled).toBe(true);
     expect(daw.result.current.reason).toMatch(/different project open/);
+  });
+
+  // #3880: what the DAW says while Record is idle is read at once, and the slow timer is only the backstop for what has no event.
+  /** An api whose track list event the test sends by hand, and whose link read (`bootstrap`) it counts. */
+  function eventApi() {
+    const heard = { list: () => {}, bootstraps: 0, offList: vi.fn() };
+    const base = createMockApi();
+    const api = createMockApi({
+      bootstrap: async () => {
+        heard.bootstraps += 1;
+        return base.bootstrap();
+      },
+      subscribeTracksChanged: (on) => {
+        heard.list = () => on({ revision: '' });
+        return heard.offList;
+      },
+    });
+    return { api, heard };
+  }
+
+  it('a track list change in the DAW (another project, a track added or removed) is read on the next second, not at the slow read', async () => {
+    const { api, heard } = eventApi();
+    const daw = mount(CONNECTED, api);
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    await act(() => vi.advanceTimersByTimeAsync(500));
+    const before = heard.bootstraps;
+    await act(async () => heard.list());
+    await act(() => vi.advanceTimersByTimeAsync(1100));
+    expect(heard.bootstraps).toBeGreaterThan(before);
+  });
+
+  it('a change heard during a take is read once the take ends, not lost', async () => {
+    const { api, heard } = eventApi();
+    const daw = mount(CONNECTED, api);
+    let emitTransport: (t: { playing: boolean; recording: boolean }) => void = () => {};
+    daw.client.subscribeTransport = (listener) => ((emitTransport = listener), () => {});
+    daw.client.recordStart = async () => ({ ok: true, changed: false, message: '', undoSteps: 0 });
+    daw.client.projectState = async () => ({ savedAt: null, unsavedChanges: false, playState: 'recording', playPosition: 3 });
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    await act(() => daw.result.current.toggle());
+    await act(() => vi.advanceTimersByTimeAsync(POLL_MS + 50));
+    expect(daw.result.current.recording).toBe(true);
+    await act(async () => heard.list());
+    // The take's own 4 s timer reads on: look just after the change, before the next of those.
+    await act(() => vi.advanceTimersByTimeAsync(1100));
+    const during = heard.bootstraps;
+    daw.client.projectState = async () => ({ savedAt: null, unsavedChanges: false, playState: 'stopped', playPosition: 3 });
+    await act(async () => emitTransport({ playing: false, recording: false }));
+    await waitFor(() => expect(daw.result.current.recording).toBe(false));
+    await act(() => vi.advanceTimersByTimeAsync(1100));
+    expect(heard.bootstraps).toBeGreaterThan(during);
+  });
+
+  it('the Booth stops hearing the event when it is left', async () => {
+    const { api, heard } = eventApi();
+    const daw = mount(CONNECTED, api);
+    await waitFor(() => expect(daw.result.current.disabled).toBe(false));
+    daw.unmount();
+    expect(heard.offList).toHaveBeenCalled();
+  });
+
+  it('with the DAW following its track list the idle timer is the slow one; without, it is the old one', async () => {
+    const following = mount(CONNECTED, createMockApi(), { follow: true });
+    await waitFor(() => expect(following.result.current.disabled).toBe(false));
+    // The shared track state has read once and holds a revision.
+    await act(() => vi.advanceTimersByTimeAsync(1000));
+    const settled = following.reads.count;
+    await act(() => vi.advanceTimersByTimeAsync(READY_POLL_MS + 50));
+    expect(following.reads.count).toBe(settled);
+    await act(() => vi.advanceTimersByTimeAsync(READY_FOLLOWING_POLL_MS - READY_POLL_MS));
+    expect(following.reads.count).toBeGreaterThan(settled);
+    cleanup();
+    const plain = mount(CONNECTED);
+    await waitFor(() => expect(plain.result.current.disabled).toBe(false));
+    const first = plain.reads.count;
+    await act(() => vi.advanceTimersByTimeAsync(READY_POLL_MS + 50));
+    expect(plain.reads.count).toBeGreaterThan(first);
   });
 
   it('the narrator opens the linked project again: the refusal goes by itself', async () => {

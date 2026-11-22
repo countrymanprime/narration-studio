@@ -22,6 +22,7 @@ import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, us
 import { closeFind, escapeClosesFind, quoteTerm, stepFind } from '../tools/find/findState';
 import { scriptContextProvider, type MenuHandlers } from './contextProvider';
 import { bookSource, marksSource, MANUSCRIPT_GROUP } from './searchSources';
+import { clamp } from '../../../../clamp';
 
 export type ScriptRegistryOptions = MenuHandlers & {
   /** The host's whole-book search, cached per term (`useManuscriptSearch`), for the manuscript source. */
@@ -170,7 +171,7 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     if (typing(target)) return;
     const order = stops ?? chapterList;
     const at = order.findIndex((row) => row.id === currentChapterId());
-    const next = order[Math.max(0, Math.min(order.length - 1, Math.max(0, at) + delta))];
+    const next = order[clamp(Math.max(0, at) + delta, 0, order.length - 1)];
     if (next) latest.current.goToChapter(next.id);
   };
   useCommand('editing.chapter.next', (e) => step(1, e.target));

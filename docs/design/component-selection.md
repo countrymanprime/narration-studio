@@ -122,7 +122,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 - **CS-E7** An enum whose options are looks (a line style, a font) previews each option in the option itself, as `ColourField`'s palette mode does for colour. A native `Select` cannot draw one, so such a value is a `RadioGroup`, a segmented `ToggleGroup`, or a `Menu` with `select="one"` whose items carry the preview. **New**.
 - **CS-E8** A value shown as a chip in a header or a sentence that opens a menu is a `Menu` with a `select="one"` section, so the open menu shows the current value checked. **New**.
 - **CS-E9** A control repeated in every row of a table or an editable list is compact, whatever its option count: `Select` for an enum, `Checkbox` for a boolean column, `ColourField`'s popover form for a colour. **New**.
-- **CS-E10** One value is one control. A setting drawn in two places (Settings and a page's own menu or dialog) uses the same component, the same options and the same option labels in both, from one shared module. **New**.
+- **CS-E10** One value is one control. A setting drawn in two places (Settings and a page's own menu or dialog) uses the same component, the same options and the same option labels in both, from one shared module. For a host `choice` the labels are the registry row's `options`, read through `choiceLabel` and `choiceOptions` in `components/settings/data/values.ts` by Settings, a settings tool's panel, the page options dialogs and a page's own control; `components/settings/data/choiceWords.test.tsx` holds the three renderers to the same words. **New**.
 - **CS-E11** A scope switch (All projects / This project), which changes whose values a panel edits, is a `ToggleGroup look="segmented"` in the panel's header. **New**.
 - **CS-E12** Presets over custom numbers are a segmented `ToggleGroup` of the presets plus "Custom". The control selects "Custom" itself when the numbers stop matching a preset, and "Custom" is off while a preset matches, as `components/editing/cleanup/CleanupInspector.tsx` does. **New**.
 - **CS-E13** A list filter is not a value control, and CS-E1's counts do not apply to it. One of up to about 6: chips in the filter look (28 px, sentence case, the ink fill when pressed), which `components/primitives/Pill.tsx` documents as the list-filter look. `ToggleGroup` draws only `chip` (36 px, capitals, the accent fill: a standalone value toggle) and `segmented`, so a `look="filter"` option on `ToggleGroup` is **Proposed**; until it exists, a one-of-N filter is a `role="group"` of `Pill look="filter"` with the group's name. Several at once: `Pill look="filter"` chips. More than about 6: a `Menu` with a `select="one"` or `select="many"` section. A segmented `ToggleGroup` is never a filter. **New**; decided 2026-11-20 (coordinator).
@@ -130,7 +130,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 
 ### Numbers
 
-- **CS-N1** An exact value is `NumberInput` with `min`, `max` and `step`, and its unit as text after the box (as `components/settings/row/ValueControl.tsx` does with `row.unit`). The range is a muted note under it, not a tooltip. A count of things (workers, processes, pages) is always exact. **New**.
+- **CS-N1** An exact value is `NumberInput` with `min`, `max` and `step`, and its unit as text after the box (as `components/settings/value/SettingNumber.tsx` does). The range is a muted note under it, not a tooltip. A count of things (workers, processes, pages) is always exact. **New**.
 - **CS-N2** A value the narrator tunes by ear or eye is a `Slider`; its readout (`valueText`) carries the unit and is the `aria-valuetext`. The test: if the narrator would ever say the number aloud or copy it from a guide, it is a `NumberInput`. A value a delivery spec checks (loudness targets, sample rate) is a `NumberInput` or a `Select`, not a slider. **New**.
 - **CS-N3** A number from a fixed set of up to 5 values is a segmented `ToggleGroup` when the labels fit the row on one line in a 960 px window; more is a `Select`. A label keeps its unit sign (`0.75×`).
 - **CS-N4** A duration or time position is shown with `clock`/`clockTenths`, and a count with `plural`/`formatCount` (frontend-primitives, "Before writing text or logic a page already has").
@@ -164,7 +164,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 
 - **CS-T1** A control with a visible label, a hint or an error is a `Field`; a bare control with only an accessible name is a `TextField`. Every control has a name (`ControlNaming`: `label`, or an `id` a visible `<label htmlFor>` points at).
 - **CS-T2** Text that is code (an id, a hex colour, a number) uses `mono`, which is a `TextField` prop (`NumberInput` sets it). `Field` has none, so a labelled code value is a `TextField mono` under its own `<label>`.
-- **CS-T3** A text box that settles (Settings rows) keeps the draft while typing and saves on Enter or blur; Escape puts back the stored value (the settled box in `components/settings/row/ValueControl.tsx`). A half-typed value is never saved.
+- **CS-T3** A text box that settles (Settings rows) keeps the draft while typing and saves on Enter or blur; Escape puts back the stored value (`useSettledDraft` in `components/primitives/settledDraft.ts`, which the settled text box in `components/settings/row/ValueControl.tsx`, `ColourField`'s hex box and `NumberInput commit="settle"` all use). A half-typed value is never saved.
 - **CS-T4** A placeholder is an example of the value ("Your name as the narrator"), never the label and never an instruction.
 - **CS-T5** Text of several lines is `Field textarea`. **New**.
 
@@ -236,7 +236,7 @@ The primitives supply these. A page that builds its own control instead must sup
 - **CS-K3** A `Switch` that can be off says why: `Switch disabledReason` keeps it a tab stop, announces it unavailable with the reason as its description, and draws the reason beside the label. Plain `disabled` is for a switch whose row already gives the reason.
 - **CS-K4** Every new command that has an `IconButton` and is used often gets a row in `input/commands.catalog.ts`, and its row in `icons.catalog.ts` names the shortcut, which `IconButton` adds to the tooltip and reports as `aria-keyshortcuts`. A `label=` beside `action=` drops both, and a `hint=` or a `disabledReason` replaces the tooltip and so its shortcut.
 - **CS-K5** Native elements (`button`, `select`, `input`, `textarea`, table parts) are not written outside the primitives (`rawNatives.test.ts`), and Base UI is not imported outside them (`baseUiBoundary.test.ts`).
-- **CS-K6** A segmented `ToggleGroup` is one tab stop with arrow-key roving, as `RadioGroup` is. `ToggleGroup` makes every chip a tab stop as of 2026-11-20; CS-E6 orders the fix. **New**.
+- **CS-K6** A segmented `ToggleGroup` is one tab stop with arrow-key roving, as `RadioGroup` is. `ToggleGroup` is one tab stop (Tab lands on the chosen chip, else the first that can take focus; the arrow keys, Home and End move focus and wrap, Enter or Space chooses). **Done**.
 
 ## Sizing and half-width windows
 
@@ -314,16 +314,16 @@ The audit lists every site with its file and line; this table names the larger c
 | Rule | Departure | Audit rows |
 | --- | --- | --- |
 | CS-E6 | Three renderers draw every host `choice` as a `Select` (`components/settings/row/ValueControl.tsx`, `components/settings/ScopedSetting.tsx`, `components/proof/proofOptions/ProofOptions.tsx`), as [Settings rows](design-system.md#settings-rows) records; the registry has no control declaration | S1, S2, F7 |
-| CS-K6 | `ToggleGroup` makes every chip a tab stop | R10 |
+| CS-K6 | `ToggleGroup` was every chip a tab stop; now one tab stop with arrows | R10 |
 | CS-E13 | `ToggleGroup` has no `look="filter"`. Three one-of-N list filters are `ToggleGroup`s in a value look: two segmented (`components/settings/page/SettingsPage.tsx`, `components/settings/page/ModelsPane.tsx`) and one in the default `chip` look (`components/editing/cleanup/CleanupHeader.tsx`) | S19, E8, R4 |
 | CS-E14 | Three track pickers are plain `Select`s (`components/engine/LinkChaptersDialog.tsx`, `components/engine/CreateChapterRegionsDialog.tsx`, `components/booth/voices/WhoIsInDialog.tsx`). `TrackSelect` has no prop for the "key · voice" option label the last one draws | G1, G2, G4 |
 | CS-E1 (search) | `ComboSelect` is not written; three pages write `role="combobox"` themselves (`components/storybible/Relationships.tsx`, `components/script/page/tools/speaker/SpeakerPicker.tsx`, `components/layout/JumpMenu.tsx`), and several `Select`s list chapters or characters | B2, B3, B4, C3, E5, K1, K3, G3, S17 |
 | CS-B1, CS-B2, CS-B6 | Two Settings bodies are Off / On `RadioGroup`s; some booleans saved at once are `Checkbox`es, and a draft's are `Switch`es | S6 to S10, E4 |
 | CS-M1, CS-M2, CS-M7 | `components/production/ImportReview.tsx` selects chapter tiles and character tiles with a `Switch` each and "Select all" / "Select none" buttons; `components/recordingcheck/CheckRecordingsDialog.tsx` has "All" / "None" buttons | P1 to P4, K2 |
 | CS-E3, CS-N7, CS-E10 | Parallel workers is a number box where 0 means automatic in Settings, a `Slider` with an "Automatic" `Checkbox` in `components/recordingcheck/RunOptions.tsx`, and a chip group in `components/proof/CompareRun.tsx` | S16, P5, P6, F2, F3, S22 |
-| CS-N1 | Number boxes built on `TextField` with page-written parsing in Settings and Schedule | S11 to S14, H1, H2 |
+| CS-N1 | Number boxes built on `TextField` with page-written parsing in the delivery profile editor and Schedule | S11, H1, H2 |
 | CS-P3 | **REAPER program** (`daw.reaperPath`) is a free-text box with no Choose… button | S15 |
-| CS-L5 | `Field` draws `error` as a line in the flow under the control, which adds its height when it appears; it has no reserved slot. `components/settings/row/ValueControl.tsx` shows a refused number as a `role="alert"` line in place of the range note; it is counted in the inline-errors allowlist | (none) |
+| CS-L5 | `Field` draws `error` as a line in the flow under the control, which adds its height when it appears; it has no reserved slot | (none) |
 | CS-N6 | `NumberInput` has no precision or format prop: a money value with `step={0.01}` shows 12, not 12.00 | H1 |
 | CS-L1 | `Slider`'s `label` and `aria-label` are both optional | (none) |
 | CS-K2 | The standalone `Radio` drops `reason`; `Select`, `TextField`, `NumberInput`, `Slider`, `DateField` and `Field` take no reason, and `Slider` and `Field` take no `aria-describedby` either. `Button` and `IconButton` show `disabledReason` as a hint only, not as the button's description; an `IconButton` with `label=` alone shows it only if the caller adds the `TooltipTarget` | (none) |

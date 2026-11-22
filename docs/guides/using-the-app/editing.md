@@ -40,7 +40,7 @@ any other, so you can open them here, from [Production](production.md#the-credit
 chapter with text when none is remembered (with or without a DAW connected, and whatever **DAW follows your chapter** says). A credits file reads as its template's rendered text, one paragraph, with the tracks and takes it has.
 
 The chapter stepper's list shows how far each chapter is recorded after its name (**45%**, **~30%** for an estimate from the
-track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped) (a chapter with audio on its track never reads 0%).
+track's length, **Complete**), the same figure as the [Booth](booth.md#where-you-stopped) (a chapter with a recorded second on its track never reads 0%).
 
 The script is one centred column, 64 characters of text a line (the Script and Booth's default measure) with the times at its left, so on a wide
 window the text stays one comfortable line length and does not run across the whole card; in a narrow window it takes the card's width.
@@ -96,7 +96,7 @@ which sets REAPER's own output when REAPER plays and does not change the app's s
 The word playing is lit, and the text scrolls to keep it in sight until you scroll by hand; the next play scrolls it
 again. When you play the project in the DAW instead, the lit word follows the DAW's play position, as long as the DAW
 reports one and the app is not playing its own audio. When the DAW stops, its last word stays lit until you move the
-cursor.
+cursor, and the bar reads **Play** again: Space plays from the cursor, not from the lit word.
 
 A chapter has to be linked to a track (see [Linking chapters to tracks](navigation.md#linking-chapters-to-tracks)) for
 its words to carry the times they were heard at. A chapter with no audio to edit shows the script plain, with no word marked
@@ -446,9 +446,9 @@ For clicks, breaths and plosives, **Repair in REAPER** (an icon button after **A
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed under their source, each name with a **Favourite** button at its right. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list; with words selected in the text, the effect on them is the one shown, and its row is marked. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name), beside **Preview** and **Compare**, moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed under their source, each name with a **Favourite** button at its right. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under Recording & DAW in [Settings](settings.md), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list; with words selected in the text, the effect on them is the one shown, and its row is marked. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name), beside **Preview** and **Compare**, moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
-stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (the window either side of an edit, and **Keep backups for (days)**; Audacity keeps backups whenever it answers). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the takes of the line the cursor is on, one lane each,
+stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (the window either side of an edit, and **Keep backups for (days)**; Audacity keeps backups whenever it answers). It is a shortcut to the same settings as the Audacity backups under Recording & DAW in [Settings](settings.md), which has the same two values; a change made in the tab is kept for this project only, while Settings keeps a value for every project unless a project has its own. **Timeline** shows the takes of the line the cursor is on, one lane each,
 on one time axis (the line's audio is the waveform above the bar). On a window 1360 px wide or more it is a strip under the text, which the header's
 timeline button (S) shows and hides; on a narrower window it is a tab of the drawer. Each lane names its take with
 the take's state (**Active** or **Muted**) under the name.

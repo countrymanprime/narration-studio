@@ -20,8 +20,8 @@ const chapter = WIRE_CHAPTERS[6];
 
 type Initial = Parameters<typeof createMockApi>[1];
 
-function renderPanel(initial: Initial = {}, openEngine?: () => void) {
-  const api = createMockApi({}, initial);
+function renderPanel(initial: Initial = {}, openEngine?: () => void, overrides: Parameters<typeof createMockApi>[0] = {}) {
+  const api = createMockApi(overrides, initial);
   const notify = vi.fn();
   const close = vi.fn();
   const body = (
@@ -272,6 +272,58 @@ describe('EditingCheckPanel', () => {
       await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Rendered file', pressed: true })).toBeTruthy());
       expect(setSpy).toHaveBeenCalledWith(chapter.id, 'render');
       expect(await api.editingSourceChoice(chapter.id)).toBe('render');
+    });
+
+    it('Check editing while the source choice saves is off with a reason, never silently dropped', async () => {
+      const user = userEvent.setup();
+      const { api } = renderPanel({ stages: { editing: { [chapter.id]: 'met' } } });
+      let finish: (choice: 'render') => void = () => undefined;
+      vi.spyOn(api, 'editingSetSourceChoice').mockReturnValue(new Promise((resolve) => (finish = resolve)));
+      const dialog = await panel();
+      await waitFor(() => within(dialog).getByRole('button', { name: 'Track items', pressed: true }));
+      await user.click(within(dialog).getByRole('button', { name: 'Rendered file' }));
+      const check = await within(dialog).findByRole('button', { name: /^Check (editing|again)$/ });
+      await waitFor(() => expect(check.getAttribute('aria-disabled')).toBe('true'));
+      expect(check.getAttribute('aria-describedby') ?? check.closest('span')?.textContent ?? '').not.toBe('');
+      finish('render');
+      await waitFor(() => expect(check.getAttribute('aria-disabled')).toBeNull());
+    });
+
+    it('a source chip pressed while Check editing starts is off with a reason, never silently dropped', async () => {
+      const user = userEvent.setup();
+      const { api } = renderPanel({}, undefined, { editingStart: () => new Promise(() => undefined) });
+      const setSpy = vi.spyOn(api, 'editingSetSourceChoice');
+      const dialog = await panel();
+      await waitFor(() => within(dialog).getByRole('button', { name: 'Track items', pressed: true }));
+      await user.click(within(dialog).getByRole('button', { name: /^Check (editing|again)$/ }));
+      const chip = within(dialog).getByRole('button', { name: 'Rendered file' });
+      await waitFor(() => expect(chip.getAttribute('aria-disabled')).toBe('true'));
+      expect(chip.getAttribute('aria-describedby')).toBeTruthy();
+      await user.click(chip);
+      expect(setSpy).not.toHaveBeenCalled();
+    });
+
+    it('while another chapter is being checked, Check editing is off with a reason and is not a nameless tab stop', async () => {
+      renderPanel({}, undefined, {
+        editingState: async () => ({
+          runId: 'other',
+          chapterId: 'some-other-chapter',
+          phase: 'running',
+          message: 'Checking item 1 of 4…',
+          percent: 0,
+          itemsTotal: 4,
+          itemsDone: 0,
+          cacheHits: 0,
+          decoded: 0,
+          failed: 0,
+          startedAt: new Date().toISOString(),
+        }),
+      });
+      const dialog = await panel();
+      const check = await within(dialog).findByRole('button', { name: /^Check (editing|again)$/ });
+      await waitFor(() => expect(check.getAttribute('aria-disabled')).toBe('true'));
+      expect(check.hasAttribute('disabled')).toBe(false);
+      expect(dialog.querySelector('[tabindex="0"][role="group"][aria-label=""]')).toBeNull();
     });
 
     it('names the render once it is the active choice, and the empty-space evidence changes with it', async () => {

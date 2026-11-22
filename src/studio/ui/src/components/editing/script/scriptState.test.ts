@@ -107,4 +107,13 @@ describe('the waveform view the script follows', () => {
     expect(pageReducer(viewed, { type: 'play', t: 2 }).view).toEqual({ t0: 1, t1: 4 });
     expect(pageReducer(viewed, { type: 'reset' }).view).toBeUndefined();
   });
+  it('holds a lit word after a stop: nothing plays, a play of the same word plays again, and a hold with no word does nothing', () => {
+    const held = run({ type: 'play', t: 2 }, { type: 'hold' });
+    expect(held.playT).toBe(2);
+    expect(held.held).toBe(true);
+    expect(pageReducer(held, { type: 'hold' })).toBe(held);
+    expect(pageReducer(initialPageState, { type: 'hold' })).toBe(initialPageState);
+    expect(pageReducer(held, { type: 'play', t: 2 }).held).toBe(false);
+    expect(pageReducer(held, { type: 'play', t: null }).playT).toBeNull();
+  });
 });

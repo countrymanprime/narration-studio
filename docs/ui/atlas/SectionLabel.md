@@ -67,7 +67,7 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/script/page/rail/bible/EntryCard.tsx`
 - `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
-- `src/components/settings/BackupsSection.tsx`
+- `src/components/script/page/tools/speaker/SpeakerPicker.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`

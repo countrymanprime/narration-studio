@@ -206,4 +206,10 @@ describe('RadioGroup', () => {
     expect(description.className).not.toMatch(/\bml-\[/);
     expect(screen.queryByText('There is not available yet.', { selector: ':not(.sr-only)' })).toBeNull();
   });
+
+  // The 16 px circle takes a press 24 px each way (`HIT_AREA`), inside the 10 px between two options (#3681).
+  it('draws every radio with the 24 px hit area', () => {
+    render(<RadioGroup label="What is it?" value="reference" onChange={() => undefined} options={OPTIONS} />);
+    for (const radio of screen.getAllByRole('radio')) expect(radio.className).toContain('after:min-h-6');
+  });
 });

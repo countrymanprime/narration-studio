@@ -13,6 +13,8 @@ import { clock } from '../../../../clock';
 import { DialogFooter } from '../common/DialogFooter';
 import type { ReplaceAsk } from './replaceCommand';
 import { plural } from '../../../../plural';
+import { hasVisibleText } from '../../../../visibleText';
+import { clamp } from '../../../../clamp';
 
 /** The fades at each seam the dialog offers, in milliseconds (the host takes 0 to 500); 10 ms is the cut's default seam. */
 const REPLACE_FADES = [0, 5, 10, 25, 50] as const;
@@ -158,7 +160,7 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
 
   const addNarrator = async () => {
     const name = newName.trim();
-    if (!name) return;
+    if (!hasVisibleText(name)) return;
     setBusy(true);
     try {
       const change = await api.replaceNarratorAdd(name);
@@ -293,7 +295,7 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
           <div className="min-w-[14rem] flex-1" ref={nameBox}>
             <Field label="Name another narrator" value={newName} onChange={setNewName} placeholder="Their name as the credits give it" />
           </div>
-          <Button type="button" variant="secondary" disabled={busy || !newName.trim()} onClick={() => void addNarrator()}>
+          <Button type="button" variant="secondary" disabled={busy || !hasVisibleText(newName)} onClick={() => void addNarrator()}>
             Add
           </Button>
         </div>
@@ -454,7 +456,7 @@ function StretchWave({
   const at = (event: ReactPointerEvent<SVGSVGElement>): number => {
     const box = ref.current?.getBoundingClientRect();
     if (!box || box.width === 0) return 0;
-    return Math.min(length, Math.max(0, ((event.clientX - box.left) / box.width) * length));
+    return clamp(((event.clientX - box.left) / box.width) * length, 0, length);
   };
   const x = (t: number) => (length > 0 ? (t / length) * 1000 : 0);
   return (

@@ -196,7 +196,7 @@ export const proofDrivers: Record<string, Driver> = {
     await openChapter(page, 'Chapter 1');
     await page.getByRole('button', { name: 'Compare with the script' }).click();
     await page.getByRole('region', { name: 'Compare' }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
-    await page.getByText(/is not one this panel offers; starting on 1m/).waitFor();
+    await page.getByText(/is not one this panel offers; starting on 60 s/).waitFor();
   },
   'compare-preview': async (page) => {
     await openProof(page, 'mockChapterLink=confirmed');

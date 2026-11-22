@@ -2,6 +2,7 @@ import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { ReadingParagraph } from '../reading/boothUnits';
 import type { ChapterPlace } from '../page/lastPlace';
 import type { OpenedResume } from './resumeOfferModel';
+import { clamp } from '../../../clamp';
 
 /**
  * Why the Booth opened a chapter where it did: a target the narrator came with (a pickup line, a flagged line, a go-to link, Start
@@ -17,7 +18,7 @@ const wordsOf = (text: string): string[] => text.match(/\S+/g) ?? [];
 function within(paragraphs: readonly ReadingParagraph[], place: ChapterPlace): ChapterPlace | null {
   const paragraph = paragraphs.find((item) => item.id === place.paragraphId);
   if (!paragraph) return null;
-  return { paragraphId: paragraph.id, word: Math.max(0, Math.min(place.word, wordsOf(paragraph.text).length - 1)) };
+  return { paragraphId: paragraph.id, word: clamp(place.word, 0, wordsOf(paragraph.text).length - 1) };
 }
 
 /** The word after `place`: the next in its paragraph, or the next paragraph's first; the place itself at the chapter's last word. */

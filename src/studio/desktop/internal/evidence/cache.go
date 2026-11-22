@@ -18,9 +18,11 @@ import (
 	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -67,12 +69,15 @@ func (k CacheEntryKey) hash() string {
 }
 
 // cacheEnvelope is the on-disk shape of one cache file: an opaque blob (the
-// analyzer's own format) plus enough metadata for CacheStore.Prune
+// analyzer's own format) plus enough metadata for CacheStore.PruneKinds
 // and CacheStore.Read to do their job without ever looking inside Blob.
 // encoding/json encodes a []byte field as base64 automatically, so Blob's
-// bytes round-trip exactly regardless of what they hold.
+// bytes round-trip exactly regardless of what they hold. AnalyzerID is the
+// key's, so an entry says which analyzer wrote it without its key; an entry
+// written before the field has none.
 type cacheEnvelope struct {
 	SchemaVersion int       `json:"schemaVersion"`
+	AnalyzerID    string    `json:"analyzerId,omitempty"`
 	WrittenAt     time.Time `json:"writtenAt"`
 	Blob          []byte    `json:"blob"`
 }
@@ -90,6 +95,7 @@ func CacheDir(project string) string {
 // temp-file-then-rename (the same pattern as LedgerStore.Write). Zero value
 // is not usable; construct with NewCacheStore.
 type CacheStore struct {
+	project  string
 	dir      string
 	mu       sync.Mutex
 	hits     atomic.Int64
@@ -99,7 +105,12 @@ type CacheStore struct {
 
 // NewCacheStore returns a CacheStore rooted at project's cache directory.
 func NewCacheStore(project string) *CacheStore {
-	return &CacheStore{dir: CacheDir(project)}
+	// The path is cleaned once, here: CacheDir cleans it lexically, so a project path with ".." after a link would otherwise be listed in
+	// one folder and deleted from in another (the operating system resolves ".." through the link).
+	if project != "" {
+		project = filepath.Clean(project)
+	}
+	return &CacheStore{project: project, dir: CacheDir(project)}
 }
 
 // Write stores blob under key, replacing any existing entry for the same
@@ -112,7 +123,7 @@ func (s *CacheStore) Write(key CacheEntryKey, blob []byte) error {
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
 		return fmt.Errorf("could not create the analysis cache: %w", err)
 	}
-	envelope := cacheEnvelope{SchemaVersion: cacheSchemaVersion, WrittenAt: time.Now().UTC(), Blob: blob}
+	envelope := cacheEnvelope{SchemaVersion: cacheSchemaVersion, AnalyzerID: key.AnalyzerID, WrittenAt: time.Now().UTC(), Blob: blob}
 	bytes, err := json.Marshal(envelope)
 	if err != nil {
 		return err
@@ -148,7 +159,20 @@ func (s *CacheStore) Read(key CacheEntryKey) ([]byte, bool) {
 		return nil, false
 	}
 	s.hits.Add(1)
+	s.markUsed(s.entryPath(key))
 	return blob, true
+}
+
+// usedRefresh is how often a hit moves an entry's last-used time (its file's modification time) forward: a hit on an entry used
+// within the hour costs one stat and no write.
+const usedRefresh = time.Hour
+
+// markUsed moves the entry file's modification time to now when it is older than usedRefresh (persist.MarkUsed). The modification time
+// is the entry's last use for PruneKinds, so an entry the narrator still reads is neither expired nor evicted first, and the blob is not
+// rewritten. The time is set through a root on the cache folder, which a link cannot lead out of. A failure is ignored: the entry then
+// ages as if unused, which costs a recompute, never a wrong answer.
+func (s *CacheStore) markUsed(path string) {
+	persist.MarkUsed(s.dir, filepath.Base(path), usedRefresh, time.Now())
 }
 
 // Delete removes key's entry, if any. A missing entry is not an error: the
@@ -170,66 +194,231 @@ func (s *CacheStore) Hits() int64 { return s.hits.Load() }
 // this CacheStore was constructed (missing, corrupt, or a newer schema).
 func (s *CacheStore) Misses() int64 { return s.misses.Load() }
 
-// Prune deletes the store's oldest entries (by WrittenAt) until the total
-// size of what remains is at or under maxBytes (size-bounded pruning; the
-// bound itself is the caller's decision, this is the mechanism). A file this store cannot read (corrupt, wrong schema, a stray
-// .tmp from an interrupted write) is left alone: Prune only removes entries
-// it can positively identify as its own valid, datable files, the same
-// "never delete a name it cannot positively rule out as safe" rule
-// LedgerStore.Retain follows. It returns the keys' hashes (file base names,
-// without ".json") it deleted.
-func (s *CacheStore) Prune(maxBytes int64) ([]string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// CacheKindPolicy bounds the entries of one analyzer: nothing unused for longer than MaxAge (zero: no time limit) and, oldest use first,
+// no more than MaxBytes in all (zero: no size cap). An empty AnalyzerID is the policy of the entries written before the envelope
+// named its analyzer.
+type CacheKindPolicy struct {
+	AnalyzerID string
+	MaxBytes   int64
+	MaxAge     time.Duration
+}
 
-	entries, err := persist.ReadDir(s.dir)
-	if os.IsNotExist(err) {
-		return nil, nil
+// CachePrune is what one PruneKinds pass found and did: the regular files of the cache folder and their bytes before and after, and how
+// many entries it removed. Stopped is set when the pass was told to stop before it was done; the counts are then of what it had reached (a pass stopped while still reading the folder counts the files it had read and removes none).
+type CachePrune struct {
+	FilesBefore, FilesAfter int
+	BytesBefore, BytesAfter int64
+	Removed                 int
+	Stopped                 bool
+}
+
+// maxEnvelopeHeader is how much of an entry file's start entryAnalyzer reads looking for the blob's key.
+const maxEnvelopeHeader = 4 << 10
+
+// removeEntry removes one regular file below the project; a variable so a test can make a removal fail on every platform.
+var removeEntry = persist.RemoveRegular
+
+// cacheFile is one entry file a prune pass considers: its name, size and last use (its modification time, see markUsed).
+type cacheFile struct {
+	name string
+	size int64
+	used time.Time
+	// handle is the file as the scan opened it, for a check that the name still holds the same file.
+	handle os.FileInfo
+	// stamp is the file's modification time as listed: an entry whose time has moved by the time it is reached was used or written since,
+	// and stays.
+	stamp time.Time
+}
+
+// PruneKinds removes cache entries by what policies say about their analyzer: first the entries unused for longer than the kind's
+// MaxAge, then the least recently used until the kind is within MaxBytes. The kinds are taken in the order given, the entries with
+// no analyzer (the policy with an empty AnalyzerID) last. Never removed: an entry of an analyzer no policy names, a file whose
+// envelope this store cannot read or that a newer build wrote, a stray .tmp, a folder, a link, or anything outside the cache folder
+// (the same "never delete a name it cannot positively rule in" rule LedgerStore.Retain follows). Deletes go through
+// persist.RemoveRegular on the project folder, and a cache folder that is a link or below one is an error. A removal that fails
+// leaves its entry and the pass goes on; the errors are returned together. stop is asked before each removal. The pass does not hold
+// the store's lock: another store of the project may write an entry as it goes, which at worst removes an entry that is then
+// recomputed.
+func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop func() bool) (CachePrune, error) {
+	var report CachePrune
+	if stop == nil {
+		stop = func() bool { return false }
 	}
+	if s.project == "" {
+		return report, nil
+	}
+	rel, err := filepath.Rel(s.project, s.dir)
 	if err != nil {
-		return nil, fmt.Errorf("could not list the analysis cache: %w", err)
+		return report, err
 	}
-
-	type datedEntry struct {
-		hash      string
-		path      string
-		size      int64
-		writtenAt time.Time
+	real, err := persist.RealFolder(s.project, rel)
+	if err != nil {
+		return report, fmt.Errorf("the analysis cache folder is not a real folder: %w", err)
 	}
-	var datable []datedEntry
-	var total int64
-	for _, entry := range entries {
-		hash, ok := recordID(entry.Name())
-		if !ok {
+	if !real {
+		return report, nil
+	}
+	entries, err := persist.ReadDir(s.dir)
+	if err != nil {
+		return report, fmt.Errorf("could not list the analysis cache: %w", err)
+	}
+	named := map[string]bool{}
+	for _, policy := range policies {
+		named[policy.AnalyzerID] = true
+	}
+	byKind := map[string][]cacheFile{}
+	for i, entry := range entries {
+		// Reading each entry's start is the slow part of a large cache: a check that starts is not made to wait for all of it.
+		if i%persist.ScanChunk == 0 && stop() {
+			report.Stopped = true
+			report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
+			return report, nil
+		}
+		if !entry.Type().IsRegular() {
 			continue
 		}
-		path := s.hashPath(hash)
 		info, err := entry.Info()
 		if err != nil {
 			continue
 		}
-		envelope, ok := s.readEnvelope(path)
+		report.FilesBefore++
+		report.BytesBefore += info.Size()
+		if _, ok := recordID(entry.Name()); !ok {
+			continue
+		}
+		analyzer, opened, ok := s.entryAnalyzer(entry.Name())
 		if !ok {
 			continue
 		}
-		total += info.Size()
-		datable = append(datable, datedEntry{hash: hash, path: path, size: info.Size(), writtenAt: envelope.WrittenAt})
+		// Size and time are those of the handle the header was read from, the same call the removal looks again with.
+		used, stamp := opened.ModTime(), opened.ModTime()
+		if used.After(now) && named[analyzer] {
+			// A file time after now is moved to now (persist.MoveFutureToNow), so that the entry ages and is evicted like any other from here on.
+			// A time that cannot be set makes the entry the oldest instead: expired at once in a kind with a time limit and the first to go in the
+			// others, so it is neither kept for ever nor counted against the cap for nothing. An entry of an analyzer no policy names is left alone, its time too.
+			used = time.Time{}
+			if fresh, ok := persist.MoveFutureToNow(s.dir, entry.Name(), now); ok {
+				used, stamp = fresh.ModTime(), fresh.ModTime()
+			}
+		}
+		byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: opened.Size(), used: used, stamp: stamp, handle: opened})
 	}
-	sort.Slice(datable, func(i, j int) bool { return datable[i].writtenAt.Before(datable[j].writtenAt) })
+	report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
+	ordered := slices.Clone(policies)
+	slices.SortStableFunc(ordered, func(a, b CacheKindPolicy) int { return cmpBool(a.AnalyzerID == "", b.AnalyzerID == "") })
+	var failures []error
+	for _, policy := range ordered {
+		// Taken out of the map, so a kind named twice in the table is handled once.
+		files := byKind[policy.AnalyzerID]
+		delete(byKind, policy.AnalyzerID)
+		slices.SortStableFunc(files, func(a, b cacheFile) int { return a.used.Compare(b.used) })
+		var kindBytes int64
+		for _, file := range files {
+			kindBytes += file.size
+		}
+		for _, file := range files {
+			expired := policy.MaxAge > 0 && now.Sub(file.used) > policy.MaxAge
+			over := policy.MaxBytes > 0 && kindBytes > policy.MaxBytes
+			if !expired && !over {
+				break
+			}
+			if stop() {
+				report.Stopped = true
+				return report, persist.Failures(failures)
+			}
+			// The list is some time old: an entry a hit refreshed or a writer wrote again since stays, and one already gone is not this pass's.
+			state, current := persist.Recheck(filepath.Join(s.dir, file.name), file.size, file.stamp, file.handle)
+			if state == persist.FileGone || state == persist.FileNotRegular {
+				// Another store took it, or a folder, link or pipe has the name: not an entry any more, and not in the tally of regular files.
+				kindBytes -= file.size
+				report.FilesAfter--
+				report.BytesAfter -= file.size
+				continue
+			}
+			if state == persist.FileChanged {
+				// Used or written since the listing (the time moved, or on a filesystem with coarse times the size changed or a writer's
+				// rename put another file under the name), or not to be looked at: it stays, and still counts against the cap at its size now.
+				if current != nil {
+					kindBytes += current.Size() - file.size
+					report.BytesAfter += current.Size() - file.size
+				}
+				continue
+			}
+			removed, err := removeEntry(s.project, filepath.Join(rel, file.name))
+			if err != nil {
+				failures = append(failures, fmt.Errorf("could not remove analysis cache entry %s: %w", file.name, err))
+				if len(failures) >= persist.MaxRemovalFailures {
+					return report, persist.GaveUp(failures)
+				}
+				continue
+			}
+			kindBytes -= file.size
+			report.FilesAfter--
+			report.BytesAfter -= file.size
+			if removed {
+				report.Removed++
+			}
+		}
+	}
+	return report, persist.Failures(failures)
+}
 
-	var deleted []string
-	for _, entry := range datable {
-		if total <= maxBytes {
-			break
-		}
-		if err := os.Remove(entry.path); err != nil {
-			return deleted, fmt.Errorf("could not prune analysis cache entry %s: %w", entry.hash, err)
-		}
-		total -= entry.size
-		deleted = append(deleted, entry.hash)
+// cmpBool orders false before true.
+func cmpBool(a, b bool) int {
+	switch {
+	case a == b:
+		return 0
+	case b:
+		return -1
 	}
-	sort.Strings(deleted)
-	return deleted, nil
+	return 1
+}
+
+// entryAnalyzer reads the analyzer an entry file names from the start of its envelope without decoding the blob (an entry can be
+// a megabyte), and reports false for a file that is not an envelope this build supports: not JSON, no schema version, or a newer one.
+// An entry written before the envelope named its analyzer answers "".
+func (s *CacheStore) entryAnalyzer(name string) (string, os.FileInfo, bool) {
+	file, err := persist.Open(filepath.Join(s.dir, name))
+	if err != nil {
+		return "", nil, false
+	}
+	defer func() { _ = file.Close() }()
+	// The listing saw a regular file, but a pipe or device may have taken its name since; a read of one waits for a writer for ever, and
+	// Go waits on a non-blocking pipe too. The opened handle is what is checked, so nothing can change between the check and the read.
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		return "", nil, false
+	}
+	// The three fields before the blob are a few dozen bytes: a file whose envelope header runs past the limit is not one this store wrote.
+	decoder := json.NewDecoder(io.LimitReader(file, maxEnvelopeHeader))
+	if token, err := decoder.Token(); err != nil || token != json.Delim('{') {
+		return "", nil, false
+	}
+	var version int
+	var analyzer string
+	for decoder.More() {
+		token, err := decoder.Token()
+		key, ok := token.(string)
+		if err != nil || !ok {
+			return "", nil, false
+		}
+		// encoding/json matches a key without regard to case, and the last one wins: so does this, as far as the blob.
+		switch strings.ToLower(key) {
+		case "schemaversion":
+			err = decoder.Decode(&version)
+		case "analyzerid":
+			err = decoder.Decode(&analyzer)
+		case "blob":
+			return analyzer, info, version >= 1 && version <= cacheSchemaVersion
+		default:
+			var skipped json.RawMessage
+			err = decoder.Decode(&skipped)
+		}
+		if err != nil {
+			return "", nil, false
+		}
+	}
+	return "", nil, false
 }
 
 func (s *CacheStore) entryPath(key CacheEntryKey) string {
@@ -238,25 +427,6 @@ func (s *CacheStore) entryPath(key CacheEntryKey) string {
 
 func (s *CacheStore) hashPath(hash string) string {
 	return filepath.Join(s.dir, hash+".json")
-}
-
-// readEnvelope reads a cache file's envelope without counting it toward
-// Hits/Misses (Prune is not an analyzer asking whether its result is
-// current, so it must not skew those counters).
-func (s *CacheStore) readEnvelope(path string) (cacheEnvelope, bool) {
-	var envelope cacheEnvelope
-	outcome := s.Reporter.ReadJSON(path, "analysis cache entry", persist.Disposable, func(raw []byte) error {
-		var decoded cacheEnvelope
-		if err := json.Unmarshal(raw, &decoded); err != nil {
-			return err
-		}
-		if decoded.SchemaVersion > cacheSchemaVersion {
-			return fmt.Errorf("schema version %d newer than supported %d", decoded.SchemaVersion, cacheSchemaVersion)
-		}
-		envelope = decoded
-		return nil
-	})
-	return envelope, outcome == persist.Loaded
 }
 
 // TimedFeature is one entry of a sliceable analyzer's whole-source cache

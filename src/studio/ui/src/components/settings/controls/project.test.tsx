@@ -224,7 +224,7 @@ describe('Settings: Project', () => {
       expect(list.parentElement!.className).toContain('w-full');
       expect(list.className).toContain('gap-5');
       const count = types().querySelector<HTMLElement>('[data-type-count="Place"]')!;
-      expect(count.className).toMatch(/(^| )min-w-\[70px\]/);
+      expect(count.className).toMatch(/(^| )min-w-\[60px\]/);
       expect(count.className).toContain('text-right');
       expect(count.parentElement!.className).toContain('pl-6');
       expect(within(types()).getByRole('textbox', { name: 'New type' }).closest('[class*="max-w-[16rem]"]')).toBeTruthy();

@@ -1,4 +1,5 @@
 import type { TrackItem } from '../../api/contracts/tracks';
+import { clamp } from '../../clamp';
 
 // The chapter's items, in the order the app plays them (the Editing page's playback and useTrackPlayback play it): every
 // playable item, sorted by position, each one's played range honoured (SOFFS to SOFFS + length * playRate) so a trim
@@ -45,7 +46,7 @@ export function totalDuration(playlist: PlaylistSegment[]): number {
 /** The segment (and its index) that owns a given point on the app's elapsed line, clamped to the playlist's range. */
 export function segmentAtElapsed(playlist: PlaylistSegment[], elapsed: number): { segment: PlaylistSegment; index: number } | undefined {
   if (playlist.length === 0) return undefined;
-  const clamped = Math.max(0, Math.min(totalDuration(playlist), elapsed));
+  const clamped = clamp(elapsed, 0, totalDuration(playlist));
   const index = playlist.findIndex((segment) => clamped < segment.elapsedEnd);
   const resolved = index === -1 ? playlist.length - 1 : index;
   return { segment: playlist[resolved], index: resolved };

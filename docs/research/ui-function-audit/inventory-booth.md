@@ -304,7 +304,7 @@ Script and Booth share `useBookmarks`, `useBookmarkCommands`, `addBookmark/setSt
 
 ### T14. DAW follow / chapter sync
 
-Booth: `useFollowDawOnOpen` (dawPlace.dawPlace polling 2 s for 20 s when opened with no chapter) and `useMoveDawOnOpen` (dawGoToChapter) -- Booth-only; Companion/Production do not move the DAW.
+Booth: `useFollowDawOnOpen` (dawPlace.dawPlace asked once when opened with no chapter, and again on the DAW's capabilities event for 20 s) and `useMoveDawOnOpen` (dawGoToChapter) -- Booth-only; Companion/Production do not move the DAW.
 
 ### T15. Pickups from Booth
 

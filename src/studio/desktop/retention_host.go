@@ -1,0 +1,86 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/retention"
+	"desktop/internal/stages"
+)
+
+// Retention (#3816): the host keeps the project's derived files bounded by a pass in the background, started when a project
+// is opened and when a recording check ends, and never while one runs. Each step reports how much its store holds in the host log;
+// the ledger step (retention_ledger.go) deletes what no reader selects any more, the cache step (retention_cache.go) what an entry's kind lets it keep, the folder steps (retention_files.go) the previews and the Transcript Compare files, and the stores' other deletes are wired one at a
+// time behind it.
+
+// startRetentionLocked replaces the project's retention runner with one over the stores of the project just configured, and
+// kicks it. checks is the coverage service of the project just configured (passed in, so this reads no swappable service field). The previous runner is stopped first, so a pass never outlives its project. Call it with h.mu held.
+// +checklocksignore: called only from configureLocked, whose callers hold h.mu.
+func (h *Host) startRetentionLocked(checks *coverage.Service, ledger *evidence.LedgerStore) {
+	if h.retentionOff {
+		return
+	}
+	// The previous pass is cancelled here, with h.mu held, and joined in the background: waiting for it here would hold every binding
+	// until the pass left a large folder.
+	old := h.retention
+	old.Cancel()
+	h.goBackground(old.Close)
+	h.retention = nil
+	project := h.config.projectFolder
+	if project == "" {
+		return
+	}
+	decisions := stages.NewDecisionStore(project, h.persist)
+	steps := []retention.Step{
+		ledgerRetention{
+			project:      project,
+			ledger:       ledger,
+			referenced:   decisions.ReferencedRecordIDs,
+			removeResult: checks.RemoveStoredResult,
+			sweep:        checks.SweepOrphanResults,
+			measure:      measureDirs(ledgerRetentionDirs(project)),
+		},
+		cacheRetention{cache: evidence.NewCacheStore(project), policies: cacheRetentionPolicies, now: time.Now},
+		previewRetention(project),
+		compareRetention(project),
+	}
+	h.retention = retention.New(steps, checks.Busy, h.logRetention)
+	h.retention.Kick("open")
+}
+
+// kickRetention asks the current runner for a pass, for the reason given.
+func (h *Host) kickRetention(reason string) {
+	h.mu.RLock()
+	runner := h.retention
+	h.mu.RUnlock()
+	runner.Kick(reason)
+}
+
+// logRetention writes one pass's reports to the host log: one line per store, with sizes only.
+func (h *Host) logRetention(reason string, reports []retention.Report) {
+	var lines []string
+	for _, report := range reports {
+		line := fmt.Sprintf("%s: %d files %d bytes, then %d files %d bytes (removed %d)", report.Kind, report.FilesBefore, report.BytesBefore, report.FilesAfter, report.BytesAfter, report.Removed)
+		if report.Stopped {
+			line += " [stopped]"
+		}
+		if report.Err != nil {
+			line += " [error: " + report.Err.Error() + "]"
+		}
+		lines = append(lines, line)
+	}
+	if len(lines) > 0 {
+		_ = h.log.Report("retention_pass", reason+" | "+strings.Join(lines, "; "))
+	}
+}
+
+// closeRetention stops the current retention pass and waits for it. The runner then refuses further kicks, so it is for the end of the app.
+func (h *Host) closeRetention() {
+	h.mu.RLock()
+	runner := h.retention
+	h.mu.RUnlock()
+	runner.Close()
+}

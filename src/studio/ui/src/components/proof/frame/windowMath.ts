@@ -1,3 +1,5 @@
+import { clamp } from '../../../clamp';
+
 /** The window lengths the Proof zoom buttons step through, in seconds. The last step is the whole chapter. */
 const WINDOW_LENGTHS = [30, 60, 120, 300] as const;
 
@@ -20,8 +22,6 @@ export const PROOF_SCALE: ZoomScale = { lengths: WINDOW_LENGTHS, min: MIN_WINDOW
  * the picture would only get bigger, not finer, so the floor stays at one second.
  */
 export const EDITING_SCALE: ZoomScale = { lengths: [1, 2, 5, 10, ...WINDOW_LENGTHS], min: 1 };
-
-const clamp = (value: number, low: number, high: number): number => Math.max(low, Math.min(high, value));
 
 /** The steps for a chapter of `total` seconds: each length shorter than the chapter, then the chapter itself. */
 export function zoomSteps(total: number, scale: ZoomScale = PROOF_SCALE): number[] {

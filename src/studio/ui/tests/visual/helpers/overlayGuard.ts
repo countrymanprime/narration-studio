@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { clamp } from '../../../src/clamp';
 
 // The overlay guard (definition of done, rule 1, "Overlays"): an overlay is the topmost element at its own points and fully on
 // screen. This file is the part with no opinion about the app: it measures one open overlay (`overlayProblems`,
@@ -80,7 +81,6 @@ export async function pointerPlan(page: Page): Promise<Point[]> {
   });
   const { width, height, sidebar, header, host } = layout;
   const area = host ?? { left: 0, top: 0, right: width, bottom: height };
-  const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low), high);
   const points: Point[] = [];
   const add = (label: string, wantX: number, wantY: number) => {
     const x = clamp(Math.round(wantX), Math.ceil(area.left) + 1, Math.floor(area.right) - 2);

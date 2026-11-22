@@ -93,13 +93,13 @@
       "source": "src/components/settings/BackupsSection.tsx",
       "stories": [
         "Shown",
-        "Project Override And Out Of Range",
+        "Project Override",
         "Hidden Reason",
         "Load Error",
         "Save Refused"
       ],
       "consumers": [
-        "src/components/settings/page/PageSettingPanel.tsx"
+        "src/components/settings/controls/pageOwnedControls.tsx"
       ],
       "a11yDebt": false
     },
@@ -412,7 +412,6 @@
         "src/components/settings/DeliveryProfilesPanel.tsx",
         "src/components/settings/KeyboardPanel.tsx",
         "src/components/settings/RetailSamplePanel.tsx",
-        "src/components/settings/ScopedSetting.tsx",
         "src/components/settings/UpdatesPanel.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
         "src/components/settings/controls/CreditsBody.tsx",
@@ -644,6 +643,8 @@
         "Not Yet Checked"
       ],
       "consumers": [
+        "src/components/engine/AudacityLinkCard.tsx",
+        "src/components/engine/CapabilityReferenceDialog.tsx",
         "src/components/settings/controls/MicBody.tsx",
         "src/components/storybible/voicesamples/VoiceSamplesBody.tsx"
       ],
@@ -1067,7 +1068,6 @@
         "src/components/production/ImportReview.tsx",
         "src/components/production/RecordingCheckReport.tsx",
         "src/components/settings/page/CategoryPane.tsx",
-        "src/components/settings/page/PagesPane.tsx",
         "src/components/storybible/source/NamePronunciation.tsx"
       ],
       "a11yDebt": false
@@ -1398,9 +1398,9 @@
         "Measured Header"
       ],
       "consumers": [
+        "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
-        "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/chapterTracks/SavedProjectChip.tsx",
         "src/components/connection/ConnectionIndicator.tsx",
         "src/components/engine/EngineChipButton.tsx",
@@ -1686,6 +1686,7 @@
         "src/components/proof/inspector/TreatAsSame.tsx",
         "src/components/proof/inspector/TrimGap.tsx",
         "src/components/proof/notes/NotesPanel.tsx",
+        "src/components/proof/proofOptions/ProofOptions.tsx",
         "src/components/proof/spot/SpotTakes.tsx",
         "src/components/recordingcheck/CheckRecordingsButton.tsx",
         "src/components/schedule/MilestoneTable.tsx",
@@ -1711,6 +1712,7 @@
         "src/components/settings/CreditsPanel.tsx",
         "src/components/settings/DeliveryProfilesPanel.tsx",
         "src/components/settings/KeyboardPanel.tsx",
+        "src/components/settings/ScopedSetting.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/analysis/ToolRow.tsx",
         "src/components/settings/controls/AppearanceBodies.tsx",
@@ -1724,7 +1726,6 @@
         "src/components/settings/models/ModelsFolder.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/ModelsPane.tsx",
-        "src/components/settings/page/PagesPane.tsx",
         "src/components/settings/page/Results.tsx",
         "src/components/settings/page/ScopedFieldsPanel.tsx",
         "src/components/settings/page/SettingsPage.tsx",
@@ -2374,7 +2375,11 @@
         "Invalid",
         "Disabled",
         "Clamps On Blur",
-        "Arrow Keys Step"
+        "Arrow Keys Step",
+        "Empty Is Not Set",
+        "Emptied Reports Null",
+        "Settle Reports On Enter",
+        "Arrow Lands On The Next Step"
       ],
       "consumers": [
         "src/components/booth/frame/LevelsMenu.tsx",
@@ -2383,7 +2388,7 @@
         "src/components/editing/effects/CoverageStrip.tsx",
         "src/components/editing/effects/EffectSettings.tsx",
         "src/components/editing/range/replace/ReplaceDialog.tsx",
-        "src/components/proof/proofOptions/ProofOptions.tsx"
+        "src/components/settings/value/SettingNumber.tsx"
       ],
       "a11yDebt": false
     },
@@ -2551,7 +2556,6 @@
         "src/components/settings/page/CategoryPane.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/ModelsPane.tsx",
-        "src/components/settings/page/PagesPane.tsx",
         "src/components/settings/page/ReaderTextPanel.tsx",
         "src/components/settings/page/Results.tsx",
         "src/components/settings/page/ScopedFieldsPanel.tsx",
@@ -2673,7 +2677,8 @@
         "Closed",
         "Opens On Press",
         "Closes On Escape And Returns Focus",
-        "Inside A Dialog"
+        "Inside A Dialog",
+        "Opens At An Anchor"
       ],
       "consumers": [
         "src/components/booth/frame/BoothTop.tsx",
@@ -2693,6 +2698,7 @@
         "src/components/primitives/TreeSelect.tsx",
         "src/components/production/target/TargetInfoButton.tsx",
         "src/components/script/bookmarks/ui/BookmarkEditor.tsx",
+        "src/components/script/page/layout/SpeakerLayer.tsx",
         "src/components/script/page/rail/words/DefinitionSourceMenu.tsx",
         "src/components/script/page/registry/useScriptRegistry.ts",
         "src/components/script/page/tools/text/TextSettings.tsx",
@@ -3032,22 +3038,6 @@
       "a11yDebt": false
     },
     {
-      "title": "Booth/ResumeOffer",
-      "name": "ResumeOffer",
-      "source": "src/components/booth/resume/ResumeOffer.tsx",
-      "stories": [
-        "Offered",
-        "Estimated",
-        "Remembered",
-        "None",
-        "Needs Model"
-      ],
-      "consumers": [
-        "src/components/booth/page/BoothNextPage.tsx"
-      ],
-      "a11yDebt": false
-    },
-    {
       "title": "Editing/Ribbon",
       "name": "Ribbon",
       "source": "src/components/editing/ribbon/Ribbon.tsx",
@@ -3268,7 +3258,7 @@
         "src/components/script/page/rail/bible/EntryCard.tsx",
         "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/script/page/tools/select/MarksDialog.tsx",
-        "src/components/settings/BackupsSection.tsx",
+        "src/components/script/page/tools/speaker/SpeakerPicker.tsx",
         "src/components/settings/KeyboardPanel.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
@@ -3743,8 +3733,7 @@
         "src/components/booth/reading/SpeakerChip.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
-        "src/components/booth/voices/VoiceControl.tsx",
-        "src/components/booth/voices/WhoIsInDialog.tsx",
+        "src/components/booth/voices/CharacterBadge.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
@@ -4334,6 +4323,7 @@
         "Default",
         "Second Chosen",
         "Choosing Moves The Press",
+        "Arrow Keys Move Focus And Enter Chooses",
         "Disabled Chip Is Not Chosen",
         "Chip Disabled With Reason",
         "Segmented",
@@ -4409,7 +4399,6 @@
         "src/components/booth/bookmarks/BookmarkRibbons.tsx",
         "src/components/booth/page/CreditsWarning.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
-        "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
         "src/components/chapterTracks/SavedProjectChip.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",

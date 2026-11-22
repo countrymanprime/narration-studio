@@ -505,7 +505,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     repeats: true,
     surfaces: ['help', 'settings'],
   },
-  { id: 'booth.roll', label: 'Punch and roll from here', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
+  { id: 'booth.roll', label: 'Roll again', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.down', label: 'Scroll the text down', scope: 'booth', defaults: [key('PageDown')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.up', label: 'Scroll the text up', scope: 'booth', defaults: [key('PageUp')], group: 'Booth', surfaces: ['help', 'settings'] },
   // Num + and Num − are the next and previous voice (docs/research/2026-10-30-booth-sub-track-recording.md, section 8, decision 4): the text size keeps = and −.
@@ -526,6 +526,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     label: n === 0 ? 'Record the Narrator voice' : `Record voice ${n}`,
     scope: 'booth' as const,
     defaults: [key(`Numpad${n}`)],
+    group: 'Booth' as const,
+    surfaces: ['help', 'settings'] as const,
+  })),
+  // Shift with a number adds ten: Shift Num 1 is the 11th voice, Shift Num 0 the 10th. Past nine a voice has no key of its own.
+  ...Array.from({ length: 10 }, (_, n) => ({
+    id: `booth.voice.${n + 10}` as const,
+    label: `Record voice ${n + 10}`,
+    scope: 'booth' as const,
+    defaults: [key(`Numpad${n}`, ['Shift'])],
     group: 'Booth' as const,
     surfaces: ['help', 'settings'] as const,
   })),

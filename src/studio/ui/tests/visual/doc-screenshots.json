@@ -407,13 +407,6 @@
   },
   {
     "page": "booth",
-    "state": "resume",
-    "viewport": "desktop",
-    "docName": "booth-waiting",
-    "caption": "Booth - looked elsewhere in the chapter: Resume at ¶ 14 offers the way back to where the recording ends"
-  },
-  {
-    "page": "booth",
     "state": "leave-dialog",
     "viewport": "desktop",
     "docName": "booth-flag",
@@ -904,10 +897,10 @@
   },
   {
     "page": "settings",
-    "state": "pages-panel-open",
+    "state": "speech-rules",
     "viewport": "desktop",
-    "docName": "settings-pages",
-    "caption": "Settings - Set on a page, with the recording check rules opened"
+    "docName": "settings-speech-rules",
+    "caption": "Settings - Speech to text, Recording check rules: the row and its panel"
   },
   {
     "page": "global",
@@ -1699,13 +1692,6 @@
     "viewport": "desktop",
     "docName": "booth-page-break",
     "caption": "Booth - a page break: the dashed line and Page 2 in the margin, with the stopping place set there by Read to here"
-  },
-  {
-    "page": "booth",
-    "state": "chosen-start",
-    "viewport": "desktop",
-    "docName": "booth-chosen-start",
-    "caption": "Booth - Start from here: the first word of the chosen phrase is underlined with the phrase tinted, in the text; the take has started there and the cursor has moved on"
   },
   {
     "page": "booth",

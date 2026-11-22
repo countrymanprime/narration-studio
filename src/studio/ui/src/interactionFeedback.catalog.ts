@@ -79,6 +79,10 @@ export const SILENT_CATCHES: Record<string, string> = {
     "A chapter's text asked for by a page: the failure is recorded on the key (`error`) for the page that shows it, so the rejection of the shared read has nobody left to tell.",
   'src/studio/useChapterText.ts#3':
     "A chapter's text read for a component rendered without the store (a unit render): a failed read shows no text, as the page did before the cache.",
+  'src/components/production/usePipelineSources.ts#1':
+    'The chapter list read for the pairing: unreadable, the Master cell and Next up\'s failing chapter stay absent and read "Not measured yet"; the store records the failure for the pages that show it.',
+  'src/components/production/usePipelineSources.ts#2':
+    "The delivery measurement read beside the list: unreadable, the Master cell and Next up's failing chapter stay absent, as before.",
   'src/studio/useChapters.ts#1':
     "A reader that mounts on a list whose read failed asks once more: the failure is recorded in the store's `errors` for the page that shows it.",
   'src/studio/useChapters.ts#2':
@@ -179,9 +183,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#8': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
-    'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
-  'src/components/proof/CompareRun.tsx#3':
-    "The same background check's REAPER round trip: a failed ask (REAPER closed, no bridge) is routine while results sit reviewed, not a narrator-facing failure, so it is silent and retried next poll.",
+    'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was; the next edit, or the 5 minute backstop, compares again.',
   'src/components/proof/NativeTakesPanel.tsx#1':
     "The panel's first read of the chapter's native takes; a failure just leaves it unrendered a moment longer until the next recording:state event (subscribeRecorderState) catches up, the same fallback useRecorder.ts::recorderState#2 already uses.",
   'src/components/booth/CompanionShell.tsx#1':

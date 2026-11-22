@@ -58,15 +58,16 @@ const waitForRow = (id: string) =>
   });
 
 describe('Settings: structure', () => {
-  it('lists every category in labelled groups, with Set on a page apart', async () => {
+  it('lists every category in three labelled groups, and no category groups settings by where else they are set', async () => {
     await renderPage();
-    for (const group of ['Shared tools', 'This project', 'This computer', 'Elsewhere']) expect(within(nav()).getByRole('group', { name: group })).toBeTruthy();
+    for (const group of ['Shared tools', 'This project', 'This computer']) expect(within(nav()).getByRole('group', { name: group })).toBeTruthy();
     expect(
       within(within(nav()).getByRole('group', { name: 'Shared tools' }))
         .getAllByRole('button')
         .map((button) => button.textContent),
     ).toEqual(['Recording & DAW', 'Speech to text', 'Voice & pronunciation', 'Models & downloads', 'Delivery']);
-    expect(within(within(nav()).getByRole('group', { name: 'Elsewhere' })).getByRole('button', { name: /Set on a page/ })).toBeTruthy();
+    expect(within(nav()).queryByRole('group', { name: 'Elsewhere' })).toBeNull();
+    expect(within(nav()).queryByRole('button', { name: /Set on a page/ })).toBeNull();
   });
 
   it('shows one category at a time and marks it current', async () => {
@@ -152,7 +153,7 @@ describe('Settings: page frame', () => {
     expect(toggle.textContent).toContain('Search results');
   });
 
-  it('spaces the category groups apart, the same for Elsewhere, and attaches each label to its group', async () => {
+  it('spaces the category groups apart and attaches each label to its group', async () => {
     await renderPage();
     const groups = within(nav()).getAllByRole('group');
     expect(new Set(groups.map((group) => group.className)).size).toBe(1);
@@ -224,6 +225,14 @@ describe('Settings: row layout', () => {
     return body!;
   };
 
+  it('draws the Entry types list across the whole row, so a type is not squeezed into half of it (#3674)', async () => {
+    await renderPage();
+    pick('Project');
+    const body = await waitFor(() => wideBody('project.types'));
+    expect(body.className).toContain('col-span-full');
+    expect(await within(body).findAllByRole('button', { name: /^Colour for / })).not.toHaveLength(0);
+  });
+
   it('draws the Credits body across the whole row (XSE2-11)', async () => {
     await renderPage();
     pick('Project');
@@ -276,6 +285,27 @@ describe('Settings: row layout', () => {
     expect(hint.className).toContain('text-[0.8125rem]');
   });
 
+  it('draws Room tone per credits file as a number box from 0 to 10 s, not a list of eleven numbers (audit S14)', async () => {
+    const api = createMockApi();
+    const saved = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
+    pick('Project');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('project.roomTone')).getByRole('textbox', { name: /Room tone per credits file/ }));
+    expect(within(row('project.roomTone')).queryByRole('combobox')).toBeNull();
+    expect((box as HTMLInputElement).value).toBe('0');
+    expect(within(row('project.roomTone')).getByText('From 0 to 10 s')).toBeTruthy();
+    // CS-N1 (owner decision, this PR): a number is never refused by the box. Junk text reverts and saves
+    // nothing; a number between steps moves onto the step (this test pinned the old refusal of 2.5).
+    fireEvent.change(box, { target: { value: '1e1' } });
+    fireEvent.blur(box);
+    expect(saved).not.toHaveBeenCalled();
+    expect((box as HTMLInputElement).value).toBe('0');
+    fireEvent.change(box, { target: { value: '2.5' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(saved).toHaveBeenCalledWith('General', 'global', { credits_room_tone_seconds: '3' }));
+  });
+
   it('says under Parallel processes what the value shown runs on this computer, and reads it again when the value changes', async () => {
     const api = createMockApi();
     const asked = vi.spyOn(api, 'coverageWorkerPlan');
@@ -295,55 +325,27 @@ describe('Settings: row layout', () => {
     expect(asked).toHaveBeenLastCalledWith({ workers: 3 });
   });
 
-  it('an invalid draft clears the Saved mark, whatever the motion preference (#2989)', async () => {
-    await renderPage();
+  // #2989 pinned a red refusal line under a number past its range, and that the row's Saved mark did not outlive it. The owner's rule CS-N1
+  // (#3681) replaced the refusal on purpose: the box saves the nearest allowed value, so there is no refusal for a Saved mark to outlive.
+  it('a number past the range is saved as the nearest limit and says Saved, with no refusal (#2989, #3681)', async () => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
     pick('Speech to text');
     await openAdvanced();
-    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
-    fireEvent.change(box, { target: { value: '3' } });
-    fireEvent.blur(box);
-    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox') as HTMLInputElement);
+    const most = box.getAttribute('max')!;
+    expect(Number(most)).toBeGreaterThan(0);
+    save.mockClear();
     fireEvent.change(box, { target: { value: '999999' } });
-    fireEvent.blur(box);
-    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
-    // jsdom runs no animation, so a Saved mark that only a fade hides is still on screen here, as it is under reduced motion.
-    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
-  });
-
-  it('Saved comes back after a refusal when the row is reset (#2989)', async () => {
-    await renderPage();
-    pick('Speech to text');
-    await openAdvanced();
-    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
-    fireEvent.change(box, { target: { value: '3' } });
+    expect(save).not.toHaveBeenCalled();
     fireEvent.blur(box);
     await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
-    fireEvent.change(box, { target: { value: '999999' } });
-    fireEvent.blur(box);
-    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
-    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
-    // A Reset settles no number box: it is a write of its own and says Saved, as it does with no refusal before it.
-    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Reset .* to / }));
-    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
-  });
-
-  it('a project-box write does not show Saved while the computer box still shows a refusal (#2989)', async () => {
-    await renderPage();
-    pick('Speech to text');
-    await openAdvanced();
-    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
-    fireEvent.change(box, { target: { value: '3' } });
-    fireEvent.blur(box);
-    await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
-    fireEvent.change(box, { target: { value: '999999' } });
-    fireEvent.blur(box);
-    await waitFor(() => expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy());
-    // The row draws a second number box for the project; writing there is another write, and the computer box's reason is still on screen.
-    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Override for this project/ }));
-    await waitFor(() => expect(within(row('stt.workers')).getAllByRole('textbox').length).toBeGreaterThan(1));
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeTruthy();
-    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(save.mock.calls[0])).toContain(`"${most}"`);
+    expect(box.value).toBe(most);
+    expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeNull();
+    expect(within(row('stt.workers')).queryByRole('alert')).toBeNull();
   });
 
   it('a refused REAPER path (a rule of the row, not of a number) hides the Saved mark of the path before it (#2989)', async () => {
@@ -359,7 +361,8 @@ describe('Settings: row layout', () => {
     expect(within(row('daw.reaperPath')).queryByText('Saved')).toBeNull();
   });
 
-  it('a refusal in the project box hides Saved, and Use computer setting brings it back (#2989)', async () => {
+  // Was "a refusal in the project box hides Saved" (#2989): the project box has no refusal either since CS-N1 (#3681).
+  it('a number past the range in the project box is saved as the nearest limit too (#2989, #3681)', async () => {
     await renderPage();
     pick('Speech to text');
     await openAdvanced();
@@ -369,18 +372,19 @@ describe('Settings: row layout', () => {
     await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
     fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Override for this project/ }));
     await waitFor(() => expect(within(row('stt.workers')).getAllByRole('textbox').length).toBe(2));
+    const most = computer.getAttribute('max')!;
     // The override's own write re-draws the row, so the box is looked up afresh on each try (a slow machine re-draws after the first look).
     await waitFor(() => {
-      const project = within(row('stt.workers')).getAllByRole('textbox')[1]!;
-      fireEvent.change(project, { target: { value: '999999' } });
-      fireEvent.blur(project);
-      expect(within(row('stt.workers')).getAllByRole('textbox')[1]!.getAttribute('aria-invalid')).toBe('true');
+      const project = within(row('stt.workers')).getAllByRole('textbox')[1]! as HTMLInputElement;
+      if (project.value !== most) {
+        fireEvent.change(project, { target: { value: '999999' } });
+        fireEvent.blur(project);
+      }
+      expect((within(row('stt.workers')).getAllByRole('textbox')[1]! as HTMLInputElement).value).toBe(most);
     });
-    expect(within(row('stt.workers')).queryByText('Saved')).toBeNull();
-    // Dropping the override writes again and replaces the refused box: Saved is for that write.
-    fireEvent.click(within(row('stt.workers')).getByRole('button', { name: /^Use computer setting for/ }));
     await waitFor(() => expect(within(row('stt.workers')).getByText('Saved')).toBeTruthy());
     expect(row('stt.workers').querySelector('[aria-invalid="true"]')).toBeNull();
+    expect((within(row('stt.workers')).getAllByRole('textbox')[0]! as HTMLInputElement).value).toBe('3');
   });
 
   it('says so under Parallel processes when the host cannot work the count out', async () => {
@@ -492,6 +496,17 @@ describe('Settings: row layout', () => {
     fireEvent.click(cancel);
     await new Promise((done) => setTimeout(done, 50));
     expect(cancelled).not.toHaveBeenCalled();
+  });
+});
+
+describe('Settings: the In this project filter and panel rows', () => {
+  it('lists a panel row whose project layer holds a value, and leaves one that holds none (found by the qa-breaker)', async () => {
+    const api = createMockApi();
+    await api.saveSettings('Cleanup', 'project', { min_breath_seconds: '0.3' });
+    await renderPage({ api });
+    fireEvent.click(await screen.findByRole('button', { name: 'In this project' }));
+    await waitFor(() => expect(screen.getByText('Silence cleanup thresholds')).toBeTruthy());
+    expect(screen.queryByText('Preview suggestion')).toBeNull();
   });
 });
 
@@ -842,64 +857,65 @@ describe('Settings: search and filters', () => {
     expect(screen.getByRole('heading', { level: 3, name: /Speech to text/ })).toBeTruthy();
   });
 
-  it('finds a setting that moved to a page', async () => {
+  it('finds a setting only one page reads under the topic it belongs to', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'breath');
-    expect(document.querySelector('[data-page-setting="ps.cleanup"]')).toBeTruthy();
+    const found = document.querySelector<HTMLElement>('[data-row="editing.cleanup"]');
+    expect(found).toBeTruthy();
+    expect(found!.closest('section[aria-label="Recording & DAW"]')).toBeTruthy();
   });
 
-  it('keeps the punch pre-roll and the Audacity backups editable here, with the page shortcut beside them', async () => {
-    await renderPage();
+  it('keeps the punch pre-roll and the Audacity backups editable here, each in its category with the page it is also set on', async () => {
+    await renderPage({ api: createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } }) });
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
-    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]');
-    expect(punch).toBeTruthy();
-    expect(within(punch!).getByRole('button', { name: /^Open Booth/ })).toBeTruthy();
-    expect(within(punch!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+    const punch = await waitForRow('daw.punchPreroll');
+    expect(within(punch).getByRole('button', { name: /Go to Booth/ })).toBeTruthy();
+    expect(within(punch).getByText(/Also set in Booth/)).toBeTruthy();
     await userEvent.clear(screen.getByRole('textbox', { name: 'Search settings' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Search settings' }), 'retention');
-    const backups = document.querySelector<HTMLElement>('[data-page-setting="ps.backups"]');
-    expect(backups).toBeTruthy();
-    expect(within(backups!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
-    expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+    const backups = await waitForRow('daw.backups');
+    expect(within(backups).getByText(/Also set in Editing/)).toBeTruthy();
   });
 
-  it('keeps an unsaved edit in a Set on a page panel when its group is collapsed and opened again', async () => {
+  it('does not draw the Audacity backups row while the project records with REAPER', async () => {
     await renderPage();
-    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
-    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
-    const toggle = within(punch).getByRole('button', { name: 'Change it here for now' });
-    await userEvent.click(toggle);
-    const field = await waitFor(() => {
-      const input = punch.querySelector<HTMLInputElement>('input');
-      expect(input).toBeTruthy();
-      return input!;
-    });
-    await userEvent.clear(field);
-    await userEvent.type(field, '2.5');
-    await userEvent.click(toggle);
-    await userEvent.click(toggle);
-    expect(punch.querySelector<HTMLInputElement>('input')!.value).toBe('2.5');
+    expect(await waitForRow('daw.punchPreroll')).toBeTruthy();
+    expect(row('daw.backups')).toBeNull();
   });
 
-  // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
-  it('puts Open <page> on the line of Change it here for now', async () => {
+  it('keeps the punch pre-roll in Settings with the built-in recorder, and does not draw the Audacity backups row for a tool that keeps none', async () => {
+    const api = createMockApi({}, { dawChoice: { chosen: 'Built-in' }, daw: { daw: 'Built-in' }, recording: { engine: 'builtin' } });
+    await renderPage({ api });
+    // A computer-wide value: the Booth does not offer it with a recorder that does not punch, but Settings keeps it for every project.
+    expect(await waitForRow('daw.punchPreroll')).toBeTruthy();
+    expect(row('daw.backups')).toBeNull();
+  });
+
+  it('a value saved through a panel row marks the row Changed and counts it', async () => {
     await renderPage();
-    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
-    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
-    const open = within(punch).getByRole('button', { name: /^Open Booth/ });
-    const change = within(punch).getByRole('button', { name: 'Change it here for now' });
-    // Both sit in the setting's one entry, the open icon at the right of the disclosure's line.
-    expect(open.closest('[data-page-setting]')).toBe(change.closest('[data-page-setting]'));
-    expect(open.className).toContain('size-[var(--button-height-sm)]');
+    pick('Delivery');
+    const entry = await waitForRow('proofing.preview');
+    const target = await within(entry).findByRole('textbox', { name: 'Target length (seconds)' });
+    fireEvent.change(target, { target: { value: '240' } });
+    fireEvent.click(within(entry).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(row('proofing.preview').getAttribute('data-changed')).toBe('true'));
+    expect(within(nav()).getByRole('button', { name: /^Delivery/ }).textContent).toMatch(/1/);
   });
 
-  it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {
+  it('a panel in a row has no heading of its own: the row names it, the panel keeps its scope switch', async () => {
+    await renderPage();
+    pick('Speech to text');
+    const entry = await waitForRow('stt.rules');
+    const panel = await within(entry).findByRole('region', { name: 'Recording check' });
+    expect(within(panel).queryAllByRole('heading')).toHaveLength(0);
+    expect(within(panel).getByRole('group', { name: 'Recording check scope' })).toBeTruthy();
+  });
+
+  it('lists the favourite effects under Recording & DAW, beside the effects coverage cap', async () => {
     await renderPage();
     await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');
-    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.fx"]');
-    expect(entry).toBeTruthy();
-    expect(within(entry!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
-    expect(within(entry!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+    const entry = await waitForRow('daw.fxFavourites');
+    expect(entry.closest('section[aria-label="Recording & DAW"]')).toBeTruthy();
   });
 
   it('Escape clears the search', async () => {

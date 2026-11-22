@@ -278,6 +278,10 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      // An Escape pressed on the icon (or in its note) is spent on closing the note: a page's own Escape command (Proof's "All chapters") reads it as
+      // consumed and stays out. One pressed elsewhere, with a note left showing from the mouse, is not: a dialog answers it too (`dialog-early-escape`).
+      const target = event.target as Node | null;
+      if (target && (triggerRef.current?.contains(target) || popupRef.current?.contains(target))) event.preventDefault();
       openedByFocus.current = false;
       setOpen(false);
     };
@@ -313,6 +317,9 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
         onBlur={(event) => {
           // Focus moving onto the popup itself (a press on its text) is not leaving.
           if (popupRef.current?.contains(event.relatedTarget as Node | null)) return;
+          // Tab from the icon lands on the library's focus guard, which closes the note and moves focus on to the next control. Closing here first
+          // unmounts the guard before it runs, and focus falls to <body>.
+          if ((event.relatedTarget as Element | null)?.hasAttribute?.('data-base-ui-focus-guard')) return;
           openedByFocus.current = false;
           setOpen(false);
         }}

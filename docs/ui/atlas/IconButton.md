@@ -103,6 +103,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/proof/inspector/TreatAsSame.tsx`
 - `src/components/proof/inspector/TrimGap.tsx`
 - `src/components/proof/notes/NotesPanel.tsx`
+- `src/components/proof/proofOptions/ProofOptions.tsx`
 - `src/components/proof/spot/SpotTakes.tsx`
 - `src/components/recordingcheck/CheckRecordingsButton.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
@@ -128,6 +129,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
+- `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ToolRow.tsx`
 - `src/components/settings/controls/AppearanceBodies.tsx`
@@ -141,7 +143,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/settings/models/ModelsFolder.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
-- `src/components/settings/page/PagesPane.tsx`
 - `src/components/settings/page/Results.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/settings/page/SettingsPage.tsx`

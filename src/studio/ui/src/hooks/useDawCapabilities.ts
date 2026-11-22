@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { DawCapabilities } from '../api/contracts/daw';
 import { usePort } from '../ports/usePort';
 
 /** `caps` is null until the DAW has been asked; `failed` is true when the last ask was refused, and clears when a later report arrives. */
-export type DawCapabilitiesState = { caps: DawCapabilities | null; failed: boolean; error?: unknown };
+export type DawCapabilitiesState = { caps: DawCapabilities | null; failed: boolean; error?: unknown; retry: () => void };
+type Report = Omit<DawCapabilitiesState, 'retry'>;
 
 /**
  * What the DAW can do now (audit cluster 18, docs/research/ui-function-audit.md): asked once on mount, then again each time the DAW's report changes
@@ -13,10 +14,12 @@ export type DawCapabilitiesState = { caps: DawCapabilities | null; failed: boole
  */
 export function useDawCapabilities(): DawCapabilitiesState {
   const daw = usePort('daw');
-  const [state, setState] = useState<DawCapabilitiesState>({ caps: null, failed: false });
+  const [state, setState] = useState<Report>({ caps: null, failed: false });
+  // `retry` asks the DAW again, for a caller that shows the refusal with a Retry; the last report stays until the answer comes.
+  const [asked, setAsked] = useState(0);
   useEffect(() => {
     let live = true;
-    setState((prev) => (prev.caps === null && !prev.failed ? prev : { caps: null, failed: false }));
+    if (asked === 0) setState((prev) => (prev.caps === null && !prev.failed ? prev : { caps: null, failed: false }));
     // A report that says what the last one said keeps the last one's identity. Callers hold the capabilities in effect and memo dependencies, and
     // some of those effects ask the DAW again, which reports again: a new object each time would be a loop.
     const report = (caps: DawCapabilities) =>
@@ -27,8 +30,9 @@ export function useDawCapabilities(): DawCapabilitiesState {
       live = false;
       stop?.();
     };
-  }, [daw]);
-  return state;
+  }, [daw, asked]);
+  const retry = useCallback(() => setAsked((n) => n + 1), []);
+  return { ...state, retry };
 }
 
 const sameReport = (a: DawCapabilities, b: DawCapabilities): boolean => a === b || JSON.stringify(a) === JSON.stringify(b);

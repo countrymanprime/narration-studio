@@ -38,7 +38,7 @@ A train is one goal, run by one coordinator, and it has one issue that lives as 
 
 The owner answers on a board. When a train starts, the coordinator publishes one private claude.ai Artifact for it, the owner board, and links it from the first line of the train issue. The board lists every open owner item, each with a way to answer:
 
-- a decision: the question, the options, the recommendation and the date it defaults to the recommendation (seven days, D-8);
+- a decision: the question, the options (never an alternative to an existing control: [one thing per job](../../../rules/product-rules.md)), the recommendation and the date it defaults to the recommendation (seven days, D-8);
 - an owner-only check (hardware, REAPER, the owner's own recordings, D65): what to run and what to report.
 
 It also shows what is in flight, merged and blocked. Answers are stored on the board. Each pass, the coordinator reads the new ones, acts on them, copies each to the train issue's Owner queue with its date, and marks the item answered on the board. The issue is the durable record; the board is the owner's view of it.
@@ -177,6 +177,8 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)).;
    - the `test ratchet` step of `quality / lint` has run on the head (its result is in the lint job's summary), and the intent review judged its warnings ([Safety net](#safety-net));
+   - the PR's Reuse section has `Existing thing searched:` with real searches, and every new thing has `Replaces: <path>` with that path deleted in the diff; a PR that adds a parallel thing is refused ([one thing per job](../../../rules/product-rules.md)), with a comment naming the existing thing;
+   - every reviewer's report carries a `Design system:` line and none says hand-rolled ([rule](../../../rules/product-rules.md));
    - an independent intent review passed on the current head ([Safety net](#safety-net));
    - no `main-red` issue is open (`list_issues` with the label), unless this PR is the fix or the revert that issue asks for ([Safety net](#safety-net)): a red `main` is closed to every other merge, `HOLD` or not;
    - for a UI PR, `ux-reviewer` returned `pass` after the last code commit; a later docs-only commit does not carry an earlier pass, so run it again;
@@ -263,6 +265,8 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
   - names the exact states the PRD's Phase Details and Visual Spec section describe;
   - points it at `docs/design/design-system.md` and the real tokens/primitives, never a generic style;
   - names any existing mock or page the coordinator chose as precedent for tone and format ([References for a job](#references-for-a-job));
+  - tells it to search first and never mock up an alternative to an existing control ([one thing per job](../../../rules/product-rules.md)); the owner board lists no option that does;
+  - tells it to build the mock-up from design-system primitives and tokens, never a new look ([rule](../../../rules/product-rules.md));
   - says explicitly: **drafts only**, no product code for the gated phase, and the PRD's Visual Spec section is updated to list the new files as drafts pending the owner's approval — the session never marks its own work owner-approved;
   - tells it to open its own tracking issue and a normal PR, same as any worker, and never merge itself.
 - **Record it on the train issue** as its own lane entry. It counts toward `TARGET` like any running session, but is tracked separately from the phase queue until the owner approves it.

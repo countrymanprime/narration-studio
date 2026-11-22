@@ -246,6 +246,29 @@ describe('Recording & DAW: Record with', () => {
     await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
 
+  it('keeps text typed in the Audacity backups row while the page reads which tool the project records with (the section is not rebuilt)', async () => {
+    const initial = {
+      dawChoice: { chosen: 'Audacity' as const },
+      daw: { daw: 'Audacity' as const, connected: true },
+      audacityLink: { module: 'on' as const, running: true, pipe: 'silent' as const },
+    };
+    const base = createMockApi({}, initial);
+    // The tool read answers late, as it does on a slow machine: the row is already drawn from the launch tool when it arrives.
+    const late = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return base.dawChoice();
+    };
+    const api = createMockApi({ dawChoice: late }, initial);
+    await renderPage({ api, category: 'Recording & DAW' });
+    const days = await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
+    fireEvent.change(days, { target: { value: 'abc' } });
+    // Long enough for the tool read and the capability report to settle: a section rebuilt by either would be a new box with the old text gone.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(days.isConnected).toBe(true);
+    expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('abc');
+    expect(registry.heldNow().map((held) => held.label)).toEqual(['a backups value that is not a number']);
+  });
+
   it('shows no launcher steps and no bridge line while the bridge is fine; the "?" on Record with says nothing needs setting up', async () => {
     const launcher = `C:\\Apps\\${brand.name}\\launcher.lua`;
     const base = await createMockApi().bootstrap();

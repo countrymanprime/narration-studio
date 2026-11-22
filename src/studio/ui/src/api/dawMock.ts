@@ -29,7 +29,7 @@ import type {
   DawGoToWhere,
 } from './contracts/daw';
 import { DAW_CAPABILITIES, DAW_LEVEL_MAX, DAW_METER_FLOOR_DB } from './contracts/daw';
-import { wireClone } from './mockFixtures';
+import { MOCK_PROJECT_CHANGE_COUNT, wireClone } from './mockFixtures';
 
 /** Mirrors dawport.Needs (capability.go): what a capability needs from the running engine before it can be used. */
 type DawMockNeeds = 'running' | 'bridge' | 'nothing';
@@ -458,6 +458,8 @@ export interface DawMockControl {
   refuseNextSync(sentence: string): void;
   /** The word table the DAW answers (`workspaceWordTimes`); null (the start) is a DAW that cannot make one, so the page follows nothing in it. */
   setWordTimes(table: WordTimes | null): void;
+  /** The narrator added a track in the DAW: it is in the live track list at once and `daw_tracks_changed` is sent. Does nothing on a `createDawMock` used alone: mockApi.ts wires it to the tracks mock. */
+  addTrackInDaw(name: string): void;
   /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
   editInDaw(): void;
   /** `daw_project_edited` is sent with the counter as it is, not raised: it models the host's first poll after a start or a relink, a count the page already holds repeated. */
@@ -559,7 +561,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuse: null,
     stopAt: null,
     wordTimes: null,
-    changeCount: 0,
+    changeCount: MOCK_PROJECT_CHANGE_COUNT,
     calls: [],
   };
   const positionSubs = new Set<(position: DawPosition) => void>();
@@ -694,6 +696,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     setWordTimes: (table) => {
       sync.wordTimes = table === null ? null : wireClone(table);
     },
+    addTrackInDaw: () => {},
     editInDaw: () => {
       sync.changeCount += 1;
       for (const on of editSubs) on({ changeCount: sync.changeCount });

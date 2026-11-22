@@ -82,6 +82,81 @@ func TestEveryNumberFieldHasARangeAndEveryRangeAField(t *testing.T) {
 	}
 }
 
+// A number field's shipped default is a value its own range accepts, so the page never opens on a value a save of the
+// same text would refuse. A field with no default reads back "" (unset) and is skipped.
+func TestEveryNumberFieldsDefaultPassesItsOwnRange(t *testing.T) {
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	for tool, schemas := range fieldSchemas {
+		for _, schema := range schemas {
+			if schema.kind != "number" {
+				continue
+			}
+			value, _ := host.settings.Effective(tool, schema.key, "")
+			if value == "" {
+				continue
+			}
+			if err := validateSettingValue(tool, schema, value); err != nil {
+				t.Errorf("%s.%s default %q: %v", tool, schema.key, value, err)
+			}
+		}
+	}
+}
+
+// The two Cleanup dB thresholds take any tenth of a dB from 0.1 up (#4010): the shipped defaults 12 and 30 and other
+// whole and tenth values save, and a value under the minimum or between tenths is refused.
+func TestCleanupDBThresholdsSaveAnyTenthOfADBFromAPointOne(t *testing.T) {
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	for _, key := range []string{settingCleanupBreathBelowSpeechDB, settingCleanupClickAboveSilenceDB} {
+		for _, value := range []string{"12", "30", "0.1", "8", "12.3"} {
+			if err := host.saveSettings("Cleanup", "global", map[string]*string{key: ptr(value)}); err != nil {
+				t.Errorf("saveSettings(%s=%q) = %v, want it accepted", key, value, err)
+				continue
+			}
+			if got := effectiveValues(host, "Cleanup")[key]; got != value {
+				t.Errorf("effective %s after saving %q = %q", key, value, got)
+			}
+		}
+		for value, wantErr := range map[string]string{"0.05": "at least 0.1", "0": "at least 0.1", "-1": "at least 0.1", "12.25": "steps of 0.1"} {
+			if err := host.saveSettings("Cleanup", "global", map[string]*string{key: ptr(value)}); err == nil || !strings.Contains(err.Error(), wantErr) {
+				t.Errorf("saveSettings(%s=%q) = %v, want an error containing %q", key, value, err, wantErr)
+			}
+		}
+	}
+}
+
+// Room tone per credits file is a number of whole seconds from 0 to 10. The values the old choice list stored ("0" to
+// "10") stay valid, and the default is still 0.
+func TestRoomToneIsAWholeNumberOfSecondsFromZeroToTen(t *testing.T) {
+	host := newTestHostForDeliverySettings(t, t.TempDir())
+	schema, ok := schemaFor("General", "credits_room_tone_seconds")
+	if !ok || schema.kind != "number" || len(schema.choices) != 0 {
+		t.Fatalf("credits_room_tone_seconds = %+v, want a number field with no choices", schema)
+	}
+	if got := numberSpecs["General"]["credits_room_tone_seconds"].wire(); got["min"] != 0.0 || got["max"] != 10.0 || got["step"] != 1.0 || got["unit"] != "s" {
+		t.Fatalf("range = %v, want 0 to 10 s in steps of 1", got)
+	}
+	for _, stored := range []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"} {
+		if err := host.saveSettings("General", "global", map[string]*string{"credits_room_tone_seconds": ptr(stored)}); err != nil {
+			t.Errorf("saveSettings(%q) = %v, want a value the old list stored accepted", stored, err)
+		}
+		if got := effectiveValues(host, "General")["credits_room_tone_seconds"]; got != stored {
+			t.Errorf("effective value after saving %q = %q", stored, got)
+		}
+	}
+	for value, wantErr := range map[string]string{"2.5": "steps of 1", "abc": "must be a number", "11": "between 0 and 10 s", "-1": "between 0 and 10 s", "": "must be a number"} {
+		err := host.saveSettings("General", "global", map[string]*string{"credits_room_tone_seconds": ptr(value)})
+		if err == nil || !strings.Contains(err.Error(), wantErr) {
+			t.Errorf("saveSettings(%q) = %v, want an error containing %q", value, err, wantErr)
+		}
+	}
+	if err := host.saveSettings("General", "global", map[string]*string{"credits_room_tone_seconds": nil}); err != nil {
+		t.Fatalf("clearing the value: %v", err)
+	}
+	if got := effectiveValues(host, "General")["credits_room_tone_seconds"]; got != "0" {
+		t.Fatalf("default after clearing = %q, want 0", got)
+	}
+}
+
 // The old Delivery limits (src/studio/desktop/settings_number.go) left the settings page when delivery profiles replaced them:
 // the keys stay in the settings files, read once to move them into a profile, and no field offers them.
 func TestTheOldDeliveryLimitsAreNoLongerSettings(t *testing.T) {

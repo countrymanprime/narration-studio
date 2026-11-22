@@ -9,20 +9,32 @@ import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { VOICE_CONTROL_ID, type BoothVoices } from './useBoothVoices';
-import { keyName, lineCount, voiceName, type WhoCharacter } from './whoIsIn';
-import { StatusBadge } from '../../primitives/StatusBadge';
+import { CharacterBadge } from './CharacterBadge';
+import { chordText, voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 
 /** A "No track" row's option id: a character, never a track GUID. */
 const CHARACTER = 'character:';
+/** The empty search's "add a track" row: no number to type, so the narrator need not know which lanes exist. */
+const ADD_LANE = 'add-lane';
 
-const keyLabel = (voice: Voice) => (voice.key ? keyName(voice.key) : '');
+const keyLabel = (voice: Voice) => chordText(voiceChord(voice));
 /** The number-pad key as the number alone ("2"); a screen reader still hears which key it is ("Num 2"). */
 function KeyNumber({ voice }: { voice: Voice }) {
-  if (!voice.key) return null;
+  // Past nineteen a voice has no key at all, and says so; the Narrator always has one.
+  if (voice.notVoice) return null;
+  const shifted = !voice.key && voice.shift !== undefined;
+  const keyless = !voice.key && !shifted;
   return (
     <span className="flex-none font-mono font-semibold whitespace-nowrap text-[var(--text)]">
-      <span className="sr-only">Num </span>
-      {voice.key}
+      {/* A screen reader hears the whole chord ("Shift + Num 1"), not the digit drawn after it. */}
+      <span className="sr-only">{keyless ? '' : shifted ? chordText(voiceChord(voice)) : 'Num '}</span>
+      {keyless ? (
+        <span className="font-normal text-[var(--text-muted)]">No key</span>
+      ) : shifted ? (
+        <span aria-hidden="true">{`Shift ${voice.shift}`}</span>
+      ) : (
+        voice.key
+      )}
       <span className="sr-only">, </span>
     </span>
   );
@@ -67,6 +79,8 @@ export function VoiceControl({
   open,
   onOpenChange,
   noTrack = [],
+  cast,
+  onAddLane,
   onPickCharacter,
   standIn,
   recording = false,
@@ -82,6 +96,10 @@ export function VoiceControl({
   onOpenChange: (open: boolean) => void;
   /** The chapter's speakers no voice records: the list's "No track" rows (the mock's #list). */
   noTrack?: readonly WhoCharacter[];
+  /** Everyone a search reaches: this chapter's characters first, then the rest of the story (#3970). */
+  cast?: Pick<Cast, 'inChapter' | 'elsewhere'>;
+  /** The "add a track" row of a search that matches nothing: asks who the next new track is for. */
+  onAddLane?: (name: string) => void;
   /** A "No track" row picked: while stopped the page asks who records it; during a take the Narrator voice records it (`standIn`). */
   onPickCharacter?: (character: WhoCharacter) => void;
   /** The character with no track the Narrator voice records (decision 5): the control shows "King → Narrator" as a warning. */
@@ -95,10 +113,23 @@ export function VoiceControl({
   // Set by a voice pick, read as the list closes (`focusPageOnClose`): a character pick opens a dialog, which takes focus itself.
   const picked = useRef(false);
   const needle = query.trim().toLocaleLowerCase();
-  const missing = useMemo(() => noTrack.filter((character) => !needle || character.name.toLocaleLowerCase().includes(needle)), [noTrack, needle]);
-  const grouped = noTrack.length > 0;
-  const options = useMemo<ListboxOption[]>(
-    () => [
+  // A search reaches every character (the chapter's first, then the story's), so a wrong attribution never blocks a pick; with nothing typed
+  // the list shows only the chapter's speakers with no track.
+  const missing = useMemo(() => {
+    const named = (list: readonly WhoCharacter[]) => list.filter((character) => !needle || character.name.toLocaleLowerCase().includes(needle));
+    if (!needle || !cast) {
+      // Nothing typed: the speakers with no track, then the chapter's characters only named (no line to speak) with none, so "Mara said" is offered too.
+      const named0 = cast ? cast.inChapter.filter((character) => character.key === undefined && !noTrack.some((each) => each.id === character.id)) : [];
+      return named([...noTrack, ...named0]).map((character) => ({ character, group: 'No track' }));
+    }
+    return [
+      ...named(cast.inChapter).map((character) => ({ character, group: 'In this chapter' })),
+      ...named(cast.elsewhere).map((character) => ({ character, group: 'Everyone else' })),
+    ];
+  }, [noTrack, cast, needle]);
+  const grouped = noTrack.length > 0 || (needle !== '' && missing.length > 0);
+  const options = useMemo<ListboxOption[]>(() => {
+    const rows: ListboxOption[] = [
       ...voices
         .filter((voice) => matches(voice, needle))
         .map((voice) => ({
@@ -121,25 +152,32 @@ export function VoiceControl({
           description: voice.characters.length ? <Who voice={voice} /> : undefined,
         })),
       // The chapter's speakers with no track: a pick asks who records them (the mock's "No track" section).
-      ...missing.map((character) => ({
+      ...missing.map(({ character, group }) => ({
         id: `${CHARACTER}${character.id}`,
-        group: 'No track',
-        leading: (
-          <span className="inline-flex min-w-14 flex-none text-[var(--text-muted)]">
-            <Icon name="add" />
-          </span>
-        ),
+        group,
+        leading: <span className="inline-flex min-w-14 flex-none text-[var(--text-muted)]">{character.key === undefined ? <Icon name="add" /> : null}</span>,
         label: (
           <span className="truncate" title={character.name}>
             <bdi>{character.name}</bdi>
           </span>
         ),
         // The same badge as the dialog's (the mock's `pill n`), so a line count is drawn one way.
-        trailing: <StatusBadge tone="neutral" label={lineCount(character.lines)} />,
+        trailing: <CharacterBadge character={character} />,
       })),
-    ],
-    [voices, needle, current, arm.state, missing, grouped],
-  );
+    ];
+    // Nothing matches: the list offers to add a track, so no number has to be typed.
+    if (needle && rows.length === 0 && onAddLane)
+      rows.push({
+        id: ADD_LANE,
+        leading: (
+          <span className="inline-flex min-w-6 flex-none justify-center text-[var(--text-muted)]">
+            <Icon name="add" />
+          </span>
+        ),
+        label: 'Add a track',
+      });
+    return rows;
+  }, [voices, needle, current, arm.state, missing, grouped, onAddLane]);
   if (!current) return null;
 
   const several = arm.state === 'several';
@@ -147,7 +185,7 @@ export function VoiceControl({
   // The tooltip names the key that opens the list and, when REAPER has several tracks armed, what Record will do about it; for a character
   // with no track, who records it instead.
   const tip = standingIn
-    ? `${standingIn.name} has no track · ${recording ? 'recording' : 'armed'} on ${voiceName(current)}${current.key ? ` (${keyLabel(current)})` : ''}`
+    ? `${standingIn.name} has no track · ${recording ? 'recording' : 'armed'} on ${voiceName(current)}${keyLabel(current) ? ` (${keyLabel(current)})` : ''}`
     : several
       ? `${arm.count ?? 'Several'} tracks armed in REAPER · Record arms only this one`
       : 'Choose the voice to record (Num .)';
@@ -157,10 +195,23 @@ export function VoiceControl({
   };
   // A pick hands focus to the page, not back to this button: Enter or Space after a pick is Record's key, and on this button it would open the list again.
   const pick = (guid: string) => {
-    if (guid.startsWith(CHARACTER)) {
-      const character = noTrack.find((each) => `${CHARACTER}${each.id}` === guid);
+    if (guid === ADD_LANE) {
+      // The dialog it opens takes focus, so the list does not hand it back to this button (Enter there would reopen the list over the dialog).
+      picked.current = true;
       changeOpen(false);
-      if (character) onPickCharacter?.(character);
+      onAddLane?.(query.trim());
+      return;
+    }
+    if (guid.startsWith(CHARACTER)) {
+      const character = [...noTrack, ...(cast?.inChapter ?? []), ...(cast?.elsewhere ?? [])].find((each) => `${CHARACTER}${each.id}` === guid);
+      picked.current = true;
+      changeOpen(false);
+      // A character a track already records is chosen by that track; the others are asked who records them.
+      const own = character && voices.find((voice) => voice.characters.some((each) => each.id === character.id));
+      if (own) {
+        picked.current = true;
+        onChoose(own);
+      } else if (character) onPickCharacter?.(character);
       return;
     }
     const voice = voices.find((each) => each.guid === guid);

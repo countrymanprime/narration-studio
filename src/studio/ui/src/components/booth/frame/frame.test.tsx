@@ -55,7 +55,7 @@ function footer(a: ReturnType<typeof api>, over: Partial<Parameters<typeof Booth
 }
 
 function top(over: Partial<Parameters<typeof BoothTop>[0]> = {}) {
-  return render(<BoothTop progress="¶ 1 of 2 · 0% · ~1:00 of audio left" recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
+  return render(<BoothTop progress={['¶ 1 of 2', '0% read', '~1:00 of audio left']} recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
 }
 
 describe('rec-shows-only-while-recording', () => {
@@ -63,7 +63,7 @@ describe('rec-shows-only-while-recording', () => {
     const { rerender } = top();
     expect(screen.queryByText(/ready/i)).toBeNull();
     expect(screen.queryByText('REC')).toBeNull();
-    rerender(<BoothTop progress="" recording panelOpen={false} onTogglePanel={() => {}} />);
+    rerender(<BoothTop progress={[]} recording panelOpen={false} onTogglePanel={() => {}} />);
     const pill = screen.getByText('REC');
     expect(pill.style.background).toBe('var(--rec-fill)');
     expect(pill.style.color).toBe('var(--rec-text)');
@@ -92,7 +92,7 @@ describe('the-resume-and-setup-slots', () => {
     expect(container.querySelector('[data-slot]')).toBeNull();
     rerender(
       <BoothTop
-        progress=""
+        progress={[]}
         recording={false}
         panelOpen={false}
         onTogglePanel={() => {}}
@@ -105,7 +105,7 @@ describe('the-resume-and-setup-slots', () => {
   });
   it('shows the progress line', () => {
     top();
-    expect(screen.getByText('¶ 1 of 2 · 0% · ~1:00 of audio left')).toBeTruthy();
+    expect(document.getElementById('bprog')?.textContent).toBe('¶ 1 of 20% read~1:00 of audio left');
   });
 });
 
@@ -128,7 +128,7 @@ describe('the-side-panel-toggle-and-drawer-width', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await userEvent.click(toggle);
     expect(onTogglePanel).toHaveBeenCalledOnce();
-    rerender(<BoothTop progress="" recording={false} panelOpen onTogglePanel={onTogglePanel} />);
+    rerender(<BoothTop progress={[]} recording={false} panelOpen onTogglePanel={onTogglePanel} />);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
   });
   it('is a drawer at 1280 and below and a column above', () => {
@@ -329,8 +329,7 @@ describe('the-footer-hints-come-from-the-catalogue', () => {
   it('draws the catalogue hints with the right-click extra, and the timer', () => {
     footer(api(), { seconds: 402 });
     const keys = screen.getByRole('note', { name: 'Keyboard shortcuts' });
-    for (const label of ['Record / stop', 'Punch and roll from here', 'Mark start', 'Phrase', 'Word', 'Full screen', 'Exit'])
-      expect(keys.textContent).toContain(label);
+    for (const label of ['Record / stop', 'Phrase', 'Word', 'Full screen', 'Exit']) expect(keys.textContent).toContain(label);
     expect(keys.textContent).not.toContain('Next pickup');
     expect(document.getElementById('btimer')?.textContent).toBe('06:42');
   });
@@ -347,7 +346,7 @@ describe('the text popover', () => {
     return (
       <>
         <BoothTop
-          progress=""
+          progress={[]}
           recording={false}
           panelOpen={false}
           onTogglePanel={() => {}}
@@ -457,5 +456,18 @@ describe('the record bar is voice, then one split button', () => {
     footer(api());
     await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
     expect(await screen.findByRole('dialog', { name: 'Record options' })).toBeTruthy();
+  });
+});
+
+describe('roll-again-hint', () => {
+  it('lists the R hint only while a take runs', () => {
+    const { container, rerender } = footer(api());
+    expect(container.textContent).not.toContain('Roll again');
+    rerender(
+      <ApiProvider api={api().value}>
+        <BoothFooter record={<button>Record</button>} seconds={0} recording mic={mic} roomTone="Room tone −58 dBFS" keymap={defaultKeymap()} />
+      </ApiProvider>,
+    );
+    expect(container.textContent).toContain('Roll again');
   });
 });

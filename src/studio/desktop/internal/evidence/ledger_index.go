@@ -30,6 +30,11 @@ type ledgerIndex struct {
 // ledgerRecordName names a record file in the host log.
 const ledgerRecordName = "analysis ledger record"
 
+// unreadableKinds are the kinds of entry a read would wait on and never finish: a named pipe with no writer, a socket, a
+// device. One named like a record is passed over before it is opened, so it stops neither a read nor a Retain pass,
+// which holds the store's lock while it lists.
+const unreadableKinds = os.ModeNamedPipe | os.ModeSocket | os.ModeDevice
+
 // refresh lists dir and returns its readable records, decoding with decode only the files whose bytes are new since the last call.
 // The lock is held across the listing and the reading, so reads that arrive together decode each file once and
 // an older listing never drops what a newer one found. A file that could not be read at all (locked, or gone since the
@@ -52,6 +57,14 @@ func (index *ledgerIndex) refresh(dir string, reporter *persist.Reporter, decode
 	for _, entry := range entries {
 		id, ok := recordID(entry.Name())
 		if !ok {
+			continue
+		}
+		info, err := entry.Info()
+		if err == nil && entry.Type()&os.ModeSymlink != 0 {
+			// The listing describes the link; the record is the file it points to.
+			info, err = os.Stat(filepath.Join(dir, entry.Name()))
+		}
+		if err != nil || info.Mode()&unreadableKinds != 0 {
 			continue
 		}
 		path := filepath.Join(dir, entry.Name())

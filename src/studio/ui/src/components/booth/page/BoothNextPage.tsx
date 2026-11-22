@@ -56,8 +56,6 @@ import { PRESS_NOTE_TOPIC, PRESS_TOPIC } from '../record/pressLimits';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
-import { ResumeOfferLine } from '../resume/ResumeOffer';
-import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord } from '../side/decorations';
@@ -75,7 +73,7 @@ import { CreditsWarning } from './CreditsWarning';
 import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
 import { useMoveTarget } from './useMoveTarget';
 import { useFollowChapterInDaw } from '../../../hooks/useDawGoesToChapter';
-import { useArmBoothOnOpen, useFollowDawOnOpen, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
+import { useArmBoothOnOpen, useFollowDawOnOpen, useLatchOnce, useMoveDawOnOpen, useReleaseBoothMonitorOnLeave } from './useDawFollow';
 import { useDawSoloesChapter } from '../../../hooks/useDawSoloesChapter';
 import { useDawPullBack } from '../../../hooks/useDawPullBack';
 import { useIsRecording } from '../../../daw/useIsRecording';
@@ -148,6 +146,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const overlay = useOverlay();
   // Whether the DAW records a take the app did not start, set where the control is known: the leave sends the DAW nothing then.
   const dawHoldsTake = useRef(false);
+  // Set by the session once the app's take has started or run, and kept for this visit to the Booth: the narrator has acted here, so a late answer from the DAW (even after the take) does not choose their chapter.
+  const takeBusy = useRef(false);
   useReleaseBoothMonitorOnLeave(
     (sentence) => sayDawArming(overlay, sentence),
     () => dawHoldsTake.current,
@@ -206,6 +206,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
     // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
     enabled: asked === null && planned === null,
     chapterIds,
+    busy: () => takeBusy.current,
     onChapter: (chapterId) => {
       selfOpened.current.add(chapterId);
       setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true });
@@ -284,6 +285,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         onPick={setPickAt}
         measurements={measurements}
         holdsTake={dawHoldsTake}
+        takeBusy={takeBusy}
       />
     </>
   );
@@ -292,6 +294,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
 type SessionProps = {
   /** Set by the session: the DAW records a take the app did not start (the leave sends it nothing then). */
   holdsTake: { current: boolean };
+  /** Set by the session: the app's take is starting or running, or the DAW records. */
+  takeBusy: { current: boolean };
   source: BoothSource;
   from?: BoothStart;
   /** What the address asks for now, and how the page takes it on. */
@@ -337,6 +341,7 @@ function BoothSession({
   onPick,
   measurements,
   holdsTake,
+  takeBusy,
 }: SessionProps) {
   const overlay = useOverlay();
   const journal = useJournal();
@@ -453,7 +458,7 @@ function BoothSession({
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
     seek,
     blocked: page.moveBlocked,
-    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: { ...at, placeOnly: true } }),
+    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
   // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits chapters have no paragraphs and so none.
@@ -498,8 +503,8 @@ function BoothSession({
   const referenced = useBoothReference(recordId);
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
-  // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
+  // Opened at a chapter, the DAW goes there too: to the end of its track. A place the narrator chose is looked up by Record when the take starts.
+  const moveTarget = useMoveTarget({ units });
   const followChapterInDaw = useFollowChapterInDaw();
   // Until the DAW's transport has been read once (`project`), whether it records is not known: the move waits for it rather than guess.
   const dawRecording = useIsRecording() || control.recording || (control.project === null ? !control.projectFailed : control.project.playState === 'recording');
@@ -507,6 +512,8 @@ function BoothSession({
   const dawHoldsOthersTake =
     (control.project === null ? !control.projectFailed : control.project.playState === 'recording') && !(control.recording && control.startedByApp);
   holdsTake.current = dawHoldsOthersTake;
+  // Not `dawRecording`: that holds until the transport has been read once, and a take the DAW holds that the app did not start is not the narrator acting here. A latch.
+  useLatchOnce(takeBusy, (control.recording && control.startedByApp) || control.starting);
   const moving = useMoveDawOnOpen({
     enabled: moveDaw,
     follow: followChapterInDaw,
@@ -616,6 +623,7 @@ function BoothSession({
     voices.voices.length > 0
       ? {
           keyOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.key,
+          chordOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.chord,
           speaks: (id: string) => (lines.get(id) ?? 0) > 0,
           add: (id: string) => askFor(id, 'new'),
           addWhy: control.recording ? whileRecording : undefined,
@@ -631,6 +639,16 @@ function BoothSession({
   useCommand('booth.voice.7', () => voices.byKey(7));
   useCommand('booth.voice.8', () => voices.byKey(8));
   useCommand('booth.voice.9', () => voices.byKey(9));
+  useCommand('booth.voice.10', () => voices.byKey(10));
+  useCommand('booth.voice.11', () => voices.byKey(11));
+  useCommand('booth.voice.12', () => voices.byKey(12));
+  useCommand('booth.voice.13', () => voices.byKey(13));
+  useCommand('booth.voice.14', () => voices.byKey(14));
+  useCommand('booth.voice.15', () => voices.byKey(15));
+  useCommand('booth.voice.16', () => voices.byKey(16));
+  useCommand('booth.voice.17', () => voices.byKey(17));
+  useCommand('booth.voice.18', () => voices.byKey(18));
+  useCommand('booth.voice.19', () => voices.byKey(19));
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
@@ -682,13 +700,16 @@ function BoothSession({
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;
   // The heading's words count toward the chapter's, but the paragraph numbers are the manuscript's: the heading is on paragraph 1.
   const lastParagraph = Math.max(0, paragraphs.length - 1);
-  const progress = progressLine({
-    paragraph: bodyParagraphIndex(paragraphs, units[at.cur]?.paragraphIndex ?? 0) + 1,
-    paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
-    wordsRead,
-    words,
-    complete: recordedLabel?.complete,
-  });
+  const progress = progressLine(
+    {
+      paragraph: bodyParagraphIndex(paragraphs, units[at.cur]?.paragraphIndex ?? 0) + 1,
+      paragraphs: bodyParagraphIndex(paragraphs, lastParagraph) + 1,
+      wordsRead,
+      words,
+      complete: recordedLabel?.complete,
+    },
+    !recordedLabel,
+  );
   const capabilities = control.capabilities;
   // The tracks the dialog for an unlinked chapter offers are read here, in the background, as soon as the chapter is known: the
   // dialog then opens with them (#3669). A read that fails leaves the dialog to read for itself.
@@ -827,14 +848,7 @@ function BoothSession({
                 source.kind === 'credits' ? (
                   <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
                 ) : (
-                  <>
-                    {recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}
-                    <ResumeOfferLine
-                      state={offerAwayFrom(page.resume, page.position)}
-                      saved={saveNote(control.project, page.dawName)}
-                      onChoose={page.chooseResume}
-                    />
-                  </>
+                  <>{recordedLabel ? <RecordedThroughChip label={recordedLabel} /> : null}</>
                 )
               }
               setup={
@@ -893,7 +907,6 @@ function BoothSession({
                   onSetSpeaker={setSpeaker}
                   decorations={textDecorations}
                   notes={decorated.notes}
-                  punchAt={page.punchAt}
                   pickupLines={pickups.bars}
                   size={page.text.size}
                   font={page.text.fontFamily}
@@ -1037,6 +1050,10 @@ function BoothSession({
                   setVoiceListOpen(next);
                 }}
                 noTrack={cast.noTrack}
+                cast={cast}
+                onAddLane={
+                  control.recording ? undefined : (name) => askWho({ kind: 'key', key: voices.voices.filter((voice) => !voice.narrator).length + 1, name })
+                }
                 // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
                 onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : askWho({ kind: 'character', character }))}
                 standIn={voices.standIn}

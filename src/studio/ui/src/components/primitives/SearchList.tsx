@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from 'react';
 import { Listbox, listboxOptionId, type ListboxOption } from './Listbox';
 import { SearchField } from './SearchField';
+import { clamp } from '../../clamp';
 
 /**
  * A search box that drives a list of choices, the body of a picker popover (the Booth's speaker picker and voice list): focus
@@ -36,7 +37,7 @@ export function SearchList({
   onKey?: (event: KeyboardEvent<HTMLInputElement>, active: ListboxOption | undefined) => boolean;
 }) {
   const [active, setActive] = useState(0);
-  const activeIndex = Math.min(active, Math.max(0, options.length - 1));
+  const activeIndex = clamp(active, 0, options.length - 1);
   const activeOption = options[activeIndex];
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -44,7 +45,7 @@ export function SearchList({
     if (onKey?.(event, activeOption)) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      setActive(Math.max(0, Math.min(options.length - 1, activeIndex + (event.key === 'ArrowDown' ? 1 : -1))));
+      setActive(clamp(activeIndex + (event.key === 'ArrowDown' ? 1 : -1), 0, options.length - 1));
     } else if (event.key === 'Enter' && activeOption && !activeOption.disabled) {
       event.preventDefault();
       onPick(activeOption.id);

@@ -67,6 +67,8 @@ export function createSettingsMock(
               ...field,
               value: values[field.key] ?? '',
               isSet: values[field.key] !== null,
+              // Where the value in force came from: the layer it was saved in, or the default again once cleared (what the host reports).
+              effectiveSource: values[field.key] === null ? (scope === 'project' ? 'Global' : 'repo default') : scope === 'project' ? 'Project' : 'Global',
               // A cleared project field falls back to Global, a cleared Global field to the value the mock started with (its default).
               effectiveValue:
                 values[field.key] ??

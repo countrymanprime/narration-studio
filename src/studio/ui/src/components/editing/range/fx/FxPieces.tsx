@@ -1,5 +1,6 @@
 import { InsetCard } from '../../../primitives/InsetCard';
 import type { DocItem } from '../../model';
+import { clamp } from '../../../../clamp';
 
 const W = 400;
 const H = 54;
@@ -36,7 +37,7 @@ export function FxPieces({ items, keys, start, end, chain }: FxPiecesProps) {
   const from = start - AROUND;
   const to = end + AROUND;
   const x = (t: number): number => ((t - from) / (to - from)) * W;
-  const pct = (t: number): number => Math.min(100, Math.max(0, ((t - from) / (to - from)) * 100));
+  const pct = (t: number): number => clamp(((t - from) / (to - from)) * 100, 0, 100);
   const a = pct(start);
   const b = pct(end);
   return (

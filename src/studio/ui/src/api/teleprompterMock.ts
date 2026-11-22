@@ -39,6 +39,7 @@ import type {
   TracksProject,
 } from '../types';
 import { brand } from '../brand.gen';
+import { clamp } from '../clamp';
 
 const recording = parseWire(recordedStreamSchema, recordedStream, { boundary: 'mock.recording', payload: 'teleprompterRecording.json' });
 const recordingSeconds = recording.events.at(-1)?.t ?? 1;
@@ -273,8 +274,8 @@ function chapterDisplayTitle(chapter: ManuscriptChapter): string {
 
 // A level as the sidecar's meter sends it: the peak sits about 9 dB over the RMS (a sine is 3 dB; speech is peakier), both in [-100, 0].
 function mockLevelEvent(rms: number): TeleprompterEvent {
-  const clamp = (value: number) => Math.round(Math.min(0, Math.max(-100, value)) * 10) / 10;
-  return { type: 'level', peak: clamp(rms + 9), rms: clamp(rms) };
+  const roundedLevel = (value: number) => Math.round(clamp(value, -100, 0) * 10) / 10;
+  return { type: 'level', peak: roundedLevel(rms + 9), rms: roundedLevel(rms) };
 }
 
 const idle: TeleprompterState = {
@@ -372,7 +373,7 @@ function mockReconcile(
   const place = (word: number, confident: boolean): TeleprompterResumePlace => ({
     word,
     number: word + 1,
-    sentence: tokens > 0 ? sentenceAround(words, Math.min(Math.max(word - 1, 0), tokens - 1), breaks) : null,
+    sentence: tokens > 0 ? sentenceAround(words, clamp(word - 1, 0, tokens - 1), breaks) : null,
     confident,
   });
   const daw = located?.word != null && located.tokens === tokens ? { ...place(located.word, located.confident), source } : null;
@@ -695,7 +696,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       state = { ...state, phase: 'running', message: LISTENING };
       publish();
       emit(script);
-      const from = Math.min(Math.max(0, options.startWord ?? 0), words.length);
+      const from = clamp(options.startWord ?? 0, 0, words.length);
       if (from > 0) emit(position(from, 'listening'));
       replay(words, from);
       return { status: 'started' };

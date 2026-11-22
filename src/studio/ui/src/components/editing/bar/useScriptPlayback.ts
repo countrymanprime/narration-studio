@@ -17,6 +17,7 @@ import { usePlayStopReport } from './usePlayStopReport';
 import { useEditingPage } from '../script/EditingPageState';
 import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
+import { clamp } from '../../../clamp';
 
 export const AUDIO_FAILED = "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.";
 const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
@@ -366,7 +367,7 @@ export function useScriptPlayback({
 
   const toggle = useCallback(() => {
     const { doc: d, state: s, notify: say, dispatch: send } = live.current;
-    if (s.playT != null) {
+    if (s.playT != null && !s.held) {
       const key = playingKey(playable(d), s.playT);
       halt();
       // Space on a play of a selection pauses it and keeps the selection; placing the cursor would drop it.
@@ -394,7 +395,7 @@ export function useScriptPlayback({
   const selection = state.sel;
   useEffect(() => {
     const now = live.current.state;
-    if (!selection || now.playT == null) return;
+    if (!selection || now.playT == null || now.held) return;
     const was = playedSel.current;
     if (was && was.anchor === selection.anchor && was.head === selection.head) return;
     playSelection();
@@ -406,10 +407,10 @@ export function useScriptPlayback({
     (d: 1 | -1) => {
       const { doc: document, state: s, dispatch: send } = live.current;
       const heard = playable(document);
-      if (s.playT != null) {
+      if (s.playT != null && !s.held) {
         const now = playingKey(heard, s.playT);
         const at = heard.findIndex((i) => i.key === now);
-        const to = heard[Math.max(0, Math.min(heard.length - 1, (at < 0 ? 0 : at) + d))];
+        const to = heard[clamp((at < 0 ? 0 : at) + d, 0, heard.length - 1)];
         if (to?.t0 != null) go(to.t0);
         return;
       }
@@ -423,5 +424,15 @@ export function useScriptPlayback({
     [go],
   );
 
-  return { playing: state.playT != null, follow, setFollow: setFollowState, toggle, playFrom, playSelection, skip, stop: halt, syncActive: syncing.active };
+  return {
+    playing: state.playT != null && !state.held,
+    follow,
+    setFollow: setFollowState,
+    toggle,
+    playFrom,
+    playSelection,
+    skip,
+    stop: halt,
+    syncActive: syncing.active,
+  };
 }

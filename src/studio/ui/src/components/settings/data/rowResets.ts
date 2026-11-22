@@ -21,7 +21,8 @@ import { changeReaderText } from '../controls/readerText';
 import { NEW_CHAPTER_DEFAULT_CHANGED } from '../controls/NewChapterTracksBody';
 import { useSettingsHost } from '../row/SettingsHost';
 import { rowOf } from '../registry/rows';
-import { useSettingsStore } from './SettingsStore';
+import { isChosen, PANEL_ROWS, type PanelFields } from '../registry/panelFields';
+import { useSettingsStore, type SettingsStore } from './SettingsStore';
 
 /** Puts one row's value back to its default; a refusal rejects, and the caller says which rows could not be reset. */
 export type RowReset = () => Promise<unknown> | void;
@@ -48,6 +49,7 @@ export const RESETTABLE_ROWS = [
   'keys.map',
   'daw.engine',
   'delivery.profile',
+  ...(Object.keys(PANEL_ROWS) as Array<keyof typeof PANEL_ROWS & string>),
 ] as const;
 
 /**
@@ -76,6 +78,17 @@ export async function deliveryProfileReset(delivery: Pick<PortOf<'deliveryProfil
   if (!base) throw new Error('The global default profile is not in the list.');
   await delivery.deliverySelectProfile('project', base.id, base.builtIn ? base.version : '');
   window.dispatchEvent(new Event(DELIVERY_PROFILES_CHANGED));
+}
+
+/** Clears every value the narrator chose, in the computer's layer and this project's, for the fields a panel row draws (the host takes null as "back to the default"). */
+async function clearPanel(store: SettingsStore, id: string, { tool, wanted }: PanelFields): Promise<void> {
+  const row = rowOf(id);
+  if (!row) return;
+  for (const scope of ['global', 'project'] as const) {
+    for (const field of store.settings[scope]?.[tool] ?? []) {
+      if (isChosen(field) && wanted(field.key)) await store.write({ ...row, field: { tool, key: field.key } }, scope, null);
+    }
+  }
 }
 
 /**
@@ -143,6 +156,7 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
         engineChanged();
       },
       'delivery.profile': () => deliveryProfileReset(delivery),
+      ...Object.fromEntries(Object.entries(PANEL_ROWS).map(([id, panel]) => [id, () => clearPanel(store, id, panel)])),
     }),
     [setPreference, setMotion, store, system, chapterSync, production, dawChoice, trackMap, delivery, resetTips, changeOutput, setLayout],
   );

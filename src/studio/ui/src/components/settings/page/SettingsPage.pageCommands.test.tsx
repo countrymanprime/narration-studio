@@ -8,7 +8,6 @@ import { currentPageContext, type PageItem } from '../../../input/pageCommands';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { CATEGORIES } from '../registry/categories';
-import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { SettingsPage } from './SettingsPage';
 
@@ -58,21 +57,21 @@ describe('Settings: jump menu page items', () => {
     expect(page.label).toBe('Settings');
     expect(page.supersedes).toEqual(['Settings']);
     const categories = items().filter((entry) => entry.group === 'Categories');
-    expect(categories.map((entry) => entry.label)).toEqual([...CATEGORIES.map((category) => category.label), 'Set on a page']);
+    expect(categories.map((entry) => entry.label)).toEqual(CATEGORIES.map((category) => category.label));
   });
 
   it('offers one item per setting row under its category, with the description as the hint', async () => {
     await renderPage();
     await settled();
     const rows = items().filter((entry) => entry.id.startsWith('row.'));
-    expect(rows).toHaveLength(ROWS.length + PAGE_SETTINGS.length);
+    expect(rows).toHaveLength(ROWS.length);
     const model = item('row.stt.model');
     const meta = ROWS.find((candidate) => candidate.id === 'stt.model')!;
     expect(model.label).toBe(meta.label);
     expect(model.group).toBe('Speech to text');
     expect(model.hint).toBe(meta.desc);
     expect(model.keywords?.join(' ')).toContain(meta.syn!);
-    expect(item('row.ps.cleanup').group).toBe('Set on a page');
+    expect(item('row.editing.cleanup').group).toBe('Recording & DAW');
   });
 
   it('keeps a row for another recording tool listed, off, with the reason', async () => {
@@ -81,6 +80,16 @@ describe('Settings: jump menu page items', () => {
     const reaper = item('row.daw.reaperPath');
     expect(reaper.disabledReason).toMatch(/REAPER/);
     expect(item('row.stt.model').disabledReason).toBeUndefined();
+  });
+
+  it('lists the Audacity backups off with the reason while the project records with REAPER, and on with Audacity', async () => {
+    await renderPage();
+    await waitFor(() => expect(row('daw.backups')).toBeFalsy());
+    expect(item('row.daw.backups').disabledReason).toBe('Only applies when recording with Audacity');
+    cleanup();
+    await renderPage(createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' }, recording: { engine: 'daw' } }));
+    await waitFor(() => expect(row('daw.backups')).toBeTruthy());
+    expect(item('row.daw.backups').disabledReason).toBeUndefined();
   });
 
   it('a category item shows that category and focuses its heading', async () => {
@@ -103,6 +112,21 @@ describe('Settings: jump menu page items', () => {
     expect(scroll).toHaveBeenCalled();
   });
 
+  it('the Capabilities row is found by name and by what it holds, and opens its category with focus on its button (#3740)', async () => {
+    await renderPage();
+    await settled();
+    const capabilities = item('row.daw.capabilities');
+    expect(capabilities.label).toBe('Capabilities');
+    expect(capabilities.group).toBe('App & updates');
+    expect(capabilities.keywords).toContain('Recording tool');
+    expect(capabilities.keywords?.join(' ')).toContain('audacity');
+    expect(capabilities.disabledReason).toBeUndefined();
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    act(() => capabilities.run());
+    await waitFor(() => expect(row('daw.capabilities')).toBeTruthy());
+    await waitFor(() => expect(row('daw.capabilities')!.contains(document.activeElement)).toBe(true));
+  });
+
   it('a row under Advanced is opened first', async () => {
     await renderPage();
     await settled();
@@ -119,11 +143,11 @@ describe('Settings: jump menu page items', () => {
     await waitFor(() => expect(row('project.build')).toBeTruthy());
   });
 
-  it('a page setting opens Set on a page and focuses its entry', async () => {
+  it('a setting only one page reads opens its category and focuses its row', async () => {
     await renderPage();
     await settled();
-    act(() => item('row.ps.cleanup').run());
-    await waitFor(() => expect(document.querySelector('[data-page-setting="ps.cleanup"]')!.contains(document.activeElement)).toBe(true));
+    act(() => item('row.editing.cleanup').run());
+    await waitFor(() => expect(row('editing.cleanup')!.contains(document.activeElement)).toBe(true));
   });
 
   it('registers nothing after the page unmounts', async () => {

@@ -18,7 +18,7 @@ export function useFollowScroll(root: RefObject<HTMLElement | null>, playback: P
   const { follow, setFollow } = playback;
   const live = useRef({ playing: false, setFollow });
   useEffect(() => {
-    live.current = { playing: state.playT != null, setFollow };
+    live.current = { playing: state.playT != null && !state.held, setFollow };
   });
 
   useLayoutEffect(() => {

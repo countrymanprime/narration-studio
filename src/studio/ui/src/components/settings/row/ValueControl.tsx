@@ -1,13 +1,12 @@
-import { useRef, useEffect, useState } from 'react';
 import type { ScopedSettingField } from '../../../types';
 import { ColourField } from '../../primitives/ColourField';
 import { Select } from '../../primitives/Select';
 import { useSettledDraft } from '../../primitives/settledDraft';
 import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
-import { describeNumberRange, numberProblem } from '../numberSetting';
-import { choiceLabel } from '../data/values';
+import { choiceOptions } from '../data/values';
 import type { SettingMeta } from '../registry/types';
+import { SettingNumber } from '../value/SettingNumber';
 
 // One width for a setting's select and text box, so the controls down the page line up (alignment audit cause E); a program path is wider.
 // The control takes its row's width up to that one (`w-full` with a cap), so in a narrow column it ends at the card's padding instead of
@@ -21,8 +20,6 @@ const PLACEHOLDER: Record<string, string> = {
   'daw.reaperPath': 'C:\\Program Files\\REAPER\\reaper.exe',
   'project.narrator': 'Your name as the narrator',
 };
-// A number's range and a typing problem are notes, in the row's 13 px note size (alignment audit XSE2-37).
-const NOTE = 'text-[0.8125rem]';
 
 export type ValueControlProps = {
   row: SettingMeta;
@@ -36,11 +33,9 @@ export type ValueControlProps = {
   disabled?: boolean;
   /** The narrator settled on a value. An emptied number is `''`. May return the save it starts, resolving to `false` when the host refused it. */
   onChange: (value: string) => void | Promise<unknown>;
-  /** A number the narrator settled on is refused (true) or fine (false); the row uses it to drop a "Saved" mark that belongs to an earlier value (#2989). */
-  onDraftProblem?: (refused: boolean) => void;
 };
 
-/** A text or number box that keeps the draft while typing and settles on Enter or when focus leaves, so a half-typed value is never saved. */
+/** A text box that keeps the draft while typing and settles on Enter or when focus leaves, so a half-typed value is never saved. */
 function SettledBox({
   value,
   onSettle,
@@ -49,8 +44,6 @@ function SettledBox({
   describedBy,
   invalid,
   disabled,
-  mono,
-  inputMode,
   placeholder,
   className,
 }: {
@@ -61,8 +54,6 @@ function SettledBox({
   describedBy?: string;
   invalid?: boolean;
   disabled?: boolean;
-  mono?: boolean;
-  inputMode?: 'decimal';
   placeholder?: string;
   className?: string;
 }) {
@@ -71,8 +62,6 @@ function SettledBox({
     <TextField
       id={id}
       label={label}
-      mono={mono}
-      inputMode={inputMode}
       value={box.draft}
       disabled={disabled}
       placeholder={placeholder}
@@ -86,19 +75,8 @@ function SettledBox({
 }
 
 /** The control for one value of a plain setting, by the kind the host reports. */
-export function ValueControl({ row, field, value, which, id, describedBy, invalid, disabled, onChange, onDraftProblem }: ValueControlProps) {
+export function ValueControl({ row, field, value, which, id, describedBy, invalid, disabled, onChange }: ValueControlProps) {
   const name = row.label + (which ? ` (${which})` : '');
-  const [typed, setTyped] = useState<string | undefined>();
-  useEffect(() => setTyped(undefined), [value]);
-  // Whether the number now in the box is refused, told to the row while it is so (and when it stops), so a Saved mark from the value before is not drawn beside it (#2989).
-  const refused = field.kind === 'number' && Boolean(field.number) && Boolean(numberProblem(field.number!, (typed ?? value).trim()));
-  const tell = useRef(onDraftProblem);
-  tell.current = onDraftProblem;
-  useEffect(() => {
-    tell.current?.(refused);
-    return () => tell.current?.(false);
-  }, [refused]);
-
   if (field.kind === 'bool') {
     const on = value === 'true';
     return (
@@ -109,9 +87,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
     );
   }
   if (field.kind === 'choice') {
-    const options = field.choices.map((choice) => ({ value: choice, label: choiceLabel(row, choice) }));
-    // A stored value the host no longer offers still shows, so the control never claims a choice that is not the real one.
-    if (!field.choices.includes(value)) options.unshift({ value, label: choiceLabel(row, value) });
+    const options = choiceOptions(row, field.choices, value);
     return (
       <Select
         id={id}
@@ -126,36 +102,23 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
     );
   }
   if (field.kind === 'number' && field.number) {
-    const shown = typed ?? value;
-    const problem = numberProblem(field.number, shown.trim());
-    const hint = problem ?? describeNumberRange(field.number);
+    // The range note under the box describes it after the row's own description (alignment audit XSE2-37).
     return (
-      <span className="flex flex-col gap-1">
-        <span className="flex items-center gap-2">
-          <SettledBox
-            id={id}
-            label={name}
-            mono
-            inputMode="decimal"
-            value={value}
-            disabled={disabled}
-            invalid={Boolean(problem) || invalid}
-            describedBy={describedBy}
-            className={NUMBER_WIDTH}
-            onSettle={(next) => {
-              setTyped(next);
-              return numberProblem(field.number!, next.trim()) ? undefined : onChange(next.trim());
-            }}
-          />
-          {(row.unit ?? field.number.unit) && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.unit ?? field.number.unit}</span>}
-        </span>
-        {typed !== undefined && problem && (
-          <span role="alert" className={`${NOTE} text-[var(--danger-text)]`}>
-            {problem}
-          </span>
-        )}
-        {hint && typed === undefined && <span className={`${NOTE} text-[var(--text-muted)]`}>{hint}</span>}
-      </span>
+      <SettingNumber
+        id={id}
+        label={name}
+        value={value}
+        range={field.number}
+        unit={row.unit}
+        commit="settle"
+        allowEmpty
+        disabled={disabled}
+        invalid={invalid}
+        describedBy={describedBy}
+        showRange
+        className={NUMBER_WIDTH}
+        onChange={onChange}
+      />
     );
   }
   if (field.kind === 'color') {

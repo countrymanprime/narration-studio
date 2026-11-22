@@ -40,7 +40,7 @@ export const dawFeedback = {
     'inline',
     'na',
     'ok',
-    "Check again asks Audacity now, which takes up to the pipe's 5 s timeout while Audacity shows a dialog; the buttons read Checking and stay off until the answer is in, then the card shows it, or the failure under the card.",
+    "Check again asks Audacity now, which takes up to the pipe's 5 s timeout while Audacity shows a dialog; Check again shows a spinner and the other buttons stay off until the answer is in, then the card shows it with a Checked time, or the failure under the card.",
   ),
   'src/components/engine/AudacityLinkCard.tsx::audacityEnableModule#1': row(
     'click',

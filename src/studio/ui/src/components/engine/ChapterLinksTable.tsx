@@ -16,7 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import type { Notify } from '../primitives/Toast';
 import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
-import { CREATE_QUIET_MS, type ChapterLinks } from './useChapterLinks';
+import { useQuietWindow } from '../../quietWindow';
+import type { ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
@@ -301,16 +302,16 @@ function ChapterLinkRow({
   chosenNow.current = pick;
   // A confirm or clear comes back as a new link from the table's read: drop back to the read view, as MappingConfirm does.
   // When the row's buttons last swapped (a link appeared, Change, Cancel): the next control sits in the same spot, so a fast second click of a
-  // double click would press it. Change, Clear and Cancel ignore a press that soon, as Create does (CREATE_QUIET_MS).
-  const swappedAt = useRef(0);
-  const settled = () => Date.now() - swappedAt.current >= CREATE_QUIET_MS;
+  // double click would press it. Change, Clear and Cancel ignore a press that soon, as Create does (QUIET_MS).
+  const swapped = useQuietWindow();
+  const settled = () => !swapped.quiet();
   const linkedGuidIfThere = checkedGuid && tracks.some((track) => track.guid === checkedGuid) ? checkedGuid : '';
   const first = useRef(true);
   useEffect(() => {
     setPicking(!hasLink);
     // The pick follows the link: a cleared row has none, and a new link starts the next Change from itself.
     setChosen(linkedGuidIfThere);
-    if (!first.current) swappedAt.current = Date.now();
+    if (!first.current) swapped.start();
     first.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `tracks` only validates the link; a read of the tracks must not reset a pick in progress.
   }, [hasLink, linkedGuid]);
@@ -478,7 +479,7 @@ function ChapterLinkRow({
                       if (result === 'gone') setChosen('');
                       if (result === 'found') {
                         // Change takes the check's place: a double click's second press must not reopen the picker.
-                        swappedAt.current = Date.now();
+                        swapped.start();
                         setPicking(false);
                       }
                     });
@@ -494,7 +495,7 @@ function ChapterLinkRow({
                     // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
                     if (settled()) {
                       setChosen(linkedGuidIfThere);
-                      swappedAt.current = Date.now();
+                      swapped.start();
                       askHandBack('change');
                       setPicking(false);
                     }
@@ -509,9 +510,9 @@ function ChapterLinkRow({
                 label={`Change the ${folders ? 'folder' : 'track'} for ${short}`}
                 disabledReason={busy ? 'Saving the link' : undefined}
                 onClick={() => {
-                  // A double click on the check lands its second press here, where Change now is: ignore it, as Create does (CREATE_QUIET_MS).
+                  // A double click on the check lands its second press here, where Change now is: ignore it, as Create does (QUIET_MS).
                   if (settled()) {
-                    swappedAt.current = Date.now();
+                    swapped.start();
                     setPicking(true);
                   }
                 }}

@@ -32,7 +32,7 @@ pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
 the app can read them (otherwise a line under the chart says why it cannot), today and the
-estimated finish as a dotted line. Each label (**due**, **today**, **done … (est.)**) sits beside its point on a side no line or other label crosses, and the last date on the axis ends at the card's edge instead of being cut off. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
+estimated finish as a dotted line. Each label (**due**, **today**, **done … (est.)**) sits beside its point on a side no line or other label crosses, and the last date on the axis ends at the card's edge instead of being cut off. The recorded hours it plots are the same as [Production](production.md)'s **Recorded audio**: a chapter with under one second of audio on its track adds nothing, as it does there. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
 
 ## Contract
 

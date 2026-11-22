@@ -60,6 +60,7 @@ import (
 	"desktop/internal/recordingcoverage"
 	"desktop/internal/renderconfig"
 	"desktop/internal/retakelanes"
+	"desktop/internal/retention"
 	"desktop/internal/roomtone"
 	"desktop/internal/runlog"
 	"desktop/internal/settings"
@@ -80,7 +81,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 170
+const hostAPIVersion = 171
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -128,6 +129,17 @@ type Host struct {
 	dawEditCount int
 	// +checklocks:mu
 	dawEditSeen bool
+	// dawTracksRevision is the track-list revision the last daw_tracks_changed carried (bindings_daw_trackschanged.go), and dawTracksSeen whether one was sent.
+	// +checklocks:mu
+	dawTracksRevision string
+	// dawTracksEpoch is the heartbeat's epoch when that revision was sent: the same revision after a restart or another project is sent again.
+	// +checklocks:mu
+	dawTracksEpoch uint64
+	// +checklocks:mu
+	dawTracksSeen bool
+	// dawTracksFrom is the reachability tracker that revision came from: a project switch makes a new one, whose epoch starts again at 0.
+	// +checklocks:mu
+	dawTracksFrom *daw.Reachability
 	// dawUnsavedTracker is the edit-counter baseline DawProjectState's unsavedChanges is read against
 	// (bindings_daw_projectstate.go), fed on every transcriptLoop tick.
 	// +checklocks:mu
@@ -203,6 +215,11 @@ type Host struct {
 	// write, so a record one of them writes is in the next read of the others and is decoded once (issue 3801). Swapped
 	// with coverage on every project switch.
 	ledger *evidence.LedgerStore
+	// retention keeps the project's derived files bounded in the background (retention_host.go); Closed and replaced on every project switch.
+	// +checklocks:mu
+	retention *retention.Runner
+	// retentionOff keeps the background pass from starting; tests that attach many projects set it, and the retention tests clear it.
+	retentionOff bool
 	// stages is the chapter stage recommendation service (bindings_stages.go, docs/architecture/stage-recommendations.md):
 	// the recording signal over coverage, the decision store and the manuscript's status path. Swapped with coverage on every
 	// project switch; it computes on read and stores no recommendation.
@@ -570,7 +587,11 @@ func (h *Host) goBackground(work func()) {
 
 // waitForBackground returns once every goBackground goroutine started so far has finished. Tests call it before the project folder goes;
 // the app never does.
-func (h *Host) waitForBackground() { h.background.Wait() }
+// waitForBackground also closes the retention runner for good, so a test that calls it and then expects a pass will not get one.
+func (h *Host) waitForBackground() {
+	h.background.Wait()
+	h.closeRetention()
+}
 
 func NewHost() *Host {
 	workingDirectory, _ := os.Getwd()
@@ -853,6 +874,7 @@ func (h *Host) configureLocked(next config) {
 	})
 	// Every finished comparison is recorded for the proofing pickups signal.
 	h.transcript.SetRunRecorder(comparisonRecorder(h.config.projectFolder, h.ledger, h.manuscript, settingsStore, h.persist))
+	h.startRetentionLocked(h.coverage, h.ledger)
 	// The proofing delivery checks judge the chapter's render against the project's delivery profile as it is when the
 	// stages are evaluated (h.proofingProfile reads it then, never under this lock).
 	h.stages = stagesService(h.config.projectFolder, h.manuscript, h.coverage, h.editing, settingsStore, h.coverageUnavailable(h.config.comparePython, settingsStore), h.persist,
@@ -1361,6 +1383,7 @@ func (h *Host) pollTranscript() {
 	h.pollDawTransport()
 	h.observeDawProjectState()
 	h.pollDawProjectEdited()
+	h.pollDawTracksChanged()
 	h.pollAudacityLink()
 }
 
@@ -1387,6 +1410,8 @@ func (h *Host) ServiceShutdown() error {
 	h.releaseBoothMonitorOnShutdown()
 	// The chapter soloed in the DAW for the Booth is put back (bindings_daw_solo.go); a DAW that cannot be reached has the ledger.
 	h.restoreSoloOnShutdown()
+	// A retention pass is stopped and joined before the app exits (retention_host.go).
+	h.closeRetention()
 	// The take is over, so the computer may sleep again: the request is given back before the loops stop.
 	h.stopKeepingAwake()
 	// A recording check in progress is asked to stop through its .cancel file; closing the supervisor below kills it if it does not,
@@ -1824,7 +1849,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// defaulting to 0, since published room-tone guidance disagrees.
 	// debug_logging turns on the run log's debug-level decision records: global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
-	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}, {"activity_trace", "Activity trace (writes how the app behaved, never your content, to logs/trace.jsonl)", "bool", nil}},
+	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "number", nil}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}, {"activity_trace", "Activity trace (writes how the app behaved, never your content, to logs/trace.jsonl)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
 	// default_pronunciation_source is which pronunciation source a new
 	// name's pronunciation prefers, both at build time and when the narrator adds an alias: "" (Automatic) keeps the

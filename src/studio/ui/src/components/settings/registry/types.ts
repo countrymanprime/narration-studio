@@ -35,7 +35,7 @@ export const PAGE_PATH: Record<UsedPage, string> = {
   delivery: '/delivery',
 };
 
-export type CategoryId = 'recording' | 'speech' | 'voice' | 'models' | 'delivery' | 'project' | 'appearance' | 'app' | 'pages';
+export type CategoryId = 'recording' | 'speech' | 'voice' | 'models' | 'delivery' | 'project' | 'appearance' | 'app';
 
 export type Category = {
   id: CategoryId;
@@ -64,7 +64,7 @@ export type OptionNote = { label?: string; asset?: AssetRef };
 
 export type SettingMeta = {
   id: string;
-  cat: Exclude<CategoryId, 'pages'>;
+  cat: CategoryId;
   section: string;
   /** The label shown; the host's own label is the fallback. */
   label: string;
@@ -91,7 +91,7 @@ export type SettingMeta = {
   /** A change that costs something asks first and says what happens. */
   costly?: { title: string; body: string; confirm: string };
   /** The row only applies to this recording tool and is hidden for another; `daw` is any DAW, hidden for the built-in recorder. */
-  needs?: 'reaper' | 'daw';
+  needs?: 'reaper' | 'audacity' | 'daw';
   /** The row's control is off, with `reason` beside it, while the bool row `row` is not on: a setting that only matters once another is
    * turned on (component selection, CS-B4). The row stays where it is, so the layout does not move. With `needsLocalModel` it is
    * also off while no local model can be used, with the host's reason for that instead (`useLocalModelMissing`). */

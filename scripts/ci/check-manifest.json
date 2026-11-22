@@ -103,8 +103,31 @@
       "workflow": "_quality.yml",
       "job": "test-linux",
       "step": [
-        "run atlas --shard=\"$SHARD/6\""
-      ]
+        "node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""
+      ],
+      "note": "On a pull request the step draws the stories the change reaches through the import graph (src/studio/ui/scripts/atlas-scope.mjs, #3860); the entry below is what it leaves to main."
+    },
+    {
+      "id": "ui-atlas/stories-the-change-does-not-reach",
+      "was": "quality / ui-atlas (shard i/2)",
+      "tier": "post-merge",
+      "workflow": "_quality.yml",
+      "job": "test-linux",
+      "step": [
+        "node scripts/atlas-scope.mjs --shard=\"$SHARD/6\""
+      ],
+      "safety_net": "Every run of ci.yml that is not a pull request draws every story: Main health on each push to main and every three hours, where a red run opens the blocking main-red issue and ticks HOLD on the train issue. On the pull request every story still renders with its play() in jsdom (src/stories.test.tsx, the Vitest step) and atlas docs checks every page. A manual run of CI on the branch draws every story before the merge."
+    },
+    {
+      "id": "ui-atlas/storybook-build",
+      "was": "quality / ui-atlas (shard i/2)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "lint",
+      "step": [
+        "pnpm --dir src/studio/ui run build-storybook"
+      ],
+      "note": "Storybook is built once per run in lint and downloaded by the six Test (Linux) shards (#3860); it was built in each shard for the atlas and again for atlas docs."
     },
     {
       "id": "ui-atlas/atlas-docs",
@@ -114,7 +137,8 @@
       "job": "test-linux",
       "step": [
         "nx run ui:atlas-docs"
-      ]
+      ],
+      "note": "With the Storybook that lint built once for the run, shard 1 runs `docs:atlas:verify` (the check without the build); `nx run ui:atlas-docs` builds one first, and runs when lint made none (#3860)."
     },
     {
       "id": "quick-ubuntu/repo-scripts",
@@ -319,7 +343,23 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows 1/2) runs it (`go test (root)`), with go lint, instead of a job of its own."
+      "note": "Test (Windows 1/2) runs it (`go test (root)`), with go lint, test-schedules and the Windows harness, instead of a job of its own."
+    },
+    {
+      "id": "go-test/root-race-untouched",
+      "was": "quality / go-test (root)",
+      "tier": "post-merge",
+      "workflow": "_quality.yml",
+      "job": "test-windows",
+      "step": [
+        "targets: test",
+        "projects: desktop",
+        "configuration: ci-root"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
+      "safety_net": "On a pull request the race detector runs on the raced packages the change touches (scripts/ci/coverage-gate.mjs, touchedPackages); the others run every test without it. Every run of ci.yml that is not a pull request races all of them: Main health on each push to main and every 3 hours when main moved, where a red run opens the blocking main-red issue and ticks HOLD on every open train issue. A change to go.mod, go.sum, go.work, scripts/ci, scripts/toolchain.json, scripts/quality.mjs, .github, the desktop project.json or what it lists as an implicit dependency (config, tests/fixtures, the REAPER integration, the three sidecars, src/studio/libs/python) races all of them on the pull request too, and so does a file outside the Go module in a place no Go test is known not to read."
     },
     {
       "id": "go-test/rest",
@@ -335,7 +375,23 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows 2/2) runs it (`go test (rest)`), with test-schedules and the Windows harness."
+      "note": "Test (Windows 2/2) runs it (`go test (rest)`), with the skipped-tests guard."
+    },
+    {
+      "id": "go-test/rest-race-untouched",
+      "was": "quality / go-test (rest)",
+      "tier": "post-merge",
+      "workflow": "_quality.yml",
+      "job": "test-windows",
+      "step": [
+        "targets: test",
+        "projects: desktop",
+        "configuration: ci-rest"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
+      "safety_net": "On a pull request the race detector runs on the raced packages the change touches (scripts/ci/coverage-gate.mjs, touchedPackages); the others run every test without it. Every run of ci.yml that is not a pull request races all of them: Main health on each push to main and every 3 hours when main moved, where a red run opens the blocking main-red issue and ticks HOLD on every open train issue. A change to go.mod, go.sum, go.work, scripts/ci, scripts/toolchain.json, scripts/quality.mjs, .github, the desktop project.json or what it lists as an implicit dependency (config, tests/fixtures, the REAPER integration, the three sidecars, src/studio/libs/python) races all of them on the pull request too, and so does a file outside the Go module in a place no Go test is known not to read."
     },
     {
       "id": "go-test/schedules",
@@ -425,6 +481,18 @@
         "govulncheck -C src/studio/desktop"
       ],
       "safety_net": "security.yml runs on each push to main that touches src/studio/desktop and nightly; a finding is a Code scanning alert on main within minutes of the merge. The scan never failed a pull request (SARIF and a continue-on-error print), so on a pull request it was advisory too."
+    },
+    {
+      "id": "ui-visual/specs-and-overlay-rows-of-untouched-pages",
+      "was": "quality / Test (Linux i/6), the visual step",
+      "tier": "post-merge",
+      "workflow": "_quality.yml",
+      "job": "test-linux",
+      "step": [
+        "visual-shards.mjs split --shard"
+      ],
+      "note": "On a pull request the split keeps the whole state matrix and narrows the behaviour specs and overlay guard rows to the pages the change touches (scopeOf in scripts/ci/visual-shards.mjs, #3860). The entry ui-visual/screenshots above is what the pull request still runs.",
+      "safety_net": "Every run of ci.yml that is not a pull request splits the whole suite: Main health on each push to main and every three hours, where a red run ticks HOLD on the train issue and opens the main-red issue. A manual run of CI on the branch runs the whole suite before the merge."
     }
   ]
 }

@@ -1,6 +1,7 @@
 package guide
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -27,6 +28,7 @@ func TestMain(m *testing.M) {
 	if mode := os.Getenv(fakeSidecarEnv); mode != "" {
 		os.Exit(runFakeSidecar(mode))
 	}
+	_ = os.Setenv("GORACE", "atexit_sleep_ms=0 "+os.Getenv("GORACE")) // a fake program run from here skips the race runtime's second of sleep at exit
 	os.Exit(m.Run())
 }
 
@@ -404,11 +406,17 @@ func fakeBuildSidecar(mode string, args []string) int {
 			fmt.Fprintln(os.Stderr, `{"level": "info", "msg": "ERROR: [E088] Text of length 1000001 exceeds maximum of 1000000.", "ts": "2026-10-25T12:00:00.000Z"}`)
 			return 1
 		case "build-spacy":
-			raw, _ := os.ReadFile(flagValue(args, "--manuscript"))
+			raw, err := os.ReadFile(flagValue(args, "--manuscript"))
 			var manuscript struct {
 				Paragraphs []struct{ ID, Text string } `json:"paragraphs"`
 			}
-			_ = json.Unmarshal(raw, &manuscript)
+			if err == nil {
+				err = json.Unmarshal(raw, &manuscript)
+			}
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "fake sidecar: could not read the manuscript:", err)
+				return 1
+			}
 			fmt.Println(`{"available": true}`)
 			for _, paragraph := range manuscript.Paragraphs {
 				text := []rune(paragraph.Text)
@@ -432,15 +440,32 @@ func fakeBuildSidecar(mode string, args []string) int {
 		}
 		fallthrough
 	case "pronunciation":
-		raw, _ := os.ReadFile(flagValue(args, "--words-file"))
-		var words []string
-		_ = json.Unmarshal(raw, &words)
+		words, err := readWordsFile(flagValue(args, "--words-file"))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "fake sidecar:", err)
+			return 1
+		}
 		for _, word := range words {
 			encoded, _ := json.Marshal(map[string]string{"ipa": "ipa:" + word})
 			fmt.Printf("{\"ipa\": %s, \"source\": \"cmu\", \"confidence\": \"medium\"}\n", encoded[7:len(encoded)-1])
 		}
 	}
 	return 0
+}
+
+// readWordsFile reads the host's list of words once, as the sidecar does (Python's read_text raises on a file it cannot read), and
+// returns the error. A failed read used to leave an empty list, so the fake answered nothing and the host reported an answer it could not
+// read, which hid the real cause.
+func readWordsFile(path string) ([]string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read the words file %s: %w", path, err)
+	}
+	var words []string
+	if err := json.Unmarshal(raw, &words); err != nil {
+		return nil, fmt.Errorf("the words file %s is not a list of words: %w", path, err)
+	}
+	return words, nil
 }
 
 // fakeRecordingSidecar is the "record" mode: it appends its arguments, joined by a unit separator, as one line of the record log, and
@@ -458,4 +483,92 @@ func fakeRecordingSidecar(args []string) int {
 		fmt.Println("CREATED|new-id")
 	}
 	return 0
+}
+
+// A preview served from the cache moves its file's time forward: the file's time is its last use for the prune pass.
+func TestAPreviewServedFromTheCacheMovesItsFileTimeForward(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(rig.audioDir(), previewFileName(testVoice, "Dawnspire", ""))
+	old := time.Now().Add(-48 * time.Hour)
+	if err := os.Chtimes(path, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(path); err != nil || time.Since(info.ModTime()) > time.Minute {
+		t.Fatalf("file time after a cache hit = %v (%v); want now", info.ModTime(), err)
+	}
+	if got := rig.invocations(t); got != 1 {
+		t.Fatalf("sidecar started %d times, want 1", got)
+	}
+}
+
+// What the prune pass takes for a preview is exactly what previewFileName makes, and nothing a render leaves beside it.
+func TestIsPreviewFileAcceptsTheNamesPreviewFileNameMakesAndNothingElse(t *testing.T) {
+	made := previewFileName(testVoice, "Dawnspire", "")
+	if !IsPreviewFile(made) {
+		t.Fatalf("IsPreviewFile(%q) = false for a name previewFileName made", made)
+	}
+	for _, name := range []string{made + ".4242.part", strings.ToUpper(made), made[:60] + ".wav", "dawnspire.wav", ".wav", "", strings.Replace(made, ".wav", ".wav.tmp", 1), "x" + made} {
+		if IsPreviewFile(name) {
+			t.Errorf("IsPreviewFile(%q) = true", name)
+		}
+	}
+}
+
+func TestPreviewFolderIsWhereTheServiceRenders(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(filepath.Join(rig.project, PreviewFolder()))
+	if err != nil || len(entries) != 1 || !IsPreviewFile(entries[0].Name()) {
+		t.Fatalf("the preview folder holds %v (%v); want one preview file", entries, err)
+	}
+}
+
+// A preview last used eleven minutes ago, played now, is inside the prune pass's ten-minute guard again: a hit moves its time after a minute, not an hour.
+func TestAPreviewPlayedAfterElevenMinutesIsWithinTheGuardAgain(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(rig.audioDir(), previewFileName(testVoice, "Dawnspire", ""))
+	eleven := time.Now().Add(-11 * time.Minute)
+	if err := os.Chtimes(path, eleven, eleven); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(path); err != nil || time.Since(info.ModTime()) > time.Minute {
+		t.Fatalf("file time after a hit eleven minutes on = %v (%v); want now", info.ModTime(), err)
+	}
+}
+
+// End to end with the prune pass: a preview last written fifty minutes ago and played a moment ago is not removed to meet the cap.
+func TestAPreviewPlayedWithinTenMinutesIsNotRemovedToMeetTheCap(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(rig.audioDir(), previewFileName(testVoice, "Dawnspire", ""))
+	fifty := time.Now().Add(-50 * time.Minute)
+	if err := os.Chtimes(path, fifty, fifty); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil { // played again
+		t.Fatal(err)
+	}
+	rule := persist.PruneRule{Group: func(name string) (string, bool) { return name, IsPreviewFile(name) }, MaxBytes: 1, Guard: 10 * time.Minute}
+	if _, err := persist.PruneFolder(rig.project, PreviewFolder(), rule, time.Now(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("a preview played a moment ago was removed to meet the cap: %v", err)
+	}
 }

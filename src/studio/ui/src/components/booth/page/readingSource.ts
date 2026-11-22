@@ -1,10 +1,10 @@
 import { cueIsConfirmed } from '../../manuscript/dialogueCues.selectors';
 import type { GuideDialogueCue, GuideEntity, ManuscriptParagraph, TeleprompterFlag, TeleprompterSpan } from '../../../types';
-import { WPH } from '../../schedule/estimates';
 import type { CreditsKind } from '../readerModel';
 import { UNKNOWN_SPEAKER, wordCount, type BoothUnit, type ReadingParagraph, type WordDecoration } from '../reading/boothUnits';
 import type { ReadingPosition } from '../reading/readingPosition';
 import type { SuspectedFlag } from '../suspected/suspectedLinesModel';
+import { clamp } from '../../../clamp';
 
 // What the Booth text reads, built from the host's data: the chapter's paragraphs cut at the Story Bible's dialogue cues, or the
 // rendered credits, and the mapping between the host's script words (its `read` index) and a paragraph and word. Pure.
@@ -126,7 +126,7 @@ export function positionInScript(spans: readonly TeleprompterSpan[], paragraphs:
 export function scriptWordAt(spans: readonly TeleprompterSpan[], paragraphs: readonly ReadingParagraph[], position: ReadingPosition): number | null {
   const index = paragraphs.findIndex((paragraph) => paragraph.id === position.paragraphId);
   const place = scriptPlaces(spans, paragraphs)[index];
-  return place ? place.start + Math.max(0, Math.min(position.word, place.count - 1)) : null;
+  return place ? place.start + clamp(position.word, 0, place.count - 1) : null;
 }
 
 /** The word a character offset falls in (or the word after it, on a space): the words that end at or before it come first. */
@@ -134,7 +134,7 @@ export function positionAtOffset(paragraphs: readonly ReadingParagraph[], paragr
   const paragraph = paragraphs.find((p) => p.id === paragraphId);
   if (!paragraph) return null;
   const before = [...paragraph.text.matchAll(/\S+/g)].filter((match) => match.index + match[0].length <= offset).length;
-  return { paragraphId, word: Math.min(before, Math.max(0, wordCount(paragraph.text) - 1)) };
+  return { paragraphId, word: clamp(before, 0, wordCount(paragraph.text) - 1) };
 }
 
 /** The words of a phrase inside its paragraph, 0-based and inclusive (the host finds them in the recording check); null when the paragraph is not there. */
@@ -143,12 +143,6 @@ export function wordRangeOf(paragraphs: readonly ReadingParagraph[], unit: Booth
   if (!paragraph) return null;
   const from = wordCount(paragraph.text.slice(0, unit.start));
   return { paragraphId: paragraph.id, from, to: from + Math.max(unit.words, 1) - 1 };
-}
-
-/** Where a phrase starts in the chapter's audio, in seconds, read at the standard rate (`WPH` words an hour). An estimate. */
-export function secondsBefore(units: readonly BoothUnit[], phrase: number): number {
-  const words = units.slice(0, Math.max(0, phrase)).reduce((sum, unit) => sum + unit.words, 0);
-  return (words / WPH) * 3600;
 }
 
 /** The host's suspected flags placed in the paragraphs the Booth reads: the paragraph the flag starts in, and the words it covers there. */

@@ -643,7 +643,17 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '',
       effectiveSource: 'hardcoded',
     },
-    choice('credits_room_tone_seconds', 'Room tone per credits file (seconds)', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], '0'),
+    {
+      key: 'credits_room_tone_seconds',
+      label: 'Room tone per credits file (seconds)',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '0',
+      effectiveSource: 'repo_default',
+      number: { min: 0, max: 10, step: 1, unit: 's' },
+    },
   ],
   Manuscript: [
     {
@@ -902,6 +912,9 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '',
       effectiveSource: 'repo default',
     },
+    // The Audacity backup window and retention, as src/studio/desktop/app.go's fieldSchemas send them (Settings > Recording & DAW > Audacity backups).
+    recordingCheck('backups.window_seconds', 'Audio kept either side of a punch or an edit (s)', '120', { min: 10, max: 300, step: 10, unit: 's' }),
+    recordingCheck('backups.retention_days', 'Keep backups for (days)', '7', { min: 1, max: 365, step: 1, unit: 'days' }),
   ],
   // The narrator's own delivery limits, mirroring the host's
   // fieldSchemas and numberSpecs.
@@ -962,8 +975,8 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('pad_seconds', 'Hold kept at each side of a cut silence', '0.15', { min: 0, max: 2, step: 0.01, unit: 's' }),
     recordingCheck('min_breath_seconds', 'Shortest run read as a breath', '0.12', { min: 0.01, max: 5, step: 0.01, unit: 's' }),
     recordingCheck('max_breath_seconds', 'Longest run read as a breath', '0.9', { min: 0.01, max: 5, step: 0.01, unit: 's' }),
-    recordingCheck('breath_below_speech_db', 'How far below speech level a breath sits', '12', { min: 0.1, max: null, step: 0.5, unit: 'dB' }),
-    recordingCheck('click_above_silence_db', 'How far above the silence around it a click stands', '30', { min: 0.1, max: null, step: 0.5, unit: 'dB' }),
+    recordingCheck('breath_below_speech_db', 'How far below speech level a breath sits', '12', { min: 0.1, max: null, step: 0.1, unit: 'dB' }),
+    recordingCheck('click_above_silence_db', 'How far above the silence around it a click stands', '30', { min: 0.1, max: null, step: 0.1, unit: 'dB' }),
   ],
   // Which signals must be met for a stage suggestion, mirroring the
   // host's fieldSchemas: the master switch, then one choice per signal a provider declares (recording, editing, proofing).
@@ -1387,8 +1400,11 @@ export const WIRE_RENDER_CONFIG_ERROR: RenderConfigState = {
 /** The Go host's ProjectStateState before any check (mirrors tests/fixtures/contracts/project-state-idle.json). */
 export const WIRE_PROJECT_STATE_IDLE: ProjectStateState = { phase: 'idle', message: '', projectFile: '' };
 
+/** The mock REAPER project's edit count when the mock comparison ran: the comparison's baseline, the mock DAW's counter at the start and an unchanged project's check answer. They agree at the start only: the check answer is fixed, the DAW's counter rises with each edit. */
+export const MOCK_PROJECT_CHANGE_COUNT = 41;
+
 /** REAPER answered a change count for the saved project (mirrors tests/fixtures/contracts/project-state-checked.json). The
- * mock's last comparison started at count 41, so 42 reads as "changed since comparison". */
+ * mock's last comparison started at `MOCK_PROJECT_CHANGE_COUNT`, so 42 reads as "changed since comparison". */
 export const WIRE_PROJECT_STATE_CHECKED: ProjectStateState = {
   runId: '1790000000000000',
   phase: 'success',

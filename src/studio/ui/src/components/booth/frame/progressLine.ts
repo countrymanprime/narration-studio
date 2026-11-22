@@ -1,5 +1,7 @@
 import { WPH } from '../../schedule/estimates';
+import { formatCount } from '../../../plural';
 import { clock } from '../../../clock';
+import { clamp } from '../../../clamp';
 
 /** Where the narrator is in the chapter: the paragraph the current word sits in, and the words read over the words in all. */
 export type BoothPlace = {
@@ -12,15 +14,17 @@ export type BoothPlace = {
 };
 
 /**
- * The top bar's progress line (the mock's `bprog`, its "finished left" reworded, alignment audit R4BO2-11): "¶ 38 of 71 · 41% · ~8:10 of audio left". The time left is the words still
+ * The top bar's progress chips (the mock's `bprog`, its "finished left" reworded, alignment audit R4BO2-11): "¶ 38 of 71", "41% read", "~8:10 of audio left", one chip each; the percent is left out when the Recorded chip says one. The time left is the words still
  * to read at the standard rate, `WPH` words per finished hour, so it estimates finished audio, not the narrator's own speed.
  */
-export function progressLine({ paragraph, paragraphs, wordsRead, words, complete = false }: BoothPlace): string {
-  if (complete) return `At ¶ ${paragraph.toLocaleString()} of ${paragraphs.toLocaleString()}`;
-  const read = Math.min(Math.max(wordsRead, 0), words);
+export function progressLine(place: BoothPlace, withPercent = true): string[] {
+  const { paragraph, paragraphs, wordsRead, words, complete = false } = place;
+  if (complete) return [`At ¶ ${formatCount(paragraph)} of ${formatCount(paragraphs)}`];
+  const read = clamp(wordsRead, 0, words);
   const percent = words > 0 ? Math.floor((read / words) * 100) : 0;
   const secondsLeft = Math.round(((words - read) / WPH) * 3600);
-  return `¶ ${paragraph.toLocaleString()} of ${paragraphs.toLocaleString()} · ${percent}% · ~${clock(secondsLeft)} of audio left`;
+  // The Recorded chip beside the line already says a percent; two would read as one number said twice (#3970).
+  return [`¶ ${formatCount(paragraph)} of ${formatCount(paragraphs)}`, ...(withPercent ? [`${percent}% read`] : []), `~${clock(secondsLeft)} of audio left`];
 }
 
 /** The recording timer (the mock's `btimer`): mm:ss, h:mm:ss from an hour. */

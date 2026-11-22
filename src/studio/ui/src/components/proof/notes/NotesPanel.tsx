@@ -23,6 +23,7 @@ import {
   type NoteSort,
   type NoteWindow,
 } from './noteRows';
+import { clamp } from '../../../clamp';
 
 const FIGURE_SPACE = ' ';
 
@@ -139,7 +140,7 @@ export function NotesPanel({
   const move = (step: 1 | -1) => {
     if (rows.length === 0) return;
     const at = rows.findIndex((r) => r.id === selectedId);
-    const next = rows[Math.min(rows.length - 1, Math.max(0, at < 0 ? (step > 0 ? 0 : rows.length - 1) : at + step))];
+    const next = rows[clamp(at < 0 ? (step > 0 ? 0 : rows.length - 1) : at + step, 0, rows.length - 1)];
     focusOnSelect.current = true;
     onSelect(next.id);
   };

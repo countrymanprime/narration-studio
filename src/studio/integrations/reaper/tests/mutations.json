@@ -3634,6 +3634,12 @@
     "replace": "if false then"
   },
   {
+    "name": "the track list revision moves when a track is muted",
+    "file": "narration_tracks_read.lua",
+    "find": "    mix(tostring(math.floor(depth)))\n",
+    "replace": "    mix(tostring(math.floor(depth)))\n    mix(tostring(reaper.GetMediaTrackInfo_Value(track, 'B_MUTE')))\n"
+  },
+  {
     "name": "the track read says the project is saved when it is not",
     "file": "narration_tracks_read.lua",
     "find": "rpp, rpp == '' and 1 or 0,",
@@ -4526,5 +4532,11 @@
     "file": "narration_solo_chapter.lua",
     "find": "        state.wait = state.wait - 1",
     "replace": "        state.wait = state.wait"
+  },
+  {
+    "name": "track_create turns monitoring on over a value already set",
+    "file": "narration_track_create.lua",
+    "find": "  if reaper.GetMediaTrackInfo_Value(track, 'I_RECMON') == 0 then",
+    "replace": "  if true then"
   }
 ]

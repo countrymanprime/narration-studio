@@ -22,7 +22,8 @@ import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TagInput } from '../primitives/TagInput';
 import { Tooltip, TooltipTarget } from '../primitives/Tooltip';
 import { hasHint, splitHintTerms, suggestionMessage } from './hints';
-import { PROOFING_CHUNK_OPTIONS } from './options';
+import { choiceLabel } from '../settings/data/values';
+import { rowOf } from '../settings/registry/rows';
 import { ProofOptions } from './proofOptions/ProofOptions';
 import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
@@ -52,9 +53,11 @@ const WORKER_LIMITS: Record<string, string[]> = {
 /** The host's TranscriptCompare settings that belong to a run: the chunk length it starts with and the colours its REAPER markers get. The model is chosen in Settings. */
 const COMPARE_OPTION_KEYS = ['chunk_seconds', 'color_misread', 'color_skipped', 'color_extra'] as const;
 
-const CHUNK_OPTIONS: number[] = PROOFING_CHUNK_OPTIONS.map((option) => option.seconds);
+/** The chunk lengths, in seconds, and their words: the ones Settings offers for Compare chunk length, so the two never name a length apart. */
+const CHUNK_ROW = rowOf('stt.compareChunk');
+const CHUNK_OPTIONS = Object.keys(CHUNK_ROW?.options ?? {});
+const chunkWord = (seconds: string) => choiceLabel(CHUNK_ROW, seconds);
 const LOG_VERBOSITY_OPTIONS = ['Quiet', 'Normal', 'Verbose'].map((mode) => ({ value: mode, label: mode }));
-const CHUNK_LABELS = PROOFING_CHUNK_OPTIONS.map((option) => option.label);
 const CHUNK_LIMIT_INDEX: Record<string, number> = { tiny: 3, small: 3, medium: 2, 'large-v3-turbo': 2, 'large-v3': 1 };
 const CHUNK_LENGTH_TOOLTIP = [
   'Shorter chunks transcribe in parallel faster but can split a sentence across a boundary.',
@@ -62,8 +65,12 @@ const CHUNK_LENGTH_TOOLTIP = [
 ].join(' ');
 const modelLabel = (value: string) => MODEL_OPTIONS.find((option) => option.value === value)?.label ?? value;
 
-/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown: a background hint, not a status light, so it polls far less often than useReaperStatus's 3 s connection check. */
-const PROJECT_STATE_POLL_MS = 30_000;
+/** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown. The edit event (`daw_project_edited`) carries every change; this slow check is only the backstop for one that was lost. */
+const PROJECT_STATE_BACKSTOP_MS = 300_000;
+// A check that failed is asked again after these (the edits made before the results opened are not announced again).
+const RETRY_AFTER_MS = [5_000, 30_000];
+// A check REAPER has not answered by then is treated as a failed one.
+const UNANSWERED_AFTER_MS = 20_000;
 
 /** Whether "Start comparison" can run, and why not: the run
  * needs a linked REAPER project file and the DAW port's `review` capability
@@ -192,12 +199,14 @@ export function CompareRun({
         const modelSetting = fields.find((field) => field.key === 'model_size');
         const chunkSetting = fields.find((field) => field.key === 'chunk_seconds');
         if (modelSetting?.effectiveValue) setModel(modelSetting.effectiveValue);
-        const index = CHUNK_OPTIONS.indexOf(Number(chunkSetting?.effectiveValue));
+        const index = CHUNK_OPTIONS.indexOf(chunkSetting?.effectiveValue ?? '');
         // The stored model may not allow the stored chunk (Settings offers both on their own): start on the longest it does allow, as choosing the model in this panel would.
         const allowed = CHUNK_LIMIT_INDEX[modelSetting?.effectiveValue ?? ''] ?? CHUNK_OPTIONS.length - 1;
         if (index >= 0) setChunkIndex(Math.min(index, allowed));
         else if (chunkSetting?.effectiveValue)
-          notify(`The chunk length in Settings (${chunkSetting.effectiveValue}) is not one this panel offers; starting on ${CHUNK_LABELS[1]}.`);
+          notify(
+            `The chunk length in Settings, ${chunkWord(chunkSetting.effectiveValue)}, is not one this panel offers; starting on ${chunkWord(CHUNK_OPTIONS[1])}.`,
+          );
       } catch {
         /* defaults remain usable */
       }
@@ -214,9 +223,9 @@ export function CompareRun({
     }
     const maxIndex = CHUNK_LIMIT_INDEX[value];
     if (chunkIndex > maxIndex) {
-      const previous = CHUNK_LABELS[chunkIndex];
+      const previous = chunkWord(CHUNK_OPTIONS[chunkIndex]);
       setChunkIndex(maxIndex);
-      notify(`Chunk length adjusted to ${CHUNK_LABELS[maxIndex]} — ${modelLabel(value)} doesn't support ${previous}.`);
+      notify(`Chunk length adjusted to ${chunkWord(CHUNK_OPTIONS[maxIndex])} — ${modelLabel(value)} doesn't support ${previous}.`);
     }
   };
 
@@ -255,7 +264,7 @@ export function CompareRun({
     try {
       const result = await api.transcriptStart({
         model,
-        chunk: String(CHUNK_OPTIONS[chunkIndex]),
+        chunk: CHUNK_OPTIONS[chunkIndex],
         workers,
         hints: acceptedHints.join(', '),
         chapterTitle: title,
@@ -284,35 +293,77 @@ export function CompareRun({
     else void api.transcriptReset().catch((error) => notify(describeApiError(error), 'error'));
   };
 
-  // "Changed since comparison": REAPER's own edit counter, checked on a
-  // low-frequency background poll only while results are shown, against the count the comparison started from
+  // "Changed since comparison": REAPER's own edit counter, heard from the host's `daw_project_edited` event (one check when the results open, and a
+  // slow backstop) only while results are shown, against the count the comparison started from
   // (results.projectChangeCount). The counter is only meaningful within one REAPER session of the project — it resets
   // when the project is reopened — so this is worded as "may have changed", never certainty, and nothing here ever
   // re-runs the comparison. No baseline (an older or offline comparison) means no check is made and no label shown.
   const compareBaseline = results.projectChangeCount;
   const [projectMayHaveChanged, setProjectMayHaveChanged] = useState(false);
   useEffect(() => {
-    if (!showingResults || compareBaseline === undefined) {
-      setProjectMayHaveChanged(false);
-      return;
-    }
+    // Nothing is claimed until this baseline has been compared with REAPER's count (the note of an earlier baseline is not this one's).
+    setProjectMayHaveChanged(false);
+    if (!showingResults || compareBaseline === undefined) return;
     let active = true;
-    const unsubscribe = api.subscribeProjectState((update) => {
-      if (!active || update.phase !== 'success' || update.changeCount === undefined) return;
+    let timer: number | undefined;
+    let unanswered: number | undefined;
+    let attempt = 0;
+    let asked = false;
+    let latest = 0;
+    // The highest count heard for this baseline: counts only rise while one project stays open, so a lower one that is not below the baseline was read before an
+    // edit already heard and is stale. A count below the baseline is not: the counter was reset (the project was reopened) or another project is open, which
+    // "may have changed" says.
+    let highest = -1;
+    // The counter is compared with the baseline wherever it was heard: in a read's answer, or in an edit the host announced. The newest comparison asked is the one that counts.
+    const compare = (count: number) => {
+      if (!active || (count < highest && count >= compareBaseline)) return;
+      highest = count;
+      const mine = ++latest;
       void api
-        .projectStateChangedSince(update.changeCount, compareBaseline)
+        .projectStateChangedSince(count, compareBaseline)
         .then(({ changed }) => {
-          if (active) setProjectMayHaveChanged(changed);
+          if (active && mine === latest) setProjectMayHaveChanged(changed);
         })
         .catch(() => {});
+    };
+    // The edits made before the results opened are not announced again, so the check made now is their only source: a check that fails, whose answer is an
+    // error, or that is not answered in time is asked again soon (5 s, 30 s) before it is left to the backstop. The host reports a failure twice (an error
+    // state and a rejected call): one retry is waiting at a time, so the two count once.
+    const askAgain = () => {
+      window.clearTimeout(unanswered);
+      if (!active || timer !== undefined || attempt >= RETRY_AFTER_MS.length) return;
+      timer = window.setTimeout(check, RETRY_AFTER_MS[attempt++]);
+    };
+    function check() {
+      window.clearTimeout(timer);
+      timer = undefined;
+      asked = true;
+      window.clearTimeout(unanswered);
+      unanswered = window.setTimeout(askAgain, UNANSWERED_AFTER_MS);
+      void api.projectStateCheck().catch(askAgain);
+    }
+    // What the state replays when it is subscribed to (a check from before these results opened) is not this opening's answer: only what comes after its own check counts.
+    const unsubscribe = api.subscribeProjectState((update) => {
+      if (!active || !asked) return;
+      if (update.phase === 'error') return askAgain();
+      if (update.phase !== 'success' || update.changeCount === undefined) return;
+      // An answer, however late, ends the wait: the retry it queued is not needed.
+      window.clearTimeout(unanswered);
+      window.clearTimeout(timer);
+      timer = undefined;
+      attempt = 0;
+      compare(update.changeCount);
     });
-    const check = () => void api.projectStateCheck().catch(() => {});
+    const unsubscribeEdits = api.subscribeDawProjectEdited((edit) => compare(edit.changeCount));
     check();
-    const timer = window.setInterval(check, PROJECT_STATE_POLL_MS);
+    const backstop = window.setInterval(check, PROJECT_STATE_BACKSTOP_MS);
     return () => {
       active = false;
       unsubscribe();
-      window.clearInterval(timer);
+      unsubscribeEdits();
+      window.clearTimeout(timer);
+      window.clearTimeout(unanswered);
+      window.clearInterval(backstop);
     };
   }, [api, showingResults, compareBaseline]);
 
@@ -373,11 +424,11 @@ export function CompareRun({
               <ToggleGroup
                 label="Chunk length"
                 className="mt-1.5 flex-wrap gap-1.5"
-                value={CHUNK_LABELS[chunkIndex]}
-                onChange={(label) => setChunkIndex(CHUNK_LABELS.findIndex((item) => item === label))}
-                options={CHUNK_LABELS.map((label, index) => ({
-                  value: label,
-                  label,
+                value={CHUNK_OPTIONS[chunkIndex]}
+                onChange={(seconds) => setChunkIndex(CHUNK_OPTIONS.indexOf(seconds))}
+                options={CHUNK_OPTIONS.map((seconds, index) => ({
+                  value: seconds,
+                  label: chunkWord(seconds),
                   disabled: index > CHUNK_LIMIT_INDEX[model],
                   title: index > CHUNK_LIMIT_INDEX[model] ? `Not available for ${modelLabel(model)}` : undefined,
                 }))}
