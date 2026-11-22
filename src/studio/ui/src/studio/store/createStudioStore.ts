@@ -88,7 +88,7 @@ export type StudioStore<R extends SlotRegistry> = {
   /**
    * Says which project the app is on, from the host's bootstrap. A different folder empties the store (what it holds is for the other project); the
    * same folder after a reset confirms the project. The reader of a held value asks for its own project (`ReadOptions`), and the store records the project
-   * each value was read for, so a list is never served under another project's folder.
+   * each value was read for, so a list is not served under another project's folder once the app has heard of the switch (a read that begins before that is #4040).
    */
   setProject(folder: string): void;
   /** The project the store was last told it is on (`setProject`, or the first reader that named one); undefined before. */
