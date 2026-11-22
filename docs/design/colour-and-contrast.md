@@ -53,7 +53,7 @@ The research mock's `src/styles/app.css` (deleted from the tree) was the referen
 
 ## Fills and surfaces
 
-These are the colours the mocks draw that the base palette does not name ([styles.css](../../src/studio/ui/src/styles.css)): the `-soft` fills (drawn by `StatusBadge` and `Pill`), `--row-selected` (`Table`, `StageGrid`), `--reading-bg` and `--rec-fill`/`--rec-text` (the Booth), `--toast-bg`/`--toast-text` (`Toast`), `--waveform` (Proof's waveform card) and `--ok-zone` (Master's book-consistency band). A colour a new mock needs is a new token with its own `paletteContrast.test.ts` rows, never a value written into a component.
+These are the colours the mocks draw that the base palette does not name ([styles.css](../../src/studio/ui/src/styles.css)): the `-soft` fills (drawn by `StatusBadge` and `Pill`), `--row-selected` (`Table`, `StageGrid`), `--reading-bg` and `--rec-fill`/`--rec-text` (the Booth), `--toast-bg`/`--toast-text` (`Toast`), `--waveform` (Proof's waveform card), `--ok-zone` (Master's book-consistency band) and `--scroll-edge` (the cue at the edge of a box that scrolls: `scroll-x-edges`, `scroll-y-edges`). A colour a new mock needs is a new token with its own `paletteContrast.test.ts` rows, never a value written into a component.
 
 | Token | Light | Dark | Pair and worst ratio (light / dark) |
 | --- | --- | --- | --- |
@@ -67,9 +67,11 @@ These are the colours the mocks draw that the base palette does not name ([style
 | `--toast-bg` / `--toast-text` | `--text` / `--bg` | the same | 13.86 / 15.32 |
 | `--waveform` | `--accent` 76% over `--surface` | the same recipe | a mark on the card: 3.30 / 3.95 |
 | `--ok-zone` | `--ok` 16% over `--surface-2` | the same recipe | the `--accent` tick on it, a mark: 3.05 / 4.40 |
+| `--scroll-edge` | black at 20% | white at 20% | over `--surface`, at the cue's strongest row: 1.60 / 1.90 |
 
 - **The status soft fills are opaque,** so a pill draws the same colour on a card and in a selected row; each is measured over both. `StatusBadge` draws them for ok, warn, info and danger ([Design system reference](design-system.md)).
 - **`--row-selected` and `--reading-bg` are surfaces.** `--row-selected` is in `SURFACES` and `PAGE_SURFACES`, and `--reading-bg` is in `READING_SURFACES`, so every pair drawn there is measured there.
+- **`--scroll-edge` is a step, not a mark.** It is a shade that fades into the surface, so its floor is 1.5:1 against `--surface`, not 3:1; `src/studio/ui/src/scrollEdges.test.ts` holds it in both themes. A black shade on the dark surface measured 1.05:1 (#3832), so the dark theme draws a light one.
 - **Two values differ from the mock** so that a mark keeps 3:1. `--waveform` is 76%; the mock measures 65 to 77%. `--ok-zone` is 16%; the mock's 18% left the band's accent ticks at 2.98:1.
 
 ## Choosing a colour for something new
