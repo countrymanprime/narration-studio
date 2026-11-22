@@ -40,6 +40,8 @@ var perfReads = []perfRead{
 	{"DawCapabilities", (*Host).DawCapabilities},
 	{"DawProjectState", (*Host).DawProjectState},
 	{"ReadAloudReaperState(c-0001)", func(h *Host) (string, error) { return h.ReadAloudReaperState(perfChapterID(0)) }},
+	// The Booth's follow on open (#3880 slice 3): asked every 2 s for 20 s while the DAW did not answer, now once and on the DAW's own event.
+	{"DawPlace", (*Host).DawPlace},
 	{"ManuscriptParagraphs(c-0001)", func(h *Host) (string, error) { return h.ManuscriptParagraphs(perfChapterID(0)) }},
 	{"SystemSettingsForScope(project)", func(h *Host) (string, error) { return h.SystemSettingsForScope("project") }},
 }
