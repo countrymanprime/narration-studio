@@ -685,8 +685,15 @@ func TestPruneKindsDoesNotCountAFileThatWasAlreadyGone(t *testing.T) {
 	gone, kept := kindKey("a", "gone"), kindKey("a", "kept")
 	writeUsed(t, store, project, gone, 100, pruneNow.Add(-2*time.Hour))
 	writeUsed(t, store, project, kept, 100, pruneNow.Add(-time.Hour))
-	// The entry is deleted by another store once the pass has listed it: its first stop look is the moment between the two.
-	stop := func() bool { _ = store.Delete(gone); return false }
+	// The entry is deleted by another store once the pass has listed it: the scan's look at stop is the first, the look before the first
+	// removal is the second, so the moment between the two is the second.
+	looks := 0
+	stop := func() bool {
+		if looks++; looks == 2 {
+			_ = store.Delete(gone)
+		}
+		return false
+	}
 	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: 1}}, pruneNow, stop)
 	if err != nil {
 		t.Fatal(err)
@@ -807,12 +814,11 @@ func TestPruneKindsKeepsAnEntryUsedOrWrittenAgainSinceItListedTheFolder(t *testi
 	writeUsed(t, store, project, rewritten, 100, pruneNow.Add(-47*time.Hour))
 	writeUsed(t, store, project, idle, 100, pruneNow.Add(-46*time.Hour))
 
-	// stop is asked before each removal, after the listing: the first look is the moment another part of the app reads one entry and
-	// writes another.
-	first := true
+	// stop is asked once by the scan and then before each removal: the second look is after the listing, the moment another part of the
+	// app reads one entry and writes another.
+	looks := 0
 	stop := func() bool {
-		if first {
-			first = false
+		if looks++; looks == 2 { // after the listing, before the first removal
 			if _, ok := store.Read(used); !ok {
 				t.Error("the entry did not read")
 			}
@@ -947,7 +953,13 @@ func TestPruneKindsDoesNotEvictToMakeRoomThatAnotherStoreMade(t *testing.T) {
 	writeUsed(t, store, project, third, 100, pruneNow.Add(-time.Hour))
 	capBytes := fileSize(t, project, second) + fileSize(t, project, third)
 
-	stop := func() bool { _ = store.Delete(gone); return false }
+	looks := 0
+	stop := func() bool {
+		if looks++; looks == 2 { // after the listing, before the first removal
+			_ = store.Delete(gone)
+		}
+		return false
+	}
 	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: capBytes}}, pruneNow, stop)
 	if err != nil {
 		t.Fatal(err)
@@ -1072,7 +1084,8 @@ func TestPruneKindsOfAProjectPathWithDotDotAfterALinkActsInOneFolder(t *testing.
 	if err := os.Symlink(physical, filepath.Join(lexical, "link")); err != nil {
 		t.Skipf("no symbolic links here: %v", err)
 	}
-	path := filepath.Join(lexical, "link", "..")
+	// Not filepath.Join, which would clean the ".." away before the store ever saw it.
+	path := lexical + string(os.PathSeparator) + "link" + string(os.PathSeparator) + ".."
 	// A fresh entry in the physical folder the operating system would resolve "..", then the lexical one holding an expired entry.
 	fresh, expired := kindKey("a", "fresh"), kindKey("a", "expired")
 	writeUsed(t, NewCacheStore(filepath.Join(base, "physical")), filepath.Join(base, "physical"), fresh, 100, time.Now())
@@ -1086,6 +1099,70 @@ func TestPruneKindsOfAProjectPathWithDotDotAfterALinkActsInOneFolder(t *testing.
 	}
 	if entryExists(lexical, expired) {
 		t.Fatal("the expired entry in the folder the path names was not removed")
+	}
+}
+
+// Fewer failures than the limit are one line too: the count and the first.
+func TestPruneKindsFewFailuresAreOneLineWithTheCount(t *testing.T) {
+	was := removeEntry
+	t.Cleanup(func() { removeEntry = was })
+	removeEntry = func(string, string) (bool, error) { return false, errors.New("access is denied") }
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	for i := range 3 {
+		writeUsed(t, store, project, kindKey("a", fmt.Sprint(i)), 100, pruneNow.Add(-48*time.Hour))
+	}
+	_, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never)
+	if err == nil || !strings.HasPrefix(err.Error(), "3 analysis cache entries could not be removed") || strings.Count(err.Error(), "\n") != 0 {
+		t.Fatalf("err = %v; want one line beginning with the count", err)
+	}
+}
+
+// An entry of an analyzer no policy names is not touched at all: not removed, and its file time is not set either.
+func TestPruneKindsDoesNotTouchTheFileTimeOfAnAnalyzerNoPolicyNames(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	key := kindKey("a-newer-analyzer", "future")
+	future := time.Now().Add(1000 * 24 * time.Hour).Truncate(time.Second)
+	writeUsed(t, store, project, key, 100, future)
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxAge: time.Hour}}, time.Now(), never); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(filepath.Join(CacheDir(project), key.hash()+".json"))
+	if err != nil || !info.ModTime().Equal(future) {
+		t.Fatalf("modification time = %v (%v); want it left at %v", info.ModTime(), err, future)
+	}
+}
+
+// An entry written smaller since the listing counts at its size now: the pass does not evict a live entry for the room it no longer takes.
+func TestPruneKindsCountsASkippedEntryAtItsSizeNow(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	big, young := kindKey("a", "big"), kindKey("a", "young")
+	// Times from the real clock: the pass reads a file time after its own now as "now".
+	now := time.Now()
+	writeUsed(t, store, project, big, 5000, now.Add(-2*time.Hour))
+	writeUsed(t, store, project, young, 100, now.Add(-time.Hour))
+	capBytes := int64(2000)
+
+	looks := 0
+	stop := func() bool {
+		if looks++; looks == 2 { // after the listing, before the first removal: the big entry is written again, much smaller
+			if err := store.Write(big, []byte("tiny")); err != nil {
+				t.Error(err)
+			}
+		}
+		return false
+	}
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: capBytes}}, now.Add(time.Minute), stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !entryExists(project, big) || !entryExists(project, young) || report.Removed != 0 {
+		t.Fatalf("big kept %v, young kept %v, report %+v; want both kept: together they fit under the cap", entryExists(project, big), entryExists(project, young), report)
+	}
+	if want := fileSize(t, project, big) + fileSize(t, project, young); report.BytesAfter != want {
+		t.Fatalf("BytesAfter = %d, want %d (what is on disk)", report.BytesAfter, want)
 	}
 }
 

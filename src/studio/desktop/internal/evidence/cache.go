@@ -292,6 +292,10 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 	if err != nil {
 		return report, fmt.Errorf("could not list the analysis cache: %w", err)
 	}
+	named := map[string]bool{}
+	for _, policy := range policies {
+		named[policy.AnalyzerID] = true
+	}
 	byKind := map[string][]cacheFile{}
 	for i, entry := range entries {
 		// Reading each entry's start is the slow part of a large cache: a check that starts is not made to wait for all of it.
@@ -318,10 +322,10 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 		}
 		// Size and time are those of the handle the header was read from, the same call the removal looks again with.
 		used, stamp := opened.ModTime(), opened.ModTime()
-		if used.After(now) {
+		if used.After(now) && named[analyzer] {
 			// A file time after now (a clock set back, a restored copy) is moved to now, so that the entry ages and is evicted like any other
 			// from here on; read as now alone it would be "just used" at every pass. A time that cannot be set (only the file's owner may)
-			// makes the entry the least recently used instead, so it is neither kept for ever nor counted against the cap for nothing.
+			// makes the entry the oldest instead: expired at once in a kind with a time limit and the first to go in the others, so it is neither kept for ever nor counted against the cap for nothing. An entry of an analyzer no policy names is left alone, its time too.
 			if err := s.setUsed(entry.Name(), now); err != nil {
 				used = time.Time{}
 			} else if fresh, err := os.Lstat(filepath.Join(s.dir, entry.Name())); err == nil {
@@ -353,7 +357,7 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			}
 			if stop() {
 				report.Stopped = true
-				return report, errors.Join(failures...)
+				return report, summarize(failures)
 			}
 			// The list is some time old: an entry a hit refreshed or a writer wrote again since stays, and one already gone is not this pass's.
 			current, err := os.Lstat(filepath.Join(s.dir, file.name))
@@ -375,7 +379,6 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			if err != nil {
 				failures = append(failures, fmt.Errorf("could not remove analysis cache entry %s: %w", file.name, err))
 				if len(failures) >= maxRemovalFailures {
-					// One line, summary first: the host log cuts a long message, and every failure is usually the same one.
 					return report, fmt.Errorf("gave up after %d failed removals, the first: %w", maxRemovalFailures, failures[0])
 				}
 				continue
@@ -388,7 +391,18 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			}
 		}
 	}
-	return report, errors.Join(failures...)
+	return report, summarize(failures)
+}
+
+// summarize is one line for the host log, which cuts a long message: the count and the first failure (they are usually all the same one).
+func summarize(failures []error) error {
+	switch len(failures) {
+	case 0:
+		return nil
+	case 1:
+		return failures[0]
+	}
+	return fmt.Errorf("%d analysis cache entries could not be removed, the first: %w", len(failures), failures[0])
 }
 
 // cmpBool orders false before true.
