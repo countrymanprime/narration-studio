@@ -392,6 +392,12 @@ function BoothSession({
     onRecordBlocked: (block) => parts.current.recordBlocked?.(block),
   });
   const { control, at, units } = page;
+  // A take that runs keeps its chapter on screen when a list change takes it out of the book (`useBoothData`), so Stop stays.
+  const hold = data.hold;
+  useEffect(() => {
+    hold(control.recording);
+    return () => hold(false);
+  }, [hold, control.recording]);
   // Why a change that waits for the take to end is off: a take REAPER started is stopped there, not here.
   const whileRecording = notWhileRecording(control.capabilities?.daw, control.recording && !control.startedByApp);
 

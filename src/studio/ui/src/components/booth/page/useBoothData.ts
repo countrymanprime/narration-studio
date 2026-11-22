@@ -161,11 +161,21 @@ export function useBoothData(target: BoothChapterTarget | null) {
   }, []);
 
   const chapterId = target ? target.chapter : fallback;
-  // The chapter on screen stays while a list change takes it out (a re-split during a take): a session is never unmounted by the list. A project switch drops it.
+  // While a take runs (the page says so with `hold`) the chapter on screen stays when a list change takes it out: a session is never unmounted from under a
+  // take. Once the take ends, or the project changes, the list decides again.
   const pin = useRef<{ generation: number; chapter: ManuscriptChapter }>(undefined);
+  const holding = useRef(false);
+  const onScreen = useRef<{ generation: number; chapter: ManuscriptChapter }>(undefined);
+  const hold = useCallback((on: boolean) => {
+    holding.current = on;
+    pin.current = on ? onScreen.current : undefined;
+  }, []);
   const found = chapters?.find((item) => item.id === chapterId);
-  if (found) pin.current = { generation, chapter: found };
-  const chapter = found ?? (pin.current && pin.current.generation === generation && pin.current.chapter.id === chapterId ? pin.current.chapter : undefined);
+  if (found) onScreen.current = { generation, chapter: found };
+  if (found && holding.current) pin.current = onScreen.current;
+  const chapter =
+    found ??
+    (holding.current && pin.current && pin.current.generation === generation && pin.current.chapter.id === chapterId ? pin.current.chapter : undefined);
   // Nothing is said about a chapter that is not there until the page has chosen the one it opens on (the session state has answered).
   const picked = Boolean(target) || chosen?.generation === generation;
 
@@ -205,6 +215,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
     recorded,
     recordedAt,
     refreshRecorded,
+    hold,
     source,
     unavailable,
     error,

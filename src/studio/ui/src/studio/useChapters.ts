@@ -44,6 +44,8 @@ export function useChapters(
     Boolean(store && enabled && store.getState().errors.chapters !== undefined && store.getState().slots.chapters === undefined),
   );
   const pending = useRef(0);
+  // What the store held when the reads now out were asked for: a newer answer or failure of the slot ends the wait, whatever read made it.
+  const askedAt = useRef<{ held: unknown; error: unknown }>({ held: undefined, error: undefined });
   // A project switch drops the reads asked for the old project: they no longer count as out, and their answers change nothing.
   const epoch = useRef(generation);
   if (epoch.current !== generation) {
@@ -52,6 +54,7 @@ export function useChapters(
   }
   const readNow = (target: NonNullable<typeof store>) => {
     const mine = epoch.current;
+    if (pending.current === 0) askedAt.current = { held: target.getState().slots.chapters, error: target.getState().errors.chapters };
     pending.current += 1;
     setRefreshing(true);
     void target
@@ -110,5 +113,10 @@ export function useChapters(
       live = false;
     };
   }, [store, manuscript, enabled, refreshKey]);
-  return { chapters: store ? held : own, error, refreshing: refreshing && pending.current > 0, generation };
+  return {
+    chapters: store ? held : own,
+    error,
+    refreshing: refreshing && pending.current > 0 && held === askedAt.current.held && error === askedAt.current.error,
+    generation,
+  };
 }
