@@ -681,7 +681,8 @@ function AppRoutes() {
         // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
         overlay.dismissUndo();
         history.resetFloor();
-        void refreshBootstrap();
+        // After this turn: the store's own listener resets it on the same event, in whichever order the two were subscribed, and the answer is judged against the reset.
+        queueMicrotask(() => void refreshBootstrap());
       } else if (state.reason && !attachRefusalClaimed()) {
         // A dialog that writes the reason in its own alert (the Booth's connect dialog) claims it, so it is not toasted over the page as well.
         setNotice(state.reason, 'error');
@@ -764,7 +765,7 @@ function AppRoutes() {
     if (data && studio.project() === undefined) studio.setProject(data.projectFolder);
   }, [studio, data]);
   useEffect(() => {
-    if (hasManuscript) void studio.load('chapters', { project: projectFolder }).catch(() => {});
+    if (hasManuscript) void studio.load('chapters').catch(() => {});
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
