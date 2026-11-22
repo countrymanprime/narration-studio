@@ -285,6 +285,24 @@ describe('Settings: row layout', () => {
     expect(hint.className).toContain('text-[0.8125rem]');
   });
 
+  it('draws Room tone per credits file as a number box from 0 to 10 s, not a list of eleven numbers (audit S14)', async () => {
+    const api = createMockApi();
+    const saved = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
+    pick('Project');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('project.roomTone')).getByRole('textbox', { name: /Room tone per credits file/ }));
+    expect(within(row('project.roomTone')).queryByRole('combobox')).toBeNull();
+    expect((box as HTMLInputElement).value).toBe('0');
+    expect(within(row('project.roomTone')).getByText('From 0 to 10 s')).toBeTruthy();
+    fireEvent.change(box, { target: { value: '2.5' } });
+    fireEvent.blur(box);
+    expect(saved).not.toHaveBeenCalled();
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(saved).toHaveBeenCalledWith('General', 'global', { credits_room_tone_seconds: '3' }));
+  });
+
   it('says under Parallel processes what the value shown runs on this computer, and reads it again when the value changes', async () => {
     const api = createMockApi();
     const asked = vi.spyOn(api, 'coverageWorkerPlan');

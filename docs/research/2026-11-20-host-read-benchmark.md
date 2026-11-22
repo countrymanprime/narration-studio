@@ -300,6 +300,19 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - With no DAW the host answers at once that it is not running, so the host's cost is the same at every size and too small to show here: the saving is the count of asks (9 fewer in the 20 s a DAW takes to connect), each of which is a request through the bridge to REAPER when one is running. A DAW that connects at second 7 is followed within a tick of its event, where the timer found it up to 2 s later.
 - **Not measured:** the round trip to a live REAPER (what an ask costs there), which this rig cannot time.
 
+## The Proof comparison's "may have changed" check: every 30 s against the edit event
+
+[#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 3. While a comparison's results were shown, `CompareRun` asked the host for REAPER's edit counter (`ProjectStateCheck`) every 30 s and compared it with the count the comparison started from. The host already announces every change of that counter (`daw_project_edited`), so the results now ask once when they open, hear each edit from the event (compared at once with `ProjectStateChangedSince`, a pure comparison that reads nothing), and ask again only every 5 minutes as a backstop for a lost event. Same rig and method (`reads --runs 3`, medians, books of 3, 44 and 300 chapters), one row added (`ProjectStateCheck`). The rig has no DAW, so the row times the host's immediate refusal (no bridge): `0.0` ms warm at every size, a 32-byte answer, 0 files decoded. That is the host's work, not the round trip to a live REAPER, which this rig cannot time.
+
+| Results shown for | Asks of REAPER before | After (once, then a backstop every 5 min) | Edits heard |
+| --- | --- | --- | --- |
+| 1 minute | 3 | 1 | each, at once, no read |
+| 10 minutes | 21 | 3 | each, at once, no read |
+| 1 hour | 121 | 13 | each, at once, no read |
+
+- The saving is the count of asks (each a request through the bridge to REAPER while it runs): 9 in 10 fewer over an hour. The label also appears at the edit instead of up to 30 s later.
+- **Not measured:** the round trip of a check to a live REAPER, the label's delay after a real edit, and a comparison left open for hours.
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.

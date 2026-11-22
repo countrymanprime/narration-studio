@@ -88,14 +88,17 @@ export function Pill({
       {content}
     </Toggle>
   );
-  if (gated)
-    return (
-      <>
-        <TooltipTarget text={disabledReason!}>{button}</TooltipTarget>
+  // A caller that sometimes has a reason passes `''` when it has none, as `Button` does: the chip is then wrapped the same way throughout, so it is
+  // the same element when the reason arrives and a focused chip keeps focus (a swap of wrappers rebuilds the button and focus falls to the page).
+  const wrapped = gated || title || disabledReason !== undefined;
+  return (
+    <>
+      {wrapped ? <TooltipTarget text={gated ? disabledReason! : (title ?? '')}>{button}</TooltipTarget> : button}
+      {gated && (
         <span id={reasonId} className="sr-only">
           {disabledReason}
         </span>
-      </>
-    );
-  return title ? <TooltipTarget text={title}>{button}</TooltipTarget> : button;
+      )}
+    </>
+  );
 }
