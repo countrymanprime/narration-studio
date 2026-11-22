@@ -13,7 +13,7 @@ async function openChapterOne(page: Page): Promise<void> {
 }
 const onBody = (page: Page) => page.evaluate(() => document.activeElement === document.body || document.activeElement === null);
 
-const ROUTES: { name: string; leaves: boolean; focus: 'differences' | 'check'; go: (page: Page) => Promise<void> }[] = [
+const ROUTES: { name: string; leaves: boolean; focus: 'differences' | 'check' | 'icon'; go: (page: Page) => Promise<void> }[] = [
   { name: 'Escape', leaves: true, focus: 'differences', go: (page) => page.keyboard.press('Escape') },
   {
     name: 'the jump menu',
@@ -28,23 +28,38 @@ const ROUTES: { name: string; leaves: boolean; focus: 'differences' | 'check'; g
         .click();
     },
   },
+  {
+    name: 'Escape from an "i" icon whose note has closed',
+    leaves: true,
+    focus: 'icon',
+    go: async (page) => {
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+    },
+  },
   { name: 'browser Back', leaves: true, focus: 'differences', go: (page) => page.goBack() },
   { name: 'the next-chapter key', leaves: false, focus: 'check', go: (page) => page.keyboard.press('ArrowRight') },
 ];
 
 for (const route of ROUTES) {
-  test(`Proof: ${route.name} out of the chapter does not leave focus on <body>`, async ({ page }) => {
+  test(`Proof: ${route.name} out of the chapter leaves focus on the chapter picker, not <body>`, async ({ page }) => {
     await openChapterOne(page);
     if (route.focus === 'differences') {
       await page.getByRole('button', { name: 'Compare with the script' }).click();
       await page.getByRole('region', { name: 'Compare', exact: true }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
       await page.getByRole('button', { name: 'Differences' }).first().focus();
+    } else if (route.focus === 'icon') {
+      await page.getByRole('button', { name: 'Compare with the script' }).click();
+      await page.getByRole('region', { name: 'Compare', exact: true }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
+      await page.keyboard.press('Shift');
+      await page.locator('button.cursor-help:visible').first().focus();
     } else {
       await page.getByRole('button', { name: 'Check recordings' }).first().focus();
     }
     await route.go(page);
     if (route.leaves) await expect(page.getByText('Open notes, by chapter')).toBeVisible();
     await expect.poll(() => onBody(page), { message: `focus fell to <body> after ${route.name}` }).toBe(false);
+    await expect(page.locator('[data-chapter-picker]'), `focus is not on the chapter picker after ${route.name}`).toBeFocused();
   });
 }
 
