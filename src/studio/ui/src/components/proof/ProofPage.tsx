@@ -435,20 +435,17 @@ export function ProofPage({
     requestAnimationFrame(() => inspectorPanel.current?.scrollIntoView?.({ block: 'start' }));
   }, [selectedId, chapter?.id]);
 
-  // Escape from the chapter view: the control that had focus leaves the page with the chapter view, so once All chapters is showing focus goes to the
-  // chapter picker rather than to <body> (a question about leaving the chapter that the narrator answers "stay" keeps its own focus: this only fills an
-  // empty one).
-  const escaped = useRef(false);
+  // The control that had focus can leave the page with the chapter view (Escape to All chapters, the chapter step, the jump menu, Back), which
+  // drops focus to <body>: once the view has changed, an empty focus goes to the chapter picker. A focus that is somewhere (a control that
+  // stays, a question about leaving the chapter) is left alone.
+  const view = all ? ALL_CHAPTERS : (chapter?.id ?? '');
+  const shownView = useRef(view);
   useEffect(() => {
-    if (!escaped.current || !all) return;
-    escaped.current = false;
+    if (shownView.current === view) return;
+    shownView.current = view;
     if (document.activeElement === document.body || document.activeElement === null) document.querySelector<HTMLElement>('[data-chapter-picker]')?.focus();
-  }, [all]);
-  const toAllChapters = () => {
-    escaped.current = true;
-    pickChapter(ALL_CHAPTERS);
-  };
-  useProofKeys({ order, selectedId, select: pickNote, step: pickStep, allChapters: all, toAllChapters });
+  }, [view]);
+  useProofKeys({ order, selectedId, select: pickNote, step: pickStep, allChapters: all, toAllChapters: () => pickChapter(ALL_CHAPTERS) });
   useProofPageCommands({
     chapters,
     scope,
