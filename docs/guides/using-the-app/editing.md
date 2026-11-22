@@ -96,7 +96,7 @@ which sets REAPER's own output when REAPER plays and does not change the app's s
 The word playing is lit, and the text scrolls to keep it in sight until you scroll by hand; the next play scrolls it
 again. When you play the project in the DAW instead, the lit word follows the DAW's play position, as long as the DAW
 reports one and the app is not playing its own audio. When the DAW stops, its last word stays lit until you move the
-cursor.
+cursor, and the bar reads **Play** again: Space plays from the cursor, not from the lit word.
 
 A chapter has to be linked to a track (see [Linking chapters to tracks](navigation.md#linking-chapters-to-tracks)) for
 its words to carry the times they were heard at. A chapter with no audio to edit shows the script plain, with no word marked
