@@ -241,6 +241,24 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 
 The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
+Booth and Editing then took the same list (the Editor, the Booth and the Production pipeline through `useReadChapters`; #3994 and #3934 revived on the project record of #3998). Calls / KB on the same rig, built from `main` at 00a3bfc and from the branch, `--runs 5`, run one after the other (the first three-run table had both builds running at once). Nodes are 3,983 (Booth) and 4,098 (Editing) before and after.
+
+| Booth | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 63 / 145 | 63 / 155 | 63 / 178 | 64 / 221 |
+| Cold, after | 63 / 145 | 63 / 155 | 63 / 178 | 64 / 221 |
+| Warm, before | 52 / 107 | 53 / 112 | 53 / 122 | 53 / 140 |
+| Warm, after | 52 / 106 | 52 / 109 | 51 / 113 | 51 / 123 |
+
+| Editing | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 56 / 260 | 56 / 271 | 56 / 293 | 56 / 337 |
+| Cold, after | 56 / 260 | 56 / 271 | 56 / 293 | 56 / 337 |
+| Warm, before | 41 / 212 | 41 / 217 | 42 / 342 | 42 / 360 |
+| Warm, after | 40 / 211 | 41 / 328 | 41 / 333 | 41 / 342 |
+
+A cold start reads the list once either way. A warm visit makes one fewer call at 17 and 40 h (Booth 53 to 51, Editing 42 to 41). The Editing warm KB cells jump between about 217 and 330 in both builds: a store refresh of the list (an event or a focus, 100 to 150 KB at 17 to 40 h) lands inside the quiet window in some runs and not in others, so the KB of those cells says nothing about the change. The Production pipeline already read the store (#3910); its calls are unchanged (34 warm at every size), and what changed is that its own copy of the read (the generation and refresh-key bookkeeping around `ensure`/`load`) is one call of the shared hook. The goal of these moves is one list for every page, not the call count; the count is reported so a regression would show.
+
 ## The track list: a 5 s poll against REAPER's change event
 
 [#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 1. Before it, every page that shows the project's tracks (`useLiveTracks`, behind the engine panel, Link chapters, Editing, Proof, Pickups and the Booth's voices) read `TracksLive`, `ChapterTrackLinks` and `VoiceTracksGet` every 5 s while the window was visible. With a revision from REAPER's heartbeat it reads on `daw_tracks_changed`, on focus and on Refresh, and every 30 s for a save in REAPER, which sends no event. Same rig and method as [above](#host-reads): `host-read-bench.mjs seed` then `reads --runs 3` (three processes, medians), here with `--tracks N` for the extra empty tracks. The three reads' warm medians are one tick; the poll is 12 ticks a minute, the event idle 2 (the 30 s read), a change 1.
@@ -334,4 +352,5 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
 - **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
-- **Run counts** are small (one to three), so differences under 10 % between cells are noise.
+- **Run counts** are small (one to five), so differences under 10 % between cells are noise.
+- **The Editor, Booth and Production moves (#3658):** real-host timing under the pages' concurrent calls, Windows, 300 chapters on the mock (the mock sizes a book in hours), a cold OS file cache, and the pages' time to usable (the mock's milliseconds are fixtures).
