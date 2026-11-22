@@ -107,10 +107,10 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
   // DAW stops. A word kept lit after a stop stays (it clears when the cursor moves), and a playhead the app itself moved is not touched.
   useEffect(() => {
     if (enabled) return;
-    const wasPlaying = dawPlaying.current;
-    dawPlaying.current = false;
+    // `dawPlaying` is left as it was: the next transport event sets it, and a DAW that is still playing when it comes back is not a new play (the follow the
+    // narrator turned off with a hand scroll stays off).
     const { state: s, dispatch: send } = live.current;
-    if (wasPlaying && mine.current != null && s.playT === mine.current) {
+    if (dawPlaying.current && mine.current != null && s.playT === mine.current) {
       mine.current = null;
       send({ type: 'play', t: null });
     }

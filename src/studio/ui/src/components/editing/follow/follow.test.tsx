@@ -370,6 +370,22 @@ describe('poll-is-bounded', () => {
     act(() => page.dispatch({ type: 'place', key: 'p-1:0' }));
     expect(lit()).toBeNull();
   });
+  it('a DAW that drops and comes back while still playing is not a new play: the follow the narrator turned off stays off', async () => {
+    const api = makeApi();
+    const view = render(tree(api, DAW_SETUPS.reaper));
+    dawAt(1.3);
+    await poll(10);
+    expect(playback.follow).toBe(true);
+    act(() => playback.setFollow(false));
+    view.rerender(tree(api, DAW_SETUPS['reaper-off']));
+    await poll(10);
+    view.rerender(tree(api, DAW_SETUPS.reaper));
+    // The DAW still plays: its next heartbeat says so.
+    dawAt(1.3);
+    await poll(10);
+    expect(lit()).toBe('p-1:3');
+    expect(playback.follow).toBe(false);
+  });
   it('waits for a slow read before asking again', async () => {
     vi.mocked(client.projectState).mockImplementation(() => new Promise(() => {}));
     mount();
