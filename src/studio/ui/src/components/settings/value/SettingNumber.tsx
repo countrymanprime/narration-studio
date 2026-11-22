@@ -40,7 +40,8 @@ const stored = (value: string): number | null => (value.trim() === '' || numberP
  * The number box of a setting, with its unit: the one place a stored string becomes a number and back (component-selection CS-N1). What is
  * typed is clamped to the range and moved onto the step before it is reported, so the host is never sent a number it refuses; a number too
  * large to write without an exponent is not reported at all. An unset value is an empty box, never 0. A stored text that is not a number (a
- * hand-edited file) is shown as the placeholder of a marked, empty box, and a stored number past the range is marked too.
+ * hand-edited file) is shown as the placeholder of a marked, empty box, and a stored number the host refuses (past the range or between
+ * steps) is marked too.
  */
 export function SettingNumber({
   label,
@@ -63,10 +64,7 @@ export function SettingNumber({
   const noteId = useId();
   const note = showRange ? describeNumberRange(range) : '';
   const isJunk = value.trim() !== '' && stored(value) === null;
-  // Only a value past the range is marked, not one between steps: on main the host's own defaults for the cleanup levels (12 and 30 dB on a
-  // 0.5 step counted from 0.1) sit between its steps, and a default must not read as an error.
-  const n = stored(value);
-  const isRefused = isJunk || (n !== null && ((range.min !== null && n < range.min) || (range.max !== null && n > range.max)));
+  const isRefused = numberProblem(range, value.trim()) !== undefined;
   const shownUnit = unit ?? range.unit;
   // A range note names the unit, so it describes the box (this one, or the caller's); with no range to note, the unit beside the box is.
   const describesByUnit = shownUnit !== '' && describeNumberRange(range) === '';
