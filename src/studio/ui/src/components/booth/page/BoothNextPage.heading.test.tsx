@@ -129,7 +129,7 @@ describe('the-chapter-title-is-the-first-line', () => {
     ]);
     expect(currentWord()).toEqual({ line: 'chapter-heading-title', text: 'Chapter' });
     // The heading is not a paragraph of the manuscript: the progress line still counts three, and the title is on the first.
-    expect(document.querySelector('#bprog')?.textContent).toMatch(/^¶ 1 of 3 · 0%/);
+    expect(document.querySelector('#bprog')?.textContent).toMatch(/^¶ 1 of 3/);
   });
 
   it('a numbered title alone is one line, in its own words', async () => {

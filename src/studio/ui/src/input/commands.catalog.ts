@@ -529,6 +529,15 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Booth' as const,
     surfaces: ['help', 'settings'] as const,
   })),
+  // Shift with a number adds ten: Shift Num 1 is the 11th voice, Shift Num 0 the 10th. Past nine a voice has no key of its own.
+  ...Array.from({ length: 10 }, (_, n) => ({
+    id: `booth.voice.${n + 10}` as const,
+    label: `Record voice ${n + 10}`,
+    scope: 'booth' as const,
+    defaults: [key(`Numpad${n}`, ['Shift'])],
+    group: 'Booth' as const,
+    surfaces: ['help', 'settings'] as const,
+  })),
   { id: 'booth.voice.next', label: 'Record the next voice', scope: 'booth', defaults: [key('NumpadAdd')], group: 'Booth', surfaces: ['help', 'settings'] },
   {
     id: 'booth.voice.prev',

@@ -256,19 +256,18 @@ for (const size of SIZES) {
       expect.soft(await axeOn(page, '[data-row="look.note"]')).toEqual([]);
     });
 
-    test(`Settings, Compare defaults at ${at}: each marker colour is a picker and a hex box on one line`, async ({ page }) => {
+    test(`Settings, Compare marker colours at ${at}: each marker colour is a picker and a hex box on one line`, async ({ page }) => {
       await open(page, size, theme, async (settings) => {
-        await openSettings(settings, 'Set on a page');
-        await settings.locator('[data-page-setting="ps.compare"]').getByRole('button', { name: 'Change it here for now' }).click();
+        await openSettings(settings, 'Speech to text');
       });
-      const panel = page.locator('[data-page-setting="ps.compare"]');
+      const panel = page.locator('[data-row="stt.compareColours"]');
       for (const marker of ['Misread', 'Skipped', 'Extra']) {
         const hex = panel.getByRole('textbox', { name: `${marker} marker color hex`, exact: true });
         await hex.scrollIntoViewIfNeeded();
         expectOneLine(await pairOf(panel.getByLabel(`${marker} marker color`, { exact: true }).and(page.locator(PICKER)), hex));
       }
       expect.soft((await inWindow(page, panel)).sideways, 'the page does not scroll sideways').toBe(false);
-      expect.soft(await axeOn(page, '[data-page-setting="ps.compare"]')).toEqual([]);
+      expect.soft(await axeOn(page, '[data-row="stt.compareColours"]')).toEqual([]);
     });
   }
 }
@@ -510,10 +509,9 @@ const FREE_SITES = [
     hex: (page: Page) => page.locator('[data-row="look.note"]').getByRole('textbox', { name: /^Note colour.* hex$/ }),
   },
   {
-    site: 'Settings, Compare defaults',
+    site: 'Settings, Compare marker colours',
     driver: async (page: Page) => {
-      await openSettings(page, 'Set on a page');
-      await page.locator('[data-page-setting="ps.compare"]').getByRole('button', { name: 'Change it here for now' }).click();
+      await openSettings(page, 'Speech to text');
     },
     hex: (page: Page) => page.getByRole('textbox', { name: 'Misread marker color hex', exact: true }),
   },

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"desktop/internal/coverage"
 	"desktop/internal/evidence"
@@ -12,7 +13,7 @@ import (
 
 // Retention (#3816): the host keeps the project's derived files bounded by a pass in the background, started when a project
 // is opened and when a recording check ends, and never while one runs. Each step reports how much its store holds in the host log;
-// the ledger step (retention_ledger.go) also deletes what no reader selects any more, and the stores' other deletes are wired one at a
+// the ledger step (retention_ledger.go) deletes what no reader selects any more, the cache step (retention_cache.go) what an entry's kind lets it keep, and the stores' other deletes are wired one at a
 // time behind it.
 
 // startRetentionLocked replaces the project's retention runner with one over the stores of the project just configured, and
@@ -42,7 +43,7 @@ func (h *Host) startRetentionLocked(checks *coverage.Service, ledger *evidence.L
 			sweep:        checks.SweepOrphanResults,
 			measure:      measureDirs(ledgerRetentionDirs(project)),
 		},
-		retention.DirStep("analysis cache", evidence.CacheDir(project)),
+		cacheRetention{cache: evidence.NewCacheStore(project), policies: cacheRetentionPolicies, now: time.Now},
 	}
 	h.retention = retention.New(steps, checks.Busy, h.logRetention)
 	h.retention.Kick("open")

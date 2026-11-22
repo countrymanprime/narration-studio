@@ -3,6 +3,7 @@ import type { GuideEntity } from '../../../api/contracts/storyBible';
 import { entryColour } from '../../../kinds/entityColour';
 import type { GuideType } from '../../../types';
 import type { ParagraphNote, ReadingParagraph, WordDecoration } from '../reading/boothUnits';
+import { namePattern } from './nearby';
 import type { BoothReference } from './sections';
 
 // The `decorations` and `notes` props of the Booth text (SN-O62), built from the real data: the Story Bible's names, the Script's
@@ -11,8 +12,6 @@ import type { BoothReference } from './sections';
 
 const AUTHOR: Record<MarkThreadAuthor, string | undefined> = { you: undefined, author: 'Author', proofer: 'Proofer' };
 
-const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 /** Every place a name of a Story Bible entry (its own or an alias) stands in a paragraph, as an entity tint. */
 function entityDecorations(paragraphs: readonly ReadingParagraph[], entities: readonly GuideEntity[], types: readonly GuideType[]): WordDecoration[] {
   const out: WordDecoration[] = [];
@@ -20,7 +19,7 @@ function entityDecorations(paragraphs: readonly ReadingParagraph[], entities: re
     const colour = entryColour(types, entity.category);
     const names = new Set([entity.canonical_name, ...entity.aliases.map((alias) => alias.text)].filter((name) => name.trim() !== ''));
     for (const name of names) {
-      const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(name)}(?![\\p{L}\\p{N}_])`, 'gu');
+      const pattern = namePattern(name, 'gu');
       for (const paragraph of paragraphs) {
         for (const hit of paragraph.text.matchAll(pattern)) {
           out.push({ paragraphId: paragraph.id, start: hit.index, end: hit.index + name.length, kind: 'entity', colour, title: entity.canonical_name });

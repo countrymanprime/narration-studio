@@ -9,12 +9,14 @@ import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { Select } from '../../primitives/Select';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
-import { StatusBadge } from '../../primitives/StatusBadge';
-import { defaultTrackName, keyForNewTrack, keyName, lineCount, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
+import { CharacterBadge } from './CharacterBadge';
+import { defaultTrackName, keyForNewTrack, keyName, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 import { hasVisibleText } from '../../../visibleText';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
-export type WhoAsk = { kind: 'key'; key: number } | { kind: 'character'; character: WhoCharacter; choice?: WhoChoice };
+export type WhoAsk =
+  | { kind: 'key'; key: number; /** The text typed in the voice search that found nothing: the new track's name. */ name?: string }
+  | { kind: 'character'; character: WhoCharacter; choice?: WhoChoice };
 
 export type WhoChoice = 'new' | 'existing' | 'narrator';
 
@@ -45,11 +47,7 @@ function CharacterRow({ character, ticked, onTick }: { character: WhoCharacter; 
         <span className="min-w-0 break-words">
           <SpeakerTag label={character.name} speakerId={character.id} />
         </span>
-        {character.key !== undefined ? (
-          <StatusBadge tone="neutral" label={character.key ? `on ${keyName(character.key)}` : 'on a track'} />
-        ) : character.lines > 0 ? (
-          <StatusBadge tone="neutral" label={lineCount(character.lines)} />
-        ) : null}
+        <CharacterBadge character={character} />
       </span>
     </Checkbox>
   );
@@ -96,11 +94,13 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const others = voices.filter((voice) => !voice.narrator);
   const asked = ask.kind === 'character' ? ask.character : undefined;
   const [choice, setChoice] = useState<WhoChoice>(ask.kind === 'character' ? (ask.choice ?? 'new') : 'new');
-  const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(asked ? [asked.id] : cast.noTrack.map((character) => character.id)));
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(
+    () => new Set(asked ? [asked.id] : ask.kind === 'key' && ask.name?.trim() ? [] : cast.noTrack.map((character) => character.id)),
+  );
   const everyone = useMemo(() => [...cast.inChapter, ...cast.elsewhere, ...(asked ? [asked] : [])], [cast, asked]);
   const tickedCharacters = everyone.filter((character, at) => ticked.has(character.id) && everyone.findIndex((each) => each.id === character.id) === at);
   // The name follows the ticks until the narrator types one.
-  const [typed, setTyped] = useState<string | null>(null);
+  const [typed, setTyped] = useState<string | null>(ask.kind === 'key' && ask.name?.trim() ? ask.name.trim() : null);
   const name = typed ?? defaultTrackName(tickedCharacters, voices);
   const [existing, setExisting] = useState(others[0]?.guid ?? '');
   const [busy, setBusy] = useState(false);
@@ -115,7 +115,11 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
   const newKey = keyForNewTrack(voices, name);
   const target = others.find((voice) => voice.guid === existing);
   const blocked = choice === 'new' ? Boolean(nameProblem) : choice === 'existing' ? !target : !narrator;
-  const title = asked ? `Who records ${asked.name}?` : `Who is in ${keyName(String(ask.kind === 'key' ? ask.key : ''))}?`;
+  const title = asked
+    ? `Who records ${asked.name}?`
+    : ask.kind === 'key' && ask.key > 9
+      ? 'Who is in the new track?'
+      : `Who is in ${keyName(String(ask.kind === 'key' ? ask.key : ''))}?`;
   const action = choice === 'new' ? 'Add track' : choice === 'existing' ? 'Use this track' : 'Arm';
 
   const options: RadioOption<WhoChoice>[] = [

@@ -37,15 +37,14 @@ const category = (name: RegExp) => fireEvent.click(within(categories()).getByRol
 type Source = { name: string; hold: () => Promise<void>; kept: () => HTMLElement; expected: string };
 const sources: Source[] = [
   {
-    name: 'a page-setting edit under Set on a page',
+    name: 'a recording check rules edit under Speech to text',
     hold: async () => {
-      category(/^Set on a page/);
+      category(/^Speech to text/);
       const entry = await waitFor(() => {
-        const found = document.querySelector<HTMLElement>('[data-page-setting="ps.coverage"]');
+        const found = document.querySelector<HTMLElement>('[data-row="stt.rules"]');
         if (!found) throw new Error('not drawn');
         return found;
       });
-      fireEvent.click(within(entry).getByRole('button', { name: /Change it here for now/ }));
       const panel = await within(entry).findByRole('region', { name: 'Recording check' });
       fireEvent.change(await within(panel).findByRole('textbox', { name: 'Longest run of missing words allowed' }), { target: { value: '7' } });
     },

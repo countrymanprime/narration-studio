@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -9,6 +9,7 @@ import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
 import { PortOverrides } from '../../ports/usePort';
 import type { NarrationApi, Scope, ScopedSettingField } from '../../types';
+import { UnsavedDraftsProvider, useUnsavedDrafts } from '../../studio/drafts/unsavedDrafts';
 import { BackupsSection } from './BackupsSection';
 
 afterEach(cleanup);
@@ -48,13 +49,22 @@ function renderSection({
   const view = render(
     <ApiProvider api={api}>
       <PortOverrides clients={{ daw: client }}>
-        <main tabIndex={-1}>
-          <BackupsSection />
-        </main>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          <main tabIndex={-1}>
+            <BackupsSection />
+          </main>
+        </UnsavedDraftsProvider>
       </PortOverrides>
     </ApiProvider>,
   );
   return { ...view, saveSettings };
+}
+
+let registry: ReturnType<typeof useUnsavedDrafts>;
+function RegistryProbe() {
+  registry = useUnsavedDrafts();
+  return null;
 }
 
 const windowBox = () => screen.findByRole('textbox', { name: 'Audio kept either side of a punch or an edit (s)' });
@@ -181,5 +191,31 @@ describe('BackupsSection', () => {
       </ApiProvider>,
     );
     expect(await windowBox()).toBeTruthy();
+  });
+
+  // #3877 N6: a value outside its range stays in its box without being saved, and leaving the category or the page dropped it without a word.
+  it('a value outside its range is held: leaving asks, and Discard puts the box back', async () => {
+    renderSection();
+    const box = await retentionBox();
+    expect(registry.heldNow()).toEqual([]);
+    fireEvent.change(box, { target: { value: '400' } });
+    expect(registry.heldNow().map((held) => held.label)).toEqual(['a backups value outside its range']);
+    act(() => registry.discard());
+    await waitFor(() => expect((box as HTMLInputElement).value).toBe(''));
+    expect(registry.heldNow()).toEqual([]);
+  });
+
+  // #3877 B1 of the second qa pass: a save re-read the rows and cleared every box's value, so a refused value held in the other box vanished.
+  it('a held out-of-range value survives a save of the other box', async () => {
+    const { saveSettings } = renderSection();
+    const window = await windowBox();
+    fireEvent.change(window, { target: { value: '5' } });
+    const days = await retentionBox();
+    fireEvent.change(days, { target: { value: '30' } });
+    fireEvent.blur(days);
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'backups.retention_days': '30' }));
+    await act(async () => undefined);
+    expect((window as HTMLInputElement).value).toBe('5');
+    expect(registry.heldNow().map((held) => held.label)).toEqual(['a backups value outside its range']);
   });
 });
