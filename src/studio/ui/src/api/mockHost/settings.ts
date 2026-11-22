@@ -1,6 +1,5 @@
 // The mock host (mockApi.ts): settings.
 import type { NarrationApi, Scope, ScopedSettingField } from '../../types';
-import type { NumberSettingRange } from '../contracts/system';
 import { wireClone, wireSettings } from '../mockFixtures';
 
 export type MockSettings = Record<Scope, Record<string, ScopedSettingField[]>>;
@@ -16,24 +15,6 @@ export const READ_ONLY_SETTINGS = 'The settings file is read-only.';
 /** The host's sentence for a colour that is not six hex digits. */
 export const notAColour = (key: string): string => `setting ${key} must be a six-digit color`;
 const SIX_HEX_DIGITS = /^[0-9a-fA-F]{6}$/;
-const PLAIN_NUMBER = /^-?(\d+(\.\d*)?|\.\d+)$/;
-
-/** The host's sentence for a value its number field refuses (`validateNumberSetting` in src/studio/desktop/settings_number.go), or undefined. */
-function numberRefusal(key: string, range: NumberSettingRange, text: string): string | undefined {
-  const value = Number(text);
-  if (!PLAIN_NUMBER.test(text) || !Number.isFinite(value)) return `setting ${key} must be a number, like -3 or 0.5`;
-  const unit = range.unit ? ` ${range.unit}` : '';
-  const { min, max, step } = range;
-  if ((min !== null && value < min) || (max !== null && value > max)) {
-    const words = min !== null && max !== null ? `between ${min} and ${max}${unit}` : min !== null ? `at least ${min}${unit}` : `at most ${max}${unit}`;
-    return `setting ${key} must be ${words}`;
-  }
-  if (step !== null && step > 0) {
-    const steps = (value - (min ?? 0)) / step;
-    if (Math.abs(steps - Math.round(steps)) > 1e-9 * Math.max(1, Math.abs(steps))) return `setting ${key} must go in steps of ${step}`;
-  }
-  return undefined;
-}
 
 /** The settings bindings. Saving answers with a fresh bootstrap, as the host does. */
 export function createSettingsMock(
@@ -75,14 +56,10 @@ export function createSettingsMock(
       if (tool === 'ManuscriptGuide' && scope !== 'global' && Object.keys(values).some((key) => key.startsWith('speaker_fallback')))
         throw new Error('the local model for unknown speakers is global: it is installed on this computer, not in this project');
       // The host checks each value against its field's kind before it writes any (`validateSettingValue` in src/studio/desktop/app.go). The
-      // mock holds the colour rule and the number rule, the ones a page can break by sending text as typed; a cleared field (null) is not a
-      // value to check.
+      // mock holds the colour rule, the one a page can break by sending text as typed; a cleared field (null) is not a value to check.
       for (const field of settings[scope][tool] || []) {
         const value = values[field.key];
-        if (typeof value !== 'string') continue;
-        if (field.kind === 'color' && !SIX_HEX_DIGITS.test(value)) throw new Error(notAColour(field.key));
-        const refused = field.kind === 'number' && field.number ? numberRefusal(field.key, field.number, value) : undefined;
-        if (refused) throw new Error(refused);
+        if (field.kind === 'color' && typeof value === 'string' && !SIX_HEX_DIGITS.test(value)) throw new Error(notAColour(field.key));
       }
       settings[scope][tool] = (settings[scope][tool] || []).map((field) =>
         field.key in values

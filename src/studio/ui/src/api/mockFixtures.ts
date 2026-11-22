@@ -651,7 +651,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       value: '',
       isSet: false,
       effectiveValue: '0',
-      effectiveSource: 'repo default',
+      effectiveSource: 'repo_default',
       number: { min: 0, max: 10, step: 1, unit: 's' },
     },
   ],

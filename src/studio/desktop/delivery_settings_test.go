@@ -85,10 +85,20 @@ func TestEveryNumberFieldHasARangeAndEveryRangeAField(t *testing.T) {
 // A number field's shipped default is a value its own range accepts, so the page never opens on a value a save of the
 // same text would refuse. A field with no default reads back "" (unset) and is skipped.
 //
-// defaultsOffTheirStep lists the defaults that fail today: the two Cleanup thresholds count their 0.5 dB step from a
-// minimum of 0.1, so 12 and 30 are off it. Shrink-only: fix the range and delete the entry, never add one.
+// defaultsOffTheirStep lists the defaults that fail today (#4010): the two Cleanup thresholds count their 0.5 dB step
+// from a minimum of 0.1, so 12 and 30 are off it. Shrink-only: fix the range and delete the entry, never add one; the
+// length check makes a new entry a reviewed change to this test.
 func TestEveryNumberFieldsDefaultPassesItsOwnRange(t *testing.T) {
 	defaultsOffTheirStep := map[string]bool{"Cleanup.breath_below_speech_db": true, "Cleanup.click_above_silence_db": true}
+	if len(defaultsOffTheirStep) != 2 {
+		t.Fatalf("defaultsOffTheirStep has %d entries, want 2: it only shrinks (#4010)", len(defaultsOffTheirStep))
+	}
+	for name := range defaultsOffTheirStep {
+		tool, key, _ := strings.Cut(name, ".")
+		if schema, ok := schemaFor(tool, key); !ok || schema.kind != "number" {
+			t.Errorf("defaultsOffTheirStep names %s, which is not a number field: delete the entry", name)
+		}
+	}
 	host := newTestHostForDeliverySettings(t, t.TempDir())
 	for tool, schemas := range fieldSchemas {
 		for _, schema := range schemas {

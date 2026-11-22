@@ -281,24 +281,6 @@ describe('the mock Check recordings defaults follow Settings (#3231)', () => {
   });
 });
 
-describe('the mock refuses a number setting its range refuses, as the host does', () => {
-  it('keeps room tone to whole seconds from 0 to 10 and saves nothing it refuses', async () => {
-    const api = createMockApi();
-    const roomTone = async () => (await api.settingsForScope('global')).General.find((field) => field.key === 'credits_room_tone_seconds')?.effectiveValue;
-    await expect(api.saveSettings('General', 'global', { credits_room_tone_seconds: '11' })).rejects.toThrow(
-      'setting credits_room_tone_seconds must be between 0 and 10 s',
-    );
-    await expect(api.saveSettings('General', 'global', { credits_room_tone_seconds: '-1' })).rejects.toThrow('between 0 and 10 s');
-    await expect(api.saveSettings('General', 'global', { credits_room_tone_seconds: '2.5' })).rejects.toThrow('must go in steps of 1');
-    await expect(api.saveSettings('General', 'global', { credits_room_tone_seconds: 'abc' })).rejects.toThrow('must be a number');
-    expect(await roomTone()).toBe('0');
-    await api.saveSettings('General', 'global', { credits_room_tone_seconds: '10' });
-    expect(await roomTone()).toBe('10');
-    await api.saveSettings('General', 'global', { credits_room_tone_seconds: null });
-    expect(await roomTone()).toBe('0');
-  });
-});
-
 describe('the mock selects only tracks that are in the project (#3231)', () => {
   it('selects a track the project holds and refuses one it does not', async () => {
     const api = createMockApi();

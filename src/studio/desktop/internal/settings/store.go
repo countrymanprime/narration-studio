@@ -92,9 +92,7 @@ func DefinitionSources() []string {
 // chapter, in percent, effects may cover before the Effects tab warns (effectsMath.ts's FX_CAP_PCT is its default). Booth.words_per_page
 // is how many words the Booth counts to a page. Editing.replace_target_lufs is the loudness Replace audio sets another narrator's
 // stretch to. ManuscriptGuide.speaker_fallback_max_quotes is how many unknown lines one run may put to the local model.
-// General.credits_room_tone_seconds is the room tone, in seconds, the credits estimate adds to each credits file.
 var wholeNumbers = map[string]map[string][2]int{
-	"General":         {"credits_room_tone_seconds": {0, 10}},
 	"ManuscriptGuide": {"speaker_fallback_max_quotes": {1, 200}},
 	"Booth":           {"words_per_page": {50, 1000}},
 	"Editing":         {"fx_cap_pct": {1, 100}, "replace_target_lufs": {-40, -10}},
