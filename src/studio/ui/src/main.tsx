@@ -57,6 +57,8 @@ const commandInputSource = appExtension().keyboardOnly ? createKeyboardSource() 
 declare global {
   interface Window {
     __NARRATION_MOCK_OVERRIDES__?: Parameters<typeof createMockApi>[0];
+    /** The mock api under the overrides, so an override can answer as the mock does until a test makes it fail (tests/visual/error-shift.spec.ts). */
+    __NARRATION_MOCK_BASE__?: ReturnType<typeof createMockApi>;
     __NARRATION_MOCK_DAW__?: DawMockControl;
     /** The mock microphone's side: unplug it mid-session (teleprompterMock.ts). */
     /** The mock's side of the report dialog's open-folder button: how many times the host was asked (the real host opens the file manager and shows nothing). */
