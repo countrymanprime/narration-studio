@@ -6,7 +6,7 @@ import { ApiProvider } from '../api/ApiContext';
 import { announceChapterListWritten } from '../api/chapterListWrites';
 import { createMockApi } from '../api/mockApi';
 import { StudioProvider, useStoreHandle } from './StudioProvider';
-import { useChapters } from './useChapters';
+import { useChapters, useReadChapters } from './useChapters';
 
 afterEach(cleanup);
 
@@ -103,5 +103,52 @@ describe('useChapters after a project switch (#3658)', () => {
     act(() => result.current.store.reset());
     await waitFor(() => expect(result.current.list.chapters).toBeDefined());
     expect(calls).toBe(3);
+  });
+});
+
+describe('useReadChapters (#3658, #3998)', () => {
+  it('shares the one list with every other reader: a page that works on what it read and the live hook make one host read', async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'manuscriptChapters');
+    const { result } = renderHook(() => ({ live: useChapters(), snapshot: useReadChapters() }), { wrapper: withProvider(api) });
+    const first = await result.current.snapshot();
+    await waitFor(() => expect(result.current.live.chapters).toBeDefined());
+    expect(first.map((c) => c.id)).toEqual(result.current.live.chapters!.map((c) => c.id));
+    expect(read).toHaveBeenCalledTimes(1);
+    await result.current.snapshot();
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it('read(true) reads the host now, and the answer is the list every reader then holds', async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'manuscriptChapters');
+    const { result } = renderHook(() => ({ live: useChapters(), snapshot: useReadChapters() }), { wrapper: withProvider(api) });
+    await result.current.snapshot();
+    await act(async () => void (await result.current.snapshot(true)));
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it('a read that fails is a failure of the read, and a later read answers', async () => {
+    const api = createMockApi();
+    let fail = true;
+    const original = api.manuscriptChapters.bind(api);
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(async () => {
+      if (fail) throw new Error('offline');
+      return original();
+    });
+    const { result } = renderHook(() => useReadChapters(), { wrapper: withProvider(api) });
+    await expect(result.current()).rejects.toThrow('offline');
+    fail = false;
+    expect((await result.current(true)).length).toBeGreaterThan(0);
+  });
+
+  it('with no store it reads the port, as every reader did before the slot', async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'manuscriptChapters');
+    const { result } = renderHook(() => useReadChapters(), {
+      wrapper: ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>,
+    });
+    expect((await result.current()).length).toBeGreaterThan(0);
+    expect(read).toHaveBeenCalledTimes(1);
   });
 });
