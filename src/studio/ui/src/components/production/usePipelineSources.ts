@@ -3,6 +3,7 @@ import type { Finding } from '../../api/contracts/findings';
 import type { ManuscriptChapter, MeasureFileResult, MeasureJob } from '../../types';
 import { usePort } from '../../ports/usePort';
 import { useOptionalStoreHandle } from '../../studio/StudioProvider';
+import { readChapterSnapshot } from '../../studio/readChapterSnapshot';
 import { chapterIdOfPrepId } from '../credits/creditsEntries';
 import { fileOf } from '../master/chapterFile';
 import { fileVerdict } from '../master/fileVerdict';
@@ -97,12 +98,8 @@ export function usePipelineSources(
       // A held list is served on a first ask and in a new project (the store was emptied: it reads); a new refresh key in the same project reads it now.
       const previous = asked.current;
       asked.current = { generation, key: refreshKey };
-      const readList = async () => {
-        if (!store) return manuscript.manuscriptChapters();
-        if (previous && previous.generation === generation && previous.key !== refreshKey) await store.load('chapters');
-        else await store.ensure('chapters');
-        return store.getState().slots.chapters;
-      };
+      const fresh = previous !== undefined && previous.generation === generation && previous.key !== refreshKey;
+      const readList = () => (store ? readChapterSnapshot(store, fresh) : manuscript.manuscriptChapters());
       const tag = `${generation}:${refreshKey}`;
       void Promise.all([readList().catch(() => undefined), measure.measureState().catch(() => undefined)]).then(
         ([chapters, job]) => live && setPair({ tag, chapters, job }),

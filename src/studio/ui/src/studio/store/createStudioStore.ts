@@ -52,9 +52,11 @@ export type StudioStore<R extends SlotRegistry> = {
   /**
    * Makes sure one slot holds a value: resolves at once when it is loaded (what makes it stale refreshes it in the background), joins a load of it
    * already in flight, and otherwise reads it. A page that needs the list calls this on mount instead of `load`, so mounting does not read what is held.
-   * Rejects when the read it started or joined fails.
+   * Rejects when the read it started or joined fails. With `settled`, a value that is held while a read of it is in flight (an event made it stale) is not
+   * served: the call waits for that read, and a failure of it leaves the held value, so a page that works on what it read does not start from a list the
+   * store already knows is out of date.
    */
-  ensure(slot: keyof R & string): Promise<void>;
+  ensure(slot: keyof R & string, options?: { settled?: boolean }): Promise<void>;
   /** The keyed cache registered under `name` (the options' `keyed`); throws for a name nothing registered. */
   keyed(name: string): KeyedCache;
   /** Wires the host events and window focus to the slots; returns the stop function. */
@@ -171,8 +173,11 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
 
   // A load an `ensure` started or joined: the one read in flight for the slot, so callers that mount together share it.
   const ensuring = new Map<string, { promise: Promise<void>; at: number }>();
-  function ensure(name: keyof R & string): Promise<void> {
-    if (Object.hasOwn(state.slots, name) && state.slots[name] !== undefined) return Promise.resolve();
+  function ensure(name: keyof R & string, options?: { settled?: boolean }): Promise<void> {
+    if (Object.hasOwn(state.slots, name) && state.slots[name] !== undefined) {
+      const flight = options?.settled ? flights.get(name) : undefined;
+      return flight && young(flight.at) ? flight.promise.then(() => undefined) : Promise.resolve();
+    }
     const running = ensuring.get(name);
     if (running && young(running.at)) return running.promise;
     // A read already in flight (a load, an event, a refresh) is joined, not repeated.

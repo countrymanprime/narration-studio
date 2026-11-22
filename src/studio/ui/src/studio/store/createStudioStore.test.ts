@@ -196,6 +196,42 @@ describe('focus-refetches', () => {
   });
 });
 
+describe('ensure settled', () => {
+  it('waits for a refresh in flight when a value is held, serves the held value when that read fails, and serves at once without the option', async () => {
+    const gate = deferred<unknown>();
+    let calls = 0;
+    const { store } = make({ a: { schema: isCount, load: () => (++calls === 1 ? Promise.resolve({ count: 1 }) : gate.promise) } });
+    await store.load('a');
+    const refresh = store.load('a');
+    let served = false;
+    void store.ensure('a').then(() => (served = true));
+    let settled = false;
+    void store.ensure('a', { settled: true }).then(() => (settled = true));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(served).toBe(true);
+    expect(settled).toBe(false);
+    gate.resolve({ count: 2 });
+    await refresh;
+    await Promise.resolve();
+    expect(settled).toBe(true);
+    expect(store.getState().slots.a).toEqual({ count: 2 });
+  });
+
+  it('keeps the held value when the refresh it waited for fails', async () => {
+    const gate = deferred<unknown>();
+    let calls = 0;
+    const { store } = make({ a: { schema: isCount, load: () => (++calls === 1 ? Promise.resolve({ count: 1 }) : gate.promise) } });
+    await store.load('a');
+    const refresh = store.load('a').catch(() => undefined);
+    const waiting = store.ensure('a', { settled: true });
+    gate.reject(new Error('offline'));
+    await refresh;
+    await expect(waiting).resolves.toBeUndefined();
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+});
+
 describe('store-is-throwaway', () => {
   it('counts each reset in generation(), so a reader can tell the project it read for', () => {
     const { store } = make({ a: { schema: isCount, load: () => Promise.resolve({ count: 1 }) } });
