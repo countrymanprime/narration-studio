@@ -54,7 +54,7 @@ export function useChapters(
   }
   const readNow = (target: NonNullable<typeof store>) => {
     const mine = epoch.current;
-    if (pending.current === 0) askedAt.current = { held: target.getState().slots.chapters, error: target.getState().errors.chapters };
+    askedAt.current = { held: target.getState().slots.chapters, error: target.getState().errors.chapters };
     pending.current += 1;
     setRefreshing(true);
     void target

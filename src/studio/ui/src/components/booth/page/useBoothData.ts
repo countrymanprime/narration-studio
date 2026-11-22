@@ -162,20 +162,18 @@ export function useBoothData(target: BoothChapterTarget | null) {
 
   const chapterId = target ? target.chapter : fallback;
   // While a take runs (the page says so with `hold`) the chapter on screen stays when a list change takes it out: a session is never unmounted from under a
-  // take. Once the take ends, or the project changes, the list decides again.
-  const pin = useRef<{ generation: number; chapter: ManuscriptChapter }>(undefined);
-  const holding = useRef(false);
-  const onScreen = useRef<{ generation: number; chapter: ManuscriptChapter }>(undefined);
+  // take, not even by a project switch. Once the take ends the list decides again: `hold(false)` is a state change, so the page is drawn again at once.
+  const [holding, setHolding] = useState(false);
+  const onScreen = useRef<ManuscriptChapter>(undefined);
+  const pin = useRef<ManuscriptChapter>(undefined);
   const hold = useCallback((on: boolean) => {
-    holding.current = on;
     pin.current = on ? onScreen.current : undefined;
+    setHolding(on);
   }, []);
   const found = chapters?.find((item) => item.id === chapterId);
-  if (found) onScreen.current = { generation, chapter: found };
-  if (found && holding.current) pin.current = onScreen.current;
-  const chapter =
-    found ??
-    (holding.current && pin.current && pin.current.generation === generation && pin.current.chapter.id === chapterId ? pin.current.chapter : undefined);
+  if (found) onScreen.current = found;
+  if (found && holding) pin.current = found;
+  const chapter = found ?? (holding && pin.current?.id === chapterId ? pin.current : undefined);
   // Nothing is said about a chapter that is not there until the page has chosen the one it opens on (the session state has answered).
   const picked = Boolean(target) || chosen?.generation === generation;
 

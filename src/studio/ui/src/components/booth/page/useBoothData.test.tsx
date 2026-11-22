@@ -321,4 +321,55 @@ describe('useBoothData follows the store', () => {
     await act(() => result.current.store.load('chapters').catch(() => undefined));
     await waitFor(() => expect(result.current.data.error).not.toBe(''));
   });
+  it('says the chapter is gone as soon as the take ends, with no list read after it', async () => {
+    let list = [chapter('c1', 0), chapter('c2', 1)];
+    const api = { ...createMockApi(), manuscriptChapters: async () => list, teleprompterState: async () => idle } as NarrationApi;
+    const { result } = renderHook(() => ({ data: useBoothData({ chapter: 'c1' }), store: useStoreHandle() }), { wrapper: provide(api) });
+    await waitFor(() => expect(result.current.data.source).toBeDefined());
+    act(() => result.current.data.hold(true));
+    list = [chapter('c2', 0)];
+    await act(() => result.current.store.load('chapters'));
+    expect(result.current.data.source).toEqual({ kind: 'chapter', chapter: expect.objectContaining({ id: 'c1' }) });
+    act(() => result.current.data.hold(false));
+    expect(result.current.data.source).toBeUndefined();
+    expect(result.current.data.unavailable).toEqual({ kind: 'chapter' });
+  });
+
+  it('keeps the chapter of a running take through a project switch, and lets it go when the take ends', async () => {
+    let project: 'a' | 'b' = 'a';
+    const lists = { a: [chapter('c1', 0)], b: [chapter('b1', 0)] };
+    const api = { ...createMockApi(), manuscriptChapters: async () => lists[project], teleprompterState: async () => idle } as NarrationApi;
+    const { result } = renderHook(() => ({ data: useBoothData({ chapter: 'c1' }), store: useStoreHandle() }), { wrapper: provide(api) });
+    await waitFor(() => expect(result.current.data.source).toBeDefined());
+    act(() => result.current.data.hold(true));
+    project = 'b';
+    act(() => result.current.store.reset());
+    await waitFor(() => expect(result.current.data.chapters?.map((c) => c.id)).toEqual(['b1']));
+    expect(result.current.data.source).toEqual({ kind: 'chapter', chapter: expect.objectContaining({ id: 'c1' }) });
+    act(() => result.current.data.hold(false));
+    expect(result.current.data.source).toBeUndefined();
+  });
+
+  it('shows the skeleton for a second Retry while the first read is still out', async () => {
+    let mode: 'fail' | 'hang' = 'fail';
+    const api = {
+      ...createMockApi(),
+      manuscriptChapters: async () => {
+        if (mode === 'hang') return new Promise<never>(() => {});
+        throw new Error(`offline ${Math.random()}`);
+      },
+      teleprompterState: async () => idle,
+    } as NarrationApi;
+    const { result } = renderHook(() => ({ data: useBoothData(null), store: useStoreHandle() }), { wrapper: provide(api) });
+    await waitFor(() => expect(result.current.data.error).not.toBe(''));
+    mode = 'hang';
+    act(() => result.current.data.retry());
+    await waitFor(() => expect(result.current.data.error).toBe(''));
+    mode = 'fail';
+    await act(() => result.current.store.load('chapters').catch(() => undefined));
+    await waitFor(() => expect(result.current.data.error).not.toBe(''));
+    mode = 'hang';
+    act(() => result.current.data.retry());
+    await waitFor(() => expect(result.current.data.error).toBe(''));
+  });
 });
