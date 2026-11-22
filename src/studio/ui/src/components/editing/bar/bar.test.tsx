@@ -523,6 +523,18 @@ describe('the audio element', () => {
     expect(state().playT).not.toBeNull();
   });
 
+  it('ignores an error from a file that was still loading when the narrator stopped', async () => {
+    mount();
+    dispatch({ type: 'place', key: 'p-1:1' });
+    await act(async () => playback.toggle());
+    act(() => playback.toggle());
+    notify.mockClear();
+    act(() => {
+      audio().dispatchEvent(new Event('error'));
+    });
+    expect(notify).not.toHaveBeenCalled();
+  });
+
   it('stops when a voice sample starts, and leaves the cursor on the word it reached', () => {
     mount();
     dispatch({ type: 'place', key: 'p-1:1' });

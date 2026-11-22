@@ -512,14 +512,15 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(notices.join(' ')).toMatch(/does not have this book's project open/);
     expect(notices.join(' ')).toContain(FELL_BACK);
   });
-  it('asks the DAW to play before it has answered what it can do: no capability read and no check stand between the click and the play (#4043)', async () => {
+  it('plays the app at once before the DAW has answered what it can do, and says the DAW has not answered: no capability read, no check (#4043)', async () => {
     const api = createMockApi({}, { daw: {} });
     daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
     const reads = vi.spyOn(api, 'dawCapabilities');
+    // As in the app: with no capabilities there is no word table to place the words with.
     render(
       <ApiProvider api={api}>
         <EditingPageProvider doc={doc}>
-          <Harness caps={null} />
+          <Harness caps={null} clock={null} />
         </EditingPageProvider>
       </ApiProvider>,
     );
@@ -528,9 +529,9 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
     expect(reads.mock.calls.length).toBe(before);
-    expect(calls('play')).toHaveLength(1);
-    expect(audio.play).not.toHaveBeenCalled();
-    expect(notices).toEqual([]);
+    expect(audio.play).toHaveBeenCalled();
+    expect(notices.join(' ')).toMatch(/has not answered yet/);
+    expect(notices.join(' ')).not.toMatch(/checking/i);
   });
   it('plays at once with the link and the word time held, whatever the watch lease says: no check stands between the click and the play (#4043)', async () => {
     // The lease is never answered, as a REAPER busy with another command leaves it.
@@ -570,6 +571,7 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     act(() => retries[0]!());
     await wait(10);
     expect(calls('play').length).toBe(asked + 1);
+    expect(calls('play').at(-1)).toMatchObject({ seconds: at(t0('p-2:1')) });
   });
   it('a Retry offered for an older play does nothing once a newer one was asked', async () => {
     await ready();
@@ -620,7 +622,7 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(state().playing).toBe(true);
     await wait(12_000);
     expect(state().playing).toBe(false);
-    expect(notices.join(' ')).toMatch(/stopped answering/);
+    expect(notices.join(' ')).toMatch(/could not follow the DAW/);
     expect(calls('stop').length).toBeGreaterThan(0);
   });
   it('a play the page already reported lost never falls back to the app when its late refusal arrives, and the notice offers Retry', async () => {
@@ -644,13 +646,69 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     await wait(10);
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(15_000);
-    expect(notices.join(' ')).toMatch(/stopped answering/);
+    expect(notices.join(' ')).toMatch(/could not follow the DAW/);
     expect(retries.length).toBeGreaterThan(0);
     // The DAW's refusal comes after the page gave the play up: the app does not take it over.
     await act(async () => answerPlay({ ok: false, message: 'late refusal' }));
     await wait(10);
     expect(audio.play).not.toHaveBeenCalled();
     expect(state().playing).toBe(false);
+  });
+  it('a stretch played before the watch lease was answered ends where the stretch does: the page does not say the DAW stopped answering', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) =>
+      action === 'watch' ? new Promise(() => {}) : (real as (...a: unknown[]) => unknown)(action, ...rest)) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:1') + 0.4));
+    await wait(10);
+    expect(calls('playRange')).toHaveLength(1);
+    expect(state().playing).toBe(true);
+    await wait(12_000);
+    expect(state().playing).toBe(false);
+    expect(notices).toEqual([]);
+  });
+  it('the default notice offers Retry on the chapter-wide topic, and Retry plays the same second', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    function Plain() {
+      page = useEditingPage();
+      playback = useScriptPlayback({
+        playlist: PLAYLIST,
+        mediaUrl: (f) => f,
+        sync: { clock: CLOCK, clockPending: false, caps: DAW_SETUPS.reaper, chapterId: 'chapter-1' },
+      });
+      return <ScriptDoc />;
+    }
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Plain />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => daw.startInDaw());
+    await wait(10);
+    daw.refuseNextSync('REAPER is recording. Stop recording first.');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    const call = toast.mock.calls.find(([, options]) => options?.action?.label === 'Retry');
+    expect(call?.[1]).toMatchObject({ tone: 'error', topic: 'editing-play-retry' });
+    act(() => daw.endTakeInDaw());
+    await wait(10);
+    const asked = calls('play').length;
+    act(() => call![1]!.action!.onAction());
+    await wait(10);
+    expect(calls('play').length).toBe(asked + 1);
   });
   it('a newer play withdraws the Retry offered for an older one', async () => {
     await ready();

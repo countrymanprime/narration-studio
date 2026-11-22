@@ -20,6 +20,10 @@ const MAX_EXTRAPOLATE_SECONDS = 0.6;
 const WRITE_DEBOUNCE_MS = 80;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
+/** A play asked before the watch lease was answered that no position ever followed: the page could not follow it, so it stopped it. */
+const UNFOLLOWED = 'The app could not follow the DAW, so the play was stopped.';
+/** Seconds past a stretch's length before a play with no position stream is taken to have ended by itself. */
+const UNWATCHED_GRACE_S = 1.5;
 /** A DAW that stopped within this many seconds before the end of the stretch it was asked to play stopped itself there: its play head is read about four
  * times a second, so the last reading can be a quarter second short of the end. */
 const END_SLACK_SECONDS = 0.4;
@@ -101,7 +105,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const lastHeard = useRef(0);
   /** The stretch the DAW was asked to play and stop itself at: the document second the page's play ends at and the project second the DAW's does, and the
    * last play head heard while it played. */
-  const range = useRef<{ docEnd: number; projectEnd: number; head: number } | null>(null);
+  const range = useRef<{ docEnd: number; projectEnd: number; head: number; startedAt: number; length: number } | null>(null);
   const epoch = useRef(0);
 
   // The lease: taken now and renewed while the window is visible. A refusal (another project open, a recording, the capability off) is not ready.
@@ -275,11 +279,21 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     const timer = setInterval(() => {
       if (!owns.current) return;
       const leased = live.current.lease.state === 'ready';
+      const r = range.current;
+      // A stretch played with no position stream ends by itself in the DAW: the page's play ends where the stretch does, it is not lost.
+      if (!leased && r && Date.now() - r.startedAt > (r.length + UNWATCHED_GRACE_S) * 1000) {
+        owns.current = false;
+        dawPlaying.current = false;
+        range.current = null;
+        live.current.onHead(r.docEnd, false);
+        return;
+      }
       if (Date.now() - lastHeard.current <= (leased ? SILENT_MS : UNWATCHED_MS)) return;
+      if (!leased && r) return;
       owns.current = false;
       dawPlaying.current = false;
       epoch.current += 1;
-      live.current.onLost(LOST);
+      live.current.onLost(leased ? LOST : UNFOLLOWED);
       if (!leased) stopDaw();
     }, 1000);
     return () => clearInterval(timer);
@@ -306,7 +320,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       // A stretch that ends where nothing is known to play (or before it starts) is played open, and the page stops it as it always did.
       const projectEnd = endDocT === undefined ? null : (l.clock?.projectEndAt(endDocT) ?? null);
       const stretch = endDocT !== undefined && projectEnd !== null && projectEnd > project ? { docEnd: endDocT, projectEnd } : null;
-      range.current = stretch ? { ...stretch, head: project } : null;
+      range.current = stretch ? { ...stretch, head: project, startedAt: Date.now(), length: stretch.projectEnd - project } : null;
       const mineEpoch = ++epoch.current;
       owns.current = true;
       lastHeard.current = Date.now();
