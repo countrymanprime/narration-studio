@@ -2,7 +2,7 @@
 
 If git, the GitHub tools or a session launch cannot reach this repository (a 404, `repository not found`, `ref_not_found`, a call refused as out of scope), the repository was probably renamed: follow `docs/operations/repository-rename.md`.
 
-**Owner rule, always in force (#3962):** do not build a new thing when one already does the job, unless the new one replaces the old one with a better one. Reuse is the default, a small or zero gain never skips a consolidation, and the UI comes from the design system: [`.claude/rules/product-rules.md`](.claude/rules/product-rules.md) holds the rule and the two reasons to build new.
+**Owner rule, always in force (#3962):** do not build a new thing when one already does the job, unless the new one replaces the old one with a better one or reusing makes it way worse or means changing the old thing to a new purpose. Reuse is the default, a small or zero gain never skips a consolidation, and the UI comes from the design system: [`.claude/rules/product-rules.md`](.claude/rules/product-rules.md) holds the rule and the two reasons to build new.
 
 ## Feature workflow: plan → impact scan → implement → verify → clean up
 
@@ -23,7 +23,7 @@ Rules for one area live in `.claude/rules/` and load when Claude reads or edits 
 
 | Rule file | Holds |
 | - | - |
-| `.claude/rules/product-rules.md` | The owner's product rules for any app change: one thing per job (search before building; a new thing replaces the old or names why reuse is way worse), the design system as the only source of UI, mock-first behind ports, one theme, development data, outbound data, Settings keeps every setting |
+| `.claude/rules/product-rules.md` | The owner's product rules for any app change: one thing per job (search before building; a new thing replaces the old, or names why reuse is way worse or changes the old thing's purpose), the design system as the only source of UI, mock-first behind ports, one theme, development data, outbound data, Settings keeps every setting |
 | `.claude/rules/ui-spec-and-screenshots.md` | What a page builds to; a UI change updates its page's how-to guide and screenshots |
 | `.claude/rules/ui-visual-verification.md` | Visual bug fixes require screenshot verification; the atlas, axe, aria and visual-suite gate rules |
 | `.claude/rules/wire-contracts.md` | Wire contracts |
