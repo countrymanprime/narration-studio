@@ -15,7 +15,9 @@ import type { SystemApi } from '../../../../api/contracts/system';
 import { readableFailure } from '../../../../api/errorMessage';
 
 export type ScriptPorts = {
-  manuscript: Pick<ManuscriptApi, 'manuscriptChapters' | 'manuscriptParagraphs'>;
+  manuscript: Pick<ManuscriptApi, 'manuscriptParagraphs'>;
+  /** The chapter list, from the store every page shares (`useReadChapters`): the first read serves what it holds, a later one (a job ended, a Retry) reads it now. */
+  readChapters: (fresh: boolean) => Promise<ManuscriptChapter[]>;
   marks: Pick<MarksApi, 'marksList'>;
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepList'>;
   storyBible: Pick<StoryBibleApi, 'guideEntities' | 'guideTypes' | 'guideDialogueCuesIn'>;
@@ -101,7 +103,7 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
   };
 
   const readers: { [L in ScriptList]: () => Promise<NonNullable<ScriptDataState[L]> extends Loadable<infer T> ? T : never> } = {
-    chapters: () => ports.manuscript.manuscriptChapters(),
+    chapters: () => ports.readChapters(state.chapters !== undefined),
     marks: () => ports.marks.marksList(),
     prep: () => ports.scriptPrep.scriptPrepList(),
     entries: () => ports.storyBible.guideEntities(),

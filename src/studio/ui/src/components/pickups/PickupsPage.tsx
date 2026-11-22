@@ -28,6 +28,7 @@ import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
 import { useDawGoesToChapter } from '../../hooks/useDawGoesToChapter';
 import { useDawPullBack } from '../../hooks/useDawPullBack';
+import { useReadChapters } from '../../studio/useChapters';
 
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
 /** How often a list that could not be read is tried again. */
@@ -60,6 +61,7 @@ export function PickupsPage({
 }) {
   const pickupsApi = usePort('pickups');
   const manuscriptApi = usePort('manuscript');
+  const readChapters = useReadChapters();
   const findingsApi = usePort('findings');
   const journal = useJournal();
   const measurements = usePort('measurements');
@@ -103,7 +105,7 @@ export function PickupsPage({
   const load = useCallback(async () => {
     const mine = ++started.current;
     try {
-      const [all, answer] = await Promise.all([manuscriptApi.manuscriptChapters(), pickupsApi.pickupsList()]);
+      const [all, answer] = await Promise.all([readChapters(mine > 1), pickupsApi.pickupsList()]);
       if (!alive.current || mine < shown.current) return;
       shown.current = mine;
       showing.current = true;
@@ -120,7 +122,7 @@ export function PickupsPage({
       const message = reasonSentence(error);
       setRead((before) => (showing.current && before.kind === 'ready' ? { ...before, trouble: message } : { kind: 'failed', message }));
     }
-  }, [manuscriptApi, pickupsApi]);
+  }, [readChapters, pickupsApi]);
 
   useEffect(() => {
     if (!hasManuscript) return;

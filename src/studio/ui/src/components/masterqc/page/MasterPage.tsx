@@ -35,6 +35,7 @@ import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
 import { DawConnectionChip } from '../../connection/DawConnectionChip';
 import { DawToolsButton } from '../../engine/DawToolsButton';
+import { useReadChapters } from '../../../studio/useChapters';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -92,7 +93,7 @@ function sayOnce(prefix: string, reason: string): string {
 }
 
 function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, focusFile }: BodyProps & { projectFolder: string }) {
-  const manuscript = usePort('manuscript');
+  const readChapters = useReadChapters();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [chaptersProblem, setChaptersProblem] = useState<string>();
   const [chaptersRead, setChaptersRead] = useState(false);
@@ -144,14 +145,14 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
 
   useEffect(() => {
     let live = true;
-    manuscript.manuscriptChapters().then(
+    readChapters(chaptersAttempt > 0).then(
       (list) => live && (setChapters(list), setChaptersRead(true)),
       (error) => live && (setChaptersProblem(apiErrorMessage(error)), setChaptersRead(true)),
     );
     return () => {
       live = false;
     };
-  }, [manuscript, chaptersAttempt]);
+  }, [readChapters, chaptersAttempt]);
   const retryChapters = () => {
     setChaptersProblem(undefined);
     setChaptersRead(false);

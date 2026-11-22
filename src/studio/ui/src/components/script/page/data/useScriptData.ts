@@ -25,6 +25,7 @@ import { createScriptView, type ScriptView, type ScriptViewState } from './scrip
 import * as select from './script.selectors';
 import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
 import { plural, pluralWord, formatCount } from '../../../../plural';
+import { useReadChapters } from '../../../../studio/useChapters';
 
 /** What a read looks like to a component: its value (the last one while a reload runs), the host's sentence when it failed, and Retry. */
 export type ReadView<T> = {
@@ -42,6 +43,7 @@ const hosts = new WeakMap<object, ScriptHost>();
 
 function useScriptHost(): ScriptHost {
   const manuscript = usePort('manuscript');
+  const readChapters = useReadChapters();
   const marks = usePort('marks');
   const scriptPrep = usePort('scriptPrep');
   const storyBible = usePort('storyBible');
@@ -50,12 +52,12 @@ function useScriptHost(): ScriptHost {
     const found = hosts.get(marks);
     if (found) return found;
     const created = {
-      data: createScriptData({ manuscript, marks, scriptPrep, storyBible, system, pronunciation: { subscribe: subscribePronunciationChanged } }),
+      data: createScriptData({ manuscript, readChapters, marks, scriptPrep, storyBible, system, pronunciation: { subscribe: subscribePronunciationChanged } }),
       view: createScriptView(),
     };
     hosts.set(marks, created);
     return created;
-  }, [manuscript, marks, scriptPrep, storyBible, system]);
+  }, [manuscript, readChapters, marks, scriptPrep, storyBible, system]);
   useEffect(() => host.data.start(), [host]);
   return host;
 }

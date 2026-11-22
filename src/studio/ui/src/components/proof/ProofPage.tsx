@@ -60,6 +60,7 @@ import { hasRecording } from './checkcard/cardSelectors';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
 import { DawConnectionChip } from '../connection/DawConnectionChip';
 import { DawToolsButton } from '../engine/DawToolsButton';
+import { useReadChapters } from '../../studio/useChapters';
 
 /** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
 const pinColour = (type: FindingNoteType): string => {
@@ -126,6 +127,7 @@ export function ProofPage({
   const findingsApi = usePort('findings');
   const pickupsApi = usePort('pickups');
   const manuscriptApi = usePort('manuscript');
+  const readChapters = useReadChapters();
   const transcriptApi = usePort('transcript');
   const overlay = useOverlay();
   const journal = useJournal();
@@ -188,8 +190,7 @@ export function ProofPage({
   useEffect(() => {
     if (!hasManuscript) return;
     let live = true;
-    manuscriptApi
-      .manuscriptChapters()
+    readChapters(attempt > 0)
       .then((list) => {
         if (!live) return;
         read.current.chapters = true;
@@ -205,7 +206,7 @@ export function ProofPage({
     return () => {
       live = false;
     };
-  }, [manuscriptApi, hasManuscript, overlay, attempt]);
+  }, [readChapters, hasManuscript, overlay, attempt]);
 
   useEffect(() => {
     if (!hasManuscript) return;

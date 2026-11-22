@@ -23,6 +23,7 @@ import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingchec
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { RemovedFromRecordingList } from './RemovedFromRecordingList';
 import type { CreditsKind, CreditsRow } from '../credits/useCreditsRows';
+import { useReadChapters } from '../../studio/useChapters';
 
 /** The attribute on the element around the pipeline table; a right click (or the Menu key) on one of its body rows opens the row menu. */
 export const PIPELINE_AREA = 'data-pipeline';
@@ -120,14 +121,17 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
 
+  // The list is the store's: the first read serves what it holds, every later one (a refresh key, a kind changed) reads it now.
+  const readChapters = useReadChapters();
+  const chaptersRead = useRef(0);
   const loadChapters = useCallback(async () => {
     try {
-      setChapters(await api.manuscriptChapters());
+      setChapters(await readChapters(chaptersRead.current++ > 0));
     } catch (error) {
       setChapters([]);
       notify(describeApiError(error), 'error');
     }
-  }, [api, notify]);
+  }, [readChapters, notify]);
   // `afterWrite`: a link was just written and said so, so a failed read is "the change was made, but the list could not be read again", as every other surface says it (#3398).
   const loadTrackLinks = useCallback(
     async (afterWrite = false) => {

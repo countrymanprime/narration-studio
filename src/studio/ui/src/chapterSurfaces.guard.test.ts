@@ -32,6 +32,7 @@ const COVERED: Record<string, readonly string[]> = {
 
 /** Source file -> why the credits are left out of what it reads (a chapter's own text, or nothing to list). */
 const EXEMPT: Record<string, string> = {
+  'components/chapterTracks/useChapterNameOf.ts': 'names one chapter by its id; the credits are named like any chapter (useChapterNameOf.test)',
   'components/chapterTracks/useChapterLinkActions.ts':
     "reads the chapters only to name the chapter that lost a track; the credits are linked and named like any chapter, and a name the list lacks falls back to the host's kept title",
   'components/settings/RetailSamplePanel.tsx': "the retail sample is picked from the book's text; the credits have none (CreditsPanel tests)",
@@ -41,8 +42,9 @@ const EXEMPT: Record<string, string> = {
     "reads one chapter's recordedThrough by its id; the Companion lists no chapters (CompanionPage shows the chapter asked for)",
   'components/settings/controls/VoicesBody.tsx':
     'hands the whole chapter list, the credits included, to the Voices card unchanged; the card names a chapter by the folder it is linked to, and nothing is filtered or counted here',
-  'components/script/page/data/scriptData.ts':
+  'components/script/page/data/useScriptData.ts':
     'the Script page draws the credits as their own cards (ScriptPage tests: each once); its paragraphs exclude them',
+  'components/script/page/data/sampleScript.ts': "the Script page's stories read a fixed sample; the credits cards are the page's, as in useScriptData.ts",
 };
 
 function sources(dir: string): string[] {
@@ -55,7 +57,7 @@ function sources(dir: string): string[] {
 
 describe('every surface that reads the chapter list shows the credits', () => {
   const readers = sources(SRC)
-    .filter((path) => readFileSync(path, 'utf8').includes('manuscriptChapters()'))
+    .filter((path) => /manuscriptChapters\(\)|studio\/useChapters'/.test(readFileSync(path, 'utf8')))
     .map((path) => relative(SRC, path).split(sep).join('/'))
     .sort();
 
