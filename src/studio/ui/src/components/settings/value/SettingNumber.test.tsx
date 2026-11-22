@@ -25,15 +25,16 @@ function hostDefaults(): [string, string, NumberSettingRange][] {
   ];
   return sources.flatMap(([source, tools]) =>
     Object.entries(tools).flatMap(([tool, fields]) =>
-      fields.flatMap(({ kind, key, value, effectiveValue, number }) =>
-        kind === 'number' && number
+      fields.flatMap(({ kind, key, value, effectiveValue, number }) => {
+        if (kind === 'number' && !number) throw new Error(`${source} ${tool}.${key} is a number field with no range`);
+        return kind === 'number' && number
           ? [...new Set([value, effectiveValue])].map((text): [string, string, NumberSettingRange] => [
               `${source} ${tool}.${key} (${text || 'unset'})`,
               text,
               number,
             ])
-          : [],
-      ),
+          : [];
+      }),
     ),
   );
 }
@@ -271,6 +272,11 @@ describe('SettingNumber', () => {
     render(<SettingNumber label="Gap" value={value} range={range} commit="settle" onChange={vi.fn()} />);
     expect(box().value).toBe(value);
     expect(box().getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('reads number defaults from the goldens of both scopes and the mock', () => {
+    const sources = new Set(hostDefaults().map(([name]) => name.split(' ')[0]));
+    expect([...sources].sort()).toEqual(['mock', 'settings-global.json', 'settings-project.json']);
   });
 
   // Marking a number between steps is only right while no default the host ships is one (#4010 was two that were).
