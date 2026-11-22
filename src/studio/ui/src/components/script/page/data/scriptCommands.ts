@@ -17,6 +17,7 @@ import { chapterName, type ChapterNameInput } from '../../../../chapterName';
 import type { Command, Journal, Result } from '../../../../studio/journal/createJournal';
 import { attributeCueCommand } from '../../../../studio/commands/attributeCue';
 import type { ScriptData, ScriptList } from './scriptData';
+import { clamp } from '../../../../clamp';
 
 export type ScriptCommandEnv = {
   journal: Pick<Journal, 'act'>;
@@ -244,7 +245,7 @@ export async function setPrep(env: ScriptCommandEnv, chapter: ChapterNameInput &
 /** Steps a chapter's prep state along none, progress, prepped, stopping at either end; a step that changes nothing journals nothing. */
 export async function stepPrep(env: ScriptCommandEnv, chapter: ChapterNameInput & { id: string }, delta: number): Promise<Result<Done<PrepState>>> {
   const current = await prepOf(env, chapter.id);
-  const next = PREP_ORDER[Math.max(0, Math.min(PREP_ORDER.length - 1, PREP_ORDER.indexOf(current) + delta))] ?? current;
+  const next = PREP_ORDER[clamp(PREP_ORDER.indexOf(current) + delta, 0, PREP_ORDER.length - 1)] ?? current;
   return next === current ? { ok: true, value: { value: current, entryId: null } } : setPrep(env, chapter, next);
 }
 

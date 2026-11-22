@@ -11,6 +11,7 @@ import type { AssetInstallState } from '../contracts/assets';
 import { mockDictionaryLookup } from '../dictionaryMock';
 import { type MockApiSeed, type MockState, wireContext } from './state';
 import type { ProjectMock } from './project';
+import { clamp } from '../../clamp';
 
 const MOCK_AUDIO_SECONDS = 600;
 let mockAudioUrl: string | undefined;
@@ -158,7 +159,7 @@ export function createSystemMock(
     // sees the exact values the UI's own hook computes.
     windowZoom: async () => ({ level: zoom }),
     windowSetZoom: async (factor) => {
-      zoom = Math.min(2, Math.max(1, factor));
+      zoom = clamp(factor, 1, 2);
       return { level: zoom };
     },
     // The mock has no disk to persist to: it only proves the UI

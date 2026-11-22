@@ -1,5 +1,6 @@
 import { audioTail, type Envelope } from './audioTail';
 import type { ChapterDoc } from './doc';
+import { clamp } from '../../../clamp';
 
 /** Seconds of audio kept after the last word of a paragraph. The aligner's end time for a word can fall before the sound has died away. */
 export const RUNWAY_SECONDS = 0.35;
@@ -19,7 +20,7 @@ export function runwayEnd(doc: ChapterDoc, lastKey: string, end: number): number
   const next = doc.items.slice(at + 1).find(heard);
   if (next && next.pid === word.pid) return end;
   const limit = next?.t0 == null ? Number.POSITIVE_INFINITY : next.t0 - BEFORE_NEXT_SECONDS;
-  return Math.min(end + RUNWAY_SECONDS, Math.max(end, limit));
+  return clamp(limit, end, end + RUNWAY_SECONDS);
 }
 
 /** Seconds a play may run past the aligner's end of a word inside a line. Word end times from the recognizer fall early: an "s", the release of
@@ -72,25 +73,21 @@ function tailEnd(doc: ChapterDoc, lastKey: string, end: number, sound?: Envelope
   const pause = next !== undefined && (t0 as number) - end >= TOUCHING_SECONDS;
   const middle = next ? (t0 as number) + Math.max(0, (next.t1 as number) - (t0 as number)) / 2 : 0;
   // The fixed rule: a guess at how far the sound runs past the recognizer's end, used when the audio is not at hand.
-  const fixed = !next
-    ? end + tail
-    : pause
-      ? Math.min(end + tail, Math.max(end, (t0 as number) - BEFORE_NEXT_SECONDS))
-      : Math.max(end, Math.min(end + MIN_TAIL_SECONDS, middle));
+  const fixed = !next ? end + tail : pause ? clamp((t0 as number) - BEFORE_NEXT_SECONDS, end, end + tail) : clamp(middle, end, end + MIN_TAIL_SECONDS);
   if (!sound) return fixed;
   // The audio's rule: on to where the sound has died away, within the room the next word leaves (a pause), or up to the middle of a touching one.
   const limit = !next
     ? end + MAX_TAIL_SECONDS
     : pause
-      ? Math.min(end + MAX_TAIL_SECONDS, Math.max(end, (t0 as number) - BEFORE_NEXT_SECONDS))
-      : Math.max(end, Math.min(end + MAX_TAIL_SECONDS, next.t1 as number));
+      ? clamp((t0 as number) - BEFORE_NEXT_SECONDS, end, end + MAX_TAIL_SECONDS)
+      : clamp(next.t1 as number, end, end + MAX_TAIL_SECONDS);
   const near = next && (t0 as number) - end < NEAR_SECONDS ? { start: t0 as number, end: next.t1 as number } : undefined;
-  const heardEnd = audioTail(sound, word.t0, end, near ? Math.max(end, Math.min(end + MAX_TAIL_SECONDS, next?.t1 as number)) : limit, near);
+  const heardEnd = audioTail(sound, word.t0, end, near ? clamp(next?.t1 as number, end, end + MAX_TAIL_SECONDS) : limit, near);
   if (heardEnd === null) return fixed;
   // The audio decides how far past the recognizer's end the play runs, but never less than MIN_TAIL_SECONDS (an end this early is the norm, not an exception),
-  // short of the room the next word leaves.
-  const floorLimit = pause ? limit : Math.max(end, Math.min(end + MAX_TAIL_SECONDS, middle));
-  return Math.max(heardEnd, Math.min(end + MIN_TAIL_SECONDS, floorLimit));
+  // short of the room the next word leaves. A heard end past that room still wins: it is `clamp`'s low bound.
+  const floorLimit = pause ? limit : clamp(middle, end, end + MAX_TAIL_SECONDS);
+  return clamp(end + MIN_TAIL_SECONDS, heardEnd, floorLimit);
 }
 
 /** Where a play that starts on the word `firstKey` at `start` should start: up to `WORD_LEAD_SECONDS` earlier, never before the previous heard

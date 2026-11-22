@@ -1,4 +1,4 @@
-// The one place a number is held between two bounds (issue 3962). A page does not define its own `clamp`. Of the twelve copies this replaced, the ones
+// The one place a number is held between two bounds (issue 3962). A page does not define its own `clamp` or write one inline. Of the twelve copies this replaced, the ones
 // nested the other way (`Math.min(high, Math.max(low, v))`: RunOptions' `clampTo`, holdScroll, the reader's layers, recordedThrough, the teleprompter
 // mock) let high win on crossed bounds and can differ on signed-zero bounds, but none of their callers can cross the bounds or pass a -0 bound, so
 // every one gave the same results as this.

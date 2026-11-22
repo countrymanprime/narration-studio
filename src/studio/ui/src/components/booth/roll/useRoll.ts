@@ -10,6 +10,7 @@ import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { HELD_TOPIC, heldInDawSentence } from '../record/useRecordControl';
 import { createTakeHold, type TakeControls } from './takeHold';
+import { clamp } from '../../../clamp';
 
 /** The roll itself, typed here until `DawClient.roll` exists (SN-D6x). `confirmed` is true when the narrator answered the question. */
 type RollFn = (phrase: number, options: { confirmed: boolean }) => Promise<DawResult>;
@@ -140,7 +141,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (from: number) => {
       const s = sessionRef.current;
       if (s.recording && s.startedByApp === false) return actionsRef.current.notify(heldInDawSentence(s.capabilities?.daw, 'roll again'), HELD_TOPIC);
-      const to = Math.max(0, Math.min(from, s.phraseCount - 1));
+      const to = clamp(from, 0, s.phraseCount - 1);
       const plan = rollPlan(s.capabilities);
       if (plan.kind === 'refused') return actionsRef.current.refuse(plan.reason);
       if (plan.kind === 'confirm') {

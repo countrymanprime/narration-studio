@@ -17,6 +17,7 @@ import { usePlayStopReport } from './usePlayStopReport';
 import { useEditingPage } from '../script/EditingPageState';
 import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
+import { clamp } from '../../../clamp';
 
 export const AUDIO_FAILED = "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.";
 const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
@@ -409,7 +410,7 @@ export function useScriptPlayback({
       if (s.playT != null && !s.held) {
         const now = playingKey(heard, s.playT);
         const at = heard.findIndex((i) => i.key === now);
-        const to = heard[Math.max(0, Math.min(heard.length - 1, (at < 0 ? 0 : at) + d))];
+        const to = heard[clamp((at < 0 ? 0 : at) + d, 0, heard.length - 1)];
         if (to?.t0 != null) go(to.t0);
         return;
       }

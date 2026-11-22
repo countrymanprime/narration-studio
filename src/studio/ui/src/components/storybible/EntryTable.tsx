@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpa
 import { kindLabel, kindSwatch } from './entryList';
 import { COLUMNS, hasPronunciation, markedParts, matchedAlias, sortAria, type ColumnKey, type EntrySort } from './entryTableModel';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
+import { clamp } from '../../clamp';
 
 // The body rows are one height (`--row-height`, 39 px, and a cell never wraps), so the rows in view follow from the scroll position and a long book
 // draws a screenful plus a margin instead of every entry.
@@ -178,7 +179,7 @@ export function EntryTable({
   const step = (delta: -1 | 1) => {
     if (scroller.current?.contains(document.activeElement)) return;
     const from = rows.findIndex((row) => row.id === openId);
-    const next = rows[from < 0 ? 0 : Math.min(rows.length - 1, Math.max(0, from + delta))];
+    const next = rows[from < 0 ? 0 : clamp(from + delta, 0, rows.length - 1)];
     if (next) focusEntry(next.id);
   };
   useCommand('storybible.entry.next', () => step(1));

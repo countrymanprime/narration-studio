@@ -17,10 +17,11 @@ import { ReaderColumn } from '../../primitives/ReaderColumn';
 import { DEFAULT_TEXT_PREFS, readerColumn } from '../../script/page/tools/text/readerText';
 import { SpeakerChip } from './SpeakerChip';
 import { useBrowseView, type BrowseView } from './useBrowseView';
+import { clamp } from '../../../clamp';
 
 /** The Booth text sizes: 24 to 72 px in steps of 4. */
 export const TEXT_SIZE = { min: 24, max: 72, step: 4 } as const;
-export const textSizePx = (size: number): number => Math.min(TEXT_SIZE.max, Math.max(TEXT_SIZE.min, Math.round(size / TEXT_SIZE.step) * TEXT_SIZE.step));
+export const textSizePx = (size: number): number => clamp(Math.round(size / TEXT_SIZE.step) * TEXT_SIZE.step, TEXT_SIZE.min, TEXT_SIZE.max);
 
 type PickupLine = { paragraphId: string; done: boolean };
 

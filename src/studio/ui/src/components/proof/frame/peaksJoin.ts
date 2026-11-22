@@ -1,5 +1,6 @@
 import type { WorkspaceItem, WorkspacePeaks, WorkspacePeaksEntry, WorkspacePeaksResult } from '../../../api/contracts/workspace';
 import type { PlaylistSegment } from '../playlist';
+import { clamp } from '../../../clamp';
 
 /** One item's place on the chapter timeline (seconds from the chapter's start) with its peaks, or none. */
 export type PeaksSegment = { itemGuid: string; start: number; end: number; entry?: WorkspacePeaksEntry };
@@ -21,7 +22,7 @@ function decodeMinMax(peaks: Pick<WorkspacePeaks, 'minMax'>): Int8Array {
 /** The bucket covering `fraction` (0..1) of the buckets: its minimum and maximum. [0, 0] for an empty decode. */
 function bucketAt(decoded: Int8Array, buckets: number, fraction: number): readonly [number, number] {
   if (buckets <= 0) return [0, 0];
-  const index = Math.max(0, Math.min(buckets - 1, Math.floor(fraction * buckets)));
+  const index = clamp(Math.floor(fraction * buckets), 0, buckets - 1);
   return [decoded[2 * index], decoded[2 * index + 1]];
 }
 

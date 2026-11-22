@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { clock } from '../../clock';
+import { clamp } from '../../clamp';
 
 // The meanings a marker's tone may take, sharing the fills the meter zones and the badge tones use: a marker earns a colour for what it is, not for which lane it happens to sit in.
 type TimelineMarkerTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -22,7 +23,7 @@ export type TimelineMarker = {
 
 function toPercent(at: number, duration: number): number {
   if (duration <= 0) return 0;
-  return Math.min(100, Math.max(0, (at / duration) * 100));
+  return clamp((at / duration) * 100, 0, 100);
 }
 
 // A time axis for a proof pass or a session recap (mock 04): a `duration`-second ruler, an

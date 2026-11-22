@@ -2,6 +2,7 @@
 // Pure: who speaks each quoted phrase arrives as input (the Script reader's attribution, `speakerLabels`), it is not recomputed here.
 import type { MarkColour, MarkStyle } from '../../../api/contracts/marks';
 import type { EntityColour } from '../../../kinds/entityColour';
+import { clamp } from '../../../clamp';
 
 /** The speaker of a quoted phrase that nothing attributes: the mock's dashed "?" chip. */
 export const UNKNOWN_SPEAKER = '?';
@@ -75,7 +76,7 @@ export function sentenceRanges(text: string, start: number, end: number): Array<
 
 /** An offset inside a word moves past the end of that word and the space after it, as a sentence keeps its space; an offset between words stays. */
 export function snapToWordBoundary(text: string, offset: number): number {
-  const start = Math.max(0, Math.min(offset, text.length));
+  const start = clamp(offset, 0, text.length);
   let at = start;
   while (at > 0 && at < text.length && !/\s/.test(text[at - 1]) && !/\s/.test(text[at])) at += 1;
   if (at === start) return at;

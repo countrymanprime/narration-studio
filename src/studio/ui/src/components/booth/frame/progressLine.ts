@@ -1,6 +1,7 @@
 import { WPH } from '../../schedule/estimates';
 import { formatCount } from '../../../plural';
 import { clock } from '../../../clock';
+import { clamp } from '../../../clamp';
 
 /** Where the narrator is in the chapter: the paragraph the current word sits in, and the words read over the words in all. */
 export type BoothPlace = {
@@ -19,7 +20,7 @@ export type BoothPlace = {
 export function progressLine(place: BoothPlace, withPercent = true): string[] {
   const { paragraph, paragraphs, wordsRead, words, complete = false } = place;
   if (complete) return [`At ¶ ${formatCount(paragraph)} of ${formatCount(paragraphs)}`];
-  const read = Math.min(Math.max(wordsRead, 0), words);
+  const read = clamp(wordsRead, 0, words);
   const percent = words > 0 ? Math.floor((read / words) * 100) : 0;
   const secondsLeft = Math.round(((words - read) / WPH) * 3600);
   // The Recorded chip beside the line already says a percent; two would read as one number said twice (#3970).

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref, type RefObject, type WheelEvent } from 'react';
+import { clamp } from '../../../clamp';
 
 /** Page Up and Page Down: move the view by a share of its height, eased. The reading position stays. */
 export type BrowseView = {
@@ -32,7 +33,7 @@ const EDGE_PX = 8;
 
 /** How far down a box `areaHeight` high the word `wordHeight` high being read rests: 40% down, or higher when the box is too short for it to show whole. */
 export function restAt(areaHeight: number, wordHeight: number): number {
-  return Math.max(0, Math.min(areaHeight * REST, areaHeight - wordHeight - EDGE_PX));
+  return clamp(areaHeight * REST, 0, areaHeight - wordHeight - EDGE_PX);
 }
 
 // The wheel moves the view by the pixels it is given, with no easing; the Page keys ease. Neither moves the reading position
@@ -50,7 +51,7 @@ export function useBrowseView({ box, text, cur, wcur, paragraphIndex, browse, on
     const unit = scope?.querySelector<HTMLElement>(`[data-unit="${cur}"]`);
     if (!area || !content || !unit) return null;
     const words = unit.querySelectorAll<HTMLElement>('[data-word]');
-    const word = words[Math.max(0, Math.min(words.length - 1, wcur))] ?? unit;
+    const word = words[clamp(wcur, 0, words.length - 1)] ?? unit;
     // 40% down the box, unless the box is so short (a small window, a notice above the footer, a large Text size) that the word would run past
     // its bottom: then as high as it needs to be to show whole. The word being read is never under what sits below the text.
     return -(word.offsetTop - restAt(area.clientHeight, word.offsetHeight));
@@ -61,7 +62,7 @@ export function useBrowseView({ box, text, cur, wcur, paragraphIndex, browse, on
       const area = box.current;
       const content = text.current;
       if (!area || !content) return y;
-      return Math.max(-(content.offsetHeight - area.clientHeight * 0.6), Math.min(area.clientHeight * REST, y));
+      return clamp(y, -(content.offsetHeight - area.clientHeight * 0.6), area.clientHeight * REST);
     },
     [box, text],
   );

@@ -1,3 +1,4 @@
+import { clamp } from '../../../clamp';
 /** Where the progress chart puts its text labels: beside the point each belongs to, on a side that no line and no other label crosses. */
 
 export type Seg = { x1: number; y1: number; x2: number; y2: number };
@@ -112,7 +113,7 @@ export function placeLabel(text: string, at: { x: number; y: number }, bounds: B
       .find((p) => {
         const r = labelRect(p, text);
         // Near the point, a line between label and point would make the label read as the line's: it must be reachable without crossing one.
-        const link: Seg = { x1: at.x, y1: at.y, x2: Math.min(Math.max(at.x, r.x1), r.x2), y2: Math.min(Math.max(at.y, r.y1), r.y2) };
+        const link: Seg = { x1: at.x, y1: at.y, x2: clamp(at.x, r.x1, r.x2), y2: clamp(at.y, r.y1, r.y2) };
         return !lines.some((s) => crosses(s, r, PAD) || (near && meet(s, link))) && !taken.some((t) => overlaps(r, t));
       });
   };
@@ -127,5 +128,5 @@ export function placeLabel(text: string, at: { x: number; y: number }, bounds: B
 /** Where a leader from `at` meets the label's box: the box's nearest point. */
 export const leaderEnd = (at: { x: number; y: number }, p: Placement, text: string): { x: number; y: number } => {
   const r = labelRect(p, text);
-  return { x: Math.min(Math.max(at.x, r.x1), r.x2), y: at.y < r.y1 ? r.y1 : at.y > r.y2 ? r.y2 : at.y };
+  return { x: clamp(at.x, r.x1, r.x2), y: at.y < r.y1 ? r.y1 : at.y > r.y2 ? r.y2 : at.y };
 };

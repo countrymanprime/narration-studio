@@ -1,6 +1,7 @@
 /** The selection model and what a selection comes to: a run of whole words in the order of the text, with a time range to cut or treat. */
 import { origTime, type CutSpan } from './cuts';
 import { flagged, isLow, r3, type ChapterDoc, type DocItem, type ScriptParagraph } from './doc';
+import { clamp } from '../../../clamp';
 
 export interface Sel {
   anchor: string;
@@ -20,7 +21,7 @@ export const selKeys = (doc: ChapterDoc, sel: Sel | null): string[] => (sel ? ra
 export function stepKey(doc: ChapterDoc, key: string | null, d: number): string | null {
   if (!doc.items.length) return null;
   const i = key == null ? (d > 0 ? -1 : doc.items.length) : (doc.index.get(key) ?? 0);
-  return doc.items[Math.max(0, Math.min(doc.items.length - 1, i + d))].key;
+  return doc.items[clamp(i + d, 0, doc.items.length - 1)].key;
 }
 
 /** The first word of the next (or previous) phrase. */

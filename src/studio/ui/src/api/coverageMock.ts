@@ -26,6 +26,7 @@ import type {
 } from '../types';
 import { WIRE_CHAPTERS } from './mockFixtures';
 import { MOCK_ASSET_ROOT } from './mockHost/assets';
+import { clamp } from '../clamp';
 
 type AssetRequired = Extract<CoverageStartResult, { status: 'asset_required' }>;
 
@@ -213,7 +214,7 @@ function baseReportFor(chapter: ManuscriptChapter, fraction: number): Omit<Cover
   const share = Math.floor(bodyTokens / paragraphs.length);
   const sizes = paragraphs.map((_, index) => (index === paragraphs.length - 1 ? bodyTokens - share * (paragraphs.length - 1) : share));
   // The missing words are the chapter's tail: they come out of the last paragraphs first.
-  const missingIn = sizes.map((size, index) => Math.max(0, Math.min(size, missingTokens - sizes.slice(index + 1).reduce((sum, next) => sum + next, 0))));
+  const missingIn = sizes.map((size, index) => clamp(missingTokens - sizes.slice(index + 1).reduce((sum, next) => sum + next, 0), 0, size));
   const itemGuid = `{${chapter.id}-item-1}`;
   const playedSeconds = Math.round((presentTokens / WORDS_PER_MINUTE) * 60);
   return {

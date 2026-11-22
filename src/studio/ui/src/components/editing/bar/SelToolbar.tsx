@@ -4,6 +4,7 @@ import { summarize } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
 import { useSelectionActions } from './selectionActions';
 import type { ScriptPlayback } from './useScriptPlayback';
+import { clamp } from '../../../clamp';
 
 type Rect = { left: number; top: number; right: number; bottom: number };
 
@@ -26,7 +27,7 @@ export function toolbarPlace(
 ): { x: number; y: number } {
   const minX = Math.max(8, textLeft - host.left);
   const maxX = Math.max(minX, host.width - size.width - 8);
-  const x = Math.min(Math.max(first.left - host.left, minX), maxX);
+  const x = clamp(first.left - host.left, minX, maxX);
   const above = first.top - host.top - GAP - size.height;
   const y = above >= 0 ? above : last.bottom - host.top + GAP;
   return { x, y: y + host.scrollTop };

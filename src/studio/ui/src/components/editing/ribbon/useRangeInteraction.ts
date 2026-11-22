@@ -16,6 +16,7 @@ import {
 } from './rangeMath';
 import { capturePointer, releasePointer } from './pointerCapture';
 import type { RibbonView } from './useRibbonView';
+import { clamp } from '../../../clamp';
 
 /** A pointer that moves less than this many pixels between down and up was a tap, not a drag. */
 const TAP_PX = 3;
@@ -88,7 +89,7 @@ export function useRangeInteraction({ surface, t0, view, bounds, words, range, o
     (clientX: number): number => {
       const rect = surface?.getBoundingClientRect();
       // A drag past either side stops at the edge of what is on screen: the waveform scrolls by its own gestures, not by drawing past it.
-      const along = rect && rect.width ? Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) : 0;
+      const along = rect && rect.width ? clamp((clientX - rect.left) / rect.width, 0, 1) : 0;
       return t0 + view.view.start + along * view.view.len;
     },
     [surface, t0, view.view.start, view.view.len],

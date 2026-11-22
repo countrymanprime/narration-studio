@@ -7,8 +7,10 @@ import { describe, expect, it } from 'vitest';
 // (NaN stays NaN, low wins when the bounds cross). A file fails here, tests and stories included, when it defines a function named `clamp...` (`clamp`,
 // `clamp01`, `clampValue`; a declaration, an arrow or function bound to a name, or an object property or method), or a three-parameter function under
 // any name whose whole body is `Math.max` around `Math.min` (or the other way round) of exactly those parameters, unless it is listed below with why
-// its helper is not that one. An entry whose file no longer matches fails too, so the list only shrinks. The unnamed `Math.max(lo, Math.min(hi, v))`
-// written inline, or inside a longer body, is not scanned yet.
+// its helper is not that one. An entry whose file no longer matches fails too, so the list only shrinks. A second rule fails source outside tests
+// that writes the clamp inline, `Math.max(a, Math.min(b, c))` or `Math.min(a, Math.max(b, c))` in any order of operands, multi-line or inside a
+// longer body (a one-parameter helper with fixed bounds such as `(p) => Math.min(99, Math.max(1, p))` included), unless `INLINE_KEPT` lists the file
+// with how many such sites it keeps and why they are not `clamp`.
 const DIFFERENT: Readonly<Record<string, string>> = {
   'components/primitives/NumberInput.tsx': 'optional bounds (null is no bound) and high wins when they cross; the step snap follows it',
   'components/editing/ribbon/useRibbonView.ts': '`clampTo` fits a whole time window into the chapter and centres it, not a number',
@@ -16,6 +18,26 @@ const DIFFERENT: Readonly<Record<string, string>> = {
   'components/proof/frame/windowMath.ts': '`clampWindow` fits a time window and its zoom minimum into the chapter, not a number',
   'components/booth/page/useBoothPage.ts': '`clampAt` keeps a reading position (unit and word) inside the units, not a number',
   'components/editing/ribbon/scrollStep.ts': '`clampScrollStep` rounds to whole seconds and turns a non-number into the default step',
+};
+
+// The inline sites that stay, with why each gives a different result from `clamp` (most: the outer `Math.min` must win when the bounds cross).
+const INLINE_KEPT: Readonly<Record<string, { sites: number; why: string }>> = {
+  'api/teleprompterMock.ts': { sites: 1, why: '`sentenceStart` has no `tokens > 0` guard: on no words the high bound (-1) must win' },
+  'components/editing/model/audioTail.ts': { sites: 1, why: 'a loop bound: `last` must win over `from` when a caller passes a limit before the end' },
+  'components/editing/range/replace/ReplaceDialog.tsx': { sites: 1, why: 'a file shorter than REPLACE_MIN_SECONDS: its length (the high bound) must win' },
+  'components/editing/ribbon/peaksWindow.ts': {
+    sites: 2,
+    why: 'a loop bound where `first` can pass the last bucket and the loop must then run empty; and the larger of two magnitudes capped at 127, not a clamp',
+  },
+  'components/editing/ribbon/useChapterSound.ts': { sites: 1, why: 'the larger of two magnitudes capped at full scale, not a clamp' },
+  'components/layout/JumpMenu.tsx': { sites: 1, why: 'the remembered index can be -1 (ArrowDown on an empty list) and the outer `Math.min` must keep it' },
+  'components/primitives/Table.tsx': { sites: 1, why: 'on no rows the high bound (-1) wins; `clamp` would give 0' },
+  'components/script/bookmarks/ui/ribbonTops.ts': {
+    sites: 1,
+    why: 'a stored bookmark offset is not checked to be 0 or more, so the outer `Math.min` must win',
+  },
+  'components/primitives/NumberInput.tsx': { sites: 1, why: 'optional bounds (null is no bound) and high wins when they cross' },
+  'components/settings/numberSetting.ts': { sites: 1, why: '`snapToStep`: optional bounds (null is no bound) and high wins when they cross' },
 };
 
 const SRC = join(__dirname);
@@ -80,6 +102,45 @@ const definesOwnClamp = (source: string): boolean => {
   return NAMED_CLAMP.test(text) || definesUnnamedClamp(text);
 };
 
+/** The arguments of the call whose `(` is at `open`, split at its top-level commas, and the index of its `)`. */
+const callArgs = (text: string, open: number): { args: string[]; close: number } | null => {
+  const args: string[] = [];
+  let depth = 0;
+  let start = open + 1;
+  for (let i = open; i < text.length; i += 1) {
+    const c = text[i];
+    if (c === '(' || c === '[' || c === '{') depth += 1;
+    else if (c === ')' || c === ']' || c === '}') {
+      depth -= 1;
+      // A multi-line call Prettier formats ends in a trailing comma, which adds no argument.
+      if (depth === 0) return { args: [...args, text.slice(start, i)].filter((arg, at, all) => at < all.length - 1 || arg.trim() !== ''), close: i };
+    } else if (c === ',' && depth === 1) {
+      args.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+  return null;
+};
+
+/** How many `Math.max(a, Math.min(b, c))` / `Math.min(a, Math.max(b, c))` a source writes, the inner call being a whole argument of the outer. */
+const inlineClamps = (source: string): number => {
+  const text = code(source);
+  let count = 0;
+  for (const call of text.matchAll(/\bMath\.(max|min)\(/g)) {
+    const outer = callArgs(text, call.index + call[0].length - 1);
+    if (outer?.args.length !== 2) continue;
+    const other = call[1] === 'max' ? 'min' : 'max';
+    const nested = outer.args.some((arg) => {
+      const inner = arg.trim();
+      if (!inner.startsWith(`Math.${other}(`)) return false;
+      const args = callArgs(inner, `Math.${other}`.length);
+      return args?.args.length === 2 && args.close === inner.length - 1;
+    });
+    if (nested) count += 1;
+  }
+  return count;
+};
+
 describe('the scan itself', () => {
   it.each([
     'const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));',
@@ -118,6 +179,28 @@ describe('the scan itself', () => {
   ])('leaves %s alone', (source) => expect(definesOwnClamp(source)).toBe(false));
 });
 
+describe('the inline scan itself', () => {
+  it.each([
+    'const x = Math.max(0, Math.min(1, v));',
+    'const x = Math.min(hi, Math.max(lo, v));',
+    'const x = Math.min(Math.max(at.x, r.x1), r.x2);',
+    'const x = Math.max(Math.min(v, hi), lo);',
+    'const atLeastOne = (p: number) => Math.min(99, Math.max(1, p));',
+    'return rows[Math.max(0, Math.min(rows.length - 1, at + (down ? 1 : -1)))];',
+    'el.style.left = `${Math.max(EDGE, Math.min(left - width / 2, room))}px`;',
+    'const y = Math.max(\n  0,\n  Math.min(\n    total,\n    elapsed,\n  ),\n);',
+  ])('sees %s', (source) => expect(inlineClamps(source)).toBe(1));
+  it.each([
+    'const spread = Math.max(...values) - Math.min(...values);',
+    'const paragraph = Math.max(0, Math.min(...numbers) - 1);',
+    'const x = Math.min(a, Math.min(b, c));',
+    'const v = Math.min(127, Math.abs(Math.max(a, b)));',
+    'const v = Math.max(a, Math.min(...rest));',
+    '// const x = Math.max(0, Math.min(1, v));',
+    'const x = clamp(v, 0, 1);',
+  ])('leaves %s alone', (source) => expect(inlineClamps(source)).toBe(0));
+});
+
 describe('one clamp for every number held to a range', () => {
   const found = [...sources(SRC)]
     .map((path) => relative(SRC, path).split(sep).join('/'))
@@ -129,5 +212,23 @@ describe('one clamp for every number held to a range', () => {
 
   it('lists only files that still need their entry', () => {
     expect(Object.keys(DIFFERENT).filter((file) => !found.includes(file))).toEqual([]);
+  });
+});
+
+describe('no clamp written inline', () => {
+  const found = Object.fromEntries(
+    [...sources(SRC)]
+      .map((path) => relative(SRC, path).split(sep).join('/'))
+      .filter((file) => file !== 'clamp.ts' && !/\.test\.tsx?$/.test(file))
+      .map((file) => [file, inlineClamps(readFileSync(join(SRC, file), 'utf8'))] as const)
+      .filter(([, sites]) => sites > 0),
+  );
+
+  it('has no inline clamp outside the list, and no more in a listed file than it keeps', () => {
+    expect(Object.entries(found).filter(([file, sites]) => sites > (INLINE_KEPT[file]?.sites ?? 0))).toEqual([]);
+  });
+
+  it('lists only sites that are still there', () => {
+    expect(Object.entries(INLINE_KEPT).filter(([file, kept]) => (found[file] ?? 0) < kept.sites)).toEqual([]);
   });
 });

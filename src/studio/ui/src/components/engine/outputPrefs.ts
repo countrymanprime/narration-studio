@@ -4,6 +4,7 @@
 import { useCallback, useEffect } from 'react';
 import { announceBrowserSettingChange, useBrowserSetting } from '../../browserSettings';
 import { setOutput } from '../voicesamples/audioOutputs';
+import { clamp } from '../../clamp';
 
 export type OutputPrefs = {
   /** 0 to 100. A media element cannot play louder than its file, so 100 is the recording as it is. */
@@ -29,7 +30,7 @@ export function readOutputPrefs(): OutputPrefs {
     if (typeof raw !== 'object' || raw === null) return DEFAULT_OUTPUT;
     const o = raw as Record<string, unknown>;
     return {
-      volume: typeof o.volume === 'number' && Number.isFinite(o.volume) ? Math.min(100, Math.max(0, Math.round(o.volume))) : DEFAULT_OUTPUT.volume,
+      volume: typeof o.volume === 'number' && Number.isFinite(o.volume) ? clamp(Math.round(o.volume), 0, 100) : DEFAULT_OUTPUT.volume,
       muted: o.muted === true,
       rate: RATES.find((r) => r === o.rate) ?? DEFAULT_OUTPUT.rate,
       device: typeof o.device === 'string' ? o.device : DEFAULT_OUTPUT.device,

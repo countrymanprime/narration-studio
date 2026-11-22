@@ -1,6 +1,7 @@
 import { useRef, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import { capturePointer, releasePointer } from './pointerCapture';
 import type { RibbonView } from './useRibbonView';
+import { clamp } from '../../../clamp';
 
 /** A pointer that moves less than this many pixels while the right button is held was a click: it opens the menu instead of scrolling. */
 const SCROLL_SLOP_PX = 4;
@@ -52,7 +53,7 @@ export function useScrollGestures({
   const timeAt = (clientX: number): number => {
     const rect = surface?.getBoundingClientRect();
     const v = latest.current.view;
-    return v.start + (rect && rect.width ? Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)) : 0.5) * v.len;
+    return v.start + (rect && rect.width ? clamp((clientX - rect.left) / rect.width, 0, 1) : 0.5) * v.len;
   };
   const centreX = (pointers: Map<number, number>): number => [...pointers.values()].reduce((s, x) => s + x, 0) / Math.max(1, pointers.size);
   const begin = (e: PointerEvent, pointers: Map<number, number>, menuPending = false): void => {

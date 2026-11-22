@@ -2,6 +2,7 @@ import { estimateFinishedHours } from '../../state';
 import { splitWords, type ReaderMark, type ReaderRow } from './readerModel';
 import type { GuideEntity, GuidePronunciation } from '../../types';
 import { clock } from '../../clock';
+import { clamp } from '../../clamp';
 
 /**
  * The Booth status line's progress (mock 03, audit BO5): "¶ 38 of 71 · 41% · ~8:10 of audio left". The paragraph is the
@@ -14,7 +15,7 @@ export type BoothProgress = { paragraph: number; paragraphs: number; percent: nu
 export function boothProgress(rows: ReaderRow[], cursor: number, tokens: number): BoothProgress | undefined {
   const paragraphs = rows.filter((row) => row.kind === 'paragraph');
   if (paragraphs.length === 0 || tokens <= 0) return undefined;
-  const read = Math.min(Math.max(cursor, 0), tokens);
+  const read = clamp(cursor, 0, tokens);
   const current = paragraphs.reduce((index, row, at) => (row.start <= read ? at : index), 0);
   return {
     paragraph: current + 1,

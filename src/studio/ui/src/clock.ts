@@ -2,6 +2,7 @@
 // showing the same length must show the same text, so the rounding and the padding are decided here once.
 
 import { plural } from './plural';
+import { clamp } from './clamp';
 
 export type ClockOptions = {
   /** 2 pads the minutes ("06:42"), as the REC badge and the recording timer are drawn. Default 1 ("6:42"). */
@@ -82,7 +83,7 @@ export function spokenMarked(text: string): string {
 /** `hh:mm:ss.fff` (see `ClockOptions.full`): floored to the millisecond, so every field is in range and no reading is ahead of the time it stands for. */
 function clockFull(seconds: number): string {
   // Capped at a billion seconds (over thirty years): beyond that the milliseconds are not exact in a double, and `seconds * 1000` can overflow.
-  const millis = Number.isFinite(seconds) ? Math.min(Math.max(0, Math.floor(Math.round(seconds * 1e6) / 1000)), MAX_FULL_MILLIS) : 0;
+  const millis = Number.isFinite(seconds) ? clamp(Math.floor(Math.round(seconds * 1e6) / 1000), 0, MAX_FULL_MILLIS) : 0;
   const whole = Math.floor(millis / 1000);
   return `${pad(Math.floor(whole / 3600))}:${pad(Math.floor(whole / 60) % 60)}:${pad(whole % 60)}.${String(millis % 1000).padStart(3, '0')}`;
 }
