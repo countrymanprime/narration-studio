@@ -116,6 +116,19 @@ The rule adds about 1 to 3 ms at 3 and 44 chapters, 8 to 13 ms at 103 and up to 
 
 On the two books checked three times, the first call of three reads that walk the ledger, before the pass → after it (median of two runs, ms): 44 chapters `ManuscriptChapters` 161 → 109, `ProductionOverview` 112 → 81, `ChapterSyncState` 54 → 59; 300 chapters `ManuscriptChapters` 978 → 682, `ProductionOverview` 561 → 422, `ChapterSyncState` 439 → 311. On the books checked once there is nothing to remove and the reads do not change (differences within the spread of the runs).
 
+### The cache pass (#3816)
+
+`node scripts/dev/host-read-bench.mjs retention <book> --cache-entries N` fills the copy's analysis cache with N entries of each of the six kinds of the retention table (8 KB blobs; a third last used 400 days ago, the others 0 to 39 hours ago, the same mix for every kind) and runs the cache step twice. The seeded books' cache holds one entry, so the entries are synthetic: the pass time follows the number of files (it reads the start of each envelope, never the blob), not their size. Two runs each, on the 44 chapter book; milliseconds; files and MB are the whole cache folder.
+
+| Entries of each kind | First pass, ms | Files | MB | Removed | Second pass, ms |
+| --- | --- | --- | --- | --- | --- |
+| 10 | 2, 1 | 61 → 45 | 0.91 → 0.73 | 16 | 0, 0 |
+| 100 | 35, 23 | 601 → 479 | 6.86 → 5.51 | 122 | 5, 3 |
+| 1,000 | 202, 281 | 6,001 → 4,478 | 66.39 → 49.60 | 1,523 | 35, 50 |
+| 10,000 | 4,761, 4,455 | 60,001 → 28,290 | 661.68 → 312.07 | 31,711 | 255, 247 |
+
+What goes at 10,000 is mostly the size caps (80 MB of blobs of each kind against caps of 8 and 64 MB) and the entries past 24 hours and 7 days. A real cache holds far fewer, larger entries (a peaks entry is about 0.9 MB an hour of audio, a take evidence entry about 0.45 KB), so the first pass of a real project is the 100 to 1,000 row at most. The pass asks to stop every 256 entries while it reads and before each removal, so a check starting waits for at most 256 header reads (not timed on their own).
+
 ## The real app
 
 Seconds after the launch command, per launch.
@@ -246,5 +259,5 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
-- **The two sections above (#3897, #3958):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and neither change decodes audio. The pass was timed alone, not beside a recording check or editing writes. No real narrator's book. Windows: not measured.
+- **The three sections above (#3897, #3958, the cache pass):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and neither change decodes audio. The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.

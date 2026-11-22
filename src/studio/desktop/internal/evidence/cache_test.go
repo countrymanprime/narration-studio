@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -421,127 +422,311 @@ func TestDeleteFailsWhenTheEntryIsANonEmptyDirectory(t *testing.T) {
 	}
 }
 
-// --- Prune (size-bounded, oldest first) ---
+// --- PruneKinds (per analyzer: time limit, then size cap, least recently used first) ---
 
-func TestPruneRemovesOldestEntriesFirstUntilUnderTheBound(t *testing.T) {
+var never = func() bool { return false }
+
+// kindKey is a key of analyzer whose entries differ by name.
+func kindKey(analyzer, name string) CacheEntryKey {
+	key := baseCacheKey()
+	key.AnalyzerID, key.ParamHash = analyzer, name
+	return key
+}
+
+// writeUsed writes an entry of blobBytes bytes and sets its last use (its file's modification time) to used.
+func writeUsed(t *testing.T, store *CacheStore, project string, key CacheEntryKey, blobBytes int, used time.Time) {
+	t.Helper()
+	if err := store.Write(key, make([]byte, blobBytes)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(filepath.Join(CacheDir(project), key.hash()+".json"), used, used); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func entryExists(project string, key CacheEntryKey) bool {
+	_, err := os.Stat(filepath.Join(CacheDir(project), key.hash()+".json"))
+	return err == nil
+}
+
+var pruneNow = time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)
+
+func TestPruneKindsRemovesTheLeastRecentlyUsedOfAKindUntilItIsUnderItsCap(t *testing.T) {
 	project := t.TempDir()
 	store := NewCacheStore(project)
+	oldest, middle, newest := kindKey("rc", "oldest"), kindKey("rc", "middle"), kindKey("rc", "newest")
+	writeUsed(t, store, project, oldest, 1000, pruneNow.Add(-3*time.Hour))
+	writeUsed(t, store, project, middle, 1000, pruneNow.Add(-2*time.Hour))
+	writeUsed(t, store, project, newest, 1000, pruneNow.Add(-time.Hour))
+	one := fileSize(t, project, newest)
 
-	oldest := baseCacheKey()
-	oldest.ParamHash = "oldest"
-	if err := store.Write(oldest, []byte("0123456789")); err != nil {
-		t.Fatal(err)
-	}
-	middle := baseCacheKey()
-	middle.ParamHash = "middle"
-	if err := store.Write(middle, []byte("0123456789")); err != nil {
-		t.Fatal(err)
-	}
-	newest := baseCacheKey()
-	newest.ParamHash = "newest"
-	if err := store.Write(newest, []byte("0123456789")); err != nil {
-		t.Fatal(err)
-	}
-
-	// Force a deterministic write order regardless of clock resolution: set
-	// each file's WrittenAt explicitly via the envelope, oldest to newest.
-	setWrittenAt(t, project, oldest, time.Unix(100, 0))
-	setWrittenAt(t, project, middle, time.Unix(200, 0))
-	setWrittenAt(t, project, newest, time.Unix(300, 0))
-
-	// Each file is a small JSON envelope a few dozen bytes over the 10-byte
-	// blob; ask Prune to keep only enough room for one entry so exactly two
-	// (the two oldest) must go.
-	sizeOfOne := fileSize(t, project, newest)
-	deleted, err := store.Prune(sizeOfOne)
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: one}}, pruneNow, never)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(deleted) != 2 {
-		t.Fatalf("Prune deleted %#v, want exactly 2 entries", deleted)
+	if entryExists(project, oldest) || entryExists(project, middle) || !entryExists(project, newest) {
+		t.Fatalf("kept: oldest %v, middle %v, newest %v; want only the newest", entryExists(project, oldest), entryExists(project, middle), entryExists(project, newest))
 	}
-	if _, ok := store.Read(newest); !ok {
-		t.Fatal("Prune deleted the newest entry")
-	}
-	if _, ok := store.Read(oldest); ok {
-		t.Fatal("Prune kept the oldest entry")
-	}
-	if _, ok := store.Read(middle); ok {
-		t.Fatal("Prune kept the middle entry")
+	if report.Removed != 2 || report.FilesBefore != 3 || report.FilesAfter != 1 || report.BytesBefore != 3*one || report.BytesAfter != one || report.Stopped {
+		t.Fatalf("report = %+v; want 2 removed, 3 files and %d bytes before, 1 and %d after", report, 3*one, one)
 	}
 }
 
-func TestPruneDeletesNothingWhenAlreadyUnderTheBound(t *testing.T) {
-	store := NewCacheStore(t.TempDir())
-	key := baseCacheKey()
-	if err := store.Write(key, []byte("x")); err != nil {
-		t.Fatal(err)
-	}
-	deleted, err := store.Prune(1 << 30)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(deleted) != 0 {
-		t.Fatalf("Prune deleted %#v when already under the bound", deleted)
-	}
-	if _, ok := store.Read(key); !ok {
-		t.Fatal("Prune under the bound removed the entry")
-	}
-}
-
-func TestPruneOnAnEmptyStoreDeletesNothing(t *testing.T) {
-	store := NewCacheStore(t.TempDir())
-	deleted, err := store.Prune(0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(deleted) != 0 {
-		t.Fatalf("Prune on an empty store deleted %#v", deleted)
-	}
-}
-
-func TestPruneLeavesAnUnreadableEntryAlone(t *testing.T) {
+func TestPruneKindsRemovesWhatWentUnusedForLongerThanItsKindsTimeWhateverTheSize(t *testing.T) {
 	project := t.TempDir()
 	store := NewCacheStore(project)
-	key := baseCacheKey()
+	stale, fresh := kindKey("editing.silence", "stale"), kindKey("editing.silence", "fresh")
+	writeUsed(t, store, project, stale, 10, pruneNow.Add(-25*time.Hour))
+	writeUsed(t, store, project, fresh, 10, pruneNow.Add(-23*time.Hour))
+
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "editing.silence", MaxAge: 24 * time.Hour, MaxBytes: 1 << 30}}, pruneNow, never); err != nil {
+		t.Fatal(err)
+	}
+	if entryExists(project, stale) || !entryExists(project, fresh) {
+		t.Fatalf("stale kept %v, fresh kept %v; want the entry unused for 25 hours gone and the one unused for 23 kept", entryExists(project, stale), entryExists(project, fresh))
+	}
+}
+
+func TestPruneKindsBoundsEachKindOnItsOwn(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	words, peaks := kindKey("words", "w"), kindKey("peaks", "p")
+	writeUsed(t, store, project, words, 5000, pruneNow.Add(-90*24*time.Hour))
+	writeUsed(t, store, project, peaks, 5000, pruneNow.Add(-time.Hour))
+
+	// peaks is over its cap and words has no limit at all: the older words entry stays, the peaks entry goes.
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "words"}, {AnalyzerID: "peaks", MaxBytes: 10}}, pruneNow, never); err != nil {
+		t.Fatal(err)
+	}
+	if !entryExists(project, words) || entryExists(project, peaks) {
+		t.Fatalf("words kept %v, peaks kept %v; want words kept and peaks gone", entryExists(project, words), entryExists(project, peaks))
+	}
+}
+
+func TestPruneKindsKeepsAnAnalyzerNoPolicyNames(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	unknown, known := kindKey("a-newer-analyzer", "u"), kindKey("rc", "k")
+	writeUsed(t, store, project, unknown, 5000, pruneNow.Add(-400*24*time.Hour))
+	writeUsed(t, store, project, known, 5000, pruneNow.Add(-400*24*time.Hour))
+
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxAge: time.Hour}}, pruneNow, never); err != nil {
+		t.Fatal(err)
+	}
+	if !entryExists(project, unknown) || entryExists(project, known) {
+		t.Fatalf("unknown kept %v, known kept %v; want the unnamed analyzer's entry kept however old", entryExists(project, unknown), entryExists(project, known))
+	}
+}
+
+func TestPruneKindsHoldsAnEntryWithNoAnalyzerToTheEmptyPolicy(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	// An entry written before the envelope named its analyzer has no analyzerId.
+	old, young := kindKey("", "old"), kindKey("", "young")
+	writeUsed(t, store, project, old, 100, pruneNow.Add(-31*24*time.Hour))
+	writeUsed(t, store, project, young, 100, pruneNow.Add(-29*24*time.Hour))
+	tagged := kindKey("rc", "t")
+	writeUsed(t, store, project, tagged, 100, pruneNow.Add(-31*24*time.Hour))
+
+	// The empty policy limits the entries with no analyzer only: the tagged entry has no limit here.
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "", MaxAge: 30 * 24 * time.Hour}, {AnalyzerID: "rc"}}, pruneNow, never); err != nil {
+		t.Fatal(err)
+	}
+	if entryExists(project, old) || !entryExists(project, young) || !entryExists(project, tagged) {
+		t.Fatalf("old kept %v, young kept %v, tagged kept %v; want only the entry with no analyzer unused for over 30 days gone", entryExists(project, old), entryExists(project, young), entryExists(project, tagged))
+	}
+}
+
+func TestPruneKindsTakesTheEntriesWithNoAnalyzerLast(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	untagged, tagged := kindKey("", "u"), kindKey("rc", "t")
+	writeUsed(t, store, project, untagged, 100, pruneNow.Add(-400*24*time.Hour))
+	writeUsed(t, store, project, tagged, 100, pruneNow.Add(-1*time.Hour))
+	// The empty policy is listed first. Told to stop after one removal, the pass has taken the tagged kind's entry, not the other.
+	calls := 0
+	stop := func() bool { calls++; return calls > 1 }
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "", MaxAge: time.Hour}, {AnalyzerID: "rc", MaxAge: time.Minute}}, pruneNow, stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.Stopped || entryExists(project, tagged) || !entryExists(project, untagged) {
+		t.Fatalf("report = %+v, tagged kept %v, untagged kept %v; want the tagged entry gone first and the pass stopped", report, entryExists(project, tagged), entryExists(project, untagged))
+	}
+}
+
+func TestPruneKindsLeavesWhatItCannotPositivelyReadAsItsOwn(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
 	if err := os.MkdirAll(CacheDir(project), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(CacheDir(project), key.hash()+".json")
-	if err := os.WriteFile(path, []byte("not json"), 0o600); err != nil {
+	old := pruneNow.Add(-400 * 24 * time.Hour)
+	files := map[string]string{
+		"not-json.json":     "not json",
+		"array.json":        `[1, 2]`,
+		"no-version.json":   `{"analyzerId": "rc", "blob": ""}`,
+		"newer.json":        `{"schemaVersion": 99, "analyzerId": "rc", "blob": ""}`,
+		"version-zero.json": `{"schemaVersion": 0, "analyzerId": "rc", "blob": ""}`,
+		"no-blob.json":      `{"schemaVersion": 1, "analyzerId": "rc"}`,
+		"bad-analyzer.json": `{"schemaVersion": 1, "analyzerId": 7, "blob": ""}`,
+		"stray.json.tmp":    `{"schemaVersion": 1, "analyzerId": "rc", "blob": ""}`,
+		"note.txt":          "a note",
+	}
+	for name, content := range files {
+		path := filepath.Join(CacheDir(project), name)
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(path, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(CacheDir(project), "folder.json"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := store.Prune(0); err != nil {
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxAge: time.Hour, MaxBytes: 1}, {AnalyzerID: "", MaxAge: time.Hour, MaxBytes: 1}}, pruneNow, never)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("Prune should leave an unreadable file alone, but it is gone: %v", err)
+	for name := range files {
+		if _, err := os.Stat(filepath.Join(CacheDir(project), name)); err != nil {
+			t.Fatalf("%s was removed: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(CacheDir(project), "folder.json")); err != nil {
+		t.Fatalf("a folder was removed: %v", err)
+	}
+	if report.Removed != 0 {
+		t.Fatalf("removed %d files; want none", report.Removed)
 	}
 }
 
-// setWrittenAt rewrites a written entry's envelope with an explicit
-// WrittenAt, so Prune's oldest-first ordering test does not depend on clock
-// resolution between three Write calls made microseconds apart.
-func setWrittenAt(t *testing.T, project string, key CacheEntryKey, writtenAt time.Time) {
-	t.Helper()
+func TestPruneKindsStopsWhenToldTo(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	first, second := kindKey("rc", "a"), kindKey("rc", "b")
+	writeUsed(t, store, project, first, 100, pruneNow.Add(-2*time.Hour))
+	writeUsed(t, store, project, second, 100, pruneNow.Add(-time.Hour))
+
+	calls := 0
+	stop := func() bool { calls++; return calls > 1 }
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: 1}}, pruneNow, stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.Stopped || report.Removed != 1 || entryExists(project, first) || !entryExists(project, second) {
+		t.Fatalf("report = %+v, first kept %v, second kept %v; want it stopped after removing the first entry only", report, entryExists(project, first), entryExists(project, second))
+	}
+}
+
+func TestPruneKindsStopsWhileItIsStillReadingALargeCache(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	if err := os.MkdirAll(CacheDir(project), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := pruneNow.Add(-400 * 24 * time.Hour)
+	for i := range 3 * scanChunk {
+		path := filepath.Join(CacheDir(project), fmt.Sprintf("e%04d.json", i))
+		if err := os.WriteFile(path, []byte(`{"schemaVersion": 1, "analyzerId": "rc", "blob": ""}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(path, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	calls := 0
+	stop := func() bool { calls++; return true }
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxAge: time.Hour}}, pruneNow, stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.Stopped || report.Removed != 0 || calls != 1 {
+		t.Fatalf("report = %+v after %d looks at stop; want it stopped on the first look, mid-scan, with nothing removed", report, calls)
+	}
+	entries, _ := os.ReadDir(CacheDir(project))
+	if len(entries) != 3*scanChunk {
+		t.Fatalf("%d files left, want all %d", len(entries), 3*scanChunk)
+	}
+}
+
+func TestPruneKindsOfNoStoreOrAnEmptyOneRemovesNothing(t *testing.T) {
+	policies := []CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: 1}}
+	for name, store := range map[string]*CacheStore{"no cache folder": NewCacheStore(t.TempDir()), "no project": NewCacheStore("")} {
+		report, err := store.PruneKinds(policies, pruneNow, never)
+		if err != nil || report != (CachePrune{}) {
+			t.Fatalf("%s: %+v, %v; want an empty report and no error", name, report, err)
+		}
+	}
+}
+
+func TestPruneKindsRefusesACacheFolderThatIsALink(t *testing.T) {
+	project, elsewhere := t.TempDir(), t.TempDir()
+	if err := os.WriteFile(filepath.Join(elsewhere, "x.json"), []byte(`{"schemaVersion": 1, "analyzerId": "rc", "blob": ""}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(CacheDir(project)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(elsewhere, CacheDir(project)); err != nil {
+		t.Skipf("no symbolic links here: %v", err)
+	}
+	_, err := NewCacheStore(project).PruneKinds([]CacheKindPolicy{{AnalyzerID: "rc", MaxBytes: 1}}, pruneNow, never)
+	if err == nil {
+		t.Fatal("a cache folder that is a link was pruned")
+	}
+	if _, statErr := os.Stat(filepath.Join(elsewhere, "x.json")); statErr != nil {
+		t.Fatalf("a file behind the link was removed: %v", statErr)
+	}
+}
+
+func TestAHitMovesAnOldEntrysLastUseForwardSoItIsNotExpired(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	key := kindKey("editing.silence", "in-use")
+	writeUsed(t, store, project, key, 10, time.Now().Add(-48*time.Hour))
 	path := filepath.Join(CacheDir(project), key.hash()+".json")
-	raw, err := os.ReadFile(path)
-	if err != nil {
+
+	if _, ok := store.Read(key); !ok {
+		t.Fatal("the entry did not read")
+	}
+	info, err := os.Stat(path)
+	if err != nil || time.Since(info.ModTime()) > time.Minute {
+		t.Fatalf("modification time after a hit = %v (%v); want now", info.ModTime(), err)
+	}
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "editing.silence", MaxAge: 24 * time.Hour}}, time.Now(), never); err != nil {
 		t.Fatal(err)
 	}
-	var envelope cacheEnvelope
-	if err := json.Unmarshal(raw, &envelope); err != nil {
-		t.Fatal(err)
+	if !entryExists(project, key) {
+		t.Fatal("an entry read a moment ago was expired")
 	}
-	envelope.WrittenAt = writtenAt
-	rewritten, err := json.Marshal(envelope)
-	if err != nil {
-		t.Fatal(err)
+}
+
+func TestAHitOnAnEntryUsedWithinTheHourLeavesItsTimeAlone(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	key := kindKey("rc", "recent")
+	used := time.Now().Add(-10 * time.Minute).Truncate(time.Second)
+	writeUsed(t, store, project, key, 10, used)
+
+	if _, ok := store.Read(key); !ok {
+		t.Fatal("the entry did not read")
 	}
-	if err := os.WriteFile(path, rewritten, 0o600); err != nil {
-		t.Fatal(err)
+	info, err := os.Stat(filepath.Join(CacheDir(project), key.hash()+".json"))
+	if err != nil || !info.ModTime().Equal(used) {
+		t.Fatalf("modification time = %v (%v); want it unchanged at %v", info.ModTime(), err, used)
 	}
+}
+
+func TestAMissOnAnEntryThatIsNotThereTouchesNothing(t *testing.T) {
+	store := NewCacheStore(t.TempDir())
+	if _, ok := store.Read(kindKey("rc", "none")); ok {
+		t.Fatal("a missing entry read as a hit")
+	}
+	// markUsed on a path that is not there is a no-op, not a failure.
+	store.markUsed(filepath.Join(store.dir, "absent.json"))
 }
 
 func fileSize(t *testing.T, project string, key CacheEntryKey) int64 {

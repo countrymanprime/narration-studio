@@ -23,9 +23,9 @@ import (
 // is installed now, since the decoder is not part of the key.
 
 const (
-	// measurementAnalyzerID identifies this file's entries in the evidence cache (evidence.CacheEntryKey); their
+	// FileAnalyzerID identifies this file's entries in the evidence cache (evidence.CacheEntryKey); their
 	// analyzer version is AnalyzerVersion, so a change to what a measured value means leaves the old entries unread.
-	measurementAnalyzerID = "measure.file"
+	FileAnalyzerID = "measure.file"
 	// measurementBlobVersion is the entry's own schema version (the evidence store never looks inside the blob). An
 	// entry of another version is measured again.
 	measurementBlobVersion = 1
@@ -132,7 +132,7 @@ func writeMeasurement(store *evidence.CacheStore, key evidence.CacheEntryKey, me
 func measurementCacheKey(identity evidence.SourceIdentity) evidence.CacheEntryKey {
 	return evidence.CacheEntryKey{
 		Source:          identity,
-		AnalyzerID:      measurementAnalyzerID,
+		AnalyzerID:      FileAnalyzerID,
 		AnalyzerVersion: strconv.Itoa(AnalyzerVersion),
 	}
 }

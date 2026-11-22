@@ -507,7 +507,7 @@ func (s *MappingStore) clock() time.Time {
 // with s.mu held. A missing file, an unreadable or corrupt one, a newer
 // schema version, or a stored DocumentID that does not match documentID all
 // read as an empty shape for documentID - the same "unknown reads as
-// absent" rule LedgerStore.readRecord and CacheStore.readEnvelope follow.
+// absent" rule LedgerStore.readRecord and CacheStore.entryAnalyzer follow.
 //
 // +checklocks:s.mu
 func (s *MappingStore) readLocked(documentID string) mappingFileShape {
