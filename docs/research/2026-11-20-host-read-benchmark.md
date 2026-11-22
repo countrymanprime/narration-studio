@@ -208,7 +208,7 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 | Warm, before | 51 / 107 | 51 / 112 | 51 / 122 | 51 / 140 |
 | Warm, after | 50 / 106 | 50 / 108 | 50 / 113 | 51 / 123 |
 
-The Booth's warm visit makes one fewer call at 1, 5 and 17 h and none fewer at 40 h; its cold start is up to one call and 1 KB more than before in every cell, which I did not explain (three runs, median, so a one-call difference is within the run-to-run spread, the consistent +1 KB is not obviously). The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
+The Booth's warm visit makes one fewer call at 1, 5 and 17 h and none fewer at 40 h. The saved call is the page's own `ManuscriptChapters` read (about 1 KB at 1 h); compared call by call at 1 h, main and the branch make the same calls in a cold start, and the one call a warm run sometimes also drops is a `dawMeters` poll, which is timing. The cold cells that read one call or 1 KB more than before are run-to-run spread of the median of three (a second run had main at 63 calls and the branch at 62). The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
 ## The track list: a 5 s poll against REAPER's change event
 
