@@ -1,4 +1,4 @@
-import { handFocusToPage } from './focusReturn';
+import { anotherPopoverTakesFocus, handFocusToPage } from './focusReturn';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
@@ -129,7 +129,14 @@ export function Popover({
           <BasePopover.Popup
             ref={popup}
             initialFocus={focusPopup ? popup : undefined}
-            finalFocus={() => (focusPageOnClose?.() ? handFocusToPage() : backToOpener())}
+            finalFocus={() => {
+              // `focusPageOnClose` is asked first: it has side effects of its own (the voice button resets what a pick set), whatever focus does next.
+              const toPage = focusPageOnClose?.() ?? false;
+              // Another popover or menu that opened while this one was leaving has the focus, or is about to take it (its exit waits a frame). Giving focus back to this one's
+              // trigger would take it from the new popup, which closes when focus leaves it (#3949). Base UI's own check for this is off while `finalFocus` is a function.
+              if (anotherPopoverTakesFocus(popup.current, opened.by)) return false;
+              return toPage ? handFocusToPage() : backToOpener();
+            }}
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
             className={`max-h-[var(--available-height)] w-max ${compact ? COMPACT_WIDTH : WIDTH} overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}

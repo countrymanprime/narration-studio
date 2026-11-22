@@ -66,6 +66,8 @@ export type StudioStore<R extends SlotRegistry> = {
   publish(topic: string): void;
   /** Empties every slot and drops loads still in flight (a project switch). */
   reset(): void;
+  /** How many times the store was reset: a read made under an earlier number belongs to the project before the switch. Subscribers hear each reset. */
+  generation(): number;
 };
 
 const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
@@ -224,6 +226,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       if (keyedOnFocus.length > 0) stops.push(subscribeFocus(() => keyedOnFocus.forEach((name) => caches.get(name)!.invalidate())));
       return () => stops.forEach((stop) => stop());
     },
+    generation: () => epoch,
     reset() {
       epoch += 1;
       ensuring.clear();

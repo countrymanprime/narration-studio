@@ -1,0 +1,93 @@
+name: Slow clock
+# The Booth specs under a page clock slowed to 70% (#3931). The Booth ignores a Stop within a second of a start (`START_GUARD_MS`); a spec that
+# presses Stop about a second after its start passes where its steps are slow and fails on a quicker runner, and no pull request run says so.
+# Here the app runs `Date.now` at 70% of real time (UI_SLOW_CLOCK, a mock-build-only Vite plugin, src/studio/ui/scripts/slow-clock.mjs), so such a
+# spec fails every time. Nightly and by hand, never on a pull request: a pull request run is the full gate and this is a margin check.
+#
+# A red run opens, or comments on, the `slow-clock-red` issue (scripts/ci/train-health.mjs red slow-clock) and the next green run closes it. It
+# holds nothing: this says the Booth specs fail on a slower clock, not that `main` is broken (main-health.yml does that). For a spec that presses Stop
+# soon after a start the fix is `pastStartGuard` (src/studio/ui/tests/visual/helpers/startGuard.ts); read any other failure first, it may be a real timing regression.
+#
+# Five specs are left out because the slowed clock itself breaks them, not a start guard. Each needs its timers on the page's clock:
+#   booth-alignment.spec.ts, `record-connect` x4: the DAW's "not connected" dialog waits for a heartbeat gap measured with `Date.now`, while the
+#     mock's heartbeat runs on real timers, so the dialog comes late.
+#   booth-press-limits.spec.ts, "a roll that answers while Stop is still pending ...": the spec's fake answers (1.8 s, 3 s) and its 1 s wait are real
+#     time against a press limit read from `Date.now`, so the late sentence lands outside its 6 s window.
+# Counting them back in means giving those mocks and waits the page clock (as `pastStartGuard` has), then deleting the exclusion below.
+on:
+  schedule:
+    - cron: '41 2 * * *'
+  workflow_dispatch: {}
+permissions: {}
+concurrency:
+  group: slow-clock
+  cancel-in-progress: false
+jobs:
+  booth:
+    name: Booth specs, page clock at 70%
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      # Node only, as the sharded visual job: nothing here needs Go, Python or the GTK libraries.
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'false'
+          need-python: 'false'
+          need-stylua: 'false'
+          need-wails-tools: 'false'
+          need-linux-native-deps: 'false'
+      - uses: ./.github/actions/setup-playwright
+        with:
+          variant: plain
+      # `tests/visual/booth-` is a path filter (every booth-*.spec.ts), not a glob. `UI_VISUAL_SHARDED`: a part of the suite, so the checks that need the whole run are left to the full run.
+      - name: Booth specs
+        env:
+          UI_SLOW_CLOCK: '0.7'
+          UI_VISUAL_SHARDED: '1'
+        run: >-
+          pnpm --dir src/studio/ui exec playwright test tests/visual/booth-
+          --grep-invert "the top bar record-connect at|a roll that answers while Stop is still pending"
+          --reporter=list
+  red:
+    name: Open the slow-clock-red issue when the run is red
+    needs: booth
+    # As main-health.yml's HOLD job: `always()`, and a job cancelled at its time limit counts, a run cancelled by a person does not.
+    if: always() && (needs.booth.result == 'failure' || (needs.booth.result == 'cancelled' && !cancelled())) && github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to check out the script
+      issues: write # to open and comment on the issue
+      actions: read # to read this run's failed jobs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node scripts/ci/train-health.mjs red slow-clock
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  green:
+    name: Close the slow-clock-red issue when the run is green
+    needs: booth
+    if: needs.booth.result == 'success' && github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # to check out the script
+      issues: write # to close the issue
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node scripts/ci/train-health.mjs green slow-clock
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

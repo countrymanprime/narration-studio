@@ -3,21 +3,24 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
 
-// #3816: the ledger retention rule and the orphan sweep are in the tree and nothing calls them, so the app deletes no
-// derived file until the owner has answered the trigger and the bounds. The pull request that wires a caller removes the
-// matching entry here on purpose, and adds the threat-model row.
-func TestNothingCallsTheDeletingRetentionCode(t *testing.T) {
-	// Each name with the one file that defines (and, for the coverage service, composes) it.
-	definedIn := map[string]string{
-		"Retain(":             "internal/evidence/ledger.go",
-		"RemoveStoredResult(": "internal/coverage/results.go",
-		"SweepOrphanResults(": "internal/coverage/results.go",
-		"RemoveRegular(":      "internal/persist/remove.go",
+// #3816: the code that deletes derived files is called only from the retention steps the host composes (retention_ledger.go and the
+// steps wired after it), so every automatic delete has one place to review and the threat-model row (7c) to match. A new caller is
+// added here on purpose, with its guard tests.
+// deletingCode matches the deleting code by selector, so a call and a method value are both seen.
+var deletingCode = regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults)\b|\bRemoveRegular\b`)
+
+func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
+	// The deleting code is reached by a selector (a call or a method value), never by name alone, so a reference taken as a value is seen too.
+	// The files that define it, and the retention step files allowed to name it.
+	defining := map[string]bool{
+		"internal/evidence/ledger.go": true, "internal/coverage/results.go": true, "internal/persist/remove.go": true,
 	}
+	steps := map[string]bool{"retention_ledger.go": true, "retention_host.go": true}
 	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -36,10 +39,10 @@ func TestNothingCallsTheDeletingRetentionCode(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		for name, home := range definedIn {
-			allowed := slash == home || name == "RemoveRegular(" && (slash == "internal/coverage/results.go" || slash == "internal/evidence/ledger.go")
-			if !allowed && strings.Contains(string(text), name) {
-				t.Errorf("%s calls %s: the retention code deletes derived files and waits for the owner's answers on #3816 before anything calls it", slash, strings.TrimSuffix(name, "("))
+		for _, found := range deletingCode.FindAllString(withoutCommentLines(string(text)), -1) {
+			// RemoveRegular is also how the two stores delete their own files; those are the defining files.
+			if !defining[slash] && !steps[slash] {
+				t.Errorf("%s names %s: the code that deletes derived files is called only from the retention steps (see the test's comment)", slash, strings.TrimPrefix(found, "."))
 			}
 		}
 		return nil
@@ -47,4 +50,27 @@ func TestNothingCallsTheDeletingRetentionCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// The guard sees a method value taken from an unlisted file, which a call-text match did not.
+func TestTheRetentionGuardSeesAMethodValue(t *testing.T) {
+	for _, source := range []string{"sweep := s.SweepOrphanResults; sweep()", "l.ledger.Retain(keys, nil, nil)", "persist.RemoveRegular(root, name)", "run(checks.RemoveStoredResult)"} {
+		if !deletingCode.MatchString(source) {
+			t.Errorf("the guard does not see %q", source)
+		}
+	}
+	if deletingCode.MatchString("ledgerRetentionKeys and retentionOff") {
+		t.Error("the guard flags a name that only contains the word")
+	}
+}
+
+// withoutCommentLines is source without the lines that are only a comment, which may name the code without calling it.
+func withoutCommentLines(source string) string {
+	var kept []string
+	for _, line := range strings.Split(source, "\n") {
+		if !strings.HasPrefix(strings.TrimSpace(line), "//") {
+			kept = append(kept, line)
+		}
+	}
+	return strings.Join(kept, "\n")
 }

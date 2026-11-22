@@ -262,7 +262,7 @@ describe('where Record starts, by entry and by how much of the chapter is record
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 
-  it('partly recorded, a click elsewhere and then back to the resume point: Record continues with no lookup', async () => {
+  it('partly recorded, a click elsewhere and then back to the resume point: an explicit entry wins, so Record looks that place up (#3858)', async () => {
     const { api, boothPunchTarget } = punchApi({ c1: through() });
     renderPage({ api });
     await waitFor(() => expect(reading()).toBe('said'));
@@ -271,7 +271,9 @@ describe('where Record starts, by entry and by how much of the chapter is record
     act(() => void screen.getByText('said').click());
     await waitFor(() => expect(reading()).toBe('said'));
     await record();
-    expect(boothPunchTarget).not.toHaveBeenCalled();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    // The lookup is for the phrase the reading is on (the resume point, paragraph p2), not any phrase.
+    expect((boothPunchTarget.mock.calls as unknown[][])[0]?.slice(0, 2)).toEqual(['c1', 'p2']);
   });
 
   it('nothing recorded, opened at the beginning: Record starts there with no lookup', async () => {

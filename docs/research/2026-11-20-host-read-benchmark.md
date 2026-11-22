@@ -89,6 +89,33 @@ Files decoded (first call / warm), record folders listed, and allocations of the
 
 At 17 h a warm chapter-list read went from 298 decodes and 178 listings to 152 and 1, and the allocations of a first call from 2.23 to 1.22 million. The budget test's rows are the `f88e387` counts. The real-app tables below are from `270bbb7`.
 
+### The saved project's parse by content hash ([#3897](https://github.com/countrymanprime/narration-studio/pull/3897))
+
+`main` at `0c831c2` against the head of #3897, `4ad2987`, on the seeded books, three processes each, warm median of 9 calls, milliseconds, median over the processes. The rule reads and hashes the saved project on each read, so its cost follows the project's size (`Book.rpp`: 84 KB, 1.21 MB, 2.83 MB and 8.25 MB for the 3, 44, 103 and 300 chapter books above; the 200 chapter book has 20 paragraphs a chapter).
+
+| Binding | 3 chapters | 44 | 103 | 200 | 300 |
+| --- | --- | --- | --- | --- | --- |
+| `ChapterTrackLinks` | 1.0 → 1.2 | 15.8 → 16.3 | 38.3 → 51.7 | 134.2 → 108.1 | 205.0 → 215.0 |
+| `TracksLive` | 0.9 → 1.1 | 13.3 → 15.6 | 23.7 → 32.3 | 52.8 → 61.6 | 86.6 → 95.3 |
+
+The rule adds about 1 to 3 ms at 3 and 44 chapters, 8 to 13 ms at 103 and up to 9 ms at 300 (8 MB of project); the 200 chapter book reads faster with it, which is the spread of three processes. The four chapter-list reads do not read the project file: `ManuscriptChapters` 346 → 322 ms, `ChapterSyncState` 319 → 313 ms and `PickupsList` 365 → 380 ms at 300 chapters, within the spread of the processes.
+
+### The retention pass ([#3958](https://github.com/countrymanprime/narration-studio/pull/3958))
+
+`node scripts/dev/host-read-bench.mjs retention <book>` runs the ledger retention pass twice over a copy of a seeded book, on a host whose ledger store has decoded nothing, then times three reads on a host before the pass and a new one after it. A book checked once holds nothing to remove (the pass is then its cost to find that out). The `x3` books were seeded with `--checks 3`: each chapter holds three complete checks, so two are superseded. Two runs each; the pass in milliseconds, files and MB are the ledger, results and summaries together.
+
+| Book | First pass, ms (two runs) | Files | MB | Records removed | Second pass, ms |
+| --- | --- | --- | --- | --- | --- |
+| 3 chapters | 1, 1 | 9 → 9 | 2.67 → 2.67 | 0 | 0, 0 |
+| 44 chapters | 13, 15 | 132 → 132 | 39.22 → 39.22 | 0 | 5, 4 |
+| 44 chapters, checked three times | 49, 60 | 396 → 132 | 117.66 → 39.22 | 88 | 3, 4 |
+| 103 chapters | 41, 32 | 309 → 309 | 91.81 → 91.81 | 0 | 8, 10 |
+| 200 chapters of 20 paragraphs | 75, 74 | 600 → 600 | 97.11 → 97.11 | 0 | 17, 17 |
+| 300 chapters | 90, 102 | 900 → 900 | 60.80 → 60.80 | 0 | 25, 29 |
+| 300 chapters, checked three times | 357, 517 | 2,700 → 900 | 182.40 → 60.80 | 600 | 24, 29 |
+
+On the two books checked three times, the first call of three reads that walk the ledger, before the pass → after it (median of two runs, ms): 44 chapters `ManuscriptChapters` 161 → 109, `ProductionOverview` 112 → 81, `ChapterSyncState` 54 → 59; 300 chapters `ManuscriptChapters` 978 → 682, `ProductionOverview` 561 → 422, `ChapterSyncState` 439 → 311. On the books checked once there is nothing to remove and the reads do not change (differences within the spread of the runs).
+
 ## The real app
 
 Seconds after the launch command, per launch.
@@ -163,6 +190,19 @@ The slowest call of each first visit, in seconds as the page waited for it:
 
 A first change of 0 in three warm cells means the script saw no change of the page after its measurement began in most of the five runs; it prints 0 for that. A page's own cost stays under one second at every size; what a narrator waits for on a real book is the host reads above.
 
+### Readers moved onto the shared chapter list (#3658)
+
+Host calls and answer size (calls / KB, `--runs 3`) of the Production page before and after its pipeline cells took the chapter list from the store instead of reading it again. Books of 1, 5, 17 and 40 hours (3, 13, 44 and 103 chapters).
+
+| Production | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 53 / 122 | 53 / 167 | 53 / 262 | 53 / 440 |
+| Cold, after | 52 / 121 | 52 / 163 | 52 / 253 | 52 / 422 |
+| Warm, before | 35 / 64 | 35 / 100 | 35 / 176 | 35 / 321 |
+| Warm, after | 34 / 63 | 34 / 96 | 34 / 168 | 34 / 303 |
+
+The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
+
 ## The track list: a 5 s poll against REAPER's change event
 
 [#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 1. Before it, every page that shows the project's tracks (`useLiveTracks`, behind the engine panel, Link chapters, Editing, Proof, Pickups and the Booth's voices) read `TracksLive`, `ChapterTrackLinks` and `VoiceTracksGet` every 5 s while the window was visible. With a revision from REAPER's heartbeat it reads on `daw_tracks_changed`, on focus and on Refresh, and every 30 s for a save in REAPER, which sends no event. Same rig and method as [above](#host-reads): `host-read-bench.mjs seed` then `reads --runs 3` (three processes, medians), here with `--tracks N` for the extra empty tracks. The three reads' warm medians are one tick; the poll is 12 ticks a minute, the event idle 2 (the 30 s read), a change 1.
@@ -204,6 +244,7 @@ A first change of 0 in three warm cells means the script saw no change of the pa
 - **A cold start**, with the operating system's file cache empty.
 - **The split of a call's wait between the host and the bridge to the page.** The page logs the whole wait; the host's share is the read table's, measured alone and not under the page's concurrent calls.
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
-- **300 chapters on the mock**, which sizes a book in hours only.
+- **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
+- **The two sections above (#3897, #3958):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and neither change decodes audio. The pass was timed alone, not beside a recording check or editing writes. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.

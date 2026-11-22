@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { isGuardedTarget, keyContextOf, modalLayerOpen, softLayerOpen, takesTypedText, watchKeyContext } from './targets';
+import { isGuardedTarget, keyContextOf, keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText, watchKeyContext } from './targets';
 
 function el(html: string): Element {
   const div = document.createElement('div');
@@ -121,5 +121,21 @@ describe('the context a keydown begins in', () => {
     watchKeyContext();
     document.body.innerHTML = '<div role="dialog" data-popover-popup="" data-ending-style=""><span role="radio" id="pick" tabindex="0"></span></div>';
     expect(keyContextOf(press(document.getElementById('pick')!))).toEqual({ layerOpen: false, targetClosing: true });
+  });
+});
+
+describe('the live checks and a popup that is closing', () => {
+  it('count it as gone, as the key context does, so the pedal and the router agree (#3976)', () => {
+    document.body.innerHTML = '<div role="dialog" data-popover-popup="" data-ending-style=""></div><div role="alertdialog" data-ending-style=""></div>';
+    expect(keyLayerOpen()).toBe(false);
+    expect(softLayerOpen()).toBe(false);
+    expect(modalLayerOpen()).toBe(false);
+  });
+
+  it('count it while it is open', () => {
+    document.body.innerHTML = '<div role="dialog" data-popover-popup=""></div><div role="alertdialog"></div>';
+    expect(keyLayerOpen()).toBe(true);
+    expect(softLayerOpen()).toBe(true);
+    expect(modalLayerOpen()).toBe(true);
   });
 });
