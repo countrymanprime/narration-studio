@@ -220,6 +220,7 @@ Counted, not in the tables above:
 | `script/page/rail/words/WordCard.tsx:91`, `storybible/source/NamePronunciation.tsx:215` | `CandidatesCheckAgain` in place of the candidates when the lookup failed |
 | `settings/UpdatesPanel.tsx:116` | the result block holding the failure line (listed above as allowed at :126) |
 | `settings/page/ScopedFieldsPanel.tsx:307` | "Unsaved changes" in warn colour above Save |
+| `layout/AddressGate.tsx`, `layout/LoadError.tsx`, `layout/NotFoundPage.tsx`, `primitives/ErrorBoundary.tsx` | full-page error screens, kept by approved default (b); each is allowlisted once | no page PR owns them: exempt them in the guard by name with the reason, in PR 8, so the list can reach empty (`WHOLE_PAGE` in the guard already holds `LoadError`, `LoadErrorPanel`, `BoothUnavailable`) |
 | `storybible/voicesamples/VoiceSampleRow.tsx:136` | the problem sentence under the title (listed above as allowed at :135) |
 
 Not seen by the guard, so the tables are their only record: the reason lines `settings/row/SettingRowView.tsx:268`, `editing/cleanup/CleanupInspector.tsx:114`, `editing/effects/AddEffect.tsx:85,93` and `editing/takes/TakeCompare.tsx:47` (a `reason` or `message` is not an error by its name alone: counting those names added 26 elements, 6 of them in these tables); the connection chip rows in `booth/record/RecordSetup.tsx`; `editing/page/NoAudioBanner.tsx`, which decides inside itself whether to draw; the add-name note `storybible/GuideDetail.tsx:1086`; and `layout/StartupScreen.tsx`.
