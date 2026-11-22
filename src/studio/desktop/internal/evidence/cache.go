@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -255,6 +256,8 @@ type cacheFile struct {
 	name string
 	size int64
 	used time.Time
+	// handle is the file as the scan opened it, for a check that the name still holds the same file.
+	handle os.FileInfo
 	// stamp is the file's modification time as listed: an entry whose time has moved by the time it is reached was used or written since,
 	// and stays.
 	stamp time.Time
@@ -334,7 +337,7 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 				continue
 			}
 		}
-		byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: opened.Size(), used: used, stamp: stamp})
+		byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: opened.Size(), used: used, stamp: stamp, handle: opened})
 	}
 	report.FilesAfter, report.BytesAfter = report.FilesBefore, report.BytesBefore
 	ordered := slices.Clone(policies)
@@ -367,8 +370,16 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 				report.BytesAfter -= file.size
 				continue
 			}
-			if err != nil || !current.ModTime().Equal(file.stamp) {
-				// Used or written since the listing, or not to be looked at: it stays, and still counts against the cap at its size now.
+			if err == nil && !current.Mode().IsRegular() {
+				// A folder, link or pipe has taken the name: not an entry any more, and not in the tally of regular files.
+				kindBytes -= file.size
+				report.FilesAfter--
+				report.BytesAfter -= file.size
+				continue
+			}
+			// Used or written since the listing (the time moved, or on a filesystem with coarse times the size changed or a writer's rename
+			// put another file under the name), or not to be looked at: it stays, and still counts against the cap at its size now.
+			if err != nil || !current.ModTime().Equal(file.stamp) || current.Size() != file.size || !os.SameFile(file.handle, current) {
 				if err == nil {
 					kindBytes += current.Size() - file.size
 					report.BytesAfter += current.Size() - file.size
@@ -444,10 +455,11 @@ func (s *CacheStore) entryAnalyzer(name string) (string, os.FileInfo, bool) {
 		if err != nil || !ok {
 			return "", nil, false
 		}
-		switch key {
-		case "schemaVersion":
+		// encoding/json matches a key without regard to case, and the last one wins: so does this, as far as the blob.
+		switch strings.ToLower(key) {
+		case "schemaversion":
 			err = decoder.Decode(&version)
-		case "analyzerId":
+		case "analyzerid":
 			err = decoder.Decode(&analyzer)
 		case "blob":
 			return analyzer, info, version >= 1 && version <= cacheSchemaVersion

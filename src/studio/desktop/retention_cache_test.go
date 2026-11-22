@@ -143,6 +143,17 @@ func TestTheCacheStepRemovesWhatItsKindsLimitsSayAndReportsIt(t *testing.T) {
 	}
 }
 
+func TestTheCacheStepToleratesANilStopAContextAndStoreNobodyGave(t *testing.T) {
+	project := t.TempDir()
+	step := cacheRetention{cache: evidence.NewCacheStore(project), policies: cacheRetentionPolicies}
+	if report := step.Run(nil, nil); report.Err != nil || report.Stopped { //nolint:staticcheck // a nil context is the point
+		t.Fatalf("a step with no stop, context or clock: %+v", report)
+	}
+	if report := (cacheRetention{}).Run(context.Background(), func() bool { return false }); report.Err == nil {
+		t.Fatalf("a step with no cache reported no error: %+v", report)
+	}
+}
+
 func TestTheCacheStepStopsWhenAPassIsToldTo(t *testing.T) {
 	project := t.TempDir()
 	now := time.Date(2026, 11, 22, 12, 0, 0, 0, time.UTC)

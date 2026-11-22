@@ -447,6 +447,11 @@ func writeUsed(t *testing.T, store *CacheStore, project string, key CacheEntryKe
 	}
 }
 
+func entryNamed(project, name string) bool {
+	_, err := os.Stat(filepath.Join(CacheDir(project), name))
+	return err == nil
+}
+
 func entryExists(project string, key CacheEntryKey) bool {
 	_, err := os.Stat(filepath.Join(CacheDir(project), key.hash()+".json"))
 	return err == nil
@@ -1163,6 +1168,122 @@ func TestPruneKindsCountsASkippedEntryAtItsSizeNow(t *testing.T) {
 	}
 	if want := fileSize(t, project, big) + fileSize(t, project, young); report.BytesAfter != want {
 		t.Fatalf("BytesAfter = %d, want %d (what is on disk)", report.BytesAfter, want)
+	}
+}
+
+// On a filesystem with coarse times a rewrite can leave the listed file time: a changed size (the same file written in place), or another
+// file of the same size under the name (a writer renames over it), still shows. Each is kept, and each is tested without the other's
+// tell: the in-place write keeps the file, the rename keeps the size.
+func TestPruneKindsKeepsAnEntryRewrittenSinceTheListingWithTheSameFileTime(t *testing.T) {
+	rewrites := map[string]func(t *testing.T, path string){
+		"in place, another size": func(t *testing.T, path string) {
+			if err := os.WriteFile(path, make([]byte, 4000), 0o600); err != nil { // truncates and writes the same file
+				t.Fatal(err)
+			}
+		},
+		"renamed over, the same size": func(t *testing.T, path string) {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			other := path + ".copy"
+			if err := os.WriteFile(other, content, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Rename(other, path); err != nil { // another file under the name, as persist.WriteFile does
+				t.Fatal(err)
+			}
+		},
+	}
+	for name, rewrite := range rewrites {
+		t.Run(name, func(t *testing.T) {
+			project := t.TempDir()
+			store := NewCacheStore(project)
+			now := time.Now()
+			rewritten, recent := kindKey("a", "rewritten"), kindKey("a", "recent")
+			listed := now.Add(-3 * time.Hour).Truncate(time.Second)
+			writeUsed(t, store, project, rewritten, 100, listed)
+			writeUsed(t, store, project, recent, 100, now.Add(-time.Minute))
+			path := filepath.Join(CacheDir(project), rewritten.hash()+".json")
+
+			looks := 0
+			stop := func() bool {
+				if looks++; looks == 2 { // after the listing, before the first removal
+					rewrite(t, path)
+					if err := os.Chtimes(path, listed, listed); err != nil { // the time of the listing, as a coarse clock would give it
+						t.Error(err)
+					}
+				}
+				return false
+			}
+			// The cap is the newer entry alone: the older one is the one due to go.
+			if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: fileSize(t, project, recent)}}, now.Add(time.Minute), stop); err != nil {
+				t.Fatal(err)
+			}
+			if !entryExists(project, rewritten) {
+				t.Fatal("an entry written again after the listing was removed because its file time matched the listing")
+			}
+		})
+	}
+}
+
+// A name that became a folder after the listing is not a file in the report.
+func TestPruneKindsDoesNotCountAFolderThatTookAnEntrysName(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	key := kindKey("a", "x")
+	writeUsed(t, store, project, key, 100, pruneNow.Add(-48*time.Hour))
+	path := filepath.Join(CacheDir(project), key.hash()+".json")
+	looks := 0
+	stop := func() bool {
+		if looks++; looks == 2 {
+			if err := os.Remove(path); err != nil {
+				t.Error(err)
+			}
+			if err := os.Mkdir(path, 0o755); err != nil {
+				t.Error(err)
+			}
+		}
+		return false
+	}
+	report, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, stop)
+	if err != nil || report.FilesAfter != 0 || report.BytesAfter != 0 || report.Removed != 0 {
+		t.Fatalf("report = %+v, %v; want no regular file counted as left and none removed", report, err)
+	}
+	if info, err := os.Stat(path); err != nil || !info.IsDir() {
+		t.Fatalf("the folder that took the name was touched: %v", err)
+	}
+}
+
+// The header is read the way encoding/json reads it: keys without regard to case, the last one winning (as far as the blob).
+func TestPruneKindsReadsAnEnvelopesKeysAsEncodingJSONDoes(t *testing.T) {
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	if err := os.MkdirAll(CacheDir(project), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	old := pruneNow.Add(-400 * 24 * time.Hour)
+	files := map[string]string{
+		"lower-case-newer-version.json": `{"schemaVersion": 1, "schemaversion": 7, "analyzerId": "a", "blob": ""}`, // Read: a newer build's entry
+		"upper-case-keys.json":          `{"SCHEMAVERSION": 1, "ANALYZERID": "a", "blob": ""}`,                     // Read: kind a
+	}
+	for name, content := range files {
+		path := filepath.Join(CacheDir(project), name)
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(path, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never); err != nil {
+		t.Fatal(err)
+	}
+	if !entryNamed(project, "lower-case-newer-version.json") {
+		t.Error("an entry Read takes for a newer build's was removed")
+	}
+	if entryNamed(project, "upper-case-keys.json") {
+		t.Error("an entry whose keys differ only in case was not taken for kind a")
 	}
 }
 

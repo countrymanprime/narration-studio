@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"desktop/internal/coverage"
@@ -43,7 +44,14 @@ type cacheRetention struct {
 func (c cacheRetention) Name() string { return "analysis cache" }
 
 func (c cacheRetention) Run(ctx context.Context, stop func() bool) retention.Report {
-	pruned, err := c.cache.PruneKinds(c.policies, c.now(), func() bool { return stop() || ctx.Err() != nil })
+	if c.cache == nil {
+		return retention.Report{Kind: c.Name(), Err: errors.New("no analysis cache was removed: the step has no cache")}
+	}
+	now := time.Now
+	if c.now != nil {
+		now = c.now
+	}
+	pruned, err := c.cache.PruneKinds(c.policies, now(), func() bool { return (stop != nil && stop()) || (ctx != nil && ctx.Err() != nil) })
 	return retention.Report{
 		Kind:        c.Name(),
 		BytesBefore: pruned.BytesBefore, BytesAfter: pruned.BytesAfter,
