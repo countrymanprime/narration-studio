@@ -236,7 +236,7 @@ The primitives supply these. A page that builds its own control instead must sup
 - **CS-K3** A `Switch` that can be off says why: `Switch disabledReason` keeps it a tab stop, announces it unavailable with the reason as its description, and draws the reason beside the label. Plain `disabled` is for a switch whose row already gives the reason.
 - **CS-K4** Every new command that has an `IconButton` and is used often gets a row in `input/commands.catalog.ts`, and its row in `icons.catalog.ts` names the shortcut, which `IconButton` adds to the tooltip and reports as `aria-keyshortcuts`. A `label=` beside `action=` drops both, and a `hint=` or a `disabledReason` replaces the tooltip and so its shortcut.
 - **CS-K5** Native elements (`button`, `select`, `input`, `textarea`, table parts) are not written outside the primitives (`rawNatives.test.ts`), and Base UI is not imported outside them (`baseUiBoundary.test.ts`).
-- **CS-K6** A segmented `ToggleGroup` is one tab stop with arrow-key roving, as `RadioGroup` is. `ToggleGroup` makes every chip a tab stop as of 2026-11-20; CS-E6 orders the fix. **New**.
+- **CS-K6** A segmented `ToggleGroup` is one tab stop with arrow-key roving, as `RadioGroup` is. `ToggleGroup` is one tab stop (Tab lands on the chosen chip, else the first that can take focus; the arrow keys, Home and End move focus and wrap, Enter or Space chooses). **Done**.
 
 ## Sizing and half-width windows
 
@@ -314,7 +314,7 @@ The audit lists every site with its file and line; this table names the larger c
 | Rule | Departure | Audit rows |
 | --- | --- | --- |
 | CS-E6 | Three renderers draw every host `choice` as a `Select` (`components/settings/row/ValueControl.tsx`, `components/settings/ScopedSetting.tsx`, `components/proof/proofOptions/ProofOptions.tsx`), as [Settings rows](design-system.md#settings-rows) records; the registry has no control declaration | S1, S2, F7 |
-| CS-K6 | `ToggleGroup` makes every chip a tab stop | R10 |
+| CS-K6 | `ToggleGroup` was every chip a tab stop; now one tab stop with arrows | R10 |
 | CS-E13 | `ToggleGroup` has no `look="filter"`. Three one-of-N list filters are `ToggleGroup`s in a value look: two segmented (`components/settings/page/SettingsPage.tsx`, `components/settings/page/ModelsPane.tsx`) and one in the default `chip` look (`components/editing/cleanup/CleanupHeader.tsx`) | S19, E8, R4 |
 | CS-E14 | Three track pickers are plain `Select`s (`components/engine/LinkChaptersDialog.tsx`, `components/engine/CreateChapterRegionsDialog.tsx`, `components/booth/voices/WhoIsInDialog.tsx`). `TrackSelect` has no prop for the "key · voice" option label the last one draws | G1, G2, G4 |
 | CS-E1 (search) | `ComboSelect` is not written; three pages write `role="combobox"` themselves (`components/storybible/Relationships.tsx`, `components/script/page/tools/speaker/SpeakerPicker.tsx`, `components/layout/JumpMenu.tsx`), and several `Select`s list chapters or characters | B2, B3, B4, C3, E5, K1, K3, G3, S17 |

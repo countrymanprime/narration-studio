@@ -30,6 +30,7 @@ export function Pill({
   title,
   disabledReason,
   look = 'chip',
+  tabIndex,
   icon,
   action = false,
   raised = false,
@@ -42,6 +43,8 @@ export function Pill({
   /** Off, with the reason: the chip stays focusable and hoverable (a native `disabled` takes neither), a press does nothing, and the reason is its hint and its description. */
   disabledReason?: string;
   look?: PillLook;
+  /** Set by `ToggleGroup`, whose chips share one tab stop; a chip that stands alone leaves it out and is its own tab stop. */
+  tabIndex?: number;
   /** A glyph before the label, asked for by action name. */
   icon?: IconName;
   /** A chip that does something when pressed and holds no state (the approval's "2 effects above"): a plain button, with no `aria-pressed`. */
@@ -65,6 +68,7 @@ export function Pill({
       disabled={disabled}
       aria-disabled={gated || undefined}
       aria-describedby={gated ? reasonId : undefined}
+      tabIndex={tabIndex}
       onClick={() => (gated ? undefined : onClick?.())}
       // Off with a reason it is dimmed like the toggle chip (`ariaStateGuards.test.ts` holds every raw aria-disabled button to that).
       className={`${className} aria-disabled:opacity-75`}
@@ -77,6 +81,7 @@ export function Pill({
       disabled={disabled}
       aria-disabled={gated || undefined}
       aria-describedby={gated ? reasonId : undefined}
+      tabIndex={tabIndex}
       onPressedChange={() => (gated ? undefined : onClick?.())}
       className={className}
     >

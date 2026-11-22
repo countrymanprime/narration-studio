@@ -13,6 +13,8 @@ export type Voice = {
   name: string;
   /** "0" for the Narrator track, "1" to "9" for the others in REAPER order, "" past nine. */
   key: string;
+  /** The number-pad digit that, with Shift held, chooses the voice past nine: "0" for the 10th to "9" for the 19th. Absent below ten and past nineteen. */
+  shift?: string;
   narrator: boolean;
   /** The narrator marked this child as not a voice (a music bed): it has no key and records no character, and the Booth does not list it. */
   notVoice: boolean;
@@ -20,6 +22,9 @@ export type Voice = {
 };
 
 const NARRATOR = 'narrator';
+
+/** The number-pad digit that, with Shift held, chooses the voice in `place` (1 is the first voice after the Narrator): "0" for the 10th to "9" for the 19th, undefined elsewhere. */
+export const shiftDigitOfPlace = (place: number): string | undefined => (place >= 10 && place <= 19 ? String(place - 10) : undefined);
 const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
 
 /** The direct children of the folder `folderGuid` among `tracks` (file order, with depth), or [] when it is not a folder. */
@@ -100,7 +105,16 @@ export function folderVoices(
     const narrator = !narratorSeen && (same(track.name, NARRATOR) || (!anyNamed && setup.narratorGuids.includes(track.guid.toLowerCase())));
     if (narrator) narratorSeen = true;
     const key = narrator ? '0' : next <= 9 ? String(next) : '';
+    const shift = narrator ? undefined : shiftDigitOfPlace(next);
     if (!narrator) next += 1;
-    return { guid: track.guid, name: track.name, key, narrator, notVoice, characters: charactersOf(track, entities, setup, narrator) };
+    return {
+      guid: track.guid,
+      name: track.name,
+      key,
+      ...(shift === undefined ? {} : { shift }),
+      narrator,
+      notVoice,
+      characters: charactersOf(track, entities, setup, narrator),
+    };
   });
 }
