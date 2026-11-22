@@ -105,7 +105,7 @@ export function PickupsPage({
   const load = useCallback(async () => {
     const mine = ++started.current;
     try {
-      const [all, answer] = await Promise.all([readChapters(mine > 1), pickupsApi.pickupsList()]);
+      const [all, answer] = await Promise.all([readChapters(), pickupsApi.pickupsList()]);
       if (!alive.current || mine < shown.current) return;
       shown.current = mine;
       showing.current = true;

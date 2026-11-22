@@ -93,7 +93,7 @@ function sayOnce(prefix: string, reason: string): string {
 }
 
 function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, focusFile }: BodyProps & { projectFolder: string }) {
-  const readChapters = useReadChapters();
+  const readChapters = useReadChapters(projectFolder);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [chaptersProblem, setChaptersProblem] = useState<string>();
   const [chaptersRead, setChaptersRead] = useState(false);

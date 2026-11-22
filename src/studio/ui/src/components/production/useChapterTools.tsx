@@ -121,17 +121,20 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
 
-  // The list is the store's: the first read serves what it holds, every later one (a refresh key, a kind changed) reads it now.
+  // The list is the store's: a mount or a refresh key serves what it holds (the store reads again by its own events); only a write this page just made (a chapter's
+  // kind) reads it now, since no event announces that one.
   const readChapters = useReadChapters();
-  const chaptersRead = useRef(0);
-  const loadChapters = useCallback(async () => {
-    try {
-      setChapters(await readChapters(chaptersRead.current++ > 0));
-    } catch (error) {
-      setChapters([]);
-      notify(describeApiError(error), 'error');
-    }
-  }, [readChapters, notify]);
+  const loadChapters = useCallback(
+    async (afterWrite = false) => {
+      try {
+        setChapters(await readChapters(afterWrite));
+      } catch (error) {
+        setChapters([]);
+        notify(describeApiError(error), 'error');
+      }
+    },
+    [readChapters, notify],
+  );
   // `afterWrite`: a link was just written and said so, so a failed read is "the change was made, but the list could not be read again", as every other surface says it (#3398).
   const loadTrackLinks = useCallback(
     async (afterWrite = false) => {
@@ -201,7 +204,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
 
   // Remove rethrows on failure so the slide-over's confirm stays open for a retry.
   const afterKind = async () => {
-    await loadChapters();
+    await loadChapters(true);
     await loadTrackLinks();
     onChanged();
   };

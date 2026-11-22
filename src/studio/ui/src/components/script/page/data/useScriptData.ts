@@ -14,7 +14,7 @@ import type { ChapterNameInput } from '../../../../chapterName';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { canSpeak } from '../../../../storyBibleTypes';
-import { useJournal } from '../../../../studio/StudioProvider';
+import { useJournal, useOptionalStoreHandle } from '../../../../studio/StudioProvider';
 import { pronounceOwn, subscribePronunciationChanged } from '../../../../studio/commands/pronounce';
 import { removeFromMyDictionary, saveToMyDictionary } from '../../../../studio/commands/userDictionary';
 import type { Result } from '../../../../studio/journal/createJournal';
@@ -44,6 +44,25 @@ const hosts = new WeakMap<object, ScriptHost>();
 function useScriptHost(): ScriptHost {
   const manuscript = usePort('manuscript');
   const readChapters = useReadChapters();
+  const store = useOptionalStoreHandle();
+  // The page follows the store's list: each time the slot holds a new list, the page's chapters are that list.
+  const followChapters = useMemo(
+    () =>
+      store
+        ? (onList: (list: ManuscriptChapter[]) => void, onFailed: (error: unknown) => void) => {
+            let last = store.getState().slots.chapters;
+            let lastError = store.getState().errors.chapters;
+            return store.subscribe(() => {
+              const { slots, errors } = store.getState();
+              if (slots.chapters && slots.chapters !== last) onList([...slots.chapters]);
+              else if (errors.chapters && errors.chapters !== lastError) onFailed(errors.chapters);
+              last = slots.chapters;
+              lastError = errors.chapters;
+            });
+          }
+        : undefined,
+    [store],
+  );
   const marks = usePort('marks');
   const scriptPrep = usePort('scriptPrep');
   const storyBible = usePort('storyBible');
@@ -52,12 +71,21 @@ function useScriptHost(): ScriptHost {
     const found = hosts.get(marks);
     if (found) return found;
     const created = {
-      data: createScriptData({ manuscript, readChapters, marks, scriptPrep, storyBible, system, pronunciation: { subscribe: subscribePronunciationChanged } }),
+      data: createScriptData({
+        manuscript,
+        readChapters,
+        followChapters,
+        marks,
+        scriptPrep,
+        storyBible,
+        system,
+        pronunciation: { subscribe: subscribePronunciationChanged },
+      }),
       view: createScriptView(),
     };
     hosts.set(marks, created);
     return created;
-  }, [manuscript, readChapters, marks, scriptPrep, storyBible, system]);
+  }, [manuscript, readChapters, followChapters, marks, scriptPrep, storyBible, system]);
   useEffect(() => host.data.start(), [host]);
   return host;
 }
