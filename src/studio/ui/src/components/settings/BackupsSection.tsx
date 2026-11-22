@@ -138,7 +138,10 @@ export function BackupsSection() {
   const [settingsError, setSettingsError] = useState('');
   const [settingsRead, setSettingsRead] = useState(0);
   const [saveError, setSaveError] = useState('');
-  const loadError = failed ? describeApiError(error) : settingsError;
+  // The settings are read only while the report calls for it; an error from a read the report no longer calls for is not shown (the capability's own
+  // sentence stands in for the rows), and Retry would have nothing to read.
+  const reads = Boolean(caps && hasBackups(caps) && caps.capabilities['backups']?.available);
+  const loadError = failed ? describeApiError(error) : reads ? settingsError : '';
 
   const readSettings = useCallback(async () => {
     const [global, project] = await Promise.all([system.settingsForScope('global'), system.settingsForScope('project')]);
@@ -146,7 +149,7 @@ export function BackupsSection() {
   }, [system]);
 
   useEffect(() => {
-    if (!caps || !hasBackups(caps) || !caps.capabilities['backups']?.available) return undefined;
+    if (!reads) return undefined;
     let live = true;
     readSettings().then(
       () => live && setSettingsError(''),
@@ -155,7 +158,7 @@ export function BackupsSection() {
     return () => {
       live = false;
     };
-  }, [caps, readSettings, settingsRead]);
+  }, [reads, caps, readSettings, settingsRead]);
 
   const save = useCallback(
     async (scope: Scope, values: Record<string, string | null>) => {

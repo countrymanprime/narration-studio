@@ -196,6 +196,29 @@ describe('BackupsSection', () => {
     expect(screen.queryByText('Audacity has not reported its backups yet.')).toBeNull();
   });
 
+  it('a settings read error does not outlive the report that called for the read: a quiet Audacity shows its own sentence, not the old error and a dead Retry', async () => {
+    let report: (caps: DawCapabilities) => void = () => undefined;
+    const subscribeCapabilities = vi.fn((callback: (caps: DawCapabilities) => void) => {
+      report = callback;
+      return () => undefined;
+    });
+    const quiet = 'Audacity is not answering. Open the Audacity chip at the top for the steps.';
+    renderSection({
+      daw: { subscribeCapabilities },
+      overrides: { settingsForScope: vi.fn(async () => Promise.reject(new Error('the settings file is unreadable'))) },
+    });
+    await screen.findByRole('alert');
+    act(() =>
+      report({
+        ...DAW_SETUPS.audacity,
+        reachable: false,
+        capabilities: { ...DAW_SETUPS.audacity.capabilities, backups: { level: 'experimental', available: false, reason: 'not_running', message: quiet } },
+      }),
+    );
+    expect(await screen.findByText(quiet)).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('standalone-and-self-contained: it takes no props, so a page can draw it anywhere', async () => {
     const Section = BackupsSection;
     render(
