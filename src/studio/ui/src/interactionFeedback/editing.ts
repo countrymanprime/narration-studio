@@ -58,7 +58,6 @@ export const editingFeedback: Record<string, FeedbackRow> = {
 
   'src/components/editing/script/useEditingDoc.ts::workspaceAlignment#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Reads the chapter\'s paragraphs for the script document with the heard words; a failure puts the document in its error state with the message.'),
   // The assembled Editing page (EditingPage.tsx and page/): what it reads when it opens.
-  'src/components/editing/EditingPage.tsx::manuscriptChapters#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The narration chapters for the chapter picker; a failed read is written in place at the top of the page.'),
   'src/components/editing/page/useChapterSource.ts::workspaceAlignment#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The chapter\'s text and what was heard, read with the stored lists below as one load; a failure of any of them puts the page in its error state with the message.'),
   'src/components/editing/page/useChapterSource.ts::editingCutsList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The chapter\'s stored cuts, read with the text; a failure is the page\'s error state.'),
   'src/components/editing/page/useChapterSource.ts::editingWordFxList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The chapter\'s stored word effects, read with the text; a failure is the page\'s error state.'),

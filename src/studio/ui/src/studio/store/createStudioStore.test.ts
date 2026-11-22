@@ -685,7 +685,7 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
       store.setProject('A');
       store.reset();
       const asked = store.ensure('a', { project: 'A' });
-      const outcome = expect(asked).rejects.toThrow('not confirmed');
+      const outcome = expect(asked).rejects.toThrow('still being opened');
       await vi.advanceTimersByTimeAsync(5001);
       await outcome;
       expect(load).not.toHaveBeenCalled();
@@ -730,5 +730,24 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
     reread.resolve({ count: 7 });
     await asked;
     expect(store.getState().slots.a).toEqual({ count: 7 });
+  });
+
+  it('a read the host never answers gives way: the reader fails, and its Retry reads again (qa R-3)', async () => {
+    vi.useFakeTimers();
+    try {
+      const load = vi
+        .fn()
+        .mockReturnValueOnce(new Promise(() => undefined))
+        .mockResolvedValue({ count: 3 });
+      const { store } = make({ a: { schema: isCount, load } });
+      const asked = store.ensure('a');
+      const outcome = expect(asked).rejects.toThrow('did not answer');
+      await vi.advanceTimersByTimeAsync(15_001);
+      await outcome;
+      await store.load('a');
+      expect(store.getState().slots.a).toEqual({ count: 3 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

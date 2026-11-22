@@ -32,6 +32,7 @@ const COVERED: Record<string, readonly string[]> = {
 
 /** Source file -> why the credits are left out of what it reads (a chapter's own text, or nothing to list). */
 const EXEMPT: Record<string, string> = {
+  'components/chapterTracks/useChapterNameOf.ts': 'names one chapter by its id; the credits are named like any chapter (useChapterNameOf.test)',
   'components/chapterTracks/useChapterLinkActions.ts':
     "reads the chapters only to name the chapter that lost a track; the credits are linked and named like any chapter, and a name the list lacks falls back to the host's kept title",
   'components/settings/RetailSamplePanel.tsx': "the retail sample is picked from the book's text; the credits have none (CreditsPanel tests)",
@@ -55,7 +56,7 @@ function sources(dir: string): string[] {
 
 describe('every surface that reads the chapter list shows the credits', () => {
   const readers = sources(SRC)
-    .filter((path) => readFileSync(path, 'utf8').includes('manuscriptChapters()'))
+    .filter((path) => /manuscriptChapters\(\)|studio\/useChapters'/.test(readFileSync(path, 'utf8')))
     .map((path) => relative(SRC, path).split(sep).join('/'))
     .sort();
 

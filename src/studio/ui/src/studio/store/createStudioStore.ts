@@ -48,7 +48,7 @@ export type StudioStoreOptions<R extends SlotRegistry> = {
 type ReadOptions = { project?: string };
 
 /** What a reader that named a project is told when the app is on another one: the page is about to be drawn for the new project. */
-class ProjectChangedError extends Error {
+export class ProjectChangedError extends Error {
   constructor() {
     super('The project changed while its chapters were being read.');
     this.name = 'ProjectChangedError';
@@ -141,6 +141,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   // The read in flight for each slot, whoever started it (a load, an event, an ensure), so an ensure joins it instead of starting another.
   // A read out longer than `STUCK_READ_MS` is not joined and does not hold back the next one (a host call that never answers must not freeze the slot).
   const STUCK_READ_MS = 5000;
+  /** How long a reader waits on one read before it fails with "The host did not answer." (the store joins a read for the stuck age, then starts another). */
+  const READ_GIVES_UP_MS = 15_000;
   /** Whether a read that started at `at` is still worth joining: not out longer than the stuck age (a clock set back counts as out too long). */
   const young = (at: number) => {
     const age = Date.now() - at;
@@ -219,7 +221,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
         else done(() => reject(new ProjectChangedError()));
       };
       // A reader ahead of the store (its folder is the new one, the app's effect has not told the store yet) is answered by `setProject` in the same commit.
-      const timer = setTimeout(() => done(() => reject(new Error('The project is not confirmed yet.'))), STUCK_READ_MS);
+      const timer = setTimeout(() => done(() => reject(new Error('The project is still being opened. Try again in a moment.'))), STUCK_READ_MS);
       waiters.add(check);
     });
   }
@@ -235,8 +237,14 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       const before = epoch;
       let release = () => {};
       const dropped = new Promise<void>((resolve) => releases.add((release = resolve)));
-      return Promise.race([once(), dropped])
-        .finally(() => releases.delete(release))
+      // A host that never answers gives way after a while (a skeleton with no way out is no state): the reader fails and its Retry reads again.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const silent = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error('The host did not answer.')), READ_GIVES_UP_MS)));
+      return Promise.race([once(), dropped, silent])
+        .finally(() => {
+          releases.delete(release);
+          clearTimeout(timer);
+        })
         .then(() => {
           if (epoch === before || holds(name, options.project) || round >= 2) return;
           return readUntilKept(name, options, once, round + 1);

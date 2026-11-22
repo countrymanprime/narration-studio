@@ -38,6 +38,7 @@ import { RunningView } from './RunningView';
 import { CheckActivityPanel } from './CheckActivityPanel';
 import { summarizeActivity } from './activityView';
 import { plural } from '../../plural';
+import { useReadChapters } from '../../studio/useChapters';
 
 /** The dialog's section labels: the Chapters column, Audio to check. */
 const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
@@ -58,7 +59,7 @@ type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageR
  * row's Show result, the dialog shows that chapter's full report (`CheckResult`); a refused chapter's row says why with the fix in place.
  */
 export function CheckRecordingsDialog({ preselected, onClosed, close }: { preselected: readonly string[]; onClosed?: () => void; close: () => void }) {
-  const manuscript = usePort('manuscript');
+  const readChapters = useReadChapters();
   const coverage = usePort('coverage');
   const whisper = usePort('whisper');
   const overlay = useOverlay();
@@ -92,7 +93,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
     let active = true;
     void (async () => {
       try {
-        const [allChapters, engines] = await Promise.all([manuscript.manuscriptChapters(), coverage.coverageEngines()]);
+        const [allChapters, engines] = await Promise.all([readChapters(), coverage.coverageEngines()]);
         const chapters = recordedChapters(allChapters, preselected);
         const results = Object.fromEntries(
           await Promise.all(chapters.map(async (chapter) => [chapter.id, await coverage.coverageResult(chapter.id)] as const)),
@@ -113,7 +114,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
     return () => {
       active = false;
     };
-  }, [manuscript, coverage, preselected]);
+  }, [readChapters, coverage, preselected]);
 
   // The host's live progress and the end of each run.
   useEffect(
