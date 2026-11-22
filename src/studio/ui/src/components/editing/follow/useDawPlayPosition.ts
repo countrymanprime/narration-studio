@@ -71,7 +71,12 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
   // The transport event (and the page becoming visible, or the DAW answering, which hears the state the session already holds).
   useEffect(() => {
     if (heard.current.transport !== transport) heard.current = { transport, count: heard.current.count + 1 };
-    if (!enabled || !visible) return;
+    // A stop heard while the page is hidden is still tracked, so a DAW lost after it keeps the word as any stop does.
+    if (!enabled) return;
+    if (!visible) {
+      if (!transport.playing || transport.recording) dawPlaying.current = false;
+      return;
+    }
     apply(transport.playing && !transport.recording, transport.position ?? 0);
     // The word table arriving after a play started (or another chapter's) lights the word at once, not at the next heartbeat.
   }, [apply, enabled, visible, transport, clock]);
@@ -102,6 +107,26 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
       clearInterval(timer);
     };
   }, [daw, apply, enabled, visible]);
+
+  // The DAW stopped answering while the page showed a play of it: no event will end that play, so it ends here and its word is cleared, as when the
+  // DAW stops. A word kept lit after a stop stays (it clears when the cursor moves), and a playhead the app itself moved is not touched.
+  useEffect(() => {
+    if (enabled) return;
+    // `dawPlaying` is left as it was: the next transport event sets it, and a DAW that is still playing when it comes back is not a new play (the follow the
+    // narrator turned off with a hand scroll stays off).
+    const { state: s, dispatch: send } = live.current;
+    if (dawPlaying.current && mine.current != null && s.playT === mine.current) {
+      mine.current = null;
+      send({ type: 'play', t: null });
+    }
+  }, [enabled]);
+
+  // A play the app itself started (or a halt of the page's play) ends what `mine` remembered: the DAW's last word is not the app's play,
+  // whatever second it starts on.
+  const playT = state.playT;
+  useEffect(() => {
+    if (playT == null || playT !== mine.current) mine.current = null;
+  }, [playT]);
 
   // After the DAW stops, the word it reached stays lit until the cursor or the selection moves.
   const { cursor, sel } = state;

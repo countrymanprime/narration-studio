@@ -1,11 +1,13 @@
 import { useCallback, useState, type ReactNode } from 'react';
+import { useErrorToast } from '../../../hooks/useErrorToast';
 import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
 import { ColourField } from '../../primitives/ColourField';
 import { Dialog } from '../../primitives/Dialog';
-import { NumberInput } from '../../primitives/NumberInput';
+import { IconButton } from '../../primitives/IconButton';
 import { Select } from '../../primitives/Select';
 import { Switch } from '../../primitives/Switch';
+import { SettingNumber } from '../../settings/value/SettingNumber';
 import type { ScopedSettingField } from '../../../types';
 import { choiceOptions } from '../../settings/data/values';
 import { rowOfField } from '../../settings/registry/panelFields';
@@ -15,18 +17,18 @@ function Row({ tool, field, onSet }: { tool: string; field: ScopedSettingField; 
   const range = field.number;
   const control =
     field.kind === 'number' && range ? (
-      <span className="flex items-center gap-2">
-        <NumberInput
-          label={field.label}
-          className="max-w-[8rem]"
-          value={Number(field.effectiveValue)}
-          min={range.min ?? undefined}
-          max={range.max ?? undefined}
-          step={range.step ?? undefined}
-          onValueChange={(n) => void onSet(field.key, String(n))}
-        />
-        {range.unit ? <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{range.unit}</span> : null}
-      </span>
+      // Saved when the narrator settles on it, never per key; an emptied box hands the setting back, as Reset does. The range note under the box
+      // says what a typed number past it is saved as (CS-N1), as in Settings.
+      <SettingNumber
+        label={field.label}
+        className="max-w-[8rem]"
+        value={field.effectiveValue}
+        range={range}
+        commit="settle"
+        allowEmpty
+        showRange
+        onChange={(value) => onSet(field.key, value === '' ? null : value)}
+      />
     ) : field.kind === 'choice' ? (
       <Select
         label={field.label}
@@ -40,9 +42,7 @@ function Row({ tool, field, onSet }: { tool: string; field: ScopedSettingField; 
       <ColourField mode="free" label={field.label} value={field.effectiveValue} hexClassName="max-w-[8rem]" onChange={(hex) => onSet(field.key, hex)} />
     ) : null;
   const reset = field.isSet ? (
-    <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => void onSet(field.key, null)}>
-      Reset
-    </Button>
+    <IconButton action="undo" label={`Reset ${field.label}`} className="border-transparent" onClick={() => void onSet(field.key, null)} />
   ) : null;
   // A switch is its own label, so its row has no label column. Only the stored text "true" is on, as in Settings.
   if (field.kind === 'bool')
@@ -55,9 +55,10 @@ function Row({ tool, field, onSet }: { tool: string; field: ScopedSettingField; 
       </div>
     );
   if (!control) return null;
+  // Lined up on the box, not on the box and the note under it: the label and Reset are a box tall and start at its top.
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-      <span className="w-56 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{field.label}</span>
+    <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
+      <span className="flex min-h-[var(--button-height)] w-56 items-center text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{field.label}</span>
       {control}
       {reset}
     </div>
@@ -88,7 +89,13 @@ export function ProofOptions({
   note?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const { fields, error, set } = useProjectOptions(tool, keys, { enabled: open, onSaved });
+  const { fields, error, set, forgetError } = useProjectOptions(tool, keys, { enabled: open, onSaved });
+  // A save can end after the dialog has gone (a number typed, then Close or a press outside): its refusal has no dialog to show in, so it is a toast.
+  useErrorToast(open ? undefined : error);
+  const close = () => {
+    forgetError();
+    setOpen(false);
+  };
   useCommandProvider(
     useCallback(
       () => [{ id: `options.open.${tool}.${keys.join('.')}`, group, label: `Open ${title}`, hint: 'This project', run: () => setOpen(true) }],
@@ -101,9 +108,9 @@ export function ProofOptions({
       title={title}
       description="Saved at once for this project. Settings sets the same values for every project."
       dismissOnOutsidePress={true}
-      onClose={() => setOpen(false)}
+      onClose={close}
       actions={
-        <Button variant="secondary" onClick={() => setOpen(false)}>
+        <Button variant="secondary" onClick={close}>
           Close
         </Button>
       }

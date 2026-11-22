@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import { describeApiError } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
@@ -30,10 +30,14 @@ function windowWords(seconds: number): string {
   return `about ${seconds >= 60 ? plural(Math.round(seconds / 60), 'minute') : plural(seconds, 'second')} either side`;
 }
 
-/** The value a row stands for: the edit when it is a valid number, else what is in force. */
+/** Whether a row's edit is text its box held because it is not a number (`onRefused`); every number the box reports is one the range accepts. */
+function isNotANumber(row: BackupsRow, draft: string | undefined): boolean {
+  return draft !== undefined && draft !== '' && row.field.number !== undefined && numberProblem(row.field.number, draft) !== undefined;
+}
+
+/** The value a row stands for: the edit when it is a number, else what is in force. */
 function shown(row: BackupsRow, draft: string | undefined): number {
-  const valid = draft !== undefined && draft !== '' && row.field.number && !numberProblem(row.field.number, draft);
-  return Number(valid ? draft : row.field.effectiveValue);
+  return Number(draft && !isNotANumber(row, draft) ? draft : row.field.effectiveValue);
 }
 
 export type BackupsViewProps = {
@@ -125,7 +129,7 @@ function rowsOf(global: ScopedSettingField[], project: ScopedSettingField[]): Ba
  * Settings > DAW: Backups (SNM-3b). Drawn only when the DAW reports the `backups` capability as built; when it
  * is there but unavailable (the DAW not running) the capability's own sentence stands in for the rows. The window
  * either side of an edit and the retention are the DAW tool's two number settings, edited through `ScopedSetting` and
- * saved when a box is left, at the layer the value comes from, with the store's own range check. It takes no props, so a Settings
+ * saved when a box is left, at the layer the value comes from; a number past the store's range is saved as the nearest limit. It takes no props, so a Settings
  * page mounts it as `<BackupsSection />`. The report is read when it mounts, as the Editing drawer reads it.
  */
 export function BackupsSection() {
@@ -135,6 +139,13 @@ export function BackupsSection() {
   const caps = report ?? undefined;
   const [rows, setRows] = useState<BackupsRow[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  // What `commit` reads: leaving a box can change its draft (a number past the range becomes the limit) in the same event that commits it,
+  // before the state above has drawn.
+  const latestDrafts = useRef(drafts);
+  const holdDrafts = useCallback((next: Record<string, string>) => {
+    latestDrafts.current = next;
+    setDrafts(next);
+  }, []);
   const [settingsError, setSettingsError] = useState('');
   const [settingsRead, setSettingsRead] = useState(0);
   const [saveError, setSaveError] = useState('');
@@ -166,28 +177,25 @@ export function BackupsSection() {
         await system.saveSettings(TOOL, scope, values);
         setSaveError('');
         await readSettings();
-        // Only what was saved leaves the form: a value held in the other box because its range refuses it stays (#3877 B1).
-        setDrafts((current) => Object.fromEntries(Object.entries(current).filter(([key]) => !(key in values))));
+        // Only what was saved leaves the form: what is being typed in the other box stays.
+        holdDrafts(Object.fromEntries(Object.entries(latestDrafts.current).filter(([key]) => !(key in values))));
       } catch (error) {
         setSaveError(describeApiError(error));
       }
     },
-    [readSettings, system],
+    [readSettings, system, holdDrafts],
   );
 
   const commit = (key: string) => {
     const row = rows.find((candidate) => candidate.field.key === key);
-    const draft = drafts[key];
-    if (!row || draft === undefined || draft === row.field.value) return;
-    if (row.field.number && numberProblem(row.field.number, draft)) return;
+    const draft = latestDrafts.current[key];
+    if (!row || draft === undefined || draft === row.field.value || isNotANumber(row, draft)) return;
     void save(row.scope, { [key]: draft === '' ? null : draft });
   };
 
-  // A value outside its range is held in its box, not saved: leaving the category or the page asks before it is dropped (#3877 N6).
-  const refused = rows.some(
-    ({ field }) => drafts[field.key] !== undefined && field.number !== undefined && numberProblem(field.number, drafts[field.key]!) !== undefined,
-  );
-  useUnsavedDraft('audacity-backups', { dirty: refused, label: 'a backups value outside its range', discard: () => setDrafts({}) });
+  // Text that is not a number is held in its box, not saved: leaving the category or the page asks before it is dropped (#3877 N6).
+  const held = rows.some((row) => isNotANumber(row, drafts[row.field.key]));
+  useUnsavedDraft('audacity-backups', { dirty: held, label: 'a backups value that is not a number', discard: () => holdDrafts({}) });
 
   // The row is shown for a project that records with Audacity; a report that is not Audacity's yet (the old tool's, until Audacity connects) says so
   // here rather than leaving a label with no control. The report is read again when it changes, so the row turns on when Audacity reports.
@@ -205,7 +213,7 @@ export function BackupsSection() {
       }}
       rows={rows}
       drafts={drafts}
-      onChange={(key, value) => setDrafts((current) => ({ ...current, [key]: value }))}
+      onChange={(key, value) => holdDrafts({ ...latestDrafts.current, [key]: value })}
       onCommit={commit}
       onClearOverride={(key) => void save('project', { [key]: null })}
       saveError={saveError}

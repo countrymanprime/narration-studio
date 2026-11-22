@@ -62,7 +62,6 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/settings/page/ScopedFieldsPanel.tsx': 1,
   'components/settings/page/SettingsPage.tsx': 1,
   'components/settings/page/StoryBibleTypesPanel.tsx': 1,
-  'components/settings/row/ValueControl.tsx': 1,
   'components/stages/StageEvidence.tsx': 1,
   'components/storybible/Guide.tsx': 1,
 };

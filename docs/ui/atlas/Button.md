@@ -158,7 +158,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
 - `src/components/settings/RetailSamplePanel.tsx`
-- `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/UpdatesPanel.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
 - `src/components/settings/controls/CreditsBody.tsx`
