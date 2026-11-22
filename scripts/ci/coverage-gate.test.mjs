@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -27,6 +27,7 @@ import {
   report,
   packageFolder,
   raceScope,
+  raceSkippedRuns,
   raceSkippedTests,
   splitRacePackages,
   touchedPackages,
@@ -494,4 +495,52 @@ test('raceSkippedTests names the tests of the files that start with the !race bu
 test('the tests this repository keeps out of a raced run are the ones named in the Go tree today', () => {
   const folder = fileURLToPath(new URL('../../src/studio/desktop/internal/guide', import.meta.url));
   assert.deepEqual(raceSkippedTests(folder), ['TestBuildMatchesTheSidecar', 'TestCaseFoldingMatchesTheSidecarForEveryCasedCharacter']);
+});
+
+test('the extra plain run of the !race tests happens once for each raced package and for no other', () => {
+  const groups = groupPackages(layout, MODULE);
+  const folders = { 'src/app/internal/a': ['a_slow_test.go'], 'src/app/internal/b': ['b_test.go'], 'src/app': ['root_test.go'] };
+  const files = { 'a_slow_test.go': '//go:build !race\n\npackage a\n\nfunc TestSlow(tt *testing.T) {}\n', 'b_test.go': 'package b\n\nfunc TestB(t *testing.T) {}\n', 'root_test.go': 'package app\n' };
+  const list = (dir) => folders[dir];
+  const read = (path) => files[path.split(/[\\/]/).pop()];
+  const runs = (raced, extra = ['-race']) => raceSkippedRuns(raced, 'src/app', MODULE, extra, list, read);
+  const slow = `${MODULE}/internal/a`;
+  assert.deepEqual(runs(raceScope(groups, ['race', 'plain'], null).raced).map((r) => r.pkg), [slow], 'main-health: a raced package with a !race file runs it once');
+  assert.deepEqual(runs(raceScope(groups, ['race', 'plain'], new Set()).raced), [], 'a pull request that leaves it untouched ran the whole package plain already');
+  assert.deepEqual(runs(raceScope(groups, ['race', 'plain'], new Set([slow])).raced).map((r) => r.pkg), [slow], 'a pull request that touches it');
+  assert.deepEqual(runs(raceScope(groups, ['root'], null).raced), [], 'the root job holds only the root package');
+  const [run] = runs([slow], ['-race', '-timeout=20m']);
+  assert.deepEqual(run.args, ['-timeout=20m', '-run', '^(TestSlow)$', slow], 'no -race and no -cover, one anchored -run');
+  assert.deepEqual(run.names, ['TestSlow'], 'a test whose parameter is not named t is found');
+});
+
+test('every Go test file that mentions race in its build line is one the gate understands', () => {
+  const root = fileURLToPath(new URL('../../src/studio/desktop', import.meta.url));
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      if (entry.isDirectory()) walk(join(dir, entry.name));
+      else if (entry.name.endsWith('_test.go')) files.push(join(dir, entry.name));
+    }
+  };
+  walk(root);
+  assert.ok(files.length > 100, 'found the Go tests');
+  const found = [];
+  for (const file of files) {
+    const lines = readFileSync(file, 'utf8').split('\n');
+    const header = lines.slice(0, lines.findIndex((line) => line.startsWith('package ')));
+    const build = header.map((line, index) => ({ line, index })).filter((entry) => /^\/\/go:build\b/.test(entry.line) && /\brace\b/.test(entry.line));
+    if (build.length === 0) continue;
+    found.push(file);
+    // A constraint the gate does not parse (a compound one, one after a comment, a second one) would leave a Test out of the raced run
+    // and out of the extra pass, with nothing reporting it.
+    assert.equal(build.length, 1, `${file}: one //go:build line`);
+    assert.ok(build[0].index === 0 && /^\/\/go:build (!race|race)\s*$/.test(build[0].line), `${file}: a race constraint is the first line and exactly //go:build race or //go:build !race (coverage-gate.mjs raceSkippedTests)`);
+    if (build[0].line.includes('!race')) {
+      const tests = [...lines.join('\n').matchAll(/^func (Test\w+)\(/gm)].map((match) => match[1]);
+      assert.deepEqual(raceSkippedTests(dirname(file), () => [file.split(/[\\/]/).pop()]).sort(), tests.sort(), `${file}: every Test is found`);
+    }
+  }
+  assert.ok(found.length >= 2, 'found the race files that exist today');
 });

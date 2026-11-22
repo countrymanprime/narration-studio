@@ -186,9 +186,23 @@ export function raceSkippedTests(folder, list = (dir) => readdirSync(dir), read 
   for (const file of list(folder).filter((name) => name.endsWith('_test.go')).sort()) {
     const text = read(join(folder, file));
     if (!/^\/\/go:build !race\s*$/m.test(text.split('\n', 1)[0])) continue;
-    for (const match of text.matchAll(/^func (Test\w+)\(t \*testing\.T\)/gm)) names.push(match[1]);
+    for (const match of text.matchAll(/^func (Test\w+)\(\w+ \*testing\.T\)/gm)) names.push(match[1]);
   }
   return names;
+}
+
+/**
+ * The extra `go test` runs after the raced ones: for each raced package, its `!race` tests (raceSkippedTests) with the arguments of the raced
+ * run minus `-race`, and no `-cover`, which would measure only those tests. A package that ran without the detector is not in `raced` and gets none:
+ * its `!race` files were built into its plain run.
+ */
+export function raceSkippedRuns(raced, projectRoot, modulePath, extra, list, read) {
+  const runs = [];
+  for (const pkg of raced) {
+    const names = raceSkippedTests(packageFolder(projectRoot, modulePath, pkg), list, read);
+    if (names.length) runs.push({ pkg, names, args: [...extra.filter((arg) => arg !== '-race'), '-run', `^(${names.join('|')})$`, pkg] });
+  }
+  return runs;
 }
 
 const GROUPS = ['root', 'race', 'plain'];
@@ -426,11 +440,9 @@ function runGo(projectRoot, extra, groups) {
   }
   // The tests a raced package's `!race` files hold run here once, without the detector and without -cover (the raced run measured the
   // package; this pass would only lower it). They run after the others so a failure there is one more, not the first.
-  for (const pkg of raced) {
-    const names = raceSkippedTests(join(projectRoot, pkg.slice(modulePath.length + 1)));
-    if (names.length === 0) continue;
+  for (const { pkg, names, args } of raceSkippedRuns(raced, projectRoot, modulePath, extra)) {
     console.log(`coverage: ${pkg}: ${names.length} tests are out of the raced run and run here without -race: ${names.join(', ')}`);
-    const result = run('go', ['-C', projectRoot, 'test', ...extra.filter((arg) => arg !== '-race'), '-run', `^(${names.join('|')})$`, pkg], { stdio: ['inherit', 'inherit', 'inherit'] });
+    const result = run('go', ['-C', projectRoot, 'test', ...args], { stdio: ['inherit', 'inherit', 'inherit'] });
     if (result.status !== 0) failed = result.status ?? 1;
   }
   if (failed) process.exit(failed);
