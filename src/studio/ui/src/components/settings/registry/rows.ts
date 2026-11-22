@@ -225,6 +225,7 @@ export const ROWS: readonly SettingMeta[] = [
   },
   {
     id: 'daw.backups',
+    needs: 'audacity',
     cat: 'recording',
     section: 'Audacity backups',
     label: 'Audacity backups',

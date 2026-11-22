@@ -71,19 +71,21 @@ const windowBox = () => screen.findByRole('textbox', { name: 'Audio kept either 
 const retentionBox = () => screen.findByRole('textbox', { name: 'Keep backups for (days)' });
 
 describe('BackupsSection', () => {
-  it.each<DawSetupId>(['reaper', 'builtin'])('hidden-when-the-daw-lacks-the-capability: %s renders nothing', async (setup) => {
-    const capabilities = vi.fn(() => Promise.resolve(DAW_SETUPS[setup]));
-    renderSection({ setup, daw: { capabilities } });
-    await waitFor(() => expect(capabilities).toHaveBeenCalled());
-    await Promise.resolve();
-    expect(screen.getByRole('main').innerHTML).toBe('');
-    expect(screen.queryByRole('heading')).toBeNull();
-    expect(screen.queryByRole('textbox')).toBeNull();
-  });
+  it.each<DawSetupId>(['reaper', 'builtin'])(
+    'a report for a tool that keeps no backups says Audacity has not reported yet and draws no control: %s',
+    async (setup) => {
+      const capabilities = vi.fn(() => Promise.resolve(DAW_SETUPS[setup]));
+      renderSection({ setup, daw: { capabilities } });
+      await waitFor(() => expect(capabilities).toHaveBeenCalled());
+      expect(await screen.findByText('Audacity has not reported its backups yet.')).toBeTruthy();
+      expect(screen.queryByRole('heading')).toBeNull();
+      expect(screen.queryByRole('textbox')).toBeNull();
+    },
+  );
 
   it('shown-for-a-daw-that-reports-it: the window and the retention rows, with help computed from the value', async () => {
     renderSection();
-    expect(await screen.findByRole('heading', { name: 'Backups' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Backups' })).toBeTruthy();
     expect((await windowBox()).getAttribute('placeholder')).toBe('Inherits 120');
     expect((await retentionBox()).getAttribute('placeholder')).toBe('Inherits 7');
     expect(screen.getByText(/about 2 minutes either side/)).toBeTruthy();
@@ -142,7 +144,7 @@ describe('BackupsSection', () => {
         capabilities: { ...DAW_SETUPS.audacity.capabilities, backups: { level: 'experimental', available: false, reason: 'not_running', message: quiet } },
       },
     });
-    expect(await screen.findByRole('heading', { name: 'Backups' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Backups' })).toBeTruthy();
     expect(await screen.findByText(quiet)).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
   });
@@ -179,6 +181,42 @@ describe('BackupsSection', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await windowBox()).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole('main'));
+  });
+
+  it('turns the row on when Audacity reports its backups after the section was drawn (the report changes, no remount)', async () => {
+    let report: (caps: DawCapabilities) => void = () => undefined;
+    const subscribeCapabilities = vi.fn((callback: (caps: DawCapabilities) => void) => {
+      report = callback;
+      return () => undefined;
+    });
+    renderSection({ setup: 'reaper', daw: { subscribeCapabilities } });
+    expect(await screen.findByText('Audacity has not reported its backups yet.')).toBeTruthy();
+    act(() => report(DAW_SETUPS.audacity));
+    expect(await windowBox()).toBeTruthy();
+    expect(screen.queryByText('Audacity has not reported its backups yet.')).toBeNull();
+  });
+
+  it('a settings read error does not outlive the report that called for the read: a quiet Audacity shows its own sentence, not the old error and a dead Retry', async () => {
+    let report: (caps: DawCapabilities) => void = () => undefined;
+    const subscribeCapabilities = vi.fn((callback: (caps: DawCapabilities) => void) => {
+      report = callback;
+      return () => undefined;
+    });
+    const quiet = 'Audacity is not answering. Open the Audacity chip at the top for the steps.';
+    renderSection({
+      daw: { subscribeCapabilities },
+      overrides: { settingsForScope: vi.fn(async () => Promise.reject(new Error('the settings file is unreadable'))) },
+    });
+    await screen.findByRole('alert');
+    act(() =>
+      report({
+        ...DAW_SETUPS.audacity,
+        reachable: false,
+        capabilities: { ...DAW_SETUPS.audacity.capabilities, backups: { level: 'experimental', available: false, reason: 'not_running', message: quiet } },
+      }),
+    );
+    expect(await screen.findByText(quiet)).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('standalone-and-self-contained: it takes no props, so a page can draw it anywhere', async () => {
