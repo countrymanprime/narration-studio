@@ -1,5 +1,5 @@
 import { creditsKindOfId } from '../../credits/creditsEntries';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
@@ -8,13 +8,12 @@ import type { CreditsKind } from '../readerModel';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
-import { useJournalOrOwn, useOptionalStoreHandle } from '../../../studio/StudioProvider';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import { useChapters } from '../../../studio/useChapters';
 import { apiErrorDetails, apiErrorMessage } from '../../../api/errorMessage';
 
 const CREDITS_KINDS: readonly CreditsKind[] = ['opening', 'closing'];
 const NONE: never[] = [];
-const noSubscribe = () => () => undefined;
 
 /** Whether two reads of a chapter are the same chapter to the Booth: what a take changes (how far it is recorded) is not part of it. */
 const sameChapter = (a: ManuscriptChapter, b: ManuscriptChapter) =>
@@ -75,14 +74,8 @@ export function useBoothData(target: BoothChapterTarget | null) {
 
   // The chapter list is the store's, shared with every page: opening the Booth does not read it again. `reload` asks the store for it now (after a take).
   const [reload, setReload] = useState(0);
-  const { chapters: held, error: listError } = useChapters(true, reload);
-  const store = useOptionalStoreHandle();
-  // Each reset of the store is a project switch: the chapter the page opens on is chosen again for the new project.
-  const generation = useSyncExternalStore(
-    store ? store.subscribe : noSubscribe,
-    () => store?.generation() ?? 0,
-    () => 0,
-  );
+  // Each reset of the store is a project switch (`generation`): the chapter the page opens on is chosen again for the new project.
+  const { chapters: held, error: listError, refreshing, generation } = useChapters(true, reload);
 
   // The narration chapters follow the store's list (a re-split, a chapter added while the Booth is open, a project switch). The array is kept as it was while
   // only what a take changes (how far a chapter is recorded) moved, so a take does not re-render what is built from the chapters.
@@ -136,29 +129,8 @@ export function useBoothData(target: BoothChapterTarget | null) {
   }, [narration, hostRead, generation, chosen]);
   const fallback = chosen?.generation === generation ? chosen.id : '';
 
-  // A Retry reads the list now and shows the skeleton until that read ends, whatever the failure is (the same Error object may come back); a Booth opened on
-  // a list whose read failed does the same for its own read.
-  const [retrying, setRetrying] = useState(() => Boolean(store && !store.getState().slots.chapters && store.getState().errors.chapters));
-  const reading = useRef(false);
-  const readAgain = useCallback(() => {
-    // A second press while the read is out reads nothing more.
-    if (!store || reading.current) return;
-    reading.current = true;
-    setRetrying(true);
-    void store
-      .load('chapters')
-      .catch(() => undefined)
-      .then(() => {
-        reading.current = false;
-        setRetrying(false);
-      });
-  }, [store]);
-  useEffect(() => {
-    if (retrying) readAgain();
-    // Only the first render asks: a Retry asks for itself.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const failed = !held && listError && !retrying ? listError : undefined;
+  // A Retry (and a Booth opened on a failed list) reads the list now: the skeleton shows until that read ends, whatever the failure is.
+  const failed = !held && listError && !refreshing ? listError : undefined;
   const error = failed ? apiErrorMessage(failed) : '';
   const errorDetails = failed ? apiErrorDetails(failed) : undefined;
 
@@ -184,12 +156,18 @@ export function useBoothData(target: BoothChapterTarget | null) {
 
   // Retry: clears the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
   const retry = useCallback(() => {
-    readAgain();
+    setReload((n) => n + 1);
     setAttempt((n) => n + 1);
-  }, [readAgain]);
+  }, []);
 
   const chapterId = target ? target.chapter : fallback;
-  const chapter = chapters?.find((item) => item.id === chapterId);
+  // The chapter on screen stays while a list change takes it out (a re-split during a take): a session is never unmounted by the list. A project switch drops it.
+  const pin = useRef<{ generation: number; chapter: ManuscriptChapter }>(undefined);
+  const found = chapters?.find((item) => item.id === chapterId);
+  if (found) pin.current = { generation, chapter: found };
+  const chapter = found ?? (pin.current && pin.current.generation === generation && pin.current.chapter.id === chapterId ? pin.current.chapter : undefined);
+  // Nothing is said about a chapter that is not there until the page has chosen the one it opens on (the session state has answered).
+  const picked = Boolean(target) || chosen?.generation === generation;
 
   const correctCue = useCallback(
     async (cueId: string, entityId: string) => {
@@ -208,19 +186,20 @@ export function useBoothData(target: BoothChapterTarget | null) {
   // Nothing to show once what it waits for has been read: the credits have no text, or the chapter asked for is not there. (No chapters at all is its own panel.)
   // A credits file the library has no template for is not in the list; asked for by its id it is still the credits' own panel (set one up), not "not in this book".
   const unlisted = !chapter ? creditsKindOfId(chapterId) : undefined;
-  const unavailable: BoothUnavailable | undefined = source
-    ? undefined
-    : credits
-      ? creditsLoaded
-        ? { kind: 'credits', credits }
-        : undefined
-      : unlisted
-        ? chapters
-          ? { kind: 'credits', credits: unlisted }
+  const unavailable: BoothUnavailable | undefined =
+    source || !picked
+      ? undefined
+      : credits
+        ? creditsLoaded
+          ? { kind: 'credits', credits }
           : undefined
-        : chapters && chapters.length > 0
-          ? { kind: 'chapter' }
-          : undefined;
+        : unlisted
+          ? chapters
+            ? { kind: 'credits', credits: unlisted }
+            : undefined
+          : chapters && chapters.length > 0
+            ? { kind: 'chapter' }
+            : undefined;
   return {
     chapters,
     recorded,
