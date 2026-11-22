@@ -201,7 +201,14 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 | Warm, before | 35 / 64 | 35 / 100 | 35 / 176 | 35 / 321 |
 | Warm, after | 34 / 63 | 34 / 96 | 34 / 168 | 34 / 303 |
 
-The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
+| Editing | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 56 / 260 | 56 / 271 | 56 / 293 | 56 / 337 |
+| Cold, after | 56 / 260 | 56 / 271 | 56 / 293 | 56 / 337 |
+| Warm, before | 41 / 212 | 41 / 217 | 41 / 227 | 41 / 245 |
+| Warm, after | 36 / 204 | 36 / 207 | 36 / 212 | 36 / 221 |
+
+The Editor's warm visit makes five fewer calls. One is its own chapter-list read; the other four were not traced to a call name (the page's read count test shows two reads of the list before and one after). The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
 ## The track list: a 5 s poll against REAPER's change event
 
