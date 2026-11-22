@@ -103,13 +103,14 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
     };
   }, [daw, apply, enabled, visible]);
 
-  // The DAW stopped answering (or the watch stream took over) while the page showed a play of it: no event will end that play, so it ends here and the
-  // word it lit may then be cleared by the cursor, as after a stop.
+  // The DAW stopped answering while the page showed a play of it: no event will end that play, so it ends here and its word is cleared, as when the
+  // DAW stops. A word kept lit after a stop stays (it clears when the cursor moves), and a playhead the app itself moved is not touched.
   useEffect(() => {
     if (enabled) return;
+    const wasPlaying = dawPlaying.current;
     dawPlaying.current = false;
     const { state: s, dispatch: send } = live.current;
-    if (mine.current != null && s.playT === mine.current) {
+    if (wasPlaying && mine.current != null && s.playT === mine.current) {
       mine.current = null;
       send({ type: 'play', t: null });
     }

@@ -214,8 +214,8 @@ export function EditingBody(props: EditingBodyProps) {
     onOutputDevice: setDeviceProblem,
   });
   useAnnouncePlayback(playback.playing);
-  // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced and the watch stream heard (or about to be) the page hears the DAW's cursor and
-  // play head itself (useDawTransportSync), so the heartbeat follow stands down; a refused lease (another project open, a recording) hears nothing from the stream, so it follows.
+  // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
+  // play head itself (useDawTransportSync), so the heartbeat read stands down.
   useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
   useFollowScroll(root, playback);
   // A take under a line: through the DAW's preview while a DAW plays the chapter, else the app's range player (useTakeAudition).

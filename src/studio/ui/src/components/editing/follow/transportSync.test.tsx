@@ -195,40 +195,12 @@ describe('daw-to-app', () => {
     act(() => daw.moveInDaw({ playing: false }));
     expect(lit()).toBe('p-2:1');
   });
-  it('hands the follow to the heartbeat when the watch lease is refused, and keeps it away while the lease is held or being asked', async () => {
-    // Pending: the stream is about to be heard, so the heartbeat follow stays down.
-    mount();
-    expect(playback.syncActive).toBe(true);
-    await wait(10);
-    // Held: the stream lights the word.
-    expect(playback.syncActive).toBe(true);
-    cleanup();
-    // Refused (another project is open): the stream says nothing, so the heartbeat follow is given the capabilities.
-    mount(DAW_SETUPS.reaper, { daw: {}, dawScript: 'different' });
-    await wait(LEASE_RENEW_MS + 10);
-    expect(playback.syncActive).toBe(false);
-    // The DAW without the capability is not synced either.
-    cleanup();
-    mount(DAW_SETUPS['reaper-off']);
-    await wait(10);
-    expect(playback.syncActive).toBe(false);
-  });
-  it('lights the word the DAW plays when the watch lease is refused: the transport event carries the play to the heartbeat follow', async () => {
-    // Another project is open, so the host refuses the lease and the stream says nothing; the DAW plays, and only its transport event says where.
-    mount(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: false, position: at(1.3) } }, dawScript: 'different' });
-    await wait(LEASE_RENEW_MS + 10);
-    expect(calls('watch')).toHaveLength(0);
-    expect(lit()).toBe('p-1:3');
-  });
-  it('stands the heartbeat follow down while the lease is held: the stream lights the word, and the transport event does not take it over', async () => {
-    // The transport event says the DAW plays at one word; the stream (the lease is held) says another. Only the stream may light.
+  it('does not light the word of a DAW that plays another project, whatever its heartbeat says: the transport event carries no project', async () => {
+    // The lease is refused (another project is open), and the heartbeat transport still says the DAW plays at one word: it is the other project's play.
     mount(DAW_SETUPS.reaper, { daw: { transport: { playing: true, recording: false, position: at(1.3) } } });
-    await wait(10);
-    expect(calls('watch').length).toBeGreaterThan(0);
-    act(() => daw.moveInDaw({ playing: true, head: at(4.2) }));
-    await wait(10);
-    expect(lit()).toBe('p-2:1');
-    expect(document.querySelectorAll('[data-now]')).toHaveLength(1);
+    daw.openProject('other');
+    await wait(LEASE_RENEW_MS + 10);
+    expect(lit()).toBeNull();
   });
   it('ignores a DAW that has another project open', async () => {
     mount(DAW_SETUPS.reaper, { daw: {}, dawScript: 'different' });

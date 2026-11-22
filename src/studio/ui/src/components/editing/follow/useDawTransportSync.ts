@@ -59,10 +59,8 @@ export interface DawTransportSyncOptions {
 }
 
 export interface DawTransportSync {
-  /** The DAW answers and its `transport_sync` capability is usable: the page syncs. */
+  /** The DAW answers and its `transport_sync` capability is usable: the page syncs, and the heartbeat follow (`useDawPlayPosition`) stands down. */
   active: boolean;
-  /** The page hears the DAW through the watch stream, or is about to: `active` and the watch lease not refused. The heartbeat follow (`useDawPlayPosition`) stands down only then; a refused lease (another project open, a recording) hears nothing from the stream, so the heartbeat follow lights the word. */
-  streaming: boolean;
   remote: RemotePlayer;
 }
 
@@ -334,5 +332,5 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     },
   }).current;
 
-  return { active, streaming: active && lease.state !== 'refused', remote };
+  return { active, remote };
 }

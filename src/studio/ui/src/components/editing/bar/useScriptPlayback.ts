@@ -40,7 +40,7 @@ export interface ScriptPlayback {
   /** The previous (-1) or next (1) heard word: moves the playing position while it plays, the cursor when it does not. */
   skip: (d: 1 | -1) => void;
   stop: () => void;
-  /** The DAW's transport is synced with the page and the watch stream is heard (or about to be): its play is the page's play, and the heartbeat follow stands down. A refused lease leaves it false. */
+  /** The DAW's transport is synced with the page: its play is the page's play, and the heartbeat follow stands down. */
   syncActive?: boolean;
 }
 
@@ -423,5 +423,5 @@ export function useScriptPlayback({
     [go],
   );
 
-  return { playing: state.playT != null, follow, setFollow: setFollowState, toggle, playFrom, playSelection, skip, stop: halt, syncActive: syncing.streaming };
+  return { playing: state.playT != null, follow, setFollow: setFollowState, toggle, playFrom, playSelection, skip, stop: halt, syncActive: syncing.active };
 }
