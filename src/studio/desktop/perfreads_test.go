@@ -42,6 +42,14 @@ var perfReads = []perfRead{
 	{"ReadAloudReaperState(c-0001)", func(h *Host) (string, error) { return h.ReadAloudReaperState(perfChapterID(0)) }},
 	// The Booth's follow on open (#3880 slice 3): asked every 2 s for 20 s while the DAW did not answer, now once and on the DAW's own event.
 	{"DawPlace", (*Host).DawPlace},
+	// The Proof comparison's "may have changed" check (#3880 slice 3): asked every 30 s while results were shown, now once and on a 5 minute backstop, each edit heard from daw_project_edited. No DAW here, so it answers that REAPER is not open from this app.
+	{"ProjectStateCheck", func(h *Host) (string, error) {
+		out, err := h.ProjectStateCheck()
+		if err != nil { // with no bridge the check refuses at once: the refusal is what this rig can time
+			return err.Error(), nil
+		}
+		return out, nil
+	}},
 	{"ManuscriptParagraphs(c-0001)", func(h *Host) (string, error) { return h.ManuscriptParagraphs(perfChapterID(0)) }},
 	{"SystemSettingsForScope(project)", func(h *Host) (string, error) { return h.SystemSettingsForScope("project") }},
 }

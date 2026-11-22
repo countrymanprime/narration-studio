@@ -63,7 +63,8 @@ const CHUNK_LENGTH_TOOLTIP = [
 const modelLabel = (value: string) => MODEL_OPTIONS.find((option) => option.value === value)?.label ?? value;
 
 /** How often the "may have changed" hint re-asks REAPER for its edit count while results are shown: a background hint, not a status light, so it polls far less often than useReaperStatus's 3 s connection check. */
-const PROJECT_STATE_POLL_MS = 30_000;
+// The edit event (`daw_project_edited`) carries every change; this slow check is only the backstop for one that was lost.
+const PROJECT_STATE_BACKSTOP_MS = 300_000;
 
 /** Whether "Start comparison" can run, and why not: the run
  * needs a linked REAPER project file and the DAW port's `review` capability
@@ -284,8 +285,8 @@ export function CompareRun({
     else void api.transcriptReset().catch((error) => notify(describeApiError(error), 'error'));
   };
 
-  // "Changed since comparison": REAPER's own edit counter, checked on a
-  // low-frequency background poll only while results are shown, against the count the comparison started from
+  // "Changed since comparison": REAPER's own edit counter, heard from the host's `daw_project_edited` event (one check when the results open, and a
+  // slow backstop) only while results are shown, against the count the comparison started from
   // (results.projectChangeCount). The counter is only meaningful within one REAPER session of the project — it resets
   // when the project is reopened — so this is worded as "may have changed", never certainty, and nothing here ever
   // re-runs the comparison. No baseline (an older or offline comparison) means no check is made and no label shown.
@@ -297,21 +298,26 @@ export function CompareRun({
       return;
     }
     let active = true;
-    const unsubscribe = api.subscribeProjectState((update) => {
-      if (!active || update.phase !== 'success' || update.changeCount === undefined) return;
+    // The counter is compared with the baseline wherever it was heard: in a read's answer, or in an edit the host announced.
+    const compare = (count: number) =>
       void api
-        .projectStateChangedSince(update.changeCount, compareBaseline)
+        .projectStateChangedSince(count, compareBaseline)
         .then(({ changed }) => {
           if (active) setProjectMayHaveChanged(changed);
         })
         .catch(() => {});
+    const unsubscribe = api.subscribeProjectState((update) => {
+      if (!active || update.phase !== 'success' || update.changeCount === undefined) return;
+      compare(update.changeCount);
     });
+    const unsubscribeEdits = api.subscribeDawProjectEdited((edit) => compare(edit.changeCount));
     const check = () => void api.projectStateCheck().catch(() => {});
     check();
-    const timer = window.setInterval(check, PROJECT_STATE_POLL_MS);
+    const timer = window.setInterval(check, PROJECT_STATE_BACKSTOP_MS);
     return () => {
       active = false;
       unsubscribe();
+      unsubscribeEdits();
       window.clearInterval(timer);
     };
   }, [api, showingResults, compareBaseline]);

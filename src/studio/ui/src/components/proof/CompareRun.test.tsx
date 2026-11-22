@@ -386,6 +386,87 @@ describe('CompareRun "may have changed since comparison"', () => {
     await waitFor(() => expect(screen.getByText('The REAPER project may have changed since this comparison.')).toBeTruthy());
   });
 
+  describe('hears the edits instead of asking every 30 s', () => {
+    const quietApi = () => {
+      let emit: (edit: { changeCount: number }) => void = () => {};
+      const off = vi.fn();
+      const subscribeDawProjectEdited = vi.fn((listener: typeof emit) => ((emit = listener), off));
+      const projectStateCheck = vi.fn().mockResolvedValue({ status: 'started' as const });
+      const projectStateChangedSince = vi.fn(async (current: number, baseline: number) => ({ changed: current !== baseline }));
+      return {
+        api: createMockApi({ subscribeDawProjectEdited, projectStateCheck, projectStateChangedSince } as never),
+        emit: (edit: { changeCount: number }) => emit(edit),
+        off,
+        projectStateCheck,
+        projectStateChangedSince,
+      };
+    };
+
+    it('an edit the host announces shows the label at once, with no read of REAPER', async () => {
+      const { api, emit, projectStateCheck, projectStateChangedSince } = quietApi();
+      render(
+        <ApiProvider api={api}>
+          <CompareRun {...resultsProps()} />
+        </ApiProvider>,
+      );
+      await screen.findByText(/2 discrepancies/);
+      const reads = projectStateCheck.mock.calls.length;
+      expect(screen.queryByText(/may have changed/)).toBeNull();
+      act(() => emit({ changeCount: 44 }));
+      await waitFor(() => expect(screen.getByText('The REAPER project may have changed since this comparison.')).toBeTruthy());
+      expect(projectStateChangedSince).toHaveBeenCalledWith(44, 41);
+      expect(projectStateCheck.mock.calls.length).toBe(reads);
+    });
+
+    it('an announcement of the comparison’s own count says nothing, and a later edit shows the label', async () => {
+      const { api, emit } = quietApi();
+      render(
+        <ApiProvider api={api}>
+          <CompareRun {...resultsProps()} />
+        </ApiProvider>,
+      );
+      await screen.findByText(/2 discrepancies/);
+      act(() => emit({ changeCount: 41 }));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(screen.queryByText(/may have changed/)).toBeNull();
+      act(() => emit({ changeCount: 42 }));
+      await waitFor(() => expect(screen.getByText(/may have changed/)).toBeTruthy());
+    });
+
+    it('listens only while results are shown: it lets go when they close, and a late edit does nothing', async () => {
+      const { api, emit, off } = quietApi();
+      const view = render(
+        <ApiProvider api={api}>
+          <CompareRun {...resultsProps()} />
+        </ApiProvider>,
+      );
+      await screen.findByText(/2 discrepancies/);
+      view.unmount();
+      expect(off).toHaveBeenCalled();
+      emit({ changeCount: 50 });
+    });
+
+    it('asks REAPER once when the results open, then only on a slow backstop, not every 30 s', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const { api, projectStateCheck } = quietApi();
+        render(
+          <ApiProvider api={api}>
+            <CompareRun {...resultsProps()} />
+          </ApiProvider>,
+        );
+        await screen.findByText(/2 discrepancies/);
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(120_000)));
+        expect(projectStateCheck).toHaveBeenCalledTimes(1);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(181_000)));
+        expect(projectStateCheck).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   it('a failed check is quiet: no label, no crash', async () => {
     render(
       <ApiProvider api={createMockApi({}, { projectState: 'error' })}>
