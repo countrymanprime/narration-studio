@@ -77,6 +77,27 @@ export function scenarioFromToday(name: SeedLog, now: Date = new Date()): Produc
   return { ...seed, deadline: seed.deadline ? addDays(seed.deadline, shiftDays) : seed.deadline, shiftDays };
 }
 
+/**
+ * A chapter of the chapter list as a `?mockProduction=` scenario says it is: its status and recorded audio (or why it has none). The host builds the chapter
+ * list and the Production overview from the same chapters, so the two agree; the mock's overview already applies the scenario, and the list must too, now that
+ * the Production page takes its rows from the list. Applied twice it changes nothing more.
+ */
+export function seededChapter(seed: ProductionSeed | undefined, chapter: ManuscriptChapter): ManuscriptChapter {
+  const log = seed?.log ? LOGS[seed.log] : undefined;
+  if (!log) return chapter;
+  const measured = log.recorded[chapter.id];
+  const rest: ManuscriptChapter = { ...chapter };
+  delete rest.recordedSeconds;
+  delete rest.recordedUnavailable;
+  return {
+    ...rest,
+    status: log.status ?? chapter.status,
+    ...(measured !== undefined
+      ? { recordedSeconds: measured }
+      : { recordedUnavailable: log.unavailable?.[chapter.id] ?? chapter.recordedUnavailable ?? 'unlinked' }),
+  };
+}
+
 const NEXT_UP_LIMIT = 5;
 const TIMEABLE: readonly ChapterStatus[] = STATUS_ORDER;
 
