@@ -312,7 +312,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       live.current.clock?.whyNotPlaced(docT, daw) ??
       (live.current.clockPending ? `${daw} has not yet said where the words sit in its project.` : null) ??
       (live.current.caps ? null : `${daw} has not answered yet, so the app cannot tell where the words sit in its project.`) ??
-      "The app could not read where the words sit in the DAW's project. Check that the DAW is open on this book with the chapter's track linked.",
+      `${daw} has not told the app where the words sit in its project; check that it is open on this book with the chapter's track linked.`,
     start: async (docT, endDocT) => {
       const l = live.current;
       const project = l.clock?.projectAt(docT) ?? null;
