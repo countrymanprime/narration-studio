@@ -40,7 +40,7 @@ export function useFollowDawOnOpen({
     let reachable = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = Date.now() + ASK_FOR_MS;
-    // No answer: a DAW not reachable yet is asked again by its event; one that says it is reachable and still refuses has no event coming, so it is asked again soon.
+    // No answer: a DAW that has not connected yet is asked again by its event; one that says it is reachable and still refuses has no event coming, so it is asked again soon.
     const noAnswer = () => {
       if (live && reachable && !settled.current && Date.now() < deadline) timer = setTimeout(ask, RETRY_REACHABLE_MS);
     };
@@ -57,6 +57,8 @@ export function useFollowDawOnOpen({
           if (!live) return;
           if (!answer.ok) return noAnswer();
           settled.current = true;
+          // An answer after the time is up is too late to move a Booth the narrator has been using.
+          if (Date.now() >= deadline) return;
           if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
         })
         // A read that failed is the same as one the DAW has not answered, and the Booth opens as it would have.

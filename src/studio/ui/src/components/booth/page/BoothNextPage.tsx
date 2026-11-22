@@ -200,11 +200,16 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
     setParams(new URLSearchParams(boothQuery({ chapter: planned.chapterId }, pickupIds).slice(1)), { replace: true });
   }, [planned, pickupIds, setParams]);
   const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
+  // A late answer from the DAW never moves the Booth while the DAW records.
+  const dawIsRecording = useIsRecording();
+  const takeRunning = useRef(false);
+  takeRunning.current = dawIsRecording;
   useFollowDawOnOpen({
     // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
     enabled: asked === null && planned === null,
     chapterIds,
     onChapter: (chapterId) => {
+      if (takeRunning.current) return;
       selfOpened.current.add(chapterId);
       setParams(new URLSearchParams(boothQuery({ chapter: chapterId }, pickupIds).slice(1)), { replace: true });
     },

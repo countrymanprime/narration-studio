@@ -192,6 +192,19 @@ describe('useFollowDawOnOpen', () => {
     expect(dawPlace).toHaveBeenCalledTimes(before);
   });
 
+  it('an answer that arrives after the time is up does not move the Booth', async () => {
+    vi.useFakeTimers();
+    const events = dawEvents();
+    let release: (place: DawPlace) => void = () => {};
+    const dawPlace = vi.fn(() => new Promise<DawPlace>((resolve) => (release = resolve)));
+    const onChapter = vi.fn();
+    renderHook(() => useFollowDawOnOpen({ enabled: true, chapterIds, onChapter }), { wrapper: events.wrapper(createMockApi({ dawPlace })) });
+    await act(async () => {});
+    await act(async () => void (await vi.advanceTimersByTimeAsync(25_000)));
+    await act(async () => release(answer({ chapterId: 'c-2' })));
+    expect(onChapter).not.toHaveBeenCalled();
+  });
+
   it('events heard while an ask is out are answered by one more ask, not one each', async () => {
     const onChapter = vi.fn();
     let release: (place: DawPlace) => void = () => {};
