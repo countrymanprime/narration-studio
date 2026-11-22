@@ -534,7 +534,6 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 			used[pair[1]] = true
 		}
 	}
-	a.keepLastOfARepeatedWord(heard, used)
 	hasHeading := false
 	for _, p := range a.TokenParagraph {
 		if p == Heading {
@@ -553,6 +552,8 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 			}
 		}
 	}
+	// After the heading is taken out, so a first body word said twice is flagged on its first copy and the heading does not swallow it.
+	a.keepLastOfARepeatedWord(heard, used)
 	tokens := make([]AlignedToken, len(status))
 	for i, value := range status {
 		var audio *int

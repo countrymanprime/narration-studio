@@ -69,7 +69,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { doubledCut, doubledStart, stretchOrigin, wordAt, type ChapterRead } from './chapterSource';
+import { docTimeOf, doubledCut, doubledStart, stretchOrigin, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -283,13 +283,9 @@ export function EditingBody(props: EditingBodyProps) {
       const take = line?.takes.find((t) => t.active) ?? line?.takes[0];
       const cut = doubledCut(read, id);
       const origin = stretchOrigin(read, id);
-      // The cut is seconds into the paragraph's take, which is a second of the item's source; the DAW wants the project's time. The word table says where
-      // the paragraph's words play, so the cut is carried from its first word to the project (a cut in a pause between two words included).
-      const heard = cut !== null && origin !== null ? { sourceTime: origin + cut } : null;
-      const first = doc.items.find((i) => i.pid === id && i.kind === 'w' && !i.cut && i.t0 != null);
-      const token = first ? locator.token(first.key) : undefined;
-      const firstStart = token === undefined ? undefined : read.workspace.tokens.find((t) => t.i === token)?.start;
-      const docCut = heard && first && first.t0 != null && firstStart !== undefined ? first.t0 + (heard.sourceTime - firstStart) : null;
+      // The cut is seconds into the paragraph's take, which is a second of the item's source; the DAW wants the project's time, so the cut is put on the
+      // document's clock (the one the waveform and the play use) and carried from there.
+      const docCut = cut !== null && origin !== null ? docTimeOf(doc, read, id, origin + cut) : null;
       const at = docCut === null ? null : (clock?.projectNear(docCut) ?? null);
       if (!line || !take || at === null) return null;
       return { chapterId, takeId: take.id, label: take.label, at: Math.round(at * 1000) / 1000 };

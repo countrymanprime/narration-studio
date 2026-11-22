@@ -1,5 +1,5 @@
 import type { HeardWord } from '../../../ports/alignment';
-import { loadRealSpeech, REAL_SPEECH_FILES, type RealSpeech } from './realSpeechFixture';
+import type { RealSpeech } from '../model/fixtures/loadRealSpeech';
 import type { ChapterRead } from './chapterSource';
 import { readFrom } from './readFixture';
 
@@ -8,10 +8,6 @@ import { readFrom } from './readFixture';
  * (`model/fixtures/realSpeech`): the recogniser's own word times, grouped into paragraphs by its segments. A misspoken word and its
  * correction, a long pause, a late start and a different item are put into the same words, so the model sees what the host sends for a real take.
  */
-export const REAL_TAKES = REAL_SPEECH_FILES;
-
-export const loadRealTake = loadRealSpeech;
-
 /** What the recording said about one word of the take: the script word it is, or that it was said and is not in the script. */
 interface SaidWord {
   /** Script paragraph and ordinal; absent for a word said and not in the script. */

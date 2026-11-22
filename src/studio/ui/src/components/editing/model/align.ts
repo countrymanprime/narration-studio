@@ -99,8 +99,8 @@ export function alignToScript(script: string[], heard: HeardWord[]): AlignOp[] {
   let dels: number[] = [];
   let ins: number[] = [];
   while (i < ka.length || j < kc.length) {
-    if (i < ka.length && j < kc.length && ka[i] === kc[j] && kc[j + 1] === kc[j] && L[i][j + 1] === L[i][j]) {
-      // The same word said again straight away, and matching the later one loses nothing: the narrator stopped and said it again, so the line goes on
+    if (i < ka.length && j < kc.length && ka[i] === kc[j] && (kc[j + 1] === kc[j] || heard[j].added) && L[i][j + 1] === L[i][j]) {
+      // The same word said again straight away (or one the host already set aside as said and not in the script), and matching the later copy loses nothing: the narrator stopped and said it again, so the line goes on
       // with the last of them and the earlier is the extra (a "back" misspoken and said again a second later).
       ins.push(j++);
     } else if (i < ka.length && j < kc.length && ka[i] === kc[j]) {

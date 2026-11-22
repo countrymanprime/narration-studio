@@ -73,18 +73,34 @@ const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({
  * The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it, except
  * a restart (a run that says the script words after it again), which goes with the script word after it, the line it restarts.
  */
-export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repeats' | 'ordinal' | 'text'>>(
+export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repeats' | 'ordinal' | 'text'> & Partial<Pick<PortWord, 'off0' | 'off1'>>>(
   words: readonly W[],
   first: string | undefined,
 ): Map<string, W[]> {
   const out = new Map<string, W[]>();
+  // For each word: the next word of the script after it, and where the run of added words it is in begins.
+  const upNext: number[] = new Array<number>(words.length).fill(-1);
+  for (let k = words.length - 1, next = -1; k >= 0; k--) {
+    if (words[k].paragraphId !== undefined) next = k;
+    upNext[k] = next;
+  }
+  const runStart = words.map((_, k) => k);
+  for (let k = 1; k < words.length; k++) if (words[k].paragraphId === undefined && words[k - 1].paragraphId === undefined) runStart[k] = runStart[k - 1];
+  /** A run of added words straight before the first word of a line, that starts by saying that word, is a start of that line said again (a misspoken first word). It is the line's when it is nearer that line's first word than the word before it. */
+  const startsNextLine = (k: number): boolean => {
+    const next = words[upNext[k]];
+    const head = words[runStart[k]];
+    if (!next || next.ordinal !== 0 || normKey(head.text) !== normKey(next.text)) return false;
+    const before = words[runStart[k] - 1];
+    if (head.off0 === undefined || head.off1 === undefined || next.off0 === undefined || !before || before.off1 === undefined) return true;
+    return next.off0 - head.off1 <= head.off0 - before.off1;
+  };
   let current = first;
   words.forEach((w, k) => {
     if (w.paragraphId !== undefined) current = w.paragraphId;
-    const upNext = w.paragraphId === undefined ? words.slice(k + 1).find((n) => n.paragraphId !== undefined) : undefined;
     // A restart says the words after it again; so does a word said and said again across a line break, which is the start of the next line.
-    const restarts = upNext && (w.repeats === 'next' || (upNext.ordinal === 0 && normKey(upNext.text) === normKey(w.text))) ? upNext.paragraphId : undefined;
-    const pid = restarts ?? current;
+    const next = w.paragraphId === undefined && upNext[k] >= 0 && (w.repeats === 'next' || startsNextLine(k)) ? words[upNext[k]].paragraphId : undefined;
+    const pid = next ?? current;
     if (pid === undefined) return;
     out.set(pid, [...(out.get(pid) ?? []), w]);
   });

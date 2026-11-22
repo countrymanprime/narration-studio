@@ -532,3 +532,12 @@ func TestAScriptWordSaidMoreOftenThanTheScriptKeepsItsLastCopiesLikeTheEditingPa
 		eq(t, got, c.heard)
 	}
 }
+
+func TestAFirstBodyWordSaidTwiceAfterTheHeadingIsFlaggedOnItsFirstCopy(t *testing.T) {
+	// Issue #4047: what is said before the chapter's first word heard is the heading, so the heading must be taken out before the last copy is kept,
+	// or the first copy is swallowed by it and the fumble is never flagged (on main it was not).
+	a := aligned(t, []string{"alice sat"}, "chapter one alice alice sat", "chapter one")
+	tokens, extras := a.AlignTokens(DefaultParams)
+	eq(t, *tokens[2].Audio, 3)
+	eq(t, extras, [][2]int{{2, 3}})
+}

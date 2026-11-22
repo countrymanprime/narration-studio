@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { shiftPeaks } from '../ribbon/docClock';
 import { envelopeOf } from '../ribbon/useChapterSound';
 import type { ChapterDoc, DocItem } from './doc';
-import { loadRealSpeech, REAL_SPEECH_FILES, type RealSpeech } from '../page/realSpeechFixture';
+import { loadRealSpeech, REAL_SPEECH_FILES, type RealSpeech } from './fixtures/loadRealSpeech';
 import { heardWindow, MAX_TAIL_SECONDS } from './runway';
 
 /**
@@ -11,11 +11,6 @@ import { heardWindow, MAX_TAIL_SECONDS } from './runway';
  * A word is clipped when sound within 30 dB of the word's own peak, and 10 dB above the room, still plays more than 30 ms after the planned stop.
  * The old rule was checked on a made-up envelope only, and the owner still heard "statue" for "statues".
  */
-type Fixture = RealSpeech;
-
-const load = loadRealSpeech;
-const FILES = REAL_SPEECH_FILES;
-
 const REL_DB = -30;
 const OVER_ROOM_DB = 10;
 const HOLD_SECONDS = 0.06;
@@ -36,7 +31,7 @@ interface Row {
 }
 
 /** For every word with sound under it: how long audible sound of the word plays after the stop that `plan` gives for it. */
-function measure(f: Fixture, plan: (doc: ChapterDoc, key: string, t0: number, t1: number) => number): Row[] {
+function measure(f: RealSpeech, plan: (doc: ChapterDoc, key: string, t0: number, t1: number) => number): Row[] {
   const doc = docOf(f);
   const bytes = Buffer.from(f.rms.dbBase64, 'base64');
   const db = Float64Array.from(bytes, (b) => b / 2 - 120);
@@ -94,7 +89,7 @@ function measure(f: Fixture, plan: (doc: ChapterDoc, key: string, t0: number, t1
   return rows;
 }
 
-function docOf(f: Fixture): ChapterDoc {
+function docOf(f: RealSpeech): ChapterDoc {
   const items = f.words.map((w, n) => ({ key: `w${n}`, pid: `s${w.seg}`, t0: w.t0, t1: w.t1, st: 'ok', text: w.w }) as unknown as DocItem);
   return {
     paras: [],
@@ -108,7 +103,7 @@ function docOf(f: Fixture): ChapterDoc {
 
 /** The play of one word as the Editing page plans it: the chapter's peaks to `heardWindow`. */
 const planned =
-  (f: Fixture) =>
+  (f: RealSpeech) =>
   (doc: ChapterDoc, key: string, t0: number, t1: number): number =>
     heardWindow(doc, key, key, t0, t1, envelopeOf([shiftPeaks(f.peaks, 0)], t0, t1 + MAX_TAIL_SECONDS + 0.1))[1];
 /** The same word stopped on the recognizer's end, as it was before any tail. */
@@ -120,8 +115,8 @@ const rate = (rows: Row[], group?: Group): number => {
 };
 
 describe('the end of a play on real speech', () => {
-  const fixtures = FILES.map(load);
-  const all = (plan: (f: Fixture) => Parameters<typeof measure>[1]): Row[] => fixtures.flatMap((f) => measure(f, plan(f)));
+  const fixtures = REAL_SPEECH_FILES.map(loadRealSpeech);
+  const all = (plan: (f: RealSpeech) => Parameters<typeof measure>[1]): Row[] => fixtures.flatMap((f) => measure(f, plan(f)));
 
   it('has real speech to measure: over two thousand words, four readings', () => {
     expect(fixtures.reduce((n, f) => n + f.words.length, 0)).toBeGreaterThan(2300);
@@ -142,7 +137,7 @@ describe('the end of a play on real speech', () => {
   });
 
   it('holds on a reading it was not tuned on', () => {
-    const held = measure(load('jungle-book-librivox'), planned(load('jungle-book-librivox')));
+    const held = measure(loadRealSpeech('jungle-book-librivox'), planned(loadRealSpeech('jungle-book-librivox')));
     expect(rate(held)).toBeLessThanOrEqual(0.045);
   });
 });

@@ -40,4 +40,17 @@ describe('a word said twice in a row (a misspoken word and its correction)', () 
     expect(shape(['no', 'no', 'no'], ['no', 'no', 'no', 'no', 'no'])).toEqual(['x:no@0', 'x:no@1', 'ok:no@2', 'ok:no@3', 'ok:no@4']);
     expect(shape(['very', 'very', 'good'], ['very', 'very', 'very', 'good'])).toEqual(['x:very@0', 'ok:very@1', 'ok:very@2', 'ok:good@3']);
   });
+
+  it('keeps the later copy when the host set the earlier one aside and a filler comes between them', () => {
+    const said: HeardWord[] = [
+      { text: 'go', off0: 0, off1: 0.3, conf: 1, added: true },
+      { text: 'um', off0: 0.5, off1: 0.8, conf: 1, added: true },
+      { text: 'go', off0: 1, off1: 1.3, conf: 1 },
+      { text: 'now', off0: 1.4, off1: 1.7, conf: 1 },
+    ];
+    const ops = alignToScript(['go', 'now'], said).map((op) =>
+      op.kind === 'x' ? `x:${op.heard.text}@${op.heard.off0}` : `${op.st}:${op.i}@${op.heard?.off0}`,
+    );
+    expect(ops).toEqual(['x:go@0', 'x:um@0.5', 'ok:0@1', 'ok:1@1.4']);
+  });
 });
