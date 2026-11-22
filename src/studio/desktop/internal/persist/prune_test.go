@@ -515,12 +515,13 @@ func TestPruneFolderLeavesTheFileWhoseRemovalFailedAndRemovesTheRestOfItsGroup(t
 	}
 }
 
-// Each file is looked at right before its own removal: one written while a sibling was being removed keeps itself and the rest.
-func TestPruneFolderLeavesAFileWrittenWhileItsSiblingWasBeingRemoved(t *testing.T) {
+// Each file is looked at right before its own removal: one written while a sibling was being removed keeps itself and the files after it.
+func TestPruneFolderLeavesAFileWrittenWhileItsSiblingWasBeingRemovedAndTheRestOfTheGroup(t *testing.T) {
 	root, dir := pruneFolder(t)
+	// In name order: the diff, the manuscript text, the recorded text.
 	first := pruneFile(t, dir, "T_0000000000000001.diff", 10, 9*24*time.Hour)
-	second := pruneFile(t, dir, "T_0000000000000001.recorded.txt", 10, 9*24*time.Hour)
-	third := pruneFile(t, dir, "T_0000000000000001.manuscript.txt", 10, 9*24*time.Hour)
+	second := pruneFile(t, dir, "T_0000000000000001.manuscript.txt", 10, 9*24*time.Hour)
+	third := pruneFile(t, dir, "T_0000000000000001.recorded.txt", 10, 9*24*time.Hour)
 	was := removeFile
 	t.Cleanup(func() { removeFile = was })
 	removed := 0
@@ -528,22 +529,53 @@ func TestPruneFolderLeavesAFileWrittenWhileItsSiblingWasBeingRemoved(t *testing.
 		removed++
 		ok, err := was(root, rel)
 		if removed == 1 { // the run writes to the next file as the first is removed
-			if werr := os.WriteFile(second, []byte("more output"), 0o600); werr != nil {
+			if werr := os.WriteFile(second, make([]byte, 40), 0o600); werr != nil {
 				t.Error(werr)
 			}
 		}
 		return ok, err
 	}
-	// Names sort diff, manuscript, recorded: the first removed is the .diff.
 	pass, err := PruneFolder(root, "runs", PruneRule{Group: runOf, MaxAge: 7 * 24 * time.Hour}, pruneNow, never)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if exists(first) || !exists(second) {
-		t.Fatalf("first kept %v, second kept %v (third %v); want the file written meanwhile left", exists(first), exists(second), exists(third))
+	if exists(first) || !exists(second) || !exists(third) {
+		t.Fatalf("first kept %v, second kept %v, third kept %v; want only the first removed: the file written meanwhile and the one after it stay", exists(first), exists(second), exists(third))
 	}
-	if pass.Removed < 1 {
-		t.Fatalf("pass = %+v", pass)
+	// The diff went; the manuscript text now holds 40 bytes; the recorded text is untouched: 50 bytes of two files left.
+	if pass.Removed != 1 || pass.FilesAfter != 2 || pass.BytesAfter != 50 {
+		t.Fatalf("pass = %+v; want one removed and two files of 50 bytes left", pass)
+	}
+}
+
+// A changed file's group is one a stopped pass may have reached; the oldest goes first.
+func TestPruneFolderRemovesTheOldestGroupFirst(t *testing.T) {
+	root, dir := pruneFolder(t)
+	oldest := pruneFile(t, dir, "c.dat", 10, 30*24*time.Hour)
+	middle := pruneFile(t, dir, "a.dat", 10, 20*24*time.Hour)
+	newest := pruneFile(t, dir, "b.dat", 10, 10*24*time.Hour)
+	looks := 0
+	// Look 1 is before the listing, 2 the scan's, 3 before the first group, 4 before the second, 5 before the third.
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxAge: time.Hour}, pruneNow, func() bool { looks++; return looks >= 5 })
+	if err != nil || !pass.Stopped || exists(oldest) || exists(middle) || !exists(newest) || pass.Removed != 2 {
+		t.Fatalf("pass = %+v, %v; oldest kept %v, middle kept %v, newest kept %v; want the two oldest removed in order and the pass stopped", pass, err, exists(oldest), exists(middle), exists(newest))
+	}
+}
+
+// A future-dated file moved to now is looked at as it is after: a pass that dooms it (Guard 0) removes it at once, not a pass later.
+func TestPruneFolderRemovesAFutureDatedFileTheSamePassItIsMovedWhenItIsDoomed(t *testing.T) {
+	root, dir := pruneFolder(t)
+	real := time.Now()
+	future := filepath.Join(dir, "future.dat")
+	if err := os.WriteFile(future, make([]byte, 10), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(future, real.Add(1000*24*time.Hour), real.Add(1000*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 1}, real, never)
+	if err != nil || exists(future) || pass.Removed != 1 || pass.BytesBefore != 10 || pass.BytesAfter != 0 {
+		t.Fatalf("pass = %+v, %v, file kept %v; want it removed in the pass that moved its time", pass, err, exists(future))
 	}
 }
 
@@ -743,5 +775,73 @@ func TestFailuresIsOneLine(t *testing.T) {
 	err := Failures([]error{first, errors.New("second")})
 	if err == nil || !errors.Is(err, first) || !strings.HasPrefix(err.Error(), "2 removals failed, the first: first") || strings.Contains(err.Error(), "second") {
 		t.Fatalf("err = %v; want the count and the first only", err)
+	}
+}
+
+// A time call that returns nil and moves nothing (a filesystem that ignores it) is not a move: the file is still the oldest, not "just used".
+func TestPruneFolderTreatsAFutureTimeThatDidNotMoveAsTheOldest(t *testing.T) {
+	root, dir := pruneFolder(t)
+	was := SetFileTime
+	t.Cleanup(func() { SetFileTime = was })
+	SetFileTime = func(string, string, time.Time) error { return nil }
+	real := time.Now()
+	future := filepath.Join(dir, "future.dat")
+	recent := filepath.Join(dir, "recent.dat")
+	for _, path := range []string{future, recent} {
+		if err := os.WriteFile(path, make([]byte, 10), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Chtimes(future, real.Add(1000*24*time.Hour), real.Add(1000*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(recent, real.Add(-time.Hour), real.Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 10, Guard: time.Minute}, real, never); err != nil {
+		t.Fatal(err)
+	}
+	if exists(future) || !exists(recent) {
+		t.Fatalf("future kept %v, recent kept %v; want the file whose time did not move evicted first", exists(future), exists(recent))
+	}
+}
+
+// The counters of a pass match the disk when a future-dated file is replaced by one of another size between the time call and the look.
+func TestPruneFolderCountsAFutureFileAtTheSizeItHasAfterItsTimeMoves(t *testing.T) {
+	root, dir := pruneFolder(t)
+	real := time.Now().Add(time.Minute)
+	future := filepath.Join(dir, "future.dat")
+	if err := os.WriteFile(future, make([]byte, 10), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(future, real.Add(1000*24*time.Hour), real.Add(1000*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	was := SetFileTime
+	t.Cleanup(func() { SetFileTime = was })
+	SetFileTime = func(d, n string, at time.Time) error {
+		if err := was(d, n, at); err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(d, n), make([]byte, 99), 0o600)
+	}
+	pass, err := PruneFolder(root, "runs", PruneRule{Group: everyFileItsOwn, MaxBytes: 1000, Guard: time.Minute}, real, never)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pass.BytesBefore != 99 || pass.BytesAfter != 99 || pass.BytesAfter < 0 {
+		t.Fatalf("bytes before %d, after %d; want both 99, the size on disk", pass.BytesBefore, pass.BytesAfter)
+	}
+}
+
+// What a hit promises is Guard minus the refresh: a file played just under the refresh ago is not moved, and is still kept at Guard minus that.
+func TestMarkUsedAndGuardKeepAPreviewPlayedJustUnderTheGuardAgo(t *testing.T) {
+	root, dir := pruneFolder(t)
+	const refresh, guard = time.Minute, 10 * time.Minute
+	played := pruneFile(t, dir, "played.dat", 100, refresh-time.Second)
+	MarkUsed(dir, "played.dat", refresh, pruneNow)
+	rule := PruneRule{Group: everyFileItsOwn, MaxBytes: 1, Guard: guard}
+	if _, err := PruneFolder(root, "runs", rule, pruneNow.Add(guard-refresh-time.Second), never); err != nil || !exists(played) {
+		t.Fatalf("a file played just under the refresh ago was removed inside Guard minus the refresh: %v", err)
 	}
 }

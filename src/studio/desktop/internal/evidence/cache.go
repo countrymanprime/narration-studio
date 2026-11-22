@@ -293,15 +293,12 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 		// Size and time are those of the handle the header was read from, the same call the removal looks again with.
 		used, stamp := opened.ModTime(), opened.ModTime()
 		if used.After(now) && named[analyzer] {
-			// A file time after now (a clock set back, a restored copy) is moved to now, so that the entry ages and is evicted like any other
-			// from here on; read as now alone it would be "just used" at every pass. A time that cannot be set (only the file's owner may)
-			// makes the entry the oldest instead: expired at once in a kind with a time limit and the first to go in the others, so it is neither kept for ever nor counted against the cap for nothing. An entry of an analyzer no policy names is left alone, its time too.
-			if err := persist.SetFileTime(s.dir, entry.Name(), now); err != nil {
-				used = time.Time{}
-			} else if fresh, err := os.Lstat(filepath.Join(s.dir, entry.Name())); err == nil {
+			// A file time after now is moved to now (persist.MoveFutureToNow), so that the entry ages and is evicted like any other from here on.
+			// A time that cannot be set makes the entry the oldest instead: expired at once in a kind with a time limit and the first to go in the
+			// others, so it is neither kept for ever nor counted against the cap for nothing. An entry of an analyzer no policy names is left alone, its time too.
+			used = time.Time{}
+			if fresh, ok := persist.MoveFutureToNow(s.dir, entry.Name(), now); ok {
 				used, stamp = fresh.ModTime(), fresh.ModTime()
-			} else {
-				continue
 			}
 		}
 		byKind[analyzer] = append(byKind[analyzer], cacheFile{name: entry.Name(), size: opened.Size(), used: used, stamp: stamp, handle: opened})

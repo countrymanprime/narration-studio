@@ -14,7 +14,7 @@ import (
 // the diff is read once, right after its run writes it, so what is removed here is derived and costs a render at worst.
 
 // previewRule bounds the rendered TTS previews to 64 MB, the least recently used first (a preview served from the cache moves its file's
-// time, guide.Service.render). A preview written or played within ten minutes is not removed (a hit moves the time after a minute), which keeps a file a render has just
+// time, guide.Service.render). A preview written or played within nine minutes is not removed (the guard is ten and a hit moves the time after a minute), which keeps a file a render has just
 // finished out of the pass. A name that is not a preview's (the sidecar's <name>.<pid>.part file of a render in flight) is not touched.
 var previewRule = persist.PruneRule{
 	Group:    func(name string) (string, bool) { return name, guide.IsPreviewFile(name) },

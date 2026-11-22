@@ -1046,6 +1046,25 @@ func TestPruneKindsEvictsAFutureEntryWhoseTimeCannotBeSetFirst(t *testing.T) {
 	}
 }
 
+// A time call that returns nil and moves nothing is not a move: the entry stays the least recently used, not "used just now".
+func TestPruneKindsEvictsAFutureEntryWhoseTimeCallChangedNothingFirst(t *testing.T) {
+	was := persist.SetFileTime
+	t.Cleanup(func() { persist.SetFileTime = was })
+	persist.SetFileTime = func(string, string, time.Time) error { return nil }
+	project := t.TempDir()
+	store := NewCacheStore(project)
+	future, recent := kindKey("a", "future"), kindKey("a", "recent")
+	writeUsed(t, store, project, future, 100, time.Now().Add(1000*24*time.Hour))
+	writeUsed(t, store, project, recent, 100, time.Now().Add(-time.Hour))
+
+	if _, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxBytes: fileSize(t, project, recent)}}, time.Now(), never); err != nil {
+		t.Fatal(err)
+	}
+	if entryExists(project, future) || !entryExists(project, recent) {
+		t.Fatalf("future kept %v, recent kept %v; want the entry whose time did not move evicted first", entryExists(project, future), entryExists(project, recent))
+	}
+}
+
 // A pass that is already stopped reads no header and sets no file time.
 func TestPruneKindsAlreadyStoppedDoesNothing(t *testing.T) {
 	was := persist.SetFileTime

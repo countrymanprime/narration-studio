@@ -57,6 +57,22 @@ var SetFileTime = func(dir, name string, at time.Time) error {
 	return root.Chtimes(name, at, at)
 }
 
+// MoveFutureToNow is for a file whose listed modification time is after now (a clock set back, a project restored from a copy): it sets
+// that time to now, so the file ages like any other from here (read as now alone it would be "just written" at every pass), and returns
+// the file as it is afterwards. ok is false when the time cannot be set (only the file's owner may) or the file cannot be looked at again:
+// the caller then counts the file as the oldest. The one rule for a future time, used by every prune pass.
+func MoveFutureToNow(dir, name string, now time.Time) (info os.FileInfo, ok bool) {
+	if SetFileTime(dir, name, now) != nil {
+		return nil, false
+	}
+	fresh, err := os.Lstat(filepath.Join(dir, name))
+	if err != nil || !fresh.Mode().IsRegular() || fresh.ModTime().After(now) {
+		// A time that is still ahead of now (a filesystem that took the call and kept the old time) is not a time that was moved.
+		return nil, false
+	}
+	return fresh, true
+}
+
 // MarkUsed moves the modification time of the file name in dir to now when it is older than every, or dated in the future: the
 // file's time is then its last use, for the prune passes that order by it. A hit costs one stat and, at most once in every, a time
 // change; the contents are not rewritten. A failure is ignored: the file then keeps its time, which costs a recompute at worst.
@@ -143,9 +159,9 @@ type prunedGroup struct {
 // PruneFolder removes files from the flat folder rel beneath root by rule, as one pass: the groups older than MaxAge or beyond
 // KeepGroups, then the oldest groups beyond MaxBytes. Only regular files that rule.Group names are counted or touched. Deletes go through
 // RemoveRegular after RealFolder (a folder that is a link, or below one, is an error and nothing is removed). Every file of a group is looked at again
-// just before the group goes (Recheck): a group with a file that was written or used since the listing stays whole. stop is asked
+// just before the group goes (Recheck): the rest of a group with a file that was written or used since the listing stays. stop is asked
 // before the scan, every ScanChunk entries and before each group; a pass gives up after eight failed removals with one line. A
-// file time in the future counts as now. A folder that is not there is nothing to do.
+// file time in the future is set to now (MoveFutureToNow), or counts as the oldest when it cannot be set. A folder that is not there is nothing to do.
 func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bool) (PrunePass, error) {
 	var pass PrunePass
 	if stop == nil {
@@ -188,7 +204,6 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 			continue
 		}
 		pass.FilesBefore++
-		pass.BytesBefore += info.Size()
 		group := groups[key]
 		if group == nil {
 			group = &prunedGroup{}
@@ -196,16 +211,13 @@ func PruneFolder(root, rel string, rule PruneRule, now time.Time, stop func() bo
 		}
 		modified := info.ModTime()
 		if modified.After(now) {
-			// A time in the future (a clock set back, a project restored from a copy) is set to now, so the file ages like any other from
-			// here: read as now alone it would be "just written" at every pass, and never aged out. A time that cannot be set (only the
-			// file's owner may) makes it the oldest, removable like any file whose time is long past.
+			// A time in the future is moved to now (MoveFutureToNow); one that cannot be moved makes the file the oldest.
 			modified = time.Time{}
-			if SetFileTime(dir, entry.Name(), now) == nil {
-				if fresh, err := os.Lstat(filepath.Join(dir, entry.Name())); err == nil && fresh.Mode().IsRegular() {
-					info, modified = fresh, fresh.ModTime()
-				}
+			if fresh, ok := MoveFutureToNow(dir, entry.Name(), now); ok {
+				info, modified = fresh, fresh.ModTime()
 			}
 		}
+		pass.BytesBefore += info.Size()
 		group.files = append(group.files, prunedFile{name: entry.Name(), info: info})
 		group.bytes += info.Size()
 		if modified.After(group.newest) {

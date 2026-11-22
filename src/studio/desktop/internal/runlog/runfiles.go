@@ -66,9 +66,10 @@ func (w *stderrFileWriter) Write(p []byte) (int, error) {
 func (w *stderrFileWriter) Close() error { return nil }
 
 // runFilesRule is what Begin prunes logs/runs by (persist.PruneFolder): the newest maxRunFiles run files stay and any older than
-// maxRunFileAge go, so a burst of short runs cannot fill the disk and a quiet week does not keep stale debug detail around. Only
-// <run-id>.stderr.jsonl files are runs' (anything else in the folder is left alone), nothing is removed through a link, and a file a
-// run wrote to since the folder was listed stays.
+// maxRunFileAge go, so a long burst of runs does not fill the disk and a quiet week does not keep stale debug detail around. A run file
+// written in the last hour is never removed, whatever the count, so a sidecar that wrote only at its start and is still running keeps its
+// earlier lines (a burst of more than maxRunFiles runs within an hour therefore keeps them all until the hour has passed). Only
+// <run-id>.stderr.jsonl files are runs' (anything else in the folder is left alone) and nothing is removed through a link.
 var runFilesRule = persist.PruneRule{
 	Group:      func(name string) (string, bool) { return name, strings.HasSuffix(name, ".stderr.jsonl") },
 	KeepGroups: maxRunFiles,

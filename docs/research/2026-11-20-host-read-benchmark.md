@@ -144,15 +144,15 @@ What goes at 10,000 is mostly the size caps (80 MB of blobs of each kind against
 
 The second pass takes 0 to 5 ms for the previews and 0 to 1 ms for the runs at every size. Under 20 runs and under 64 MiB (67.11 MB; the table's MB are decimal) nothing is removed (the 10, 100 and 1,000 preview rows: 1,000 previews of 64 KB are 65.54 MB, 1,024 fit the cap). A real project holds a few dozen previews and as many runs as the narrator has compared: the 10 and 100 rows.
 
-`runlog.Begin` prunes `logs/runs` as every run starts, and now does it with the same helper (`persist.PruneFolder`) in place of its own loop. Cost of one `Begin` with N files in `logs/runs`, `main` against this change, 3 runs of 200 calls each (a folder held at its 20-file cap, the steady state), and the first `Begin` over N stale files (5 runs of one call each); microseconds and milliseconds:
+`runlog.Begin` prunes `logs/runs` as every run starts, and now does it with the same helper (`persist.PruneFolder`) in place of its own loop. Cost of one `Begin` with N files in `logs/runs`, `main` against this change, 5 runs of 200 calls each (a folder held at its 20-file cap, the steady state), and the first `Begin` over N stale files (5 runs of one call each); every file is past the hour a written file is left alone, so both versions prune to 20; microseconds and milliseconds:
 
 | Folder | `main` | This change |
 | --- | --- | --- |
-| 20 files, steady state, µs | 36 to 58 | 43 to 60 |
-| 200 stale files, first `Begin`, ms | 1.2 to 1.9 | 2.5 to 3.4 |
-| 2,000 stale files, first `Begin`, ms | 11.7 to 19.0 | 28.9 to 40.2 |
+| 20 files, steady state, µs | 31 to 48 | 43 to 51 |
+| 200 stale files, first `Begin`, ms | 1.0 to 1.7 | 2.0 to 2.7 |
+| 2,000 stale files, first `Begin`, ms | 10.3 to 16.6 | 25.7 to 35.0 |
 
-The helper costs about 5 to 10 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The benchmark is committed: `go -C src/studio/desktop test ./internal/runlog -run xxx -bench BenchmarkBegin -benchtime=200x -count=3` (`-benchtime=1x` for the first `Begin`). The folder cannot grow past 20 files again, so the one-time cost is paid once, on the first run after the upgrade.
+The helper costs about 5 to 12 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The benchmark is committed: `go -C src/studio/desktop test ./internal/runlog -run xxx -bench BenchmarkBegin -benchtime=200x -count=3` (`-benchtime=1x` for the first `Begin`). After that prune the folder is held at 20 files (a file written in the last hour is never removed, so a burst of more than 20 runs within an hour keeps them until the hour has passed), so the one-time cost is paid on the first run after the upgrade.
 
 ## The real app
 

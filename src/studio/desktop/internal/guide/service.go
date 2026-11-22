@@ -1106,7 +1106,7 @@ func (s *Service) render(voice PreviewVoice, spoken, pronunciationKey, guidePath
 	defer lock.Unlock()
 	if audio, ok := cachedPreview(out); ok {
 		// The file's time is its last use for the prune pass (persist.MarkUsed, at most once a minute): a preview the narrator played in the last
-		// ten minutes is never removed to meet the cap, whatever its age before.
+		// nine minutes is never removed to meet the cap (the prune guard is ten), whatever its age before.
 		persist.MarkUsed(dir, name, previewUsedRefresh, time.Now())
 		return audio, nil
 	}
