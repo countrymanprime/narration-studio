@@ -35,7 +35,7 @@ export function settingsPageItems({ shown, daw, showCategory, showRow }: Setting
       row.needs === 'reaper' && daw !== 'REAPER'
         ? `Only applies when recording with REAPER (this project uses ${daw})`
         : row.needs === 'audacity' && daw !== 'Audacity'
-          ? `Only applies when recording with Audacity (this project uses ${daw})`
+          ? 'Only applies when recording with Audacity'
           : row.needs === 'daw' && daw === 'Built-in'
             ? `Only applies when recording with a DAW (this project uses ${daw})`
             : undefined,

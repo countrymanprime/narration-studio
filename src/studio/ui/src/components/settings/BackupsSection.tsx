@@ -189,7 +189,10 @@ export function BackupsSection() {
   );
   useUnsavedDraft('audacity-backups', { dirty: refused, label: 'a backups value outside its range', discard: () => setDrafts({}) });
 
-  if (!loadError && !hasBackups(caps)) return null;
+  // The row is shown for a project that records with Audacity; a report that is not Audacity's (still the old tool's, or not read yet) says so
+  // here rather than leaving a label with no control.
+  if (!loadError && !hasBackups(caps))
+    return caps ? <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">Backups are kept only when the project records with Audacity.</p> : null;
   const support = caps?.capabilities['backups'];
   return (
     <BackupsView

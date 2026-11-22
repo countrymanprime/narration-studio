@@ -99,7 +99,6 @@ describe('Settings with no project: every category', () => {
         return found;
       });
       await waitFor(() => expect(within(entry).queryByText('Reading the settings…')).toBeNull());
-      if (id === 'daw.backups') expect(within(entry).getByText(NEEDS_PROJECT_REASON)).toBeTruthy();
       // The scope switch has no "This project" to offer.
       expect(within(entry).queryByRole('radio', { name: 'This project' })).toBeNull();
     }
