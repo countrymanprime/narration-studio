@@ -241,6 +241,17 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 
 The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
+Production's rows, header and Next up then took their chapters from the shared list too (#4058; the host's overview supplies only the per-chapter numbers). Calls / KB for 1, 5, 17 and 40 h, `--runs 5` on this head against `--runs 3` on `main` at 00a3bfc:
+
+| Production | Calls | KB at 1, 5, 17, 40 h |
+| --- | --- | --- |
+| Cold, before | 52 | 122, 164, 254, 423 |
+| Cold, after | 53 | 123, 168, 263, 441 |
+| Warm, before | 34 | 63, 96, 168, 303 |
+| Warm, after | 34 | 63, 96, 168, 303 |
+
+A warm visit is unchanged. A cold start makes one more call and reads up to 18 KB more at 40 h; **why was not traced** (the likely reading is a second read of the list that does not join the one in flight on a cold start). Nodes are unchanged. This was chosen for consistency, not speed: the page no longer has a second source of chapter names, order and statuses, which is why a rename or a failed list read now shows on Production as on every other page.
+
 ## The track list: a 5 s poll against REAPER's change event
 
 [#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 1. Before it, every page that shows the project's tracks (`useLiveTracks`, behind the engine panel, Link chapters, Editing, Proof, Pickups and the Booth's voices) read `TracksLive`, `ChapterTrackLinks` and `VoiceTracksGet` every 5 s while the window was visible. With a revision from REAPER's heartbeat it reads on `daw_tracks_changed`, on focus and on Refresh, and every 30 s for a save in REAPER, which sends no event. Same rig and method as [above](#host-reads): `host-read-bench.mjs seed` then `reads --runs 3` (three processes, medians), here with `--tracks N` for the extra empty tracks. The three reads' warm medians are one tick; the poll is 12 ticks a minute, the event idle 2 (the 30 s read), a change 1.
