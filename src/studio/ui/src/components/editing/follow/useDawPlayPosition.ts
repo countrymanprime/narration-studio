@@ -56,16 +56,21 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
   const apply = useCallback((playing: boolean, position: number): void => {
     const { state: s, clock: map, playback: pb, dispatch: send } = live.current;
     const started = playing && !dawPlaying.current;
+    const stopped = !playing && dawPlaying.current;
     dawPlaying.current = playing;
     if (s.playT != null && s.playT !== mine.current) {
       mine.current = null;
       return;
     }
-    if (!playing) return;
+    if (!playing) {
+      // The word the DAW reached stays lit, but the bar and the screen reader hear a stop.
+      if (stopped && mine.current != null && s.playT === mine.current) send({ type: 'hold' });
+      return;
+    }
     if (started) pb.setFollow(true);
     const t = map?.docAt(position) ?? null;
     mine.current = t;
-    if (s.playT !== t) send({ type: 'play', t });
+    if (s.playT !== t || s.held) send({ type: 'play', t });
   }, []);
 
   // The transport event (and the page becoming visible, or the DAW answering, which hears the state the session already holds).
@@ -74,7 +79,11 @@ export function useDawPlayPosition({ clock, caps, playback }: DawPlayPositionOpt
     // A stop heard while the page is hidden is still tracked, so a DAW lost after it keeps the word as any stop does.
     if (!enabled) return;
     if (!visible) {
-      if (!transport.playing || transport.recording) dawPlaying.current = false;
+      if (!transport.playing || transport.recording) {
+        const { state: s, dispatch: send } = live.current;
+        if (dawPlaying.current && mine.current != null && s.playT === mine.current) send({ type: 'hold' });
+        dawPlaying.current = false;
+      }
       return;
     }
     apply(transport.playing && !transport.recording, transport.position ?? 0);
