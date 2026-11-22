@@ -41,10 +41,13 @@ export function useReaperLaunch({
   const [state, setState] = useState<LaunchState>({ phase: 'idle' });
   const alive = useRef(true);
   const running = useRef(false);
+  // Ends a wait in progress when the dialog goes away, so its timer and subscription are not held to the deadline.
+  const leave = useRef<() => void>(() => {});
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
+      leave.current();
     };
   }, []);
 
@@ -54,40 +57,54 @@ export function useReaperLaunch({
     const say = (next: LaunchState) => alive.current && setState(next);
     const readOnce = async () => {
       const next = await dawPort.capabilities();
+      if (!alive.current) return false;
       onCaps?.(next);
       return next.reachable;
     };
     void (async () => {
       say({ phase: 'starting' });
-      const started = await startDaw({ project, system }, daw);
-      if (!started.ok) {
-        say({ phase: 'refused', message: started.message });
-        running.current = false;
-        return;
-      }
-      onLaunched?.(started.path);
-      say({ phase: 'waiting' });
+      // Listening starts before the launcher runs: the host announces the DAW answering (`subscribeCapabilities`) and a REAPER already open can
+      // answer before the launcher returns, with no later event for a picture that has not changed.
+      let heard = false;
+      let wake: (reached: boolean) => void = () => {};
+      const stop: { off?: () => void } = {};
+      stop.off = dawPort.subscribeCapabilities?.((next) => {
+        if (!alive.current || heard) return;
+        onCaps?.(next);
+        if (next.reachable) {
+          heard = true;
+          wake(true);
+        }
+      });
+      const release = () => {
+        stop.off?.();
+        stop.off = undefined;
+      };
+      // A subscription that answered before it returned is released here; otherwise `finally` releases it.
+      if (heard) release();
       try {
-        // The host announces the DAW answering (`subscribeCapabilities`); the wait ends on that, or at the deadline with one read of its own.
-        const answered = await new Promise<boolean>((resolve) => {
-          const stop: { off?: () => void } = {};
-          let done = false;
-          const timer = setTimeout(() => finish(false), waitMs);
-          const finish = (reached: boolean) => {
-            done = true;
-            clearTimeout(timer);
-            stop.off?.();
-            resolve(reached);
-          };
-          stop.off = dawPort.subscribeCapabilities?.((next) => {
-            if (done) return;
-            if (!alive.current) return finish(false);
-            onCaps?.(next);
-            if (next.reachable) finish(true);
+        const started = await startDaw({ project, system }, daw);
+        if (!started.ok) {
+          say({ phase: 'refused', message: started.message });
+          return;
+        }
+        onLaunched?.(started.path);
+        say({ phase: 'waiting' });
+        // One read now, for a change the event did not carry; then the event, up to `waitMs`; then one read at the deadline.
+        let reached = heard || (await readOnce());
+        if (!reached && alive.current) {
+          reached = await new Promise<boolean>((resolve) => {
+            const timer = setTimeout(() => resolve(false), waitMs);
+            wake = (answered) => {
+              clearTimeout(timer);
+              resolve(answered);
+            };
+            leave.current = () => wake(false);
+            if (heard) wake(true);
           });
-        });
+          reached = reached || (alive.current && (await readOnce()));
+        }
         if (!alive.current) return;
-        const reached = answered || (await readOnce());
         if (reached) {
           say({ phase: 'idle' });
           return;
@@ -96,6 +113,8 @@ export function useReaperLaunch({
       } catch (error) {
         say({ phase: 'failed', message: `${name} was started, but this app could not tell whether it answered: ${apiErrorMessage(error)}` });
       } finally {
+        release();
+        leave.current = () => {};
         running.current = false;
       }
     })();

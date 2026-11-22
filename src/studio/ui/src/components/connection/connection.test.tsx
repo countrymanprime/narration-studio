@@ -16,6 +16,10 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import { ChapterTrackStateProvider, useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
+import { useReaperLaunch } from './useReaperLaunch';
+import type { DawClient } from '../../ports/daw';
+import { PortOverrides } from '../../ports/usePort';
+import { dawClientFor } from '../booth/record/fixtures';
 import { LinkDawFileContext } from './linkDawFile';
 import { forgetMatches, prefetchMatch, rememberMatch } from './chapterMatchCache';
 import { resetOpenOnce, useOpenOnce } from './useOpenOnce';
@@ -182,16 +186,19 @@ describe('the not-connected dialog', () => {
       subscribeDawCapabilities,
     } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Start REAPER' }));
-    await waitFor(() => expect(subscribeDawCapabilities).toHaveBeenCalled());
+    await waitFor(() => expect(launchDaw).toHaveBeenCalled());
+    // The read right after the launcher is done once it has been quiet; from here only the event can end the wait.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const heard = onCaps.mock.calls.length;
     const reads = dawCapabilities.mock.calls.length;
     act(() => emit(structuredClone(DAW_SETUPS['reaper-off'])));
     act(() => emit(structuredClone(DAW_SETUPS.reaper)));
-    await waitFor(() => expect(onCaps).toHaveBeenCalledTimes(2));
-    expect(onCaps.mock.calls.map(([caps]) => caps.reachable)).toEqual([false, true]);
+    await waitFor(() => expect(onCaps).toHaveBeenCalledTimes(heard + 2));
+    expect(onCaps.mock.calls.at(-1)?.[0].reachable).toBe(true);
     expect(dawCapabilities.mock.calls.length).toBe(reads);
     // Once it answered, later pictures are not handed on.
     act(() => emit(structuredClone(DAW_SETUPS['reaper-off'])));
-    expect(onCaps).toHaveBeenCalledTimes(2);
+    expect(onCaps).toHaveBeenCalledTimes(heard + 2);
     expect(order).toEqual([`save ${JSON.stringify(['DAW', 'global', { auto_start_launcher: 'true' }])}`, 'launch']);
     expect(onLaunched).toHaveBeenCalledWith('C:/REAPER/reaper.exe');
   });
@@ -208,14 +215,83 @@ describe('the not-connected dialog', () => {
 
   it('takes the answer of its one read at the end when the event never came', async () => {
     const launchDaw = vi.fn(async () => ({ launched: true, path: 'p', source: 's' }));
-    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS.reaper));
-    view(<ConnectionResolveDialog {...off} waitMs={20} />, { launchDaw, dawCapabilities } as Partial<NarrationApi>);
+    // Quiet for the session's read and the one after the launcher, reachable only at the deadline; nothing is ever announced.
+    let reads = 0;
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS[++reads >= 3 ? 'reaper' : 'reaper-off']));
+    const subscribeDawCapabilities = vi.fn(() => () => {});
+    view(<ConnectionResolveDialog {...off} waitMs={30} />, { launchDaw, dawCapabilities, subscribeDawCapabilities } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Start REAPER' }));
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
-    // The session's first read, plus the one read at the end: not one every second.
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await waitFor(() => expect(dawCapabilities.mock.calls.length).toBeGreaterThanOrEqual(3));
+    await new Promise((resolve) => setTimeout(resolve, 60));
     expect(screen.queryByText(/has not answered yet/)).toBeNull();
-    expect(dawCapabilities.mock.calls.length).toBeLessThanOrEqual(3);
+  });
+
+  it('hears the DAW answer while the launcher is still running, without waiting out the deadline', async () => {
+    let emit: (caps: (typeof DAW_SETUPS)['reaper']) => void = () => {};
+    const subscribeDawCapabilities = vi.fn((listener: typeof emit) => ((emit = listener), () => {}));
+    // The picture changes during the launch and is announced once; the read after the launcher is quiet again, so only the announcement can end the wait.
+    const launchDaw = vi.fn(async () => {
+      emit(structuredClone(DAW_SETUPS.reaper));
+      return { launched: true, path: 'p', source: 's' };
+    });
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off']));
+    const onCaps = vi.fn();
+    view(<ConnectionResolveDialog {...off} onCaps={onCaps} waitMs={10_000} />, {
+      launchDaw,
+      dawCapabilities,
+      subscribeDawCapabilities,
+    } as Partial<NarrationApi>);
+    await userEvent.click(screen.getByRole('button', { name: 'Start REAPER' }));
+    await waitFor(() => expect(onCaps.mock.calls.some(([caps]) => caps.reachable)).toBe(true));
+    expect(screen.queryByText(/has not answered yet/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-busy')).not.toBe('true');
+  });
+
+  describe('the subscription of the wait', () => {
+    // The hook on a client of its own (the page's session shares one subscription between its users, so only a bare client shows what the hook releases).
+    const hookOn = (client: DawClient, waitMs = 10_000) => {
+      const api = createMockApi({
+        launchDaw: async () => ({ launched: true, path: 'p', source: 's' }),
+        dawChoice: async () => ({ hasProject: true, daw: 'REAPER', state: 'linked', linkedFile: 'a.rpp', foundFiles: [], options: [] }) as never,
+      });
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <ApiProvider api={api}>
+          <PortOverrides clients={{ daw: client }}>{children}</PortOverrides>
+        </ApiProvider>
+      );
+      const onCaps = vi.fn();
+      const view = renderHook(() => useReaperLaunch({ daw: 'REAPER', name: 'REAPER', onCaps, waitMs }), { wrapper });
+      return { view, onCaps };
+    };
+    const quiet = async () => structuredClone(DAW_SETUPS['reaper-off']);
+
+    it('is let go of when the dialog is left mid-wait, and nothing is handed on after', async () => {
+      const unsubscribe = vi.fn();
+      let emit: (caps: (typeof DAW_SETUPS)['reaper']) => void = () => {};
+      const client: DawClient = { ...dawClientFor('reaper'), capabilities: quiet, subscribeCapabilities: (listener) => ((emit = listener), unsubscribe) };
+      const { view, onCaps } = hookOn(client);
+      act(() => view.result.current.start());
+      await waitFor(() => expect(view.result.current.state.phase).toBe('waiting'));
+      await waitFor(() => expect(onCaps).toHaveBeenCalled());
+      view.unmount();
+      await waitFor(() => expect(unsubscribe).toHaveBeenCalledTimes(1));
+      const handed = onCaps.mock.calls.length;
+      emit(structuredClone(DAW_SETUPS.reaper));
+      expect(onCaps).toHaveBeenCalledTimes(handed);
+    });
+
+    it('is let go of when it answers before it returns, and the wait ends at once', async () => {
+      const unsubscribe = vi.fn();
+      const client: DawClient = {
+        ...dawClientFor('reaper'),
+        capabilities: quiet,
+        subscribeCapabilities: (listener) => (listener(structuredClone(DAW_SETUPS.reaper)), unsubscribe),
+      };
+      const { view } = hookOn(client);
+      act(() => view.result.current.start());
+      await waitFor(() => expect(view.result.current.state.phase).toBe('idle'));
+      await waitFor(() => expect(unsubscribe).toHaveBeenCalledTimes(1));
+    });
   });
 
   it('says it started and did not answer, when the bridge stays quiet', async () => {
