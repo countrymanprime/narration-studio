@@ -278,6 +278,8 @@ export function Tooltip({ text, label = 'More information', icon = 'i' }: { text
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      // The press is spent on closing the note: a page's own Escape command (Proof's "All chapters") reads it as consumed and stays out.
+      event.preventDefault();
       openedByFocus.current = false;
       setOpen(false);
     };

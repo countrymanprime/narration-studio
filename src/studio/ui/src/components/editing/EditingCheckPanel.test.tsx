@@ -274,6 +274,21 @@ describe('EditingCheckPanel', () => {
       expect(await api.editingSourceChoice(chapter.id)).toBe('render');
     });
 
+    it('Check editing while the source choice saves is off with a reason, never silently dropped', async () => {
+      const user = userEvent.setup();
+      const { api } = renderPanel({ stages: { editing: { [chapter.id]: 'met' } } });
+      let finish: (choice: 'render') => void = () => undefined;
+      vi.spyOn(api, 'editingSetSourceChoice').mockReturnValue(new Promise((resolve) => (finish = resolve)));
+      const dialog = await panel();
+      await waitFor(() => within(dialog).getByRole('button', { name: 'Track items', pressed: true }));
+      await user.click(within(dialog).getByRole('button', { name: 'Rendered file' }));
+      const check = await within(dialog).findByRole('button', { name: /^Check (editing|again)$/ });
+      await waitFor(() => expect(check.getAttribute('aria-disabled')).toBe('true'));
+      expect(check.getAttribute('aria-describedby') ?? check.closest('span')?.textContent ?? '').not.toBe('');
+      finish('render');
+      await waitFor(() => expect(check.getAttribute('aria-disabled')).toBeNull());
+    });
+
     it('names the render once it is the active choice, and the empty-space evidence changes with it', async () => {
       const user = userEvent.setup();
       renderPanel({ stages: { editing: { [chapter.id]: 'not_met' } } });
