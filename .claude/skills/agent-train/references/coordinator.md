@@ -177,7 +177,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)).;
    - the `test ratchet` step of `quality / lint` has run on the head (its result is in the lint job's summary), and the intent review judged its warnings ([Safety net](#safety-net));
-   - the PR's Reuse section has `Existing thing searched:` with real searches, and every new thing has `Replaces: <path>` and a `Builds new because:` (a) or (b) (a consolidation skipped for a small gain is refused) with that path deleted in the diff; a PR that adds a parallel thing is refused ([one thing per job](../../../rules/product-rules.md)), with a comment naming the existing thing;
+   - the PR's Reuse section has `Existing thing searched:` with real searches, and every new thing has either `Replaces: <path>` with that path deleted in the diff or a `Builds new because:` (a) or (b), and a consolidation skipped for a small gain is refused; a PR that adds a parallel thing is refused ([one thing per job](../../../rules/product-rules.md)), with a comment naming the existing thing;
    - every reviewer's report carries a `Design system:` line and none says hand-rolled ([rule](../../../rules/product-rules.md));
    - an independent intent review passed on the current head ([Safety net](#safety-net));
    - no `main-red` issue is open (`list_issues` with the label), unless this PR is the fix or the revert that issue asks for ([Safety net](#safety-net)): a red `main` is closed to every other merge, `HOLD` or not;
