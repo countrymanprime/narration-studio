@@ -106,7 +106,11 @@ describe('applying a choice', () => {
 
   it('a device that is not connected is said so and the element is reset to the default', async () => {
     const result = await setOutput(audio(), 'Studio monitors (Scarlett)');
-    expect(result).toEqual({ ok: false, message: 'Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.' });
+    expect(result).toEqual({
+      ok: false,
+      message: 'Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.',
+      missing: true,
+    });
     expect(setSinkId).toHaveBeenCalledWith('');
   });
 

@@ -87,7 +87,8 @@ export const MOCK_GROUPS: readonly MockGroup[] = [
     params: ['mockAudioOutputs'],
     options: [
       { ...DEFAULT, label: 'Two named outputs' },
-      { value: 'none', label: 'None named', set: { mockAudioOutputs: 'none' } },
+      { value: 'none', label: 'The list will not come', set: { mockAudioOutputs: 'none' } },
+      { value: 'blank', label: 'Outputs with no names', set: { mockAudioOutputs: 'blank' } },
       { value: 'long', label: 'Long, right-to-left and emoji names', set: { mockAudioOutputs: 'long' } },
       { value: 'refused', label: 'The audio system refuses a named output', set: { mockAudioOutputs: 'refused' } },
     ],

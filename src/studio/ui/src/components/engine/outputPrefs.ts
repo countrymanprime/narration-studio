@@ -4,7 +4,7 @@
 import { useCallback, useEffect } from 'react';
 import { announceBrowserSettingChange, useBrowserSetting } from '../../browserSettings';
 import { overlay } from '../../overlay/overlayService';
-import { setOutput } from '../voicesamples/audioOutputs';
+import { missingOutputSentence, setOutput } from '../voicesamples/audioOutputs';
 import { clamp } from '../../clamp';
 
 export type OutputPrefs = {
@@ -91,13 +91,9 @@ export const deviceProblem = (device: string): string => `Could not play on ${de
 
 /**
  * Keeps an element on the narrator's choices. `getElement` returns the player's element once it exists (a player makes it lazily); the device is
- * applied when it changes and `onDevice` hears the sentence to show when the output could not be used, or null when it took.
+ * applied when it changes, and an output that could not be used is said as a toast.
  */
-export function useAppliedOutput(
-  getElement: () => HTMLMediaElement | undefined,
-  output: OutputPrefs | undefined,
-  onDevice?: (problem: string | null) => void,
-): void {
+export function useAppliedOutput(getElement: () => HTMLMediaElement | undefined, output: OutputPrefs | undefined): void {
   const volume = output?.volume;
   const muted = output?.muted;
   const rate = output?.rate;
@@ -113,11 +109,12 @@ export function useAppliedOutput(
     void setOutput(el, device).then((result) => {
       if (stale) return;
       // Said where the problem arises, not in the Output popover that may be closed (#4044); the sound is already back on the default.
-      if (!result.ok) overlay.toast(deviceProblem(device));
-      onDevice?.(result.ok ? null : deviceProblem(device));
+      // A gone output is said as the one sentence `useOutputDevices` says for it (the same text is one toast); a refusal as `deviceProblem`.
+      const problem = result.ok ? null : result.missing ? missingOutputSentence(device, 'Sound plays') : deviceProblem(device);
+      if (problem) overlay.toast(problem);
     });
     return () => {
       stale = true;
     };
-  }, [getElement, device, onDevice]);
+  }, [getElement, device]);
 }

@@ -68,7 +68,8 @@ export const editingStates: StateEntry[] = [
   {
     page: 'editing',
     state: 'output-no-outputs',
-    description: 'Editing, the Output popover on a computer that names no outputs - the device choice is off with its reason and Check again',
+    description:
+      'Editing, the Output popover on a computer whose audio system will not list its outputs - only the system default, with Check again (the reason is a toast)',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {

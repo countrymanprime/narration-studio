@@ -64,8 +64,6 @@ export interface ScriptPlaybackOptions {
   sound?: SoundAt;
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
   output?: OutputPrefs;
-  /** Hears why the chosen output could not be used, or null when it took, each time the choice changes. */
-  onOutputDevice?: (problem: string | null) => void;
 }
 
 /**
@@ -74,15 +72,7 @@ export interface ScriptPlaybackOptions {
  * the time in the bar follow it. Nothing here throws into the page: a file that will not load stops playback and says why. With a linked DAW
  * whose transport is ready, every play goes to the DAW and the app's audio stays silent; when it cannot play, the app plays with a notice.
  */
-export function useScriptPlayback({
-  playlist,
-  mediaUrl,
-  notify = (text) => overlay.toast(text),
-  sync,
-  sound,
-  output,
-  onOutputDevice,
-}: ScriptPlaybackOptions): ScriptPlayback {
+export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overlay.toast(text), sync, sound, output }: ScriptPlaybackOptions): ScriptPlayback {
   const { doc, state, dispatch } = useEditingPage();
   const daw = usePort('daw');
   const stopReport = usePlayStopReport();
@@ -110,7 +100,7 @@ export function useScriptPlayback({
   });
 
   const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
-  useAppliedOutput(audio, output, onOutputDevice);
+  useAppliedOutput(audio, output);
 
   /** The DAW's transport, once `useDawTransportSync` below has made it; halt and go reach it here because it needs them. */
   const remoteRef = useRef<RemotePlayer | undefined>(undefined);

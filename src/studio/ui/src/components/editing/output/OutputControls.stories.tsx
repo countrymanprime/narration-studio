@@ -47,7 +47,7 @@ export const VolumeAndDevice: Story = { args: { defaultOpen: true, start: { volu
 
 export const ListingOutputs: Story = { args: { defaultOpen: true, devices: { phase: 'loading' } } };
 
-/** The computer gave no named outputs (or this webview cannot choose one): the choice is off, with a way to try again. */
+/** The computer gave no named outputs (or this webview cannot choose one): only the system default is offered, with a way to try again (the sentence is a toast). */
 export const NoOutputsListed: Story = {
   args: { defaultOpen: true, devices: { phase: 'ready', checkedAt: 0, status: 'unavailable', message: '' } },
 };

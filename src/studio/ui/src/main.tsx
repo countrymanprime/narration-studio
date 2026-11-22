@@ -190,8 +190,8 @@ const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMi
 // `?mockNoDevices=1` boots the teleprompter with an empty device listing, so the
 // blocked "No microphone found" state (no typed fallback) can be seen without a host.
 const mockNoDevices = mockParams.has('mockNoDevices');
-// `?mockAudioOutputs=none|long|refused` changes the computer's audio outputs the Editing page's Output popover and Settings > Voice sample output list:
-// none named (the choice is off), long and right-to-left names, or an audio system that refuses every named one. Without it the mock names two outputs.
+// `?mockAudioOutputs=none|blank|long|refused` changes the computer's audio outputs the Editing page's Output popover and Settings > Voice sample output list:
+// a list that will not come, outputs with no names, long and right-to-left names, or an audio system that refuses every named one. Without it the mock names two outputs.
 const mockAudioOutputs = MOCK_AUDIO_OUTPUT_MODES.find((mode) => mode === mockParams.get('mockAudioOutputs'));
 // `?mockCredits=filled` boots the project with its credits values set (title, author, narrator), so the credits read on the
 // teleprompter with every token resolved can be seen without saving them in Settings first.

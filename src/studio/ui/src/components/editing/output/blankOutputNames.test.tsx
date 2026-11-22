@@ -20,7 +20,8 @@ afterEach(() => {
   delete (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  enumerate.mockClear();
+  enumerate.mockReset();
+  enumerate.mockImplementation(async () => devices);
 });
 
 function Row() {
@@ -59,7 +60,6 @@ describe('the Editing page output list', () => {
     act(() => result.current.refresh());
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
     expect(result.current.listing).toMatchObject({ phase: 'ready', status: 'unavailable' });
-    enumerate.mockReset();
   });
 
   it('a press of Check again with the saved output still missing says so again; the first read says nothing', async () => {
@@ -85,7 +85,6 @@ describe('the Editing page output list', () => {
     expect(toast).toHaveBeenCalledTimes(1);
     act(() => result.current.refresh());
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
-    enumerate.mockReset();
   });
 
   it('no output at all draws no toast and leaves the select on with the system default', async () => {
