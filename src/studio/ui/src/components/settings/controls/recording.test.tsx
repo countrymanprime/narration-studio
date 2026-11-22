@@ -246,6 +246,38 @@ describe('Recording & DAW: Record with', () => {
     await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
 
+  it('switching Record with asks first (the shell question) while an Audacity backups value outside its range is held, and goes ahead when the question lets it', async () => {
+    const api = createMockApi(
+      {},
+      { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity', connected: true }, audacityLink: { module: 'on', running: true, pipe: 'silent' } },
+    );
+    const choose = vi.spyOn(api, 'dawChoose');
+    await renderPage({ api, category: 'Recording & DAW' });
+    // The shell's question (App.tsx), stood in for: it holds the move when something is held, as the real one does.
+    const held: (() => void)[] = [];
+    registry.setShell({ ask: (run) => (registry.heldNow().length > 0 ? held.push(run) : run()), go: vi.fn() });
+    const days = await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
+    fireEvent.change(days, { target: { value: '999' } });
+    fireEvent.click(screen.getByRole('radio', { name: /^REAPER/ }));
+    await waitFor(() => expect(held).toHaveLength(1));
+    expect(choose).not.toHaveBeenCalled();
+    expect((screen.getByRole('textbox', { name: 'Keep backups for (days)' }) as HTMLInputElement).value).toBe('999');
+    held[0]!();
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('REAPER'));
+  });
+
+  it('switching Record with goes ahead at once when nothing is held', async () => {
+    const api = createMockApi(
+      {},
+      { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity', connected: true }, audacityLink: { module: 'on', running: true, pipe: 'silent' } },
+    );
+    const choose = vi.spyOn(api, 'dawChoose');
+    await renderPage({ api, category: 'Recording & DAW' });
+    await screen.findByRole('textbox', { name: 'Keep backups for (days)' });
+    fireEvent.click(screen.getByRole('radio', { name: /^REAPER/ }));
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('REAPER'));
+  });
+
   it('shows no launcher steps and no bridge line while the bridge is fine; the "?" on Record with says nothing needs setting up', async () => {
     const launcher = `C:\\Apps\\${brand.name}\\launcher.lua`;
     const base = await createMockApi().bootstrap();

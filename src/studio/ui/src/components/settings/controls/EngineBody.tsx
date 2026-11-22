@@ -4,6 +4,7 @@ import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/cont
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
 import { useDawSession, useDawState } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
+import { useGuardedAction } from '../../../studio/drafts/unsavedDrafts';
 import { startDaw } from '../../connection/startDaw';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
@@ -142,6 +143,7 @@ function BridgeLine({ choice }: { choice: DawChoice }) {
  */
 export function EngineBody() {
   const dawChoice = usePort('dawChoice');
+  const guarded = useGuardedAction();
   const capsVersion = useDawState((state) => state.capsVersion);
   const session = useDawSession();
   const project = usePort('project');
@@ -250,9 +252,14 @@ export function EngineBody() {
   });
   const notInstalled = choice.options.find((option) => option.daw === daw)?.installed === false;
   const linkable = state === 'not_linked' || linkedFile !== null;
+  // Another tool can take rows off the page (the Audacity backups row is only drawn for Audacity), and with them a value typed in one and not saved yet:
+  // the move asks first, as a change of category does.
   const choose = (next: ChoosableDaw) => {
-    if (next === 'Built-in' && next !== daw && dawLinked(choice)) setConfirmBuiltIn(true);
-    else void act(() => dawChoice.dawChoose(next));
+    if (next === daw) return;
+    guarded(() => {
+      if (next === 'Built-in' && dawLinked(choice)) setConfirmBuiltIn(true);
+      else void act(() => dawChoice.dawChoose(next));
+    });
   };
 
   return (
