@@ -483,3 +483,49 @@ func fakeRecordingSidecar(args []string) int {
 	}
 	return 0
 }
+
+// A preview served from the cache moves its file's time forward: the file's time is its last use for the prune pass.
+func TestAPreviewServedFromTheCacheMovesItsFileTimeForward(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(rig.audioDir(), previewFileName(testVoice, "Dawnspire", ""))
+	old := time.Now().Add(-48 * time.Hour)
+	if err := os.Chtimes(path, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(path); err != nil || time.Since(info.ModTime()) > time.Minute {
+		t.Fatalf("file time after a cache hit = %v (%v); want now", info.ModTime(), err)
+	}
+	if got := rig.invocations(t); got != 1 {
+		t.Fatalf("sidecar started %d times, want 1", got)
+	}
+}
+
+// What the prune pass takes for a preview is exactly what previewFileName makes, and nothing a render leaves beside it.
+func TestIsPreviewFileAcceptsTheNamesPreviewFileNameMakesAndNothingElse(t *testing.T) {
+	made := previewFileName(testVoice, "Dawnspire", "")
+	if !IsPreviewFile(made) {
+		t.Fatalf("IsPreviewFile(%q) = false for a name previewFileName made", made)
+	}
+	for _, name := range []string{made + ".4242.part", strings.ToUpper(made), made[:60] + ".wav", "dawnspire.wav", ".wav", "", strings.Replace(made, ".wav", ".wav.tmp", 1), "x" + made} {
+		if IsPreviewFile(name) {
+			t.Errorf("IsPreviewFile(%q) = true", name)
+		}
+	}
+}
+
+func TestPreviewFolderIsWhereTheServiceRenders(t *testing.T) {
+	rig := newPreviewRig(t, "wav")
+	if _, err := rig.service.Preview("e1", nil, testVoice); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(filepath.Join(rig.project, PreviewFolder()))
+	if err != nil || len(entries) != 1 || !IsPreviewFile(entries[0].Name()) {
+		t.Fatalf("the preview folder holds %v (%v); want one preview file", entries, err)
+	}
+}

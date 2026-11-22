@@ -17,10 +17,8 @@ package evidence
 import (
 	"desktop/internal/brand"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -169,36 +167,12 @@ func (s *CacheStore) Read(key CacheEntryKey) ([]byte, bool) {
 // within the hour costs one stat and no write.
 const usedRefresh = time.Hour
 
-// markUsed moves the entry file's modification time to now when it is older than usedRefresh. The modification time is the entry's
-// last use for PruneKinds, so an entry the narrator still reads is neither expired nor evicted first, and the blob is not rewritten.
-// The time is set through a root on the cache folder, which a link cannot lead out of. A failure is ignored: the entry
-// then ages as if unused, which costs a recompute, never a wrong answer.
+// markUsed moves the entry file's modification time to now when it is older than usedRefresh (persist.MarkUsed). The modification time
+// is the entry's last use for PruneKinds, so an entry the narrator still reads is neither expired nor evicted first, and the blob is not
+// rewritten. The time is set through a root on the cache folder, which a link cannot lead out of. A failure is ignored: the entry then
+// ages as if unused, which costs a recompute, never a wrong answer.
 func (s *CacheStore) markUsed(path string) {
-	info, err := os.Lstat(path)
-	if err != nil {
-		return
-	}
-	// A file time in the future (a clock set back, a restored copy) is not "used within the hour": it is moved to now too.
-	if age := time.Since(info.ModTime()); age >= 0 && age < usedRefresh {
-		return
-	}
-	_ = s.setUsed(filepath.Base(path), time.Now())
-}
-
-// setUsed sets the modification time of the entry file name to at, through a root on the cache folder, which a link cannot lead
-// out of. A failure is returned for the pass, which needs to know; a hit ignores it, and the entry then keeps its time, which costs a
-// recompute at worst, never a wrong answer.
-func (s *CacheStore) setUsed(name string, at time.Time) error { return touchEntry(s.dir, name, at) }
-
-// touchEntry is the file-time change itself; a variable so a test can make it fail on every platform (a file time can only be set by
-// the file's owner, so it fails for a project copied by another user).
-var touchEntry = func(dir, name string, at time.Time) error {
-	root, err := os.OpenRoot(dir)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = root.Close() }()
-	return root.Chtimes(name, at, at)
+	persist.MarkUsed(s.dir, filepath.Base(path), usedRefresh, time.Now())
 }
 
 // Delete removes key's entry, if any. A missing entry is not an error: the
@@ -329,7 +303,7 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			// A file time after now (a clock set back, a restored copy) is moved to now, so that the entry ages and is evicted like any other
 			// from here on; read as now alone it would be "just used" at every pass. A time that cannot be set (only the file's owner may)
 			// makes the entry the oldest instead: expired at once in a kind with a time limit and the first to go in the others, so it is neither kept for ever nor counted against the cap for nothing. An entry of an analyzer no policy names is left alone, its time too.
-			if err := s.setUsed(entry.Name(), now); err != nil {
+			if err := persist.SetFileTime(s.dir, entry.Name(), now); err != nil {
 				used = time.Time{}
 			} else if fresh, err := os.Lstat(filepath.Join(s.dir, entry.Name())); err == nil {
 				used, stamp = fresh.ModTime(), fresh.ModTime()
@@ -360,27 +334,21 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			}
 			if stop() {
 				report.Stopped = true
-				return report, summarize(failures)
+				return report, persist.Failures(failures)
 			}
 			// The list is some time old: an entry a hit refreshed or a writer wrote again since stays, and one already gone is not this pass's.
-			current, err := os.Lstat(filepath.Join(s.dir, file.name))
-			if errors.Is(err, fs.ErrNotExist) {
+			state, current := persist.Recheck(filepath.Join(s.dir, file.name), file.size, file.stamp, file.handle)
+			if state == persist.FileGone || state == persist.FileNotRegular {
+				// Another store took it, or a folder, link or pipe has the name: not an entry any more, and not in the tally of regular files.
 				kindBytes -= file.size
 				report.FilesAfter--
 				report.BytesAfter -= file.size
 				continue
 			}
-			if err == nil && !current.Mode().IsRegular() {
-				// A folder, link or pipe has taken the name: not an entry any more, and not in the tally of regular files.
-				kindBytes -= file.size
-				report.FilesAfter--
-				report.BytesAfter -= file.size
-				continue
-			}
-			// Used or written since the listing (the time moved, or on a filesystem with coarse times the size changed or a writer's rename
-			// put another file under the name), or not to be looked at: it stays, and still counts against the cap at its size now.
-			if err != nil || !current.ModTime().Equal(file.stamp) || current.Size() != file.size || !os.SameFile(file.handle, current) {
-				if err == nil {
+			if state == persist.FileChanged {
+				// Used or written since the listing (the time moved, or on a filesystem with coarse times the size changed or a writer's
+				// rename put another file under the name), or not to be looked at: it stays, and still counts against the cap at its size now.
+				if current != nil {
 					kindBytes += current.Size() - file.size
 					report.BytesAfter += current.Size() - file.size
 				}
@@ -402,18 +370,7 @@ func (s *CacheStore) PruneKinds(policies []CacheKindPolicy, now time.Time, stop 
 			}
 		}
 	}
-	return report, summarize(failures)
-}
-
-// summarize is one line for the host log, which cuts a long message: the count and the first failure (they are usually all the same one).
-func summarize(failures []error) error {
-	switch len(failures) {
-	case 0:
-		return nil
-	case 1:
-		return failures[0]
-	}
-	return fmt.Errorf("%d analysis cache entries could not be removed, the first: %w", len(failures), failures[0])
+	return report, persist.Failures(failures)
 }
 
 // cmpBool orders false before true.

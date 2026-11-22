@@ -12,15 +12,16 @@ import (
 // steps wired after it), so every automatic delete has one place to review and the threat-model row (7c) to match. A new caller is
 // added here on purpose, with its guard tests.
 // deletingCode matches the deleting code by selector, so a call and a method value are both seen.
-var deletingCode = regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults|PruneKinds)\b|\bRemoveRegular\b`)
+var deletingCode = regexp.MustCompile(`\.(Retain|RemoveStoredResult|SweepOrphanResults|PruneKinds|PruneFolder)\b|\bRemoveRegular\b`)
 
 func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 	// The deleting code is reached by a selector (a call or a method value), never by name alone, so a reference taken as a value is seen too.
 	// The files that define it, and the retention step files allowed to name it.
 	defining := map[string]bool{
-		"internal/evidence/ledger.go": true, "internal/evidence/cache.go": true, "internal/coverage/results.go": true, "internal/persist/remove.go": true,
+		"internal/evidence/ledger.go": true, "internal/evidence/cache.go": true, "internal/coverage/results.go": true, "internal/persist/remove.go": true, "internal/persist/prune.go": true,
 	}
-	steps := map[string]bool{"retention_ledger.go": true, "retention_cache.go": true, "retention_host.go": true}
+	// The steps the host composes, and the one app-level caller: the logger prunes logs/runs (not a project folder) as a run begins.
+	steps := map[string]bool{"retention_ledger.go": true, "retention_cache.go": true, "retention_files.go": true, "retention_host.go": true, "internal/runlog/runlog.go": true}
 	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -54,7 +55,7 @@ func TestOnlyTheRetentionStepsCallTheDeletingRetentionCode(t *testing.T) {
 
 // The guard sees a method value taken from an unlisted file, which a call-text match did not.
 func TestTheRetentionGuardSeesAMethodValue(t *testing.T) {
-	for _, source := range []string{"sweep := s.SweepOrphanResults; sweep()", "l.ledger.Retain(keys, nil, nil)", "persist.RemoveRegular(root, name)", "run(checks.RemoveStoredResult)", "prune := cache.PruneKinds; prune(nil, now, stop)"} {
+	for _, source := range []string{"sweep := s.SweepOrphanResults; sweep()", "l.ledger.Retain(keys, nil, nil)", "persist.RemoveRegular(root, name)", "run(checks.RemoveStoredResult)", "prune := cache.PruneKinds; prune(nil, now, stop)", "persist.PruneFolder(root, rel, rule, now, stop)"} {
 		if !deletingCode.MatchString(source) {
 			t.Errorf("the guard does not see %q", source)
 		}

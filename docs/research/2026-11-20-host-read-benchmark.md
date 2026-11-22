@@ -131,6 +131,29 @@ Measured at `4c362abbb`, the head of PR #3986 after its review fixes (the first 
 
 What goes at 10,000 is mostly the size caps (80 MB of blobs of each kind against caps of 8 and 64 MB) and the entries past 24 hours and 7 days. A real cache holds far fewer, larger entries (a peaks entry is about 0.9 MB an hour of audio, a take evidence entry about 0.45 KB), so the first pass of a real project is the 100 to 1,000 row at most. The pass asks to stop every 256 entries while it reads and before each removal, so a check starting waits for at most 256 header reads (not timed on their own).
 
+### The previews, the Transcript Compare files and the shared prune helper (#3816)
+
+`node scripts/dev/host-read-bench.mjs retention <book> --files N` adds N TTS previews (64 KB each, none used in the last ten minutes) and N Transcript Compare runs (a diff of 4 KB and two text files of 4 KB, run i being i hours old) to the copy and runs the two folder steps twice each. The previews are held to 64 MB (1,024 files of 64 KB), the runs to the newest 20 and 7 days. Two runs each, 44 chapter book, milliseconds; files and MB are the whole folder.
+
+| N | Previews: first pass, ms | Files | MB | Removed | Compare runs: first pass, ms | Files | MB | Removed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 10 | 0, 0 | 10 → 10 | 0.66 → 0.66 | 0 | 0, 1 | 30 → 30 | 0.12 → 0.12 | 0 |
+| 100 | 0, 0 | 100 → 100 | 6.55 → 6.55 | 0 | 8, 4 | 300 → 60 | 1.23 → 0.25 | 240 |
+| 1,000 | 3, 4 | 1,000 → 1,000 | 65.54 → 65.54 | 0 | 82, 83 | 3,000 → 60 | 12.29 → 0.25 | 2,940 |
+| 10,000 | 290, 250 | 10,000 → 1,024 | 655.36 → 67.11 | 8,976 | 705, 608 | 30,000 → 60 | 122.88 → 0.25 | 29,940 |
+
+The second pass takes 0 to 5 ms for the previews and 0 to 1 ms for the runs at every size. Under 20 runs and under 64 MB nothing is removed (the 10 and 100 preview rows). A real project holds a few dozen previews and as many runs as the narrator has compared: the 10 and 100 rows.
+
+`runlog.Begin` prunes `logs/runs` as every run starts, and now does it with the same helper (`persist.PruneFolder`) in place of its own loop. Cost of one `Begin` with N files in `logs/runs`, `main` against this change, 3 runs of 200 calls each (a folder held at its 20-file cap, the steady state), and the first `Begin` over N stale files (5 runs of one call each); microseconds and milliseconds:
+
+| Folder | `main` | This change |
+| --- | --- | --- |
+| 20 files, steady state, µs | 36 to 58 | 44 to 74 |
+| 200 stale files, first `Begin`, ms | 1.2 to 1.9 | 2.2 to 5.1 |
+| 2,000 stale files, first `Begin`, ms | 11.7 to 19.0 | 26.2 to 35.2 |
+
+The helper costs about 10 to 30 µs more per run start at the cap, and about twice the old loop for the one-time prune of a folder far over it (it removes through an `os.Root`, with a look at each file before it goes). The folder cannot grow past 20 files again, so the one-time cost is paid once, on the first run after the upgrade.
+
 ## The real app
 
 Seconds after the launch command, per launch.
@@ -261,5 +284,5 @@ The saved call is one `ManuscriptChapters` read, whose warm cost on the real hos
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
-- **The three sections above (#3897, #3958, the cache pass):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
+- **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.

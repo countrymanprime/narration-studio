@@ -1,6 +1,7 @@
 package evidence
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1020,9 +1021,9 @@ func TestPruneKindsRemovesAClampedEntryOverTheCapInTheSamePass(t *testing.T) {
 // A file time that cannot be set (only the file's owner may) must not keep an entry for ever, nor leave it counted against the cap while
 // the pass evicts others: the entry becomes the least recently used.
 func TestPruneKindsEvictsAFutureEntryWhoseTimeCannotBeSetFirst(t *testing.T) {
-	was := touchEntry
-	t.Cleanup(func() { touchEntry = was })
-	touchEntry = func(string, string, time.Time) error { return errors.New("operation not permitted") }
+	was := persist.SetFileTime
+	t.Cleanup(func() { persist.SetFileTime = was })
+	persist.SetFileTime = func(string, string, time.Time) error { return errors.New("operation not permitted") }
 	project := t.TempDir()
 	store := NewCacheStore(project)
 	future, recent := kindKey("a", "future"), kindKey("a", "recent")
@@ -1047,10 +1048,10 @@ func TestPruneKindsEvictsAFutureEntryWhoseTimeCannotBeSetFirst(t *testing.T) {
 
 // A pass that is already stopped reads no header and sets no file time.
 func TestPruneKindsAlreadyStoppedDoesNothing(t *testing.T) {
-	was := touchEntry
-	t.Cleanup(func() { touchEntry = was })
+	was := persist.SetFileTime
+	t.Cleanup(func() { persist.SetFileTime = was })
 	touched := 0
-	touchEntry = func(dir, name string, at time.Time) error { touched++; return was(dir, name, at) }
+	persist.SetFileTime = func(dir, name string, at time.Time) error { touched++; return was(dir, name, at) }
 	project := t.TempDir()
 	store := NewCacheStore(project)
 	writeUsed(t, store, project, kindKey("a", "future"), 100, time.Now().Add(1000*24*time.Hour))
@@ -1118,7 +1119,7 @@ func TestPruneKindsFewFailuresAreOneLineWithTheCount(t *testing.T) {
 		writeUsed(t, store, project, kindKey("a", fmt.Sprint(i)), 100, pruneNow.Add(-48*time.Hour))
 	}
 	_, err := store.PruneKinds([]CacheKindPolicy{{AnalyzerID: "a", MaxAge: time.Hour}}, pruneNow, never)
-	if err == nil || !strings.HasPrefix(err.Error(), "3 analysis cache entries could not be removed") || strings.Count(err.Error(), "\n") != 0 {
+	if err == nil || !strings.HasPrefix(err.Error(), "3 removals failed, the first:") || strings.Count(err.Error(), "\n") != 0 {
 		t.Fatalf("err = %v; want one line beginning with the count", err)
 	}
 }

@@ -59,7 +59,7 @@ func TestLevelReadsLiveFromTheSharedLevelVar(t *testing.T) {
 	}
 }
 
-func TestPruneRunFilesKeepsTheNewestUpToTheCountLimit(t *testing.T) {
+func TestBeginKeepsTheNewestRunFilesUpToTheCountLimit(t *testing.T) {
 	logger, path := newLogger(t, 0)
 	runsDir := filepath.Join(filepath.Dir(path), "runs")
 	if err := os.MkdirAll(runsDir, 0o755); err != nil {
@@ -80,7 +80,7 @@ func TestPruneRunFilesKeepsTheNewestUpToTheCountLimit(t *testing.T) {
 	// inside the 7-day age limit — this test is only exercising the count limit, not the age one.
 	logger.now = fixedClock(base.Add(time.Duration(maxRunFiles+5) * time.Minute))
 
-	logger.pruneRunFiles(runsDir)
+	logger.Begin("prune") // a run begins: the folder is pruned first
 
 	entries, err := os.ReadDir(runsDir)
 	if err != nil {
@@ -98,7 +98,7 @@ func TestPruneRunFilesKeepsTheNewestUpToTheCountLimit(t *testing.T) {
 	}
 }
 
-func TestPruneRunFilesDropsFilesOlderThanTheAgeLimitEvenUnderTheCountLimit(t *testing.T) {
+func TestBeginDropsRunFilesOlderThanTheAgeLimitEvenUnderTheCountLimit(t *testing.T) {
 	logger, path := newLogger(t, 0)
 	runsDir := filepath.Join(filepath.Dir(path), "runs")
 	if err := os.MkdirAll(runsDir, 0o755); err != nil {
@@ -120,7 +120,7 @@ func TestPruneRunFilesDropsFilesOlderThanTheAgeLimitEvenUnderTheCountLimit(t *te
 	}
 	logger.now = fixedClock(now)
 
-	logger.pruneRunFiles(runsDir)
+	logger.Begin("prune") // a run begins: the folder is pruned first
 
 	if _, err := os.Stat(fresh); err != nil {
 		t.Fatal("a file within 7 days should survive even though only two files exist")
@@ -139,5 +139,43 @@ func TestWithRunAndFromContextRoundTrip(t *testing.T) {
 	}
 	if got := FromContext(context.Background()); got != nil {
 		t.Fatalf("FromContext on a plain context = %v, want nil", got)
+	}
+}
+
+// Only a run's own file is pruned: a stray file in the folder is neither counted nor removed, and a link is not followed.
+func TestBeginPrunesOnlyRunFilesAndFollowsNoLink(t *testing.T) {
+	logger, path := newLogger(t, 0)
+	runsDir := filepath.Join(filepath.Dir(path), "runs")
+	if err := os.MkdirAll(runsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)
+	old := now.Add(-30 * 24 * time.Hour)
+	stray := filepath.Join(runsDir, "notes.txt")
+	elsewhere := filepath.Join(t.TempDir(), "outside.stderr.jsonl")
+	link := filepath.Join(runsDir, "link.stderr.jsonl")
+	for _, name := range []string{stray, elsewhere} {
+		if err := os.WriteFile(name, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(name, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	linked := os.Symlink(elsewhere, link) == nil
+	logger.now = fixedClock(now)
+
+	logger.Begin("prune")
+
+	if _, err := os.Stat(stray); err != nil {
+		t.Fatal("a file that is not a run's was removed")
+	}
+	if _, err := os.Stat(elsewhere); err != nil {
+		t.Fatal("a file behind a link was removed")
+	}
+	if linked {
+		if _, err := os.Lstat(link); err != nil {
+			t.Fatal("a link was removed")
+		}
 	}
 }

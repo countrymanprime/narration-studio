@@ -1,12 +1,13 @@
 package runlog
 
 import (
+	"desktop/internal/persist"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"sort"
+	"strings"
 	"time"
 )
 
@@ -64,34 +65,12 @@ func (w *stderrFileWriter) Write(p []byte) (int, error) {
 
 func (w *stderrFileWriter) Close() error { return nil }
 
-// pruneRunFiles keeps the newest maxRunFiles files in dir and drops any older than maxRunFileAge, run on every Begin
-// so a burst of short runs cannot fill the disk and a quiet week does not keep stale debug detail around. A
-// missing dir (nothing has run yet) is not an error.
-func (l *Logger) pruneRunFiles(dir string) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return
-	}
-	type file struct {
-		path    string
-		modTime time.Time
-	}
-	files := make([]file, 0, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-		files = append(files, file{filepath.Join(dir, entry.Name()), info.ModTime()})
-	}
-	sort.Slice(files, func(i, j int) bool { return files[i].modTime.After(files[j].modTime) })
-	now := l.now()
-	for i, f := range files {
-		if i >= maxRunFiles || now.Sub(f.modTime) > maxRunFileAge {
-			_ = os.Remove(f.path)
-		}
-	}
+// runFilesRule is what Begin prunes logs/runs by (persist.PruneFolder): the newest maxRunFiles run files stay and any older than
+// maxRunFileAge go, so a burst of short runs cannot fill the disk and a quiet week does not keep stale debug detail around. Only
+// <run-id>.stderr.jsonl files are runs' (anything else in the folder is left alone), nothing is removed through a link, and a file a
+// run wrote to since the folder was listed stays.
+var runFilesRule = persist.PruneRule{
+	Group:      func(name string) (string, bool) { return name, strings.HasSuffix(name, ".stderr.jsonl") },
+	KeepGroups: maxRunFiles,
+	MaxAge:     maxRunFileAge,
 }

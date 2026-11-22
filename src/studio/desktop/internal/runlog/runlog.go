@@ -148,7 +148,7 @@ func (l *Logger) Begin(tool string, attrs ...any) *Run {
 	}
 	id := l.newID()
 	runsDir := filepath.Join(filepath.Dir(l.path), "runs")
-	l.pruneRunFiles(runsDir)
+	_, _ = persist.PruneFolder(filepath.Dir(l.path), "runs", runFilesRule, l.now(), nil)
 	run := &Run{
 		id:      id,
 		tool:    tool,
