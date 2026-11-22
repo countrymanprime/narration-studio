@@ -686,7 +686,10 @@ export function createMockApi(
       if (builtinTake) void recorderControl.stopTake();
     },
   };
-  if (typeof window !== 'undefined') window.__NARRATION_MOCK_DAW__ = control;
+  if (typeof window !== 'undefined') {
+    window.__NARRATION_MOCK_DAW__ = control;
+    window.__NARRATION_MOCK_BASE__ = api;
+  }
   return final;
 }
 

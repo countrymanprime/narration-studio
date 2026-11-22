@@ -78,7 +78,7 @@ Read the left column, use the primitive in the middle, and do not use what is in
 
 | The narrator needs to see | Use | Not |
 | --- | --- | --- |
-| An error | `Toast` (`tone: 'error'`), a `Dialog`/`ConfirmDialog`, or a fixed-size reserved result box [FP7] | `role="alert"` text that appears in the flow (`src/studio/ui/tests/visual/guards/inlineErrors.test.ts`) |
+| An error | `Toast` (`tone: 'error'`), a `Dialog`/`ConfirmDialog`, or a fixed-size reserved result box [FP7] | Error text that appears in the flow (`src/studio/ui/tests/visual/guards/inlineErrors.test.ts`) |
 | That an action is running | `pending` on the `Button`/`IconButton`/`SplitMain` that started it; `WorkDialog` for a blocking job; `ProgressBar` for a measurable one [FP9] | A spinner beside the button; a button that goes `disabled` with no reason |
 | Why a control is off | `disabledReason` on `Button`, `IconButton`, `NavButton`, `Pill`/`ToggleGroup` option, a plain `Menu` item; `unavailable` on a `ContextMenu` item; `reason` on a `RadioGroup` option; `aria-describedby` on `Checkbox`, pointing at the text that says why (CS-K2) [FP9] | Native `disabled` with nothing said |
 | A status | `StatusBadge`, `HeaderChip`, `CheckedStamp` | Coloured text alone |
