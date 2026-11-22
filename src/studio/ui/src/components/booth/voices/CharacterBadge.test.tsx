@@ -8,7 +8,8 @@ afterEach(cleanup);
 describe('the character badge', () => {
   it.each([
     [{ id: 'a', name: 'A', lines: 3, key: '2' }, 'on Num 2'],
-    [{ id: 'a', name: 'A', lines: 3, key: '' }, 'on a track'],
+    [{ id: 'a', name: 'A', lines: 3, key: '' }, 'on a track, no key'],
+    [{ id: 'a', name: 'A', lines: 3, key: '', chord: ['Shift', 'Num 1'] }, 'on Shift + Num 1'],
     [{ id: 'a', name: 'A', lines: 1 }, '1 line'],
     [{ id: 'a', name: 'A', lines: 12 }, '12 lines'],
   ])('says %j as %s', (character, text) => {

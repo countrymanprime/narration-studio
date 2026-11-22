@@ -10,21 +10,31 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { VOICE_CONTROL_ID, type BoothVoices } from './useBoothVoices';
 import { CharacterBadge } from './CharacterBadge';
-import { keyName, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
+import { chordText, voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
 
 /** A "No track" row's option id: a character, never a track GUID. */
 const CHARACTER = 'character:';
 /** The empty search's "add a track" row: no number to type, so the narrator need not know which lanes exist. */
 const ADD_LANE = 'add-lane';
 
-const keyLabel = (voice: Voice) => (voice.key ? keyName(voice.key) : '');
+const keyLabel = (voice: Voice) => chordText(voiceChord(voice));
 /** The number-pad key as the number alone ("2"); a screen reader still hears which key it is ("Num 2"). */
 function KeyNumber({ voice }: { voice: Voice }) {
-  if (!voice.key) return null;
+  // Past nineteen a voice has no key at all, and says so; the Narrator always has one.
+  if (voice.notVoice) return null;
+  const shifted = !voice.key && voice.shift !== undefined;
+  const keyless = !voice.key && !shifted;
   return (
     <span className="flex-none font-mono font-semibold whitespace-nowrap text-[var(--text)]">
-      <span className="sr-only">Num </span>
-      {voice.key}
+      {/* A screen reader hears the whole chord ("Shift + Num 1"), not the digit drawn after it. */}
+      <span className="sr-only">{keyless ? '' : shifted ? chordText(voiceChord(voice)) : 'Num '}</span>
+      {keyless ? (
+        <span className="font-normal text-[var(--text-muted)]">No key</span>
+      ) : shifted ? (
+        <span aria-hidden="true">{`Shift ${voice.shift}`}</span>
+      ) : (
+        voice.key
+      )}
       <span className="sr-only">, </span>
     </span>
   );
@@ -175,7 +185,7 @@ export function VoiceControl({
   // The tooltip names the key that opens the list and, when REAPER has several tracks armed, what Record will do about it; for a character
   // with no track, who records it instead.
   const tip = standingIn
-    ? `${standingIn.name} has no track · ${recording ? 'recording' : 'armed'} on ${voiceName(current)}${current.key ? ` (${keyLabel(current)})` : ''}`
+    ? `${standingIn.name} has no track · ${recording ? 'recording' : 'armed'} on ${voiceName(current)}${keyLabel(current) ? ` (${keyLabel(current)})` : ''}`
     : several
       ? `${arm.count ?? 'Several'} tracks armed in REAPER · Record arms only this one`
       : 'Choose the voice to record (Num .)';

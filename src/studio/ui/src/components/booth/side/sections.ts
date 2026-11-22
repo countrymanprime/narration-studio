@@ -37,6 +37,8 @@ export type BoothSideData = {
 export type VoiceKeys = {
   /** The key of the voice that records the character ("" past nine), undefined when none does. */
   keyOf: (characterId: string) => string | undefined;
+  /** The keys of that voice (Shift and a digit past nine); empty or absent when it has none. */
+  chordOf?: (characterId: string) => readonly string[] | undefined;
   /** Whether the character speaks in the chapter: only a speaker with no track is offered a track. */
   speaks: (characterId: string) => boolean;
   /** Asks who records the character (the page's "Who records …?"). */

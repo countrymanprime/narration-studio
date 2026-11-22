@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Track } from '../../../api/contracts/tracks';
 import type { Voice } from '../../engine/voices';
-import { castOf, defaultTrackName, keyForNewTrack, withAddedVoices } from './whoIsIn';
+import { castOf, chordForNewTrack, defaultTrackName, keyForNewTrack, voiceChord, withAddedVoices } from './whoIsIn';
 import { folderVoices } from '../../engine/voices';
 
 const voice = (key: string, name: string, characters: string[] = [], narrator = key === '0'): Voice => ({
@@ -131,5 +131,37 @@ describe('who is in it', () => {
         (voice) => voice.guid,
       ),
     ).toEqual(['{NN}']);
+  });
+});
+
+describe('the keys of a voice past nine (#3989)', () => {
+  const nine = Array.from({ length: 9 }, (_, i) => ({ guid: `{v${i}}`, name: `V${i}`, key: String(i + 1), narrator: false, notVoice: false, characters: [] }));
+  const tenth: Voice = {
+    guid: '{ten}',
+    name: 'Ten',
+    key: '',
+    shift: '0',
+    narrator: false,
+    notVoice: false,
+    characters: [{ id: 'dormouse', name: 'Dormouse', source: 'assigned' }],
+  };
+
+  it('names Num N below ten, Shift and Num N from the 10th to the 19th, and nothing past that', () => {
+    expect(voiceChord(nine[1])).toEqual(['Num 2']);
+    expect(voiceChord(tenth)).toEqual(['Shift', 'Num 0']);
+    expect(voiceChord({ key: '' })).toEqual([]);
+  });
+
+  it('gives a character the keys of the voice that records it, so the badge and the side panel can name them', () => {
+    const cast = castOf({ inThisChapter: [{ id: 'dormouse', name: 'Dormouse' }], characters: [], lines: new Map(), voices: [...nine, tenth] });
+    expect(cast.inChapter[0]).toMatchObject({ key: '', chord: ['Shift', 'Num 0'] });
+  });
+
+  it('a new track gets the next key, then Shift and a digit, then none past nineteen', () => {
+    expect(chordForNewTrack(nine.slice(0, 2), 'X')).toEqual(['Num 3']);
+    expect(chordForNewTrack(nine, 'X')).toEqual(['Shift', 'Num 0']);
+    expect(chordForNewTrack([...nine, tenth], 'X')).toEqual(['Shift', 'Num 1']);
+    const twenty = Array.from({ length: 19 }, (_, i) => ({ ...tenth, guid: `{t${i}}` }));
+    expect(chordForNewTrack(twenty, 'X')).toEqual([]);
   });
 });

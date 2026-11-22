@@ -216,4 +216,56 @@ describe('the voice control', () => {
     expect(list.textContent).toMatch(/No track.*Mara/);
     expect(list.textContent).not.toContain('Hatter');
   });
+
+  it('a voice past nine is listed as Shift and its digit, which a screen reader hears as Shift + Num N (#3989)', async () => {
+    const eleventh: Voice = { guid: 'e', name: 'Dormouse', key: '', shift: '1', narrator: false, notVoice: false, characters: [] };
+    render(
+      <VoiceControl
+        voices={[...voices, eleventh]}
+        current={voices[0]}
+        choosing={false}
+        arm={{ state: 'unknown' }}
+        onChoose={vi.fn()}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+    const list = await screen.findByRole('listbox', { name: 'Voices of this chapter' });
+    expect(within(list).getByRole('option', { name: /Dormouse/ }).textContent).toContain('Shift 1');
+    // The accessible name says the chord once ("Shift + Num 1"), not the visible digit after it.
+
+    expect(within(list).getByRole('option', { name: /Shift \+ Num 1/ })).toBeTruthy();
+    expect(within(list).queryByRole('option', { name: /Shift 1/ })).toBeNull();
+  });
+
+  it('a 20th voice says it has no key, and the control names the Shift key of the current voice past nine (#3989)', async () => {
+    const eleventh: Voice = { guid: 'e', name: 'Dormouse', key: '', shift: '1', narrator: false, notVoice: false, characters: [] };
+    const twentieth: Voice = { guid: 't', name: 'Twentieth', key: '', narrator: false, notVoice: false, characters: [] };
+    render(
+      <VoiceControl
+        voices={[...voices, eleventh, twentieth]}
+        current={eleventh}
+        choosing={false}
+        arm={{ state: 'unknown' }}
+        onChoose={vi.fn()}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+    const list = await screen.findByRole('listbox', { name: 'Voices of this chapter' });
+    expect(within(list).getByRole('option', { name: /Twentieth/ }).textContent).toContain('No key');
+    cleanup();
+    render(
+      <VoiceControl
+        voices={[...voices, eleventh]}
+        current={eleventh}
+        choosing={false}
+        arm={{ state: 'unknown' }}
+        onChoose={vi.fn()}
+        open={false}
+        onOpenChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /^Voice:\s*Shift \+ Num 1/ })).toBeTruthy();
+  });
 });
