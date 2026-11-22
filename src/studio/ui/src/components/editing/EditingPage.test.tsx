@@ -247,6 +247,24 @@ describe('EditingPage', () => {
     window.localStorage.clear();
   });
 
+  it('reads the chapter list once for the page and everything beside it, and again when the project folder changes', async () => {
+    const api = pageApi();
+    const read = vi.spyOn(api, 'manuscriptChapters');
+    const tree = (projectFolder: string) => (
+      <PageFooterProvider value={null}>
+        <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
+          <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} chapterId="c2" />
+        </EditingHost>
+      </PageFooterProvider>
+    );
+    const view = render(tree('/a'));
+    await screen.findByText('This chapter has no text yet.');
+    expect(read).toHaveBeenCalledTimes(1);
+    view.rerender(tree('/b'));
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    window.localStorage.clear();
+  });
+
   it("does not save the old project's chapter under a new project folder", async () => {
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>

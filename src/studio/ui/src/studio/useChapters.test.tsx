@@ -104,4 +104,24 @@ describe('useChapters after a project switch (#3658)', () => {
     await waitFor(() => expect(result.current.list.chapters).toBeDefined());
     expect(calls).toBe(3);
   });
+  it('says it is refreshing while the read a refresh key asked for is out, and not once it ended', async () => {
+    const api = createMockApi();
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let calls = 0;
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(async () => {
+      calls += 1;
+      if (calls === 1) throw new Error('offline');
+      await gate;
+      return createMockApi().manuscriptChapters();
+    });
+    const { result, rerender } = renderHook(({ key }) => useChapters(true, key), { wrapper: withProvider(api), initialProps: { key: 0 } });
+    await waitFor(() => expect(result.current.error).toBeDefined());
+    expect(result.current.refreshing).toBe(false);
+    rerender({ key: 1 });
+    await waitFor(() => expect(result.current.refreshing).toBe(true));
+    release();
+    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    expect(result.current.chapters).toBeDefined();
+  });
 });
