@@ -29,7 +29,7 @@ import type {
   DawGoToWhere,
 } from './contracts/daw';
 import { DAW_CAPABILITIES, DAW_LEVEL_MAX, DAW_METER_FLOOR_DB } from './contracts/daw';
-import { wireClone } from './mockFixtures';
+import { MOCK_PROJECT_CHANGE_COUNT, wireClone } from './mockFixtures';
 
 /** Mirrors dawport.Needs (capability.go): what a capability needs from the running engine before it can be used. */
 type DawMockNeeds = 'running' | 'bridge' | 'nothing';
@@ -561,7 +561,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuse: null,
     stopAt: null,
     wordTimes: null,
-    changeCount: 0,
+    changeCount: MOCK_PROJECT_CHANGE_COUNT,
     calls: [],
   };
   const positionSubs = new Set<(position: DawPosition) => void>();

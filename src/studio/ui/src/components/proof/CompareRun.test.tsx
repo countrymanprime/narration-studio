@@ -355,6 +355,18 @@ describe('CompareRun "may have changed since comparison"', () => {
     expect(screen.queryByText(/may have changed/)).toBeNull();
   });
 
+  it('says nothing when the mock DAW reports the count the comparison started from (one counter for the comparison, the check and the DAW)', async () => {
+    render(
+      <ApiProvider api={createMockApi({}, { projectState: 'unchanged' })}>
+        <CompareRun {...resultsProps()} />
+      </ApiProvider>,
+    );
+    await screen.findByText(/2 discrepancies/);
+    act(() => (window.__NARRATION_MOCK_DAW__ as { reportProjectCount(): void }).reportProjectCount());
+    await act(async () => {});
+    expect(screen.queryByText(/may have changed/)).toBeNull();
+  });
+
   it('never checks, and never shows the label, when the comparison carries no baseline count', async () => {
     const projectStateCheck = vi.fn().mockResolvedValue({ status: 'started' as const });
     render(
@@ -607,13 +619,34 @@ describe('CompareRun "may have changed since comparison"', () => {
         </ApiProvider>,
       );
       await screen.findByText(/2 discrepancies/);
+      act(() => emit({ changeCount: 43 }));
       act(() => emit({ changeCount: 44 }));
-      act(() => emit({ changeCount: 41 }));
       expect(deferred.length).toBe(2);
-      // The newer comparison (41, unchanged) is answered first, then the older (44, changed): the older does not undo it.
-      await act(async () => deferred[1]!({ changed: false }));
-      await act(async () => deferred[0]!({ changed: true }));
-      expect(screen.queryByText(/may have changed/)).toBeNull();
+      // The newer comparison (44, changed) is answered first, then the older (43, unchanged): the older does not undo it.
+      await act(async () => deferred[1]!({ changed: true }));
+      await act(async () => deferred[0]!({ changed: false }));
+      expect(screen.queryByText(/may have changed/)).not.toBeNull();
+    });
+
+    it('an older count heard after a newer one does not clear the note', async () => {
+      let emit: (edit: { changeCount: number }) => void = () => {};
+      const subscribeDawProjectEdited = vi.fn((listener: typeof emit) => ((emit = listener), () => {}));
+      const projectStateChangedSince = vi.fn(async (current: number, baseline: number) => ({ changed: current !== baseline }));
+      const projectStateCheck = vi.fn().mockResolvedValue({ status: 'started' as const });
+      const api = createMockApi({ subscribeDawProjectEdited, projectStateChangedSince, projectStateCheck } as never);
+      render(
+        <ApiProvider api={api}>
+          <CompareRun {...resultsProps()} />
+        </ApiProvider>,
+      );
+      await screen.findByText(/2 discrepancies/);
+      // An edit made the count 42: the note shows. A count of 41 heard after it was read before that edit, so it is stale.
+      act(() => emit({ changeCount: 42 }));
+      expect(await screen.findByText(/may have changed/)).toBeTruthy();
+      act(() => emit({ changeCount: 41 }));
+      await act(async () => {});
+      expect(screen.queryByText(/may have changed/)).not.toBeNull();
+      expect(projectStateChangedSince).not.toHaveBeenCalledWith(41, 41);
     });
 
     it('a check REAPER never answers is treated as failed after 20 s and asked again', async () => {

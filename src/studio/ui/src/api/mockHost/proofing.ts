@@ -1,6 +1,6 @@
 // The mock host (mockApi.ts): proofing.
 import type { NarrationApi, TranscriptState } from '../../types';
-import { WIRE_DISCREPANCIES, WIRE_LOGS, WIRE_TRANSCRIPT, wireClone } from '../mockFixtures';
+import { MOCK_PROJECT_CHANGE_COUNT, WIRE_DISCREPANCIES, WIRE_LOGS, WIRE_TRANSCRIPT, wireClone } from '../mockFixtures';
 import type { MockState } from './state';
 import { type AssetsMock, MOCK_ASSET_ROOT } from './assets';
 
@@ -25,7 +25,7 @@ export function createProofingMock(
     trackName: 'Chapter 1',
     audioItemCount: 3,
     completedAt: '2026-09-15T14:30:00Z',
-    projectChangeCount: 41,
+    projectChangeCount: MOCK_PROJECT_CHANGE_COUNT,
   };
   const subscribers = new Set<(state: TranscriptState) => void>();
   let runTimers: ReturnType<typeof setTimeout>[] = [];
