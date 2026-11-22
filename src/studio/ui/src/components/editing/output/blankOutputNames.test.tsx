@@ -101,4 +101,14 @@ describe('the Editing page output list', () => {
     ).toEqual(['System default']);
     expect(toast).not.toHaveBeenCalled();
   });
+
+  it('a quiet reader says nothing on its own reads and answers a press of Check again', async () => {
+    enumerate.mockRejectedValue(new Error('NotAllowedError'));
+    const toast = vi.spyOn(overlay, 'toast');
+    const { result } = renderHook(() => useOutputDevices({ quiet: true }));
+    await waitFor(() => expect(result.current.listing.phase).toBe('ready'));
+    expect(toast).not.toHaveBeenCalled();
+    act(() => result.current.refresh());
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+  });
 });

@@ -10,10 +10,10 @@ export type OutputDevicesOptions = {
   saved?: string;
   /** The sentence for a saved output that is not in the list. */
   missingSentence?: (saved: string) => string;
-  /** Says a missing saved output as soon as it is found, not only when Check again is pressed (the Settings row has no other notice). */
-  missingAtOnce?: boolean;
   /** False while the page does not use the list (a DAW's own output): nothing is said. */
   announce?: boolean;
+  /** Says nothing on its own reads, only when Check again is pressed: for a page where the list is a side detail (the Editing popover, Settings > Editing playback). */
+  quiet?: boolean;
 };
 
 /**
@@ -34,10 +34,9 @@ export function useOutputDevices(options: OutputDevicesOptions = {}): { listing:
       if (mine !== latest.current) return;
       const o = now.current;
       let sentence: string | null = null;
-      if (o.announce !== false) {
+      if (o.announce !== false && (pressed || !o.quiet)) {
         if (result.status === 'unavailable') sentence = result.message;
-        else if (o.saved && o.missingSentence && !result.outputs.some((out) => out.label === o.saved) && (pressed || o.missingAtOnce))
-          sentence = o.missingSentence(o.saved);
+        else if (o.saved && o.missingSentence && !result.outputs.some((out) => out.label === o.saved) && pressed) sentence = o.missingSentence(o.saved);
       }
       if (sentence && (pressed || sentence !== said.current)) overlay.toast(sentence);
       said.current = sentence;

@@ -135,6 +135,10 @@ describe('Voice sample output: the built-in recorder', () => {
     await api.saveSettings('VoiceSamples', 'project', { output_device: 'Studio monitors (Scarlett)' });
     const toast = vi.spyOn(overlay, 'toast');
     await renderRow(api);
+    // Quiet on its own reads; Check again says it (and the Settings page opening does not raise a toast about a row the narrator did not touch).
+    expect(await picker()).toBeTruthy();
+    expect(toast).not.toHaveBeenCalled();
+    fireEvent.click(await within(row()).findByRole('button', { name: 'Check again' }));
     await waitFor(() =>
       expect(toast).toHaveBeenCalledWith('Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.'),
     );
@@ -147,16 +151,17 @@ describe('Voice sample output: the built-in recorder', () => {
     await waitFor(() => expect(within(row()).queryByRole('alert')).toBeNull());
   });
 
-  it('an audio system that will not list its outputs is said so, and every Check again says it again; the choice stays on with the system default', async () => {
+  it('an audio system that will not list its outputs says so on Check again, every time; the choice stays on with the system default', async () => {
     delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
     const toast = vi.spyOn(overlay, 'toast');
     await renderRow();
+    expect(await picker()).toHaveProperty('disabled', false);
+    expect(toast).not.toHaveBeenCalled();
+    fireEvent.click(await within(row()).findByRole('button', { name: 'Check again' }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('would not list its outputs')));
     expect(within(row()).queryByRole('alert')).toBeNull();
-    expect(await picker()).toHaveProperty('disabled', false);
-    const said = toast.mock.calls.length;
     fireEvent.click(within(row()).getByRole('button', { name: 'Check again' }));
-    await waitFor(() => expect(toast.mock.calls.length).toBe(said + 1));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
     expect(within(row()).getByRole('button', { name: 'Check again' })).toBeTruthy();
   });
 
@@ -273,8 +278,7 @@ describe('Voice sample output: device changes', () => {
     expect(within(row()).queryByRole('alert')).toBeNull();
     devices = devices.filter((d) => d.label !== 'USB DAC');
     act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));
-    const toast = vi.spyOn(overlay, 'toast');
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/USB DAC is not connected/)));
+    await waitFor(async () => expect(optionNames(await picker())).toContain('USB DAC, not connected'));
     expect(within(row()).queryByRole('alert')).toBeNull();
     devices = [...devices, out('d5', 'USB DAC')];
     act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));

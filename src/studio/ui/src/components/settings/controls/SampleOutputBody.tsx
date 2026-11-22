@@ -52,7 +52,7 @@ export function SampleOutputBody() {
   } = useOutputDevices({
     saved: engine === 'builtin' ? value : '',
     missingSentence: (name) => missingOutputSentence(name, 'Voice samples play'),
-    missingAtOnce: true,
+    quiet: true,
     announce: builtin,
   });
 

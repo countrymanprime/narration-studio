@@ -128,6 +128,7 @@ export function BoothTextSizeBody() {
 export function PlaybackBody() {
   const { prefs, change } = useOutputPrefs();
   const { listing, refresh } = useOutputDevices({
+    quiet: true,
     saved: prefs.device,
     missingSentence: (name) => missingOutputSentence(name, 'Sound plays'),
   });
