@@ -48,6 +48,7 @@ let daw: DawMockControl;
 let playback: ScriptPlayback;
 let page: ReturnType<typeof useEditingPage>;
 const notices: string[] = [];
+const retries: Array<() => void> = [];
 
 function Harness({
   caps,
@@ -64,7 +65,10 @@ function Harness({
   playback = useScriptPlayback({
     playlist: PLAYLIST,
     mediaUrl: (f) => f,
-    notify: (text) => notices.push(text),
+    notify: (text, retry) => {
+      notices.push(text);
+      if (retry) retries.push(retry);
+    },
     sync: { clock, clockPending: pending, caps, chapterId: 'chapter-1', ...(read ? { read } : {}) },
   });
   useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
@@ -116,6 +120,7 @@ beforeEach(() => {
     return audio;
   });
   notices.length = 0;
+  retries.length = 0;
 });
 afterEach(() => {
   cleanup();
@@ -514,12 +519,44 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(daw.syncCalls()).toHaveLength(0);
     expect(notices).toEqual([CHECKING]);
   });
-  it('plays nothing before the watch lease is first answered', async () => {
-    mount();
+  it('plays at once with the link and the word time held, whatever the watch lease says: no check stands between the click and the play (#4043)', async () => {
+    // The lease is never answered, as a REAPER busy with another command leaves it.
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) =>
+      action === 'watch' ? new Promise(() => {}) : (real as (...a: unknown[]) => unknown)(action, ...rest)) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
     act(() => playback.playFrom(t0('p-2:1')));
-    expect(audio.play).not.toHaveBeenCalled();
     await wait(10);
-    expect(notices).toEqual([CHECKING]);
+    expect(calls('play')).toHaveLength(1);
+    expect(calls('play')[0]).toMatchObject({ seconds: at(t0('p-2:1')) });
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(notices).toEqual([]);
+  });
+  it('a play that did nothing says why and offers Retry, which plays once the DAW can (#4043)', async () => {
+    await ready();
+    act(() => daw.startInDaw());
+    await wait(10);
+    daw.refuseNextSync('REAPER is recording. Stop recording first.');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    // The DAW was asked and refused (it is recording), and the app stays quiet too: nothing plays.
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(notices.join(' ')).toMatch(/recording/i);
+    expect(retries).toHaveLength(1);
+    const asked = calls('play').length;
+    act(() => daw.endTakeInDaw());
+    await wait(10);
+    act(() => retries[0]!());
+    await wait(10);
+    expect(calls('play').length).toBe(asked + 1);
   });
   it('plays nothing while the host has not yet said where the words play, and says it is checking', async () => {
     mount(DAW_SETUPS.reaper, undefined, null, true);

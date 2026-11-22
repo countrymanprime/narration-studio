@@ -282,7 +282,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const remote: RemotePlayer = useRef<RemotePlayer>({
     refusal: (docT) => {
       const l = live.current;
-      if (l.lease.state === 'pending') return 'pending';
+      // A watch lease not yet answered does not hold a play back: the play asks the DAW itself and its answer is the truth (a refusal is said then).
       if (l.lease.state === 'refused') return 'not_ready';
       if (!l.clock && l.clockPending) return 'pending';
       return (l.clock?.projectAt(docT) ?? null) === null ? 'not_placed' : null;

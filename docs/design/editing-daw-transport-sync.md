@@ -55,7 +55,7 @@ Every play goes through the playback providers in [`playback/providers.ts`](../.
 The rule, which replaces "a linked DAW is the only player" of #2251 item 32 by the owner's decision on that issue ("we should play something … if a specific capability is not working we should have a fallback if it is not a DAW specific action"):
 
 - A DAW provider that is ready plays, and the app stays silent. A DAW that can play is never passed over, so its FX, routing and level are what is heard.
-- Before the DAW's capabilities first arrive, or before the first answer to the watch lease, nothing plays and the page says it is checking: passing it over would play the raw files where the DAW could have played them.
+- Before the DAW's capabilities first arrive, nothing plays and the page says it is checking: passing it over would play the raw files where the DAW could have played them. The watch lease does not hold a play back (owner rule, #4043: when the app holds the chapter's track link and the word's time, a click plays): a play asks the DAW itself and the DAW's answer is the truth. The word table's first read is waited for six seconds at most (`WORD_TIMES_ANSWER_LIMIT_MS`); then the play says the words cannot be placed. A play that did nothing says why and offers Retry.
 - A DAW provider that is not usable now (not answering, the switch off, another project open, the word not in its project) or that refuses the play hands the play to the app, from the same word, with one notice: the DAW's reason, then "Played in the app instead." A read of the capabilities that failed does the same and asks again.
 - An engine that never declared the capability (Audacity today, the built-in recorder, no recording tool) is passed over without a notice: the app is its normal player. When Audacity builds `transport_sync` or `file_preview`, the same code drives it; nothing in the page names an engine.
 - Before the app plays in place of a DAW, the DAW's project state is read: while it records, nothing plays (`quietWhileRecording`).
@@ -81,6 +81,9 @@ Drift. While REAPER plays for the page, the app's audio is silent, so there is o
 | Recording | Reads are ignored, writes are refused with REAPER's sentence; Play plays nothing, in REAPER or the app | Lua and `transportsync_test.go`; the page's toast on a refusal is `transportSync.test.tsx` |
 | Capability unavailable (the DAW does not report it) | No lease; Play plays in the app and says the capability's sentence | `transportSync.test.tsx` |
 | DAW not answered yet | Play plays nothing and says the page is checking | `transportSync.test.tsx` |
+| Watch lease never answered | Play asks the DAW and plays; no check stands between the click and the play | `transportSync.test.tsx` (plays at once with the link and the word time held) |
+| Word table never answers | After 6 s the page stops checking; a play says the words cannot be placed (a late table still applies) | `useWordClock.test.tsx` |
+| A play that did nothing | The notice says why and offers Retry, which plays again | `transportSync.test.tsx` |
 | Built-in recorder, no tool, Audacity | The app plays the files itself, with no notice | `transportSync.test.tsx`, `providers.test.ts` |
 | Every provider readiness | The DAW ready, waiting, read failed, undeclared or unavailable; its play taken, refused or refused finally; the app ready or not; DAW-specific or not; recording or not: 120 cells | `providers.test.ts` |
 | The DAW stopped with its word still lit, then a word is clicked | The word is not a play, so the first cursor move is written to REAPER (`set_cursor`); while the DAW plays again it is not. REAPER holds a `set_cursor` sent at once after a stop, by hand or by `stop_play` | `transportSync.test.tsx`; `scenarios_playtrack.py` (real REAPER) |

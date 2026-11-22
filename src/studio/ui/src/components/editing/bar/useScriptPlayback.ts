@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -49,7 +50,8 @@ export interface ScriptPlaybackOptions {
   /** The recorded files in the order of the chapter; its elapsed line is the document's time. */
   playlist: PlaylistSegment[];
   mediaUrl: (sourceFile: string) => string;
-  notify?: (text: string) => void;
+  /** Says something to the narrator; `retry`, given when nothing played, plays again. */
+  notify?: (text: string, retry?: () => void) => void;
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
    * do. Null `caps` (not answered yet) plays nothing unless the read failed; absent `sync` plays in the app. */
   sync?: {
@@ -77,7 +79,7 @@ export interface ScriptPlaybackOptions {
 export function useScriptPlayback({
   playlist,
   mediaUrl,
-  notify = (text) => overlay.toast(text),
+  notify = (text, retry) => overlay.toast(text, retry ? { tone: 'error', action: retryAction(retry) } : undefined),
   sync,
   sound,
   output,
@@ -179,6 +181,8 @@ export function useScriptPlayback({
    * Plays from `t` through the first provider that is ready (playback/providers.ts): the linked DAW's transport, then the app's own audio. A DAW
    * that can play always plays; one that cannot now, or that refuses, hands the play to the app with a notice saying why.
    */
+  /** The latest `go`, so a notice's Retry plays again with what the page holds now. */
+  const goAgain = useRef<(t: number) => void>(() => {});
   const go = useCallback(
     (t: number): void => {
       const { caps: now, read: dawRead, notify: say } = live.current;
@@ -227,7 +231,9 @@ export function useScriptPlayback({
       const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
       void playThrough(providers, t, { stillWanted: wanted, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
         if (!wanted()) return;
-        if (notice) say(notice);
+        // Nothing played and a DAW was asked: the notice says why and offers the play again (no DAW means nothing to ask again).
+        if (notice && by === null && now !== undefined) say(notice, () => goAgain.current(t));
+        else if (notice) say(notice);
         if (by !== null) return;
         stopAt.current = null;
         if (live.current.state.playT === t) halt();
@@ -235,6 +241,8 @@ export function useScriptPlayback({
     },
     [cue, covers, start, halt, daw, stopReport],
   );
+
+  goAgain.current = go;
 
   const playFrom = useCallback(
     (from: number, to?: number, word?: PlayedWord) => {
