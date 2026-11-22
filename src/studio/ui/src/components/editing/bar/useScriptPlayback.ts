@@ -121,7 +121,10 @@ export function useScriptPlayback({
   /** Plays asked for, so an answer that comes after a stop or a newer play is not acted on. */
   const asks = useRef(0);
 
+  /** The app's own audio plays the page's play: an `error` from the audio element ends only such a play. */
+  const appPlays = useRef(false);
   const halt = useCallback(() => {
+    appPlays.current = false;
     fading.current?.();
     fading.current = null;
     stopReport.clear();
@@ -157,7 +160,7 @@ export function useScriptPlayback({
 
   const fail = useCallback(() => {
     // A late error from a file still loading when the narrator stopped is not a failure of a play that is over.
-    if (halted.current) return;
+    if (halted.current || !appPlays.current) return;
     const again = lastAsk.current;
     halt();
     // Nothing could play: the same play is offered again, as for a DAW that refused.
@@ -231,8 +234,8 @@ export function useScriptPlayback({
         providers.push({
           name,
           readiness: (at) => {
-            // A DAW that has not yet answered what it can do is asked to play all the same: no check stands between the click and the play, and the
-            // play call reports any failure (the host refuses what the DAW cannot do). A read that failed is said and asked again instead.
+            // A DAW that has not yet answered what it can do is not waited for: no check stands between the click and the play. With no capabilities
+            // there is no word table either, so `refusal` says not placed and the app plays; a read that failed is said and asked again.
             const declared = now === null && !dawRead?.failed ? { ready: true as const } : dawReadiness(now, 'transport_sync', !!dawRead?.failed);
             if (!declared.ready) return declared;
             const remote = remoteRef.current;
@@ -242,6 +245,7 @@ export function useScriptPlayback({
             return { ready: true };
           },
           play: async (at) => {
+            appPlays.current = false;
             stopReport.setPath('daw');
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
@@ -254,6 +258,7 @@ export function useScriptPlayback({
         name: APP,
         readiness: (at) => (covers(at) ? { ready: true } : { ready: false, why: NOTHING_FROM_HERE }),
         play: (at) => {
+          appPlays.current = true;
           stopReport.setPath('app');
           cue(at);
           live.current.dispatch({ type: 'play', t: at });

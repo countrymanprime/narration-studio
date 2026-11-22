@@ -671,9 +671,94 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     await wait(10);
     expect(calls('playRange')).toHaveLength(1);
     expect(state().playing).toBe(true);
-    await wait(12_000);
+    // The stretch is 0.4 s of the chapter: the page's play ends with it (length plus a second and a half), not at the ten-second limit, and the DAW is not stopped.
+    await wait(3_000);
     expect(state().playing).toBe(false);
+    await wait(10_000);
     expect(notices).toEqual([]);
+    expect(calls('stop')).toHaveLength(0);
+  });
+  it('a stretch whose play the DAW answers late is not ended before it was accepted', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      if (action === 'watch') return new Promise(() => {});
+      if (action === 'playRange')
+        return new Promise((resolve) => setTimeout(() => resolve((real as (...a: unknown[]) => unknown)(action, ...rest) as never), 3000));
+      return (real as (...a: unknown[]) => unknown)(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:1') + 0.4));
+    await wait(2_500);
+    // Not yet accepted: the page still shows the play, and nothing was stopped.
+    expect(state().playing).toBe(true);
+    expect(calls('stop')).toHaveLength(0);
+    await wait(500 + 3_000);
+    expect(state().playing).toBe(false);
+    expect(calls('stop')).toHaveLength(0);
+  });
+  it('an error from the audio element does not end a play the DAW plays', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(calls('play')).toHaveLength(1);
+    act(() => {
+      audio.dispatchEvent(new Event('error'));
+    });
+    await wait(10);
+    expect(notices).toEqual([]);
+    expect(state().playing).toBe(true);
+  });
+  it('a play still being asked of the DAW when the page is left is not handed to the app by its late refusal', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    let answerPlay: (r: { ok: boolean; message: string }) => void = () => {};
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) =>
+      action === 'play'
+        ? new Promise((resolve) => (answerPlay = resolve as typeof answerPlay))
+        : (real as (...a: unknown[]) => unknown)(action, ...rest)) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const view = render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    view.unmount();
+    await act(async () => answerPlay({ ok: false, message: 'late refusal' }));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+  });
+  it('a Retry of a stretch plays the same stretch and turns following back on', async () => {
+    await ready();
+    act(() => daw.startInDaw());
+    await wait(10);
+    daw.refuseNextSync('REAPER is recording. Stop recording first.');
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:1') + 0.4));
+    await wait(10);
+    expect(retries).toHaveLength(1);
+    const asked = calls('playRange').length;
+    act(() => playback.setFollow(false));
+    act(() => daw.endTakeInDaw());
+    await wait(10);
+    act(() => retries[0]!());
+    await wait(10);
+    expect(calls('playRange')).toHaveLength(asked + 1);
+    // The same stretch: from the word's second to the end of its 0.4 s.
+    expect(calls('playRange').at(-1)).toMatchObject({ seconds: at(t0('p-2:1')) });
+    expect(calls('playRange').at(-1)).toHaveProperty('until');
+    expect(state().follow).toBe(true);
   });
   it('the default notice offers Retry on the chapter-wide topic, and Retry plays the same second', async () => {
     const toast = vi.spyOn(overlay, 'toast');

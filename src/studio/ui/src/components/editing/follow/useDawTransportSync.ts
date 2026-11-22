@@ -57,7 +57,6 @@ export interface DawTransportSyncOptions {
   onHead(docT: number | null, ended: boolean): void;
   /** The narrator stopped the DAW while the app's play was the DAW's. */
   onStopped(): void;
-  /** The DAW stopped answering during the app's play. */
   /** The DAW stopped answering during the app's play; `message` is what to say (the page offers Retry with it). */
   onLost(message: string): void;
   /** The DAW started playing by itself: the text follows it, as it does the app's own play. */
@@ -281,7 +280,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       const leased = live.current.lease.state === 'ready';
       const r = range.current;
       // A stretch played with no position stream ends by itself in the DAW: the page's play ends where the stretch does, it is not lost.
-      if (!leased && r && Date.now() - r.startedAt > (r.length + UNWATCHED_GRACE_S) * 1000) {
+      const followed = dawPlaying.current && Date.now() - lastHeard.current < SILENT_MS;
+      if (!leased && r && !followed && Date.now() - r.startedAt > (r.length + UNWATCHED_GRACE_S) * 1000) {
         owns.current = false;
         dawPlaying.current = false;
         range.current = null;
@@ -320,7 +320,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       // A stretch that ends where nothing is known to play (or before it starts) is played open, and the page stops it as it always did.
       const projectEnd = endDocT === undefined ? null : (l.clock?.projectEndAt(endDocT) ?? null);
       const stretch = endDocT !== undefined && projectEnd !== null && projectEnd > project ? { docEnd: endDocT, projectEnd } : null;
-      range.current = stretch ? { ...stretch, head: project, startedAt: Date.now(), length: stretch.projectEnd - project } : null;
+      range.current = stretch ? { ...stretch, head: project, startedAt: Number.POSITIVE_INFINITY, length: stretch.projectEnd - project } : null;
       const mineEpoch = ++epoch.current;
       owns.current = true;
       lastHeard.current = Date.now();
@@ -337,6 +337,11 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         why = 'The DAW could not be asked to play.';
       }
       guard.settled(generation, ok);
+      // The stretch's clock runs from the DAW accepting the play, not from asking: a REAPER busy with another command answers late.
+      if (ok && epoch.current === mineEpoch) {
+        lastHeard.current = Date.now();
+        if (range.current) range.current.startedAt = Date.now();
+      }
       if (!ok) {
         if (epoch.current === mineEpoch) {
           owns.current = false;
