@@ -213,6 +213,7 @@ describe('ToggleGroup', () => {
       await user.tab();
       await user.keyboard('{ArrowRight}');
       expect(document.activeElement).toBe(chip('5m'));
+      expect(document.getElementById(chip('5m').getAttribute('aria-describedby')!)?.textContent).toBe('Too long for this model');
       await user.keyboard('{Enter}');
       expect(onChange).not.toHaveBeenCalled();
     });

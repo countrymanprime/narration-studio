@@ -59,7 +59,7 @@ export function ToggleGroup({
   // A chip that is off and has a hint (`title`) is drawn as off with a reason: it stays focusable and reads its hint on focus. A natively disabled
   // chip with a title would make `Tooltip` wrap it in a span that is a second tab stop and swallows the arrows (#3993, qa-breaker B1).
   const asReasoned = (option: ToggleGroupOption): ToggleGroupOption =>
-    option.disabled && !option.disabledReason && option.title ? { ...option, disabled: false, disabledReason: option.title } : option;
+    option.disabled && (option.disabledReason || option.title) ? { ...option, disabled: false, disabledReason: option.disabledReason || option.title } : option;
   const chips = options.map(asReasoned);
   const reachable = chips.filter((option) => !option.disabled);
   const tabStop = (reachable.find((option) => option.value === focused) ?? reachable.find((option) => option.value === value) ?? reachable[0])?.value;
