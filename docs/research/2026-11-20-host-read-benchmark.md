@@ -241,16 +241,16 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 
 The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
-Production's rows, header and Next up then took their chapters from the shared list too (#4058; the host's overview supplies only the per-chapter numbers). Calls / KB for 1, 5, 17 and 40 h, `--runs 5` on this head against `--runs 3` on `main` at 00a3bfc:
+Production's rows, header, pace and Next up then took their chapters from the shared list too (#4058; the host's overview supplies only the per-chapter numbers), and the target popover took its chapters from it. Calls / KB for 1, 5, 17 and 40 h, `--runs 5`, current `main` against this head, run one after the other:
 
 | Production | Calls | KB at 1, 5, 17, 40 h |
 | --- | --- | --- |
-| Cold, before | 52 | 122, 164, 254, 423 |
-| Cold, after | 53 | 123, 168, 263, 441 |
-| Warm, before | 34 | 63, 96, 168, 303 |
-| Warm, after | 34 | 63, 96, 168, 303 |
+| Cold, `main` | 52 | 122, 164, 254, 423 |
+| Cold, this head | 52 | 122, 164, 254, 423 |
+| Warm, `main` | 34 | 63, 96, 168, 303 |
+| Warm, this head | 34 | 63, 96, 168, 303 |
 
-A warm visit is unchanged. A cold start makes one more call and reads up to 18 KB more at 40 h; **why was not traced** (the likely reading is a second read of the list that does not join the one in flight on a cold start). Nodes are unchanged. This was chosen for consistency, not speed: the page no longer has a second source of chapter names, order and statuses, which is why a rename or a failed list read now shows on Production as on every other page.
+Nodes are unchanged, and the call sets of a cold start are the same names and counts in both builds (`?mockCallLog=1`, 17 h). A first version of the change read the list once more on a cold start (53 calls, 441 KB at 40 h): the page's reader started the read before App's `load` of the same list, and `load` does not join a read in flight. App now asks for the list with `ensure`, which joins it. This was done for consistency, not speed: the page has one source of chapter names, order and statuses, so a rename or a failed list read shows on Production as on every other page.
 
 ## The track list: a 5 s poll against REAPER's change event
 

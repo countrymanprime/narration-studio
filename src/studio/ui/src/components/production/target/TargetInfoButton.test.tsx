@@ -50,7 +50,9 @@ function mount(opts: { measured?: boolean; basis?: ProductionRateBasis } = {}) {
   }));
   const api = createMockApi({
     productionPlan: async () => ({ deadline: null, contractedAmount: null, payment: 'none', rateBasis: opts.basis, milestones: [] }),
-    productionOverview: async () => overview(),
+    // The chapters (their set and words) are the shared list, as on every other page; the overview no longer supplies them.
+    manuscriptChapters: async () =>
+      overview().chapters.map((c, index) => ({ id: c.id, title: c.title, index, wordCount: c.wordCount, status: c.status, contentKind: 'narration' as const })),
     setProductionRateBasis: set,
   });
   const measurements = opts.measured === false ? createMockMeasurements({ none: true }) : createMockMeasurements();

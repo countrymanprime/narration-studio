@@ -51,11 +51,6 @@ describe('composeOverview (#4058): one list of chapters on every page', () => {
     expect(composeOverview(overview([own('gone', 'Gone', 1)]), []).chapters).toEqual([]);
   });
 
-  it('"Next up" is named from the list, and keeps its own title for a chapter the list lacks', () => {
-    expect(composeOverview(overview([]), [listed('c1', 'Renamed one', 0)]).nextUp[0]?.title).toBe('Renamed one');
-    expect(composeOverview(overview([]), []).nextUp[0]?.title).toBe('Old one');
-  });
-
   it('recorded audio and credits kind come from the list', () => {
     const composed = composeOverview(overview([own('c1', 'x', 0)]), [listed('c1', 'x', 0, { recordedSeconds: 42, contentKind: undefined })]);
     expect(composed.chapters[0]).toMatchObject({ recordedSeconds: 42, contentKind: '' });

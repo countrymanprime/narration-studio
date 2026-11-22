@@ -765,7 +765,7 @@ function AppRoutes() {
     if (data && studio.project() === undefined) studio.setProject(data.projectFolder);
   }, [studio, data]);
   useEffect(() => {
-    if (hasManuscript) void studio.load('chapters').catch(() => {});
+    if (hasManuscript) void studio.ensure('chapters').catch(() => {});
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
