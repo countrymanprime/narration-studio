@@ -71,14 +71,17 @@ const windowBox = () => screen.findByRole('textbox', { name: 'Audio kept either 
 const retentionBox = () => screen.findByRole('textbox', { name: 'Keep backups for (days)' });
 
 describe('BackupsSection', () => {
-  it.each<DawSetupId>(['reaper', 'builtin'])('a report for a tool that keeps no backups says so and draws no control: %s', async (setup) => {
-    const capabilities = vi.fn(() => Promise.resolve(DAW_SETUPS[setup]));
-    renderSection({ setup, daw: { capabilities } });
-    await waitFor(() => expect(capabilities).toHaveBeenCalled());
-    expect(await screen.findByText('Backups are kept only when the project records with Audacity.')).toBeTruthy();
-    expect(screen.queryByRole('heading')).toBeNull();
-    expect(screen.queryByRole('textbox')).toBeNull();
-  });
+  it.each<DawSetupId>(['reaper', 'builtin'])(
+    'a report for a tool that keeps no backups says Audacity has not reported yet and draws no control: %s',
+    async (setup) => {
+      const capabilities = vi.fn(() => Promise.resolve(DAW_SETUPS[setup]));
+      renderSection({ setup, daw: { capabilities } });
+      await waitFor(() => expect(capabilities).toHaveBeenCalled());
+      expect(await screen.findByText('Audacity has not reported its backups yet.')).toBeTruthy();
+      expect(screen.queryByRole('heading')).toBeNull();
+      expect(screen.queryByRole('textbox')).toBeNull();
+    },
+  );
 
   it('shown-for-a-daw-that-reports-it: the window and the retention rows, with help computed from the value', async () => {
     renderSection();

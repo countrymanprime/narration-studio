@@ -4,6 +4,7 @@ import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../types';
 import { IconButton } from '../primitives/IconButton';
+import { onEngineChanged } from './data/engineSignal';
 import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
@@ -159,6 +160,7 @@ export function BackupsSection() {
       live = false;
     };
   }, [daw, readSettings, attempt]);
+  useEffect(() => onEngineChanged(() => setAttempt((n) => n + 1)), []);
 
   const save = useCallback(
     async (scope: Scope, values: Record<string, string | null>) => {
@@ -189,10 +191,10 @@ export function BackupsSection() {
   );
   useUnsavedDraft('audacity-backups', { dirty: refused, label: 'a backups value outside its range', discard: () => setDrafts({}) });
 
-  // The row is shown for a project that records with Audacity; a report that is not Audacity's (still the old tool's, or not read yet) says so
-  // here rather than leaving a label with no control.
+  // The row is shown for a project that records with Audacity; a report that is not Audacity's yet (the old tool's, until Audacity connects) says so
+  // here rather than leaving a label with no control. It is read again when the engine changes.
   if (!loadError && !hasBackups(caps))
-    return caps ? <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">Backups are kept only when the project records with Audacity.</p> : null;
+    return caps ? <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">Audacity has not reported its backups yet.</p> : null;
   const support = caps?.capabilities['backups'];
   return (
     <BackupsView
