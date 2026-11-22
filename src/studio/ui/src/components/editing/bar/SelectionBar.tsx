@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { IconButton } from '../../primitives/IconButton';
 import { isLow, summarize } from '../model';
@@ -7,6 +7,7 @@ import { clock } from '../../../clock';
 import { useSelectionActions } from './selectionActions';
 import type { ScriptPlayback } from './useScriptPlayback';
 import { plural } from '../../../plural';
+import { useToastClearance } from '../../../hooks/useToastClearance';
 
 /**
  * The bar at the foot of the script: transport, what is selected, and what the selection can do. The actions are whatever the other slices
@@ -28,6 +29,9 @@ export function SelectionBar({
   unavailable?: string;
 }) {
   const { doc, state, selected } = useEditingPage();
+  // Messages rise above the bar instead of covering Play and the selection's buttons (the Booth's footer does the same).
+  const bar = useRef<HTMLDivElement>(null);
+  useToastClearance(bar);
   const actions = useSelectionActions('bar');
   const keys = state.sel ? selected : [];
   const summary = summarize(doc, keys, [], (s) => s);
@@ -41,6 +45,7 @@ export function SelectionBar({
 
   return (
     <div
+      ref={bar}
       role="toolbar"
       aria-label="Playback and selection"
       className="@container/bar flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 py-2"
