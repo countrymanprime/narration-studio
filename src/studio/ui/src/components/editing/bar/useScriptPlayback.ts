@@ -182,7 +182,17 @@ export function useScriptPlayback({
    * that can play always plays; one that cannot now, or that refuses, hands the play to the app with a notice saying why.
    */
   /** The latest `go`, so a notice's Retry plays again with what the page holds now. */
-  const goAgain = useRef<(t: number) => void>(() => {});
+  const goAgain = useRef<(t: number, stopsAt: number | null) => void>(() => {});
+  /** Counts the plays asked, so a Retry offered for an older one does nothing once a newer one was asked. */
+  const playsAsked = useRef(0);
+  /** False once the page is gone: a Retry pressed after leaving the chapter plays nothing (it would play the old chapter's track). */
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const go = useCallback(
     (t: number): void => {
       const { caps: now, read: dawRead, notify: say } = live.current;
@@ -191,6 +201,8 @@ export function useScriptPlayback({
       halted.current = false;
       const ask = ++asks.current;
       const wanted = (): boolean => asks.current === ask;
+      const asked = ++playsAsked.current;
+      const stopsAt = stopAt.current;
       // A read that failed is asked again, so the DAW plays the next press once it answers.
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = now?.daw ?? 'The DAW';
@@ -233,7 +245,8 @@ export function useScriptPlayback({
       void playThrough(providers, t, { stillWanted: wanted, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
         if (!wanted()) return;
         // Nothing played and a DAW was asked: the notice says why and offers the play again (no DAW means nothing to ask again).
-        if (notice && by === null && now !== undefined) say(notice, () => goAgain.current(t));
+        // Retry plays the same second to the same end, only while this is still the newest play and the page is still here.
+        if (notice && by === null && now !== undefined) say(notice, () => mounted.current && playsAsked.current === asked && goAgain.current(t, stopsAt));
         else if (notice) say(notice);
         if (by !== null) return;
         stopAt.current = null;
@@ -243,7 +256,10 @@ export function useScriptPlayback({
     [cue, covers, start, halt, daw, stopReport],
   );
 
-  goAgain.current = go;
+  goAgain.current = (t, stopsAt) => {
+    stopAt.current = stopsAt;
+    go(t);
+  };
 
   const playFrom = useCallback(
     (from: number, to?: number, word?: PlayedWord) => {

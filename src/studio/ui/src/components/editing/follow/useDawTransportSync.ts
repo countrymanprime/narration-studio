@@ -12,6 +12,8 @@ export const LEASE_RENEW_MS = 3000;
 export const SILENT_MS = 3000;
 /** How often the DAW's play head is carried on between two of its readings, so the lit word advances word by word and does not wait for the next reading. */
 export const EXTRAPOLATE_MS = 50;
+/** How long a play asked before the watch lease was answered may go without a position before the page stops it and the DAW. */
+export const UNWATCHED_MS = 10_000;
 /** The most a reading is carried on: a DAW that has gone quiet is not followed past this, the silent timer stops the page's play. */
 const MAX_EXTRAPOLATE_SECONDS = 0.6;
 /** A run of cursor moves in the page is written to the DAW once, this long after the last. */
@@ -269,18 +271,21 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor]);
 
-  // A play the app started stops being the DAW's if the DAW goes quiet.
+  // A play the app started stops being the DAW's if the DAW goes quiet. A play asked before the watch lease was answered (a click does not wait for it) is
+  // given longer to be heard, and when it is not, the DAW is stopped too: no position will come to follow it.
   useEffect(() => {
-    if (!ready) return;
     const timer = setInterval(() => {
-      if (!owns.current || Date.now() - lastHeard.current <= SILENT_MS) return;
+      if (!owns.current) return;
+      const leased = live.current.lease.state === 'ready';
+      if (Date.now() - lastHeard.current <= (leased ? SILENT_MS : UNWATCHED_MS)) return;
       owns.current = false;
       dawPlaying.current = false;
       live.current.onLost();
       live.current.notify(LOST);
+      if (!leased) stopDaw();
     }, 1000);
     return () => clearInterval(timer);
-  }, [ready]);
+  }, [stopDaw]);
 
   const remote: RemotePlayer = useRef<RemotePlayer>({
     refusal: (docT) => {

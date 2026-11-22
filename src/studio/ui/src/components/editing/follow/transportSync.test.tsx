@@ -570,6 +570,58 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     await wait(10);
     expect(calls('play').length).toBe(asked + 1);
   });
+  it('a Retry offered for an older play does nothing once a newer one was asked', async () => {
+    await ready();
+    act(() => daw.startInDaw());
+    await wait(10);
+    daw.refuseNextSync('REAPER is recording. Stop recording first.');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(retries).toHaveLength(1);
+    act(() => daw.endTakeInDaw());
+    await wait(10);
+    act(() => playback.playFrom(t0('p-1:3')));
+    await wait(10);
+    const asked = calls('play').length;
+    act(() => retries[0]!());
+    await wait(10);
+    expect(calls('play').length).toBe(asked);
+  });
+  it('a Retry pressed after the page was left plays nothing', async () => {
+    await ready();
+    act(() => daw.startInDaw());
+    await wait(10);
+    daw.refuseNextSync('REAPER is recording. Stop recording first.');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(retries).toHaveLength(1);
+    cleanup();
+    const asked = calls('play').length;
+    retries[0]!();
+    await wait(10);
+    expect(calls('play').length).toBe(asked);
+  });
+  it('a play asked before the watch lease was answered, never followed by a position, is stopped with the DAW and says so', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) =>
+      action === 'watch' ? new Promise(() => {}) : (real as (...a: unknown[]) => unknown)(action, ...rest)) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(state().playing).toBe(true);
+    await wait(12_000);
+    expect(state().playing).toBe(false);
+    expect(notices.join(' ')).toMatch(/stopped answering/);
+    expect(calls('stop').length).toBeGreaterThan(0);
+  });
   it('a word table still being read does not stop the click: the play goes to the DAW the moment the table arrives (#4043)', async () => {
     const api = createMockApi({}, { daw: {} });
     daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
