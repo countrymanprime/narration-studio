@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // The state matrix for choosing where voice samples play (docs/prds/character-voice-samples.prd.md, phase 7, the approved mock's section 4).
 //
-//   empty (no outputs, or none named)    'no outputs at all, or outputs with no names, is unavailable'
+//   empty (no outputs at all)            'no outputs at all is an empty list, not an error'
+//   outputs with blank names             'outputs with blank names are listed as Output 1, Output 2, in the webview's order'
 //   one, many                            'lists each named output, not the virtual default or communications ones'
 //   system default                       'an empty choice resets the element to the system default'
 //   saved device gone                    'a device that is not connected is said so and the element is reset to the default'
@@ -50,11 +51,33 @@ describe('listing the outputs', () => {
     });
   });
 
-  it('no outputs at all, or outputs with no names, is unavailable', async () => {
-    devices = [dev('default', ''), dev('a1', ''), dev('b2', '')];
-    expect((await listAudioOutputs()).status).toBe('unavailable');
+  it('no outputs at all is an empty list, not an error', async () => {
+    devices = [dev('default', ''), dev('communications', '')];
+    expect(await listAudioOutputs()).toEqual({ status: 'ok', outputs: [] });
     devices = [];
-    expect((await listAudioOutputs()).status).toBe('unavailable');
+    expect(await listAudioOutputs()).toEqual({ status: 'ok', outputs: [] });
+  });
+
+  // #4044: WebView2 gives output names only to a page that holds a media permission, and this app asks for none.
+  it("outputs with blank names are listed as Output 1, Output 2, in the webview's order", async () => {
+    devices = [dev('default', ''), dev('a1', ''), dev('b2', '   '), dev('c3', 'Speakers (Realtek)')];
+    expect(await listAudioOutputs()).toEqual({
+      status: 'ok',
+      outputs: [
+        { id: 'a1', label: 'Output 1' },
+        { id: 'b2', label: 'Output 2' },
+        { id: 'c3', label: 'Speakers (Realtek)' },
+      ],
+    });
+  });
+
+  it('a choice saved as Output 2 finds the second blank-named output again', async () => {
+    devices = [dev('a1', ''), dev('b2', '')];
+    const element = audio();
+    const sink = vi.fn().mockResolvedValue(undefined);
+    (element as unknown as { setSinkId: typeof sink }).setSinkId = sink;
+    expect(await setOutput(element, 'Output 2')).toEqual({ ok: true });
+    expect(sink).toHaveBeenCalledWith('b2');
   });
 
   it('a webview with no setSinkId lists nothing and says so', async () => {
@@ -83,20 +106,32 @@ describe('applying a choice', () => {
 
   it('a device that is not connected is said so and the element is reset to the default', async () => {
     const result = await setOutput(audio(), 'Studio monitors (Scarlett)');
-    expect(result).toEqual({ ok: false, message: 'Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.' });
+    expect(result).toEqual({
+      ok: false,
+      message: 'Studio monitors (Scarlett) is not connected. Voice samples play on the system default until it is back.',
+      kind: 'missing',
+    });
     expect(setSinkId).toHaveBeenCalledWith('');
   });
 
   it('a refusal from setSinkId is said and the element is reset to the default', async () => {
     setSinkId.mockRejectedValueOnce(new DOMException('no', 'NotAllowedError'));
     const result = await setOutput(audio(), 'Speakers (Realtek)');
-    expect(result).toEqual({ ok: false, message: 'Could not play on Speakers (Realtek). Choose another output or use the system default.' });
+    expect(result).toEqual({ ok: false, message: 'Could not play on Speakers (Realtek). Choose another output or use the system default.', kind: 'refused' });
+    expect(setSinkId).toHaveBeenLastCalledWith('');
+  });
+
+  // #4044: a list that will not come is not an unplugged speaker, and the sentence must not say so.
+  it('a listing that throws is named as such, not as a missing output', async () => {
+    enumerate.mockRejectedValueOnce(new Error('NotAllowedError'));
+    const result = await setOutput(audio(), 'Speakers (Realtek)');
+    expect(result).toMatchObject({ ok: false, kind: 'unlisted' });
     expect(setSinkId).toHaveBeenLastCalledWith('');
   });
 
   it('a choice cannot be applied where setSinkId does not exist', async () => {
     delete (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId;
-    expect((await setOutput(audio(), 'Speakers (Realtek)')).ok).toBe(false);
+    expect(await setOutput(audio(), 'Speakers (Realtek)')).toMatchObject({ ok: false, kind: 'unlisted' });
     expect((await setOutput(audio(), '')).ok).toBe(true);
   });
 

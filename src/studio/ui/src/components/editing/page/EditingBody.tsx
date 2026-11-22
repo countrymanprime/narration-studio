@@ -201,7 +201,6 @@ export function EditingBody(props: EditingBodyProps) {
   // The host's peaks are in source seconds and the page's axis is the document's: this puts each item's peaks where its audio is heard.
   const clocks = useMemo(() => itemClocks(doc), [doc]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
-  const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const sound = useChapterSound(chapterId, clocks);
   // Where each word plays in the DAW project now (the host's word table): the one map the follow-along, play-from-a-word and play-a-range read.
   const { clock, pending: clockPending } = useWordClock(chapterId, doc, locator.token, caps);
@@ -211,7 +210,6 @@ export function EditingBody(props: EditingBodyProps) {
     mediaUrl: tracks.mediaUrl,
     sync: { clock, clockPending, chapterId, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
-    onOutputDevice: setDeviceProblem,
   });
   useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
@@ -636,7 +634,7 @@ export function EditingBody(props: EditingBodyProps) {
               end={total}
               narrow={compact}
               {...(playUnavailable ? { unavailable: playUnavailable } : {})}
-              output={<EditingOutput prefs={output} onChange={changeOutput} deviceProblem={deviceProblem} caps={caps} />}
+              output={<EditingOutput prefs={output} onChange={changeOutput} caps={caps} />}
             />
             <KeyHints hints={hints} id="keyhints" />
           </div>

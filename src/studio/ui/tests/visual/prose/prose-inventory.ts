@@ -115,11 +115,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/editing/flags/FlagCard.tsx', text: 'reads the line twice. The second read starts at ….', class: 'state' },
   {
-    file: 'components/editing/output/OutputControls.tsx',
-    text: 'This computer would not list its outputs, so the choice is off. Sound plays on the system default.',
-    class: 'error',
-  },
-  {
     file: 'components/editing/range/replace/ReplaceDialog.tsx',
     text: 'Name the other narrator once for this project (a duet partner, a stand-in, or one of a cast). Their name is shown on the words their audio replaces.',
     class: 'overlay',
@@ -503,16 +498,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     file: 'components/settings/controls/MwKeyBody.tsx',
     text: 'When no dictionary on this computer knows a name, Look up online asks Merriam-Webster. Only the one word you look up is sent, never your text, file names or project. Answers are kept on this computer, so a word is never sent twice.',
     class: 'overlay',
-  },
-  {
-    file: 'components/settings/controls/SampleOutputBody.tsx',
-    text: 'is not connected. Voice samples play on the system default until it is back.',
-    class: 'error',
-  },
-  {
-    file: 'components/settings/controls/SampleOutputBody.tsx',
-    text: 'Last checked …. The list is read again when you open Settings, when the window gets focus, and while this notice is up.',
-    class: 'state',
   },
   {
     file: 'components/settings/page/ModelsPane.tsx',

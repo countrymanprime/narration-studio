@@ -3,7 +3,8 @@
 // by name, not by id, for the reason `voicesamples/audioOutputs.ts` gives.
 import { useCallback, useEffect } from 'react';
 import { announceBrowserSettingChange, useBrowserSetting } from '../../browserSettings';
-import { setOutput } from '../voicesamples/audioOutputs';
+import { overlay } from '../../overlay/overlayService';
+import { missingOutputSentence, OUTPUT_TOAST_TOPIC, setOutput } from '../voicesamples/audioOutputs';
 import { clamp } from '../../clamp';
 
 export type OutputPrefs = {
@@ -90,13 +91,9 @@ export const deviceProblem = (device: string): string => `Could not play on ${de
 
 /**
  * Keeps an element on the narrator's choices. `getElement` returns the player's element once it exists (a player makes it lazily); the device is
- * applied when it changes and `onDevice` hears the sentence to show when the output could not be used, or null when it took.
+ * applied when it changes, and an output that could not be used is said as a toast.
  */
-export function useAppliedOutput(
-  getElement: () => HTMLMediaElement | undefined,
-  output: OutputPrefs | undefined,
-  onDevice?: (problem: string | null) => void,
-): void {
+export function useAppliedOutput(getElement: () => HTMLMediaElement | undefined, output: OutputPrefs | undefined): void {
   const volume = output?.volume;
   const muted = output?.muted;
   const rate = output?.rate;
@@ -109,9 +106,21 @@ export function useAppliedOutput(
     const el = getElement();
     if (!el || device === undefined) return;
     let stale = false;
-    void setOutput(el, device).then((result) => !stale && onDevice?.(result.ok ? null : deviceProblem(device)));
+    void setOutput(el, device).then((result) => {
+      if (stale) return;
+      // Said where the problem arises, not in the Output popover that may be closed (#4044); the sound is already back on the default.
+      // A gone output is said as the one sentence `useOutputDevices` says for it (the same text is one toast); a refusal as `deviceProblem`.
+      const problem = result.ok
+        ? null
+        : result.kind === 'missing'
+          ? missingOutputSentence(device, 'Sound plays')
+          : result.kind === 'unlisted'
+            ? result.message
+            : deviceProblem(device);
+      if (problem) overlay.toast(problem, { topic: OUTPUT_TOAST_TOPIC });
+    });
     return () => {
       stale = true;
     };
-  }, [getElement, device, onDevice]);
+  }, [getElement, device]);
 }
