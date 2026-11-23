@@ -557,6 +557,20 @@ describe('ToastRegion text direction (issue 2957)', () => {
     render(<ToastRegion messages={[info(1, 'تم الحفظ')]} dismiss={vi.fn()} />);
     expect(screen.getByText('تم الحفظ').getAttribute('dir')).toBe('auto');
   });
+
+  it.each([
+    ['a sentence that begins with a right-to-left name', 'اسم الفصل is linked to its track. Press Record when you are ready.'],
+    ['a sentence with the name last', 'Saved “اسم الفصل”.'],
+    ['a sentence with an emoji name', '🎙️ is linked to its track.'],
+  ])('lays out %s left to right, so the full stop stays at the end (#4113)', (_name, text) => {
+    render(<ToastRegion messages={[info(1, text)]} dismiss={vi.fn()} />);
+    expect(screen.getByText(text).getAttribute('dir')).toBe('ltr');
+  });
+
+  it('lets the browser choose when a message has no Latin letter at all', () => {
+    render(<ToastRegion messages={[info(1, '١٢٣ تم')]} dismiss={vi.fn()} />);
+    expect(screen.getByText('١٢٣ تم').getAttribute('dir')).toBe('auto');
+  });
 });
 
 describe('ToastRegion inside a modal (issue 2949)', () => {
