@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { isolatedIfRtl } from '../../../visibleText';
 import { describeApiError } from '../../../api/errorMessage';
 import type { VoiceSample } from '../../../api/contracts/voiceSamples';
 import { usePendingAction } from '../../../hooks/usePendingAction';
@@ -112,7 +113,7 @@ export function useVoiceSampleActions({
             setOpen(undefined);
             onRemoved(sample);
             await refresh();
-            notify(`Moved to ${choices.find((choice) => choice.id === characterId)?.name ?? 'the other character'}.`);
+            notify(`Moved to ${isolatedIfRtl(choices.find((choice) => choice.id === characterId)?.name ?? 'the other character')}.`);
             return { ok: true };
           } catch (error) {
             return { ok: false, message: describeApiError(error) };

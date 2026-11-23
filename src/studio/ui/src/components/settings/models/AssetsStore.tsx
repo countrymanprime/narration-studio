@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { isolatedIfRtl } from '../../../visibleText';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
@@ -486,7 +487,7 @@ async function check(api: Pick<AssetsApi, 'assetsVerify'>, item: AssetItem): Pro
     const answer = await Promise.race([api.assetsVerify(item.kind, item.id), timedOut]);
     if (answer !== 'timeout') return answer;
     const minutes = Math.round(VERIFY_WAIT_MS / 60_000);
-    overlay.toast(`The files of ${item.displayName} were not checked: the app did not answer in ${minutes} minutes.`, { tone: 'error' });
+    overlay.toast(`The files of ${isolatedIfRtl(item.displayName)} were not checked: the app did not answer in ${minutes} minutes.`, { tone: 'error' });
   } catch (error) {
     overlay.toast(notChecked(item.displayName, apiErrorMessage(error)), { tone: 'error' });
   } finally {

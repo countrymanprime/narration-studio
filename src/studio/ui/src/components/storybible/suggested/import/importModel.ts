@@ -3,6 +3,7 @@
 
 import type { ExtractionImportLine, ExtractionImportPlan, ImportFormat } from '../../../../api/contracts/extraction';
 import { pct } from '../row/selectors';
+import { BIDI_CONTROLS } from '../../../../visibleText';
 
 export { readableFailure } from '../../../../api/errorMessage';
 
@@ -12,7 +13,7 @@ export const IMPORT_MAX_BYTES = 2 << 20;
 /** A chosen file's name as drawn: control and bidi-override characters out, so a name cannot read as another extension. */
 export function displayName(name: string): string {
   // eslint-disable-next-line no-control-regex
-  return name.replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '');
+  return name.replace(/[\u0000-\u001f\u007f-\u009f]/g, '').replace(BIDI_CONTROLS, '');
 }
 
 /** How long typing pauses before the text goes to the host for a preview (D72: the text leaves the page only then). */

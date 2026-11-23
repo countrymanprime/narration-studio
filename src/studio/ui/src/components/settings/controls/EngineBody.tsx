@@ -1,4 +1,5 @@
 import { startingDetail, startingLabel, startingSentence, startingTitle } from '../../../daw/dawSession';
+import { isolatedIfRtl } from '../../../visibleText';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
@@ -200,7 +201,7 @@ export function EngineBody() {
   const start = async () => {
     setStarting(true);
     const started = await startDaw({ project, system }, choice?.daw ?? 'none');
-    if (started.ok) notify(`Started ${choice?.daw ?? 'the DAW'} (${started.path}).`);
+    if (started.ok) notify(`Started ${choice?.daw ?? 'the DAW'} (${isolatedIfRtl(started.path)}).`);
     else notify(started.message, 'error');
     setStarting(false);
   };

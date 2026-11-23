@@ -130,10 +130,10 @@ describe('destinationFor names where a chapter records from the project layout',
 // #4113: a chapter or track name the narrator wrote in a right-to-left script is isolated (U+2068 … U+2069) in the toast sentences that carry it, so it cannot turn the sentence around; an English name
 // is left as it is, and a name holding controls of its own cannot unbalance the pair.
 describe('the toast sentences that carry a name isolate a right-to-left one (#4113)', () => {
-  const FSI = '⁨';
-  const PDI = '⁩';
-  const arabic = 'الفصل الأول';
-  const isolates = (text: string) => text.match(/[⁦-⁩]/g)?.join('') ?? '';
+  const FSI = '\u2068';
+  const PDI = '\u2069';
+  const arabic = '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644'; // "the first chapter", in Arabic
+  const isolates = (text: string) => text.match(/[\u2066-\u2069]/g)?.join('') ?? '';
 
   it('the linked message isolates an Arabic chapter name once and leaves an English one bare', () => {
     expect(destinationFor('flat').linkedToast(arabic)).toBe(`${FSI}${arabic}${PDI} is linked to its track. Press Record when you are ready.`);
@@ -149,7 +149,7 @@ describe('the toast sentences that carry a name isolate a right-to-left one (#41
   });
 
   it('a name with controls of its own is isolated by exactly one balanced pair', () => {
-    const hostile = `‮${arabic}⁩⁦`;
+    const hostile = `\u202E${arabic}\u2069\u2066`;
     expect(isolates(destinationFor('flat').linkedToast(hostile))).toBe(`${FSI}${PDI}`);
     expect(isolates(createdSentence({ track: { name: hostile } }, 'REAPER'))).toBe(`${FSI}${PDI}`);
   });

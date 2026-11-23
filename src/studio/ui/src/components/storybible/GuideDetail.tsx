@@ -71,7 +71,7 @@ import {
 import { Relationships, type RelationRow } from './Relationships';
 import type { Notify } from '../primitives/Toast';
 import { useErrorToast } from '../../hooks/useErrorToast';
-import { hasVisibleText, visibleKey } from '../../visibleText';
+import { hasVisibleText, isolatedIfRtl, visibleKey } from '../../visibleText';
 
 // What the form holds while an entry is being edited: the entry's own values, until the narrator changes them.
 // The says, does and knows properties of an entry whose type can speak are fields of their own (`talk`), so `properties` holds the rest.
@@ -579,7 +579,7 @@ export function GuideDetail({
     mutation.run('speaker-colour', async () => {
       try {
         await api.guideSetSpeakerColor(entity.id, index);
-        notify(`Speaker colour ${index === 0 ? 'set to Automatic' : 'changed'} for ${entity.canonical_name}.`);
+        notify(`Speaker colour ${index === 0 ? 'set to Automatic' : 'changed'} for ${isolatedIfRtl(entity.canonical_name)}.`);
         await reloadFor(entity.id);
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -630,7 +630,7 @@ export function GuideDetail({
       }
       const entry = done.value.id;
       overlay.toastUndo(
-        `“${named ?? entity.canonical_name}” reviewed.`,
+        `“${isolatedIfRtl(named ?? entity.canonical_name)}” reviewed.`,
         async () => {
           const undone = await journal.undo(entry);
           return undone.ok ? { ok: true as const } : undone;
@@ -686,7 +686,7 @@ export function GuideDetail({
     mutation.run('delete', async () => {
       try {
         await api.guideDelete(entity.id);
-        notify(`Deleted “${entity.canonical_name}”.`);
+        notify(`Deleted “${isolatedIfRtl(entity.canonical_name)}”.`);
         await reload();
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -732,7 +732,7 @@ export function GuideDetail({
       clearAliasMatch();
       const entry = done.value.id;
       overlay.toastUndo(
-        `Merged “${source.canonical_name}” into “${target.canonical_name}”.`,
+        `Merged “${isolatedIfRtl(source.canonical_name)}” into “${isolatedIfRtl(target.canonical_name)}”.`,
         async () => {
           const undone = await journal.undo(entry);
           return undone.ok ? { ok: true as const } : undone;

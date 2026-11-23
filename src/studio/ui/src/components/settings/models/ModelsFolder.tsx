@@ -8,10 +8,11 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import { WorkDialog } from '../../primitives/WorkDialog';
 import { isMoveRunning, type AssetMovePhase, type AssetMoveState, type WorkJob } from '../../../types';
 import { useAssetsStore } from './AssetsStore';
+import { bidiIsolated } from '../../../visibleText';
 import { MoveEndedDialog } from './MoveEndedDialog';
 
 /** A path in a sentence or a title: isolated left to right, so a path with right-to-left letters does not reorder the words around it. */
-const isolate = (value: string): string => `\u2066${value}\u2069`;
+const isolate = (value: string): string => bidiIsolated(value, 'ltr');
 
 const path = (value: string) => (
   <code dir="ltr" className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { isolatedIfRtl } from '../../../../visibleText';
 import type { EditCut } from '../../../../api/contracts/editCuts';
 import type { WordFx } from '../../../../api/contracts/wordFx';
 import { overlay } from '../../../../overlay/overlayService';
@@ -218,7 +219,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       const result = await journal.act(removeFxCommand({ daw, log, onEffects }, plan, { chapterId, fx, locator }));
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
       const { id } = result.value;
-      overlay.toastUndo(`Took ${fx.chainName} off the words.`, () => journal.undo(id), { entry: id });
+      overlay.toastUndo(`Took ${isolatedIfRtl(fx.chainName)} off the words.`, () => journal.undo(id), { entry: id });
     },
     [plan, journal, daw, log, onEffects, chapterId, locator],
   );

@@ -29,53 +29,80 @@ export const spaceOutInvisible = (text: string): string =>
     .replace(FILLERS, ' ');
 
 // A name inside a sentence of another direction (#4113). A narrator's chapter or track name can be right to left while the sentence round it is English: left alone, the name's
-// first letter can turn the whole line around, and a digit or the full stop after it lands on the wrong side. An isolate (U+2068 … U+2069) keeps the name's direction to itself.
+// first letter can turn the whole line around, and a digit or the full stop after it lands on the wrong side. An isolate keeps the name's direction to itself. Every control here is written as an escape,
+// never as the character itself, so a reader (and a diff view that flags hidden characters) can see which one it is.
 
-/** The controls that open an embedding, an override or an isolate (U+202A to U+202E, U+2066 to U+2069): a name carries none of its own, or a hostile one could unbalance the sentence it sits in. */
-const STRAY_BIDI = /[‪-‮⁦-⁩]/g;
-/** A letter of a right-to-left script: Hebrew, Arabic and its extensions, Syriac, Thaana, N'Ko and the other blocks that read right to left, and their presentation forms. */
-const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-ﻼ\u{10800}-\u{10FFF}\u{1E800}-\u{1EFFF}]/u;
-const LATIN_LETTER = /[A-Za-z]/;
-/** A name the app put in a sentence: an isolate that opens and closes with nothing of its own inside. */
-const ISOLATED_NAME = /⁨[^⁨⁩]*⁩/g;
+const FSI = '\u2068'; // first-strong isolate: opens an isolate whose direction its own first letter decides
+const LRI = '\u2066'; // left-to-right isolate
+const RLI = '\u2067'; // right-to-left isolate
+const PDI = '\u2069'; // closes the nearest isolate
 
-/** A name inside a sentence, isolated (first-strong direction of its own): the name has no controls of its own left in it, so the pair is always balanced. */
-export const bidiIsolated = (name: string): string => `⁨${name.replace(STRAY_BIDI, '')}⁩`;
+/** The bidi controls that are not text a narrator reads: the Arabic letter mark, the left and right marks, the embeddings and overrides (U+202A to U+202E) and the isolates (U+2066 to U+2069). */
+export const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+/** A letter of a right-to-left script: a letter in Hebrew, Arabic and its extensions, Syriac, Thaana, N'Ko and the other blocks that read right to left, or their presentation forms (a digit, a vowel mark or a stop in those blocks is not one). */
+const RTL_BLOCK = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC\u{10800}-\u{10FFF}\u{1E800}-\u{1EFFF}]/u;
+const IS_BIDI = new RegExp(BIDI_CONTROLS.source);
+const LETTER = /\p{L}/u;
+const isRtlLetter = (ch: string): boolean => RTL_BLOCK.test(ch) && LETTER.test(ch);
+const isLatinLetter = (ch: string): boolean => /[A-Za-z]/.test(ch);
+
+/** The characters that end a bidi paragraph or a line (LF, CR, U+001C to U+001E, NEL, the line and paragraph separators): inside a name one would end its isolate and swap its words, so each becomes a space. */
+// eslint-disable-next-line no-control-regex
+const LINE_BREAKS = /[\n\r\u001C-\u001E\u0085\u2028\u2029]/g;
+/** A name as it goes into a sentence: no bidi control and no line or paragraph break of its own. */
+const plainName = (name: string): string => name.replace(BIDI_CONTROLS, '').replace(LINE_BREAKS, ' ');
+
+/**
+ * A name inside a sentence, isolated: the direction of its own first strong letter, kept to itself. The name has no bidi control of its own left in it, so the pair is always balanced.
+ * `direction` `ltr` isolates it as left to right whatever its letters are (a path in an Arabic sentence).
+ */
+export const bidiIsolated = (name: string, direction: 'auto' | 'ltr' = 'auto'): string => `${direction === 'ltr' ? LRI : FSI}${plainName(name)}${PDI}`;
 
 /**
  * A name for a toast sentence: isolated when it holds a right-to-left letter, otherwise left as it is (an English name in an English sentence needs no isolate, and the two invisible
  * characters would be in every copy, search and character count of the sentence). Controls of its own are removed either way.
  */
-export const isolatedIfRtl = (name: string): string => (RTL_LETTER.test(name) ? bidiIsolated(name) : name.replace(STRAY_BIDI, ''));
+export const isolatedIfRtl = (name: string): string => (Array.from(name).some(isRtlLetter) ? bidiIsolated(name) : plainName(name));
 
 /**
- * The direction a message is laid out in: left to right when the app's own words in it (not the names it isolated) have at least as many Latin letters as right-to-left ones, so a sentence
- * that begins with an Arabic name still reads left to right; otherwise `auto`, so a message that is mostly right to left (an Arabic sentence holding "REAPER") takes the direction of its own first strong letter.
- * ASCII letters on purpose: the app's own language is English, and a Latin letter outside it (an accented one) is not what the app said.
+ * The direction a message is laid out in: left to right when the app's own words in it (not what is inside an isolate, at any depth) have at least as many Latin letters as right-to-left ones, so a
+ * sentence that begins with an Arabic name still reads left to right; otherwise `auto`, so a message that is mostly right to left (an Arabic sentence holding "REAPER") takes the direction of its own first
+ * strong letter. ASCII letters on purpose: the app's own language is English, and a Latin letter outside it (an accented one) is not what the app said.
  */
 export const textDirection = (text: string): 'ltr' | 'auto' => {
   let latin = 0;
   let rtl = 0;
-  for (const ch of text.replace(ISOLATED_NAME, '')) {
-    if (LATIN_LETTER.test(ch)) latin++;
-    else if (RTL_LETTER.test(ch)) rtl++;
+  let depth = 0;
+  for (const ch of text) {
+    if (ch === FSI || ch === LRI || ch === RLI) depth++;
+    else if (ch === PDI) depth = Math.max(0, depth - 1);
+    else if (depth === 0) {
+      if (isLatinLetter(ch)) latin++;
+      else if (isRtlLetter(ch)) rtl++;
+    }
   }
   return latin > 0 && latin >= rtl ? 'ltr' : 'auto';
 };
 
-/** A message with the bidi controls matching `strip` removed, and the isolates that open and close round a name kept (the app wraps names in them); an unbalanced one goes too. */
-export const withBalancedIsolates = (text: string, strip: RegExp): string => {
-  let out = '';
-  const open: number[] = [];
+/**
+ * A message with its bidi controls removed except the first-strong isolates the app puts round a name, kept when they open and close: a stray close, an unclosed open and an isolate that a removed
+ * opener (a left-to-right or right-to-left isolate, an embedding) left unbalanced all go, so no part of a name ends outside its pair. One pass, linear in the message.
+ */
+export const withBalancedIsolates = (text: string): string => {
+  const out: string[] = [];
+  const open: { at: number; kept: boolean }[] = [];
   for (const ch of text) {
-    if (ch === '⁨') {
-      open.push(out.length);
-      out += ch;
-    } else if (ch === '⁩') {
-      if (open.pop() !== undefined) out += ch;
-    } else out += ch.replace(strip, '');
+    if (ch === FSI) {
+      open.push({ at: out.length, kept: true });
+      out.push(ch);
+    } else if (ch === LRI || ch === RLI) {
+      // Removed, but its close is its own: the close that matches it must go with it, not close a name opened earlier.
+      open.push({ at: -1, kept: false });
+    } else if (ch === PDI) {
+      if (open.pop()?.kept) out.push(ch);
+    } else if (!IS_BIDI.test(ch)) out.push(ch);
   }
-  // An isolate that never closed is removed (from the last to the first, so the indexes stay right).
-  for (const at of open.reverse()) out = out.slice(0, at) + out.slice(at + 1);
-  return out;
+  // An isolate that never closed is removed.
+  for (const entry of open) if (entry.kept) out[entry.at] = '';
+  return out.join('');
 };

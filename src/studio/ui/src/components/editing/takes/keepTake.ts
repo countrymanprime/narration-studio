@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { isolatedIfRtl } from '../../../visibleText';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { DAW_RESULT_MAX_UNDO_STEPS, type DawResult } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
@@ -118,7 +119,7 @@ export function useKeepTakes(journal: KeepJournal, lines: ReadonlyMap<string, Li
   const keepNow = useCallback(
     async (passage: LinePassage, take: LineTake) => {
       if (kept[passage.id] === take.id) {
-        overlay.toast(`${take.label} is already kept.`);
+        overlay.toast(`${isolatedIfRtl(take.label)} is already kept.`);
         return;
       }
       const before = activeOf(passage);
@@ -132,7 +133,7 @@ export function useKeepTakes(journal: KeepJournal, lines: ReadonlyMap<string, Li
       setUndoable((u) => ({ ...u, [passage.id]: true }));
       backTo.current[passage.id] = before;
       overlay.toastUndo(
-        `Kept ${take.label}. The other takes are still there.`,
+        `Kept ${isolatedIfRtl(take.label)}. The other takes are still there.`,
         async () => {
           const undone = await journal.undo(result.value.id);
           if (undone.ok) {

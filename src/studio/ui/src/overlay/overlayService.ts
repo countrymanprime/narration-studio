@@ -72,8 +72,6 @@ type OverlaySnapshot = {
   announcement: string;
 };
 
-const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
-
 /**
  * How many toasts are kept: the one showing and three behind it. Past that the oldest plain notice goes first, then information with a button that is not an Undo, then an error, and an Undo last (never the one showing,
  * never the newest); toasts show in the order they were raised, one at a time, each for its whole time.
@@ -158,7 +156,7 @@ export function createOverlayService(): OverlayService {
   const toast = (raw: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     // Bidi controls (an override that reverses the words after it) are not text a narrator reads; a message of nothing else is not a message.
     // The isolates the app puts round a name (U+2068 … U+2069, `bidiIsolated`) stay when balanced: they keep a right-to-left name from turning its sentence around (#4113); a stray or unclosed one goes.
-    const text = withBalancedIsolates(raw, BIDI_CONTROLS);
+    const text = withBalancedIsolates(raw);
     if (!hasVisibleText(text)) return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = {

@@ -4,6 +4,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage, openSettings } from './drivers/shared';
+import { raiseToast } from './helpers/raiseToast';
 
 // The product's windows: 960 px wide and up (its minimum), and one tablet size. A window 520 px tall or shorter (360x500, 320x300) is far below the minimum and keeps no slot: the toast floats there, so the guard does not hold at those sizes.
 const SIZES = [
@@ -125,11 +126,10 @@ for (const variant of VARIANTS) {
           await page.goto('/');
           await settlePage(page);
           await c.open(page);
-          await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
           const before = await page.evaluate(visibleButtons);
           const placesBefore = await page.evaluate(buttonPlaces);
           for (const text of variant.texts) {
-            await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+            await raiseToast(page, text);
           }
           await page.locator('[data-toast-region] [data-tone="error"]').first().waitFor();
           await page.mouse.move(size.width - 2, 2);
