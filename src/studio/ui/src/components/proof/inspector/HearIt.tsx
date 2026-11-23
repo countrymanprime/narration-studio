@@ -9,7 +9,8 @@ import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
-import { capitalised, notAskedSentence, stopFailedSentence } from '../../../studio/dawNames';
+import { capitalised, notAskedSentence } from '../../../studio/dawNames';
+import { stopAndSay } from '../../../playback/stopAndSay';
 import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, recordingSentence, type PlaybackProvider } from '../../../playback/providers';
@@ -82,17 +83,14 @@ export function HearIt({
   report.current = onResult;
   const setResult = (result: { message: string; failed: boolean } | undefined) => report.current(result);
   const looped = useRef(false);
+  const sayStop = (text: string): void => overlay.toast(text, { tone: 'error' });
+  const refusalOf = (answer: { outcome: string; message?: string }): string | null => (answer.outcome === 'refused' ? (answer.message ?? '') : null);
   const stopLoop = useRef(api.findingsStopLoop);
   stopLoop.current = api.findingsStopLoop;
   // Stops a DAW loop nobody is waiting for any more (the note was left, or its answer came after the deadline); a failed stop is said, and where to stop it.
   const dropLoop = useRef(() => {});
   dropLoop.current = () => {
-    void stopLoop
-      .current()
-      .then((answer) => {
-        if (answer.outcome === 'refused') overlay.toast(stopFailedSentence(dawName, { refused: answer.message }), { tone: 'error' });
-      })
-      .catch((error: unknown) => overlay.toast(stopFailedSentence(dawName, { thrown: error }), { tone: 'error' }));
+    void stopAndSay(dawName, sayStop, () => stopLoop.current().then(refusalOf));
   };
   // The newest press, so a Retry offered for an older one, or after the note was left, plays nothing.
   const newest = useNewestPlay(HEAR_TOPIC);
@@ -133,12 +131,7 @@ export function HearIt({
       else {
         looped.current = false;
         dawPlayOwner.release();
-        try {
-          const answer = await api.findingsStopLoop();
-          if (answer.outcome === 'refused') overlay.toast(stopFailedSentence(dawName, { refused: answer.message }), { tone: 'error' });
-        } catch (error) {
-          overlay.toast(stopFailedSentence(dawName, { thrown: error }), { tone: 'error' });
-        }
+        await stopAndSay(dawName, sayStop, () => api.findingsStopLoop().then(refusalOf));
       }
       setPlaying(null);
       setResult(undefined);

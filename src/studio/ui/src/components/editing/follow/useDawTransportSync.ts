@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawPosition } from '../../../api/contracts/daw';
 import { dawPlayOwner } from '../../../playback/dawPlayOwner';
-import { stopFailedSentence } from '../../../studio/dawNames';
+import { stopAndSay } from '../../../playback/stopAndSay';
 import { usePort } from '../../../ports/usePort';
 import { dawNameOf } from '../../engine/ShowInDaw';
 import { useEditingPage } from '../script/EditingPageState';
@@ -151,12 +151,10 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   }, [ready, guard]);
 
   const stopDaw = useCallback((): void => {
-    const name = dawNameOf(live.current.caps);
-    sync.dawTransportSync('stop', 0).then(
-      (result) => {
-        if (!result.ok) live.current.notify(stopFailedSentence(name, { refused: result.message }));
-      },
-      (error: unknown) => live.current.notify(stopFailedSentence(name, { thrown: error })),
+    void stopAndSay(
+      dawNameOf(live.current.caps),
+      (text) => live.current.notify(text),
+      () => sync.dawTransportSync('stop', 0).then((result) => (result.ok ? null : result.message)),
     );
   }, [sync]);
 

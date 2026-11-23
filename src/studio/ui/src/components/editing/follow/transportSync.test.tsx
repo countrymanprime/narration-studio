@@ -18,6 +18,7 @@ import { linear, wordTimesFor } from './wordTimesFixtures';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { LEASE_RENEW_MS, SILENT_MS } from './useDawTransportSync';
 import { READ_FAILED, type DawRead } from '../../../playback/providers';
+import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 
 const FELL_BACK = 'Played in the app instead.';
 
@@ -499,6 +500,26 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(calls('play')).toHaveLength(0);
     expect(state().playing).toBe(true);
     expect(notices.join(' ')).toMatch(why);
+    expect(notices.join(' ')).toContain(FELL_BACK);
+  });
+  // #4111: the "is the DAW recording" read in front of the app's play is bounded: one that never answers must not leave the click without sound or a word.
+  it('plays the app after 3 s when the DAW cannot play and its project-state read never answers', async () => {
+    const api = createMockApi({}, { daw: {} });
+    api.dawProjectState = (() => new Promise(() => {})) as typeof api.dawProjectState;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS['reaper-off']} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(1000);
+    expect(audio.play).not.toHaveBeenCalled();
+    await wait(PLAY_DEADLINE_MS);
+    expect(audio.play).toHaveBeenCalled();
     expect(notices.join(' ')).toContain(FELL_BACK);
   });
   it('plays the app when the DAW has another project open, and says so', async () => {

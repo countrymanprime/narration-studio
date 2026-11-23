@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { capitalised } from '../../../studio/dawNames';
-import { dawNameOf } from '../../engine/ShowInDaw';
+import { within } from '../../../within';
+import { dawNameOf, PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
@@ -254,7 +255,10 @@ export function useScriptPlayback({
           return { played: true };
         },
       });
-      const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      // The "is the DAW recording" read is bounded: one that never answers does not hold the app's play back with no sound and no word (the DAW's own play keeps the
+      // script's limits, `UNWATCHED_MS`).
+      const quiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      const keepQuiet = quiet ? async () => (await within(quiet(), PLAY_DEADLINE_MS))?.value ?? null : undefined;
       void playThrough(providers, t, { stillWanted: wanted, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
         if (!wanted()) return;
         // Nothing played and a DAW was asked: the notice says why and offers the play again (no DAW means nothing to ask again).
