@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
 import type { CreditsRenderResult, GuideEntity, GuideType, ManuscriptChapter, ManuscriptNote } from '../../../types';
@@ -6,7 +6,6 @@ import type { BoothSource } from '../page/useBoothData';
 import { readBoothQuery } from '../page/boothQuery';
 import { creditsKindOf } from '../page/useBoothData';
 import { loadLastPlace } from '../page/lastPlace';
-import { useFollowDawOnOpen } from '../page/useDawFollow';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionSkeleton } from './CompanionSkeleton';
@@ -27,7 +26,7 @@ type Props = {
 
 /**
  * The Companion's route (`/companion?chapter=<id>`; the credits are chapters, and `?credits=opening` is the old spelling of `?chapter=credits-opening`): the chapter rule of the old Booth page without its
- * picker. With neither in the address it reads the chapter a running session is on, else the chapter the Booth remembers for this project, else the chapter the DAW is on (the Booth's `useFollowDawOnOpen`), else the last chapter read, else the first; an unknown
+ * picker. With neither in the address it reads the chapter a running session is on, else the chapter the Booth remembers for this project, else the last chapter read, else the first; an unknown
  * chapter sends the narrator to `/booth`.
  */
 export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
@@ -40,9 +39,6 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
   const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
   const [notes, setNotes] = useState<ManuscriptNote[]>(NO_NOTES);
   const [fallback, setFallback] = useState('');
-  // True when a running session or the Booth's remembered place chose the fallback: the DAW is then not asked, as in the Booth.
-  const [placed, setPlaced] = useState(false);
-  const [followed, setFollowed] = useState<string>();
   const [credits, setCredits] = useState<CreditsRenderResult>();
   // The credits chapter read last, with text or without, so empty credits are not waited for for ever.
   const [creditsReadOf, setCreditsReadOf] = useState<string>();
@@ -69,8 +65,6 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
         const kept = projectFolder ? loadLastPlace(projectFolder)?.chapterId : undefined;
         const remembered = kept ? narration.find((item) => item.id === kept)?.id : undefined;
         const last = narration.find((item) => item.id === reader?.activeChapter || item.title === reader?.activeChapter);
-        setPlaced(Boolean(running || remembered));
-        setFollowed(undefined);
         setFallback(running || remembered || (last ?? narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id || '');
       })
       .catch(() => live && setChapters([]));
@@ -80,12 +74,7 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
   }, [api, readChapters, projectFolder]);
 
   const asked = readBoothQuery(params)?.chapter;
-  // Latched once a reading starts in the Companion and kept after it ends, as the Booth keeps `takeBusy`.
-  const readingStarted = useRef(false);
-  const chapterIds = useMemo(() => chapters?.map((item) => item.id), [chapters]);
-  // The Booth's own hook for following the DAW on open (the DAW is asked once, within its time window), used here after the remembered place.
-  useFollowDawOnOpen({ enabled: asked === undefined && !placed, chapterIds, busy: () => readingStarted.current, onChapter: setFollowed });
-  const chosen = asked ?? followed ?? fallback;
+  const chosen = asked ?? fallback;
   const chapter = chapters?.find((item) => item.id === chosen);
   // A credits chapter has no paragraphs; it reads the credits' rendered text.
   const creditsKind = chapter && isCreditsChapter(chapter) ? creditsKindOf(chapter) : undefined;
@@ -128,7 +117,6 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
         entities={source.kind === 'chapter' ? entities : undefined}
         types={source.kind === 'chapter' ? types : undefined}
         notes={source.kind === 'chapter' ? chapterNotes : undefined}
-        readingStarted={readingStarted}
         onFullApp={toBooth}
         onFixCredits={onFixCredits}
       />
