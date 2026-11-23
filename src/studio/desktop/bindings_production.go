@@ -9,7 +9,6 @@ import (
 	"desktop/internal/manuscript"
 	"desktop/internal/production"
 	"desktop/internal/project"
-	"desktop/internal/recordedthrough"
 	"desktop/internal/stages"
 )
 
@@ -144,7 +143,7 @@ var errProductionNoProject = errors.New("open a project before tracking producti
 // ProductionOverview is the Production page's board, KPI figures and "Next up" list.
 func (h *Host) ProductionOverview() (string, error) {
 	return h.sharedRead("ProductionOverview", func() (string, error) {
-		overview, _, err := h.buildProductionOverview()
+		overview, _, _, err := h.buildProductionOverview()
 		if err != nil {
 			return "", err
 		}
@@ -155,24 +154,24 @@ func (h *Host) ProductionOverview() (string, error) {
 // buildProductionOverview is ProductionOverview's own build, shared with the status report export so the
 // two never drift: the report is exactly the figures the page just showed. It also answers the plan's milestones,
 // which Overview does not carry (only the deadline).
-func (h *Host) buildProductionOverview() (production.Overview, []project.Milestone, error) {
+func (h *Host) buildProductionOverview() (production.Overview, []production.ChapterInput, []project.Milestone, error) {
 	svc := h.services()
 	if svc.production == nil || svc.manuscript == nil {
-		return production.Overview{}, nil, errProductionNoProject
+		return production.Overview{}, nil, nil, errProductionNoProject
 	}
 	chapters, err := productionChapters(svc.manuscript, svc.stages)
 	if err != nil {
-		return production.Overview{}, nil, err
+		return production.Overview{}, nil, nil, err
 	}
 	sessions, err := svc.production.Sessions()
 	if err != nil {
-		return production.Overview{}, nil, err
+		return production.Overview{}, nil, nil, err
 	}
 	// The deadline and contracted amount the narrator set (ProductionSetDeadline); an unreadable manifest is an
 	// error, never read as "none set".
 	manifest, _, err := project.Load(h.persist, svc.config.projectFolder)
 	if err != nil {
-		return production.Overview{}, nil, fmt.Errorf("could not read the project manifest: %w", err)
+		return production.Overview{}, nil, nil, fmt.Errorf("could not read the project manifest: %w", err)
 	}
 	plan := production.PlanOf(manifest)
 	overview := production.BuildOverview(production.OverviewInput{
@@ -181,7 +180,7 @@ func (h *Host) buildProductionOverview() (production.Overview, []project.Milesto
 		Plan:     plan,
 		Now:      time.Now(),
 	})
-	return overview, plan.Milestones, nil
+	return overview, chapters, plan.Milestones, nil
 }
 
 // ProductionStartTimer starts a timer on chapterID's stage. It answers {status: "started", session}, or
@@ -280,10 +279,6 @@ func productionChapters(text *manuscript.Service, recommendations *stages.Servic
 		}
 		if seconds, ok := chapter["recordedSeconds"].(float64); ok {
 			input.RecordedSeconds = &seconds
-		}
-		input.RecordedUnavailable, _ = chapter["recordedUnavailable"].(string)
-		if place, ok := chapter["recordedThrough"].(recordedthrough.Through); ok {
-			input.RecordedThrough = &place
 		}
 		inputs = append(inputs, input)
 	}

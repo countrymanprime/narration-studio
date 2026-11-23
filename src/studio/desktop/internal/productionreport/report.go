@@ -64,7 +64,10 @@ type Input struct {
 	AppVersion  string
 	Options     Options
 
-	Overview   production.Overview
+	Overview production.Overview
+	// Chapters are the chapters the overview was built from, in its order: the overview's wire rows carry only numbers,
+	// so the held-back list and the readiness counts read each chapter's title and readiness here.
+	Chapters   []production.ChapterInput
 	Milestones []project.Milestone
 	// Now is the local time milestones' days-left are counted from; the host passes real time, tests a fixed one.
 	Now time.Time
@@ -94,12 +97,12 @@ func Build(in Input) Report {
 		report.Schedule = &Schedule{Deadline: deadlineOf(in.Overview), Milestones: milestonesOf(in.Milestones, in.Now)}
 	}
 	if include.Pickups {
-		report.HeldBack = heldBackOf(in.Overview.Chapters)
+		report.HeldBack = heldBackOf(in.Chapters)
 		pickups := pickupsOf(in.Pickups)
 		report.Pickups = &pickups
 	}
 	if include.Delivery {
-		readiness := readinessOf(in.Overview.Chapters)
+		readiness := readinessOf(in.Chapters)
 		report.Readiness = &readiness
 		delivery := deliveryOf(in.Delivery)
 		report.Delivery = &delivery
@@ -152,7 +155,7 @@ func stagesOf(overview production.Overview) *Stages {
 	return &Stages{HoursLogged: overview.Totals.HoursLogged, HoursByStage: byStage, BookPFH: overview.Totals.BookPFH}
 }
 
-func heldBackOf(chapters []production.OverviewChapter) *HeldBack {
+func heldBackOf(chapters []production.ChapterInput) *HeldBack {
 	held := HeldBack{Chapters: []HeldBackChapter{}}
 	for _, chapter := range chapters {
 		if chapter.Readiness != nil && chapter.Readiness.Verdict == "not_ready" {
@@ -229,7 +232,7 @@ func daysBetween(now, due time.Time) int {
 	return int(to.Sub(from).Hours() / 24)
 }
 
-func readinessOf(chapters []production.OverviewChapter) Readiness {
+func readinessOf(chapters []production.ChapterInput) Readiness {
 	var counts Readiness
 	for _, chapter := range chapters {
 		if chapter.Readiness == nil {

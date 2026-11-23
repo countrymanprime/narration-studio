@@ -1,12 +1,10 @@
 package production
 
 import (
-	"slices"
 	"testing"
 	"time"
 
 	"desktop/internal/contractfile"
-	"desktop/internal/recordedthrough"
 	"desktop/internal/stages"
 )
 
@@ -20,77 +18,12 @@ func chapter(id string, status stages.Stage, verdict stages.Verdict) ChapterInpu
 	return input
 }
 
-func nextUpIDs(overview Overview) []string {
-	ids := make([]string, 0, len(overview.NextUp))
-	for _, item := range overview.NextUp {
-		ids = append(ids, item.ChapterID)
-	}
-	return ids
-}
-
-// The expected order of "Next up" on a fixture book: a chapter held back by a known problem first, then the
-// other chapters in progress with the least advanced first, then the ones ready to move on, then the ones not started
-// in book order. Finalized chapters and non-narration content never show.
-func TestNextUpOrdersChaptersByTheRiskTheyPutOnTheDeadline(t *testing.T) {
-	credits := chapter("credits", stages.StageRecording, stages.VerdictNotReady)
-	credits.ContentKind = "opening"
-	legacy := chapter("legacy", stages.StageRecording, stages.VerdictNotReady)
-	legacy.ContentKind = ""
-	chapters := []ChapterInput{
-		chapter("c1", stages.StageFinalized, stages.VerdictNone),
-		chapter("c2", stages.StageProofing, stages.VerdictRecommended),
-		chapter("c3", stages.StageProofing, stages.VerdictNotReady),
-		chapter("c4", stages.StageEditing, stages.VerdictUnknown),
-		chapter("c5", stages.StageRecording, stages.VerdictUnknown),
-		chapter("c6", stages.StageRecording, stages.VerdictNotReady),
-		chapter("c7", stages.StageNotStarted, ""),
-		chapter("c8", stages.StageNotStarted, ""),
-		credits,
-		legacy,
-	}
-	got := nextUpIDs(BuildOverview(OverviewInput{Chapters: chapters, Now: nineAM}))
-	want := []string{"c6", "legacy", "c3", "c5", "c4"}
-	if !slices.Equal(got, want) {
-		t.Fatalf("next up = %v, want %v", got, want)
-	}
-}
-
-func TestNextUpFillsWithChaptersNotStartedInBookOrder(t *testing.T) {
-	chapters := []ChapterInput{
-		chapter("c1", stages.StageNotStarted, ""),
-		chapter("c2", stages.StageRecording, stages.VerdictDismissed),
-		chapter("c3", stages.StageNotStarted, ""),
-	}
-	got := nextUpIDs(BuildOverview(OverviewInput{Chapters: chapters, Now: nineAM}))
-	if want := []string{"c2", "c1", "c3"}; !slices.Equal(got, want) {
-		t.Fatalf("next up = %v, want %v", got, want)
-	}
-}
-
-func TestNextUpHoldsAtMostFiveChapters(t *testing.T) {
-	var chapters []ChapterInput
-	for _, id := range []string{"c1", "c2", "c3", "c4", "c5", "c6", "c7"} {
-		chapters = append(chapters, chapter(id, stages.StageNotStarted, ""))
-	}
-	if got := BuildOverview(OverviewInput{Chapters: chapters, Now: nineAM}).NextUp; len(got) != nextUpLimit {
-		t.Fatalf("next up holds %d, want %d", len(got), nextUpLimit)
-	}
-}
-
-func TestNextUpIsEmptyWhenEveryChapterIsFinalized(t *testing.T) {
-	overview := BuildOverview(OverviewInput{Chapters: []ChapterInput{chapter("c1", stages.StageFinalized, stages.VerdictNone)}, Now: nineAM})
-	if overview.NextUp == nil || len(overview.NextUp) != 0 {
-		t.Fatalf("next up = %#v, want an empty list (never null on the wire)", overview.NextUp)
-	}
-}
-
 // PFH and the rate on the overview are exactly pfh.go's, measured only: an unmeasured chapter has no PFH and adds
 // nothing to the recorded total, and a book with no contracted amount has no rate.
 func TestTheOverviewsFiguresComeOnlyFromLoggedHoursAndMeasuredTime(t *testing.T) {
 	measured := chapter("c1", stages.StageEditing, stages.VerdictUnknown)
 	measured.RecordedSeconds = seconds(1800)
 	unmeasured := chapter("c2", stages.StageRecording, stages.VerdictUnknown)
-	unmeasured.RecordedUnavailable = "unlinked"
 	sessions := []Session{
 		logged("c1", stages.StageRecording, 2*time.Hour),
 		logged("c1", stages.StageEditing, time.Hour),
@@ -102,8 +35,8 @@ func TestTheOverviewsFiguresComeOnlyFromLoggedHoursAndMeasuredTime(t *testing.T)
 	if got := overview.Chapters[0]; got.PFH == nil || !near(*got.PFH, 6) || !near(got.HoursLogged, 3) {
 		t.Fatalf("measured chapter = %+v, want PFH 6 over 3 hours", got)
 	}
-	if got := overview.Chapters[1]; got.PFH != nil || got.RecordedSeconds != nil || got.RecordedUnavailable != "unlinked" || !near(got.HoursLogged, 1) {
-		t.Fatalf("unmeasured chapter = %+v, want no PFH and its reason kept", got)
+	if got := overview.Chapters[1]; got.PFH != nil || !near(got.HoursLogged, 1) {
+		t.Fatalf("unmeasured chapter = %+v, want no PFH", got)
 	}
 	totals := overview.Totals
 	if !near(totals.RecordedSeconds, 1800) || totals.MeasuredChapters != 1 || !near(totals.HoursLogged, 4) {
@@ -160,13 +93,13 @@ func TestTheDeadlineSaysHowManyDaysAreLeft(t *testing.T) {
 }
 
 // The overview never writes a chapter status: it only reads the stage recommendations' verdict, so the board never
-// invents a status.
-func TestTheOverviewKeepsEachChaptersStatusAndReadinessAsGiven(t *testing.T) {
+// invents a readiness.
+func TestTheOverviewKeepsEachChaptersReadinessAsGiven(t *testing.T) {
 	input := chapter("c1", stages.StageProofing, stages.VerdictNotReady)
 	input.Readiness.Target = stages.StageFinalized
 	input.Readiness.Reason = "2 pickups are still open"
 	got := BuildOverview(OverviewInput{Chapters: []ChapterInput{input}, Now: nineAM}).Chapters[0]
-	if got.Status != stages.StageProofing || got.Readiness == nil || *got.Readiness != *input.Readiness {
+	if got.ID != "c1" || got.Readiness == nil || *got.Readiness != *input.Readiness {
 		t.Fatalf("chapter = %+v, readiness = %+v", got, got.Readiness)
 	}
 }
@@ -179,13 +112,10 @@ func TestContractProductionOverview(t *testing.T) {
 	first.Title = "Chapter 1"
 	first.Subtitle = "Down the Rabbit-Hole"
 	first.RecordedSeconds = seconds(708)
-	first.RecordedThrough = &recordedthrough.Through{ParagraphID: "p-000040", Paragraph: 40, Word: 12, Percent: 100, Complete: true, Source: recordedthrough.SourceProof, Confident: true}
 	first.Readiness.Target = stages.StageProofing
 	first.Readiness.Reason = "3 clicks are still in the take"
 	second := chapter("c-0002", stages.StageRecording, stages.VerdictUnknown)
 	second.Title = "The Pool of Tears"
-	second.RecordedUnavailable = "unlinked"
-	second.RecordedThrough = &recordedthrough.Through{ParagraphID: "p-000052", Paragraph: 12, Word: 3, Percent: 38, Source: recordedthrough.SourceBooth, Confident: true}
 	second.Readiness.Target = stages.StageEditing
 	second.Readiness.Reason = "No recording check has run yet"
 	third := chapter("c-0003", stages.StageNotStarted, stages.VerdictNone)
