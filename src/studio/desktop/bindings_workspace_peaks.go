@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"runtime"
 	"sync"
 	"time"
 
@@ -264,28 +263,6 @@ func (f *peaksFlights) finish(key string, flight *peaksFlight) {
 	close(flight.done)
 }
 
-// peaksReadSlots bounds the whole-file reads at once, across calls and chapters, to the machine's cores: a chapter of many recordings, or the
-// page reading its neighbours, queues behind it instead of decoding every file at the same moment.
-var peaksReadSlots = newReadSlots(runtime.NumCPU())
-
-type readSlots chan struct{}
-
-func newReadSlots(n int) readSlots { return make(readSlots, max(1, n)) }
-
-func (r readSlots) acquire(ctx context.Context) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	select {
-	case r <- struct{}{}:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-func (r readSlots) release() { <-r }
-
 var sharedPeaksFlights = &peaksFlights{running: map[string]*peaksFlight{}}
 
 func (f *peaksFlights) read(ctx, life context.Context, spawn func(func()), store *evidence.CacheStore, identity evidence.SourceIdentity, file string) (measure.Peaks, error) {
@@ -305,12 +282,6 @@ func (f *peaksFlights) read(ctx, life context.Context, spawn func(func()), store
 		spawn(func() {
 			own, cancel := context.WithTimeout(life, peaksReadLimit) // the read outlives the call, not the host
 			defer cancel()
-			if err := peaksReadSlots.acquire(own); err != nil {
-				flight.err = err
-				f.finish(key, flight)
-				return
-			}
-			defer peaksReadSlots.release()
 			flight.peaks, flight.err = measure.CachedPeaksFile(own, store, identity, file, nil, measure.DefaultPeaksPerSecond)
 			f.finish(key, flight)
 		})

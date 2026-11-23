@@ -5,6 +5,7 @@ import (
 	"context"
 	"desktop/internal/brand"
 	"desktop/internal/evidence"
+	"desktop/internal/measure"
 	"encoding/binary"
 	"fmt"
 	"io/fs"
@@ -294,14 +295,14 @@ func TestAPeaksCallThatRanOutOfTimeOnAnUnreadRecordingSaysItIsStillBeingRead(t *
 	cancel()
 	store := evidence.NewCacheStore(project)
 	// Every slot is held, so the read cannot start decoding before the call looks: the answer does not depend on a race.
-	for range cap(peaksReadSlots) {
-		if err := peaksReadSlots.acquire(context.Background()); err != nil {
+	for range cap(measure.DecodeSlots) {
+		if err := measure.DecodeSlots.Acquire(context.Background()); err != nil {
 			t.Fatal(err)
 		}
 	}
 	got := newPeaksSources(expired, context.Background(), store, project).whole(file)
-	for range cap(peaksReadSlots) {
-		peaksReadSlots.release()
+	for range cap(measure.DecodeSlots) {
+		measure.DecodeSlots.Release()
 	}
 	// The read goes on in the background; the folder is not removed under it.
 	for deadline := time.Now().Add(10 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
@@ -314,26 +315,6 @@ func TestAPeaksCallThatRanOutOfTimeOnAnUnreadRecordingSaysItIsStillBeingRead(t *
 	}
 	if got.reason != stillReading || !got.pending {
 		t.Fatalf("got %+v, want the still-being-read reason, pending", got)
-	}
-}
-
-// Whole-file reads at once are bounded by the slots, across calls (#4042): a chapter of many recordings queues behind them.
-func TestPeaksReadSlotsHoldBackReadsBeyondTheirNumberAndLetGoOnCancel(t *testing.T) {
-	slots := newReadSlots(2)
-	ctx := context.Background()
-	for range 2 {
-		if slots.acquire(ctx) != nil {
-			t.Fatal("two slots should be free")
-		}
-	}
-	waiting, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
-	defer cancel()
-	if err := slots.acquire(waiting); err == nil {
-		t.Fatal("a third read got a slot while two were held")
-	}
-	slots.release()
-	if err := slots.acquire(ctx); err != nil {
-		t.Fatalf("a released slot was not free: %v", err)
 	}
 }
 
