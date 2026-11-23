@@ -2,8 +2,6 @@
 
 Storybook title: `Production/PipelineTable`. Source: `src/components/production/pipeline/PipelineTable.tsx`.
 
-![PipelineTable, Mid Book, light theme](../images/pipelinetable.webp)
-
 ## Stories
 
 - Mid Book

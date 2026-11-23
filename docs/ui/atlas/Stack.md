@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/Stack`. Source: `src/components/editing/stack/Stack.stories.tsx`.
 
-![Stack, Reaper, light theme](../images/stack.webp)
-
 ## Stories
 
 - Reaper

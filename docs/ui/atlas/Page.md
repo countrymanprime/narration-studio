@@ -2,8 +2,6 @@
 
 Storybook title: `Booth/Page`. Source: `src/components/booth/page/BoothNextPage.stories.tsx`.
 
-![Page, Ready, light theme](../images/page.webp)
-
 ## Stories
 
 - Ready

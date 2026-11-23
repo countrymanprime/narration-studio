@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/TextField`. Source: `src/components/primitives/TextField.tsx`.
 
-![TextField, Empty, light theme](../images/textfield.webp)
-
 ## Stories
 
 - Empty

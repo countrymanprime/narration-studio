@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Swatch`. Source: `src/components/primitives/Swatch.tsx`.
 
-![Swatch, Default, light theme](../images/swatch.webp)
-
 ## Stories
 
 - Default

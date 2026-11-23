@@ -2,8 +2,6 @@
 
 Storybook title: `Production/PageHeader`. Source: `src/components/production/pipeline/PageHeader.tsx`.
 
-![PageHeader, On Track, light theme](../images/pageheader.webp)
-
 ## Stories
 
 - On Track

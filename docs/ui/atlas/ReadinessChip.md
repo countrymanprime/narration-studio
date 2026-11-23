@@ -2,8 +2,6 @@
 
 Storybook title: `Production/ReadinessChip`. Source: `src/components/production/readiness/ReadinessChip.tsx`.
 
-![ReadinessChip, Ready, light theme](../images/readinesschip.webp)
-
 ## Stories
 
 - Ready

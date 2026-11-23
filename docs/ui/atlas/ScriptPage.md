@@ -2,8 +2,6 @@
 
 Storybook title: `Script/Page`. Source: `src/components/script/page/ScriptPage.tsx`.
 
-![ScriptPage, Reader With Marks, light theme](../images/scriptpage.webp)
-
 ## Stories
 
 - Reader With Marks

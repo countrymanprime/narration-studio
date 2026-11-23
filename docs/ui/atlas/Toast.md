@@ -21,15 +21,15 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - Five Long Messages
 - Long Refusal With Action
 - Long Action Label
-- Two Toasts Above The Booth Bars
-- Four Toasts Above The Booth Bars
+- Two Long Toasts
+- Four Toasts
 - Huge Word In Tiny Window
 - Two Huge Words In Tiny Window
 - Five Long Messages In Tiny Window
 - Long Refusal With Action In Tiny Window
-- Four Toasts Above The Booth Bars In Tiny Window
+- Four Toasts In Tiny Window
 - Long Action Label In Tiny Window
-- Two Toasts Above The Booth Bars In Tiny Window
+- Two Long Toasts In Tiny Window
 
 ## Used by
 
@@ -108,5 +108,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/hooks/useErrorToast.ts`
 - `src/hooks/useToasts.ts`
 - `src/jobEnded.ts`
+- `src/main.tsx`
 - `src/overlay/OverlayHost.tsx`
 - `src/overlay/overlayService.ts`

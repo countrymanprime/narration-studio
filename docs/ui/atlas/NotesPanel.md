@@ -2,8 +2,6 @@
 
 Storybook title: `Proof/NotesPanel`. Source: `src/components/proof/notes/NotesPanel.tsx`.
 
-![NotesPanel, All Chapters, light theme](../images/notespanel.webp)
-
 ## Stories
 
 - All Chapters

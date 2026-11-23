@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/ToggleGroup.tsx`.
 
-![ToggleGroup, Default, light theme](../images/togglegroup.webp)
-
 ## Stories
 
 - Default

@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/WordMenu`. Source: `src/components/editing/menu/WordMenu.stories.tsx`.
 
-![WordMenu, Two Sections, light theme](../images/wordmenu.webp)
-
 ## Stories
 
 - Two Sections

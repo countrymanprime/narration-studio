@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/StatStrip`. Source: `src/components/primitives/StatStrip.tsx`.
 
-![StatStrip, Default, light theme](../images/statstrip.webp)
-
 ## Stories
 
 - Default

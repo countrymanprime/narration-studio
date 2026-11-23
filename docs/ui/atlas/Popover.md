@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Popover`. Source: `src/components/primitives/Popover.tsx`.
 
-![Popover, Closed, light theme](../images/popover.webp)
-
 ## Stories
 
 - Closed

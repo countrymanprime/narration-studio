@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/Takes/Prep`. Source: `src/components/editing/takes/prep/Prep.stories.tsx`.
 
-![Prep, Confirm Hide Others, light theme](../images/prep.webp)
-
 ## Stories
 
 - Confirm Hide Others

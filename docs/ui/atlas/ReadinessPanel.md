@@ -2,8 +2,6 @@
 
 Storybook title: `Production/ReadinessPanel`. Source: `src/components/production/readiness/ReadinessPanel.tsx`.
 
-![ReadinessPanel, Ready, light theme](../images/readinesspanel.webp)
-
 ## Stories
 
 - Ready

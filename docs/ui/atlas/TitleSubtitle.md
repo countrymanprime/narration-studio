@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/TitleSubtitle`. Source: `src/components/primitives/TitleSubtitle.tsx`.
 
-![TitleSubtitle, Inline, light theme](../images/titlesubtitle.webp)
-
 ## Stories
 
 - Inline

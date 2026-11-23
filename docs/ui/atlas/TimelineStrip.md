@@ -2,8 +2,6 @@
 
 Storybook title: `Editing/TimelineStrip`. Source: `src/components/editing/strip/TimelineStrip.tsx`.
 
-![TimelineStrip, One Take, light theme](../images/timelinestrip.webp)
-
 ## Stories
 
 - One Take

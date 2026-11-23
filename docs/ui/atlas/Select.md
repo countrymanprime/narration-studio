@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.tsx`.
 
-![Select, Default, light theme](../images/select.webp)
-
 ## Stories
 
 - Default
