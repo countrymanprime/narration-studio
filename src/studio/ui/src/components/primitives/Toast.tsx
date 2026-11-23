@@ -247,7 +247,7 @@ function keepFocusInDialog(): void {
 }
 
 /** Where the toasts stand above the window's bottom edge, in px, and the slot the shell keeps for one toast there (`--toast-bottom`, `--toast-slot`). */
-export const TOAST_SLOT_PROPERTY = '--toast-slot';
+const TOAST_SLOT_PROPERTY = '--toast-slot';
 const TOAST_BOTTOM_PROPERTY = '--toast-bottom';
 /** A toast's height (`h-[2.8125rem]`) and the air above it, in rem; the gap under it is the page gutter, or half of it in a window 400 px tall or less, where a permanent slot costs more of what is left. */
 const TOAST_HEIGHT_REM = 2.8125;
