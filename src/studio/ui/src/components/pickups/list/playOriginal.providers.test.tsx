@@ -278,6 +278,24 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     await act(() => result.current.play({ ...pickup(20), id: 'p2' }));
     expect(dismiss).toHaveBeenCalledWith('pickups-original-retry');
   });
+  it('a late answer from an unmounted list does not stop the play a newer list started', async () => {
+    const answers: ((value: DawResult) => void)[] = [];
+    transport = vi.fn((action: string) => (action === 'playRange' ? new Promise<DawResult>((resolve) => answers.push(resolve)) : Promise.resolve(ok)));
+    const old = await mountRead(DAW_SETUPS.reaper);
+    act(() => void old.result.current.play(pickup(15)));
+    old.unmount();
+    const fresh = await mountRead(DAW_SETUPS.reaper);
+    act(() => void fresh.result.current.play({ ...pickup(20), id: 'p2' }));
+    await act(async () => {
+      answers[1]!(ok);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      answers[0]!(ok);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(transport).not.toHaveBeenCalledWith('stop', 0);
+  });
   it('a second press stops the DAW', async () => {
     const { result } = await mountRead(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(15)));

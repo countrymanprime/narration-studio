@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { notAskedSentence } from '../../studio/dawNames';
 import type { ChapterTrackMapApi } from '../../api/contracts/chapterTrackMap';
 import type { FindingsApi } from '../../api/contracts/findings';
 import type { WorkspaceApi } from '../../api/contracts/workspace';
 import { usePort } from '../../ports/usePort';
 import type { DawCapabilities } from '../../api/contracts/daw';
-import { apiErrorMessage } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { overlay } from '../../overlay/overlayService';
 import { clock } from '../../clock';
@@ -110,7 +110,7 @@ export async function showInDaw(
     // A host that sends no usable time still moved the DAW: say so without printing NaN.
     return { message: Number.isFinite(went.projectTime) ? `Moved to ${when(went.projectTime)} in ${dawName}.` : `Moved in ${dawName}.`, failed: false };
   } catch (error) {
-    return { message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true };
+    return { message: notAskedSentence('the DAW', error), failed: true };
   }
 }
 

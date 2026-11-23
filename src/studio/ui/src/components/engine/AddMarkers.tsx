@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { notAskedSentence } from '../../studio/dawNames';
 import type { PickupItem } from '../../api/contracts/pickups';
-import { apiErrorMessage } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { DawClient } from '../../ports';
@@ -72,7 +72,7 @@ export async function addMarkers(daw: Pick<DawClient, 'addMarker' | 'addPickupMa
         added: added.changed,
       };
     } catch (error) {
-      return { message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true, added: false };
+      return { message: notAskedSentence('the DAW', error), failed: true, added: false };
     }
   }
   const placed = target.pickups.filter((p): p is PickupItem & { at: number } => p.at !== null);

@@ -42,6 +42,11 @@ describe('reasonSentence', () => {
     expect(reasonSentence('')).toBe('The host gave no reason.');
     expect(reasonSentence(new Error('   '))).toBe('The host gave no reason.');
   });
+  it('drops Error: prefixes and treats undefined or null as no reason', () => {
+    expect(reasonSentence('Error: Error: boom')).toBe('Boom.');
+    expect(reasonSentence(undefined)).toBe('The host gave no reason.');
+    expect(reasonSentence(null)).toBe('The host gave no reason.');
+  });
   it('reads a string reason as it is, whatever its length', () => {
     expect(reasonSentence('x')).toBe('X.');
   });

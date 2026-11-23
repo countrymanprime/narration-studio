@@ -70,5 +70,6 @@ describe('notAskedSentence', () => {
   it('names who was not asked, with a capital, and the reason', () => {
     expect(notAskedSentence('the DAW', new Error('bridge down'))).toBe('The DAW was not asked: bridge down');
     expect(notAskedSentence('REAPER', 'no socket')).toBe('REAPER was not asked: no socket');
+    expect(notAskedSentence('the DAW', 'no socket', 'stop')).toBe('The DAW was not asked to stop: no socket');
   });
 });

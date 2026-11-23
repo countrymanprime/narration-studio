@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
 import { usePort } from '../../../ports/usePort';
 import type { FindingNavigation } from '../../../api/contracts/findings';
@@ -32,6 +31,10 @@ const NO_FILE = 'The app has no audio file for this note either.';
 const APP_FAILED = 'The audio file for this note could not be played.';
 
 type Playing = 'daw' | 'app' | null;
+
+/** Whether a Hear it loop (of this or another note) is the DAW's now (0: none): an answer that comes for an older press stops nothing a newer press started, even on another note. */
+let loopOwner = 0;
+let pressesMade = 0;
 
 /** The app's own player can play the note: it names its source file and a time in it. */
 const appRange = (finding: Finding) =>
@@ -85,10 +88,13 @@ export function HearIt({
   const looped = useRef(false);
   const stopLoop = useRef(api.findingsStopLoop);
   stopLoop.current = api.findingsStopLoop;
-  // Stops a DAW loop nobody is waiting for any more (the note was left, or its answer came after the deadline); a failed stop has nobody to tell.
-  const dropLoop = useRef(() => {
-    void stopLoop.current().catch(() => undefined);
-  });
+  // Stops a DAW loop nobody is waiting for any more (the note was left, or its answer came after the deadline); a failed stop is said, and where to stop it.
+  const dropLoop = useRef(() => {});
+  dropLoop.current = () => {
+    void stopLoop
+      .current()
+      .catch((error: unknown) => overlay.toast(`${reasonSentence(notAskedSentence(dawName, error, 'stop'))} Stop it in ${dawName}.`, { tone: 'error' }));
+  };
   // The newest press, so a Retry offered for an older one, or after the note was left, plays nothing.
   const newest = useNewestPlay(HEAR_TOPIC);
   const lastAsk = useRef(0);
@@ -97,7 +103,10 @@ export function HearIt({
   // Leaving the note (the Inspector remounts per note) stops a DAW loop this button started; the app player stops itself on unmount.
   useEffect(
     () => () => {
-      if (looped.current) dropLoop.current();
+      if (looped.current) {
+        loopOwner = 0;
+        dropLoop.current();
+      }
     },
     [],
   );
@@ -119,10 +128,11 @@ export function HearIt({
       if (playing === 'app') player.stop();
       else {
         looped.current = false;
+        loopOwner = 0;
         try {
           await api.findingsStopLoop();
         } catch (error) {
-          overlay.toast(reasonSentence(`${capitalised(dawName)} was not asked to stop: ${apiErrorMessage(error)}`), { tone: 'error' });
+          overlay.toast(reasonSentence(notAskedSentence(dawName, error, 'stop')), { tone: 'error' });
         }
       }
       setPlaying(null);
@@ -132,6 +142,7 @@ export function HearIt({
   const start = () =>
     action.run('hear', async () => {
       const press = newest.begin();
+      const token = ++pressesMade;
       lastAsk.current = press;
       // A Retry while the app's fallback plays starts over: the app's clip stops first, so two players never run.
       player.stop();
@@ -153,10 +164,11 @@ export function HearIt({
             // A loop a newer press started since is that press's, and is not stopped here.
             // The same when the note was left, or a newer press made, while the DAW was answering inside the deadline.
             if (late() || !newest.current(press)) {
-              if (!looped.current) dropLoop.current();
+              if (loopOwner === 0) dropLoop.current();
               return { played: true };
             }
             looped.current = true;
+            loopOwner = token;
             setPlaying('daw');
             return { played: true };
           }
@@ -188,7 +200,7 @@ export function HearIt({
       if (notice && newest.current(press))
         overlay.toast(
           notice,
-          by === null ? { tone: 'error', action: retryAction(() => newest.current(press) && again.current()), topic: HEAR_TOPIC } : undefined,
+          by === null ? { tone: 'error', action: retryAction(() => newest.current(press) && again.current()), topic: HEAR_TOPIC } : { topic: HEAR_TOPIC },
         );
       // The toast already says the app plays when it played in the DAW's place; the row says so only when there was no toast.
       if (by === APP && !notice) setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });

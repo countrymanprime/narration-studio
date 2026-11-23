@@ -276,10 +276,15 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/masterqc/page/MeasureRun.tsx#3': no(JM),
   'src/components/masterqc/page/useFileActions.ts#1': no(RF),
   'src/components/masterqc/page/useFileActions.ts#2': no(BT),
-  'src/components/proof/inspector/HearIt.tsx#1': yes(
-    "Hear it's clip could not be played in the app: Retry plays the note again (the same toast, with the same Retry, also says why a play that did not happen did not).",
+  'src/components/proof/inspector/HearIt.tsx#1': no(
+    'A loop the DAW started after the note was left, or after its deadline, could not be stopped: the sentence says where to stop it, and the narrator does it there; the button the press came from is gone or has moved on.',
   ),
-  'src/components/proof/inspector/HearIt.tsx#2': no(BT),
+  'src/components/proof/inspector/HearIt.tsx#2': yes(
+    "Hear it's clip could not be played in the app: Retry plays the note again (the conditional toast that says why a play did not happen, with the same Retry, is raised by a different call the scanner does not list).",
+  ),
+  'src/components/proof/inspector/HearIt.tsx#3': no(
+    'A failed Stop: the DAW may still be looping, and the button goes back to Hear it, so a repeat would start a new loop; the narrator presses Stop again from the DAW or leaves the note, which stops it.',
+  ),
   'src/components/pickups/PickupsPage.tsx#1': na(NA),
   'src/components/pickups/PickupsPage.tsx#2': no(ED),
   'src/components/pickups/list/AddPickup.tsx#1': no(ED),

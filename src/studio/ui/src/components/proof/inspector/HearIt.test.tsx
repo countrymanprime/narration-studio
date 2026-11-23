@@ -253,6 +253,55 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     }
   });
 
+  it('an answer for a note that was left does not stop the loop a newer note started', async () => {
+    const answers: ((value: FindingNavigation) => void)[] = [];
+    const stopLoop = vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 }));
+    const apiFor = (): HearItApi => ({
+      findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => answers.push(resolve))),
+      findingsStopLoop: stopLoop,
+    });
+    const first = render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    first.unmount();
+    // The next note: its loop answers at once.
+    render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed({ id: 'f2' })} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    answers[1]!({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop hearing it/ })).toBeTruthy());
+    // The old note's answer comes late: it must not stop the loop the newer note owns.
+    answers[0]!({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+    await waitFor(() => expect(stopLoop).not.toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(stopLoop).not.toHaveBeenCalled();
+  });
+
+  it('says where to stop a loop it could not stop after the note was left', async () => {
+    let answerLoop: (value: FindingNavigation) => void = () => {};
+    const api: HearItApi = {
+      findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => (answerLoop = resolve))),
+      findingsStopLoop: vi.fn(async () => {
+        throw new Error('bridge write failed');
+      }),
+    };
+    const { unmount } = render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    unmount();
+    answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+    await waitFor(() => expect(toasted()[0]).toBe('REAPER was not asked to stop: bridge write failed. Stop it in REAPER.'));
+  });
+
   it('a Retry offered for an older press plays nothing, and none plays once the note was left', async () => {
     const api: HearItApi = {
       findingsLoop: vi.fn(async () => refusedAs('not_running', 'REAPER is not running.')),

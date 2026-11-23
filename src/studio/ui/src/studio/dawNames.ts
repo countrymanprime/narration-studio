@@ -24,9 +24,9 @@ export function noAnswerSentence(name: string): string {
   return `${capitalised(name)} did not answer in time.`;
 }
 
-/** What a page says when a call to the DAW threw (the bridge is down) before the DAW was asked: who was not asked, and the reason. `name` is as the page writes it (`dawNameOf`, `recorderName`). */
-export function notAskedSentence(name: string, error: unknown): string {
-  return `${capitalised(name)} was not asked: ${apiErrorMessage(error)}`;
+/** What a page says when a call to the DAW threw (the bridge is down) before the DAW was asked: who was not asked, and the reason. `name` is as the page writes it (`dawNameOf`, `recorderName`); `action` says what it was not asked to do ("stop"). It ends without a full stop: `playThrough` and `reasonSentence` add one. */
+export function notAskedSentence(name: string, error: unknown, action?: string): string {
+  return `${capitalised(name)} was not asked${action ? ` to ${action}` : ''}: ${apiErrorMessage(error)}`;
 }
 
 /** What the Booth says when a stop or an undo threw (the bridge is down): the recorder, not "the stop", is who could not be reached. Same `name` as `noAnswerSentence`. */
