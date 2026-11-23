@@ -709,26 +709,53 @@ function AppRoutes() {
     const state = window.history.state as { key?: string; project?: unknown } | null;
     return (state?.key ?? 'default') === location.key ? state : null;
   };
-  // While a move waits in a transition the location on screen is behind history, and its entry is no longer readable: the project it was shown under is kept here.
-  const shownUnder = useRef<{ key: string; project: string } | undefined>(undefined);
-  const stamped = entryState()?.project ?? (shownUnder.current?.key === location.key ? shownUnder.current.project : undefined);
+  // While a move waits in a transition the location on screen is behind history, and its entry is no longer readable: the project the last readable one was shown under stands for it.
+  const shownUnder = useRef<string | undefined>(undefined);
+  const entry = entryState();
+  const stamped = entry ? entry.project : shownUnder.current;
   const bareAddress = addressWithoutProject(location);
-  const addressStale =
+  const judgedStale =
     typeof stamped === 'string' &&
     isOtherProject(stamped, project) &&
     (bareAddress.pathname !== location.pathname || bareAddress.search !== location.search || bareAddress.hash !== location.hash);
+  // Once an address is judged stale it stays so while its entry cannot be read: a re-render before its cut commits sees history ahead and has nothing to judge it by.
+  const heldKey = useRef<string | undefined>(undefined);
+  if (entry) heldKey.current = judgedStale ? location.key : undefined;
+  const addressStale = judgedStale || heldKey.current === location.key;
   // A router push or replace writes a fresh state with no stamp, so each render puts the project on the entry it is showing. A stale entry is cut instead (its replacement is stamped).
   useLayoutEffect(() => {
     const state = entryState();
     if (project !== undefined && !addressStale && state && state.project !== project) window.history.replaceState({ ...state, project }, '');
-    if (state && !addressStale && project !== undefined) shownUnder.current = { key: location.key, project };
+    if (state && !addressStale && project !== undefined) shownUnder.current = project;
   });
+  // A tick that runs the cut again: history can come back to the entry on screen with no router commit (nothing in the deps changes then), so a skipped cut asks for its own re-check.
+  const [cutTick, setCutTick] = useState(0);
+  const cutWaits = useRef(0);
   useEffect(() => {
-    // History ahead of the location on screen is a move waiting in a transition (the narrator's, or a Back): cutting now would write over it. The page stays held until it commits,
-    // and the address that commits is judged by its own entry.
+    if (!addressStale) {
+      cutWaits.current = 0;
+      return;
+    }
+    const cut = () => {
+      void navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
+    };
+    // History ahead of the location on screen is a move waiting in a transition (the narrator's, or a Back): cutting now would write over it. The page stays held until it
+    // commits, and the address that commits is judged by its own entry.
     const state = window.history.state as { key?: string } | null;
-    if (addressStale && (state?.key ?? 'default') === location.key) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
-  }, [addressStale, navigate, location.key, bareAddress.pathname, bareAddress.hash]);
+    if ((state?.key ?? 'default') === location.key) return void cut();
+    // Waits for the move to commit or for history to return (popstate), looking again every 50 ms; after 3 looks the move is given up and the address cut, so the page is never held for good.
+    if (cutWaits.current >= 3) return void cut();
+    const again = () => setCutTick((tick) => tick + 1);
+    const timer = window.setTimeout(() => {
+      cutWaits.current += 1;
+      again();
+    }, 50);
+    window.addEventListener('popstate', again, { once: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('popstate', again);
+    };
+  }, [addressStale, cutTick, navigate, location.key, bareAddress.pathname, bareAddress.hash]);
 
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then

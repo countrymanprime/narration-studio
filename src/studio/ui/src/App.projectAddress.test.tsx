@@ -20,8 +20,10 @@ beforeEach(() => {
   document.title = '';
   for (const toast of overlay.getSnapshot().toasts) overlay.dismissToast(toast.id);
 });
-afterEach(() => {
+afterEach(async () => {
   cleanup();
+  // jsdom traverses history in a task of its own: let a Back sent by the test finish before the next test starts.
+  await new Promise((resolve) => setTimeout(resolve, 20));
   window.localStorage.clear();
 });
 
@@ -235,8 +237,11 @@ describe('the chapter in the address is not carried into another project (#4059)
     await onChapter(/^Chapter: Chapter 7:/);
     const stamp = () => (window.history.state as { project?: string } | null)?.project;
     await waitFor(() => expect(stamp()).toBe(first));
-    fireEvent.click(await screen.findByRole('button', { name: 'Next chapter' }));
-    await onChapter(/^Chapter: Chapter 8:/);
+    // The step can be pressed before the page has its chapters (it then does nothing): press it again until it moves.
+    await waitFor(() => {
+      if (!screen.queryByRole('button', { name: /^Chapter: Chapter 8:/ })) fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+      expect(screen.getByRole('button', { name: /^Chapter: Chapter 8:/ })).toBeTruthy();
+    });
     await waitFor(() => expect(stamp()).toBe(first));
     const entries = window.history.length;
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
@@ -305,20 +310,37 @@ describe('the chapter in the address is not carried into another project (#4059)
       expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
     });
 
-    it('a Back is cut when it lands, not carrying the old project\u2019s chapter', async () => {
-      const alice = await aliceFolder();
-      const { api } = await openAt('/booth?chapter=chapter-9', seedReloadedHistory('/booth?chapter=chapter-9', alice));
-      await screen.findByRole('heading', { level: 1, name: 'Script' });
+    it('history coming back to the entry on screen before the move commits does not leave the page blank', async () => {
+      const { api } = await openAt('/booth?chapter=chapter-9');
+      await onChapter(/^Chapter: Chapter 9:/);
       seedOther('booth', 'chapter-3');
-      await act(async () => {
-        const popped = new Promise<void>((resolve) => window.addEventListener('popstate', () => resolve(), { once: true }));
+      fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+      fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: '> Go to Script' } });
+      const option = await screen.findByRole('option', { name: /^Go to Script/ });
+      await sameTask(async () => {
+        option.click();
         window.history.back();
         await api.switchProject(OTHER, 'Voltage and the Undercroft');
-        await popped;
       });
       await onChapter(/^Chapter: Chapter 3:/);
       expect(address()).toBe('/booth?chapter=chapter-3');
       expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
+    });
+
+    it('a Back the leave guard stops, while the switch renders, does not leave the page blank', async () => {
+      const { api } = await openAt('/script');
+      await screen.findByRole('heading', { level: 1, name: 'Script' });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Editing' })[0]!);
+      fireEvent.click(await screen.findByRole('button', { name: 'Next chapter' }));
+      await onChapter(/^Chapter: Chapter 2:/);
+      expect(address()).toBe('/editing/chapter-2');
+      act(() => void overlay.open({ kind: 'dialog', title: 'Open question', dismissOnOutsidePress: false, render: () => <p>A form</p> }));
+      await sameTask(async () => {
+        window.history.back();
+        await api.switchProject(OTHER, 'Voltage and the Undercroft');
+      });
+      await waitFor(() => expect(screen.getByRole('main').textContent).not.toBe(''), { timeout: 3000 });
+      expect(address()).toBe('/editing');
     });
   });
 });
