@@ -75,7 +75,7 @@ describe('pickups-page-commands', () => {
     await listed();
     const lines = items('Pickups');
     expect(lines).toHaveLength(MIXED.filter((p) => !p.done).length);
-    expect(lines.map((row) => row.label)).toContain('05:12.0 · She walked past the orchard wall.');
+    expect(lines.map((row) => row.label)).toContain('00:05:12 · She walked past the orchard wall.');
     expect(lines.map((row) => row.label).join('\n')).not.toContain('Recorded again already');
     expect(lines.find((row) => row.label.includes('A click before'))!.hint).toBe('Chapter 2 · Low Tide');
   });

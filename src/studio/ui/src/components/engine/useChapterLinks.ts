@@ -1,8 +1,8 @@
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { apiErrorMessage } from '../../api/errorMessage';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
-import { usePort } from '../../ports/usePort';
+import { useChapters } from '../../studio/useChapters';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { chapterLink } from '../chapterTracks/chapterLink';
@@ -11,9 +11,6 @@ import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { createQuietWindow } from '../../quietWindow';
-
-/** A failed read of the chapter list on a job end or window focus keeps the list as it was; the mount read and the Refresh button say why they failed. */
-const recorded = (_failure: unknown): void => undefined;
 
 export type ChapterLinks = {
   /** The tracks in the project the links are read against, with any track `create` added that the track list does not have yet. */
@@ -75,9 +72,11 @@ function createdTracks(result: Extract<ChapterTrackCreateResult, { outcome: 'cre
  * (`chapterTrackRows`). `refreshKey` asks for a re-read after a change made elsewhere; `onChanged` tells the panel one was made here; not `enabled`, nothing is read yet.
  */
 export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: () => void, tracksReadAt: number | null = null, enabled = true): ChapterLinks {
-  const manuscript = usePort('manuscript');
   const actions = useChapterLinkActions();
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // The chapter list is the one every page shares (the store's slot): read on mount, read again by the store when a job ends, a chapter syncs or the window is
+  // used again,. A failed read keeps the list as it was.
+  const { chapters: held, error: chaptersError } = useChapters(enabled);
+  const chapters = useMemo(() => [...(held ?? [])], [held]);
   // A chapter the manuscript no longer lists is named by the title the host kept with its link (displacedSentence).
   const nameOf = chapterNameLookup(chapters);
   // The links are the shared state's (#3269): read once for every screen, so the table, the dialog and the Booth cannot disagree. This hook
@@ -100,24 +99,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     setError('');
   }, [linksReadAt]);
 
-  const readChapters = useCallback(() => manuscript.manuscriptChapters().then(setChapters), [manuscript]);
-  const reload = useCallback(async () => {
-    await Promise.all([readChapters(), refreshLinks()]);
-  }, [readChapters, refreshLinks]);
-
-  // The chapter list is read on mount and not again by a link press (#3272), so a re-import (a job ending) or a return to the window reads it again:
-  // the rows show a renamed, added or removed chapter without waiting for the panel to be reopened. A failed read keeps the list as it was.
-  const system = usePort('system');
-  useEffect(() => {
-    if (!enabled) return;
-    const again = () => void readChapters().catch(recorded);
-    const stop = system.subscribeJobEnded(again);
-    window.addEventListener('focus', again);
-    return () => {
-      stop();
-      window.removeEventListener('focus', again);
-    };
-  }, [enabled, readChapters, system]);
+  const reload = refreshLinks;
 
   useEffect(() => {
     if (!enabled) return;
@@ -254,5 +236,16 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  return { tracks: shown, chapters, mappings, rows, error, busyChapterId, creatingChapterId, set, unlink, create };
+  return {
+    tracks: shown,
+    chapters,
+    mappings,
+    rows,
+    error: error || (chaptersError ? apiErrorMessage(chaptersError) : ''),
+    busyChapterId,
+    creatingChapterId,
+    set,
+    unlink,
+    create,
+  };
 }

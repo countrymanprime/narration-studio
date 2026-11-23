@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { MeasureJob } from '../../types';
+import { useChapters } from '../../studio/useChapters';
 import { useApi } from '../../api/ApiContext';
 import { onPickupListChanged } from '../pickups/pickupListChanged';
 import { masterByChapter } from '../production/usePipelineSources';
@@ -17,11 +19,15 @@ export type NavCounts = { proof?: number; pickups?: number; master?: number };
 export function useNavCounts(pathname: string, hasManuscript = true): NavCounts {
   const api = useApi();
   const [counts, setCounts] = useState<NavCounts>({});
+  // The failing files are the measurement's, paired with the chapter list every page shares (the store's slot), so a re-split or a rename moves the badge without a page move.
+  const [job, setJob] = useState<MeasureJob>();
+  const { chapters } = useChapters(hasManuscript);
 
   useEffect(() => {
     // With no manuscript the notes and pickups the host still holds are the previous manuscript's: no badge says they wait on anything (issue 1720).
     if (!hasManuscript) {
       setCounts({});
+      setJob(undefined);
       return;
     }
     let active = true;
@@ -40,12 +46,10 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
         .then((count) => set({ pickups: count.open }))
         .catch(clear('pickups'));
     void readPickups();
-    Promise.all([api.measureState(), api.manuscriptChapters()])
-      .then(([job, chapters]) => {
-        const byChapter = masterByChapter(chapters, job.files);
-        set({ master: Object.values(byChapter).filter((entry) => entry.qc === 'FAIL').length });
-      })
-      .catch(clear('master'));
+    api
+      .measureState()
+      .then((next) => active && setJob(next))
+      .catch(() => active && setJob(undefined));
     const unsubscribe = api.subscribePickups(() => {
       void readPickups();
       void readProof();
@@ -62,5 +66,9 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
     };
   }, [api, pathname, hasManuscript]);
 
-  return counts;
+  const master = useMemo(() => {
+    if (!hasManuscript || !chapters || !job) return undefined;
+    return Object.values(masterByChapter(chapters, job.files)).filter((entry) => entry.qc === 'FAIL').length;
+  }, [hasManuscript, chapters, job]);
+  return useMemo(() => (master === undefined ? counts : { ...counts, master }), [counts, master]);
 }

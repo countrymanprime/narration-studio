@@ -12,4 +12,5 @@ Storybook title: `Primitives/CheckedStamp`. Source: `src/components/primitives/C
 - `src/components/engine/AudacityLinkCard.tsx`
 - `src/components/engine/CapabilityReferenceDialog.tsx`
 - `src/components/settings/controls/MicBody.tsx`
+- `src/components/settings/controls/SampleOutputBody.tsx`
 - `src/components/storybible/voicesamples/VoiceSamplesBody.tsx`

@@ -68,8 +68,6 @@ export interface ScriptPlaybackOptions {
   sound?: SoundAt;
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
   output?: OutputPrefs;
-  /** Hears why the chosen output could not be used, or null when it took, each time the choice changes. */
-  onOutputDevice?: (problem: string | null) => void;
 }
 
 /**
@@ -85,7 +83,6 @@ export function useScriptPlayback({
   sync,
   sound,
   output,
-  onOutputDevice,
 }: ScriptPlaybackOptions): ScriptPlayback {
   const { doc, state, dispatch } = useEditingPage();
   const daw = usePort('daw');
@@ -114,7 +111,7 @@ export function useScriptPlayback({
   });
 
   const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
-  useAppliedOutput(audio, output, onOutputDevice);
+  useAppliedOutput(audio, output);
 
   /** The DAW's transport, once `useDawTransportSync` below has made it; halt and go reach it here because it needs them. */
   const remoteRef = useRef<RemotePlayer | undefined>(undefined);

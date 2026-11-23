@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ProductionPlan, ProductionRateBasis } from '../../../api/contracts/production';
 import { usePort } from '../../../ports/usePort';
+import { useChapters } from '../../../studio/useChapters';
 import { isNarrationChapter } from '../../../chapterKinds';
 import { IconButton } from '../../primitives/IconButton';
 import { Popover, POPOVER_POPUP_SELECTOR } from '../../primitives/Popover';
@@ -25,7 +26,12 @@ export function TargetInfoButton() {
   const measurements = usePort('measurements');
   const measured = useMeasured(measurements, '', []);
   const [plan, setPlan] = useState<ProductionPlan | null>(null);
-  const [chapters, setChapters] = useState<PaceChapter[]>([]);
+  // The chapters (their set and word counts) are the shared list every page reads, not a copy from the overview.
+  const shared = useChapters().chapters;
+  const chapters = useMemo<PaceChapter[]>(
+    () => (shared ?? []).filter(isNarrationChapter).map((c) => ({ id: c.id, tag: tagOf(c.id, c.title), words: c.wordCount })),
+    [shared],
+  );
   const [open, setOpen] = useState(false);
   const byHover = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -37,12 +43,8 @@ export function TargetInfoButton() {
 
   useEffect(() => {
     let live = true;
-    void Promise.all([production.productionPlan(), production.productionOverview()]).then(
-      ([p, overview]) => {
-        if (!live) return;
-        setPlan(p);
-        setChapters(overview.chapters.filter(isNarrationChapter).map((c) => ({ id: c.id, tag: tagOf(c.id, c.title), words: c.wordCount })));
-      },
+    void production.productionPlan().then(
+      (p) => live && setPlan(p),
       () => undefined,
     );
     return () => {

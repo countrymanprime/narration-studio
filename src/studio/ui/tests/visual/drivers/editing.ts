@@ -31,8 +31,8 @@ export const editingDrivers: Record<string, Driver> = {
     await settlePage(page);
     await clickNav(page, 'Editing');
     await page.getByRole('button', { name: 'Retry' }).waitFor();
-    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
-    await page.getByRole('button', { name: 'Dismiss message' }).click();
+    // A toast from another failed read removes itself on a real timer and would race the screenshot: dismiss any (the chapter list's own failure is the page's error, not a toast).
+    for (const dismiss of await page.getByRole('button', { name: 'Dismiss message' }).all()) await dismiss.click();
   },
   // One chapter's read fails: the header and stepper stay and the chapter's error and Retry sit under them.
   'chapter-load-failed': async (page) => {

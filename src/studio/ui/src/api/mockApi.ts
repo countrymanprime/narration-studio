@@ -12,7 +12,7 @@ import { createTeleprompterMock } from './teleprompterMock';
 import { createCoverageMock } from './coverageMock';
 import { createWorkspaceMock, mockMisreadFindingSource } from './workspaceMock';
 import { createPreviewMock } from './previewMock';
-import { createProductionMock } from './productionMock';
+import { createProductionMock, seededChapter } from './productionMock';
 import { createStagesMock } from './stagesMock';
 import { createProofingRenderMock } from './proofingRenderMock';
 import { createAudacityLinkMock } from './audacityLinkMock';
@@ -483,7 +483,7 @@ export function createMockApi(
     },
     ...system.bindings,
     ...manuscript.bindings,
-    manuscriptChapters: chaptersWithCredits,
+    manuscriptChapters: async () => (await chaptersWithCredits()).map((chapter) => seededChapter(initial.production, chapter)),
     // The host's ManuscriptSetChapterKind sends chaptersync:state after a successful change (bindings.go, via linksChanged), so the mock does too.
     manuscriptSetChapterKind: async (chapterId, kind) => {
       const result = await manuscript.bindings.manuscriptSetChapterKind(chapterId, kind);
@@ -686,7 +686,10 @@ export function createMockApi(
       if (builtinTake) void recorderControl.stopTake();
     },
   };
-  if (typeof window !== 'undefined') window.__NARRATION_MOCK_DAW__ = control;
+  if (typeof window !== 'undefined') {
+    window.__NARRATION_MOCK_DAW__ = control;
+    window.__NARRATION_MOCK_BASE__ = api;
+  }
   return final;
 }
 

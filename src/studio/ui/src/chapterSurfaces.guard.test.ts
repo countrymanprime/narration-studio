@@ -24,6 +24,8 @@ const COVERED: Record<string, readonly string[]> = {
   'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
   // The pipeline's cells take the list from the store (ensure/load) and fall back to the port with no store; the credits pairing is checked in ProductionPage.test.tsx.
   'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
+  // The page's rows, header, pace and Next up are the shared list with the overview's numbers (composeOverview.ts, #4058): the credits are rows like any chapter.
+  'components/production/ProductionPage.tsx': ['components/production/ProductionPage.test.tsx'],
   'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],
@@ -32,6 +34,9 @@ const COVERED: Record<string, readonly string[]> = {
 
 /** Source file -> why the credits are left out of what it reads (a chapter's own text, or nothing to list). */
 const EXEMPT: Record<string, string> = {
+  'components/production/target/TargetInfoButton.tsx':
+    "counts the narration chapters' words for the pace figure; the credits are narration chapters and count like any other (ProductionPage.test)",
+  'components/chapterTracks/useChapterNameOf.ts': 'names one chapter by its id; the credits are named like any chapter (useChapterNameOf.test)',
   'components/chapterTracks/useChapterLinkActions.ts':
     "reads the chapters only to name the chapter that lost a track; the credits are linked and named like any chapter, and a name the list lacks falls back to the host's kept title",
   'components/settings/RetailSamplePanel.tsx': "the retail sample is picked from the book's text; the credits have none (CreditsPanel tests)",
@@ -41,8 +46,9 @@ const EXEMPT: Record<string, string> = {
     "reads one chapter's recordedThrough by its id; the Companion lists no chapters (CompanionPage shows the chapter asked for)",
   'components/settings/controls/VoicesBody.tsx':
     'hands the whole chapter list, the credits included, to the Voices card unchanged; the card names a chapter by the folder it is linked to, and nothing is filtered or counted here',
-  'components/script/page/data/scriptData.ts':
+  'components/script/page/data/useScriptData.ts':
     'the Script page draws the credits as their own cards (ScriptPage tests: each once); its paragraphs exclude them',
+  'components/script/page/data/sampleScript.ts': "the Script page's stories read a fixed sample; the credits cards are the page's, as in useScriptData.ts",
 };
 
 function sources(dir: string): string[] {
@@ -55,7 +61,7 @@ function sources(dir: string): string[] {
 
 describe('every surface that reads the chapter list shows the credits', () => {
   const readers = sources(SRC)
-    .filter((path) => readFileSync(path, 'utf8').includes('manuscriptChapters()'))
+    .filter((path) => /manuscriptChapters\(\)|studio\/useChapters'/.test(readFileSync(path, 'utf8')))
     .map((path) => relative(SRC, path).split(sep).join('/'))
     .sort();
 
@@ -65,6 +71,13 @@ describe('every surface that reads the chapter list shows the credits', () => {
     expect(readers.filter((file) => !declared.includes(file))).toEqual([]);
     // `studio/slots.ts` reads the list through the port, so it is declared but not matched by the text above.
     expect(declared.filter((file) => !readers.includes(file) && file !== 'studio/slots.ts')).toEqual([]);
+  });
+
+  // One list for every page (#3658, #3998): the host's chapter list is read by the store's slot, and by the two hooks' fallbacks for a component rendered with
+  // no store. A page that calls the port itself has its own copy of the list, its own refresh rules and no project record.
+  it('reads the host list nowhere but the store and the fallbacks of its two hooks', () => {
+    const ALLOWED = ['studio/slots.ts', 'studio/useChapters.ts', 'components/script/page/data/sampleScript.ts'];
+    expect(readers.filter((file) => !ALLOWED.includes(file) && readFileSync(join(SRC, file), 'utf8').includes('manuscriptChapters()'))).toEqual([]);
   });
 
   it.each(Object.entries(COVERED))('%s: its test names the credits', (_file, tests) => {

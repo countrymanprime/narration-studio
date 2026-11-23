@@ -317,3 +317,22 @@ describe('the mock sends chapter sync state when removing a chapter from recordi
     expect(sent).toBe(0);
   });
 });
+
+// The host builds the chapter list and the Production overview from the same chapters (bindings_production.go), and the Production page now takes its rows from
+// the list (#4058), so a `?mockProduction=` scenario must say the same about each chapter in both reads or the page draws the default book, not the scenario.
+describe('the mock chapter list and the Production overview agree under every production scenario (#4058)', () => {
+  it.each(['on-pace', 'at-risk', 'linked'] as const)('%s', async (log) => {
+    const api = createMockApi({}, { production: { log } });
+    const [list, overview] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
+    for (const chapter of overview.chapters) {
+      const listed = list.find((item) => item.id === chapter.id);
+      expect(listed, chapter.id).toBeDefined();
+      expect([chapter.id, listed?.status, listed?.recordedSeconds ?? null, listed?.recordedUnavailable]).toEqual([
+        chapter.id,
+        chapter.status,
+        chapter.recordedSeconds,
+        chapter.recordedUnavailable,
+      ]);
+    }
+  });
+});

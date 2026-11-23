@@ -26,7 +26,6 @@ function Host(props: Partial<OutputControlsProps> & { start?: Partial<OutputPref
         setPrefs((p) => ({ ...p, ...patch }));
       }}
       devices={props.devices ?? ready(['Studio monitors', 'Headphones'])}
-      deviceProblem={props.deviceProblem ?? null}
       onCheckDevices={props.onCheckDevices ?? (() => {})}
     >
       {props.children}
@@ -138,16 +137,29 @@ describe('the Output popover', () => {
     const dialog = await openOutput();
     const select = within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLSelectElement;
     expect(select.disabled).toBe(false);
-    expect(within(dialog).getByRole('alert').textContent).toMatch(/would not list its outputs/);
+    // #4044: never red text under the list; the toast is the hook's (useOutputDevices.test.tsx).
+    expect(within(dialog).queryByRole('alert')).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
     await userEvent.selectOptions(select, 'System default');
     expect(onChangeSpy).toHaveBeenCalledWith({ device: '' });
   });
 
-  it('turns the choice off when no outputs can be listed and none is saved', async () => {
+  it('a saved output is "could not check" when the list would not come, "not connected" only when the list is fine and it is absent', async () => {
+    const view = render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} start={{ device: 'Studio monitors' }} />);
+    let dialog = await openOutput();
+    expect(within(dialog).getByRole('option', { name: 'Studio monitors (could not check)' })).toBeTruthy();
+    expect(within(dialog).queryByRole('option', { name: /not connected/ })).toBeNull();
+    view.unmount();
+    render(<Host devices={ready(['Speakers'])} start={{ device: 'Studio monitors' }} />);
+    dialog = await openOutput();
+    expect(within(dialog).getByRole('option', { name: 'Studio monitors (not connected)' })).toBeTruthy();
+  });
+
+  it('keeps the choice on, with the system default, when no outputs can be listed and none is saved (never a dead control)', async () => {
     render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} />);
     const dialog = await openOutput();
-    expect((within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLInputElement).disabled).toBe(true);
+    expect((within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLInputElement).disabled).toBe(false);
+    expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
   });
 
   it('lists two outputs with the same name once, with no duplicate-key error (qa-breaker B3)', async () => {
@@ -160,12 +172,6 @@ describe('the Output popover', () => {
     expect(options).toEqual(['System default', 'Speakers', 'Headphones']);
     expect(errors).not.toHaveBeenCalled();
     errors.mockRestore();
-  });
-
-  it('shows why the chosen output could not be used', async () => {
-    render(<Host deviceProblem="Could not play on Headphones. Playing on the system default until it is back." start={{ device: 'Headphones' }} />);
-    const dialog = await openOutput();
-    expect(within(dialog).getByRole('alert').textContent).toContain('Could not play on Headphones');
   });
 
   it('keeps a very long, emoji and right-to-left output name whole in the list', async () => {
