@@ -674,7 +674,12 @@ function AppRoutes() {
   // closes when the host says it attached (below) and again when the new project's data arrives, so a layer opened between the two, while the page still shows the old project,
   // does not outlive it either. Text typed into a closed dialog is gone, so the narrator is told why it went.
   const closeProjectDialogs = useCallback(() => {
-    if (overlay.dismissDialogs() > 0) overlay.toast('The project changed, so the open dialog was closed.');
+    // What is on screen now: layers the overlay service holds, and those a page draws from its own state (they go with the page's remount a moment later, so this is the last time they can be counted).
+    const showing = document.querySelectorAll('[role="dialog"], [role="alertdialog"], [data-slide-over]').length;
+    const closed = overlay.dismissDialogs();
+    // The audio engine panel lists the old project's chapter links; it closes with the rest.
+    setEnginePanelOpen(false);
+    if (Math.max(showing, closed) > 0) overlay.toast('The project changed, so what was open was closed.', { topic: 'project-changed-closed' });
   }, [overlay]);
   const shownProject = useRef(data?.projectFolder);
   useEffect(() => {

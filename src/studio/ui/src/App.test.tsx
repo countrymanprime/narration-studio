@@ -515,7 +515,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     // The question was answered No: its confirm path (the cut, its record) did not run.
     expect(onConfirm).toHaveBeenCalledWith(false);
     // Text typed into a dialog that went is gone: the narrator is told why, once.
-    expect(screen.getAllByText('The project changed, so the open dialog was closed.')).toHaveLength(1);
+    expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
   });
 
   it('a dialog opened after the attach but before the new project loads is closed when the new project arrives (#4057)', async () => {
@@ -560,7 +560,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     await waitFor(() => expect(attach).toBeDefined());
     act(() => attach!({ attached: true }));
-    await waitFor(() => expect(screen.queryByText('The project changed, so the open dialog was closed.')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('The project changed, so what was open was closed.')).toBeNull());
   });
 
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
