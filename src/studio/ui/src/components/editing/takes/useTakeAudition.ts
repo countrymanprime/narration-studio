@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { dawNameOf } from '../../engine/ShowInDaw';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
@@ -96,7 +97,7 @@ export function useTakeAudition({
       const ask = newest.begin();
       setFailedId(null);
       if (now === null && dawRead?.failed) void dawRead.retry();
-      const name = now?.daw ?? 'The DAW';
+      const name = dawNameOf(now);
       const preview: PlaybackProvider<LineTake> = {
         name,
         readiness: (t) => {

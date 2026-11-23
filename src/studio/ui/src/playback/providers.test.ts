@@ -11,6 +11,7 @@ import {
   dawReadiness,
   playReadiness,
   playThrough,
+  recordingSentence,
   quietWhileRecording,
   type PlayAttempt,
   type PlaybackProvider,
@@ -165,10 +166,18 @@ describe('playReadiness', () => {
 describe('a-provider-that-never-answers-is-passed-over', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
+  it('waits without a limit when the caller names none (the take and the script keep their own)', async () => {
+    const hung = { name: 'REAPER', readiness: () => ({ ready: true as const }), play: () => new Promise<never>(() => {}) };
+    const app = provider(APP, { ready: true }, { played: true });
+    let done = false;
+    void playThrough([hung, app.p], 0).then(() => (done = true));
+    await vi.advanceTimersByTimeAsync(10 * PLAY_DEADLINE_MS);
+    expect(done).toBe(false);
+  });
   it('moves on to the app after the deadline and says the DAW did not answer', async () => {
     const hung = { name: 'REAPER', readiness: () => ({ ready: true as const }), play: () => new Promise<never>(() => {}) };
     const app = provider(APP, { ready: true }, { played: true });
-    const pending = playThrough([hung, app.p], 0);
+    const pending = playThrough([hung, app.p], 0, { deadlineMs: PLAY_DEADLINE_MS });
     await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     expect(await pending).toMatchObject({ by: APP, notice: 'REAPER did not answer. Played in the app instead.' });
   });
@@ -184,16 +193,24 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
       },
     };
     const app = provider(APP, { ready: true }, { played: true });
-    const pending = playThrough([slow, app.p], 0);
+    const pending = playThrough([slow, app.p], 0, { deadlineMs: PLAY_DEADLINE_MS });
     await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     await pending;
     answer({ played: true });
     expect(seen).toEqual({ before: false, after: true });
   });
+  it('opens the sentence with a capital when the DAW has no name yet', async () => {
+    const hung = { name: 'the DAW', readiness: () => ({ ready: true as const }), play: () => new Promise<never>(() => {}) };
+    const app = provider(APP, { ready: true }, { played: true });
+    const pending = playThrough([hung, app.p], 0, { deadlineMs: PLAY_DEADLINE_MS });
+    await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
+    expect((await pending).notice).toBe('The DAW did not answer. Played in the app instead.');
+    expect(recordingSentence('the DAW')).toBe('The DAW is recording, so nothing plays. Stop recording first.');
+  });
   it('a keepQuiet that never answers does not hold the app back', async () => {
     const fails = provider('REAPER', { ready: true }, { played: false, why: 'Refused.' });
     const app = provider(APP, { ready: true }, { played: true });
-    const pending = playThrough([fails.p, app.p], 0, { keepQuiet: () => new Promise<never>(() => {}) });
+    const pending = playThrough([fails.p, app.p], 0, { keepQuiet: () => new Promise<never>(() => {}), deadlineMs: PLAY_DEADLINE_MS });
     await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     expect(await pending).toMatchObject({ by: APP });
   });

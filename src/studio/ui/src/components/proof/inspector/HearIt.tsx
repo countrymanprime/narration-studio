@@ -9,8 +9,9 @@ import { IconButton } from '../../primitives/IconButton';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
+import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
-import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
+import { APP, playReadiness, playThrough, quietWhileRecording, recordingSentence, type PlaybackProvider } from '../../../playback/providers';
 
 /** The audio heard either side of a note. The host's loop pads by the same amount (`bridge.ContextPaddingSeconds`). */
 export const HEAR_AROUND_SECONDS = 3;
@@ -153,8 +154,7 @@ export function HearIt({
             return { played: true };
           }
           // A DAW that is recording keeps the room quiet: the app does not play over it.
-          if (answer.outcome === 'refused' && answer.reason === 'recording')
-            return { played: false, why: `${dawName} is recording, so nothing plays. Stop recording first.`, final: true };
+          if (answer.outcome === 'refused' && answer.reason === 'recording') return { played: false, why: recordingSentence(dawName), final: true };
           return { played: false, why: answer.outcome === 'refused' ? answer.message : `${dawName} did not loop the note.` };
         },
       };
@@ -172,6 +172,8 @@ export function HearIt({
         stillWanted: () => newest.current(press),
         // A DAW that is recording keeps the room quiet whatever stopped it from looping: the app does not play over it (as a take does).
         keepQuiet: quietWhileRecording(() => daw.projectState(), dawName),
+        // A click that plays is never silent for long: a DAW that has not answered passes the note to the app.
+        deadlineMs: PLAY_DEADLINE_MS,
       });
       if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
       // What did not play, and why, is a toast, never a line in the row. Retry only when nothing played: a note that fell back to the app and plays is not

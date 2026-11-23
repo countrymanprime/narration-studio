@@ -1,4 +1,5 @@
 import { chapterTrackOf } from '../../../api/chapterTrackItems';
+import { PLAY_DEADLINE_MS, dawNameOf } from '../../engine/ShowInDaw';
 import type { VoiceTracksLayout } from '../../../api/contracts/voiceTracks';
 import { destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
@@ -136,7 +137,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       const retry = (): void => {
         if (newest.current(ask) && asked.current === mine) void begin(pickup);
       };
-      const name = caps?.daw ?? 'The DAW';
+      const name = dawNameOf(caps);
       const transport: PlaybackProvider<PickupItem> = {
         name,
         readiness: (p) => {
@@ -206,6 +207,8 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       const { by, notice } = await playThrough([transport, app], pickup, {
         stillWanted: wanted,
         keepQuiet: quietWhileRecording(() => daw.projectState(), name),
+        // A click that plays is never silent for long: a DAW that has not answered passes the line to the app.
+        deadlineMs: PLAY_DEADLINE_MS,
       });
       setPendingId((id) => (id === pickup.id ? null : id));
       // This press ended in the app (the DAW refused or could not play): it owns no DAW play, and one an earlier press left running is stopped now, or when its

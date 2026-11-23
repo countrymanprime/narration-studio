@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { dawNameOf } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
@@ -213,7 +214,7 @@ export function useScriptPlayback({
       lastAsk.current = { t, stopsAt, asked, word };
       // A read that failed is asked again, so the DAW plays the next press once it answers.
       if (now === null && dawRead?.failed) void dawRead.retry();
-      const name = now?.daw ?? 'The DAW';
+      const name = dawNameOf(now);
       const providers: PlaybackProvider<number>[] = [];
       if (now !== undefined) {
         providers.push({
