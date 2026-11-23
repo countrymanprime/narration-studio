@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"runtime"
+	"sync"
 	"time"
 
 	"desktop/internal/coverage"
@@ -20,7 +22,15 @@ import (
 // workspacePeaksTimeout bounds one WorkspacePeaks call so a very large or unreadable source cannot hang the binding:
 // the spike measured 3.4 s for a whole hour of audio (docs/research/edit-and-proof-spike-ep0.md), so this leaves ample
 // room for a chapter's several items plus a cold cache.
-const workspacePeaksTimeout = 30 * time.Second
+var workspacePeaksTimeout = 30 * time.Second
+
+// peaksReadLimit bounds how long one recording's peaks may be read in the background after the call that asked for them has gone: a read that
+// outlives the call keeps going and fills the cache, so the next ask finds it (#4042). It is generous because a read is a whole file.
+const peaksReadLimit = 10 * time.Minute
+
+// stillReading is the Reason of an item whose recording was still being read when the call's time ran out. The read goes on in the background,
+// so the strip shows what it has and the next ask has the rest.
+const stillReading = "this item's recording is still being read; its waveform appears when the read finishes"
 
 // WorkspacePeaksItem is one analyzed item's waveform, or why it has none: Index matches
 // WorkspaceAlignment's own AlignmentItem.Index, so the UI zips the two answers together without a second
@@ -63,6 +73,7 @@ func (h *Host) WorkspacePeaks(chapterID string) (string, error) {
 	defer cancel()
 
 	sources := newPeaksSources(ctx, store, svc.config.projectFolder)
+	sources.readAhead(project, view.Items)
 	items := make([]WorkspacePeaksItem, 0, len(view.Items))
 	for _, alignmentItem := range view.Items {
 		items = append(items, itemPeaks(sources, project, alignmentItem))
@@ -86,10 +97,47 @@ type peaksSources struct {
 	projectFolder string
 	identities    map[string]*evidence.SourceIdentity // nil: the file could not be read
 	peaks         map[string]sourcePeaks
+	flights       *peaksFlights
 }
 
 func newPeaksSources(ctx context.Context, store *evidence.CacheStore, projectFolder string) *peaksSources {
-	return &peaksSources{ctx: ctx, store: store, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}}
+	return &peaksSources{ctx: ctx, store: store, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}, flights: sharedPeaksFlights}
+}
+
+// readAhead starts the reads of every live item's source at once, a few at a time, so a chapter cut from several recordings waits for the longest
+// of them and not for all of them one after the other. Each read is joined by whole() when the item loop reaches it.
+func (s *peaksSources) readAhead(project tracks.Project, items []coverage.AlignmentItem) {
+	var files []string
+	seen := map[string]bool{}
+	for _, item := range items {
+		if !item.Live || item.Length <= 0 {
+			continue
+		}
+		if _, projectItem, ok := project.ItemByGUID(item.ItemGUID); ok {
+			if take := projectItem.Active(); take.SourceFile != "" && take.SourceAvailable && !seen[take.SourceFile] {
+				seen[take.SourceFile] = true
+				files = append(files, take.SourceFile)
+			}
+		}
+	}
+	if len(files) < 2 {
+		return
+	}
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, max(1, runtime.NumCPU()))
+	for _, file := range files {
+		identity := s.identify(file)
+		if identity == nil {
+			continue
+		}
+		wg.Add(1)
+		slots <- struct{}{}
+		go func() {
+			defer func() { <-slots; wg.Done() }()
+			_, _ = s.flights.read(s.ctx, s.store, *identity, file)
+		}()
+	}
+	wg.Wait()
 }
 
 // identify answers file's identity as it is on disk at the first ask of this call, nil when it cannot be read.
@@ -112,8 +160,10 @@ func (s *peaksSources) whole(file string) sourcePeaks {
 	}
 	read := sourcePeaks{reason: "this item's source audio could not be read"}
 	if identity := s.identify(file); identity != nil {
-		whole, err := measure.CachedPeaksFile(s.ctx, s.store, *identity, file, nil, measure.DefaultPeaksPerSecond)
+		whole, err := s.flights.read(s.ctx, s.store, *identity, file)
 		switch {
+		case errors.Is(err, errPeaksPending):
+			read = sourcePeaks{reason: stillReading}
 		case errors.Is(err, measure.ErrNotWAV):
 			read = sourcePeaks{reason: "no waveform"}
 		case err != nil:
@@ -163,4 +213,50 @@ func itemPeaks(sources *peaksSources, project tracks.Project, item coverage.Alig
 		return WorkspacePeaksItem{Index: item.Index, Reason: "this item's waveform could not be computed"}
 	}
 	return WorkspacePeaksItem{Index: item.Index, Peaks: &peaks}
+}
+
+// errPeaksPending answers a read whose call gave up waiting: the read itself goes on.
+var errPeaksPending = errors.New("the recording is still being read")
+
+// peaksFlight is one recording's read in progress, joined by every call that asks for the same file as it is on disk.
+type peaksFlight struct {
+	done  chan struct{}
+	peaks measure.Peaks
+	err   error
+}
+
+// peaksFlights are the reads in progress, by source identity. A read is not tied to the call that started it: when that call's time runs out
+// it answers errPeaksPending, the read finishes in the background and writes the evidence cache, and the next call finds it done (or joins it
+// while it runs) instead of starting the whole file again and timing out again (#4042).
+type peaksFlights struct {
+	mu      sync.Mutex
+	running map[string]*peaksFlight
+}
+
+var sharedPeaksFlights = &peaksFlights{running: map[string]*peaksFlight{}}
+
+func (f *peaksFlights) read(ctx context.Context, store *evidence.CacheStore, identity evidence.SourceIdentity, file string) (measure.Peaks, error) {
+	key := file + "\x00" + identity.ModTime.String() + "\x00" + identity.PartialHash
+	f.mu.Lock()
+	flight, joined := f.running[key]
+	if !joined {
+		flight = &peaksFlight{done: make(chan struct{})}
+		f.running[key] = flight
+		go func() {
+			own, cancel := context.WithTimeout(context.Background(), peaksReadLimit)
+			defer cancel()
+			flight.peaks, flight.err = measure.CachedPeaksFile(own, store, identity, file, nil, measure.DefaultPeaksPerSecond)
+			f.mu.Lock()
+			delete(f.running, key)
+			f.mu.Unlock()
+			close(flight.done)
+		}()
+	}
+	f.mu.Unlock()
+	select {
+	case <-flight.done:
+		return flight.peaks, flight.err
+	case <-ctx.Done():
+		return measure.Peaks{}, errPeaksPending
+	}
 }

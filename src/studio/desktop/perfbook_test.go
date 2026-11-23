@@ -624,3 +624,47 @@ func TestAWaveformReadOverSeededRecordingsDrawsEveryTakeAndIsKept(t *testing.T) 
 		t.Fatalf("the read after the first lost the waveform: %+v", again)
 	}
 }
+
+// A call that runs out of time shows what it has and says why the rest is missing; the read goes on in the background, so a later call
+// is answered without reading the file again (#4042). Before, every call over a long recording timed out the same way and blanked the strip.
+func TestAWaveformReadThatRunsOutOfTimeKeepsReadingAndTheNextCallHasIt(t *testing.T) {
+	dir := t.TempDir()
+	book, err := parsePerfBook("chapters=1 paragraphs=2 items=3 audio=30")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedPerfBook(t, dir, book)
+	host := freshPerfHost(t, dir)
+	saved := workspacePeaksTimeout
+	workspacePeaksTimeout = 20 * time.Millisecond
+	t.Cleanup(func() { workspacePeaksTimeout = saved })
+	read := func() WorkspacePeaksView {
+		t.Helper()
+		answer, err := host.WorkspacePeaks(perfChapterID(0))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var view WorkspacePeaksView
+		if err := json.Unmarshal([]byte(answer), &view); err != nil {
+			t.Fatal(err)
+		}
+		return view
+	}
+	first := read()
+	for _, item := range first.Items {
+		if item.Peaks != nil || item.Reason != stillReading {
+			t.Fatalf("item %d of a read cut short should say it is still being read: %+v", item.Index, item)
+		}
+	}
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		later := read()
+		if later.Items[0].Peaks != nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the read never finished in the background: %+v", later.Items[0])
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
