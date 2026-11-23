@@ -595,6 +595,7 @@ export function EditingBody(props: EditingBodyProps) {
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
               dawTools
               checkRecording={checkRecording}
+              checkReason={read.audio.kind === 'ready' ? undefined : 'This chapter has no audio to check yet.'}
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
             <NoAudioBanner

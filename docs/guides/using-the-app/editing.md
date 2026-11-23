@@ -31,7 +31,7 @@ This page is a reference to everything Editing shows. To do one thing, start her
 
 The header sits inside the one bordered card that holds the script, so the title, the chapter step (the previous and
 next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
-the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
+the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the **Check recordings** icon (off, with its reason, while the chapter has no audio or the DAW cannot check), the timeline strip button (a timeline icon, on a window 1360 px
 wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. When the host's answer is in a shape the app cannot read, the reason is the plain sentence "The app received data it could not read."; the technical text is behind **Details** on the card, with a copy button, and in the host log. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
@@ -110,7 +110,7 @@ to its window, so a link made in REAPER or the audio engine panel shows without 
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note. The
-**Check recordings** icon in the page's header, on every chapter and whether or not it was checked, opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+**Check recordings** icon in the page's header, on every chapter with audio and whether or not it was checked, opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
 check every page opens, with this chapter ticked: run it again after a new take or a pickup. When the dialog closes the page reads the chapter again (and draws its waveform again), so
 what the check found shows without a reload. Opening Editing never starts a check.
 

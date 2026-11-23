@@ -15,7 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function show(checkRecording?: Parameters<typeof EditingHeader>[0]['checkRecording']) {
+function show(checkRecording?: Parameters<typeof EditingHeader>[0]['checkRecording'], checkReason?: string) {
   const daw = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] });
   render(
     <ApiProvider api={createMockApi()}>
@@ -29,6 +29,7 @@ function show(checkRecording?: Parameters<typeof EditingHeader>[0]['checkRecordi
             drawerOpen={false}
             onDrawer={() => {}}
             checkRecording={checkRecording}
+            checkReason={checkReason}
           />
         </TooltipProvider>
       </PortOverrides>
@@ -46,6 +47,15 @@ describe('the Editing header re-check', () => {
     await waitFor(() => expect(button.getAttribute('aria-disabled')).toBeNull());
     fireEvent.click(button);
     expect(open).toHaveBeenCalledWith(['c1'], { onClosed });
+  });
+
+  it('is off, with its reason, for a chapter with no audio, and a press opens nothing', async () => {
+    const open = vi.spyOn(opener, 'openCheckRecordings').mockReturnValue(() => {});
+    show({ chapterIds: ['c1'], onClosed: vi.fn() }, 'This chapter has no audio to check yet.');
+    const button = await screen.findByRole('button', { name: 'Check recordings' });
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+    fireEvent.click(button);
+    expect(open).not.toHaveBeenCalled();
   });
 
   it('offers none while the page has no chapter record to check', () => {
