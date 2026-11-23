@@ -4,7 +4,8 @@ import { Button } from '../../primitives/Button';
 import { Field } from '../../primitives/Field';
 import { Select } from '../../primitives/Select';
 import { IconButton } from '../../primitives/IconButton';
-import { pickupTime, parseClock, PICKUP_LINE_MAX, reasonSentence } from './pickupRows';
+import { pickupTime, parseClock, PICKUP_LINE_MAX } from './pickupRows';
+import { reasonSentence } from '../../../api/errorMessage';
 
 /**
  * The popover form of "Add a pickup by hand" (mock `AddPickup`): the time in the recording and the line to re-record, for the chapter in view.

@@ -26,3 +26,9 @@ export function readableFailure(error: unknown, fallback: string): string {
     .trim();
   return text && text !== '[object Object]' && text !== 'undefined' && text !== 'null' ? text : fallback;
 }
+
+/** A host reason as a sentence a narrator can read: `readableFailure` (no "Error: " prefix, no "undefined"), a capital, and a full stop. */
+export function reasonSentence(error: unknown): string {
+  const text = readableFailure(error, 'The host gave no reason.');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}${/[.!?]$/.test(text) ? '' : '.'}`;
+}

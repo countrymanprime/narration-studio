@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { dawNameOf } from '../../engine/ShowInDaw';
+import { notAskedSentence } from '../../../studio/dawNames';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
@@ -99,7 +101,7 @@ export function useTakeAudition({
       const ask = newest.begin();
       setFailedId(null);
       if (now === null && dawRead?.failed) void dawRead.retry();
-      const name = now?.daw ?? 'The DAW';
+      const name = dawNameOf(now);
       const preview: PlaybackProvider<LineTake> = {
         name,
         readiness: (t) => {
@@ -129,7 +131,7 @@ export function useTakeAudition({
             }
             why = result.message;
           } catch (error) {
-            why = `${name} was not asked: ${error instanceof Error ? error.message : String(error)}`;
+            why = notAskedSentence(name, error);
           }
           if (asked.current === mine) {
             setPlaying(null);

@@ -59,6 +59,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/engine/useChapterFolders.ts`
 - `src/components/engine/useLiveTracks.ts`
 - `src/components/engine/useVoiceTracks.ts`
+- `src/components/pickups/PickupsPage.tsx`
 - `src/components/primitives/Dialog.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`
 - `src/components/production/ManuscriptImport.tsx`
@@ -75,6 +76,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/proof/ProofPage.tsx`
 - `src/components/proof/ProofingStagePanel.tsx`
 - `src/components/proof/RenderAssociationSection.tsx`
+- `src/components/proof/inspector/HearIt.tsx`
 - `src/components/proof/inspector/equivalence.ts`
 - `src/components/proof/useProofingRender.ts`
 - `src/components/script/page/ScriptPage.tsx`

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Finding } from '../../types';
-import { candidateClass, keepUnits, sentenceStart } from './editingCheckText';
+import { candidateClass, keepUnits } from './editingCheckText';
 
 function finding(overrides: Partial<Finding> = {}): Finding {
   return {
@@ -40,12 +40,5 @@ describe('keepUnits', () => {
 
   it('leaves a number before a word alone', () => {
     expect(keepUnits('1 item on 3 tracks')).toBe('1 item on 3 tracks');
-  });
-});
-
-describe('sentenceStart', () => {
-  it('capitalises the first letter only', () => {
-    expect(sentenceStart('link this chapter to the REAPER track')).toBe('Link this chapter to the REAPER track');
-    expect(sentenceStart('')).toBe('');
   });
 });

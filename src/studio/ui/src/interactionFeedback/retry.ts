@@ -278,6 +278,21 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/masterqc/page/MeasureRun.tsx#3': no(JM),
   'src/components/masterqc/page/useFileActions.ts#1': no(RF),
   'src/components/masterqc/page/useFileActions.ts#2': no(BT),
+  'src/components/proof/inspector/HearIt.tsx#1': no(
+    'A loop the DAW started after the note was left, or after its deadline, was refused a stop: the sentence says where to stop it, and the narrator does it there; the button the press came from is gone or has moved on.',
+  ),
+  'src/components/proof/inspector/HearIt.tsx#2': no(
+    'The same loop, when the stop could not be asked of the DAW at all: the sentence says where to stop it, and the narrator does it there.',
+  ),
+  'src/components/proof/inspector/HearIt.tsx#3': yes(
+    "Hear it's clip could not be played in the app: Retry plays the note again (the conditional toast that says why a play did not happen, with the same Retry, is raised by a different call the scanner does not list).",
+  ),
+  'src/components/proof/inspector/HearIt.tsx#4': no(
+    'A Stop the DAW refused: it may still be looping, and the button goes back to Hear it, so a repeat would start a new loop; the sentence says where to stop it, and the narrator does it there.',
+  ),
+  'src/components/proof/inspector/HearIt.tsx#5': no(
+    'A Stop that could not be asked of the DAW: it may still be looping, and the button goes back to Hear it, so a repeat would start a new loop; the sentence says where to stop it, and the narrator does it there.',
+  ),
   'src/components/pickups/PickupsPage.tsx#1': na(NA),
   'src/components/pickups/PickupsPage.tsx#2': no(ED),
   'src/components/pickups/list/AddPickup.tsx#1': no(ED),

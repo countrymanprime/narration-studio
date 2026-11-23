@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { notAskedSentence } from '../../studio/dawNames';
 import type { ChapterTrackMapApi } from '../../api/contracts/chapterTrackMap';
 import type { FindingsApi } from '../../api/contracts/findings';
 import type { WorkspaceApi } from '../../api/contracts/workspace';
 import { usePort } from '../../ports/usePort';
 import type { DawCapabilities } from '../../api/contracts/daw';
-import { apiErrorMessage } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { overlay } from '../../overlay/overlayService';
 import { clock } from '../../clock';
@@ -35,6 +35,12 @@ const NO_RECORDING = 'This line has no recording to show.';
  * (3 s, then 20 s more, `LateAnswerWait`), so the page never says the DAW did not answer before the host does (`lateWaitLimits.guard.test.ts`).
  */
 export const ASK_DEADLINE_MS = 26_000;
+/**
+ * How long a click that plays waits for the DAW before the app plays instead: a play click is never silent for the host's wait (`ASK_DEADLINE_MS`), so a DAW
+ * that has not answered a play in this time is passed over, and an answer that comes later is stopped (`PlayContext.late`). Not a write: a play that
+ * lands late is stopped, so the limit need not outlast the host's wait (`lateWaitLimits.guard.test.ts` lists the limits that must).
+ */
+export const PLAY_DEADLINE_MS = 3_000;
 const NO_TRACK = 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
 
 /** The DAW the setup names, for a control's label, or "the DAW" while it has not answered or names none. */
@@ -104,7 +110,7 @@ export async function showInDaw(
     // A host that sends no usable time still moved the DAW: say so without printing NaN.
     return { message: Number.isFinite(went.projectTime) ? `Moved to ${when(went.projectTime)} in ${dawName}.` : `Moved in ${dawName}.`, failed: false };
   } catch (error) {
-    return { message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true };
+    return { message: notAskedSentence('the DAW', error), failed: true };
   }
 }
 

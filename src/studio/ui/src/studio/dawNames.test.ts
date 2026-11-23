@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { noAnswerSentence, recorderName, unreachedSentence } from './dawNames';
+import { noAnswerSentence, notAskedSentence, recorderName, stopFailedSentence, unreachedSentence } from './dawNames';
 
 describe('noAnswerSentence', () => {
   it('names who did not answer, whoever records', () => {
@@ -63,5 +63,22 @@ describe('the Booth writes no "did not answer in time" sentence by hand', () => 
       expect(hand.test(text), text).toBe(true);
     // The roll's and the meter's own sentences are different sentences.
     for (const text of ['REAPER did not answer the roll in time.', 'The built-in recorder did not answer in 3 s.']) expect(hand.test(text), text).toBe(false);
+  });
+});
+
+describe('notAskedSentence', () => {
+  it('names who was not asked, with a capital, and the reason', () => {
+    expect(notAskedSentence('the DAW', new Error('bridge down'))).toBe('The DAW was not asked: bridge down');
+    expect(notAskedSentence('REAPER', 'no socket')).toBe('REAPER was not asked: no socket');
+    expect(notAskedSentence('the DAW', 'no socket', 'stop')).toBe('The DAW was not asked to stop: no socket');
+  });
+});
+
+describe('stopFailedSentence', () => {
+  it('says the refusal and where to stop it', () => {
+    expect(stopFailedSentence('REAPER', { refused: 'REAPER is not running' })).toBe('REAPER is not running. Stop it in REAPER.');
+  });
+  it('says who was not asked when the call threw', () => {
+    expect(stopFailedSentence('REAPER', { thrown: new Error('bridge down') })).toBe('REAPER was not asked to stop: bridge down. Stop it in REAPER.');
   });
 });
