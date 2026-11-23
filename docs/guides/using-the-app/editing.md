@@ -110,7 +110,7 @@ to its window, so a link made in REAPER or the audio engine panel shows without 
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note. The
-**Check recordings** icon in the page's header, on every chapter with audio and whether or not it was checked, opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+**Check recordings** icon in the page's header, once the chapter has loaded, whether or not it was checked (off, with its reason, while the chapter has no audio), opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
 check every page opens, with this chapter ticked: run it again after a new take or a pickup. When the dialog closes the page reads the chapter again (and draws its waveform again), so
 what the check found shows without a reload. Opening Editing never starts a check.
 
@@ -205,7 +205,7 @@ is a hairline. A chapter recorded quietly draws as tall as one that was normalis
 click or plosive does not make the rest small. Each bar is two layers, as in REAPER: a faint bar for the peak (the highest and lowest sample in each 20 ms) and a solid core inside it for the RMS (the average loudness of that 20 ms), on the same scale. The core is always shorter than the peak, and it shows how loud a word is as against how sharp its loudest sample is.
 While the chapter plays, the bars already played are in the accent colour and the rest grey, and a swell travels with the playhead, like a
 stadium wave: the bars just ahead of it rise, the ones under it stand up to half again their own height and the ones behind settle back, so
-the shape of the audio stays the same under it. While the waveform is still being read, a low row of grey bars stands in its place with a
+the shape of the audio stays the same under it. A long recording the host is still reading says so in place of its waveform, and the page asks again every 15 seconds until it is there. While the waveform is still being read, a low row of grey bars stands in its place with a
 swell crossing it from left to right about every second and a half. With **Motion** set to reduce in Settings (or Windows asking for
 it), nothing moves.
 

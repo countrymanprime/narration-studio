@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { WorkspacePeaks, WorkspacePeaksResult } from '../../../api/contracts/workspace';
 import { useRingPrefetch } from '../../../hooks/useRingPrefetch';
 import { usePort } from '../../../ports/usePort';
@@ -8,11 +8,10 @@ export type RibbonPeaks = { status: 'loading' } | { status: 'ready'; result: Wor
 
 type Shared = { promise: Promise<WorkspacePeaksResult>; result?: WorkspacePeaksResult; bytes: number; at: number };
 
-/** How long an answer that drew nothing (every item only a reason: a file busy, a read that timed out) is trusted before the next ask reads it again (#4042). */
+/** How long an answer with a gap (an item with only a reason: a recording still being read, a file busy) is trusted before it is read again (#4042). */
 export const UNANSWERED_RETRY_MS = 15_000;
 
-const drewNothing = (result: WorkspacePeaksResult): boolean =>
-  result.items.length > 0 && result.items.every((item) => !item.peaks) && result.items.some((item) => item.reason);
+const hasGap = (result: WorkspacePeaksResult): boolean => result.items.some((item) => !item.peaks && item.reason);
 type Workspace = { workspacePeaks: (chapterId: string) => Promise<WorkspacePeaksResult> };
 const reads = new WeakMap<object, Map<string, Shared>>();
 /** The page's chapters and the one that is open, per port: what "far" means when a kept waveform has to leave. */
@@ -64,7 +63,7 @@ function sharedRead(workspace: Workspace, chapterId: string): Shared {
   const byChapter = reads.get(workspace) ?? new Map<string, Shared>();
   reads.set(workspace, byChapter);
   const kept = byChapter.get(chapterId);
-  if (kept && !(kept.result && drewNothing(kept.result) && Date.now() - kept.at > UNANSWERED_RETRY_MS)) return kept;
+  if (kept && !(kept.result && hasGap(kept.result) && Date.now() - kept.at > UNANSWERED_RETRY_MS)) return kept;
   const entry: Shared = { promise: workspace.workspacePeaks(chapterId), bytes: 0, at: Date.now() };
   byChapter.set(chapterId, entry);
   entry.promise.then(
@@ -134,22 +133,34 @@ export function useRibbonPeaks(chapterId: string | undefined): RibbonPeaks {
     const ready = chapterId ? reads.get(workspace)?.get(chapterId) : undefined;
     return ready?.result ? { status: 'ready', result: ready.result } : { status: 'loading' };
   });
+  // An answer with a gap (a recording the host is still reading) is asked for again after a quiet spell while the ribbon stays open: the host
+  // keeps reading in the background, so the next ask finds more of it. The counter re-runs the read; the shown answer stays until the new one lands.
+  const [again, setAgain] = useState(0);
+  const lastAgain = useRef(0);
   useEffect(() => {
     if (!chapterId) {
       setState({ status: 'loading' });
       return;
     }
     let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const retry = again !== lastAgain.current;
+    lastAgain.current = again;
     const read = sharedRead(workspace, chapterId);
-    setState(read.result ? { status: 'ready', result: read.result } : { status: 'loading' });
+    if (!retry) setState(read.result ? { status: 'ready', result: read.result } : { status: 'loading' });
     read.promise.then(
-      (result) => live && setState({ status: 'ready', result }),
+      (result) => {
+        if (!live) return;
+        setState({ status: 'ready', result });
+        if (hasGap(result)) timer = setTimeout(() => setAgain((n) => n + 1), UNANSWERED_RETRY_MS + 100);
+      },
       (e: unknown) => live && setState({ status: 'failed', reason: e instanceof Error && e.message ? e.message : 'The host did not return the waveform.' }),
     );
     return () => {
       live = false;
+      clearTimeout(timer);
     };
-  }, [workspace, chapterId]);
+  }, [workspace, chapterId, again]);
   return state;
 }
 

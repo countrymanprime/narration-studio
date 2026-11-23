@@ -30,7 +30,7 @@ const peaksReadLimit = 10 * time.Minute
 
 // stillReading is the Reason of an item whose recording was still being read when the call's time ran out. The read goes on in the background,
 // so the strip shows what it has and the next ask has the rest.
-const stillReading = "this item's recording is still being read; its waveform appears when the read finishes"
+const stillReading = "this recording is still being read, so its waveform is not drawn yet"
 
 // WorkspacePeaksItem is one analyzed item's waveform, or why it has none: Index matches
 // WorkspaceAlignment's own AlignmentItem.Index, so the UI zips the two answers together without a second
@@ -72,7 +72,13 @@ func (h *Host) WorkspacePeaks(chapterID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), workspacePeaksTimeout)
 	defer cancel()
 
-	sources := newPeaksSources(ctx, store, svc.config.projectFolder)
+	h.mu.RLock()
+	life := h.ctx
+	h.mu.RUnlock()
+	if life == nil {
+		life = context.Background()
+	}
+	sources := newPeaksSources(ctx, life, store, svc.config.projectFolder)
 	sources.readAhead(project, view.Items)
 	items := make([]WorkspacePeaksItem, 0, len(view.Items))
 	for _, alignmentItem := range view.Items {
@@ -93,6 +99,7 @@ type sourcePeaks struct {
 // then. The two steps are apart because an item's range is checked between them, as it was when each item did both.
 type peaksSources struct {
 	ctx           context.Context
+	life          context.Context // the host's: a read that outlives the call stops with it
 	store         *evidence.CacheStore
 	projectFolder string
 	identities    map[string]*evidence.SourceIdentity // nil: the file could not be read
@@ -100,8 +107,8 @@ type peaksSources struct {
 	flights       *peaksFlights
 }
 
-func newPeaksSources(ctx context.Context, store *evidence.CacheStore, projectFolder string) *peaksSources {
-	return &peaksSources{ctx: ctx, store: store, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}, flights: sharedPeaksFlights}
+func newPeaksSources(ctx, life context.Context, store *evidence.CacheStore, projectFolder string) *peaksSources {
+	return &peaksSources{ctx: ctx, life: life, store: store, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}, flights: sharedPeaksFlights}
 }
 
 // readAhead starts the reads of every live item's source at once, a few at a time, so a chapter cut from several recordings waits for the longest
@@ -123,21 +130,23 @@ func (s *peaksSources) readAhead(project tracks.Project, items []coverage.Alignm
 	if len(files) < 2 {
 		return
 	}
-	var wg sync.WaitGroup
-	slots := make(chan struct{}, max(1, runtime.NumCPU()))
 	for _, file := range files {
-		identity := s.identify(file)
-		if identity == nil {
-			continue
-		}
+		s.identify(file) // before any goroutine: readSource reads identities
+	}
+	answers := make([]sourcePeaks, len(files))
+	var wg sync.WaitGroup
+	for i, file := range files {
 		wg.Add(1)
-		slots <- struct{}{}
 		go func() {
-			defer func() { <-slots; wg.Done() }()
-			_, _ = s.flights.read(s.ctx, s.store, *identity, file)
+			defer wg.Done()
+			answers[i] = s.readSource(file)
 		}()
 	}
 	wg.Wait()
+	// What each read answered is kept for the item loop: a recording read before the call's time ran out is not asked for again.
+	for i, file := range files {
+		s.peaks[file] = answers[i]
+	}
 }
 
 // identify answers file's identity as it is on disk at the first ask of this call, nil when it cannot be read.
@@ -153,27 +162,34 @@ func (s *peaksSources) identify(file string) *evidence.SourceIdentity {
 }
 
 // whole answers file's whole peaks from the evidence cache (measure.CachedPeaksFile), or the reason an item over it
-// has no waveform.
+// has no waveform. A file the read-ahead already answered is not asked again.
 func (s *peaksSources) whole(file string) sourcePeaks {
 	if read, ok := s.peaks[file]; ok {
 		return read
 	}
-	read := sourcePeaks{reason: "this item's source audio could not be read"}
-	if identity := s.identify(file); identity != nil {
-		whole, err := s.flights.read(s.ctx, s.store, *identity, file)
-		switch {
-		case errors.Is(err, errPeaksPending):
-			read = sourcePeaks{reason: stillReading}
-		case errors.Is(err, measure.ErrNotWAV):
-			read = sourcePeaks{reason: "no waveform"}
-		case err != nil:
-			read = sourcePeaks{reason: "this item's waveform could not be computed"}
-		default:
-			read = sourcePeaks{whole: whole}
-		}
-	}
+	s.identify(file)
+	read := s.readSource(file)
 	s.peaks[file] = read
 	return read
+}
+
+// readSource is one file's answer from its flight. It touches no map of s but identities, which the item loop and readAhead fill before any
+// goroutine runs, so readAhead may call it from several goroutines.
+func (s *peaksSources) readSource(file string) sourcePeaks {
+	identity := s.identities[file]
+	if identity == nil {
+		return sourcePeaks{reason: "this item's source audio could not be read"}
+	}
+	whole, err := s.flights.read(s.ctx, s.life, s.store, *identity, file)
+	switch {
+	case errors.Is(err, errPeaksPending):
+		return sourcePeaks{reason: stillReading}
+	case errors.Is(err, measure.ErrNotWAV):
+		return sourcePeaks{reason: "no waveform"}
+	case err != nil:
+		return sourcePeaks{reason: "this item's waveform could not be computed"}
+	}
+	return sourcePeaks{whole: whole}
 }
 
 // itemPeaks answers one alignment item's peaks, cut from its source's whole peaks (sources reads a source once a
@@ -233,9 +249,46 @@ type peaksFlights struct {
 	running map[string]*peaksFlight
 }
 
+// finish takes a flight out of the running ones and wakes the calls waiting for it.
+func (f *peaksFlights) finish(key string, flight *peaksFlight) {
+	f.mu.Lock()
+	delete(f.running, key)
+	f.mu.Unlock()
+	close(flight.done)
+}
+
+// peaksReadSlots bounds the whole-file reads at once, across calls and chapters, to the machine's cores: a chapter of many recordings, or the
+// page reading its neighbours, queues behind it instead of decoding every file at the same moment.
+var peaksReadSlots = newReadSlots(runtime.NumCPU())
+
+type readSlots chan struct{}
+
+func newReadSlots(n int) readSlots { return make(readSlots, max(1, n)) }
+
+func (r readSlots) acquire(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case r <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (r readSlots) release() { <-r }
+
 var sharedPeaksFlights = &peaksFlights{running: map[string]*peaksFlight{}}
 
-func (f *peaksFlights) read(ctx context.Context, store *evidence.CacheStore, identity evidence.SourceIdentity, file string) (measure.Peaks, error) {
+func (f *peaksFlights) read(ctx, life context.Context, store *evidence.CacheStore, identity evidence.SourceIdentity, file string) (measure.Peaks, error) {
+	// A recording the cache already holds is answered at once, even to a call whose time has run out: the probe reads the cache with a context that
+	// is already cancelled, so a miss costs nothing and starts no decode.
+	probe, stop := context.WithCancel(ctx)
+	stop()
+	if peaks, err := measure.CachedPeaksFile(probe, store, identity, file, nil, measure.DefaultPeaksPerSecond); err == nil {
+		return peaks, nil
+	}
 	key := file + "\x00" + identity.ModTime.String() + "\x00" + identity.PartialHash
 	f.mu.Lock()
 	flight, joined := f.running[key]
@@ -243,13 +296,16 @@ func (f *peaksFlights) read(ctx context.Context, store *evidence.CacheStore, ide
 		flight = &peaksFlight{done: make(chan struct{})}
 		f.running[key] = flight
 		go func() {
-			own, cancel := context.WithTimeout(context.WithoutCancel(ctx), peaksReadLimit) // the read outlives the call on purpose
+			own, cancel := context.WithTimeout(life, peaksReadLimit) // the read outlives the call, not the host
 			defer cancel()
+			if err := peaksReadSlots.acquire(own); err != nil {
+				flight.err = err
+				f.finish(key, flight)
+				return
+			}
+			defer peaksReadSlots.release()
 			flight.peaks, flight.err = measure.CachedPeaksFile(own, store, identity, file, nil, measure.DefaultPeaksPerSecond)
-			f.mu.Lock()
-			delete(f.running, key)
-			f.mu.Unlock()
-			close(flight.done)
+			f.finish(key, flight)
 		}()
 	}
 	f.mu.Unlock()

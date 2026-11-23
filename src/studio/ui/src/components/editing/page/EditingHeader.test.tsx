@@ -39,7 +39,7 @@ function show(checkRecording?: Parameters<typeof EditingHeader>[0]['checkRecordi
 
 // #4042: the check used to sit only in the "Not transcribed yet" strip, so a chapter that had been heard once had no way to be checked again from Editing.
 describe('the Editing header re-check', () => {
-  it('offers Check recordings for the chapter on every state of the page, and a press opens the shared dialog', async () => {
+  it('offers Check recordings for the chapter once the page has loaded it, and a press opens the shared dialog', async () => {
     const open = vi.spyOn(opener, 'openCheckRecordings').mockReturnValue(() => {});
     const onClosed = vi.fn();
     show({ chapterIds: ['c1'], onClosed });

@@ -60,7 +60,7 @@ describe('useRibbonPeaks', () => {
     expect(workspacePeaks).toHaveBeenCalledTimes(2);
   });
 
-  it('reads again, on the next ask after a quiet spell, an answer that drew nothing (#4042)', async () => {
+  it('reads again, on the next ask after a quiet spell, an answer with a gap (#4042)', async () => {
     vi.useFakeTimers();
     try {
       const workspacePeaks = vi
@@ -81,6 +81,49 @@ describe('useRibbonPeaks', () => {
       await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(2));
       await vi.waitFor(() => {
         const state = later.result.current;
+        expect(state.status === 'ready' && state.result.items[0]?.peaks).toBeTruthy();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reads again after 15 s when only some items have peaks, not only when none has (#4042)', async () => {
+    vi.useFakeTimers();
+    try {
+      const partial = { chapterId: 'c-1', items: [drawn('c-1').items[0]!, { index: 1, reason: 'still being read' }] };
+      const whole = { chapterId: 'c-1', items: [drawn('c-1').items[0]!, { ...drawn('c-1').items[0]!, index: 1 }] };
+      const workspacePeaks = vi.fn().mockResolvedValueOnce(partial).mockResolvedValue(whole);
+      const api = { ...createMockApi(), workspacePeaks };
+      const first = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(first.result.current.status).toBe('ready'));
+      first.unmount();
+      vi.setSystemTime(Date.now() + UNANSWERED_RETRY_MS + 1000);
+      const later = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(2));
+      await vi.waitFor(() => {
+        const state = later.result.current;
+        expect(state.status === 'ready' && state.result.items.every((item) => item.peaks)).toBe(true);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('asks the host again by itself while a ribbon stays open on an answer with a gap, keeping the shown answer meanwhile (#4042)', async () => {
+    vi.useFakeTimers();
+    try {
+      const partial = { chapterId: 'c-1', items: [{ index: 0, reason: 'still being read' }] };
+      const workspacePeaks = vi.fn().mockResolvedValueOnce(partial).mockResolvedValue(drawn('c-1'));
+      const api = { ...createMockApi(), workspacePeaks };
+      const open = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(open.result.current.status).toBe('ready'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(UNANSWERED_RETRY_MS + 500);
+      });
+      await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(2));
+      await vi.waitFor(() => {
+        const state = open.result.current;
         expect(state.status === 'ready' && state.result.items[0]?.peaks).toBeTruthy();
       });
     } finally {
