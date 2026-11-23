@@ -101,6 +101,9 @@ function focusMainOnceDialogsClose(main: HTMLElement | null): (() => void) | und
   };
 }
 
+/** While a message shows, the shell ends the page above it (`--toast-h`, published by `ToastRegion`), so the message stands in a strip of its own and covers no button of any page. Over a dialog the page is behind the scrim and keeps its size. */
+const TOAST_STRIP = 'pb-[var(--toast-h,0px)] [:root[data-modal-open]_&]:pb-0';
+
 export function AppShell({
   pathname,
   navigate,
@@ -270,7 +273,7 @@ export function AppShell({
   // out, and the page keeps its own `<main>` so the landmark stays. With no manuscript the page is the empty state and has no Exit, so it keeps the rail.
   if (isActivePath(pathname, '/booth') && hasManuscript) {
     return (
-      <div className="h-full overflow-hidden bg-[var(--bg)]">
+      <div className={`h-full overflow-hidden bg-[var(--bg)] ${TOAST_STRIP}`}>
         {skipLink}
         {pageStatus}
         <main id="main-content" ref={mainRef} tabIndex={-1} className="size-full overflow-hidden focus:outline-none">
@@ -280,7 +283,7 @@ export function AppShell({
     );
   }
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
+    <div className={`flex h-full flex-col overflow-hidden bg-[var(--bg)] ${TOAST_STRIP}`}>
       {skipLink}
       {pageStatus}
       <ExtensionBanner />

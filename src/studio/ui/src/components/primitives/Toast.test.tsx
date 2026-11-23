@@ -7,6 +7,7 @@ import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
 import {
   ACTION_FOCUS_MS,
+  retryAction,
   TOAST_ACTION_MS,
   TOAST_HEIGHT_PROPERTY,
   useToastsClearOfModal,
@@ -169,6 +170,31 @@ describe('ToastRegion', () => {
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(4);
   });
 
+  // The toast appeared under a pointer that rests on the button that raised it: the browser says the pointer entered, the narrator did not reach for it (#4063).
+  it('does not hold an error that appeared under a pointer that has not moved, and holds it once the pointer moves on it', () => {
+    const dismiss = vi.fn();
+    fireEvent.pointerMove(window, { clientX: 40, clientY: 50 });
+    render(<ToastRegion messages={[failure(7)]} dismiss={dismiss} />);
+    const toast = screen.getByText('Failure 7').closest('[data-tone]') as HTMLElement;
+    fireEvent.pointerEnter(toast, { clientX: 40, clientY: 50 });
+    fireEvent.pointerMove(toast, { clientX: 40, clientY: 50 });
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(7);
+    dismiss.mockClear();
+    render(<ToastRegion messages={[failure(8)]} dismiss={dismiss} />);
+    const second = screen.getByText('Failure 8').closest('[data-tone]') as HTMLElement;
+    fireEvent.pointerMove(second, { clientX: 44, clientY: 50 });
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 2));
+    expect(dismiss).not.toHaveBeenCalled();
+  });
+
+  it('draws Retry at least 24 px each way (target size)', () => {
+    render(<ToastRegion messages={[{ ...failure(9), action: retryAction(vi.fn()) }]} dismiss={vi.fn()} />);
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    expect(retry.className).toContain('min-h-6');
+    expect(retry.className).toContain('min-w-6');
+  });
+
   it('dismisses the message whose button was pressed', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(1), failure(2)]} dismiss={dismiss} />);
@@ -222,12 +248,11 @@ describe('ToastRegion', () => {
   it('keeps to the bottom-right corner at the gutter while a dialog is open, and follows the bars again when the last one closes', () => {
     render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
     const region = screen.getByText('Message 1').closest('[data-toast-region]') as HTMLElement;
-    expect(region.className).toContain('[:root[data-modal-open]_&]:bottom-[var(--page-gutter)]');
     expect(region.className).toContain('[:root[data-modal-open]_&]:right-[var(--page-gutter)]');
     expect(region.className).not.toContain('top-4');
-    // The bottom offset follows the bars through `--toast-reserve`, which is `--toast-clear` capped so the toasts keep 8rem of the window (#2899).
-    expect(region.className).toContain('bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))]');
-    expect(region.style.getPropertyValue('--toast-reserve')).toContain('var(--toast-clear, 0px)');
+    // The region always stands at the gutter: the shell ends the page above it (`--toast-h`), so it rises over no bar and is raised by none (#4063).
+    expect(region.className).toContain('bottom-[var(--page-gutter)]');
+    expect(region.className).not.toContain('--toast-reserve');
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
     const first = render(
       <Dialog dismissOnOutsidePress={false} title="Download model" actions={null}>
@@ -723,13 +748,16 @@ describe('the room the toasts take, published for a dialog in a short window', (
     await act(async () => {
       await Promise.resolve();
     });
-    expect(published()).toBe('');
+    // The dialog closed, the toast stays: the shell's strip still holds the room it takes (#4063).
+    expect(published()).toMatch(/^\d+px$/);
   });
 
-  it('is not set for a toast with no dialog open, and not left behind when the region unmounts', () => {
+  it('is set for a toast with no dialog open, held to half the window, and not left behind when the region unmounts', () => {
     const { unmount } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
-    expect(published()).toBe('');
+    expect(published()).toMatch(/^\d+px$/);
+    expect(Number.parseInt(published(), 10)).toBeLessThanOrEqual(window.innerHeight / 2);
     unmount();
+    expect(published()).toBe('');
     const modal = render(
       <>
         <Modal open />

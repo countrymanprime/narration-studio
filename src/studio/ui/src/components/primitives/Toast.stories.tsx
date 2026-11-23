@@ -1,6 +1,6 @@
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useLayoutEffect, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { ToastRegion, type ToastMessage } from './Toast';
 
@@ -199,18 +199,8 @@ export const LongActionLabel: Story = {
   },
 };
 
-/** Stands in for the Booth: its footer and setup notice keep the toasts 210 px clear of the bottom, which is most of a 300 px window. */
-function WithBoothBars({ children }: { children: ReactNode }) {
-  useLayoutEffect(() => {
-    document.documentElement.style.setProperty('--toast-clear', '210px');
-    return () => {
-      document.documentElement.style.removeProperty('--toast-clear');
-    };
-  }, []);
-  return <>{children}</>;
-}
-export const TwoToastsAboveTheBoothBars: Story = {
-  decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
+/** Two long failures with Retry: the stack the shell's strip is held to half the window for (the toasts stand under the page, so no bar is simulated). */
+export const TwoLongToasts: Story = {
   args: {
     messages: [
       { ...failure(1, 'x'.repeat(10_000)), action },

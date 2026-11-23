@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
-/** The CSS variable the toast region adds to its distance from the bottom edge (`ToastRegion`). */
+/** The CSS variable holding how far the bars along the bottom reach up from the window's edge: what a fixed element (the background check's chip, a popover's room) keeps clear of. Toasts do not read it: the shell ends the page above them (`--toast-h`, #4063). */
 export const TOAST_CLEAR_VAR = '--toast-clear';
 
 /**
@@ -32,11 +32,11 @@ function apply(): void {
 }
 
 /**
- * Keeps toasts clear of a bar fixed along the bottom of the page (the Booth's footer, and the setup notice above it): while `bar` is
- * mounted, a message rises above it by the bar's height and its bottom margin instead of covering its chips or its words. Bars add up,
- * so the notice stays visible above the footer and the toasts above both. Follows each bar as it grows or shrinks, and puts the toasts
- * back when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout). `follows` is for a
- * bar inside a column that scrolls: the toasts rise by the distance from its top edge to the window's bottom, read again on every scroll.
+ * Registers a bar along the bottom of the page (the Booth's footer, and the setup notice above it) in `--toast-clear`: while `bar` is
+ * mounted, the root holds the bar's height and its bottom margin, for what is drawn over the window's bottom edge (a corner chip, a popover's room). Bars add up,
+ * so a corner chip clears both. Follows each bar as it grows or shrinks, and drops it
+ * when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout). `follows` is for a
+ * bar inside a column that scrolls: the clearance is the distance from its top edge to the window's bottom, read again on every scroll.
  */
 export function useToastClearance(bar: RefObject<HTMLElement | null>, active = true, follows = false): void {
   useEffect(() => {

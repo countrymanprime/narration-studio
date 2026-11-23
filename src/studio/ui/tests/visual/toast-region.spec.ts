@@ -134,10 +134,12 @@ for (const theme of ['light', 'dark'] as const) {
         }
         if (c.footer) {
           await boothChapterReady(page);
-          // The app's own measure of the bars along the bottom (useToastClearance): the region rises above them by that much.
+          // The page ends above the toasts (`--toast-h`, the shell's strip), so the Booth's bars rise above the region and it covers none of them (#4063); the bars still register their height for what is fixed over the edge.
           const clear = await page.evaluate(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-clear')) || 0);
           expect(clear, `${size.name}: the Booth's bottom bars set the clearance`).toBeGreaterThan(0);
-          expect(region.y + region.height, `${size.name}: the region ends above the bars`).toBeLessThanOrEqual(size.height - clear + 1);
+          const strip = await page.evaluate(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-h')) || 0);
+          expect(strip, `${size.name}: the shell reserves a strip for the toasts`).toBeGreaterThan(0);
+          expect(region.y, `${size.name}: the region stands in the strip under the page and its bars`).toBeGreaterThanOrEqual(size.height - strip - 1);
         }
         await page.screenshot({ path: `screenshots/toast-region/${theme}/${c.name}/${size.name}.png` });
       }
@@ -199,6 +201,9 @@ test.describe('a modal with a toast showing, 320x300', () => {
     await CASES.find((c) => c.name === 'with-dialog')!.open(page);
     for (const button of await page.getByRole('dialog').getByRole('button').all()) {
       const box = (await button.boundingBox())!;
+      // A button the dialog's own body has scrolled out of sight is not on screen to be hit.
+      const popup = (await page.getByRole('dialog').boundingBox())!;
+      if (box.y + box.height / 2 > popup.y + popup.height) continue;
       const hit = await page.evaluate(
         ([x, y]) => Boolean(document.elementFromPoint(x!, y!)?.closest('[data-toast-region]')),
         [box.x + box.width / 2, box.y + box.height / 2],
@@ -217,7 +222,7 @@ test.describe('a modal with a toast showing, 320x300', () => {
 });
 
 // `Dialog` takes what is left above the toasts in a window under 300 px tall (#3605, #3601; `dialog-toast-room.spec.ts`), so a toast showing over an open dialog publishes `--toast-h`: the room
-// from the window's bottom edge up to its top (plus 8 px). It is set only then: not with no toast, not with no dialog.
+// from the window's bottom edge up to its top (plus 8 px). It is set while a toast shows, over a dialog or not (with no dialog the shell ends the page above it); not with no toast.
 test('a toast over an open dialog publishes the room it takes, and only then', async ({ page }) => {
   const toastHeight = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'));
   await page.setViewportSize({ width: 320, height: 290 });
@@ -225,7 +230,7 @@ test('a toast over an open dialog publishes the room it takes, and only then', a
   await settlePage(page);
   await page.getByRole('button', { name: /^Remove Voltage and the Undercroft from recent projects/ }).click();
   await page.getByRole('button', { name: 'Undo' }).waitFor();
-  expect(await toastHeight(), 'a toast with no dialog open').toBe('');
+  await expect.poll(toastHeight, "a toast with no dialog open: the shell's strip").not.toBe('');
   await page.getByRole('button', { name: 'New project' }).click();
   await page.getByRole('dialog').waitFor();
   await expect.poll(toastHeight).not.toBe('');
@@ -236,5 +241,7 @@ test('a toast over an open dialog publishes the room it takes, and only then', a
   await expect.poll(toastHeight).toBe(`${again}px`);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect.poll(toastHeight).toBe('');
+  await expect.poll(toastHeight).not.toBe('');
+  await page.getByRole('button', { name: 'Dismiss message' }).click();
+  await expect.poll(toastHeight, 'no toast, no room').toBe('');
 });
