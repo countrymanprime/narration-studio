@@ -24,7 +24,7 @@ for (const width of WIDTHS) {
   test.describe(`at ${width} px`, () => {
     test.use({ viewport: { width, height: 800 } });
 
-    test('the Editing Output popover says "Not connected" before the name of a saved output that is gone', async ({ page }) => {
+    test('the Editing Output popover reads Not connected before the name of a saved output that is gone', async ({ page }) => {
       await page.addInitScript(
         ([key, device]) => window.localStorage.setItem(key!, JSON.stringify({ volume: 80, muted: false, rate: 1, device })),
         [STORAGE_KEY, LONG],
@@ -38,7 +38,7 @@ for (const width of WIDTHS) {
       await expectStateFirst(dialog.getByRole('combobox', { name: 'Output device' }), /^Not connected: /);
     });
 
-    test('the Editing Output popover says "Could not check" before the name when the list would not come', async ({ page }) => {
+    test('the Editing Output popover reads Could not check before the name when the list would not come', async ({ page }) => {
       await page.addInitScript(
         ([key, device]) => window.localStorage.setItem(key!, JSON.stringify({ volume: 80, muted: false, rate: 1, device })),
         [STORAGE_KEY, LONG],
@@ -52,7 +52,7 @@ for (const width of WIDTHS) {
       await expectStateFirst(dialog.getByRole('combobox', { name: 'Output device' }), /^Could not check: /);
     });
 
-    test('Settings > Voice sample output says "Not connected" before the name of an output that was unplugged', async ({ page }) => {
+    test('the Settings Voice sample output reads Not connected before the name of an output that was unplugged', async ({ page }) => {
       await openSettings(page, undefined, '?mockAudioOutputs=long');
       await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
       await page.getByRole('alertdialog', { name: 'Stop recording with REAPER?' }).getByRole('button', { name: 'Switch to the built-in recorder' }).click();
