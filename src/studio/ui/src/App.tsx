@@ -85,6 +85,7 @@ import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
+import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
 import { pageBoundaryKey } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
@@ -675,11 +676,19 @@ function AppRoutes() {
   // does not outlive it either. Text typed into a closed dialog is gone, so the narrator is told why it went.
   const closeProjectDialogs = useCallback(() => {
     // What is on screen now: layers the overlay service holds, and those a page draws from its own state (they go with the page's remount a moment later, so this is the last time they can be counted).
-    const showing = document.querySelectorAll('[role="dialog"], [role="alertdialog"], [data-slide-over]').length;
+    const showing = document.querySelectorAll(OPEN_LAYER_SELECTOR).length;
+    const focusWasInside = document.activeElement instanceof HTMLElement && document.activeElement.closest(OPEN_LAYER_SELECTOR) !== null;
     const closed = overlay.dismissDialogs();
     // The audio engine panel lists the old project's chapter links; it closes with the rest.
     setEnginePanelOpen(false);
     if (Math.max(showing, closed) > 0) overlay.toast('The project changed, so what was open was closed.', { topic: 'project-changed-closed' });
+    // A layer a page draws from its own state goes with the page's remount and takes focus with it (to the document body, one Tab from "Skip to content"): focus goes to the page, as it does for the layers the service holds.
+    if (focusWasInside) {
+      requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (!active || active === document.body) document.getElementById('main-content')?.focus({ preventScroll: true });
+      });
+    }
   }, [overlay]);
   const shownProject = useRef(data?.projectFolder);
   useEffect(() => {

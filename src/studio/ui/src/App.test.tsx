@@ -549,6 +549,31 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(onConfirm).toHaveBeenCalledWith(false);
   });
 
+  it('puts focus on the page when the project change removes a layer a page held itself, not on the document body (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    // A layer drawn from a page's own state, with focus inside it; the page's remount takes it away (here: removed by hand in the same tick).
+    const layer = document.createElement('div');
+    layer.setAttribute('role', 'dialog');
+    layer.innerHTML = '<button id="held-layer-button">Inside</button>';
+    document.body.appendChild(layer);
+    document.getElementById('held-layer-button')!.focus();
+    expect(document.activeElement?.id).toBe('held-layer-button');
+    act(() => {
+      attach!({ attached: true });
+      layer.remove();
+    });
+    await waitFor(() => expect(document.activeElement?.id).toBe('main-content'));
+    expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
+  });
+
   it('says nothing when a project change closes no dialog (#4057)', async () => {
     let attach: ((state: { attached: boolean }) => void) | undefined;
     renderApp({

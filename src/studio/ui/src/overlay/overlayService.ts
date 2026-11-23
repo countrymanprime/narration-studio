@@ -87,6 +87,9 @@ type UndoToastOptions = {
   survivesMoves?: number;
 };
 
+/** What counts as an open layer on screen: a dialog, a question or a slide-over, whoever holds it. */
+export const OPEN_LAYER_SELECTOR = '[role="dialog"], [role="alertdialog"], [data-slide-over]';
+
 export type OverlayService = {
   /** `until` closes the question unanswered (as a No) when what it asks about stopped being true, so a question never outlives its reason. */
   confirm: (spec: ConfirmSpec, until?: AbortSignal) => Promise<boolean>;
@@ -129,7 +132,7 @@ export function createOverlayService(): OverlayService {
   const openerNow = (): HTMLElement | null => {
     const active = document.activeElement;
     if (!(active instanceof HTMLElement) || active === document.body) return null;
-    if (active.closest('[role="dialog"], [role="alertdialog"], [data-slide-over]')) {
+    if (active.closest(OPEN_LAYER_SELECTOR)) {
       const top = snapshot.dialogs[snapshot.dialogs.length - 1];
       return top ? (openers.get(top.id) ?? null) : closedOpener;
     }
