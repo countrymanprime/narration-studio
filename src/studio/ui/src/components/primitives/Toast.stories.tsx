@@ -148,13 +148,14 @@ export const HugeWord: Story = {
       await expect(button.bottom).toBeLessThanOrEqual(window.innerHeight);
       await expect(button.right).toBeLessThanOrEqual(window.innerWidth);
     }
-    // The text is all reachable: it wraps inside the box (nothing cut off sideways) and, being taller than the box allows, scrolls inside itself. A browser
+    // The text is one line cut with an ellipsis inside the box (nothing runs off sideways), and its whole text is the title. A browser
     // with layout only: the unit run has none (every size is 0), where this is skipped.
     const text = toast!.querySelector<HTMLElement>('[data-toast-text]');
     await expect(text).not.toBeNull();
     if (text!.clientHeight > 0) {
-      await expect(text!.scrollWidth).toBeLessThanOrEqual(text!.clientWidth + 1);
-      await expect(['auto', 'scroll']).toContain(getComputedStyle(text!).overflowY);
+      await expect(text!.getBoundingClientRect().right).toBeLessThanOrEqual(toast!.getBoundingClientRect().right + 1);
+      await expect(getComputedStyle(text!).textOverflow).toBe('ellipsis');
+      await expect(text!.getAttribute('title')).toBe(text!.textContent);
     }
     void canvasElement;
   },
@@ -255,7 +256,7 @@ export const HugeWordInTinyWindow: Story = {
   play: async () => {
     if ((await everyButtonOnScreen(1)) === false) return;
     const text = document.body.querySelector<HTMLElement>('[data-toast-text]')!;
-    await expect(text.scrollWidth).toBeLessThanOrEqual(text.clientWidth + 1);
+    await expect(text.getBoundingClientRect().right).toBeLessThanOrEqual(text.closest('[data-tone]')!.getBoundingClientRect().right + 1);
   },
 };
 export const TwoHugeWordsInTinyWindow: Story = {
