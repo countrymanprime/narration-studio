@@ -1,6 +1,6 @@
 // Owner rule: no toast or element may cover a button (#4063). On every page with the sidebar, at 360x500, 768x1024 and 1440x900, in both themes, an error toast
 // with Retry (one, and two stacked), the longest kind the app raises, overlaps no button, link or [role=button] of the page that is visible at that moment, and
-// the toast's own buttons are at least 24 px each way (WCAG 2.2 target size). The shell ends the page above the toast (`--toast-h`, `AppShell`); a page that cannot is listed in TOAST_COVERS_DEBT with a reason and an issue, as `layout-debt.ts` does.
+// the toast's own buttons are at least 24 px each way (WCAG 2.2 target size). The shell always keeps a slot for one toast under the page (`--toast-slot`, and `--toast-h` for a stack; `AppShell`); a page that cannot is listed in TOAST_COVERS_DEBT with a reason and an issue, as `layout-debt.ts` does.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
