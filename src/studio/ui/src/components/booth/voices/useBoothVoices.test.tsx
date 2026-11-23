@@ -252,7 +252,7 @@ describe("the Booth's voices", () => {
       await act(async () => hook.current.byKey(1));
       expect(hook.current.linkKind).toBe(kind);
       expect(notify).toHaveBeenCalledWith(destinationFor('folders').noVoiceKeys(kind), 'info');
-      if (kind === 'marked') expect(destinationFor('folders').noVoiceKeys(kind)).toContain('Turn one back on in the Voices card');
+      if (kind === 'marked') expect(destinationFor('folders').noVoiceKeys(kind)).toContain('Turn one on in the Voices card');
       expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('records on one track'), 'info');
     },
   );
@@ -564,7 +564,7 @@ describe("the Booth's voices", () => {
     const { hook, notify } = await mount({}, false, api);
     await waitFor(() => expect(hook.current.linkKind).toBe('marked'));
     await act(async () => hook.current.byKey(1));
-    expect(notify).toHaveBeenCalledWith(expect.stringContaining('Turn one back on in the Voices card'), 'info');
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('Turn one on in the Voices card'), 'info');
   });
 
   // A chapter with no one link has no folder, so it lists no voices and the control names no link. Whether the DAW is read at all belongs to

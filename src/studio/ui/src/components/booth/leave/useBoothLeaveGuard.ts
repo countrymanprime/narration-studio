@@ -3,7 +3,7 @@ import type { DawResult } from '../../../api/contracts/daw';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
 import type { OverlayService } from '../../../overlay/overlayService';
 import { pageNameFor } from '../../layout/railPages';
-import { noAnswerSentence, stopFailedSentence } from '../../../studio/dawNames';
+import { noAnswerSentence } from '../../../studio/dawNames';
 import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { CHAPTER_OPEN_ANYWAY, stopRecordingSpec } from './stopRecordingSpec';
 import { within } from '../../../within';
@@ -262,7 +262,7 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
               answeredFor.current = -1;
               answered.current = false;
               if (gone.current) {
-                overlay.toast(`The take could not be stopped: ${stopFailedSentence(now.daw.name, { refused: sentence })}`, { tone: 'error' });
+                overlay.toast(`The take could not be stopped: ${sentence} Stop it in ${now.daw.name}.`, { tone: 'error' });
                 return false;
               }
             }

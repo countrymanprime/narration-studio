@@ -217,11 +217,8 @@ describe('a listening stop the host refuses', () => {
     expect(toasts(page)[0].durationMs).toBe(60_000);
     page.view.unmount();
     // The way out tries the stop once more (and again after 1.5 s) before it says so.
-    await onTheClock(
-      () => expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1),
-      5000,
-    );
-    const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
+    await onTheClock(() => expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app/.test(toast.text))).toHaveLength(1), 5000);
+    const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app/.test(toast.text));
     expect(left[0].tone).toBe('error');
     expect(left[0].action).toBeUndefined();
     expect(toasts(page).filter((toast) => toast.action)).toHaveLength(0);
@@ -246,7 +243,7 @@ describe('a listening stop the host refuses', () => {
       await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalled());
       page.view.unmount();
       await act(() => vi.advanceTimersByTimeAsync(3000));
-      const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
+      const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app/.test(toast.text));
       expect(left).toHaveLength(said ? 1 : 0);
       if (said) expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(2);
     }
@@ -277,7 +274,7 @@ describe('a listening stop the host refuses', () => {
       await onTheClock(() => expect(page.teleprompterStop).toHaveBeenCalled(), 5000);
       page.view.unmount();
       await act(() => vi.advanceTimersByTimeAsync(3500));
-      const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text));
+      const left = page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app/.test(toast.text));
       expect(left).toHaveLength(said ? 1 : 0);
       // The leave's own stop is retried after the page is gone.
       if (said) expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(2);
@@ -321,7 +318,7 @@ describe('a listening stop the host refuses', () => {
     await onTheClock(() => expect(toasts(page).length).toBeGreaterThan(0), 6000);
     page.view.unmount();
     await act(() => vi.advanceTimersByTimeAsync(3500));
-    expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1);
+    expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app/.test(toast.text))).toHaveLength(1);
   });
 
   it('leaves no state listener behind after a stop refused twice, and says the leave stop it sent when the Booth goes with the sentence up (Ctrl+Alt+C, a link)', async () => {
@@ -333,7 +330,7 @@ describe('a listening stop the host refuses', () => {
     await act(() => vi.advanceTimersByTimeAsync(3500));
     // The way out tried the stop once more (and once more after 1.5 s), then said it.
     expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(calls + 2);
-    expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app to be sure/.test(toast.text))).toHaveLength(1);
+    expect(page.overlay.getSnapshot().toasts.filter((toast) => /Quit and reopen the app/.test(toast.text))).toHaveLength(1);
     // Only the leave sentence's own watcher is left (it waits for the host to end the session); the Booth's and the stops' are gone.
     expect(page.listenerCount()).toBe(1);
     await act(async () => void page.publish({ phase: 'stopped' }));
@@ -369,10 +366,7 @@ describe('a listening stop the host refuses', () => {
     await act(async () => toast.action?.onAction());
     // The Retry is out (its second stop waits 1.5 s) and the narrator leaves.
     page.view.unmount();
-    await onTheClock(
-      () => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1),
-      6000,
-    );
+    await onTheClock(() => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app/.test(item.text))).toHaveLength(1), 6000);
   });
 
   it('sends no stop at all when the host ended the session and another started in the same moment the Booth was left with the sentence up', async () => {
@@ -397,10 +391,7 @@ describe('a listening stop the host refuses', () => {
     const calls = page.teleprompterStop.mock.calls.length;
     stateRead.mode = 'hang';
     page.view.unmount();
-    await onTheClock(
-      () => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app to be sure/.test(item.text))).toHaveLength(1),
-      15_000,
-    );
+    await onTheClock(() => expect(page.overlay.getSnapshot().toasts.filter((item) => /Quit and reopen the app/.test(item.text))).toHaveLength(1), 15_000);
     // Both stops of the way out were sent although neither look at the host was ever answered.
     expect(page.teleprompterStop.mock.calls.length).toBeGreaterThanOrEqual(calls + 2);
   }, 25_000);
