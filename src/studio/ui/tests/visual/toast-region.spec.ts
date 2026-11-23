@@ -234,10 +234,14 @@ test('a toast over an open dialog publishes the room it takes, and only then', a
   await page.getByRole('button', { name: 'New project' }).click();
   await page.getByRole('dialog').waitFor();
   await expect.poll(toastHeight).not.toBe('');
-  const expected = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  const expected = await page.evaluate(() =>
+    Math.ceil(window.innerHeight - document.querySelector('[data-toast-region] [data-tone]')!.getBoundingClientRect().top + 8),
+  );
   expect(await toastHeight()).toBe(`${expected}px`);
   await page.setViewportSize({ width: 320, height: 261 });
-  const again = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  const again = await page.evaluate(() =>
+    Math.ceil(window.innerHeight - document.querySelector('[data-toast-region] [data-tone]')!.getBoundingClientRect().top + 8),
+  );
   await expect.poll(toastHeight).toBe(`${again}px`);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);

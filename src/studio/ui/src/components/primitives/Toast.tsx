@@ -299,7 +299,7 @@ function useToastHeightPublished(region: { current: HTMLElement | null }, showin
     const box = region.current;
     if (!showing || !box) return;
     const publish = () => {
-      // From the first toast drawn: the region's own top also holds the empty live region above it and the gap between them.
+      // From the first toast drawn: the region's own top may hold an empty live region above it.
       const first = box.querySelector('[data-tone]:not([hidden])') ?? box;
       const room = Math.ceil(window.innerHeight - first.getBoundingClientRect().top + 8);
       const modal = root.hasAttribute(MODAL_OPEN_ATTRIBUTE);
@@ -387,7 +387,7 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
         if (document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE) && !(event.target as Element).closest('button, a, input, select, textarea, [tabindex]'))
           event.preventDefault();
       }}
-      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[var(--toast-bottom,var(--page-gutter))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)]"
+      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[var(--toast-bottom,var(--page-gutter))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end [&>div:not(:empty)+div:not(:empty)]:mt-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {mounted
