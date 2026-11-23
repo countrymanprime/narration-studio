@@ -9,6 +9,8 @@ const RETRY_REACHABLE_MS = [2000, 10_000, 30_000];
 /** The last retry lands this long before the window ends, so a slow answer still counts; a retry sooner than `MIN_RETRY_MS` after the previous one is not made. */
 const LAST_ASK_BEFORE_END_MS = 2000;
 const MIN_RETRY_MS = 500;
+/** The most the Booth waits for the FIRST answer before drawing the chapter it opens on: a host that never answers must not hold the page. */
+const FIRST_ANSWER_MAX_MS = 1500;
 
 /**
  * Keeps `latch` true from the first time `acted` is true: the narrator acted in the Booth (a take started or ran), and a take that has since ended does not
@@ -28,6 +30,9 @@ export function useLatchOnce(latch: MutableRefObject<boolean>, acted: boolean) {
  * capability answers is followed the same way.
  *
  * `chapterIds` is the narration chapters, or undefined until they are read; `enabled` is false once something else chose the chapter.
+ *
+ * Returns whether the first ask is still out (`deciding`): the page draws no chapter then, so a chapter that the DAW then replaces is never seen. It ends
+ * at the first answer of any kind (a chapter, none, a refusal, a failure) or after `FIRST_ANSWER_MAX_MS`; a later retry never holds the page again.
  */
 export function useFollowDawOnOpen({
   enabled,
@@ -40,7 +45,8 @@ export function useFollowDawOnOpen({
   onChapter: (chapterId: string) => void;
   /** A take is starting or running: an answer that comes then ends the follow without moving the Booth. */
   busy?: () => boolean;
-}) {
+}): boolean {
+  const [firstEnded, setFirstEnded] = useState(false);
   const place = usePort('dawPlace');
   const daw = usePort('daw');
   const session = useDawSession();
@@ -53,6 +59,11 @@ export function useFollowDawOnOpen({
   const ready = enabled && chapterIds !== undefined && chapterIds.length > 0;
   const ids = useRef(chapterIds);
   ids.current = chapterIds;
+  useEffect(() => {
+    if (!ready || firstEnded) return;
+    const cap = setTimeout(() => setFirstEnded(true), FIRST_ANSWER_MAX_MS);
+    return () => clearTimeout(cap);
+  }, [ready, firstEnded]);
   useEffect(() => {
     if (!ready || settled.current) return;
     let live = true;
@@ -89,16 +100,24 @@ export function useFollowDawOnOpen({
         .dawPlace()
         .then((answer) => {
           if (!live) return;
-          if (!answer.ok) return noAnswer();
+          if (!answer.ok) {
+            setFirstEnded(true);
+            return noAnswer();
+          }
           settled.current = true;
           // A take that is starting or running keeps its chapter, and the follow is over: the narrator acted in the Booth, so a chapter chosen for them later (after a take, or a start that failed) would be a surprise.
-          if (busyRef.current?.()) return;
+          if (busyRef.current?.()) return setFirstEnded(true);
           // An answer after the time is up is too late to move a Booth the narrator has been using.
-          if (Date.now() >= deadline) return;
+          if (Date.now() >= deadline) return setFirstEnded(true);
+          // The chapter chosen ends the hold through the address (`enabled` goes false), so the page never draws between the two.
           if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
+          else setFirstEnded(true);
         })
         // A read that failed is the same as one the DAW has not answered, and the Booth opens as it would have.
-        .catch(noAnswer)
+        .catch(() => {
+          setFirstEnded(true);
+          noAnswer();
+        })
         .finally(() => {
           inFlight = false;
           const again = owed;
@@ -117,6 +136,7 @@ export function useFollowDawOnOpen({
       off?.();
     };
   }, [ready, place, daw, session]);
+  return ready && !firstEnded;
 }
 
 /**
