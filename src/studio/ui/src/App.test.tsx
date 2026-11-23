@@ -514,6 +514,53 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.queryByText('A form for the old project')).toBeNull();
     // The question was answered No: its confirm path (the cut, its record) did not run.
     expect(onConfirm).toHaveBeenCalledWith(false);
+    // Text typed into a dialog that went is gone: the narrator is told why, once.
+    expect(screen.getAllByText('The project changed, so the open dialog was closed.')).toHaveLength(1);
+  });
+
+  it('a dialog opened after the attach but before the new project loads is closed when the new project arrives (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    const source = createMockApi();
+    const first = await source.bootstrap();
+    const named = (name: string) => ({ ...first, projectFolder: `/${name}`, projectName: name });
+    let answer: ((value: Awaited<ReturnType<typeof source.bootstrap>>) => void) | undefined;
+    let attached = false;
+    renderApp({
+      bootstrap: () => (attached ? new Promise((resolve) => (answer = resolve)) : Promise.resolve(named('Alpha'))),
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await waitFor(() => expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0));
+    await waitFor(() => expect(attach).toBeDefined());
+    attached = true;
+    act(() => attach!({ attached: true }));
+    await waitFor(() => expect(answer).toBeDefined());
+    // The page still shows the old project's data: a question opened now is about Alpha's chapter.
+    const onConfirm = vi.fn();
+    act(() => {
+      void overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm);
+    });
+    expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
+    act(() => answer!(named('Beta')));
+    await waitFor(() => expect(screen.getAllByText('Beta').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(onConfirm).toHaveBeenCalledWith(false);
+  });
+
+  it('says nothing when a project change closes no dialog (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    act(() => attach!({ attached: true }));
+    await waitFor(() => expect(screen.queryByText('The project changed, so the open dialog was closed.')).toBeNull());
   });
 
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {

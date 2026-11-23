@@ -102,9 +102,9 @@ export type OverlayService = {
   dismissUndo: () => void;
   /**
    * Closes every open question, dialog and slide-over without asking them (a confirm is answered No; `beforeClose` is not asked): what they were opened about belongs to a
-   * project the narrator is no longer in, so confirming one would act on the old project's chapter while the host is on the new one (#4057).
+   * project the narrator is no longer in, so confirming one would act on the old project's chapter while the host is on the new one (#4057). Answers how many it closed.
    */
-  dismissDialogs: () => void;
+  dismissDialogs: () => number;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -218,10 +218,12 @@ export function createOverlayService(): OverlayService {
       if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
     },
     dismissDialogs: () => {
-      for (const entry of [...snapshot.dialogs]) {
+      const open = [...snapshot.dialogs];
+      for (const entry of open) {
         if (entry.kind === 'confirm') entry.answer(false);
         else entry.close();
       }
+      return open.length;
     },
     dismissUndo: () => {
       if (!snapshot.toasts.some((m) => m.undo)) return;

@@ -670,6 +670,19 @@ function AppRoutes() {
     return api.subscribeLiveUpdateHealth(() => setNotice(LIVE_UPDATES_DEGRADED));
   }, [api, hasBootstrap, setNotice]);
 
+  // What a page opened for the project that was open (a question, a dialog, a slide-over) is closed when the project changes: confirming it would act on that project's chapter. It
+  // closes when the host says it attached (below) and again when the new project's data arrives, so a layer opened between the two, while the page still shows the old project,
+  // does not outlive it either. Text typed into a closed dialog is gone, so the narrator is told why it went.
+  const closeProjectDialogs = useCallback(() => {
+    if (overlay.dismissDialogs() > 0) overlay.toast('The project changed, so the open dialog was closed.');
+  }, [overlay]);
+  const shownProject = useRef(data?.projectFolder);
+  useEffect(() => {
+    if (shownProject.current === data?.projectFolder) return;
+    shownProject.current = data?.projectFolder;
+    closeProjectDialogs();
+  }, [data?.projectFolder, closeProjectDialogs]);
+
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then
   // this one subscription refreshes the shared application bootstrap.
@@ -682,7 +695,7 @@ function AppRoutes() {
         // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
         overlay.dismissUndo();
         // A question or dialog a page opened for the project that was open (the Editor's cut question, a milestone form) is about its chapters: confirming it would act on them in the new project.
-        overlay.dismissDialogs();
+        closeProjectDialogs();
         history.resetFloor();
         // After this turn: the store's own listener resets it on the same event, in whichever order the two were subscribed, and the answer is judged against the reset.
         queueMicrotask(() => void refreshBootstrap());
@@ -691,7 +704,7 @@ function AppRoutes() {
         setNotice(state.reason, 'error');
       }
     });
-  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice]);
+  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice, closeProjectDialogs]);
 
   useEffect(() => {
     if (!hasBootstrap) return;
