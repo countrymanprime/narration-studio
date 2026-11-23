@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isOtherProject, pageBoundaryKey } from './pageBoundaryKey';
+import { historyHoldsMove, isOtherProject, pageBoundaryKey } from './pageBoundaryKey';
 
 describe('pageBoundaryKey: what remounts the routed page (#4057)', () => {
   it('is the same while the page and the project stay, whatever the chapter or sub-path', () => {
@@ -25,5 +25,24 @@ describe('isOtherProject: only a known, different project drops an address (#405
     ['no project known yet', 'C:/B', undefined, false],
   ] as const)('%s', (_name, owner, current, expected) => {
     expect(isOtherProject(owner, current)).toBe(expected);
+  });
+});
+
+describe('historyHoldsMove: only a move to another entry holds the page (#4059)', () => {
+  const shown = { key: 'a', idx: 3 };
+  it.each([
+    ['no state at all', null, false],
+    ['a state with no key and no index', {}, false],
+    ['a state with an index but no key, on the shown index', { idx: 3 }, false],
+    ['the same entry', { key: 'a', idx: 3 }, false],
+    ['the same entry written again by a replace (new key, same index)', { key: 'b', idx: 3 }, false],
+    ['a push (another entry, next index)', { key: 'b', idx: 4 }, true],
+    ['a pop to another entry', { key: 'c', idx: 1 }, true],
+    ['an entry with no key on another index', { idx: 4 }, true],
+  ] as const)('%s', (_name, state, held) => {
+    expect(historyHoldsMove(state, 'a', shown)).toBe(held);
+  });
+  it('holds nothing when the shown entry was never recorded and the state has no key', () => {
+    expect(historyHoldsMove(null, 'a', undefined)).toBe(false);
   });
 });

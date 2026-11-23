@@ -15,3 +15,16 @@ export function pageBoundaryKey(projectFolder: string, pathname: string): string
 export function isOtherProject(owner: string | undefined, current: string | undefined): boolean {
   return current !== undefined && owner !== undefined && owner !== current;
 }
+
+/** The part of `history.state` the router writes that these checks read. */
+export type HistoryEntryState = { key?: string; idx?: unknown } | null;
+
+/**
+ * Whether history holds a move to another entry than the one on screen (a push or a Back waiting in a transition). A page's own replace stays on the same index and holds
+ * nothing, and a state with no key or no index is not a move (#4059).
+ */
+export function historyHoldsMove(state: HistoryEntryState, locationKey: string, shown: { key: string; idx: unknown } | undefined): boolean {
+  const sameIndex = shown?.key === locationKey && shown.idx !== undefined && shown.idx === state?.idx;
+  if (state?.key === undefined) return state?.idx !== undefined && shown?.key === locationKey && shown.idx !== undefined && !sameIndex;
+  return state.key !== locationKey && !sameIndex;
+}

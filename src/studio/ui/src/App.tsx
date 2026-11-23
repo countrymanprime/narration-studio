@@ -98,7 +98,7 @@ import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
 import { addressWithoutProject, pageOfPath } from './navigation/address';
-import { isOtherProject, pageBoundaryKey } from './pageBoundaryKey';
+import { historyHoldsMove, isOtherProject, pageBoundaryKey, type HistoryEntryState } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -723,10 +723,7 @@ function AppRoutes() {
   const navigationType = useNavigationType();
   // History ahead of the location on screen is a move waiting in a transition: a page drawn now would write over it (the Booth sets its chapter in the address), so it waits for
   // the move. A page's own replace is ahead too, but on the same entry (same index), and is no reason to wait.
-  const historyState = window.history.state as { key?: string; idx?: unknown } | null;
-  const historyMoved =
-    (historyState?.key ?? 'default') !== location.key &&
-    !(shownUnder.current?.key === location.key && shownUnder.current.idx !== undefined && shownUnder.current.idx === historyState?.idx);
+  const historyMoved = historyHoldsMove(window.history.state as HistoryEntryState, location.key, shownUnder.current);
   const routedLocation = useMemo(
     () => ({
       location: addressStale ? { ...location, pathname: bareAddress.pathname, search: bareAddress.search, hash: bareAddress.hash } : location,
@@ -738,7 +735,7 @@ function AppRoutes() {
     if (project === undefined || addressStale) return;
     // Only the entry on screen is stamped: history can be ahead of it while a move waits in a transition.
     const state = window.history.state as { key?: string; idx?: unknown; usr?: { project?: unknown } } | null;
-    const onScreen = (state?.key ?? 'default') === location.key;
+    const onScreen = !historyHoldsMove(state, location.key, shownUnder.current);
     if (shownUnder.current?.key !== location.key) shownUnder.current = { key: location.key, project, idx: onScreen ? state?.idx : undefined };
     if (onScreen && state?.usr?.project !== project) window.history.replaceState({ ...state, usr: { ...state?.usr, project } }, '');
   });
@@ -753,7 +750,8 @@ function AppRoutes() {
     // History ahead of the location on screen is a move waiting in a transition: a replace now would write over it. The page stays held, and the effect runs again with the
     // location that commits (a new object even when history returns to the same entry).
     const state = window.history.state as { key?: string } | null;
-    if (addressStale && (state?.key ?? 'default') === location.key) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
+    if (addressStale && !historyHoldsMove(state, location.key, shownUnder.current))
+      navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
   }, [addressStale, historyRestores, navigate, location, bareAddress.pathname, bareAddress.hash]);
 
   // Wails forwards a second REAPER launch to the existing native window. The

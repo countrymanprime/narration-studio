@@ -428,4 +428,25 @@ describe('the chapter in the address is not carried into another project (#4059)
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(window.location.hash).toBe('#category-delivery');
   });
+
+  // What the dev mock's states panel does: it rewrites the entry with no state at all, so history holds no key and no index while the router shows an entry that has both.
+  it.each([
+    ['Booth', 'booth', /^Chapter: Chapter 3:/, '/booth?chapter=chapter-3'],
+    ['Editing', 'editing', /^Chapter: Chapter 4:/, '/editing'],
+  ] as const)('%s: an entry rewritten with no state does not keep the new project\u2019s page from being drawn', async (_page, page, expected, cut) => {
+    window.localStorage.setItem(`narration.booth.lastPlace.${await aliceFolder()}`, JSON.stringify({ chapterId: 'chapter-9', paragraphId: '', word: 0 }));
+    const { api } = await openAt(page === 'booth' ? '/booth' : '/editing/chapter-7');
+    if (page === 'booth') await onChapter(/^Chapter: Chapter 9:/);
+    else await stepTo(/^Chapter: Chapter 8:/);
+    // The page set its own address, so the entry on screen has a router key.
+    expect((window.history.state as { key?: string }).key).toBeDefined();
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    window.localStorage.setItem(
+      page === 'booth' ? `narration.booth.lastPlace.${OTHER}` : `narration.editing.lastChapter.${OTHER}`,
+      page === 'booth' ? JSON.stringify({ chapterId: 'chapter-3', paragraphId: '', word: 0 }) : 'chapter-4',
+    );
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await screen.findByRole('button', { name: expected }, { timeout: 1000 });
+    await waitFor(() => expect(address()).toBe(cut), { timeout: 1000 });
+  });
 });
