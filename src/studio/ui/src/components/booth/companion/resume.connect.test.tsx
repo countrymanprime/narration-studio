@@ -118,7 +118,7 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     await push({ phase: 'stopped' });
     await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 1% through'));
   });
-  // G1 (qa delta): "This chapter" printed the recorded length of the Production read made when the page opened ("Recorded 0:00") while the resume notice, after a session ended,
+  // G1 (qa delta): "This chapter" printed the recorded length of a Production read made when the page opened ("Recorded 0:00") while the resume notice, after a session ended,
   // read the new take ("recorded 1% through"). Both come from the one read `useRecordedThrough` makes, so after a session the two lines agree.
   it('after a session ends "This chapter" and the resume notice come from the same read', async () => {
     const subscribers = new Set<(state: TeleprompterState) => void>();
@@ -133,10 +133,8 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
       },
       manuscriptChapters: async () =>
         CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: host.seconds } : chapter)),
-      productionOverview: async () => ({
-        ...overview,
-        chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 0 }],
-      }),
+      // The overview only adds the readiness reason; the length and the stage are the shared list's.
+      productionOverview: async () => ({ ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 99 }] }),
     } as Partial<NarrationApi>);
     renderCompanion(api);
     await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 0% through'));
@@ -151,7 +149,7 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     expect(screen.getByText('Recorded 0:12')).toBeTruthy();
     expect(screen.queryByText('Recorded 0:00')).toBeNull();
   });
-  // H1 (qa delta): when the Production board cannot be read at a session's end, "This chapter" keeps the length of the read the notice came from (it used to empty to "Nothing measured").
+  // H1 (qa delta): when the Production board cannot be read at a session's end, "This chapter" keeps the length of the read the notice came from; the length is the shared list's, so the board's failure costs it nothing.
   it('after a session ends with the Production board unreadable, This chapter still shows the recorded length of the read the notice came from', async () => {
     const subscribers = new Set<(state: TeleprompterState) => void>();
     const zero: RecordedThrough = { ...through, percent: 0 };
@@ -167,7 +165,7 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
       productionOverview: async () => {
         reads.overview += 1;
         if (reads.overview > 1) throw new Error('Production board unreadable');
-        return { ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 0 }] };
+        return { ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 99 }] };
       },
     } as Partial<NarrationApi>);
     renderCompanion(api);
@@ -189,7 +187,7 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     const overview = await base.productionOverview();
     const api = pageApi({
       manuscriptChapters: async () => CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 0.5 } : chapter)),
-      productionOverview: async () => ({ ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 0.5 }] }),
+      productionOverview: async () => ({ ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 99 }] }),
     } as Partial<NarrationApi>);
     renderCompanion(api);
     await waitFor(() => expect(screen.getByRole('region', { name: 'Where you stopped' }).textContent).toContain('recorded 0% through'));
