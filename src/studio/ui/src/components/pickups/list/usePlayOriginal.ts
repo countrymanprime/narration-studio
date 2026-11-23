@@ -9,6 +9,7 @@ import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
+import { reasonSentence } from '../../../api/errorMessage';
 import { notAskedSentence } from '../../../studio/dawNames';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { overlay } from '../../../overlay/overlayService';
@@ -116,7 +117,10 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
     // A failed stop leaves the DAW playing; say so, as the Editing page does.
     sync.dawTransportSync('stop', 0).then(
       (result) => !result.ok && live.current.onRefused(result.message),
-      () => live.current.onRefused('The DAW could not be stopped. Stop it there.'),
+      (error: unknown) => {
+        const name = dawNameOf(dawCaps.current.caps);
+        live.current.onRefused(`${reasonSentence(notAskedSentence(name, error, 'stop'))} Stop it in ${name}.`);
+      },
     );
   }, [sync]);
 

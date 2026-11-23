@@ -95,6 +95,8 @@ export function HearIt({
   // The newest press, so a Retry offered for an older one, or after the note was left, plays nothing.
   const newest = useNewestPlay(HEAR_TOPIC);
   const lastAsk = useRef(0);
+  // The press whose app clip already failed to load: its error toast (with Retry) is the one to leave on screen, not the notice raised when `playThrough` returns.
+  const clipFailed = useRef(0);
   const again = useRef<() => void>(() => {});
 
   // Leaving the note (the Inspector remounts per note) stops a DAW loop this button started; the app player stops itself on unmount.
@@ -115,6 +117,7 @@ export function HearIt({
     setPlaying(null);
     // The clip ended: its "Playing" line goes with it.
     report.current(undefined);
+    if (loadError) clipFailed.current = lastAsk.current;
     if (loadError)
       overlay.toast(APP_FAILED, { tone: 'error', action: retryAction(() => newest.current(lastAsk.current) && again.current()), topic: HEAR_TOPIC });
   }, [playing, isPlaying, loadError, newest]);
@@ -197,7 +200,7 @@ export function HearIt({
       if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
       // What did not play, and why, is a toast, never a line in the row. Retry only when nothing played: a note that fell back to the app and plays is not
       // offered a Retry, which would stop it. A press that was replaced says nothing.
-      if (notice && newest.current(press))
+      if (notice && newest.current(press) && clipFailed.current !== press)
         overlay.toast(
           notice,
           by === null ? { tone: 'error', action: retryAction(() => newest.current(press) && again.current()), topic: HEAR_TOPIC } : { topic: HEAR_TOPIC },

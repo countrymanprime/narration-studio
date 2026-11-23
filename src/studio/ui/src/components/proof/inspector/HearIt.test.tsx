@@ -309,6 +309,17 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     expect(stopLoop).not.toHaveBeenCalled();
   });
 
+  it('leaves the clip-failed toast with Retry as the last one when the app clip fails after the DAW threw', async () => {
+    play.mockImplementation(() => Promise.reject(new DOMException('no', 'NotSupportedError')));
+    setup(placed(), () => Promise.reject(new Error('bridge gone')));
+    await userEvent.click(hear());
+    await waitFor(() => expect(toast.mock.calls.some((call) => String(call[0]).includes('could not be played'))).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const last = toasted();
+    expect(last[0]).toBe('The audio file for this note could not be played.');
+    expect(last[1]?.action?.label).toBe('Retry');
+  });
+
   it('says where to stop a loop it could not stop after the note was left', async () => {
     let answerLoop: (value: FindingNavigation) => void = () => {};
     const api: HearItApi = {
