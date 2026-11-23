@@ -239,7 +239,7 @@ describe('ToastRegion', () => {
     expect(region.className).toContain('[:root[data-modal-open]_&]:right-[var(--page-gutter)]');
     expect(region.className).not.toContain('top-4');
     // The region always stands at the gutter: the shell ends the page above it (`--toast-h`), so it rises over no bar and is raised by none (#4063).
-    expect(region.className).toContain('bottom-[var(--toast-bottom,var(--page-gutter))]');
+    expect(region.className).toContain('bottom-[calc(var(--toast-bottom,var(--page-gutter))+var(--toast-rise,0px))]');
     expect(region.className).not.toContain('--toast-reserve');
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
     const first = render(
