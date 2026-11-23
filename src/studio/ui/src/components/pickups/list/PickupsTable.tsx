@@ -17,7 +17,8 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { statusLabel, statusTone } from '../../../kinds/statusTone';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { AddPickup } from './AddPickup';
-import { pickupTime, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, pickupKind, typeLabel, ALL_SCOPE, type ChapterRef } from './pickupRows';
+import { pickupTime, groupByChapter, inScope, sourceLabel, sourceTitle, pickupKind, typeLabel, ALL_SCOPE, type ChapterRef } from './pickupRows';
+import { reasonSentence } from '../../../api/errorMessage';
 import { ScriptLine } from './ScriptLine';
 import { FINE_LABEL, fineUnavailable, NO_NOTE, PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
@@ -66,6 +67,8 @@ const NARROW_SPAN_ROW = '@max-[46rem]:col-span-full @max-[46rem]:block @max-[46r
 /** The page's player for the original recording around a line: the line playing now, play or stop, and why a line cannot be heard. */
 export type OriginalPlayer = {
   playingId: string | null;
+  /** The line whose play the DAW has not answered yet: its button is busy. */
+  pendingId?: string | null;
   play: (pickup: PickupItem) => void;
   unavailable: (pickup: PickupItem) => string | undefined;
 };
@@ -464,6 +467,7 @@ export function PickupsTable({
                             <IconButton
                               action={original?.playingId === pickup.id ? 'stop' : 'play'}
                               label={original?.playingId === pickup.id ? 'Stop the original' : 'Hear the original in context'}
+                              pending={original?.pendingId === pickup.id}
                               disabledReason={original ? original.unavailable(pickup) : PLAY_OFF}
                               aria-describedby={(original ? original.unavailable(pickup) : PLAY_OFF) ? `${playOffId}-${pickup.id}` : undefined}
                               onClick={() => original?.play(pickup)}

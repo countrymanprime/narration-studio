@@ -105,8 +105,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'The first read of the links detail for a screen that asked for it after the links were already read: a failure marks the state stale, the screen keeps showing the saved links, and the next poll or its own refresh reads it again and reports a failure.',
   'src/components/editing/takes/useTakeAudition.ts#1':
     "Stopping the DAW's preview of a take failed, as the narrator pressed Stop or left the page: at most the rest of one take plays on in the DAW, which ends by itself, and Play on any take stops it again.",
-  'src/components/proof/inspector/HearIt.tsx#1':
-    'Leaving a note stops the DAW loop its Hear it started, after the Inspector has moved on: there is no row left to say it on, and the loop the DAW is still playing is in plain sight there, where Stop works as always.',
   'src/components/voicesamples/audioOutputs.ts#1':
     'Putting the sample player back on the system default failed after the chosen output could not be used: the element stays where it was, the caller already says the sample is not on the chosen output, and the sample still plays.',
   'src/components/editing/voicesample/sampleMarksContext.tsx#1':

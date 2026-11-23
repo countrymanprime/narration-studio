@@ -1,3 +1,4 @@
+import { reasonSentence } from '../../../../api/errorMessage';
 import type { EditCut } from '../../../../api/contracts/editCuts';
 import type { AlignmentPort } from '../../../../ports/alignment';
 import type { ChapterDoc, DocCut, DocItem, Range } from '../../model';
@@ -63,14 +64,9 @@ export async function snapEnd(alignment: Pick<AlignmentPort, 'snap'>, chapterId:
 }
 
 const ms = (s: number): string => `${Math.abs(s * 1000).toFixed(1)} ms`;
-/** A reason as a sentence: a capital first, a full stop last, so the sentence after it does not run on. */
-const sentence = (s: string): string => {
-  const t = s.trim();
-  return t ? `${t[0]!.toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? '' : '.'}` : t;
-};
 const endText = (name: string, end: SnappedEnd): string =>
   end.refused
-    ? `The ${name} was not moved to a zero crossing: ${sentence(end.refused)}`
+    ? `The ${name} was not moved to a zero crossing: ${reasonSentence(end.refused)}`
     : end.moved
       ? `The ${name} moved ${ms(end.moved)} to a zero crossing.`
       : '';
