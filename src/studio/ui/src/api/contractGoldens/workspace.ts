@@ -38,4 +38,5 @@ export const workspaceGoldens: Record<string, z.ZodType> = {
   // WorkspacePeaks: one item's real peaks, and one item with no usable source (a Reason).
   'workspace-peaks.json': workspacePeaksResultSchema,
   'workspace-peaks-no-source.json': workspacePeaksResultSchema,
+  'workspace-peaks-pending.json': workspacePeaksResultSchema,
 };

@@ -92,6 +92,14 @@ describe("pickEntries by the line's items", () => {
   it("says why when none of the line's items has a waveform, rather than drawing another item's", () => {
     expect(pickEntries(state, clocks, 1, 3, [3])).toEqual({ reason: "this item's source audio was not found" });
   });
+  it('says it is reading, for the grey reading row, when an item of the line is still being read by the host (#4042)', () => {
+    const pending: RibbonPeaks = {
+      status: 'ready',
+      result: { chapterId: 'c1', items: [{ index: 3, reason: 'this recording is still being read, so its waveform is not drawn yet.', pending: true }] },
+    };
+    expect(pickEntries(pending, clocks, 1, 3, [3])).toEqual({ reason: 'Reading the waveform.', reading: true });
+    expect(pickEntries(pending, clocks, 1, 3)).toEqual({ reason: 'Reading the waveform.', reading: true });
+  });
   it("draws the items that have a waveform when another of the line's items has none", () => {
     expect(starts(pickEntries(state, clocks, 1, 3, [0, 3]))).toEqual([0]);
   });
