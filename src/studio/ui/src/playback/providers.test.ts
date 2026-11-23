@@ -219,4 +219,11 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     expect(await pending).toMatchObject({ by: APP });
   });
+  it('a DAW and a keepQuiet that both never answer hand the note to the app after one deadline, not two', async () => {
+    const hung: PlaybackProvider<number> = { name: 'REAPER', readiness: () => ({ ready: true }), play: () => new Promise<never>(() => {}) };
+    const app = provider(APP, { ready: true }, { played: true });
+    const pending = playThrough([hung, app.p], 0, { keepQuiet: () => new Promise<never>(() => {}), deadlineMs: PLAY_DEADLINE_MS });
+    await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
+    expect(await pending).toMatchObject({ by: APP });
+  });
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiErrorMessage } from '../../api/errorMessage';
+import { apiErrorMessage, reasonSentence } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { PronunciationOnlineResult } from '../../types';
 import { Button } from '../primitives/Button';
@@ -47,7 +47,7 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
       </div>
       {/* Body-size text beside the 36 px Use this, not 12 px (SBX-8). */}
       <div role="status" className="text-sm">
-        {error && <p className="text-[var(--danger-text)]">{capitalize(error)}</p>}
+        {error && <p className="text-[var(--danger-text)]">{reasonSentence(error)}</p>}
         {result && result.found && (
           <div className="space-y-1">
             <p className="text-[var(--text-muted)]">
@@ -81,8 +81,4 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
       </div>
     </div>
   );
-}
-
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1) + (/[.!?]$/.test(text) ? '' : '.');
 }

@@ -13,6 +13,7 @@ import type { DawClient } from '../../../ports/index';
 import { overlay } from '../../../overlay/overlayService';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { PortOverrides } from '../../../ports/usePort';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import { usePlayOriginal } from './usePlayOriginal';
 
@@ -129,6 +130,7 @@ const flush = () =>
   });
 
 beforeEach(() => {
+  dawPlayOwner.release();
   vi.useFakeTimers();
   audio = new FakeAudio();
   vi.stubGlobal('Audio', function () {
@@ -295,6 +297,59 @@ describe('a-daw-that-can-play-plays-the-original', () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(transport).not.toHaveBeenCalledWith('stop', 0);
+  });
+  // The stop of a DAW play nobody waits for any more is said when the DAW refuses it or cannot be asked, with where to stop it (the same sentence as Hear it).
+  it.each([
+    [
+      'refuses',
+      () => Promise.resolve({ ...ok, ok: false, message: 'REAPER would not stop', refused: 'REAPER would not stop' }),
+      'REAPER would not stop. Stop it in REAPER.',
+    ],
+    ['cannot be asked', () => Promise.reject(new Error('bridge down')), 'REAPER was not asked to stop: bridge down. Stop it in REAPER.'],
+  ])('says where to stop a late DAW play when the DAW %s the stop', async (_name, stopAnswer, sentence) => {
+    let answer: (value: DawResult) => void = () => {};
+    transport = vi.fn((action: string) => (action === 'playRange' ? new Promise<DawResult>((resolve) => (answer = resolve)) : stopAnswer()));
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    act(() => void result.current.play(pickup(15)));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
+    });
+    await act(async () => {
+      answer(ok);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(refused).toContain(sentence);
+  });
+  it('says a clip that failed once, however often the page draws again', async () => {
+    const { result, rerender } = await mountRead(DAW_SETUPS['reaper-off']);
+    await act(() => result.current.play(pickup(15)));
+    await act(async () => {
+      audio.dispatchEvent(new Event('error'));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const said = () => refused.filter((text) => text.includes('could not be played')).length;
+    expect(said()).toBe(1);
+    for (let draw = 0; draw < 3; draw += 1) rerender();
+    await flush();
+    expect(said()).toBe(1);
+  });
+  it('a DAW play that ended by itself leaves no owner: an older press that answers late is stopped, not left running', async () => {
+    const answers: ((value: DawResult) => void)[] = [];
+    transport = vi.fn((action: string) => (action === 'playRange' ? new Promise<DawResult>((resolve) => answers.push(resolve)) : Promise.resolve(ok)));
+    const old = await mountRead(DAW_SETUPS.reaper);
+    act(() => void old.result.current.play(pickup(15)));
+    const fresh = await mountRead(DAW_SETUPS.reaper);
+    act(() => void fresh.result.current.play({ ...pickup(20), id: 'p2' }));
+    await act(async () => {
+      answers[1]!(ok);
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(fresh.result.current.playingId).toBeNull();
+    await act(async () => {
+      answers[0]!(ok);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(transport).toHaveBeenCalledWith('stop', 0);
   });
   it('a second press stops the DAW', async () => {
     const { result } = await mountRead(DAW_SETUPS.reaper);

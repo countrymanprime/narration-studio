@@ -30,6 +30,15 @@ export const dawPlayOwner = {
   },
   /** An answer for `token`'s play may stop it: the DAW is nobody's, or still this press's. */
   mayStop: (token: number): boolean => owner === 0 || owner === token,
+  /** `token`'s play came back when its press no longer wants it: stop it now and give the DAW up if nobody newer owns it, else stop it only if that press gives the DAW up without playing in it. */
+  stopOrOrphan: (token: number, stop: () => void): void => {
+    if (owner !== 0 && owner !== token) {
+      orphans.push(stop);
+      return;
+    }
+    stop();
+    dawPlayOwner.release(token);
+  },
   /** A play that landed while a newer press owned the DAW: stop it if that press gives the DAW up without playing in it. */
   orphan: (stop: () => void): void => {
     orphans.push(stop);

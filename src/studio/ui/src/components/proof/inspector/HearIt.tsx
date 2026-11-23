@@ -169,8 +169,7 @@ export function HearIt({
             // A loop a newer press started since is that press's, and is not stopped here.
             // The same when the note was left, or a newer press made, while the DAW was answering inside the deadline.
             if (late() || !newest.current(press)) {
-              if (dawPlayOwner.mayStop(token)) dropLoop.current();
-              else dawPlayOwner.orphan(() => dropLoop.current());
+              dawPlayOwner.stopOrOrphan(token, () => dropLoop.current());
               return { played: true };
             }
             looped.current = true;
@@ -204,7 +203,11 @@ export function HearIt({
       });
       // The press ended in the app (a deadline, a refusal): the DAW is given up, so an older press's orphaned stop may run.
       if (by !== dawName) dawPlayOwner.release(token);
-      if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
+      if (by === dawName) {
+        // A press that was replaced, or whose note was left, and whose loop was dropped above, says nothing of playing.
+        if (newest.current(press)) setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
+        return;
+      }
       // What did not play, and why, is a toast, never a line in the row. Retry only when nothing played: a note that fell back to the app and plays is not
       // offered a Retry, which would stop it. A press that was replaced says nothing.
       if (notice && newest.current(press) && clipFailed.current !== press)

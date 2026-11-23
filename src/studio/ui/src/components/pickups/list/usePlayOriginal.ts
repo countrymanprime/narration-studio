@@ -175,14 +175,12 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
               // The deadline passed while the DAW was answering: the app plays in its place, so this DAW play is stopped, not left beside it.
               // An older press's late answer stops nothing a newer press started.
               if (late()) {
-                if (dawPlayOwner.mayStop(token)) stopDaw();
-                else dawPlayOwner.orphan(stopDaw);
+                dawPlayOwner.stopOrOrphan(token, stopDaw);
                 return { played: true };
               }
               if (asked.current !== mine) {
                 // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
-                if (dawPlayOwner.mayStop(token)) stopDaw();
-                else dawPlayOwner.orphan(stopDaw);
+                dawPlayOwner.stopOrOrphan(token, stopDaw);
                 return { played: true };
               }
               dawPlayOwner.settle(token);
@@ -191,6 +189,8 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
               timer.current = window.setTimeout(
                 () => {
                   if (asked.current !== mine) return;
+                  // The DAW's play ended by itself: nobody owns it, so a late answer of an older press is stopped, not orphaned.
+                  dawPlayOwner.release(token);
                   setInDaw(false);
                   setPlayingId(null);
                 },
@@ -255,14 +255,18 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
 
   /* The app's range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */
   const { isPlaying, loadError } = player;
+  // `begin` is rebuilt every render (the range player is a new object each time): the effect reads it through a ref, so it runs on a change of
+  // the clip's state only and a failed clip is said once.
+  const beginRef = useRef(begin);
+  beginRef.current = begin;
   useEffect(() => {
     if (isPlaying || live.current.inDaw) return;
     setPlayingId(null);
     if (loadError) {
       const last = lastPlay.current;
-      live.current.onRefused(CLIP_FAILED, last ? () => (newest.current(last.ask) ? void begin(last.pickup) : undefined) : undefined);
+      live.current.onRefused(CLIP_FAILED, last ? () => (newest.current(last.ask) ? void beginRef.current(last.pickup) : undefined) : undefined);
     }
-  }, [isPlaying, loadError, newest, begin]);
+  }, [isPlaying, loadError, newest]);
 
   // Leaving the page stops a DAW play this list started.
   useEffect(
