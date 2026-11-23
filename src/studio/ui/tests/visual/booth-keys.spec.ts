@@ -415,3 +415,24 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
     await expect(popup).toBeVisible();
   });
 });
+
+test.describe('a toast button keeps its Space (#4094)', () => {
+  const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+
+  for (const name of ['Retry', 'Dismiss message']) {
+    test(`Space on the toast's ${name} presses it and starts no take`, async ({ page }) => {
+      await openBooth(page);
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+      const button = page.locator('[data-toast-region]').getByRole('button', { name });
+      await expect(button).toBeVisible();
+      await button.focus();
+      await page.keyboard.press('Space');
+      // The button was pressed (the toast is gone) and the pedal's take never started: Record is still Record and the DAW is not recording.
+      await expect(page.getByText('The save failed. Try again.')).toHaveCount(0);
+      await expect(record(page)).toBeVisible();
+      expect(await dawRecording(page)).toBe(false);
+    });
+  }
+});
