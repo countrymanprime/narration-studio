@@ -1,8 +1,5 @@
-import { overlay } from '../../../overlay/overlayService';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiErrorMessage } from '../../../api/errorMessage';
-import { usePort } from '../../../ports/usePort';
-import type { DawCapabilities } from '../../../api/contracts/daw';
+import { useState } from 'react';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { shownFindingNoteType } from '../../../api/contracts/findings';
 import type { Finding } from '../../../types';
 import { Button } from '../../primitives/Button';
@@ -57,34 +54,10 @@ export function InspectorActions({
   /** The note as the host now holds it, read again after a refused Treat as the same. */
   onNoteRead: (finding: Finding) => void;
 }) {
-  const daw = usePort('daw');
-  const [capabilities, setCapabilities] = useState<DawCapabilities>();
-  const [capsFailed, setCapsFailed] = useState(false);
+  // What the DAW can do, read once and again when its report changes; a press never waits for it, and after a failed read it asks again (`retry`).
+  const { caps, failed: capsFailed, retry: readCapabilitiesAgain } = useDawCapabilities();
+  const capabilities = caps ?? undefined;
   const [result, setResult] = useState<{ message: string; failed: boolean }>();
-
-  const current = useRef(true);
-  /** Reads what the DAW can do; a read that failed is read again by the next Hear it, which does not wait for it. */
-  const readCapabilities = useCallback(() => {
-    daw.capabilities().then(
-      (found) => {
-        if (!current.current) return;
-        setCapabilities(found);
-        setCapsFailed(false);
-      },
-      (error) => {
-        if (!current.current) return;
-        setCapsFailed(true);
-        overlay.toast(`The DAW was not asked: ${apiErrorMessage(error)}`, { tone: 'error' });
-      },
-    );
-  }, [daw]);
-  useEffect(() => {
-    current.current = true;
-    readCapabilities();
-    return () => {
-      current.current = false;
-    };
-  }, [readCapabilities]);
 
   // A note with an item but no time would only move to the item's start, which says nothing about the note (#2800).
   const placed = Boolean(finding.source.item_guid || finding.time_range);
@@ -108,7 +81,7 @@ export function InspectorActions({
           dawName={dawName}
           capabilities={capabilities}
           capabilitiesFailed={capsFailed}
-          onReadAgain={readCapabilities}
+          onReadAgain={readCapabilitiesAgain}
           inert={inert}
           onResult={setResult}
         />

@@ -3,12 +3,12 @@ import type { VoiceTracksLayout } from '../../../api/contracts/voiceTracks';
 import { destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { overlay } from '../../../overlay/overlayService';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
@@ -72,9 +72,10 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
   const owner = useRef<number | null>(null);
   // A DAW play was started and not stopped since: an earlier press's, which a later press that ended in the app must not leave running.
   const dawStarted = useRef(false);
-  // What the DAW last said it can do: read when the list mounts and again at every press, never waited for.
-  const dawCaps = useRef<{ caps: DawCapabilities | null; failed: boolean }>({ caps: null, failed: false });
-  const mounted = useRef(true);
+  // What the DAW last said it can do (read at mount and again when its report changes): a press uses it as it stands and never waits for a read.
+  const dawState = useDawCapabilities();
+  const dawCaps = useRef(dawState);
+  dawCaps.current = dawState;
   const newest = useNewestPlay(ORIGINAL_TOPIC);
   const live = useRef({ onRefused, onNotice, playingId, inDaw });
   const shared = useRef(trackState);
@@ -120,33 +121,15 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
     setPlayingId(null);
   }, [player, stopDaw]);
 
-  const readCaps = useCallback((): void => {
-    daw.capabilities().then(
-      (caps) => {
-        if (mounted.current) dawCaps.current = { caps, failed: false };
-      },
-      () => {
-        if (mounted.current) dawCaps.current = { caps: dawCaps.current.caps, failed: true };
-      },
-    );
-  }, [daw]);
-  useEffect(() => {
-    mounted.current = true;
-    readCaps();
-    return () => {
-      mounted.current = false;
-    };
-  }, [readCaps]);
-
   // Plays the line; a press on the playing line stops it (`play`), a Retry plays it again (`begin`).
   const begin = useCallback(
     async (pickup: PickupItem): Promise<void> => {
       stop();
       const mine = asked.current;
       owner.current = mine;
-      const { caps, failed: capsFailed } = dawCaps.current;
-      // Asked again for the next press; this one does not wait for it.
-      readCaps();
+      const { caps, failed: capsFailed, retry: readCapsAgain } = dawCaps.current;
+      // A read that failed is asked again for the next press; this one does not wait for it.
+      if (!caps && capsFailed) readCapsAgain();
       const ask = newest.begin();
       const retry = (): void => {
         if (newest.current(ask) && asked.current === mine) void begin(pickup);
@@ -232,7 +215,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       if (by === null) live.current.onRefused(notice, retry);
       else live.current.onNotice(notice);
     },
-    [daw, player, stop, stopDaw, sync, layout, readCaps, newest],
+    [daw, player, stop, stopDaw, sync, layout, newest],
   );
   const play = useCallback(
     async (pickup: PickupItem): Promise<void> => {
