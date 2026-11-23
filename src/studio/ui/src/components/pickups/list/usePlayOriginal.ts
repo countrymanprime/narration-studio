@@ -9,7 +9,7 @@ import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
-import { capitalised } from '../../../studio/dawNames';
+import { notAskedSentence } from '../../../studio/dawNames';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { overlay } from '../../../overlay/overlayService';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
@@ -181,7 +181,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
             }
             why = result.message;
           } catch (error) {
-            why = `${capitalised(name)} was not asked: ${error instanceof Error ? error.message : String(error)}`;
+            why = notAskedSentence(name, error);
           }
           return { played: false, why };
         },

@@ -10,7 +10,8 @@ import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
-import { capitalised } from '../../../studio/dawNames';
+import { capitalised, notAskedSentence } from '../../../studio/dawNames';
+import { reasonSentence } from '../../../api/errorMessage';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, recordingSentence, type PlaybackProvider } from '../../../playback/providers';
 
@@ -117,7 +118,7 @@ export function HearIt({
         try {
           await api.findingsStopLoop();
         } catch (error) {
-          overlay.toast(`The DAW was not asked to stop: ${apiErrorMessage(error)}`, { tone: 'error' });
+          overlay.toast(reasonSentence(`${capitalised(dawName)} was not asked to stop: ${apiErrorMessage(error)}`), { tone: 'error' });
         }
       }
       setPlaying(null);
@@ -141,7 +142,7 @@ export function HearIt({
           try {
             answer = await api.findingsLoop(note.id);
           } catch (error) {
-            return { played: false, why: `${capitalised(dawName)} was not asked: ${apiErrorMessage(error)}` };
+            return { played: false, why: notAskedSentence(dawName, error) };
           }
           if (answer.outcome === 'looping') {
             // The deadline passed while the DAW was answering: the app plays in its place, so this loop is stopped, not left beside it.

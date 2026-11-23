@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiErrorMessage, describeApiError } from './errorMessage';
+import { apiErrorMessage, describeApiError, reasonSentence } from './errorMessage';
 import { WireError } from './wire/WireError';
 
 const wireError = new WireError('host.binding', 'Bootstrap', [{ path: 'projectName', message: 'expected string' }]);
@@ -27,5 +27,22 @@ describe('apiErrorMessage', () => {
   it('falls back to String(error) for anything that is neither a WireError nor an Error', () => {
     expect(apiErrorMessage('plain string failure')).toBe('plain string failure');
     expect(apiErrorMessage(42)).toBe('42');
+  });
+});
+
+describe('reasonSentence', () => {
+  it('gives a reason a capital and a full stop', () => {
+    expect(reasonSentence(new Error('the bridge is down'))).toBe('The bridge is down.');
+  });
+  it('keeps a reason that already ends in punctuation as it is', () => {
+    expect(reasonSentence('REAPER is not running.')).toBe('REAPER is not running.');
+    expect(reasonSentence('Is it there?')).toBe('Is it there?');
+  });
+  it('says the host gave no reason for an empty one', () => {
+    expect(reasonSentence('')).toBe('The host gave no reason.');
+    expect(reasonSentence(new Error('   '))).toBe('The host gave no reason.');
+  });
+  it('reads a string reason as it is, whatever its length', () => {
+    expect(reasonSentence('x')).toBe('X.');
   });
 });
