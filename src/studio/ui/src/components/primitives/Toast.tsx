@@ -252,6 +252,8 @@ const TOAST_BOTTOM_PROPERTY = '--toast-bottom';
 /** A toast's height (`h-[2.8125rem]`) and the air above it, in rem; the gap under it is the page gutter, or half of it in a window 400 px tall or less, where a permanent slot costs more of what is left. */
 const TOAST_HEIGHT_REM = 2.8125;
 const TOAST_AIR_REM = 0.5;
+/** A window this tall or shorter keeps no slot: the toast floats at the edge. */
+const SHORT_WINDOW_PX = 400;
 
 /**
  * Keeps a slot for one toast, always, so showing one moves nothing (#4063, owner decision): the shell ends the page above it (`AppShell`), and a toast stands in it at the gutter, covering no
@@ -265,9 +267,11 @@ function useToastSlot(): void {
       const rem = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
       // The page gutter is 1rem (`--page-gutter`, styles.css).
       const gutter = rem;
-      const bottom = window.innerHeight <= 400 ? gutter / 2 : gutter;
+      const short = window.innerHeight <= SHORT_WINDOW_PX;
+      const bottom = short ? gutter / 2 : gutter;
       root.style.setProperty(TOAST_BOTTOM_PROPERTY, `${bottom}px`);
-      root.style.setProperty(TOAST_SLOT_PROPERTY, `${Math.ceil(bottom + (TOAST_HEIGHT_REM + TOAST_AIR_REM) * rem)}px`);
+      // In a window this short (far below the product's 960 px minimum) a permanent slot would take what the Booth's panels and the reading need (`tiny-window-overflow.spec.ts`): there the toast floats at the edge, as it did before.
+      root.style.setProperty(TOAST_SLOT_PROPERTY, short ? '0px' : `${Math.ceil(bottom + (TOAST_HEIGHT_REM + TOAST_AIR_REM) * rem)}px`);
       window.dispatchEvent(new Event(TOAST_ROOM_EVENT));
     };
     set();
@@ -304,7 +308,9 @@ function useToastHeightPublished(region: { current: HTMLElement | null }, showin
       const rem = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
       const room = Math.ceil(window.innerHeight - first.getBoundingClientRect().top + TOAST_AIR_REM * rem);
       const modal = root.hasAttribute(MODAL_OPEN_ATTRIBUTE);
-      root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${modal ? room : Math.min(room, Math.floor(window.innerHeight * STRIP_MAX_SHARE))}px`);
+      // A short window keeps no strip (see `useToastSlot`), over a dialog or not the room is what a dialog reads.
+      const strip = window.innerHeight <= SHORT_WINDOW_PX ? 0 : Math.min(room, Math.floor(window.innerHeight * STRIP_MAX_SHARE));
+      root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${modal ? room : strip}px`);
       // The dialog's room just changed: the field being typed in must not be left half under the popup's new edge.
       if (modal) window.requestAnimationFrame(keepFocusInDialog);
       // The page moves with the strip: what is fixed over the window's edge (`useToastClearance`) reads where the bars stand now.
