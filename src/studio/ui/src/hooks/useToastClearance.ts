@@ -10,13 +10,27 @@ export const TOAST_CLEAR_VAR = '--toast-clear';
  */
 const bars = new Map<HTMLElement, boolean>();
 
+/** Fired on the window when the toasts' strip changes (`--toast-h`, published by `ToastRegion`): the bars moved with the page, so the clearance is read again. */
+export const TOAST_ROOM_EVENT = 'toast-room';
+
+/** The strip the shell keeps under the page for a message: it lifts every bar by that much, so what is fixed over the window's edge clears it too. None over a dialog, where the page keeps its size. */
+function strip(): number {
+  const root = document.documentElement;
+  if (root.hasAttribute('data-modal-open')) return 0;
+  return Number.parseFloat(root.style.getPropertyValue('--toast-h')) || 0;
+}
+
+if (typeof window !== 'undefined') window.addEventListener(TOAST_ROOM_EVENT, () => apply());
+
 function apply(): void {
   const root = document.documentElement;
+  const room = strip();
   if (bars.size === 0) {
-    root.style.removeProperty(TOAST_CLEAR_VAR);
+    if (room > 0) root.style.setProperty(TOAST_CLEAR_VAR, `${Math.ceil(room)}px`);
+    else root.style.removeProperty(TOAST_CLEAR_VAR);
     return;
   }
-  let total = 0;
+  let total = room;
   let top = Number.POSITIVE_INFINITY;
   bars.forEach((follows, bar) => {
     const rect = bar.getBoundingClientRect();

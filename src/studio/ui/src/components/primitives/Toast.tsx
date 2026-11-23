@@ -1,3 +1,4 @@
+import { TOAST_ROOM_EVENT } from '../../hooks/useToastClearance';
 import { HIT_AREA } from './hitArea';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -58,13 +59,15 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
 const TEXT_SCROLL_CUE =
   '[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
-/** Where the pointer last was in the window, kept from the first toast on so a toast can tell a pointer that moved onto it from one it appeared under. */
-let lastPointer = { x: Number.NaN, y: Number.NaN };
+/** How long after the pointer last moved a toast still counts it as arriving: a pointer that entered because the pointer moved enters in the same frame, one that "entered" because the toast moved under it did not move at all. */
+const POINTER_MOVE_MS = 150;
+/** The last time the pointer really moved in the window (a move that changes its place). A toast that appears, shifts in a stack or comes back under a resting pointer sees an enter, never a move (#4063). */
+let lastMove = { x: Number.NaN, y: Number.NaN, at: Number.NEGATIVE_INFINITY };
 if (typeof window !== 'undefined')
   window.addEventListener(
     'pointermove',
     (event) => {
-      lastPointer = { x: event.clientX, y: event.clientY };
+      if (event.clientX !== lastMove.x || event.clientY !== lastMove.y) lastMove = { x: event.clientX, y: event.clientY, at: Date.now() };
     },
     { capture: true, passive: true },
   );
@@ -95,11 +98,10 @@ function ToastItem({ message, dismiss, alone, waiting = false }: { message: Toas
   const focused = useRef(false);
   const [held, setHeld] = useState(false);
   const hold = () => setHeld(hover.current || focused.current);
-  // A toast that appears under a pointer that is not moving is not hovered: the browser says the pointer entered it, but the narrator did not reach for it (the pointer
-  // rests on the button that raised it), and holding it there would keep it up for ever. Only a pointer that has moved since the toast appeared holds it (#4063).
-  const appearedAt = useRef(lastPointer);
-  const pointerOn = (event: { clientX: number; clientY: number }) => {
-    if (!hover.current && event.clientX === appearedAt.current.x && event.clientY === appearedAt.current.y) return;
+  // A toast under a pointer that is not moving is not hovered, however it came there (it appeared, another toast above it went, it came back after a dialog): the browser says
+  // the pointer entered, but the narrator did not reach for it, and holding it would keep it up for ever. Only a pointer that has just moved holds it (#4063).
+  const pointerOn = () => {
+    if (!hover.current && Date.now() - lastMove.at > POINTER_MOVE_MS) return;
     hover.current = true;
     hold();
   };
@@ -153,8 +155,8 @@ function ToastItem({ message, dismiss, alone, waiting = false }: { message: Toas
     <div
       data-tone={message.tone}
       hidden={waiting}
-      onPointerEnter={(event) => pointerOn(event)}
-      onPointerMove={(event) => pointerOn(event)}
+      onPointerEnter={pointerOn}
+      onPointerMove={pointerOn}
       onPointerLeave={() => ((hover.current = false), hold())}
       onFocus={(event) => {
         focused.current = true;
@@ -200,7 +202,7 @@ function ToastItem({ message, dismiss, alone, waiting = false }: { message: Toas
         dir="auto"
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
-        // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
+        // nothing else (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
         className={`${withAction ? (glyph ? 'max-[24rem]:max-w-[calc(100%-1.75rem)] max-[24rem]:[:root[data-modal-open]_&]:max-w-none' : 'max-[24rem]:max-w-full max-[24rem]:[:root[data-modal-open]_&]:max-w-none') : ''} max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem-var(--toast-action-row,0rem)))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [:root[data-modal-open]_&]:max-h-[2lh] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 ${scrolls ? TEXT_SCROLL_CUE : ''}`}
       >
         {message.text}
@@ -308,6 +310,8 @@ function useToastHeightPublished(region: { current: HTMLElement | null }, showin
       root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${modal ? room : Math.min(room, Math.floor(window.innerHeight * STRIP_MAX_SHARE))}px`);
       // The dialog's room just changed: the field being typed in must not be left half under the popup's new edge.
       if (modal) window.requestAnimationFrame(keepFocusInDialog);
+      // The page moves with the strip: what is fixed over the window's edge (`useToastClearance`) reads where the bars stand now.
+      window.requestAnimationFrame(() => window.dispatchEvent(new Event(TOAST_ROOM_EVENT)));
     };
     publish();
     const resize = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(publish);
@@ -320,6 +324,7 @@ function useToastHeightPublished(region: { current: HTMLElement | null }, showin
       modal.disconnect();
       window.removeEventListener('resize', publish);
       root.style.removeProperty(TOAST_HEIGHT_PROPERTY);
+      window.dispatchEvent(new Event(TOAST_ROOM_EVENT));
     };
   }, [region, showing]);
 }

@@ -20,6 +20,13 @@ import {
 } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
+let step = 0;
+/** The pointer moves onto a toast: a move in the window to a new place, then the enter the browser sends. */
+function hoverOn(toast: Element): void {
+  step += 1;
+  fireEvent.pointerMove(window, { clientX: step, clientY: step });
+  fireEvent.pointerEnter(toast, { clientX: step, clientY: step });
+}
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
@@ -160,7 +167,7 @@ describe('ToastRegion', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(4)]} dismiss={dismiss} />);
     const toast = screen.getByText('Failure 4').closest('[data-tone]') as HTMLElement;
-    fireEvent.pointerEnter(toast);
+    hoverOn(toast);
     act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 3));
     expect(dismiss).not.toHaveBeenCalled();
     fireEvent.pointerLeave(toast);
@@ -170,10 +177,11 @@ describe('ToastRegion', () => {
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(4);
   });
 
-  // The toast appeared under a pointer that rests on the button that raised it: the browser says the pointer entered, the narrator did not reach for it (#4063).
-  it('does not hold an error that appeared under a pointer that has not moved, and holds it once the pointer moves on it', () => {
+  // A toast under a pointer that rests on the control that raised it, or that shifts under it in a stack, is not held: the browser says the pointer entered, the narrator did not reach for it (#4063).
+  it('does not hold an error under a pointer that has not moved, and holds it once the pointer moves onto it', () => {
     const dismiss = vi.fn();
     fireEvent.pointerMove(window, { clientX: 40, clientY: 50 });
+    act(() => void vi.advanceTimersByTime(1000));
     render(<ToastRegion messages={[failure(7)]} dismiss={dismiss} />);
     const toast = screen.getByText('Failure 7').closest('[data-tone]') as HTMLElement;
     fireEvent.pointerEnter(toast, { clientX: 40, clientY: 50 });
@@ -183,7 +191,7 @@ describe('ToastRegion', () => {
     dismiss.mockClear();
     render(<ToastRegion messages={[failure(8)]} dismiss={dismiss} />);
     const second = screen.getByText('Failure 8').closest('[data-tone]') as HTMLElement;
-    fireEvent.pointerMove(second, { clientX: 44, clientY: 50 });
+    hoverOn(second);
     act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 2));
     expect(dismiss).not.toHaveBeenCalled();
   });
@@ -245,7 +253,7 @@ describe('ToastRegion', () => {
   // Alignment audit cause P: a toast at the bottom right covered an open dialog's Cancel and Download buttons. The behaviour changed: it moved to the
   // top of the window, where it covered the top bar's buttons (R4BO2-4); now the dialog hangs from the top and stops 4.75rem short of the bottom, and
   // the toast keeps to the bottom-right corner at the gutter, ignoring the bottom bars behind the scrim.
-  it('keeps to the bottom-right corner at the gutter while a dialog is open, and follows the bars again when the last one closes', () => {
+  it('keeps to the bottom-right corner at the gutter while a dialog is open', () => {
     render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
     const region = screen.getByText('Message 1').closest('[data-toast-region]') as HTMLElement;
     expect(region.className).toContain('[:root[data-modal-open]_&]:right-[var(--page-gutter)]');
@@ -396,7 +404,7 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[info(1)]} dismiss={dismiss} />);
     const toast = screen.getByText('Message 1').closest('[data-tone]')!;
-    fireEvent.pointerEnter(toast);
+    hoverOn(toast);
     act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 3));
     expect(dismiss).not.toHaveBeenCalled();
     fireEvent.pointerLeave(toast);
@@ -491,7 +499,7 @@ describe('ToastRegion time left (#3667)', () => {
     render(<ToastRegion messages={[{ ...info(1), action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
     const toast = screen.getByText('Message 1').closest('[data-tone]')!;
     expect(runs(bar('Message 1'))).toBe(true);
-    fireEvent.pointerEnter(toast);
+    hoverOn(toast);
     expect(runs(bar('Message 1'))).toBe(false);
     expect(bar('Message 1').style.animationDuration).toBe('');
     fireEvent.pointerLeave(toast);
@@ -535,7 +543,7 @@ describe('ToastRegion time left (#3667)', () => {
       const toast = screen.getByText('Message 1').closest('[data-tone]')!;
       act(() => void vi.advanceTimersByTime(3000));
       expect(scale(stepped('Message 1'))).toBeCloseTo(1 - 3000 / TOAST_INFO_MS);
-      fireEvent.pointerEnter(toast);
+      hoverOn(toast);
       expect(scale(stepped('Message 1'))).toBe(1);
       act(() => void vi.advanceTimersByTime(20_000));
       expect(scale(stepped('Message 1')), 'still whole while held').toBe(1);
@@ -690,7 +698,7 @@ describe('a hold that starts while the toast fades', () => {
           render(<ToastRegion messages={[{ id: 1, text: 'Held', tone }]} dismiss={dismiss} />);
           const toast = screen.getByText('Held').closest('[data-tone]') as HTMLElement;
           act(() => void vi.advanceTimersByTime(stays - Math.max(offset, 1)));
-          if (how === 'pointer') fireEvent.pointerEnter(toast);
+          if (how === 'pointer') hoverOn(toast);
           else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).focus());
           act(() => void vi.advanceTimersByTime(1000));
           expect(toast.className).not.toContain('opacity-0');
