@@ -9,10 +9,14 @@ import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
+import { overlay } from '../../../overlay/overlayService';
+import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 import { chapterLink, linkStateOf, tracksUnreadable, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
+/** The Retry a line that played nothing offers is one toast at a time; a newer press, Stop or leaving the page withdraws it. */
+export const ORIGINAL_TOPIC = 'pickups-original-retry';
 /** Seconds of the recording heard before and after the line's place. */
 const ORIGINAL_AROUND = 3;
 /** Milliseconds past the stretch's end before the button goes back to Hear: the DAW stops itself at the end, this only resets the list. */
@@ -47,16 +51,11 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
  * the linked DAW's transport (`transport_sync`) from the pickup's project second, stopped after the stretch, then the range player the Proof
  * takes use on the source file (no project change either way). A DAW that cannot play now or refuses hands the line to the app with a notice;
  * a DAW that is recording keeps the room quiet. One line plays at a time; pressing the playing line again stops it. A refusal comes back as
- * a sentence through `onRefused`, a fallback's notice through `onNotice`, each with a `retry` that plays the line again while it is still the newest
- * press and the list is here. The press asks the DAW at once, on what the list last heard of its capabilities (nothing, until the first read
+ * a sentence through `onRefused` with a `retry` (only when nothing played) that plays the line again while it is still the newest press and the list is
+ * here, a fallback's notice through `onNotice`. The press asks the DAW at once, on what the list last heard of its capabilities (nothing, until the first read
  * answers): no read and no check stands between the click and the play call (owner rule on #4043, #4076).
  */
-export function usePlayOriginal(
-  onRefused: (sentence: string, retry?: () => void) => void,
-  onNotice: (sentence: string, retry?: () => void) => void = onRefused,
-  /** A press or Stop made the Retry offered before it stale: the page withdraws it. */
-  onCleared: () => void = () => {},
-) {
+export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void) => void, onNotice: (sentence: string) => void = onRefused) {
   // The tracks and links are the shared state's, as the Engine list and the Booth read them: a press never waits on a read of its own, and a
   // track renamed or deleted in REAPER is what the next press plays (#3366).
   const trackState = useChapterTrackState();
@@ -76,10 +75,11 @@ export function usePlayOriginal(
   // What the DAW last said it can do: read when the list mounts and again at every press, never waited for.
   const dawCaps = useRef<{ caps: DawCapabilities | null; failed: boolean }>({ caps: null, failed: false });
   const mounted = useRef(true);
-  const live = useRef({ onRefused, onNotice, onCleared, playingId, inDaw });
+  const newest = useNewestPlay(ORIGINAL_TOPIC);
+  const live = useRef({ onRefused, onNotice, playingId, inDaw });
   const shared = useRef(trackState);
   shared.current = trackState;
-  live.current = { onRefused, onNotice, onCleared, playingId, inDaw };
+  live.current = { onRefused, onNotice, playingId, inDaw };
 
   // Off, with its reason, for a line with no place and for a chapter with no link (#3394). The DAW can play a stretch by its own project second with
   // no link, but the Engine list says "Not linked" and the button must not look usable beside it. Before the links are first read "no link" means
@@ -111,7 +111,7 @@ export function usePlayOriginal(
   }, [sync]);
 
   const stop = useCallback((): void => {
-    live.current.onCleared();
+    overlay.dismissTopic(ORIGINAL_TOPIC);
     asked.current += 1;
     owner.current = null;
     if (live.current.inDaw) stopDaw();
@@ -147,8 +147,9 @@ export function usePlayOriginal(
       const { caps, failed: capsFailed } = dawCaps.current;
       // Asked again for the next press; this one does not wait for it.
       readCaps();
+      const ask = newest.begin();
       const retry = (): void => {
-        if (mounted.current && asked.current === mine) void begin(pickup);
+        if (newest.current(ask) && asked.current === mine) void begin(pickup);
       };
       const name = caps?.daw ?? 'The DAW';
       const transport: PlaybackProvider<PickupItem> = {
@@ -169,8 +170,9 @@ export function usePlayOriginal(
             if (result.ok) {
               dawStarted.current = true;
               // The deadline passed while the DAW was answering: the app plays in its place, so this DAW play is stopped, not left beside it.
+              // An older press's late answer stops nothing a newer press started.
               if (late()) {
-                stopDaw();
+                if (owner.current === mine || owner.current === null) stopDaw();
                 return { played: true };
               }
               if (asked.current !== mine) {
@@ -226,10 +228,11 @@ export function usePlayOriginal(
         if (dawStarted.current) stopDaw();
       }
       if (!wanted() || !notice) return;
+      // Retry only when nothing played: a line that fell back to the app and plays is not offered a Retry, which would stop it.
       if (by === null) live.current.onRefused(notice, retry);
-      else live.current.onNotice(notice, retry);
+      else live.current.onNotice(notice);
     },
-    [daw, player, stop, stopDaw, sync, layout, readCaps],
+    [daw, player, stop, stopDaw, sync, layout, readCaps, newest],
   );
   const play = useCallback(
     async (pickup: PickupItem): Promise<void> => {

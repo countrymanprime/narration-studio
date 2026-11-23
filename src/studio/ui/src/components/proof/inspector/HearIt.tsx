@@ -9,6 +9,7 @@ import { IconButton } from '../../primitives/IconButton';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
+import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 
 /** The audio heard either side of a note. The host's loop pads by the same amount (`bridge.ContextPaddingSeconds`). */
@@ -82,19 +83,17 @@ export function HearIt({
   const stopLoop = useRef(api.findingsStopLoop);
   stopLoop.current = api.findingsStopLoop;
   // The newest press, so a Retry offered for an older one, or after the note was left, plays nothing.
-  const pressed = useRef(0);
-  const mounted = useRef(true);
+  const newest = useNewestPlay(HEAR_TOPIC);
+  const lastAsk = useRef(0);
   const again = useRef<() => void>(() => {});
 
   // Leaving the note (the Inspector remounts per note) stops a DAW loop this button started; the app player stops itself on unmount.
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      overlay.dismissTopic(HEAR_TOPIC);
+  useEffect(
+    () => () => {
       if (looped.current) void stopLoop.current().catch(() => undefined);
-    };
-  }, []);
+    },
+    [],
+  );
 
   // The app player ended its range or could not load the file: the button goes back to Hear it.
   const { isPlaying, loadError } = player;
@@ -103,13 +102,13 @@ export function HearIt({
     setPlaying(null);
     // The clip ended: its "Playing" line goes with it.
     report.current(undefined);
-    if (loadError) overlay.toast(APP_FAILED, { tone: 'error', action: retryAction(() => mounted.current && again.current()), topic: HEAR_TOPIC });
-  }, [playing, isPlaying, loadError]);
+    if (loadError)
+      overlay.toast(APP_FAILED, { tone: 'error', action: retryAction(() => newest.current(lastAsk.current) && again.current()), topic: HEAR_TOPIC });
+  }, [playing, isPlaying, loadError, newest]);
 
   const stop = () =>
     action.run('hear', async () => {
-      pressed.current += 1;
-      overlay.dismissTopic(HEAR_TOPIC);
+      lastAsk.current = newest.begin();
       if (playing === 'app') player.stop();
       else {
         looped.current = false;
@@ -125,10 +124,10 @@ export function HearIt({
 
   const start = () =>
     action.run('hear', async () => {
-      const press = ++pressed.current;
+      const press = newest.begin();
+      lastAsk.current = press;
       // A Retry while the app's fallback plays starts over: the app's clip stops first, so two players never run.
       player.stop();
-      overlay.dismissTopic(HEAR_TOPIC);
       if (capabilitiesFailed) onReadAgain?.();
       setResult(undefined);
       const loop: PlaybackProvider<Finding> = {
@@ -171,15 +170,15 @@ export function HearIt({
         // A DAW that is recording keeps the room quiet whatever stopped it from looping: the app does not play over it (as a take does).
         keepQuiet: quietWhileRecording(() => daw.projectState(), dawName),
       });
-      if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
-      // What did not play, and why, is a toast with Retry, never a line in the row; a press that was replaced says nothing.
-      if (notice && pressed.current === press)
-        overlay.toast(notice, {
-          ...(by === null ? { tone: 'error' as const } : {}),
-          action: retryAction(() => mounted.current && pressed.current === press && again.current()),
-          topic: HEAR_TOPIC,
-        });
-      if (by === APP) setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
+      if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
+      // What did not play, and why, is a toast, never a line in the row. Retry only when nothing played: a note that fell back to the app and plays is not
+      // offered a Retry, which would stop it. A press that was replaced says nothing.
+      if (notice && newest.current(press))
+        overlay.toast(
+          notice,
+          by === null ? { tone: 'error', action: retryAction(() => newest.current(press) && again.current()), topic: HEAR_TOPIC } : undefined,
+        );
+      if (by === APP) setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
     });
   again.current = () => void start();
 

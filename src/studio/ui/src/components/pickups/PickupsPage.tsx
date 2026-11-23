@@ -20,7 +20,7 @@ import { ALL_SCOPE, pickupTime, inScope, reasonSentence, type ChapterRef } from 
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';
-import { usePlayOriginal } from './list/usePlayOriginal';
+import { ORIGINAL_TOPIC, usePlayOriginal } from './list/usePlayOriginal';
 import { retryAction } from '../primitives/Toast';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { addMarkers as addMarkersFor, useMarkersGate } from '../engine/AddMarkers';
@@ -30,9 +30,6 @@ import { usePickupsPageCommands } from './usePickupsPageCommands';
 import { useDawGoesToChapter } from '../../hooks/useDawGoesToChapter';
 import { useDawPullBack } from '../../hooks/useDawPullBack';
 import { useReadChapters } from '../../studio/useChapters';
-
-/** The Retry a line that did not play offers is one toast at a time; leaving the page withdraws it. */
-const ORIGINAL_TOPIC = 'pickups-original-retry';
 
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };
 /** How often a list that could not be read is tried again. */
@@ -73,10 +70,8 @@ export function PickupsPage({
   const overlay = useOverlay();
   const original = usePlayOriginal(
     (sentence, retry) => overlay.toast(sentence, { tone: 'error', ...(retry ? { action: retryAction(retry), topic: ORIGINAL_TOPIC } : {}) }),
-    (sentence, retry) => overlay.toast(sentence, retry ? { action: retryAction(retry), topic: ORIGINAL_TOPIC } : undefined),
-    () => overlay.dismissTopic(ORIGINAL_TOPIC),
+    (sentence) => overlay.toast(sentence),
   );
-  useEffect(() => () => overlay.dismissTopic(ORIGINAL_TOPIC), [overlay]);
   // The jump menu's Check recordings is off for the same reason the button is (#2833).
   const checkReason = useCheckRecordingsGate();
   const dawKind = useDawKind();

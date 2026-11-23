@@ -39,6 +39,8 @@ let audio: FakeAudio;
 const notices: string[] = [];
 const retries: ((() => void) | undefined)[] = [];
 const stopChapter = vi.fn();
+/** The id of a take the passage no longer offers. */
+let hidden: string | null = null;
 
 function mount(caps: DawCapabilities | null, client: Partial<DawClient> = {}, read?: DawRead) {
   const daw: DawClient = { ...createMockDawClient(DAW_SETUPS.reaper), ...client };
@@ -53,7 +55,7 @@ function mount(caps: DawCapabilities | null, client: Partial<DawClient> = {}, re
         caps,
         ...(read ? { read } : {}),
         mediaUrl: (f) => f,
-        passageOf: (t) => (LINE.takes.some((x) => x.id === t.id) ? LINE : null),
+        passageOf: (t) => (LINE.takes.some((x) => x.id === t.id && x.id !== hidden) ? { ...LINE, takes: LINE.takes.filter((x) => x.id !== hidden) } : null),
         stopChapter,
         notify: (text, retry) => {
           notices.push(text);
@@ -70,6 +72,7 @@ const flush = () =>
   });
 
 beforeEach(() => {
+  hidden = null;
   vi.useFakeTimers();
   audio = new FakeAudio();
   vi.stubGlobal('Audio', function () {
@@ -192,30 +195,45 @@ describe('before-the-daw-answers', () => {
     expect(notices).toEqual([]);
     expect(result.current.playingId).toBe('take-1');
   });
-  it('plays the take in the app when the DAW, not yet heard, refuses, says why and offers Retry, which asks the DAW again', async () => {
-    const previewTake = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: false, changed: false, message: 'Not linked.', undoSteps: 0, refused: 'Not linked.' })
-      .mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+  it('plays the take in the app when the DAW, not yet heard, refuses, and says why without a Retry, which would stop the take that plays', async () => {
+    const previewTake = vi.fn().mockResolvedValue({ ok: false, changed: false, message: 'Not linked.', undoSteps: 0, refused: 'Not linked.' });
     const { result } = mount(null, { previewTake });
     act(() => result.current.play(LINE.takes[0]));
     await flush();
     expect(audio.play).toHaveBeenCalled();
     expect(notices).toEqual([`Not linked. ${FELL_BACK}`]);
+    expect(retries[0]).toBeUndefined();
+    expect(result.current.playingId).toBe('take-1');
+  });
+  it('says why and offers Retry when nothing played at all, and Retry asks the DAW again', async () => {
+    const previewTake = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, changed: false, message: 'Recording.', undoSteps: 0, refused: 'Recording.' })
+      .mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const projectState = vi.fn().mockResolvedValue({ playState: 'recording' });
+    const { result } = mount(null, { previewTake, projectState });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(previewTake).toHaveBeenCalledTimes(1);
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toMatch(/recording/i);
     expect(retries[0]).toBeTypeOf('function');
-    act(() => result.current.stop());
+    projectState.mockResolvedValue({ playState: 'stopped' });
     act(() => retries[0]!());
     await flush();
     expect(previewTake).toHaveBeenCalledTimes(2);
   });
   it('a Retry offered for an older take plays nothing once a newer one was asked, and none plays after the page was left', async () => {
-    const previewTake = vi.fn().mockResolvedValue({ ok: false, changed: false, message: 'Not linked.', undoSteps: 0, refused: 'Not linked.' });
-    const { result, unmount } = mount(null, { previewTake });
+    const previewTake = vi.fn().mockResolvedValue({ ok: false, changed: false, message: 'Recording.', undoSteps: 0, refused: 'Recording.' });
+    const projectState = vi.fn().mockResolvedValue({ playState: 'recording' });
+    const { result, unmount } = mount(null, { previewTake, projectState });
     act(() => result.current.play(LINE.takes[0]));
     await flush();
     act(() => result.current.stop());
     act(() => result.current.play(LINE.takes[1]));
     await flush();
+    projectState.mockResolvedValue({ playState: 'stopped' });
     const calls = previewTake.mock.calls.length;
     act(() => retries[0]!());
     await flush();
@@ -224,6 +242,19 @@ describe('before-the-daw-answers', () => {
     act(() => retries[1]!());
     await flush();
     expect(previewTake).toHaveBeenCalledTimes(calls);
+  });
+  it('a Retry for a take no longer under its line plays nothing and says so', async () => {
+    const previewTake = vi.fn().mockResolvedValue({ ok: false, changed: false, message: 'Recording.', undoSteps: 0, refused: 'Recording.' });
+    const projectState = vi.fn().mockResolvedValue({ playState: 'recording' });
+    const { result } = mount(null, { previewTake, projectState });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    hidden = LINE.takes[0].id;
+    const calls = previewTake.mock.calls.length;
+    act(() => retries[0]!());
+    await flush();
+    expect(previewTake).toHaveBeenCalledTimes(calls);
+    expect(notices.at(-1)).toMatch(/not under its line any more/);
   });
   it('says a failed read, asks again, and plays the take in the app', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);

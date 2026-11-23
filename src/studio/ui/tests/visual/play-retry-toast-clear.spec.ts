@@ -14,7 +14,7 @@ const SIZES = [
 ] as const;
 
 for (const size of SIZES) {
-  test(`Proof: Hear it's Retry toast covers no button (${size.width}x${size.height})`, async ({ page }) => {
+  test(`Proof: Hear it's toast covers no button (${size.width}x${size.height})`, async ({ page }) => {
     // The DAW's capabilities never answer and its loop refuses: the click still asks it, and the app plays with the reason and a Retry.
     await page.addInitScript(() => {
       (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
@@ -31,7 +31,7 @@ for (const size of SIZES) {
       .first()
       .click();
     const toast = page.locator('[data-toast-region]');
-    await toast.getByRole('button', { name: 'Retry' }).waitFor();
+    await toast.getByText(/Played in the app instead/).waitFor();
     await expect(
       page.locator('[role="alert"]:not([data-toast-region] *)').filter({ hasText: /Played in the app instead/ }),
       'the reason is not a line in the row',
