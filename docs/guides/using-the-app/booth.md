@@ -604,8 +604,9 @@ If the book's chapters cannot be read when the Booth opens, it shows "This page 
 
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`.
 It opens on the chapter a reading session is running on. With none running, it opens on the chapter you last had open in the Booth
-in this project, as the Booth does. With none of those, it opens on the chapter your DAW's selected track is on, then on the chapter
-the app last had open for reading, then on the first chapter. The panel shows the reading session,
+in this project, as the Booth does. With none of those, it opens on the chapter your DAW's selected track is on, but only if REAPER
+answers while the panel is opening (the first 20 seconds), and never once you have started reading. Otherwise it opens on the chapter
+the app last had open for reading, then on the first chapter that is not a credits chapter. The panel shows the reading session,
 with a badge in its header, the script in its own scroll box, the reading controls and the hotkeys
 that work while the panel has focus. The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for its name and key. A chapter recorded part way opens with *Continuing at "…the next words"*, the same place the Booth opens it at (the word after the last one recorded), and **Play** starts there. **Change** listens to the end of the recording to find a different start (the choices below), and **Start from the top** reads from the beginning. A chapter with nothing recorded, or recorded to the end, goes straight to those choices. After **Stop reading**, the "Where you stopped" choices come back above the text for the next start. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
 panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its

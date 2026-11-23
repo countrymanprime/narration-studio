@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // Opening the Companion with no chapter asked for: the chapter a running session is on, else the one the Booth remembers for this
-// project (`loadLastPlace`, the one source), else the reader state's, else the first chapter. "Full app" returns to that chapter.
+// project (`loadLastPlace`, the one source), else the chapter the DAW is on (the Booth's `useFollowDawOnOpen`), else the reader state's,
+// else the first chapter. "Full app" returns to that chapter.
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -138,19 +139,33 @@ describe('the Companion opens on the chapter the Booth remembers', () => {
 
   it('the-remembered-chapter-wins-over-the-daws', async () => {
     saveLastPlace('/proj', place('chapter-3'));
-    const dawPlace = async () => ({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 });
+    const dawPlace = vi.fn(async () => ({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 }));
     await open('/companion', { readerState: ON_CHAPTER_1, dawPlace });
     await waitFor(() => expect(shown()).toBe('chapter-3'));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(shown()).toBe('chapter-3');
+    expect(dawPlace).not.toHaveBeenCalled();
   });
 
   it('a-running-session-wins-over-the-daw', async () => {
     const base = createMockApi();
-    const dawPlace = async () => ({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 });
+    const dawPlace = vi.fn(async () => ({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 }));
     await open('/companion', { dawPlace, teleprompterState: async () => ({ ...(await base.teleprompterState()), phase: 'running', chapter: 'chapter-2' }) });
     await waitFor(() => expect(shown()).toBe('chapter-2'));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(shown()).toBe('chapter-2');
+    expect(dawPlace).not.toHaveBeenCalled();
+  });
+
+  it('a-late-daw-answer-after-a-reading-started-does-not-change-the-chapter', async () => {
+    let answer: (place: Awaited<ReturnType<NarrationApi['dawPlace']>>) => void = () => {};
+    const dawPlace = () => new Promise<Awaited<ReturnType<NarrationApi['dawPlace']>>>((resolve) => (answer = resolve));
+    await open('/companion', { readerState: ON_CHAPTER_1, dawPlace });
+    await waitFor(() => expect(shown()).toBe('chapter-1'));
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Play' }));
+    await screen.findByRole('button', { name: 'Pause' });
+    answer({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(shown()).toBe('chapter-1');
   });
 });

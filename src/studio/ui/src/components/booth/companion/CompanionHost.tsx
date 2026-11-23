@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type MutableRefObject, type ReactNode } from 'react';
 import { headingName } from '../../../chapterHeading';
 import { useApi } from '../../../api/ApiContext';
 import { CommandScope } from '../../../input/router';
@@ -15,6 +15,7 @@ import { loadFlagVisibility } from '../readerPreferences';
 import { useFollowCursor } from '../useFollowCursor';
 import { useListeningMic } from '../listening/useListeningMic';
 import { useTeleprompterSession } from '../useTeleprompterSession';
+import { useLatchOnce } from '../page/useDawFollow';
 
 const NO_ENTITIES: GuideEntity[] = [];
 const NO_NOTES: ManuscriptNote[] = [];
@@ -34,6 +35,8 @@ type Props = {
   onFullApp: () => void;
   /** The credits' unresolved-token warning's "Fill them in Settings". */
   onFixCredits?: () => void;
+  /** Set once a reading has started and kept after it ends, as the Booth's `takeBusy`: a late answer from the DAW then does not change the chapter. */
+  readingStarted?: MutableRefObject<boolean>;
 };
 
 /**
@@ -43,7 +46,7 @@ type Props = {
  *
  * Flags the session raised are kept as findings when it ends and when the Companion is left, as in the Booth.
  */
-export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES, notes = NO_NOTES, onFullApp, onFixCredits }: Props) {
+export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES, notes = NO_NOTES, onFullApp, onFixCredits, readingStarted }: Props) {
   const api = useApi();
   const chapter = source.kind === 'chapter' ? source.chapter : undefined;
   const session = useTeleprompterSession({
@@ -51,6 +54,8 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
     chapter,
     credits: source.kind === 'credits' ? { kind: source.credits, text: source.preview.text } : undefined,
   });
+  const noLatch = useRef(false);
+  useLatchOnce(readingStarted ?? noLatch, session.active);
   // The Companion records in the DAW, so it listens on the DAW's own input as the Booth does (useListeningMic).
   useListeningMic({
     dawRecords: true,

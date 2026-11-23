@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
 import type { CreditsRenderResult, GuideEntity, GuideType, ManuscriptChapter, ManuscriptNote } from '../../../types';
@@ -80,9 +80,11 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
   }, [api, readChapters, projectFolder]);
 
   const asked = readBoothQuery(params)?.chapter;
+  // Latched once a reading starts in the Companion and kept after it ends, as the Booth keeps `takeBusy`.
+  const readingStarted = useRef(false);
   const chapterIds = useMemo(() => chapters?.map((item) => item.id), [chapters]);
-  // The Booth's own rule for a bare open (remembered place, else the chapter the DAW is on): one hook for both pages.
-  useFollowDawOnOpen({ enabled: asked === undefined && !placed, chapterIds, onChapter: setFollowed });
+  // The Booth's own hook for following the DAW on open (the DAW is asked once, within its time window), used here after the remembered place.
+  useFollowDawOnOpen({ enabled: asked === undefined && !placed, chapterIds, busy: () => readingStarted.current, onChapter: setFollowed });
   const chosen = asked ?? followed ?? fallback;
   const chapter = chapters?.find((item) => item.id === chosen);
   // A credits chapter has no paragraphs; it reads the credits' rendered text.
@@ -126,6 +128,7 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
         entities={source.kind === 'chapter' ? entities : undefined}
         types={source.kind === 'chapter' ? types : undefined}
         notes={source.kind === 'chapter' ? chapterNotes : undefined}
+        readingStarted={readingStarted}
         onFullApp={toBooth}
         onFixCredits={onFixCredits}
       />
