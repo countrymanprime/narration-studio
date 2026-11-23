@@ -10,6 +10,10 @@ const LEFT_TOPIC = STOP_FAILED_TOPIC;
 /** How long a Retry that is out is said to be, at most: the stop call's own limit and its retry, and a little more. */
 const TRYING_MS = 30_000;
 
+/** The sentences a failed stop says: plain messages, or with Retry, so each fits two lines beside its button (`TOAST_CHAR_BUDGET`). */
+export const LISTENING_STILL_OPEN = 'The Booth could not stop listening, so your microphone may still be open. Quit and reopen the app.';
+export const LISTENING_STOP_FAILED = 'The Booth could not stop listening, so your microphone may still be open. Press Retry.';
+
 type Overlay = Pick<OverlayService, 'toast' | 'dismissTopic'>;
 
 /**
@@ -18,7 +22,7 @@ type Overlay = Pick<OverlayService, 'toast' | 'dismissTopic'>;
  * start), with the next step. It goes when the host reports the session ended, and after the longest a toast stays.
  */
 export function sayListeningStillOpen(overlay: Overlay, subscribeState: (listener: (state: TeleprompterState) => void) => () => void): void {
-  overlay.toast('The Booth could not stop listening, so your microphone may still be open. Quit and reopen the app to be sure.', {
+  overlay.toast(LISTENING_STILL_OPEN, {
     tone: 'error',
     topic: LEFT_TOPIC,
     durationMs: TOAST_MAX_MS,
@@ -82,7 +86,7 @@ export function useStopFailedSentence(overlay: Overlay, session: Session): void 
   useEffect(() => {
     if (stopFailed) {
       said.current = true;
-      overlay.toast('The Booth could not stop listening, so your microphone may still be open. Press Retry.', {
+      overlay.toast(LISTENING_STOP_FAILED, {
         tone: 'error',
         topic: STOP_FAILED_TOPIC,
         durationMs: TOAST_MAX_MS,

@@ -787,7 +787,7 @@ describe('the roll of a take has a limit', () => {
     return { page, roll, lands };
   };
 
-  const LANDED = /A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./;
+  const LANDED = /A late roll has landed, so REAPER may be recording and a take may be cut\. Check REAPER\./;
   const CUT = LANDED;
 
   it('a roll that lands while the take still runs says to check the DAW and what to do with the take; nothing is stopped', async () => {
@@ -1163,7 +1163,7 @@ describe('a stop the app sent is not announced as REAPER stopping the take', () 
 });
 
 describe('a press the narrator left behind by changing chapter, whose take still records (#3409)', () => {
-  const UNHEARD = /The text could not follow your voice for the take that is still recording\. Press Stop, then record again\./;
+  const UNHEARD = /The text could not follow your voice for this take\. Press Stop, then record again\./;
   const stopRefused = { ok: false, changed: false, message: 'REAPER did not answer.', refused: 'REAPER did not answer.', undoSteps: 0 };
 
   /**

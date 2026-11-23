@@ -206,11 +206,8 @@ describe('a take started in the DAW (#3666)', () => {
     expect(hook.result.current.notFollowed).toBe(why);
     // The footer and the press say it too, not only the chip's tooltip.
     const clause = { other_track: 'on another track', several_tracks: 'with several tracks armed', no_track_armed: 'with no track armed' }[why];
-    if (clause)
-      expect(hook.result.current.reason).toBe(
-        `REAPER is already recording ${clause}, so the Booth is not following it. Stop it in REAPER before recording here.`,
-      );
-    else expect(hook.result.current.reason).toBe('REAPER is already recording. Stop it in REAPER before recording here.');
+    if (clause) expect(hook.result.current.reason).toBe(`REAPER is already recording ${clause}. Stop it there first.`);
+    else expect(hook.result.current.reason).toBe('REAPER is already recording. Stop it there first.');
   });
 
   it('with no project linked here, the reason is the missing link, in the footer and for the chip (walkthrough 6)', async () => {
@@ -219,7 +216,7 @@ describe('a take started in the DAW (#3666)', () => {
     await tick();
     expect(hook.result.current.recording).toBe(false);
     expect(hook.result.current.notFollowed).toBe('no_project');
-    expect(hook.result.current.reason).toBe('REAPER is already recording while no project file is linked here. Link a project file, then record here.');
+    expect(hook.result.current.reason).toBe('REAPER is already recording, and no project file is linked. Link one first.');
   });
 
   it('is not adopted when the read of the lane fails, and is on the next read that answers', async () => {

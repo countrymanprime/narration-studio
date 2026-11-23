@@ -140,6 +140,13 @@ const handListeningToPageOnScreen = (claim: ListeningClaim, recordId: string): b
 const UNFOLLOWED_WAIT_MS = 10_000;
 const UNFOLLOWED_TOPIC = 'booth-take-unfollowed';
 
+/** Said when a roll the Booth stopped waiting for lands after all: a plain message, so it fits two lines (`TOAST_CHAR_BUDGET`). */
+export const rollLandedSentence = (name: string, recorder: string): string =>
+  `A late roll has landed, so ${name} may be recording and a take may be cut. Check ${recorder}.`;
+
+/** Said when a take that is still recording lost its text-following: a plain message, so it fits two lines (`TOAST_CHAR_BUDGET`). */
+export const TAKE_UNFOLLOWED = 'The text could not follow your voice for this take. Press Stop, then record again.';
+
 /**
  * The Booth page's behaviour over its parts: the reading position (from the voice while listening, else the keys and clicks), one take
  * (the Record control starts and stops it; the listening session, the timer and the passage map's run follow it), the roll, the resume
@@ -732,13 +739,10 @@ export function useBoothPage(options: BoothPageOptions) {
         /** One short sentence for a roll that lands when its press is no longer current: it replaces the roll's timeout sentence, whose advice is stale. */
         const landed = () => {
           overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
-          overlay.toast(
-            `A roll the Booth stopped waiting for has landed. ${name} may be recording, and a take in progress may have been cut. Check ${recorderLabel}.`,
-            {
-              tone: 'error',
-              topic: ROLL_LANDED_TOPIC,
-            },
-          );
+          overlay.toast(rollLandedSentence(name, recorderLabel), {
+            tone: 'error',
+            topic: ROLL_LANDED_TOPIC,
+          });
         };
         const asked = await limited('roll', daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }), (late) => {
           // The app does nothing to the DAW for an answer it stopped waiting for: it cannot tell the roll's recording from the narrator's own, so a stale
@@ -1553,7 +1557,7 @@ function holdWhileMenuOpen(hold: () => () => void): () => void {
 
 /** The listening of a take ended without following it after its press was left behind by a chapter change, and the take still records here. */
 function sayTakeUnfollowed(overlay: Pick<OverlayService, 'toast'>): void {
-  overlay.toast('The text could not follow your voice for the take that is still recording. Press Stop, then record again.', {
+  overlay.toast(TAKE_UNFOLLOWED, {
     tone: 'error',
     topic: UNFOLLOWED_TOPIC,
   });

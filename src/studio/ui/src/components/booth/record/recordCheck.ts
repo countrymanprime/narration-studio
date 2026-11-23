@@ -24,6 +24,24 @@ export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread'>, stri
   no_project: 'while no project file is linked here',
 };
 
+/**
+ * The refusal when the DAW is recording a take this app did not start. It is a message with Check again, so it has to fit two lines beside that button
+ * (`TOAST_CHAR_BUDGET`), and says the reason and the fix and no more: the chip's tooltip adds that the Booth is not following the take.
+ * With no project file linked, stopping the take does not make Record ready: linking does.
+ */
+function elsewhereReason(name: string, why: NotFollowedWhy | null | undefined): string {
+  if (why === 'no_project') return `${name} is already recording, and no project file is linked. Link one first.`;
+  const clause = why && why !== 'unread' ? ` ${REFUSAL_CLAUSE[why]}` : '';
+  return `${name} is already recording${clause}. Stop it there first.`;
+}
+
+/** The same reasons in the refusal's words, without the chip's "so the Booth is not following it". `no_project` is worded by `elsewhereReason`. */
+const REFUSAL_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread' | 'no_project'>, string> = {
+  other_track: 'on another track',
+  several_tracks: 'with several tracks armed',
+  no_track_armed: 'with no track armed',
+};
+
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
 export type OpenProject = 'same' | 'different' | 'unknown';
 
@@ -50,10 +68,7 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
   }
   if (chapter.elsewhere) {
     const name = recorderNameCapital(capabilities.daw);
-    const why = chapter.notFollowed && chapter.notFollowed !== 'unread' ? ` ${NOT_FOLLOWED_CLAUSE[chapter.notFollowed]}` : '';
-    // With no project file linked, stopping the take does not make Record ready: linking does.
-    const next = chapter.notFollowed === 'no_project' ? 'Link a project file, then record here.' : `Stop it in ${name} before recording here.`;
-    return { code: 'recording_elsewhere', reason: `${name} is already recording${why}. ${next}` };
+    return { code: 'recording_elsewhere', reason: elsewhereReason(name, chapter.notFollowed) };
   }
   if (!capabilities.capabilities.track_state?.available) return null;
   if (chapter.tracks === 'unlinked') return { code: 'no_track', reason: chapter.message };

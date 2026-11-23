@@ -370,11 +370,9 @@ test('a roll that answers after Stop says to check the DAW and sends no stop', a
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   expect(await stops()).toBe(1);
-  await expect(
-    page
-      .getByText(/A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./)
-      .first(),
-  ).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/A late roll has landed, so REAPER may be recording and a take may be cut\. Check REAPER\./).first()).toBeVisible({
+    timeout: 10_000,
+  });
   // The app does nothing to the DAW for a stale answer: the one stop is the narrator's.
   expect(await stops()).toBe(1);
 });
@@ -407,7 +405,7 @@ test('a roll that answers while a newer take records does not stop that take', a
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
-  await expect(page.getByText(/a take in progress may have been cut/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/a take may be cut/).first()).toBeVisible({ timeout: 10_000 });
   expect(await stops()).toBe(1);
   expect(await dawRecording(page)).toBe(true);
   await expect(stop(page)).toBeVisible();
@@ -436,9 +434,7 @@ test('the late-roll toast is whole and uncovered at 360x500', async ({ page }) =
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await arm(page);
   await page.keyboard.press('r');
-  const late = page
-    .getByText(/A roll the Booth stopped waiting for has landed\. REAPER may be recording, and a take in progress may have been cut\. Check REAPER\./)
-    .first();
+  const late = page.getByText(/A late roll has landed, so REAPER may be recording and a take may be cut\. Check REAPER\./).first();
   await expect(late).toBeVisible({ timeout: 14_000 });
   // The timeout sentence is replaced, not left beside it.
   await expect(page.getByText(/press R to roll again/)).toHaveCount(0);
@@ -488,6 +484,6 @@ test('a roll that answers while Stop is still pending says the late sentence, no
   await page.keyboard.press('r');
   await page.waitForTimeout(1000);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/A roll the Booth stopped waiting for has landed\./).first()).toBeVisible({ timeout: 6000 });
+  await expect(page.getByText(/A late roll has landed/).first()).toBeVisible({ timeout: 6000 });
   await expect(page.getByText(/Rolling again from/)).toHaveCount(0);
 });
