@@ -214,6 +214,12 @@ function WithBoothBars({ children }: { children: ReactNode }) {
 /** Two long failures with Retry: one shows in the slot under the page with +1 behind it (the toasts stand under the page, so no bar is simulated). */
 export const TwoToastsAboveTheBoothBars: Story = {
   decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
+  // The count is the shared badge, named for a screen reader.
+  play: async () => {
+    const count = document.body.querySelector('[data-toast-more]');
+    await expect(count?.getAttribute('aria-label')).toBe('1 more message waiting');
+    await expect(count?.textContent).toBe('+1');
+  },
   args: {
     messages: [
       { ...failure(1, 'x'.repeat(10_000)), action },

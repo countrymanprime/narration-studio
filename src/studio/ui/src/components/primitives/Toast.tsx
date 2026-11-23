@@ -1,9 +1,11 @@
 import { TOAST_ROOM_EVENT } from '../../hooks/useToastClearance';
 import { HIT_AREA } from './hitArea';
+import { Badge } from './StatusBadge';
+import { plural } from '../../plural';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type ToastTone = 'info' | 'error';
@@ -64,11 +66,14 @@ function ToastItem({
   dismiss,
   waiting = false,
   more = 0,
+  onHeld,
 }: {
   message: ToastMessage;
   dismiss: (id: number) => void;
   waiting?: boolean;
   more?: number;
+  /** Tells the region whether a pointer or focus holds this toast, so a newer, higher-ranked message does not take the slot from under a hand. */
+  onHeld?: (id: number, held: boolean) => void;
 }) {
   // A message of more than two lines is read by scrolling its text, which then needs the keyboard too: the text takes focus only while it overflows (#2793).
   const text = useRef<HTMLSpanElement>(null);
@@ -91,6 +96,23 @@ function ToastItem({
   const focused = useRef(false);
   const [held, setHeld] = useState(false);
   const hold = () => setHeld(hover.current || focused.current);
+  useEffect(() => {
+    onHeld?.(message.id, held);
+    return () => onHeld?.(message.id, false);
+  }, [held, message.id, onHeld]);
+  // The second click of a double click (`detail` 2) is not a press: when the first click dismissed this toast's neighbour, the next toast took its place under the pointer and would take the second click (#4063).
+  const tooSoon = (event: { detail: number }) => event.detail >= 2;
+  // A key held down on a toast's button repeats: the repeats must not press it again, nor press what focus is handed to (#4063).
+  const keyHeld = useRef(false);
+  useEffect(() => {
+    const up = () => (keyHeld.current = false);
+    window.addEventListener('keyup', up, true);
+    return () => window.removeEventListener('keyup', up, true);
+  }, []);
+  const onButtonKey = (event: { repeat: boolean; preventDefault: () => void }) => {
+    if (event.repeat) event.preventDefault();
+    else keyHeld.current = true;
+  };
   // A toast under a pointer that is not moving is not hovered, however it came there (it appeared under the button that raised it, another toast above it went, it came back after a
   // dialog): the browser says the pointer entered, but the narrator did not reach for it, and holding it would keep it up for ever. Only a pointer that moves over the toast holds it (#4063).
   const pointerOn = () => {
@@ -115,22 +137,27 @@ function ToastItem({
   }, [held, stays]);
   // The control that had focus before the toast took it: where focus goes back once the toast is gone and no other toast is to take it.
   const origin = useRef<HTMLElement | null>(null);
-  const settle = (from: HTMLElement, always: boolean) => {
-    const all = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')].filter(
-      (button) => !button.closest('[hidden]'),
-    );
-    const own = from.closest('[data-tone]')?.querySelector<HTMLElement>('[aria-label="Dismiss message"]');
-    const at = own ? all.indexOf(own) : -1;
-    const target = all[at + 1] ?? all[at - 1] ?? origin.current;
+  const settle = (always: boolean) => {
+    // Where focus goes, looked up when it is handed over: where it was before the toast took it, else the Dismiss of the toast that has taken the slot by then, else <main>
+    // (an origin that is gone, a dialog that closed). Never <body>.
+    const resolve = (): HTMLElement | null => {
+      if (origin.current?.isConnected) return origin.current;
+      const next = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')].find(
+        (button) => !button.closest('[hidden]'),
+      );
+      return next ?? document.getElementById('main-content');
+    };
     dismiss(id);
     // Only focus that is on nothing is handed back: an action that opened a dialog or moved focus keeps what it did.
-    window.setTimeout(
-      () => {
-        const active = document.activeElement;
-        if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
-      },
-      always ? 0 : ACTION_FOCUS_MS,
-    );
+    const hand = () => {
+      const target = resolve();
+      const active = document.activeElement;
+      if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
+    };
+    const later = () => window.setTimeout(hand, always ? 0 : ACTION_FOCUS_MS);
+    // A key still held down would repeat on whatever gets focus: wait for it to come up.
+    if (keyHeld.current) window.addEventListener('keyup', later, { once: true, capture: true });
+    else later();
   };
   useEffect(() => {
     // A hold that starts in the fade brings the toast back: it was not taken away, and it gets its full time again on release.
@@ -196,29 +223,40 @@ function ToastItem({
         data-toast-text
         dir="auto"
         tabIndex={scrolls ? 0 : undefined}
+        // While it scrolls, the text keeps the keys that scroll it: the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts).
+        data-owns-keys={scrolls ? '' : undefined}
         className={`max-h-[2.5em] min-w-0 overflow-y-auto leading-tight [overflow-wrap:anywhere] ${scrolls ? TEXT_SCROLL_CUE : ''}`}
       >
         {message.text}
       </span>
       {more > 0 && (
+        // The shared badge in the toast's own colours; the count is named for a screen reader (the pill alone reads "plus 2").
         <span
           data-toast-more
-          title={`${more} more ${more === 1 ? 'message' : 'messages'} waiting`}
-          className="flex-none text-[0.75rem] font-semibold tabular-nums opacity-80"
+          role="img"
+          aria-label={`${plural(more, 'more message')} waiting`}
+          title={`${plural(more, 'more message')} waiting`}
+          className="flex-none"
         >
-          +{more}
+          <Badge
+            label={`+${more}`}
+            colors={{ fill: 'color-mix(in srgb, var(--toast-text) 18%, transparent)', text: 'var(--toast-text)', line: 'var(--toast-text)' }}
+            className="text-[0.75rem] font-semibold tabular-nums"
+          />
         </span>
       )}
       {message.action && (
         <button
           title={message.action.label}
           className={`min-h-6 max-w-[40%] min-w-6 flex-none truncate py-0.5 text-left font-semibold underline underline-offset-2 ${HIT_AREA}`}
+          onKeyDown={onButtonKey}
           onClick={(event) => {
+            if (tooSoon(event)) return;
             const button = event.currentTarget;
-            // Focus is handed to the next toast only when a key pressed the button (`detail` 0): a mouse press hands it nowhere, so focus the app moved is never a hold on a toast the narrator did not reach for (#4063).
+            // Focus is handed back only when a key pressed the button (`detail` 0): a mouse press hands it nowhere, so focus the app moved is never a hold on a toast the narrator did not reach for (#4063).
             const had = event.detail === 0 && button.contains(document.activeElement);
             message.action!.onAction();
-            if (had) settle(button, false);
+            if (had) settle(false);
             else dismiss(id);
           }}
         >
@@ -229,9 +267,11 @@ function ToastItem({
       <button
         aria-label="Dismiss message"
         className="inline-flex size-[var(--button-height-sm)] flex-none items-center justify-center rounded-[var(--radius-button)] hover:opacity-75"
+        onKeyDown={onButtonKey}
         onClick={(event) => {
-          // Dismissing the button that has focus must not drop focus on the page: it moves to the next toast's Dismiss, else the one before, else where it was before the toast.
-          if (event.detail === 0 && document.activeElement === event.currentTarget) settle(event.currentTarget, true);
+          if (tooSoon(event)) return;
+          // Dismissing the button that has focus must not drop focus on the page: it goes back to where it was before the toast, else to the toast that takes the slot, else to <main>.
+          if (event.detail === 0 && document.activeElement === event.currentTarget) settle(true);
           else dismiss(id);
         }}
       >
@@ -396,24 +436,38 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // The messages the app shows, newest last. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
-/** Which queued message shows: an action toast (an Undo, a Retry) first, then an error, then information; the oldest of a rank first, and a later one of a higher rank takes the slot. */
+/** An information toast with a button (an Undo, the scan's Show them): what its button can still do is timed from when it was raised, so it outranks everything. */
+const isUndoish = (message: ToastMessage): boolean => message.action !== undefined && message.tone === 'info';
+/** Which queued message shows: an information toast with a button (an Undo) first, then an error with a Retry, then an error, then information; the oldest of a rank first. */
 function rank(message: ToastMessage): number {
-  return message.action ? 0 : message.tone === 'error' ? 1 : 2;
+  return isUndoish(message) ? 0 : message.action ? 1 : message.tone === 'error' ? 2 : 3;
 }
-export function pickShown(queued: readonly ToastMessage[]): ToastMessage | undefined {
+export function pickShown(queued: readonly ToastMessage[], held?: number): ToastMessage | undefined {
   let best: ToastMessage | undefined;
   for (const message of queued) if (!best || rank(message) < rank(best)) best = message;
-  return best;
+  // A toast under a hand keeps the slot against a newer one of a higher rank, except an Undo: its time is short and fixed, a held toast gets its full time again once the Undo is gone.
+  const keep = held === undefined ? undefined : queued.find((message) => message.id === held);
+  return keep && best && !(isUndoish(best) && !isUndoish(keep)) ? keep : best;
 }
 
 export function ToastRegion({ messages: queued, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   const region = useRef<HTMLDivElement>(null);
+  const [heldId, setHeldId] = useState<number | undefined>();
+  const onHeld = useCallback((id: number, held: boolean) => setHeldId((now) => (held ? id : now === id ? undefined : now)), []);
   // One toast shows, in a slot that never changes size (#4063); the others wait their turn, with a count in the toast (`+N`), and nothing is drawn over a button. Which shows: `pickShown`. A waiting
-  // toast is not mounted, so its time starts when it shows, except one with an action (an Undo, a Retry): that stays mounted, not drawn, with its clock running, because what its action can still do is timed from when it was raised (the picker sends a removal 6 s after Remove; an Undo shown afresh answered "already removed", qa on #3745). An action toast ranks first, so only another action toast can make one wait, and it then shows for the time it has left. Over a dialog the same one toast shows, a box that fits the 4.75rem every dialog leaves under it (#3605).
-  const shown = pickShown(queued);
+  // toast is not mounted, so its time starts when it shows and every toast is on screen for its whole time, except an information toast with a button (an Undo): that stays mounted, not drawn, with its clock running,
+  // because what its button can still do is timed from when it was raised (the picker sends a removal 6 s after Remove; an Undo shown afresh answered "already removed", qa on #3745). It outranks every other
+  // toast, so only another Undo can make one wait, and then it shows for the time it has left, or not at all (the picker says so when a late Undo is pressed). A waiting message is read out at once (`data-toast-announce`).
+  // Over a dialog the same one toast shows, a box that fits the 4.75rem every dialog leaves under it (#3605).
+  const shown = pickShown(queued, heldId);
   const messages = shown ? [shown] : [];
   const waits = (message: ToastMessage) => message !== shown;
-  const mounted = queued.filter((message) => !waits(message) || message.action !== undefined);
+  const mounted = queued.filter((message) => !waits(message) || isUndoish(message));
+  const announce = (message: ToastMessage) => (
+    <span key={`announce-${message.id}`} data-toast-announce className="sr-only">
+      {message.text}
+    </span>
+  );
   const showing = messages.length > 0;
   useToastSlot();
   useToastHeightPublished(region, showing);
@@ -433,17 +487,33 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
       className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[var(--toast-bottom,var(--page-gutter))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end [&>div:not(:empty)+div:not(:empty)]:mt-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)] [@media(max-height:520px)]:bottom-[calc(var(--page-gutter)+min(var(--toast-clear,0px),calc(100dvh-2*var(--page-gutter)-8rem)))]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
+        {queued.filter((message) => waits(message) && message.tone === 'error').map(announce)}
         {mounted
           .filter((message) => message.tone === 'error')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} waiting={waits(message)} more={waits(message) ? 0 : queued.length - 1} />
+            <ToastItem
+              key={message.id}
+              message={message}
+              dismiss={dismiss}
+              waiting={waits(message)}
+              more={waits(message) ? 0 : queued.length - 1}
+              onHeld={onHeld}
+            />
           ))}
       </div>
       <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
+        {queued.filter((message) => waits(message) && message.tone === 'info').map(announce)}
         {mounted
           .filter((message) => message.tone === 'info')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} waiting={waits(message)} more={waits(message) ? 0 : queued.length - 1} />
+            <ToastItem
+              key={message.id}
+              message={message}
+              dismiss={dismiss}
+              waiting={waits(message)}
+              more={waits(message) ? 0 : queued.length - 1}
+              onHeld={onHeld}
+            />
           ))}
       </div>
     </div>,

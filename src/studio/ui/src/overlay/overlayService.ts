@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { DialogSize } from '../components/primitives/Dialog';
-import type { ToastAction, ToastMessage, ToastTone } from '../components/primitives/Toast';
+import { pickShown, type ToastAction, type ToastMessage, type ToastTone } from '../components/primitives/Toast';
 
 /** What a toast's Undo runs. Structurally the journal's `Result`, so the caller passes `entry.undo` without this folder importing the journal. */
 type UndoResult = { ok: true } | { ok: false; refusal: { reason: string } };
@@ -71,6 +71,8 @@ type OverlaySnapshot = {
   announcement: string;
 };
 
+/** A message of nothing a person can see: spaces, zero-width and format characters (a zero-width space or joiner, the byte-order mark), the Braille blank and the Hangul fillers. */
+const INVISIBLE_ONLY = /^[\s\p{Cf}\u2800\u3164\uFFA0\u115F\u1160]*$/u;
 const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 
 /** How many toasts show at once; the oldest plain information toast goes first, then the oldest information toast with an action, then the oldest error. */
@@ -154,7 +156,7 @@ export function createOverlayService(): OverlayService {
   const toast = (raw: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     // Bidi controls (an override that reverses the words after it) are not text a narrator reads; a message of nothing else is not a message.
     const text = raw.replace(BIDI_CONTROLS, '');
-    if (text.trim() === '') return;
+    if (INVISIBLE_ONLY.test(text)) return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = {
       id: ++lastId,
@@ -174,11 +176,13 @@ export function createOverlayService(): OverlayService {
       (options.topic !== undefined && old.topic === options.topic) || (old.action?.label === options.action?.label && old.text === text && old.tone === tone);
     const queue = [...snapshot.toasts.filter((old) => !again(old)), message];
     while (queue.length > OVERLAY_TOAST_LIMIT) {
-      // The oldest plain notice goes first: a toast with an action (an Undo) is something to press, so a burst of notices does not take it.
-      const older = queue.slice(0, -1);
-      const plain = older.findIndex((m) => m.tone === 'info' && !m.action && !m.undo);
-      const info = plain >= 0 ? plain : older.findIndex((m) => m.tone === 'info');
-      queue.splice(info >= 0 ? info : 0, 1);
+      // Never the toast on screen (one shows, `pickShown`) and never the newest. The oldest plain notice goes first: a toast with a button (an Undo) is something to press, so a burst of
+      // notices does not take it; then an information toast with a button that is not an Undo's, then an error, and an Undo last.
+      const showing = pickShown(queue)?.id;
+      const older = queue.slice(0, -1).filter((m) => m.id !== showing);
+      const cost = (m: ToastMessage) => (m.tone === 'info' && !m.action && !m.undo ? 0 : m.tone === 'info' && !m.undo ? 1 : m.tone === 'error' ? 2 : 3);
+      const evict = older.reduce<ToastMessage | undefined>((best, m) => (!best || cost(m) < cost(best) ? m : best), undefined);
+      queue.splice(evict ? queue.indexOf(evict) : 0, 1);
     }
     update({ toasts: queue });
   };

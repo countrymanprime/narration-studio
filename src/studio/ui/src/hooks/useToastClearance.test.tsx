@@ -127,6 +127,23 @@ describe('useToastSideClearance', () => {
     expect(read()).toBe('');
   });
 
+  it('leaves the toasts at the right gutter when the panel ends above the strip the shell keeps for them (#4063)', () => {
+    vi.stubGlobal('innerWidth', 1440);
+    vi.stubGlobal('innerHeight', 900);
+    document.documentElement.style.setProperty('--toast-slot', '80px');
+    try {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440, bottom: 820 } as DOMRect);
+      render(<Panel />);
+      expect(read()).toBe('');
+      // Reaching into the strip (a panel taller than the page), it still clears the toast.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440, bottom: 900 } as DOMRect);
+      act(() => void window.dispatchEvent(new Event('toast-room')));
+      expect(read()).toBe('392px');
+    } finally {
+      document.documentElement.style.removeProperty('--toast-slot');
+    }
+  });
+
   // #3113: Proof draws its page after the data arrives, so the panel is not there when the hook first runs; the toasts then covered its decision buttons.
   it('moves the toasts left of a panel that mounts after the page does', async () => {
     vi.stubGlobal('innerWidth', 1440);

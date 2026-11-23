@@ -56,7 +56,8 @@ const CASES: Case[] = [
       await page.goto('/?mockChapters=fails&mockProfileRead=fails');
       await settlePage(page);
       await goToPage(page, 'Master & QC');
-      await expect.poll(() => page.locator('[data-tone="error"]').count()).toBeGreaterThanOrEqual(2);
+      // One error shows, the other waits behind it with a count (#4063).
+      await expect(page.locator('[data-toast-more]')).toHaveCount(1);
       await expect(page.getByRole('button', { name: 'Retry' }).first()).toBeVisible();
     },
   },
@@ -250,4 +251,40 @@ test('a toast publishes the room it takes while it shows, and a dialog reads it'
   await expect.poll(toastHeight).not.toBe('');
   await page.getByRole('button', { name: 'Dismiss message' }).click();
   await expect.poll(toastHeight, 'no toast, no room').toBe('');
+});
+
+// A key held down on a toast's Retry presses it once and hands focus to nothing that would repeat (#4063): both recent projects stay.
+test("holding Enter on a toast's Retry activates no other control", async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+  const before = await page.getByRole('button', { name: /^Remove .* from recent projects/ }).count();
+  await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('Hold me'));
+  const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
+  await retry.focus();
+  await page.keyboard.down('Enter');
+  for (let n = 0; n < 12; n += 1) {
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(40);
+  }
+  await page.waitForTimeout(400);
+  await page.keyboard.up('Enter');
+  await page.waitForTimeout(300);
+  expect(await page.getByRole('button', { name: /^Remove .* from recent projects/ }).count(), 'a repeat pressed a page control').toBe(before);
+  await expect(page.locator('[data-toast-region] [data-tone]')).toHaveCount(0);
+});
+
+// A double click on a toast's Retry or Dismiss acts on one toast: the next one takes the slot under the pointer between the clicks (#4063).
+test('a double click on Dismiss dismisses one toast of a queue', async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+  for (const text of ['Alpha failed', 'Beta failed', 'Gamma failed'])
+    await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+  const toast = page.locator('[data-toast-region] [data-tone]:not([hidden]) [data-toast-text]');
+  await expect(toast).toHaveText('Alpha failed');
+  await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).dblclick();
+  await expect(toast).toHaveText('Beta failed');
+  await page.waitForTimeout(600);
+  await expect(toast).toHaveText('Beta failed');
 });

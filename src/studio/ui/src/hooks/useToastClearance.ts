@@ -107,7 +107,10 @@ export function useToastSideClearance(panel: RefObject<HTMLElement | null>): voi
     const root = document.documentElement;
     const apply = (): void => {
       const box = element.getBoundingClientRect();
-      const beside = box.width > 0 && box.width < window.innerWidth * SIDE_COLUMN_MAX_SHARE && box.right >= window.innerWidth - SIDE_EDGE_SLACK;
+      // A column that ends above the strip the shell keeps for the toast (`--toast-slot`) is not under it: the toast stands at the right gutter like on every other page (#4063).
+      const slot = Number.parseFloat(root.style.getPropertyValue('--toast-slot')) || 0;
+      const aboveSlot = slot > 0 && box.bottom <= window.innerHeight - slot + 1;
+      const beside = !aboveSlot && box.width > 0 && box.width < window.innerWidth * SIDE_COLUMN_MAX_SHARE && box.right >= window.innerWidth - SIDE_EDGE_SLACK;
       if (beside) root.style.setProperty(TOAST_CLEAR_RIGHT_VAR, `${Math.ceil(box.width + 12)}px`);
       else root.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
     };
@@ -115,9 +118,11 @@ export function useToastSideClearance(panel: RefObject<HTMLElement | null>): voi
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
     observer?.observe(element);
     window.addEventListener('resize', apply);
+    window.addEventListener(TOAST_ROOM_EVENT, apply);
     detach.current = () => {
       observer?.disconnect();
       window.removeEventListener('resize', apply);
+      window.removeEventListener(TOAST_ROOM_EVENT, apply);
       root.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
     };
   });

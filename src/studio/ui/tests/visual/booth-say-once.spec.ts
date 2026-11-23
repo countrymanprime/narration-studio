@@ -257,3 +257,36 @@ for (const [name, invisible] of [
     expect((await text.boundingBox())!.width).toBeGreaterThan(20);
   });
 }
+
+// The toast's text takes focus while it scrolls so the keyboard reaches all of it; its keys scroll it and never start a recording or move the reading cursor (#4063).
+test('Space, the arrows and Page Down in a focused, scrolling toast text scroll it and start no recording', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(
+    (sentence) => {
+      const w = window as unknown as { __starts: number; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+      w.__starts = 0;
+      w.__NARRATION_MOCK_OVERRIDES__ = {
+        readAloudRecordStart: () => {
+          w.__starts += 1;
+          return Promise.resolve({ ok: false, outcome: 'refused', message: sentence, refused: sentence });
+        },
+      };
+    },
+    `${'The armed track is locked, so REAPER would not start recording. '.repeat(40)}Unlock it and try again.`,
+  );
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  const text = page.locator('[data-toast-region] [data-tone="error"] [data-toast-text]');
+  await expect(text).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __starts: number }).__starts)).toBe(1);
+  await text.focus();
+  await expect(text).toBeFocused();
+  for (const key of ['Space', 'ArrowDown', 'PageDown', 'ArrowDown']) await page.keyboard.press(key);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as unknown as { __starts: number }).__starts), 'a key meant for the toast text started a recording').toBe(1);
+  expect(await text.evaluate((el) => el.scrollTop), 'the keys scroll the toast text').toBeGreaterThan(0);
+});
