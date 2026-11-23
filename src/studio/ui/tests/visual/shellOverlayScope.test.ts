@@ -29,6 +29,7 @@ describe('the shell overlay scope', () => {
     expect(names).toEqual(
       [
         'context menu on the page',
+        'error toast with Retry',
         'navigation rail opened over the page',
         'hint on Switch project',
         'hint on Jump to or run',
@@ -40,7 +41,11 @@ describe('the shell overlay scope', () => {
   });
 
   it('keeps the page-relative cases on every page, and the top-bar cases on three', () => {
-    expect(shellPageCases.map((overlay) => overlay.name)).toEqual(['context menu on the page', 'navigation rail opened over the page']);
+    expect(shellPageCases.map((overlay) => overlay.name)).toEqual([
+      'context menu on the page',
+      'error toast with Retry',
+      'navigation rail opened over the page',
+    ]);
     expect(new Set(SHELL_CHROME_PAGES).size).toBe(3);
     for (const page of SHELL_CHROME_PAGES) expect(Object.keys(GUARDED_PAGES)).toContain(page);
   });

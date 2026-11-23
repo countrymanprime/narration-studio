@@ -10,6 +10,7 @@ import type { NarrationApi } from '../../../types';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, CHAPTERS, dawFor, LOCATED, newJournal, pageApi } from './testPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 // The Booth page (docs/research/mockups/research-mock/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
 type Args = {
@@ -77,10 +78,12 @@ function Page({ setup, resume, pickups = false, roomTone, unsaved = false, navig
             teleprompterLocate: async () => LOCATED,
             // Chapter One is recorded to the third word of the second paragraph: the top bar says how far.
             manuscriptChapters: async () =>
-              CHAPTERS.map((chapter) =>
-                chapter.id === 'c1'
-                  ? { ...chapter, recordedThrough: { paragraphId: 'p2', word: 3, percent: 45, complete: false, source: 'booth' as const, confident: true } }
-                  : chapter,
+              chaptersOf(
+                CHAPTERS.map((chapter) =>
+                  chapter.id === 'c1'
+                    ? { ...chapter, recordedThrough: { paragraphId: 'p2', word: 3, percent: 45, complete: false, source: 'booth' as const, confident: true } }
+                    : chapter,
+                ),
               ),
           }
         : {}),

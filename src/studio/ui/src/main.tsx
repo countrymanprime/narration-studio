@@ -1,3 +1,5 @@
+import { overlay } from './overlay/overlayService';
+import { retryAction } from './components/primitives/Toast';
 import { AUDACITY_LINK_MOCK_SEEDS, type AudacityLinkMockName } from './api/audacityLinkMock';
 import { DAW_CHOICE_MOCK_SEEDS, type DawChoiceMockName } from './api/dawChoiceMock';
 import { DAW_MOCK_SCRIPTS, type DawMockControl, type DawMockSeed } from './api/dawMock';
@@ -772,6 +774,15 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </React.StrictMode>,
 );
+
+// The mock build lets the visual suite raise a toast on any page (`tests/visual/toast-covers-no-button.spec.ts`): the message the app raises
+// for a failed action, with Retry. Only the mock build holds it; the shipped build drops the branch.
+// Builds new because: no existing mock hook or seed raises a toast on any page (`__NARRATION_MOCK_DAW__`, `__NARRATION_MOCK_BASE__` and the mock-state seeds set app state), and the real flows that do (a failed
+// save, a Booth take) each need a project, a DAW or a recording first, so the guard could not reach every page with the same toast.
+if (import.meta.env.VITE_USE_MOCK_API === '1') {
+  (window as unknown as { __raiseToast?: (text: string) => void }).__raiseToast = (text) =>
+    overlay.toast(text, { tone: 'error', action: retryAction(() => undefined) });
+}
 
 // `?mockPanel=1` opens the dev-only Mock states panel beside the app. Only the mock build reaches the dynamic import, so the
 // shipped build holds neither the panel nor its sentence.

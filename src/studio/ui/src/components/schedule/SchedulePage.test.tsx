@@ -14,6 +14,7 @@ import { createJournal, type Journal } from '../../studio/journal/createJournal'
 import type { NarrationApi } from '../../types';
 import { SchedulePage } from './SchedulePage';
 import { chapterList } from './scheduleKit.test';
+import { chaptersOf } from '../../api/chaptersOf';
 
 const TODAY = new Date(2026, 9, 1);
 const REC: ProductionMilestone = { name: 'All chapters recorded', dueDate: '2026-10-06', measure: 'rec' };
@@ -38,10 +39,10 @@ async function mount({ seed = {}, statuses = ['not_started', 'not_started'], pro
     {
       manuscriptChapters: async () => {
         const list = chapterList(statuses);
-        if (!credits) return list;
+        if (!credits) return chaptersOf(list);
         // The opening and closing credits are chapters of the list like any other (owner rule), here not started.
         const credit = (id: string, index: number) => ({ ...list[0]!, id, title: id, index, status: 'not_started' as const, isCredits: true as const });
-        return [credit('credits-opening', 0), ...list, credit('credits-closing', list.length + 1)];
+        return chaptersOf([credit('credits-opening', 0), ...list, credit('credits-closing', list.length + 1)]);
       },
       deliveryProfiles: async () => ({
         profiles: [],

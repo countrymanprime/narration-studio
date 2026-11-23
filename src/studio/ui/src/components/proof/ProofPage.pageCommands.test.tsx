@@ -82,7 +82,7 @@ describe('proof-page-commands', () => {
 
   it('lists-All-chapters-and-each-chapter-from-the-manuscript-and-follows-the-chapter-showing', async () => {
     const api = createMockApi();
-    const narration = (await api.manuscriptChapters()).filter((c) => (c.contentKind ?? 'narration') === 'narration');
+    const narration = (await api.manuscriptChapters()).chapters.filter((c) => (c.contentKind ?? 'narration') === 'narration');
     renderPage({ api });
     await ready();
     expect(items('Chapters').map((row) => row.label)).toEqual(['All chapters', ...narration.map((c) => headingName(c))]);

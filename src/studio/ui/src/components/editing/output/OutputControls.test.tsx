@@ -117,7 +117,7 @@ describe('the Output popover', () => {
     render(<Host start={{ device: 'Old interface' }} onCheckDevices={onCheckDevices} />);
     const dialog = await openOutput();
     expect((within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLSelectElement).value).toBe('Old interface');
-    expect(within(dialog).getByRole('option', { name: 'Old interface (not connected)' })).toBeTruthy();
+    expect(within(dialog).getByRole('option', { name: 'Not connected: Old interface' })).toBeTruthy();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Check again' }));
     expect(onCheckDevices).toHaveBeenCalledOnce();
   });
@@ -147,12 +147,12 @@ describe('the Output popover', () => {
   it('a saved output is "could not check" when the list would not come, "not connected" only when the list is fine and it is absent', async () => {
     const view = render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} start={{ device: 'Studio monitors' }} />);
     let dialog = await openOutput();
-    expect(within(dialog).getByRole('option', { name: 'Studio monitors (could not check)' })).toBeTruthy();
+    expect(within(dialog).getByRole('option', { name: 'Could not check: Studio monitors' })).toBeTruthy();
     expect(within(dialog).queryByRole('option', { name: /not connected/ })).toBeNull();
     view.unmount();
     render(<Host devices={ready(['Speakers'])} start={{ device: 'Studio monitors' }} />);
     dialog = await openOutput();
-    expect(within(dialog).getByRole('option', { name: 'Studio monitors (not connected)' })).toBeTruthy();
+    expect(within(dialog).getByRole('option', { name: 'Not connected: Studio monitors' })).toBeTruthy();
   });
 
   it('keeps the choice on, with the system default, when no outputs can be listed and none is saved (never a dead control)', async () => {

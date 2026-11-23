@@ -108,5 +108,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/hooks/useErrorToast.ts`
 - `src/hooks/useToasts.ts`
 - `src/jobEnded.ts`
+- `src/main.tsx`
 - `src/overlay/OverlayHost.tsx`
 - `src/overlay/overlayService.ts`

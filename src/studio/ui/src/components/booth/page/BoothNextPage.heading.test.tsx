@@ -14,6 +14,7 @@ import type { NarrationApi, TeleprompterState } from '../../../types';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, CHAPTERS, dawFor, newJournal, pageApi } from './testPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 beforeEach(() => forgetAppTake());
 afterEach(() => {
@@ -87,7 +88,7 @@ function renderPage({
   const chapters = CHAPTERS.map((item) => (item.id === 'c1' ? { ...item, ...chapter } : item));
   render(
     <BoothHost
-      api={pageApi({ passageMapRecordRun: async () => {}, manuscriptChapters: async () => chapters, ...host.api } as Partial<NarrationApi>)}
+      api={pageApi({ passageMapRecordRun: async () => {}, manuscriptChapters: async () => chaptersOf(chapters), ...host.api } as Partial<NarrationApi>)}
       daw={dawFor('reaper')}
       journal={newJournal()}
       overlay={overlay}

@@ -28,6 +28,7 @@ import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
 import { claimAttachRefusal } from './components/connection/attachRefusal';
 import { outwaitEcho } from './components/primitives/outwaitEcho';
+import { chaptersOf } from './api/chaptersOf';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -370,8 +371,11 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     act(() =>
       announce({ id: 'run-1', kind: 'transcript_compare', outcome: 'error', message: 'The comparison could not read the REAPER audio.', durationMs: 900 }),
     );
+    // Toasts show one after another (#4063): the failure is read out at once, and is drawn when the rebuild message has gone.
     const alert = within(appToasts('alert'));
     expect(alert.getByText('The comparison could not read the REAPER audio.')).toBeTruthy();
+    expect(alert.queryByRole('button', { name: 'Dismiss message' })).toBeNull();
+    fireEvent.click(within(appToasts('status')).getByRole('button', { name: 'Dismiss message' }));
     fireEvent.click(alert.getByRole('button', { name: 'Dismiss message' }));
     expect(screen.queryByText('The comparison could not read the REAPER audio.')).toBeNull();
 
@@ -487,6 +491,105 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     release();
     act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
     expect(within(appToasts('alert')).getByText(/The app is busy/)).toBeTruthy();
+  });
+
+  it('a project attach closes every question and dialog a page opened for the old project, and nothing they would have done happens (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const onConfirm = vi.fn();
+    // The Editor's cut question and a form dialog: both are opened through the overlay service by a page, for that page's project; the question stacks above.
+    act(() => void overlay.open({ kind: 'dialog', title: 'Milestone', dismissOnOutsidePress: false, render: () => <p>A form for the old project</p> }));
+    let question: Promise<void> = Promise.resolve();
+    act(() => {
+      question = overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm);
+    });
+    expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
+    expect(screen.getByText('A form for the old project')).toBeTruthy();
+    act(() => attach!({ attached: true }));
+    await question;
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.queryByText('A form for the old project')).toBeNull();
+    // The question was answered No: its confirm path (the cut, its record) did not run.
+    expect(onConfirm).toHaveBeenCalledWith(false);
+    // Text typed into a dialog that went is gone: the narrator is told why, once.
+    expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
+  });
+
+  it('a dialog opened after the attach but before the new project loads is closed when the new project arrives (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    const source = createMockApi();
+    const first = await source.bootstrap();
+    const named = (name: string) => ({ ...first, projectFolder: `/${name}`, projectName: name });
+    let answer: ((value: Awaited<ReturnType<typeof source.bootstrap>>) => void) | undefined;
+    let attached = false;
+    renderApp({
+      bootstrap: () => (attached ? new Promise((resolve) => (answer = resolve)) : Promise.resolve(named('Alpha'))),
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await waitFor(() => expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0));
+    await waitFor(() => expect(attach).toBeDefined());
+    attached = true;
+    act(() => attach!({ attached: true }));
+    await waitFor(() => expect(answer).toBeDefined());
+    // The page still shows the old project's data: a question opened now is about Alpha's chapter.
+    const onConfirm = vi.fn();
+    act(() => {
+      void overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm);
+    });
+    expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
+    act(() => answer!(named('Beta')));
+    await waitFor(() => expect(screen.getAllByText('Beta').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(onConfirm).toHaveBeenCalledWith(false);
+  });
+
+  it('puts focus on the page when the project change removes a layer a page held itself, not on the document body (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    // A layer drawn from a page's own state, with focus inside it; the page's remount takes it away (here: removed by hand in the same tick).
+    const layer = document.createElement('div');
+    layer.setAttribute('role', 'dialog');
+    layer.innerHTML = '<button id="held-layer-button">Inside</button>';
+    document.body.appendChild(layer);
+    document.getElementById('held-layer-button')!.focus();
+    expect(document.activeElement?.id).toBe('held-layer-button');
+    act(() => {
+      attach!({ attached: true });
+      layer.remove();
+    });
+    await waitFor(() => expect(document.activeElement?.id).toBe('main-content'));
+    expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
+  });
+
+  it('says nothing when a project change closes no dialog (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    act(() => attach!({ attached: true }));
+    await waitFor(() => expect(screen.queryByText('The project changed, so what was open was closed.')).toBeNull());
   });
 
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
@@ -730,7 +833,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('opens the engine panel from the engine chip, without a manuscript, with the project and no track list', async () => {
     const source = createMockApi();
     // A project with no manuscript has no chapters: the host's list is empty (the mock answers its sample book whatever the bootstrap says).
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => chaptersOf([]) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(screen.queryAllByRole('button', { name: 'Tracks' })).toHaveLength(0);
 
@@ -1009,7 +1112,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('keeps a /manuscript link on the Script page, which asks for the manuscript, when there is none', async () => {
     window.history.replaceState(null, '', '/manuscript#p5');
     const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => chaptersOf([]) });
     await screen.findByText('This project has no manuscript yet. Import one to begin.');
     expect(window.location.pathname).toBe('/script');
   });
@@ -1032,7 +1135,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     try {
       window.history.replaceState(null, '', `${path}?mockNoManuscript=1`);
       const source = createMockApi();
-      renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+      renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => chaptersOf([]) });
       expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
       // Schedule's title is drawn while it reads its plan, so the heading is not proof the empty state has arrived: wait for its text.
       expect((await screen.findAllByText(/no manuscript yet/i)).length).toBeGreaterThan(0);
@@ -1347,7 +1450,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       bootstrap,
       manuscriptImportPreview: preview,
       manuscriptImportState: async () => hostJob,
-      manuscriptChapters: async () => (imported ? importedChapters : []),
+      manuscriptChapters: async () => (imported ? chaptersOf(importedChapters) : chaptersOf([])),
       manuscriptImportCommit: async (): Promise<WorkJob> => {
         imported = true;
         return (hostJob = {
@@ -1772,11 +1875,14 @@ describe('App Back and Forward', () => {
         hold: async () => {
           const base = createMockApi();
           const types = await base.marksList();
-          for (const chapter of (await base.manuscriptChapters()).filter((row) => !row.isCredits)) {
+          for (const chapter of (await base.manuscriptChapters()).chapters.filter((row) => !row.isCredits)) {
             const [line] = await base.manuscriptParagraphs(chapter.id);
             if (line) await base.marksAdd(chapter.id, line.id, 0, 5, types.types[0]!.key, 'A note');
           }
-          renderApp({ marksList: () => base.marksList(), manuscriptChapters: async () => withoutCredits(await base.manuscriptChapters()) });
+          renderApp({
+            marksList: () => base.marksList(),
+            manuscriptChapters: async () => chaptersOf(withoutCredits((await base.manuscriptChapters()).chapters)),
+          });
           await screen.findByRole('heading', { level: 1, name: 'Production' });
           fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]!);
           await screen.findByRole('heading', { name: 'Script' });
@@ -2866,7 +2972,7 @@ describe('App shell mounts', () => {
   });
 
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
-    const manuscriptChapters = vi.fn().mockResolvedValue([]);
+    const manuscriptChapters = vi.fn().mockResolvedValue(chaptersOf([]));
     renderApp({ manuscriptChapters, bootstrap: bootstrapWithCandidate({ path: 'a.docx', name: 'a.docx' }) });
     // The shell has mounted; the import step for the candidate can open first and make it inert, so look past that.
     await screen.findByRole('button', { name: /Jump to or run/, hidden: true });
@@ -2876,11 +2982,14 @@ describe('App shell mounts', () => {
   it('refreshes-after-an-import: a job:ended event makes the jump menu list the new chapters', async () => {
     const listeners = new Set<(event: never) => void>();
     const ended = (event: never) => listeners.forEach((l) => l(event));
-    const chapters = withoutCredits(await createMockApi().manuscriptChapters());
+    const chapters = withoutCredits((await createMockApi().manuscriptChapters()).chapters);
     let list = chapters.slice(0, 1);
     const extra = { ...chapters[0]!, id: 'chapter-new', index: 99, title: 'Zzyzx Afterword' };
     onSchedule();
-    renderApp({ manuscriptChapters: async () => list, subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)) });
+    renderApp({
+      manuscriptChapters: async () => chaptersOf(list),
+      subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
+    });
     const button = await openJumpFromHeader('Schedule');
     // The first chapter is listed once the slot has answered; "Zzyzx" is not in the first list.
     await optionsAfterReopening(button, 'Go to Chapter', CHAPTER_OPTION);
@@ -2901,12 +3010,12 @@ describe('App shell mounts', () => {
     const listeners = new Set<(event: never) => void>();
     const ended = (event: never) => listeners.forEach((l) => l(event));
     const base = createMockApi();
-    const chapters = await base.manuscriptChapters();
+    const chapters = (await base.manuscriptChapters()).chapters;
     onSchedule();
     renderApp({
       manuscriptChapters: async () => {
         if (fail) throw new Error('boom');
-        return chapters;
+        return chaptersOf(chapters);
       },
       subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
     });

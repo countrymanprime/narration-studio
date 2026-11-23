@@ -136,7 +136,7 @@ export function BoothFooter({
     ]),
     dawName,
   );
-  // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
+  // The footer is a bottom bar the shell keeps clear of messages (they stand in a strip under the page); the registration is for what is fixed over its edge.
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
   // One sentence at a time (alignment audit R3BO-5): why the text cannot follow the voice, in the warning colour, wins; Record's own reason

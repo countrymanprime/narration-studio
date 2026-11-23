@@ -22,6 +22,7 @@ import { onPickupListChanged } from './pickupListChanged';
 import { readBoothQuery, readPickupIds } from '../booth/page/boothQuery';
 import { CHAPTERS, MIXED, pickup } from './list/pickupFixtures';
 import { boothSessionPath, PickupsPage } from './PickupsPage';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(() => {
   cleanup();
@@ -36,7 +37,7 @@ function renderPage(
   journal: Journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
   dawFileLinked = true,
 ) {
-  vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters as never);
+  vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chaptersOf(chapters as never));
   const goTo = vi.fn();
   const goToScript = vi.fn();
   render(
@@ -460,7 +461,7 @@ describe('adding-lines-as-markers-says-what-happened', () => {
   const renderWith = (changed: boolean, list: PickupList = LIST) => {
     const api = createMockApi({ pickupsList: () => Promise.resolve(list) });
     vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
-      CHAPTERS.map((c, index) => ({ id: c.id, title: c.name, index, wordCount: 100, status: 'recording' })) as never,
+      chaptersOf(CHAPTERS.map((c, index) => ({ id: c.id, title: c.name, index, wordCount: 100, status: 'recording' })) as never),
     );
     render(
       <MemoryRouter>

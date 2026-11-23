@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,6 +32,7 @@ type perfBook struct {
 	Tracks     int // extra empty tracks after the chapters'
 	Checked    int // chapters with a recording check, from the first
 	Checks     int // complete checks of each checked chapter; every one leaves a ledger record and a stored result
+	Audio      int // minutes of recording in each chapter's own 48 kHz 24-bit WAV; 0 keeps the one shared 2 s file (#4042)
 }
 
 // perfBookSpecEnv and perfBookDirEnv turn TestSeedAPerfBook on: the folder to write and what to put in it.
@@ -45,14 +47,14 @@ func parsePerfBook(spec string) (perfBook, error) {
 	book := perfBook{Paragraphs: 40, Items: 100, Checked: -1, Checks: 1}
 	fields := map[string]*int{
 		"chapters": &book.Chapters, "paragraphs": &book.Paragraphs, "items": &book.Items,
-		"tracks": &book.Tracks, "checked": &book.Checked, "checks": &book.Checks,
+		"tracks": &book.Tracks, "checked": &book.Checked, "checks": &book.Checks, "audio": &book.Audio,
 	}
 	for _, pair := range strings.Fields(spec) {
 		name, value, _ := strings.Cut(pair, "=")
 		field, known := fields[name]
 		number, err := strconv.Atoi(value)
 		if !known || err != nil || number < 0 {
-			return perfBook{}, fmt.Errorf("%q is not one of chapters, paragraphs, items, tracks, checked, checks with a whole number", pair)
+			return perfBook{}, fmt.Errorf("%q is not one of chapters, paragraphs, items, tracks, checked, checks, audio with a whole number", pair)
 		}
 		*field = number
 	}
@@ -107,6 +109,44 @@ func perfParagraph(seed int) string {
 	return fmt.Sprintf("\u201cWe walked through the quiet streets and remembered everything,\u201d said %s. %s", speaker, text)
 }
 
+// perfAudioRate is the sample rate of a seeded chapter recording: a studio's 48 kHz, mono, 24-bit.
+const perfAudioRate = 48000
+
+// writeSparseWAV writes a silent mono 24-bit WAV of seconds at rate without writing its zeros: the header, then a hole the
+// file system reads back as silence, so an hour of recording costs a header on disk and the full decode on read.
+func writeSparseWAV(path string, rate, seconds int) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return err
+	}
+	dataBytes := rate * 3 * seconds
+	header := make([]byte, 44)
+	copy(header, "RIFF")
+	putLE32(header[4:], uint32(36+dataBytes)) //nolint:gosec // G115: a few hundred MB at most
+	copy(header[8:], "WAVEfmt ")
+	putLE32(header[16:], 16)
+	putLE16(header[20:], 1)
+	putLE16(header[22:], 1)
+	putLE32(header[24:], uint32(rate))   //nolint:gosec // G115: a sample rate
+	putLE32(header[28:], uint32(rate*3)) //nolint:gosec // G115: a byte rate
+	putLE16(header[32:], 3)
+	putLE16(header[34:], 24)
+	copy(header[36:], "data")
+	putLE32(header[40:], uint32(dataBytes)) //nolint:gosec // G115: a few hundred MB at most
+	file, err := os.Create(path)            //nolint:gosec // G304: a path the rig builds under its own folder
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(header); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Truncate(int64(44 + dataBytes)); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
+}
+
 // writePerfBookBase writes what scripts/dev/real-app/seed.py --chapters writes, in Go so the tests need no Python: the
 // manuscript, Book.rpp with one track of items per chapter, the project's link to it and each chapter's link to its track.
 func writePerfBookBase(dir string, book perfBook) error {
@@ -145,9 +185,16 @@ func writePerfBookBase(dir string, book perfBook) error {
 		fmt.Fprintf(&rpp, "  <TRACK %s\n    TRACKID %s\n    NAME %q\n    ISBUS 0 0\n", perfGUID(c+1), perfGUID(c+1), title)
 		// Each take plays its own five seconds of the one shared file: the words a check hears are kept by source and played
 		// range, so takes that all played the same range would share one set of words.
+		file, span := "Media/take.wav", 1<<30
+		if book.Audio > 0 { // the chapter's own recording: each take plays 5 s of it, wrapping when the book has more takes than the recording has fives
+			file, span = fmt.Sprintf("Media/chapter-%04d.wav", c+1), book.Audio*60-5
+			if err := writeSparseWAV(filepath.Join(dir, filepath.FromSlash(file)), perfAudioRate, book.Audio*60); err != nil {
+				return err
+			}
+		}
 		for k := range book.Items {
-			fmt.Fprintf(&rpp, "    <ITEM\n      POSITION %d\n      LENGTH 5\n      IGUID %s\n      NAME \"take-%d\"\n      SOFFS %d\n      PLAYRATE 1 1 0 -1 0 0.0025\n      GUID %s\n      <SOURCE WAVE\n        FILE \"Media/take.wav\"\n      >\n    >\n",
-				5*k, perfGUID(1_000_000+item), item, 5*k, perfGUID(5_000_000+item))
+			fmt.Fprintf(&rpp, "    <ITEM\n      POSITION %d\n      LENGTH 5\n      IGUID %s\n      NAME \"take-%d\"\n      SOFFS %d\n      PLAYRATE 1 1 0 -1 0 0.0025\n      GUID %s\n      <SOURCE WAVE\n        FILE %q\n      >\n    >\n",
+				5*k, perfGUID(1_000_000+item), item, (5*k)%span, perfGUID(5_000_000+item), file)
 			item++
 		}
 		rpp.WriteString("  >\n")
@@ -433,7 +480,7 @@ func TestAPerfBookSpecReadsItsSizesAndRefusesWhatItDoesNotKnow(t *testing.T) {
 		refused    bool
 	}{
 		{"chapters alone take the defaults", "chapters=44", perfBook{Chapters: 44, Paragraphs: 40, Items: 100, Checked: 44, Checks: 1}, false},
-		{"every option", "chapters=300 paragraphs=6 items=5 tracks=20 checked=10 checks=3", perfBook{300, 6, 5, 20, 10, 3}, false},
+		{"every option", "chapters=300 paragraphs=6 items=5 tracks=20 checked=10 checks=3 audio=60", perfBook{300, 6, 5, 20, 10, 3, 60}, false},
 		{"more checked than chapters is every chapter", "chapters=2 checked=9", perfBook{Chapters: 2, Paragraphs: 40, Items: 100, Checked: 2, Checks: 1}, false},
 		{"no chapter checked", "chapters=2 checked=0", perfBook{Chapters: 2, Paragraphs: 40, Items: 100, Checks: 1}, false},
 		{"empty", "", perfBook{}, true},
@@ -479,13 +526,15 @@ func TestASeededBookHoldsTheChecksFindingsBibleMarksAndPickupsItWasAskedFor(t *t
 			t.Fatal(err)
 		}
 	}
-	var chapters []struct {
-		ID               string   `json:"id"`
-		RecordedFraction *float64 `json:"recordedFraction"`
+	var chapters struct {
+		Chapters []struct {
+			ID               string   `json:"id"`
+			RecordedFraction *float64 `json:"recordedFraction"`
+		} `json:"chapters"`
 	}
 	read(host.ManuscriptChapters, &chapters)
 	fractions := map[string]*float64{}
-	for _, chapter := range chapters {
+	for _, chapter := range chapters.Chapters {
 		fractions[chapter.ID] = chapter.RecordedFraction
 	}
 	// The chapter list also holds the opening and closing credits the host adds.
@@ -530,4 +579,95 @@ func derefFloat(v *float64) any {
 		return nil
 	}
 	return *v
+}
+
+// A book seeded with recordings of its own (#4042) draws a waveform for every take of the chapter, and the read after the first is
+// answered from the evidence cache: the host path the Editing page's waveform takes, over real files.
+func TestAWaveformReadOverSeededRecordingsDrawsEveryTakeAndIsKept(t *testing.T) {
+	dir := t.TempDir()
+	book, err := parsePerfBook("chapters=1 paragraphs=2 items=4 audio=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedPerfBook(t, dir, book)
+	host := freshPerfHost(t, dir)
+	read := func() WorkspacePeaksView {
+		t.Helper()
+		answer, err := host.WorkspacePeaks(perfChapterID(0))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var view WorkspacePeaksView
+		if err := json.Unmarshal([]byte(answer), &view); err != nil {
+			t.Fatal(err)
+		}
+		return view
+	}
+	first := read()
+	if len(first.Items) == 0 {
+		t.Fatal("the chapter's alignment has no items")
+	}
+	for _, item := range first.Items {
+		if item.Peaks == nil || item.Reason != "" || item.Peaks.BucketsPerSecond != 50 || item.Peaks.SampleRate != perfAudioRate {
+			t.Fatalf("item %d has no waveform over its own recording: %+v", item.Index, item)
+		}
+	}
+	var entries []string
+	_ = filepath.WalkDir(evidence.CacheDir(dir), func(path string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			entries = append(entries, path)
+		}
+		return nil
+	})
+	if len(entries) == 0 {
+		t.Fatalf("the peaks were not kept in the evidence cache under %s", evidence.CacheDir(dir))
+	}
+	if again := read(); len(again.Items) != len(first.Items) || again.Items[0].Peaks == nil {
+		t.Fatalf("the read after the first lost the waveform: %+v", again)
+	}
+}
+
+// A call that runs out of time shows what it has and says why the rest is missing; the read goes on in the background, so a later call
+// is answered without reading the file again (#4042). Before, every call over a long recording timed out the same way and blanked the strip.
+func TestAWaveformReadThatRunsOutOfTimeKeepsReadingAndTheNextCallHasIt(t *testing.T) {
+	dir := t.TempDir()
+	book, err := parsePerfBook("chapters=1 paragraphs=2 items=3 audio=3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedPerfBook(t, dir, book)
+	host := freshPerfHost(t, dir)
+	t.Cleanup(host.waitForBackground) // the read that outlives its call is the host's background work: the folder goes after it
+	saved := workspacePeaksTimeout
+	workspacePeaksTimeout = 20 * time.Millisecond
+	t.Cleanup(func() { workspacePeaksTimeout = saved })
+	read := func() WorkspacePeaksView {
+		t.Helper()
+		answer, err := host.WorkspacePeaks(perfChapterID(0))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var view WorkspacePeaksView
+		if err := json.Unmarshal([]byte(answer), &view); err != nil {
+			t.Fatal(err)
+		}
+		return view
+	}
+	first := read()
+	for _, item := range first.Items {
+		if item.Peaks != nil || item.Reason != stillReading {
+			t.Fatalf("item %d of a read cut short should say it is still being read: %+v", item.Index, item)
+		}
+	}
+	deadline := time.Now().Add(2 * time.Minute)
+	for {
+		later := read()
+		if later.Items[0].Peaks != nil {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the read never finished in the background: %+v", later.Items[0])
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }

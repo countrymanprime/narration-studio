@@ -3,7 +3,9 @@ import { Heading } from '../../primitives/Heading';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { DawToolsButton } from '../../engine/DawToolsButton';
+import { CheckRecordingsButton } from '../../recordingcheck/CheckRecordingsButton';
 import { StripToggle } from '../strip/TimelineStrip';
+import type { EditingRecordingCheck } from './useRecordingCheck';
 
 export interface EditingHeaderProps {
   /** The chapter step control. */
@@ -21,20 +23,39 @@ export interface EditingHeaderProps {
   onDrawerKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
   /** Draws the DAW tools menu. Only the loaded page does: the loading and error headers are other trees, so a menu opened in one would close when the page arrived. */
   dawTools?: boolean;
+  /** The shared Check recordings button for this chapter, on every state of the page (#4042): a chapter heard once can be checked again for pickups. Undefined while the chapter list loads. */
+  checkRecording?: EditingRecordingCheck;
+  /** Why the check is off: the chapter has no audio to check yet (the DAW's own reason comes first). */
+  checkReason?: string;
 }
 
 /**
  * The page's header (the research mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
- * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C), then the DAW tools menu.
+ * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C), then the DAW tools menu; Check recordings comes before them.
  */
-export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown, dawTools = false }: EditingHeaderProps) {
+export function EditingHeader({
+  stepper,
+  legend,
+  status,
+  strip,
+  stripFits,
+  drawerOpen,
+  onDrawer,
+  onDrawerKeyDown,
+  dawTools = false,
+  checkRecording,
+  checkReason,
+}: EditingHeaderProps) {
   return (
     <header className="@container/hd flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
       <div className="contents @max-[36rem]/hd:order-2 @max-[36rem]/hd:flex @max-[36rem]/hd:max-w-full @max-[36rem]/hd:min-w-0">{stepper}</div>
-      <div className="min-w-0 flex-1 @max-[36rem]/hd:order-3 @max-[36rem]/hd:basis-full">{legend}</div>
+      <div className="min-w-44 flex-1 @max-[36rem]/hd:order-3 @max-[36rem]/hd:basis-full">{legend}</div>
       <div className="flex items-center gap-2 @max-[36rem]/hd:order-1 @max-[36rem]/hd:ml-auto">
         {status}
+        {checkRecording ? (
+          <CheckRecordingsButton variant="icon" chapterIds={checkRecording.chapterIds} onClosed={checkRecording.onClosed} reason={checkReason} />
+        ) : null}
         {stripFits ? <StripToggle open={strip.open} onToggle={strip.toggle} /> : null}
         <TooltipTarget text="Clean up and effects (Ctrl+Shift+C)">
           <IconButton

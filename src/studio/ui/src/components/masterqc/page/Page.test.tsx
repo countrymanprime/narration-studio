@@ -12,6 +12,7 @@ import { chapterStates } from '../../delivery/page/chapterStates';
 import { MasterPage } from './MasterPage';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { ALL_PASS, CHAPTERS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing, withCredits } from './testPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -51,7 +52,7 @@ const failingRows = (aside: ReturnType<typeof within>) =>
 
 describe('Master & QC page body', () => {
   const withChapters = (files: readonly MeasureFileResult[], props: Partial<React.ComponentProps<typeof MasterPage>> = {}) => {
-    const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS });
+    const api = apiOf(jobOf(files, acx), acx, { manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS) });
     render(
       <PageHost api={api}>
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} {...props} />
@@ -157,7 +158,10 @@ describe('Master & QC page body', () => {
       waiting: false,
     } as const;
     const list = [pickup, { ...pickup, id: 'q' }, { ...pickup, id: 'r' }, { ...pickup, id: 's', done: true }, { ...pickup, id: 't', chapterId: 'chapter-1' }];
-    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS, pickupsList: async () => ({ pickups: list, leftOut: [] }) });
+    const api = apiOf(jobOf([]), acx, {
+      manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS),
+      pickupsList: async () => ({ pickups: list, leftOut: [] }),
+    });
     render(
       <PageHost api={api}>
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
@@ -263,7 +267,7 @@ describe('Master & QC page body', () => {
   });
 
   it('counts-failing-and-not-ready-from-the-files', async () => {
-    mount(TWO_FAIL, acx, { manuscriptChapters: async () => withCredits([]) });
+    mount(TWO_FAIL, acx, { manuscriptChapters: async () => chaptersOf(withCredits([])) });
     const aside = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     // The opening and closing credits are chapters of the list, so each is one more not ready, as on Delivery.
     // Behaviour change (R4MS2-4): the caption "1 failing and 3 not ready." under Open Delivery repeated these rows and is gone; the rows count.
@@ -272,14 +276,14 @@ describe('Master & QC page body', () => {
     expect(aside.getByText(`${1 + CREDITS_FILES} chapters not ready`)).toBeTruthy();
     expect(aside.queryByText(/failing and \d+ not ready/)).toBeNull();
     cleanup();
-    mount(ALL_PASS, acx, { manuscriptChapters: async () => withCredits([]) });
+    mount(ALL_PASS, acx, { manuscriptChapters: async () => chaptersOf(withCredits([])) });
     const passing = within(await screen.findByRole('complementary', { name: /Delivery package/ }));
     expect(await passing.findByText(`${CREDITS_FILES} chapters not ready`)).toBeTruthy();
     expect(failingRows(passing)).toBe(0);
   });
 
   it('says-nothing-passes-when-nothing-is-measured: no tick, and the same not-ready count Delivery shows', async () => {
-    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS });
+    const api = apiOf(jobOf([]), acx, { manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS) });
     render(
       <PageHost api={api}>
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
@@ -298,7 +302,7 @@ describe('Master & QC page body', () => {
     const files = [...TWO_FAIL];
     // Six chapters, four files: two chapters have no file at all, which the files alone never count.
     const chapters = withCredits(makeChapters({ shape: 'titleAndSubtitle', count: 6 }));
-    const api = apiOf(jobOf(files), acx, { manuscriptChapters: async () => chapters });
+    const api = apiOf(jobOf(files), acx, { manuscriptChapters: async () => chaptersOf(chapters) });
     render(
       <PageHost api={api}>
         <MasterPage {...PROPS} onOpenDelivery={vi.fn()} openSettings={vi.fn()} />
@@ -490,7 +494,7 @@ describe('Master & QC package panel loading state', () => {
   });
 
   it('shows the counts, and no region, once both have been read', async () => {
-    mount(TWO_FAIL, acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS });
+    mount(TWO_FAIL, acx, { manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS) });
     expect(await screen.findByText(/\d+ chapters? not ready/)).toBeTruthy();
     expect(region()).toBeNull();
   });
@@ -541,8 +545,14 @@ describe.each([
   // Each call takes the next step; the last step repeats.
   const steps = (list: Array<() => Promise<unknown>>) => vi.fn(() => (list.length > 1 ? (list.shift() as () => Promise<unknown>)() : list[0]()));
   const real = () =>
-    (apiOf(jobOf(ALL_PASS, acx), acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS }) as unknown as Record<string, () => Promise<unknown>>)[seam]();
-  const mountWith = (read: unknown) => mount(ALL_PASS, acx, { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS, [seam]: read } as Partial<NarrationApi>);
+    (
+      apiOf(jobOf(ALL_PASS, acx), acx, { manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS) }) as unknown as Record<
+        string,
+        () => Promise<unknown>
+      >
+    )[seam]();
+  const mountWith = (read: unknown) =>
+    mount(ALL_PASS, acx, { manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS), [seam]: read } as Partial<NarrationApi>);
 
   it('tells it as an error toast with Retry, draws nothing in the page, and shows no skeleton', async () => {
     mountWith(fail('first'));

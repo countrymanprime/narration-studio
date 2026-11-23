@@ -9,6 +9,7 @@ import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { NarrationApi } from '../../../types';
 import { CHAPTERS } from './testPage';
 import { useBoothData } from './useBoothData';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 const zero: RecordedThrough = { paragraphId: 'p2', word: 3, percent: 0, complete: false, source: 'booth', confident: true };
 
@@ -19,7 +20,7 @@ describe('useBoothData recordedAt', () => {
     const api = {
       ...createMockApi(),
       manuscriptChapters: async () =>
-        CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: answer.seconds } : chapter)),
+        chaptersOf(CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: answer.seconds } : chapter))),
     } as NarrationApi;
     const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
     const { result } = renderHook(() => useBoothData(null), { wrapper });
@@ -41,7 +42,7 @@ describe('useBoothData reads the chapter list from the store (#3658)', () => {
     );
 
   it('shares the list with the other readers (one read), and a take reads it again', async () => {
-    const api = { ...createMockApi(), manuscriptChapters: async () => CHAPTERS } as NarrationApi;
+    const api = { ...createMockApi(), manuscriptChapters: async () => chaptersOf(CHAPTERS) } as NarrationApi;
     const read = vi.spyOn(api, 'manuscriptChapters');
     const { result } = renderHook(() => ({ data: useBoothData(null), store: useStoreHandle() }), { wrapper: wrap(api) });
     await waitFor(() => expect(result.current.data.chapters).toBeDefined());
@@ -57,7 +58,7 @@ describe('useBoothData reads the chapter list from the store (#3658)', () => {
       ...createMockApi(),
       manuscriptChapters: async () => {
         if (fail) throw new Error('offline');
-        return CHAPTERS;
+        return chaptersOf(CHAPTERS);
       },
     } as NarrationApi;
     const { result } = renderHook(() => useBoothData(null), { wrapper: wrap(api) });
@@ -76,7 +77,7 @@ describe('useBoothData reads the chapter list from the store (#3658)', () => {
       ...createMockApi(),
       manuscriptChapters: async () => {
         if (project === 'a') await gate;
-        return project === 'a' ? [{ ...CHAPTERS[0]!, id: 'a1' }] : [{ ...CHAPTERS[0]!, id: 'b1' }];
+        return project === 'a' ? chaptersOf([{ ...CHAPTERS[0]!, id: 'a1' }]) : chaptersOf([{ ...CHAPTERS[0]!, id: 'b1' }]);
       },
     } as NarrationApi;
     const { result } = renderHook(() => ({ data: useBoothData(null), store: useStoreHandle() }), { wrapper: wrap(api) });
@@ -88,7 +89,7 @@ describe('useBoothData reads the chapter list from the store (#3658)', () => {
   });
   it('keeps the chapters it read when the store later lists them differently, and a take reads the list fresh over a held one', async () => {
     let list = [CHAPTERS[0]!];
-    const api = { ...createMockApi(), manuscriptChapters: async () => list } as NarrationApi;
+    const api = { ...createMockApi(), manuscriptChapters: async () => chaptersOf(list) } as NarrationApi;
     const read = vi.spyOn(api, 'manuscriptChapters');
     const { result } = renderHook(() => ({ data: useBoothData(null), store: useStoreHandle() }), { wrapper: wrap(api) });
     await waitFor(() => expect(result.current.data.chapters?.map((c) => c.id)).toEqual(['c1']));
@@ -109,7 +110,7 @@ describe('useBoothData reads the chapter list from the store (#3658)', () => {
       ...createMockApi(),
       manuscriptChapters: async () => {
         if (slow) await gate;
-        return list;
+        return chaptersOf(list);
       },
     } as NarrationApi;
     let latest: ReturnType<typeof useBoothData> | undefined;

@@ -1,0 +1,42 @@
+{
+  "chapters": [
+    {
+      "contentKind": "narration",
+      "id": "credits-opening",
+      "index": -2,
+      "isCredits": true,
+      "paragraphIds": [],
+      "recordedUnavailable": "unlinked",
+      "status": "not_started",
+      "title": "Opening credits",
+      "wordCount": 7
+    },
+    {
+      "contentKind": "narration",
+      "id": "c-0001",
+      "index": 1,
+      "paragraphIds": [
+        {
+          "id": "p-000001",
+          "index": 0
+        }
+      ],
+      "recordedUnavailable": "unlinked",
+      "status": "not_started",
+      "title": "Chapter One",
+      "wordCount": 7
+    },
+    {
+      "contentKind": "narration",
+      "id": "credits-closing",
+      "index": -2,
+      "isCredits": true,
+      "paragraphIds": [],
+      "recordedUnavailable": "unlinked",
+      "status": "not_started",
+      "title": "Closing credits",
+      "wordCount": 14
+    }
+  ],
+  "project": "C:/Projects/Alice"
+}

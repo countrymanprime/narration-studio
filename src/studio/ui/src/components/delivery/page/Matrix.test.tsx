@@ -11,6 +11,7 @@ import { StudioProvider } from '../../../studio/StudioProvider';
 import type { ExportJob, JobEnded, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi, PackageJob } from '../../../types';
 import { failingTwo, passing } from '../../masterqc/files/testFiles';
 import { DeliveryPage } from './DeliveryPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 const chapter = (index: number, title = `Chapter ${String(index).padStart(2, '0')}`): ManuscriptChapter =>
   ({ id: `c${index}`, title, index: index - 1, wordCount: 100, status: 'not_started' }) as unknown as ManuscriptChapter;
@@ -63,7 +64,7 @@ type Overrides = Partial<NarrationApi>;
 function mount(overrides: Overrides = {}, props: { onOpenInMaster?: (id: string) => void; onOpenMaster?: () => void } = {}) {
   const ended: Array<(event: JobEnded) => void> = [];
   const api = createMockApi({
-    manuscriptChapters: async () => CHAPTERS,
+    manuscriptChapters: async () => chaptersOf(CHAPTERS),
     measureState: async () => measureJob(PASSING),
     exportState: async () => exportJob(),
     packageState: async () => IDLE,
@@ -95,7 +96,7 @@ afterEach(() => {
 
 describe('D5 Build: what it waits for', () => {
   it('empty: a book with no chapters says so and cannot build', async () => {
-    mount({ manuscriptChapters: async () => [] });
+    mount({ manuscriptChapters: async () => chaptersOf([]) });
     expect(await screen.findByText('0 of 0')).toBeTruthy();
     expect(screen.getByText('There are no chapters to check.')).toBeTruthy();
     expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
@@ -103,7 +104,7 @@ describe('D5 Build: what it waits for', () => {
 
   it('one: a single passing chapter is ready and builds with the files that were encoded', async () => {
     const packageStart = vi.fn(async () => BUILT);
-    mount({ manuscriptChapters: async () => [chapter(1)], measureState: async () => measureJob([passing('Chapter 01.wav')]), packageStart });
+    mount({ manuscriptChapters: async () => chaptersOf([chapter(1)]), measureState: async () => measureJob([passing('Chapter 01.wav')]), packageStart });
     await screen.findByText(READY);
     await userEvent.click(await buildButton());
     expect(packageStart).toHaveBeenCalledOnce();
@@ -114,7 +115,7 @@ describe('D5 Build: what it waits for', () => {
 
   it('huge: 500 chapters with 300-character titles are counted, the first hundred listed and the rest on request', async () => {
     const many = Array.from({ length: 500 }, (_, i) => chapter(i + 1, `${'Long title '.repeat(30)}${i + 1}`));
-    mount({ manuscriptChapters: async () => many, measureState: async () => measureJob([]) });
+    mount({ manuscriptChapters: async () => chaptersOf(many), measureState: async () => measureJob([]) });
     expect(await screen.findByText('0 of 500', {}, { timeout: 5000 })).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /Open in Master & QC/ })).toHaveLength(100);
     await userEvent.click(screen.getByRole('button', { name: 'Show the other 400 chapters' }));
@@ -134,7 +135,7 @@ describe('D5 Build: what it waits for', () => {
   it('long, right-to-left and emoji chapter names are kept as written and read in their own direction', async () => {
     const names = ['الفصل الأول: بداية', 'פרק ראשון 🐇', 'Chapter 🎧 ' + 'x'.repeat(300)];
     const list = names.map((name, i) => chapter(i + 1, name));
-    mount({ manuscriptChapters: async () => list, measureState: async () => measureJob([]) });
+    mount({ manuscriptChapters: async () => chaptersOf(list), measureState: async () => measureJob([]) });
     for (const name of names) {
       const row = await screen.findByRole('button', { name: new RegExp(name.slice(0, 12)) });
       expect(row.getAttribute('aria-label')).toContain(name);
@@ -499,7 +500,7 @@ describe('D10 Check again and the host events', () => {
     mount({
       manuscriptChapters: async () => {
         if (fail) throw new Error('the manuscript is locked');
-        return CHAPTERS;
+        return chaptersOf(CHAPTERS);
       },
     });
     const toast = await findToast('the manuscript is locked');
@@ -543,7 +544,7 @@ describe('D10 Check again and the host events', () => {
 describe('D8 and D9 the aside', () => {
   it('a chapter row opens that chapter in Master & QC, a credits row opens its own chapter id', async () => {
     const onOpenInMaster = vi.fn();
-    mount({ manuscriptChapters: async () => [credits('opening'), ...CHAPTERS, credits('closing')] }, { onOpenInMaster });
+    mount({ manuscriptChapters: async () => chaptersOf([credits('opening'), ...CHAPTERS, credits('closing')]) }, { onOpenInMaster });
     await userEvent.click(await screen.findByRole('button', { name: /^Chapter 02: Pass/ }));
     await userEvent.click(await screen.findByRole('button', { name: /^Opening credits: / }));
     await userEvent.click(await screen.findByRole('button', { name: /^Closing credits: / }));

@@ -8,7 +8,7 @@ import { forgetPeaks } from '../ribbon/useRibbonPeaks';
 export type EditingRecordingCheck = { chapterIds: string[]; onClosed: () => void };
 
 /**
- * The recording check the Editing page offers beside "Not transcribed yet": Check recordings with this chapter ticked, the same dialog every
+ * The recording check the Editing page offers in its header, on every chapter that has audio: Check recordings with this chapter ticked, the same dialog every
  * page opens, on demand and never on its own. When the dialog goes the page reads the chapter again, so what the check found shows without a
  * reload. Undefined when the page has no chapter record to check. `open` is for the page's command, which the DAW's gate does not reach (`run`
  * is disabled with the same sentence by the command's own reason).

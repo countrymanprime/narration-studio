@@ -39,7 +39,7 @@ afterEach(() => {
 type Options = Partial<EditingPageProps> & { setup?: DawSetupId; daw?: DawClient; api?: Partial<NarrationApi> & { heard?: boolean } };
 function mount({ setup = 'reaper', daw, api = {}, ...props }: Options = {}) {
   return render(
-    <EditingHost api={pageApi(api)} daw={daw ?? dawFor(setup)} journal={newJournal()}>
+    <EditingHost api={pageApi({ projectFolder: props.projectFolder, ...api })} daw={daw ?? dawFor(setup)} journal={newJournal()}>
       <EditingPage hasManuscript {...props} />
     </EditingHost>,
   );

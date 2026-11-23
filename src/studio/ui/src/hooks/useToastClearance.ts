@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
-/** The CSS variable the toast region adds to its distance from the bottom edge (`ToastRegion`). */
+/** The CSS variable holding how far the bars along the bottom reach up from the window's edge: what a fixed element (the background check's chip, a popover's room) keeps clear of. Toasts do not read it: the shell ends the page above them (`--toast-h`, #4063). */
 export const TOAST_CLEAR_VAR = '--toast-clear';
 
 /**
@@ -10,13 +10,28 @@ export const TOAST_CLEAR_VAR = '--toast-clear';
  */
 const bars = new Map<HTMLElement, boolean>();
 
+/** Fired on the window when the toasts' strip changes (`--toast-h`, published by `ToastRegion`): the bars moved with the page, so the clearance is read again. */
+export const TOAST_ROOM_EVENT = 'toast-room';
+
+/** The strip the shell keeps under the page for a message (`--toast-slot`): it lifts every bar by that much, so what is fixed over the window's edge clears it too. A dialog leaves the slot, where the page keeps its size. */
+function strip(): number {
+  const root = document.documentElement;
+  const slot = Number.parseFloat(root.style.getPropertyValue('--toast-slot')) || 0;
+  if (root.hasAttribute('data-modal-open')) return slot;
+  return Math.max(slot, Number.parseFloat(root.style.getPropertyValue('--toast-h')) || 0);
+}
+
+if (typeof window !== 'undefined') window.addEventListener(TOAST_ROOM_EVENT, () => apply());
+
 function apply(): void {
   const root = document.documentElement;
+  const room = strip();
   if (bars.size === 0) {
-    root.style.removeProperty(TOAST_CLEAR_VAR);
+    if (room > 0) root.style.setProperty(TOAST_CLEAR_VAR, `${Math.ceil(room)}px`);
+    else root.style.removeProperty(TOAST_CLEAR_VAR);
     return;
   }
-  let total = 0;
+  let total = room;
   let top = Number.POSITIVE_INFINITY;
   bars.forEach((follows, bar) => {
     const rect = bar.getBoundingClientRect();
@@ -32,11 +47,11 @@ function apply(): void {
 }
 
 /**
- * Keeps toasts clear of a bar fixed along the bottom of the page (the Booth's footer, and the setup notice above it): while `bar` is
- * mounted, a message rises above it by the bar's height and its bottom margin instead of covering its chips or its words. Bars add up,
- * so the notice stays visible above the footer and the toasts above both. Follows each bar as it grows or shrinks, and puts the toasts
- * back when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout). `follows` is for a
- * bar inside a column that scrolls: the toasts rise by the distance from its top edge to the window's bottom, read again on every scroll.
+ * Registers a bar along the bottom of the page (the Booth's footer, and the setup notice above it) in `--toast-clear`: while `bar` is
+ * mounted, the root holds the bar's height and its bottom margin, for what is drawn over the window's bottom edge (a corner chip, a popover's room). Bars add up,
+ * so a corner chip clears both. Follows each bar as it grows or shrinks, and drops it
+ * when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout). `follows` is for a
+ * bar inside a column that scrolls: the clearance is the distance from its top edge to the window's bottom, read again on every scroll.
  */
 export function useToastClearance(bar: RefObject<HTMLElement | null>, active = true, follows = false): void {
   useEffect(() => {
@@ -92,7 +107,10 @@ export function useToastSideClearance(panel: RefObject<HTMLElement | null>): voi
     const root = document.documentElement;
     const apply = (): void => {
       const box = element.getBoundingClientRect();
-      const beside = box.width > 0 && box.width < window.innerWidth * SIDE_COLUMN_MAX_SHARE && box.right >= window.innerWidth - SIDE_EDGE_SLACK;
+      // A column that ends above the strip the shell keeps for the toast (`--toast-slot`) is not under it: the toast stands at the right gutter like on every other page (#4063).
+      const slot = Number.parseFloat(root.style.getPropertyValue('--toast-slot')) || 0;
+      const aboveSlot = slot > 0 && box.bottom <= window.innerHeight - slot + 1;
+      const beside = !aboveSlot && box.width > 0 && box.width < window.innerWidth * SIDE_COLUMN_MAX_SHARE && box.right >= window.innerWidth - SIDE_EDGE_SLACK;
       if (beside) root.style.setProperty(TOAST_CLEAR_RIGHT_VAR, `${Math.ceil(box.width + 12)}px`);
       else root.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
     };
@@ -100,9 +118,11 @@ export function useToastSideClearance(panel: RefObject<HTMLElement | null>): voi
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
     observer?.observe(element);
     window.addEventListener('resize', apply);
+    window.addEventListener(TOAST_ROOM_EVENT, apply);
     detach.current = () => {
       observer?.disconnect();
       window.removeEventListener('resize', apply);
+      window.removeEventListener(TOAST_ROOM_EVENT, apply);
       root.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
     };
   });

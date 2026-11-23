@@ -15,6 +15,7 @@ import { PortOverrides } from '../../../ports/usePort';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { GuideEntity, ManuscriptChapter, ManuscriptParagraph, NarrationApi, TeleprompterLocateResult } from '../../../types';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 export const CHAPTERS: ManuscriptChapter[] = [
   { id: 'c1', title: 'Chapter One', index: 0, wordCount: 30, status: 'not_started', contentKind: 'narration' } as ManuscriptChapter,
@@ -110,7 +111,7 @@ export function pageApi(overrides: Partial<NarrationApi> = {}): NarrationApi {
     // The credits are chapters of the list when the project has a template for them, as the host lists them.
     manuscriptChapters: async () => {
       const templates = await (overrides.creditsTemplates ?? (async () => []))();
-      return withCredits(templates.flatMap((item) => (item.kind === 'opening' || item.kind === 'closing' ? [item.kind] : [])));
+      return chaptersOf(withCredits(templates.flatMap((item) => (item.kind === 'opening' || item.kind === 'closing' ? [item.kind] : []))));
     },
     manuscriptParagraphs: async (chapterId: string) => PARAGRAPHS[chapterId] ?? [],
     teleprompterState: async () => ({ phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null }),

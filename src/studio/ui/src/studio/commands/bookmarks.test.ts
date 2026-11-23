@@ -11,7 +11,7 @@ async function setup() {
   const api = createMockApi();
   const store = createStudioStore({ registry: createSlots(api, api), subscribe: () => () => undefined, subscribeFocus: () => () => undefined });
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
-  const [chapter] = withoutCredits(await api.manuscriptChapters());
+  const [chapter] = withoutCredits((await api.manuscriptChapters()).chapters);
   const lines = await api.manuscriptParagraphs(chapter!.id);
   const spot = (line = 0, offset = 2): BookmarkSpot => ({ chapterId: chapter!.id, paragraphId: lines[line]!.id, offset });
   const env: BookmarkEnv = { journal, port: api, store };

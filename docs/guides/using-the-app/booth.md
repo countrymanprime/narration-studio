@@ -256,7 +256,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
   only one armed), a press of Record says so as a message with the reason, with **Check again**: "REAPER is already recording on another track, so the Booth is not following it. Stop it in REAPER before recording here." (or "with several tracks armed", "with no track armed", or "while no project file is linked here. Link a project file, then record here."). With another project open the sentence about the project adds "REAPER is recording a take now.", and the dialog says so too. Record is ready again as soon as the
   problem is fixed, without a restart.
 
-  A message is never drawn over the chips: it rises above them. The same sentence is one message however often it is asked
+  A message is never drawn over the chips: in a window taller than 520 px it stands in its own slot under the page, which is always kept, so the page does not move when one shows, and a second message (the offer to check the recording after **Take saved**) waits behind the first with a **+1** and shows when it goes, so Record stays where it was; in a shorter window it rises above the chips. The same sentence is one message however often it is asked
   for, and a message about REAPER starting goes as soon as Record is ready.
 
 ### Recording without a DAW
@@ -602,13 +602,22 @@ If the book's chapters cannot be read when the Booth opens, it shows "This page 
 
 ## Companion mode
 
-The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`: the
-reading session, with a badge in its header, the script in its own scroll box, the reading controls and the hotkeys
-that work while the panel has focus. The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for its name and key. A chapter recorded part way opens with *Continuing at "…the next words"*, the same place the Booth opens it at (the word after the last one recorded), and **Play** starts there. **Change** listens to the end of the recording to find a different start (the choices below), and **Start from the top** reads from the beginning. A chapter with nothing recorded, or recorded to the end, goes straight to those choices. After **Stop reading**, the "Where you stopped" choices come back above the text for the next start. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the
-panel shows the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its
-place at the foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to
-scroll. The script is set in the same reader column as the Script and the Booth, at the Column width you chose in Settings › Reader text. The chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app.
-While its chapters are being read, the panel shows its title and grey blocks, and if the credits you asked for have no text it opens the Booth instead.
+The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`. It
+opens on the chapter a reading session is running on. With none running, it opens on the chapter you last had open in the Booth in
+this project. Otherwise it opens on the first chapter that is not a credits chapter. The panel shows the reading session, with a
+badge in its header, the script in its own scroll box, the reading controls and the hotkeys that work while the panel has focus.
+The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and
+REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for
+its name and key. A chapter recorded part way opens with *Continuing at "…the next words"*, the same place the Booth opens it at
+(the word after the last one recorded), and **Play** starts there. **Change** listens to the end of the recording to find a
+different start (the choices below), and **Start from the top** reads from the beginning. A chapter with nothing recorded, or
+recorded to the end, goes straight to those choices. After **Stop reading**, the "Where you stopped" choices come back above the
+text for the next start. **Full app** (or Escape twice) brings the Booth back on the same chapter. **Pickups** in the panel shows
+the [Pickups](pickups.md) list: how many are left and the one you last jumped to. The note at the playhead has its place at the
+foot of the panel and is coming later. The script's box has a frame and fades at its foot while there is more to scroll. The
+script is set in the same reader column as the Script and the Booth, at the Column width you chose in Settings › Reader text. The
+chapter's name above the script reads "Chapter 3: Title", the same way as everywhere else in the app. While its chapters are being
+read, the panel shows its title and grey blocks, and if the credits you asked for have no text it opens the Booth instead.
 
 ![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)
 

@@ -124,7 +124,7 @@ describe('useCleanupDeps', () => {
 
   it("record writes an accepted trim into the chapter's cuts", async () => {
     const api = createMockApi();
-    const [chapter] = withoutCredits(await api.manuscriptChapters());
+    const [chapter] = withoutCredits((await api.manuscriptChapters()).chapters);
     const chapterId = chapter!.id;
     const { wrapper } = wrapperFor('reaper', undefined, [chapterId], api);
     // A close cut of 1 s before the gap already moved it up: the record is in the recording's time before any cut.

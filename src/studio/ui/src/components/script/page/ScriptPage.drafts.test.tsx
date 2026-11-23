@@ -14,6 +14,7 @@ import { TooltipProvider } from '../../primitives/Tooltip';
 import type { ScriptViewState } from './data/scriptView';
 import { useScriptView } from './data/useScriptData';
 import { ScriptPage } from './ScriptPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 let view: ScriptViewState;
 let go: (to: string) => void;
@@ -34,11 +35,11 @@ afterEach(() => {
 
 async function mountWithReply() {
   asked = [];
-  const api = createMockApi({ manuscriptChapters: async () => withoutCredits(await createMockApi().manuscriptChapters()) });
-  const [one] = withoutCredits(await api.manuscriptChapters());
+  const api = createMockApi({ manuscriptChapters: async () => chaptersOf(withoutCredits((await createMockApi().manuscriptChapters()).chapters)) });
+  const [one] = withoutCredits((await api.manuscriptChapters()).chapters);
   const types = await api.marksList();
   // The scroll spy has no layout to read in jsdom, so which chapter is in view is not chosen here: every chapter has a note.
-  for (const chapter of withoutCredits(await api.manuscriptChapters())) {
+  for (const chapter of withoutCredits((await api.manuscriptChapters()).chapters)) {
     const [line] = await api.manuscriptParagraphs(chapter.id);
     if (line) await api.marksAdd(chapter.id, line.id, 0, 5, types.types[0]!.key, 'A note');
   }

@@ -10,6 +10,7 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import { ALL_PASS, CHAPTERS, TWO_FAIL, failingTwo, passing } from '../files/testFiles';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 export { ALL_PASS, CHAPTERS, TWO_FAIL, failingTwo, passing };
 
@@ -54,7 +55,12 @@ const profilesOf = (profile: DeliveryProfile): DeliveryProfilesState => ({
 
 /** An api that answers the given job and profile; `overrides` replaces any call. */
 export function apiOf(job: MeasureJob, profile: DeliveryProfile = acx, overrides: Partial<NarrationApi> = {}) {
-  return createMockApi({ measureState: async () => job, manuscriptChapters: async () => [], deliveryProfiles: async () => profilesOf(profile), ...overrides });
+  return createMockApi({
+    measureState: async () => job,
+    manuscriptChapters: async () => chaptersOf([]),
+    deliveryProfiles: async () => profilesOf(profile),
+    ...overrides,
+  });
 }
 
 export function PageHost({ api, children }: { api: NarrationApi; children: ReactNode }) {

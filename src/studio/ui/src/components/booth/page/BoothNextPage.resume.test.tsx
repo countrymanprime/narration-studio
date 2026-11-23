@@ -10,10 +10,11 @@ vi.mock('../takeTone', async (original) => ({ ...(await original<typeof import('
 
 import type { ManuscriptChapter, RecordedThrough } from '../../../api/contracts/manuscript';
 import { createOverlayService } from '../../../overlay/overlayService';
-import type { NarrationApi, TeleprompterState } from '../../../types';
+import type { ManuscriptChapterList, NarrationApi, TeleprompterState } from '../../../types';
 import { forgetAppTake } from '../record/useRecordControl';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, CHAPTERS, dawFor, newJournal, pageApi } from './testPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 beforeEach(() => forgetAppTake());
 afterEach(() => {
@@ -83,7 +84,7 @@ describe('switching chapters and coming back', () => {
 describe('a chapter with a recording', () => {
   it('opens a half-recorded chapter on the word after the recording ends, over the place last read to', async () => {
     window.localStorage.setItem('narration.booth.chapterPlaces./proj', JSON.stringify({ c1: { paragraphId: 'p3', word: 3, at: 1 } }));
-    renderPage({ api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through() }) }) });
+    renderPage({ api: pageApi({ manuscriptChapters: async () => chaptersOf(withRecorded({ c1: through() })) }) });
     // p2: “Off with her head,” said the Queen. The recording ends on "head,”"; the reading opens on "said".
     await waitFor(() => expect(reading()).toBe('said'));
     const chip = screen.getByRole('group', { name: 'Recorded through ““Off with her head,”” (45%)' });
@@ -97,7 +98,7 @@ describe('a chapter with a recording', () => {
   });
 
   it('lets a link to a line win over the recording', async () => {
-    renderPage({ search: '?chapter=c1&para=p3&at=9', api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through() }) }) });
+    renderPage({ search: '?chapter=c1&para=p3&at=9', api: pageApi({ manuscriptChapters: async () => chaptersOf(withRecorded({ c1: through() })) }) });
     await waitFor(() => expect(reading()).toBe('turned'));
     await settle();
     expect(reading()).toBe('turned');
@@ -106,7 +107,7 @@ describe('a chapter with a recording', () => {
   it('says Complete for a chapter recorded to the end, and opens it where the narrator left it', async () => {
     window.localStorage.setItem('narration.booth.chapterPlaces./proj', JSON.stringify({ c1: { paragraphId: 'p1', word: 2, at: 1 } }));
     renderPage({
-      api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through({ paragraphId: 'p3', word: 9, percent: 100, complete: true }) }) }),
+      api: pageApi({ manuscriptChapters: async () => chaptersOf(withRecorded({ c1: through({ paragraphId: 'p3', word: 9, percent: 100, complete: true }) })) }),
     });
     await waitFor(() => expect(screen.getByRole('group', { name: 'Recorded: complete' }).textContent).toBe('Complete'));
     await waitFor(() => expect(reading()).toBe('was'));
@@ -114,7 +115,7 @@ describe('a chapter with a recording', () => {
 
   it('reads the position, not the work left, in a chapter recorded to the end (#2633)', async () => {
     renderPage({
-      api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through({ paragraphId: 'p3', word: 9, percent: 100, complete: true }) }) }),
+      api: pageApi({ manuscriptChapters: async () => chaptersOf(withRecorded({ c1: through({ paragraphId: 'p3', word: 9, percent: 100, complete: true }) })) }),
     });
     await waitFor(() => expect(screen.getByRole('group', { name: 'Recorded: complete' }).textContent).toBe('Complete'));
     await waitFor(() => expect(screen.getByText(/^At ¶ 1 of 3$/)).toBeTruthy());
@@ -122,7 +123,9 @@ describe('a chapter with a recording', () => {
   });
 
   it('says about for a chapter known only by its track’s length', async () => {
-    renderPage({ api: pageApi({ manuscriptChapters: async () => withRecorded({ c1: through({ source: 'daw', confident: false, percent: 30 }) }) }) });
+    renderPage({
+      api: pageApi({ manuscriptChapters: async () => chaptersOf(withRecorded({ c1: through({ source: 'daw', confident: false, percent: 30 }) })) }),
+    });
     await waitFor(() => expect(screen.getByRole('group', { name: /^Recorded through about/ }).textContent).toBe('Recorded ~30%'));
   });
 
@@ -130,7 +133,7 @@ describe('a chapter with a recording', () => {
     const user = userEvent.setup();
     renderPage({
       api: pageApi({
-        manuscriptChapters: async () => withRecorded({ c1: through(), c2: through({ paragraphId: 'q1', word: 6, percent: 100, complete: true }) }),
+        manuscriptChapters: async () => chaptersOf(withRecorded({ c1: through(), c2: through({ paragraphId: 'q1', word: 6, percent: 100, complete: true }) })),
       }),
     });
     await waitFor(() => expect(document.body.textContent).toContain('She turned and walked away.'));
@@ -157,7 +160,9 @@ describe('a chapter with a recording', () => {
       },
       manuscriptChapters: () => {
         const answer = withRecorded({ c1: host.recorded }, host.seconds === undefined ? {} : { c1: host.seconds });
-        return host.held ? new Promise<ManuscriptChapter[]>((resolve) => host.stale.push(() => resolve(answer))) : Promise.resolve(answer);
+        return host.held
+          ? new Promise<ManuscriptChapterList>((resolve) => host.stale.push(() => resolve(chaptersOf(answer))))
+          : Promise.resolve(chaptersOf(answer));
       },
     } as Partial<NarrationApi>);
     const push = (state: Partial<TeleprompterState>) =>
@@ -236,7 +241,7 @@ describe('where Record starts, by entry and by how much of the chapter is record
   const punchApi = (recorded: Record<string, RecordedThrough> = {}) => {
     const boothPunchTarget = vi.fn(async () => FOUND);
     const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' as const }));
-    const api = pageApi({ manuscriptChapters: async () => withRecorded(recorded), boothPunchTarget, boothVoiceSet } as Partial<NarrationApi>);
+    const api = pageApi({ manuscriptChapters: async () => chaptersOf(withRecorded(recorded)), boothPunchTarget, boothVoiceSet } as Partial<NarrationApi>);
     return { api, boothPunchTarget };
   };
   const record = async () => {

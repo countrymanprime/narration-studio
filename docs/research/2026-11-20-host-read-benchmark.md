@@ -366,6 +366,34 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - A hundred and twenty times fewer calls to the host, stopped or playing; the word is lit from the event as the heartbeat moves (every 1.5 s, the same steps the 4 Hz read saw).
 - **Not measured:** the delay between a real play and its transport event in a running app, and what the page costs while REAPER plays for hours.
 
+## The Editing waveform: time to the first peaks ([#4042](https://github.com/countrymanprime/narration-studio/issues/4042))
+
+`node scripts/dev/host-read-bench.mjs seed <folder> --chapters 3 --audio 60` gives each chapter its own recording (48 kHz, mono, 24-bit, a sparse silent file, so the disk reads are not measured), and the `WorkspacePeaks(c-0001)` row of `reads` is the host's whole answer for the chapter. `BenchmarkWaveformTimeToFirst` (`internal/measure/benchmark_test.go`) times the same read below the binding, a first read of a recording against a revisit that finds the cache entry (peaks have a 64 MB cap and no maximum age, so time alone never drops them).
+
+| Recording | First read, before | First read, after | Revisit |
+| --- | --- | --- | --- |
+| 10 min | 0.40 s | 0.20 s | 0.5 ms |
+| 30 min | 1.07 s | 0.71 s | 2 ms |
+| 60 min | 2.07 s | 1.40 s | 6 ms |
+
+Through the binding on the seeded rig, after: 315 ms (10 min) and 1,466 ms (60 min) on the first call, 4 and 7.5 ms on the next. The seeded rig has one source file a chapter, so the parallel read of a chapter's several files is not on the committed rig. An independent break round timed a chapter of six recordings (240 minutes together) outside it: 2.3 to 2.5 s after, 6.0 to 8.4 s before.
+
+- **Target (first change):** under 1 s for an hour of mono audio on a first read; **not met** by it alone: 1.4 s here; met by the segments change above. An independent re-run on a busier container of the same container size measured 3.75, 2.74 and 3.62 s before and 2.23, 2.57 and 2.45 s after for 60 min (about 25 to 30 % less), so the direction is firm and the absolute figure is not. A stereo hour took 3.8 s before the change.
+- **What the change does:** decodes 16 and 24-bit samples in a loop of their own, reads a chapter's separate source files together, and lets a read that outlives the call's 30 s finish in the background and fill the cache, so the item says "still being read" and the next call has it (before, every call timed out the same way and showed nothing).
+- **Not measured:** a real recording on a real disk, a stereo or multi-file chapter on the rig, the time from opening a chapter to a drawn waveform in the page, and the owner's own files.
+
+### One recording split into segments ([#4042](https://github.com/countrymanprime/narration-studio/issues/4042), second change)
+
+`measure.PeaksFile` reads a whole file of two minutes or more in segments of whole seconds, one per core up to four, each through its own slice of the file, and joins the peaks (`TestPeaksFileInSegmentsEqualsOneRead` pins that the result equals one read, at 8, 11.025 and 44.1 kHz, mono and stereo). A bucket never spans two seconds, so there is no seam.
+
+| Recording | First read, one read, #4089 (`BenchmarkWaveformTimeToFirst` then) | First read, in segments, #4096 (measured with the runner then in `measure`; idle run) | Through the binding, in segments (one run, not comparable to the column before) |
+| --- | --- | --- | --- |
+| 10 min | 0.20 s | 0.12 s | 95 ms |
+| 30 min | 0.71 s | 0.34 s | not run |
+| 60 min | 1.40 s | 0.70 s | 486 ms |
+
+The target (under 1 s for an hour of mono audio, first read) is **met on an idle 4-CPU container with a sparse mono file**: 0.60 to 0.70 s below the binding in an idle run. `internal/measure` holds no goroutine, so its own benchmark runs the segments one after the other (the one-read column); the concurrent runner is the host's (`runDecodes`), and its benchmark is in the host package (#4097): `BenchmarkWaveformSegmentedTimeToFirst` times `PeaksFile` alone (60 minutes: 0.54 to 0.60 s idle), while `BenchmarkWaveformTimeToFirst` times `CachedPeaksFile` with the cache write, one segment after another (1.36 to 1.50 s); the two are not the same work, and the table's figures are the ones #4089 and #4096 measured. Beside other work on the same container the same read took 0.9 to 1.2 s, and with one core it is the one-read time (about 1.1 s for 60 minutes): fewer cores, busy cores, stereo or a slow disk cost more, and the owner's host is not measured. The segments hold the host's shared decode slots (`sharedDecodeSlots`, one per core for the whole process), so they never add decodes beyond the cores. Not measured: stereo or 96 kHz at length on the rig, a real disk, two or more cores busy with other reads (each file may use up to four cores while the host's read slots bound the files).
+
 ## Editing's click to the DAW's play call: no wait on the watch lease
 
 [#4043](https://github.com/countrymanprime/narration-studio/issues/4043), refs [#3880](https://github.com/countrymanprime/narration-studio/issues/3880). A click on a word and Play asked the DAW to play only once the page's watch lease had been answered (the lease is the page's first `dawTransportSync('watch')`), and, the first time, once the DAW's capabilities and the word table had been read; until then the press said "Checking whether the DAW can play this" and did nothing. The play now goes to the DAW in the same tick; a table or capabilities not yet read send the app's own audio in the same tick instead, with the reason (that case is shown by the tests, `a word table still being read does not stop the click ...`, not by the table below, which times only the DAW's `play` call).
@@ -406,7 +434,7 @@ Method (the same fake clock and mock DAW as the section above; the take's own ha
 - **The split of a call's wait between the host and the bridge to the page.** The page logs the whole wait; the host's share is the read table's, measured alone and not under the page's concurrent calls.
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
-- **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
+- **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real recordings on a real disk (the sparse-file numbers are above), take evidence and delivery measurements.
 - **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to five), so differences under 10 % between cells are noise.
 - **The Editor, Booth and Production moves (#3658):** real-host timing under the pages' concurrent calls, Windows, 300 chapters on the mock (the mock sizes a book in hours), a cold OS file cache, and the pages' time to usable (the mock's milliseconds are fixtures).
@@ -443,3 +471,7 @@ Not measured: the real host and Windows, 300 chapters on the mock, the Companion
 | 40 h | 34,177 bytes | 9,249 bytes | 103 |
 
 That is 347 bytes a chapter before and 94 after at 17 h (332 and 90 at 40 h), about 73 % less. The decodes, listings and allocations of the read are the same as before (158 / 71 decodes at 17 h, 335 / 130 at 40 h), because the host still reads the chapter list to compute the figures. The warm medians of one run each (86.0 then 88.3 ms at 17 h, 151.3 then 165.5 ms at 40 h) are inside the run-to-run spread of one process, so no time gain is claimed; the saving is the answer's size and what the page decodes and validates with it.
+
+## The chapter list names its project (#4040)
+
+`ManuscriptChapters` now answers `{"project": ..., "chapters": [...]}` instead of the bare array: `project` is the folder text the service that read the list belongs to, the same text `Bootstrap` sends as `projectFolder`. The envelope adds 26 bytes plus the JSON-escaped folder. Measured on the 17 h book (`node scripts/dev/host-read-bench.mjs seed /tmp/claude-0/bench17 --size 17h`, then `reads --runs 1`) the answer is 64,172 bytes with a 21-character folder, 47 bytes more than the 64,125 the array alone was (64.1 KB, as in the [host reads table](#host-reads)); that is the answer of the branch, and the "before" size is the array it carried, computed by subtracting the envelope (the run on the parent was not repeated). At 40 h the same arithmetic gives about 149.6 KB plus the folder, 149.7 KB: computed, not measured. The host calls, decodes and listings do not change: it is the same read with a longer answer.

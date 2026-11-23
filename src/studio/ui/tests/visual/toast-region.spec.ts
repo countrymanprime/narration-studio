@@ -56,7 +56,8 @@ const CASES: Case[] = [
       await page.goto('/?mockChapters=fails&mockProfileRead=fails');
       await settlePage(page);
       await goToPage(page, 'Master & QC');
-      await expect.poll(() => page.locator('[data-tone="error"]').count()).toBeGreaterThanOrEqual(2);
+      // One error shows, the other waits behind it with a count (#4063).
+      await expect(page.locator('[data-toast-more]')).toHaveCount(1);
       await expect(page.getByRole('button', { name: 'Retry' }).first()).toBeVisible();
     },
   },
@@ -103,8 +104,10 @@ for (const theme of ['light', 'dark'] as const) {
         await settleLayout(page);
         await expect(regions(page)).toHaveCount(1);
         // Not an empty wrapper: the raised toasts are in that one region, visible, with text.
-        const toasts = regions(page).locator('[data-tone]');
-        await expect.poll(() => toasts.count(), `${size.name}: toasts in the region`).toBeGreaterThanOrEqual(c.toasts);
+        // One toast is drawn, the rest wait behind it with a count (#4063); a waiting toast is not drawn (its text is read out from a hidden line).
+        const toasts = regions(page).locator('[data-tone]:not([hidden])');
+        await expect.poll(() => toasts.count(), `${size.name}: a toast in the region`).toBe(1);
+        if (c.toasts > 1) await expect(regions(page).locator('[data-toast-more]'), `${size.name}: the rest are counted`).toHaveText(`+${c.toasts - 1}`);
         for (let i = 0; i < (await toasts.count()); i += 1) {
           await expect(toasts.nth(i)).toBeVisible();
           expect(((await toasts.nth(i).textContent()) ?? '').trim().length, `${size.name}: toast ${i} has text`).toBeGreaterThan(0);
@@ -115,7 +118,7 @@ for (const theme of ['light', 'dark'] as const) {
         expect(region.x + region.width, `${size.name}: right edge on screen`).toBeLessThanOrEqual(size.width);
         expect(region.y + region.height, `${size.name}: bottom edge on screen`).toBeLessThanOrEqual(size.height);
         if (c.action) {
-          const buttons = regions(page).getByRole('button', { name: c.action });
+          const buttons = toasts.getByRole('button', { name: c.action });
           await expect(buttons.first()).toBeVisible();
           for (let i = 0; i < (await buttons.count()); i += 1) {
             const box = (await buttons.nth(i).boundingBox())!;
@@ -134,10 +137,12 @@ for (const theme of ['light', 'dark'] as const) {
         }
         if (c.footer) {
           await boothChapterReady(page);
-          // The app's own measure of the bars along the bottom (useToastClearance): the region rises above them by that much.
+          // The page ends above the toasts (`--toast-h`, the shell's strip), so the Booth's bars rise above the region and it covers none of them (#4063); the bars still register their height for what is fixed over the edge.
           const clear = await page.evaluate(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-clear')) || 0);
           expect(clear, `${size.name}: the Booth's bottom bars set the clearance`).toBeGreaterThan(0);
-          expect(region.y + region.height, `${size.name}: the region ends above the bars`).toBeLessThanOrEqual(size.height - clear + 1);
+          const strip = await page.evaluate(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-h')) || 0);
+          expect(strip, `${size.name}: the shell reserves a strip for the toasts`).toBeGreaterThan(0);
+          expect(region.y, `${size.name}: the region stands in the strip under the page and its bars`).toBeGreaterThanOrEqual(size.height - strip - 1);
         }
         await page.screenshot({ path: `screenshots/toast-region/${theme}/${c.name}/${size.name}.png` });
       }
@@ -199,6 +204,9 @@ test.describe('a modal with a toast showing, 320x300', () => {
     await CASES.find((c) => c.name === 'with-dialog')!.open(page);
     for (const button of await page.getByRole('dialog').getByRole('button').all()) {
       const box = (await button.boundingBox())!;
+      // A button the dialog's own body has scrolled out of sight is not on screen to be hit.
+      const popup = (await page.getByRole('dialog').boundingBox())!;
+      if (box.y + box.height / 2 > popup.y + popup.height) continue;
       const hit = await page.evaluate(
         ([x, y]) => Boolean(document.elementFromPoint(x!, y!)?.closest('[data-toast-region]')),
         [box.x + box.width / 2, box.y + box.height / 2],
@@ -217,24 +225,98 @@ test.describe('a modal with a toast showing, 320x300', () => {
 });
 
 // `Dialog` takes what is left above the toasts in a window under 300 px tall (#3605, #3601; `dialog-toast-room.spec.ts`), so a toast showing over an open dialog publishes `--toast-h`: the room
-// from the window's bottom edge up to its top (plus 8 px). It is set only then: not with no toast, not with no dialog.
-test('a toast over an open dialog publishes the room it takes, and only then', async ({ page }) => {
+// from the window's bottom edge up to its top (plus 8 px). It is set while a toast shows, over a dialog or not (with no dialog the shell ends the page above it); not with no toast.
+test('a toast publishes the room it takes while it shows, and a dialog reads it', async ({ page }) => {
   const toastHeight = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'));
   await page.setViewportSize({ width: 320, height: 290 });
   await page.goto('/?mockNoProject=1');
   await settlePage(page);
   await page.getByRole('button', { name: /^Remove Voltage and the Undercroft from recent projects/ }).click();
   await page.getByRole('button', { name: 'Undo' }).waitFor();
-  expect(await toastHeight(), 'a toast with no dialog open').toBe('');
+  await expect.poll(toastHeight, "a toast with no dialog open: the shell's strip").not.toBe('');
   await page.getByRole('button', { name: 'New project' }).click();
   await page.getByRole('dialog').waitFor();
   await expect.poll(toastHeight).not.toBe('');
-  const expected = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  const expected = await page.evaluate(() =>
+    Math.ceil(window.innerHeight - document.querySelector('[data-toast-region] [data-tone]')!.getBoundingClientRect().top + 8),
+  );
   expect(await toastHeight()).toBe(`${expected}px`);
   await page.setViewportSize({ width: 320, height: 261 });
-  const again = await page.evaluate(() => Math.ceil(window.innerHeight - document.querySelector('[data-toast-region]')!.getBoundingClientRect().top + 8));
+  const again = await page.evaluate(() =>
+    Math.ceil(window.innerHeight - document.querySelector('[data-toast-region] [data-tone]')!.getBoundingClientRect().top + 8),
+  );
   await expect.poll(toastHeight).toBe(`${again}px`);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect.poll(toastHeight).toBe('');
+  await expect.poll(toastHeight).not.toBe('');
+  await page.getByRole('button', { name: 'Dismiss message' }).click();
+  await expect.poll(toastHeight, 'no toast, no room').toBe('');
+});
+
+// A key held down on a toast's Retry presses it once and hands focus to nothing that would repeat (#4063): both recent projects stay.
+test("holding Enter on a toast's Retry activates no other control", async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+  const before = await page.getByRole('button', { name: /^Remove .* from recent projects/ }).count();
+  await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('Hold me'));
+  const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
+  await retry.focus();
+  await page.keyboard.down('Enter');
+  for (let n = 0; n < 12; n += 1) {
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(40);
+  }
+  await page.waitForTimeout(400);
+  await page.keyboard.up('Enter');
+  await page.waitForTimeout(300);
+  expect(await page.getByRole('button', { name: /^Remove .* from recent projects/ }).count(), 'a repeat pressed a page control').toBe(before);
+  await expect(page.locator('[data-toast-region] [data-tone]')).toHaveCount(0);
+});
+
+// A double click on a toast's Retry or Dismiss acts on one toast: the next one takes the slot under the pointer between the clicks (#4063).
+test('a double click on Dismiss dismisses one toast of a queue', async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+  for (const text of ['Alpha failed', 'Beta failed', 'Gamma failed'])
+    await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+  const toast = page.locator('[data-toast-region] [data-tone]:not([hidden]) [data-toast-text]');
+  await expect(toast).toHaveText('Alpha failed');
+  await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).dblclick();
+  await expect(toast).toHaveText('Beta failed');
+  await page.waitForTimeout(600);
+  await expect(toast).toHaveText('Beta failed');
+});
+
+// An Undo moves focus onto what it restored (the picker's Remove button of the row that came back): the key's repeats must not press that (#4063), both recent projects stay.
+test("holding Enter on a toast's Undo presses no Remove button the Undo focused", async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  const remove = page.getByRole('button', { name: /^Remove .* from recent projects/ });
+  const before = await remove.count();
+  expect(before).toBeGreaterThan(1);
+  await remove.first().click();
+  const undo = page.locator('[data-toast-region]').getByRole('button', { name: 'Undo' });
+  await expect(undo).toBeVisible();
+  await undo.focus();
+  for (let n = 0; n < 15; n += 1) {
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(40);
+  }
+  await page.keyboard.up('Enter');
+  await page.waitForTimeout(400);
+  expect(await remove.count(), 'a repeat pressed a Remove button').toBe(before);
+});
+
+// The project picker has no navigation shell: a keyboard Dismiss of the last toast with no control to go back to puts focus on the page's <main>, never <body> (#4063).
+test('on the project picker, Dismiss of the last toast by keyboard puts focus on the main area', async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+  await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('Only one.'));
+  await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-toast-region] [data-tone]')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe('main-content');
 });

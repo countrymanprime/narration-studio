@@ -12,7 +12,9 @@ function specifiers(source: string): string[] {
     .map((m) => m[1])
     .concat([...source.matchAll(/\bimport\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1]));
 }
-const allowed = (spec: string): boolean => spec === 'react' || spec.startsWith('./') || /^\.\.\/components\/primitives\/[^/]+$/.test(spec);
+// `../visibleText` is the app's one test for text that draws something (a pure helper with no imports of its own), so the service does not keep a second copy (#4063).
+const allowed = (spec: string): boolean =>
+  spec === 'react' || spec === '../visibleText' || spec.startsWith('./') || /^\.\.\/components\/primitives\/[^/]+$/.test(spec);
 
 describe('src/overlay imports primitives only', () => {
   it('finds the service files', () => {

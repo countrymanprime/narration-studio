@@ -20,7 +20,7 @@ describe('history-lists-it', () => {
     const api = createMockApi();
     const store = createStudioStore({ registry: createSlots(api, api), subscribe: () => () => undefined, subscribeFocus: () => () => undefined });
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
-    const [chapter] = withoutCredits(await api.manuscriptChapters());
+    const [chapter] = withoutCredits((await api.manuscriptChapters()).chapters);
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     await addBookmark({ journal, port: api, store }, { chapterId: chapter!.id, paragraphId: line!.id, offset: 1 });
     expect(await api.bookmarksList()).toHaveLength(1);

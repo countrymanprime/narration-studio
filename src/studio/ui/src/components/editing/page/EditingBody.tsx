@@ -85,7 +85,7 @@ import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useRereadFeedback } from './useRereadFeedback';
 import { canSaveFromApp, useSaveInDaw } from './useSaveInDaw';
-import { noAudioText } from './noAudioText';
+import { checkRecordingsReason, noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
 import { useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -488,7 +488,7 @@ export function EditingBody(props: EditingBodyProps) {
     cut,
     fx,
     checkRecording: checkRecording?.open,
-    checkReason: checkGate,
+    checkReason: checkGate ?? checkRecordingsReason(read.audio),
     tabs: offered,
     openTab,
     keymap,
@@ -588,6 +588,8 @@ export function EditingBody(props: EditingBodyProps) {
               onDrawer={panels.drawer.toggle}
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
               dawTools
+              checkRecording={checkRecording}
+              checkReason={checkRecordingsReason(read.audio)}
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
             <NoAudioBanner
@@ -605,7 +607,7 @@ export function EditingBody(props: EditingBodyProps) {
                     <SampleMarksContext.Provider value={sampleMarks}>
                       <SamplePlayerContext.Provider value={samplePlayer}>
                         <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
-                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} checkRecording={checkRecording} />
+                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} />
                         </ScriptNotesProvider>
                       </SamplePlayerContext.Provider>
                     </SampleMarksContext.Provider>

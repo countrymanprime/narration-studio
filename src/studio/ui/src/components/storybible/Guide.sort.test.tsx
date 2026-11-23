@@ -57,7 +57,7 @@ describe('the-sort-menu-orders-the-list', () => {
 
   it('orders by the chapter each entry first appears in', async () => {
     const api = await renderGuide();
-    const chapters = await api.manuscriptChapters();
+    const chapters = (await api.manuscriptChapters()).chapters;
     const place = new Map(chapters.map((chapter, index) => [chapter.id, index]));
     const entries = await api.guideEntities();
     const first = (name: string) => {
