@@ -8,6 +8,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { providedCommands } from '../../input/commandProviders';
 import type { Bootstrap, ManuscriptChapter, PinnedPreview, PreviewCandidate, PreviewResult } from '../../types';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -38,7 +39,7 @@ const CANDIDATE: PreviewCandidate = {
 function apiWith(result: PreviewResult, chapters: ManuscriptChapter[] = [CHAPTER]) {
   return createMockApi({
     previewCandidates: () => Promise.resolve(result),
-    manuscriptChapters: () => Promise.resolve(chapters),
+    manuscriptChapters: () => Promise.resolve(chaptersOf(chapters)),
   });
 }
 
@@ -168,7 +169,7 @@ describe('PreviewPanel pin and adjust', () => {
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
-          manuscriptChapters: () => Promise.resolve([CHAPTER]),
+          manuscriptChapters: () => Promise.resolve(chaptersOf([CHAPTER])),
           previewPin: () => Promise.resolve(NOT_PINNED),
           previewPinSet,
         })}
@@ -190,7 +191,7 @@ describe('PreviewPanel pin and adjust', () => {
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
-          manuscriptChapters: () => Promise.resolve([CHAPTER]),
+          manuscriptChapters: () => Promise.resolve(chaptersOf([CHAPTER])),
           previewPin: () => Promise.resolve(staleReason),
           previewPinClear,
         })}
@@ -221,7 +222,7 @@ describe('PreviewPanel pin and adjust', () => {
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [] }),
-          manuscriptChapters: () => Promise.resolve([]),
+          manuscriptChapters: () => Promise.resolve(chaptersOf([])),
           previewPin: () => Promise.resolve(missing),
         })}
       >
@@ -238,7 +239,7 @@ describe('PreviewPanel pin and adjust', () => {
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
-          manuscriptChapters: () => Promise.resolve([CHAPTER]),
+          manuscriptChapters: () => Promise.resolve(chaptersOf([CHAPTER])),
           previewPin: () => Promise.resolve(PINNED),
           previewPinAdjust,
         })}
@@ -261,7 +262,7 @@ describe('PreviewPanel pin and adjust', () => {
       <ApiProvider
         api={createMockApi({
           previewCandidates: () => Promise.resolve({ outcome: 'ok', candidates: [CANDIDATE] }),
-          manuscriptChapters: () => Promise.resolve([CHAPTER]),
+          manuscriptChapters: () => Promise.resolve(chaptersOf([CHAPTER])),
           previewPin: () => Promise.resolve(NOT_PINNED),
           previewPinSet: () => Promise.reject(new Error('a pin needs at least one paragraph')),
         })}
@@ -278,7 +279,7 @@ describe('PreviewPanel pin and adjust', () => {
     const save = vi.fn(async () => ({}) as Bootstrap);
     renderInRouter(
       <ApiProvider
-        api={createMockApi({ previewCandidates: read, manuscriptChapters: () => Promise.resolve([CHAPTER]), saveSettings: save } as Parameters<
+        api={createMockApi({ previewCandidates: read, manuscriptChapters: () => Promise.resolve(chaptersOf([CHAPTER])), saveSettings: save } as Parameters<
           typeof createMockApi
         >[0])}
       >

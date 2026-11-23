@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 // SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the rebuilt layout, the dialogs its
 // icons open, the timer and the chip's feed, chapter sync, and the row menu that keeps the features the mock has no equivalent for.
+import { StudioProvider } from '../../studio/StudioProvider';
 import type { DawChoice } from '../../api/contracts/daw';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -16,11 +17,12 @@ import { DAW_SETUPS } from '../../fixtures/daw';
 import { overlay } from '../../overlay/overlayService';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { contextItemsFor } from '../../registries/context';
-import type { NarrationApi } from '../../types';
+import type { ManuscriptChapter, NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { resetOpenOnce } from '../connection/useOpenOnce';
 import { addressPath } from '../../navigation/address';
 import { ProductionPage } from './ProductionPage';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(() => {
   cleanup();
@@ -45,21 +47,24 @@ async function renderPage({
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <TooltipProvider>
-          {/* As in the app shell: the board reads each chapter's link state from the one chapter-track state. */}
-          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-            <ProductionPage
-              data={data}
-              go={go}
-              notify={notify}
-              goToScript={vi.fn()}
-              goToBooth={goToBooth}
-              refreshBootstrap={async () => {}}
-              onManuscriptChanged={onManuscriptChanged}
-              dawConnectGraceMs={dawConnectGraceMs}
-            />
-          </ChapterTrackStateProvider>
-        </TooltipProvider>
+        {/* As in the app: the chapter list is the store's slot, shared with every page. */}
+        <StudioProvider>
+          <TooltipProvider>
+            {/* As in the app shell: the board reads each chapter's link state from the one chapter-track state. */}
+            <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+              <ProductionPage
+                data={data}
+                go={go}
+                notify={notify}
+                goToScript={vi.fn()}
+                goToBooth={goToBooth}
+                refreshBootstrap={async () => {}}
+                onManuscriptChanged={onManuscriptChanged}
+                dawConnectGraceMs={dawConnectGraceMs}
+              />
+            </ChapterTrackStateProvider>
+          </TooltipProvider>
+        </StudioProvider>
         <OverlayHost />
       </ApiProvider>
     </MemoryRouter>,
@@ -195,9 +200,53 @@ describe('production loading state', () => {
 
   it('says "0 chapters" when the log is read and has none', async () => {
     const base = await createMockApi().productionOverview();
-    await renderPage({ overrides: { productionOverview: async () => ({ ...base, chapters: [] }) } });
+    // The chapters are the shared list, so a book with none has an empty list as well as an empty overview.
+    await renderPage({ overrides: { productionOverview: async () => ({ ...base, chapters: [] }), manuscriptChapters: async () => chaptersOf([]) } });
     expect(await screen.findByText(/0 chapters · 0 words/)).toBeTruthy();
     expect(region()).toBeNull();
+  });
+
+  // #4058 (owner): every page that needs the chapter list reads the one shared list, so a rename or a failed read shows on this page as on the others.
+  it('names its rows from the shared chapter list: a chapter renamed there is renamed here', async () => {
+    const base = createMockApi();
+    const list = (await base.manuscriptChapters()).chapters;
+    const renamed = list.map((chapter) => (/^Chapter 3\b/.test(chapter.title) ? { ...chapter, title: 'Chapter 3 renamed in the list' } : chapter));
+    await renderPage({ overrides: { manuscriptChapters: async () => chaptersOf(renamed) } });
+    const table = await pipeline();
+    expect(table.textContent).toContain('renamed in the list');
+  });
+
+  it('a chapter list that cannot be read is the page error with Retry, not a table of the overview; Retry reads the shared list again', async () => {
+    const base = createMockApi();
+    const original = base.manuscriptChapters.bind(base);
+    let failing = true;
+    const manuscriptChapters = vi.fn(async () => {
+      if (failing) throw new Error('the chapter list is down');
+      return original();
+    });
+    await renderPage({ overrides: { manuscriptChapters } });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    expect(screen.queryByRole('table', { name: 'Chapter pipeline' })).toBeNull();
+    failing = false;
+    fireEvent.click(retry);
+    expect(await pipeline()).toBeTruthy();
+  });
+
+  it('shows the skeleton while Retry reads a chapter list that is still down, then the error again', async () => {
+    let release: () => void = () => undefined;
+    let reads = 0;
+    const manuscriptChapters = vi.fn(async () => {
+      reads += 1;
+      if (reads > 1) await new Promise<void>((resolve) => (release = resolve));
+      throw new Error('the chapter list is down');
+    });
+    await renderPage({ overrides: { manuscriptChapters } });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    fireEvent.click(retry);
+    // The old failure is still in the store, but the page does not look dead while the new read runs.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+    release();
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
   });
 
   it('is replaced by the overview when the log arrives', async () => {
@@ -823,13 +872,17 @@ describe('the board follows a link changed elsewhere', () => {
     const boardWith = async (recordedSeconds: number, host: typeof zero | undefined) => {
       const base = createMockApi();
       const overview = await base.productionOverview();
-      const row = {
-        ...overview.chapters.find((c) => /^Chapter 1\b/.test(c.title))!,
+      // The row's names, status and recorded audio come from the shared chapter list; the overview adds its numbers by id.
+      const listed: ManuscriptChapter = {
+        ...(await base.manuscriptChapters()).chapters.find((c) => /^Chapter 1\b/.test(c.title))!,
         status: 'recording' as const,
         recordedSeconds,
         recordedThrough: host,
       };
-      await renderPage({ overrides: { productionOverview: async () => ({ ...overview, chapters: [row] }) } });
+      const numbers = overview.chapters.find((c) => c.id === listed.id)!;
+      await renderPage({
+        overrides: { productionOverview: async () => ({ ...overview, chapters: [numbers] }), manuscriptChapters: async () => chaptersOf([listed]) },
+      });
       const kpis = await screen.findByRole('list', { name: 'Production figures' });
       const table = await pipeline();
       return {

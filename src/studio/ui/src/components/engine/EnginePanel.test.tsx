@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StudioProvider } from '../../studio/StudioProvider';
 import { QUIET_MS } from '../../quietWindow';
 import { TRACKS_READ_TOPIC } from './useLiveTracks';
 import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
@@ -12,6 +13,7 @@ import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import type { NarrationApi } from '../../types';
 import type { Track, TracksLive } from '../../api/contracts/tracks';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -35,9 +37,12 @@ function renderPanel(
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-          <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
-        </ChapterTrackStateProvider>
+        {/* The app's store, as App mounts it: the chapter list is its slot, read again on a job end and when the window is used again. */}
+        <StudioProvider>
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+            <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
+          </ChapterTrackStateProvider>
+        </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -67,7 +72,7 @@ describe('EnginePanel', () => {
 
   // The owner's decision on #3272: a link change reads the chapter it changes, not the book. The chapter list is the measured one (every chapter),
   // and a link moves no chapter, so neither the write's re-read nor the panel's own refresh key may ask for it again.
-  it('reads no chapter list again after an Unlink or a Link', async () => {
+  it('reads the chapter list once, through the shared store, after each Unlink or Link, and the panel reads none of its own', async () => {
     const user = userEvent.setup();
     const api = renderPanel();
     const chapters = vi.spyOn(api, 'manuscriptChapters');
@@ -90,19 +95,22 @@ describe('EnginePanel', () => {
     await user.selectOptions(picker, picker.options[1]!.value);
     await user.click(use);
     await settle(true);
-    expect(chapters.mock.calls.length).toBe(chaptersBefore);
+    // The write announces `chapters:written`, which the store answers with one read for every page; the panel adds none (#3272).
+    expect(chapters.mock.calls.length).toBe(chaptersBefore + 1);
 
     await user.click(within(table).getByRole('button', { name: 'Clear the link for Chapter 1' }));
     await settle(false);
     expect(unlinks).toHaveBeenCalledTimes(1);
-    expect(chapters.mock.calls.length).toBe(chaptersBefore);
+    expect(chapters.mock.calls.length).toBe(chaptersBefore + 2);
   });
 
   it('shows a chapter renamed in the manuscript when the window regains focus, without a link press reading the book', async () => {
     let title = 'Chapter 1';
     const base = createMockApi();
     const original = base.manuscriptChapters.bind(base);
-    const api = renderPanel({ manuscriptChapters: async () => (await original()).map((chapter, index) => (index === 0 ? { ...chapter, title } : chapter)) });
+    const api = renderPanel({
+      manuscriptChapters: async () => chaptersOf((await original()).chapters.map((chapter, index) => (index === 0 ? { ...chapter, title } : chapter))),
+    });
     void api;
     const table = await trackTable();
     await within(table).findAllByRole('button', { name: 'Use this track for Chapter 1' });

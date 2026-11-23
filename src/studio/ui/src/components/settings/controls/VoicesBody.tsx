@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { ManuscriptChapter } from '../../../types';
 import { describeApiError } from '../../../api/errorMessage';
-import { usePort } from '../../../ports/usePort';
+import { useChapters } from '../../../studio/useChapters';
 import type { Track } from '../../../api/contracts/tracks';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 import { useVoiceTracks } from '../../engine/useVoiceTracks';
@@ -10,6 +10,7 @@ import { VoicesCard } from '../../engine/VoicesCard';
 import { useSettingsHost } from '../row/SettingsHost';
 
 const NO_TRACKS: Track[] = [];
+const NO_CHAPTERS: readonly ManuscriptChapter[] = [];
 
 /**
  * The body of "Voices": the Engine panel's Voices card (the Narrator's character and who each voice track records), on the same shared voice
@@ -34,23 +35,15 @@ function VoiceFolders() {
   // not yet saved is seen here too; they are read again on focus and every few seconds by the shared state, which toasts a failed read.
   const trackState = useChapterTrackState();
   const tracks = trackState.project?.tracks ?? NO_TRACKS;
-  // The chapter list is the manuscript's; the links are the shared state's, so they are read once for every screen.
-  const manuscript = usePort('manuscript');
-  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
+  // The chapter list is the one every page shares (the store's slot); the links are the shared state's, so they are read once for every screen.
+  const { chapters, error: chaptersError } = useChapters();
   useEffect(() => {
-    let active = true;
-    manuscript
-      .manuscriptChapters()
-      .then((next) => active && setChapters(next))
-      .catch((reason: unknown) => active && notify(describeApiError(reason), 'error'));
-    return () => {
-      active = false;
-    };
-  }, [manuscript, notify]);
+    if (chaptersError) notify(describeApiError(chaptersError), 'error');
+  }, [chaptersError, notify]);
   return (
     <VoicesCard
       tracks={tracks}
-      chapters={chapters}
+      chapters={chapters ?? NO_CHAPTERS}
       mappings={trackState.mappings}
       setup={voices.setup}
       characters={voices.characters}

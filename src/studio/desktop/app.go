@@ -81,7 +81,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 171
+const hostAPIVersion = 173
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -830,7 +830,7 @@ func (h *Host) configureLocked(next config) {
 		// render the Home row and the teleprompter show (h.creditsScript), never manuscript
 		// paragraphs.
 		LoadCredits: func(kind string) (string, string, error) {
-			script, err := h.creditsScript(kind)
+			script, err := h.creditsScriptOf(projectFolder, settingsStore, kind)
 			if err != nil {
 				return "", "", err
 			}
@@ -849,7 +849,7 @@ func (h *Host) configureLocked(next config) {
 	// never an estimate.
 	h.manuscript.SetRecordedLengths(recordedLengths(projectFolder, settingsStore, h.manuscript, h.persist))
 	// The opening and closing credits are chapters of the list too, opening first and closing last (internal/manuscript/credits.go).
-	h.manuscript.SetCredits(h.creditsChapters)
+	h.manuscript.SetCredits(func() []manuscript.CreditsChapter { return h.creditsChaptersOf(projectFolder, settingsStore) })
 	h.manuscript.SetCreditsStatusWriter(func(kind, status string) error { _, err := h.setCreditsStatus(kind, status); return err })
 	// A chapter's recordedThrough is how far it is recorded, from its current Proof result, the Booth's takes and that length.
 	h.manuscript.SetRecordedThrough(recordedThroughs(projectFolder, h.coverage, settingsStore, h.manuscript))

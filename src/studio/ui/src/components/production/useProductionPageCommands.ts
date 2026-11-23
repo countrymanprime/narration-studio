@@ -1,6 +1,6 @@
 import { headingName } from '../../chapterHeading';
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
-import type { ProductionChapter } from '../../api/contracts/production';
+import type { ProductionChapter } from './composeOverview';
 import { PIPELINE_AREA } from './useChapterTools';
 import { revealRow } from './pipeline/rowWindow';
 

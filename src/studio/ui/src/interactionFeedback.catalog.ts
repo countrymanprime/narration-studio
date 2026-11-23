@@ -89,8 +89,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The chapter list asked for by a page: the failure is recorded in the store's `errors` for the page that shows it (the callers keep the titles the host kept), so the rejection of the shared read has nobody left to tell.",
   'src/studio/useChapters.ts#3':
     "The chapter list read again because the caller asked (a dialog's Check again): the failure is recorded in the store's `errors` for the page that shows it.",
-  'src/studio/useChapters.ts#4':
-    'The chapter list read for a component rendered without the store (a unit render): a failed read leaves no list, and the callers fall back to the titles the host kept.',
+  'src/components/production/ProductionPage.tsx#1':
+    "Retry reads the shared chapter list again beside the overview: the failure is recorded in the store's `errors` and is the page's error card (with this Retry), so the rejection of the read has nobody left to tell.",
   'src/hooks/useDawGoesToChapter.ts#1':
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
   'src/hooks/useDawSoloesChapter.ts#1':

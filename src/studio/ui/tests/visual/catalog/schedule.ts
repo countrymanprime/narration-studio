@@ -6,6 +6,12 @@ import { wholePage } from './shared';
 export const scheduleStates: StateEntry[] = [
   {
     page: 'schedule',
+    state: 'chapters-load-failed',
+    description:
+      'Schedule when the shared chapter list could not be read (?mockChapters=fails): the Schedule title, then the same alert and Retry as when the plan fails, "The schedule could not be read:" with the read\'s own sentence, and no schedule drawn',
+  },
+  {
+    page: 'schedule',
     state: 'no-due-date',
     reloadPerViewport: true,
     description: 'Schedule before a due date is set - the heading says so, the verdict and the milestone table with nothing dated',

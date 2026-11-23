@@ -552,6 +552,8 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 			}
 		}
 	}
+	// After the heading is taken out, so a first body word said twice is flagged on its first copy and the heading does not swallow it.
+	a.keepLastOfARepeatedWord(heard, used)
 	tokens := make([]AlignedToken, len(status))
 	for i, value := range status {
 		var audio *int
@@ -585,6 +587,46 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 	}
 	return tokens, extras
 }
+
+// keepLastOfARepeatedWord moves a heard word to the last copy of it when the narrator said the same word again straight away (a word misspoken and
+// said again): the earlier copy is the extra word, and the one that stays is the one the line goes on from. difflib matches the first copy; the
+// Editing page sets the words against the script the same way (align.ts), so the two agree on which word is the extra. Only a copy that is free
+// (no token is heard as it) and that comes before the next heard token's word is taken, so no other token loses its word. The last token moves first,
+// so a word the script says three times and the narrator says five times keeps its last three copies, as align.ts does.
+func (a *AlignedChapter) keepLastOfARepeatedWord(heard []int, used []bool) {
+	for i := len(heard) - 1; i >= 0; i-- {
+		j := heard[i]
+		if j < 0 || a.DocTokens[i] != a.AudioTokens[j] {
+			continue
+		}
+		next := len(a.AudioTokens)
+		for n := i + 1; n < len(heard); n++ {
+			if heard[n] >= 0 {
+				next = heard[n]
+				break
+			}
+		}
+		// The next copy: straight after, or after a filler of a few words said between them (a word misspoken, "um", and the word said again).
+		for {
+			later := -1
+			for k := j + 1; k < next && k <= j+1+maxFiller && !used[k]; k++ {
+				if a.AudioTokens[k] == a.AudioTokens[j] {
+					later = k
+					break
+				}
+			}
+			if later < 0 {
+				break
+			}
+			used[j], used[later] = false, true
+			j = later
+		}
+		heard[i] = j
+	}
+}
+
+// maxFiller is the most words said between a word and the copy of it that replaces it: "alice um alice".
+const maxFiller = 2
 
 // minRepeatTokens is the fewest chapter words an extra run must say again to
 // be a repeat, unless they are a whole line.

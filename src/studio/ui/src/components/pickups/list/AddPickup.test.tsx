@@ -37,7 +37,7 @@ describe('AddPickup, the rest of the form', () => {
     let finish!: () => void;
     const onAdd = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
     const { user } = setup(onAdd);
-    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '00:05:12');
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line{Enter}{Enter}');
     expect(onAdd).toHaveBeenCalledTimes(1);
     finish();
@@ -45,7 +45,7 @@ describe('AddPickup, the rest of the form', () => {
 
   it('refuses a line over 500 characters under the line box, not as a toast', async () => {
     const { onAdd, user, toasts } = setup();
-    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '00:05:12');
     await user.click(screen.getByRole('textbox', { name: 'Line to re-record' }));
     await user.paste('a'.repeat(501));
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
@@ -54,12 +54,12 @@ describe('AddPickup, the rest of the form', () => {
     expect(toasts()).toEqual([]);
   });
 
-  it('shows 5:12 as 05:12.0 once the box is left', async () => {
+  it('shows 5:12 as 00:05:12 once the box is left', async () => {
     const { user } = setup();
     const time = screen.getByRole('textbox', { name: 'Time in the recording' });
     await user.type(time, '5:12');
     await user.tab();
-    expect((time as HTMLInputElement).value).toBe('05:12.0');
+    expect((time as HTMLInputElement).value).toBe('00:05:12');
   });
 
   it('lets the narrator choose the chapter when every chapter is showing', async () => {
@@ -80,7 +80,7 @@ describe('AddPickup, the rest of the form', () => {
     );
     const user = userEvent.setup();
     await user.selectOptions(screen.getByRole('combobox', { name: 'Chapter' }), 'c2');
-    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '01:00.0');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '00:01:00');
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith('c2', 60, 'A line'));
@@ -90,7 +90,7 @@ describe('AddPickup, the rest of the form', () => {
 describe('AddPickup', () => {
   it('add-by-hand-validates: an empty line is refused', async () => {
     const { onAdd, onDone, user } = setup();
-    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '00:05:12');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
     expect(problemWith(screen.getByRole('textbox', { name: 'Line to re-record' })).says).toBe('Type the line first.');
     expect(onAdd).not.toHaveBeenCalled();
@@ -104,20 +104,20 @@ describe('AddPickup', () => {
     expect(toasts()).toEqual([]);
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-    expect(screen.getAllByText('Type the time like 05:12.0.')).toHaveLength(1);
+    expect(screen.getAllByText('Type the time like 00:05:12.')).toHaveLength(1);
     expect(toasts()).toEqual([]);
   });
 
   it('the time box hints at the format and cannot be mistaken for a typed time', () => {
     setup();
     const hint = screen.getByRole('textbox', { name: 'Time in the recording' }).getAttribute('placeholder');
-    expect(hint).toBe('mm:ss.s');
+    expect(hint).toBe('hh:mm:ss');
     expect(parseClock(hint ?? '')).toBeNull();
   });
 
   it('an empty line is said next to its field, which is marked invalid and described by it', async () => {
     const { user } = setup();
-    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '05:12.0');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '00:05:12');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
     const line = screen.getByRole('textbox', { name: 'Line to re-record' });
     expect(problemWith(line)).toEqual({ invalid: true, says: 'Type the line first.' });
@@ -132,17 +132,44 @@ describe('AddPickup', () => {
     await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), 'abc');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
     const time = screen.getByRole('textbox', { name: 'Time in the recording' });
-    expect(problemWith(time)).toEqual({ invalid: true, says: 'Type the time like 05:12.0.' });
+    expect(problemWith(time)).toEqual({ invalid: true, says: 'Type the time like 00:05:12.' });
     expect(problemWith(screen.getByRole('textbox', { name: 'Line to re-record' })).invalid).toBe(false);
     await user.type(time, '1');
     expect(problemWith(time)).toEqual({ invalid: false, says: '' });
+  });
+
+  it('keeps a typed tenth to the nearest second even when Enter is pressed in the time box (box not left first)', async () => {
+    const { onAdd, user } = setup();
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'The salt was thick.');
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '5:12.5{Enter}');
+    expect(onAdd).toHaveBeenCalledWith('c1', 313, 'The salt was thick.');
+  });
+
+  it('a pasted Proof position (00:05:12.500) is accepted and shown as the nearest second once the box is left', async () => {
+    const { onAdd, user } = setup();
+    const time = screen.getByRole('textbox', { name: 'Time in the recording' });
+    await user.type(time, '00:05:12.500');
+    await user.tab();
+    expect((time as HTMLInputElement).value).toBe('00:05:13');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'The salt was thick.');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(onAdd).toHaveBeenCalledWith('c1', 313, 'The salt was thick.');
+  });
+
+  it('refuses a time past 99:59:59, which the Time column could not hold, with the way to type it', async () => {
+    const { onAdd, user } = setup();
+    await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '100:00:00');
+    await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
+    await user.click(screen.getByRole('button', { name: 'Add pickup' }));
+    expect(problemWith(screen.getByRole('textbox', { name: 'Time in the recording' })).says).toBe('Type the time like 00:05:12.');
+    expect(onAdd).not.toHaveBeenCalled();
   });
 
   it('a line with no usable time is refused', async () => {
     const { onAdd, user, toasts } = setup();
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-    expect(problemWith(screen.getByRole('textbox', { name: 'Time in the recording' })).says).toBe('Type the time like 05:12.0.');
+    expect(problemWith(screen.getByRole('textbox', { name: 'Time in the recording' })).says).toBe('Type the time like 00:05:12.');
     expect(toasts()).toEqual([]);
     expect(onAdd).not.toHaveBeenCalled();
   });
@@ -152,7 +179,8 @@ describe('AddPickup', () => {
     await user.type(screen.getByRole('textbox', { name: 'Time in the recording' }), '5:12.5');
     await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), '  The salt was thick.  ');
     await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-    expect(onAdd).toHaveBeenCalledWith('c1', 312.5, 'The salt was thick.');
+    // A typed tenth is kept to the nearest second, as the box shows it once left (owner, #3590): 5:12.5 is 00:05:13.
+    expect(onAdd).toHaveBeenCalledWith('c1', 313, 'The salt was thick.');
     await waitFor(() => expect(onDone).toHaveBeenCalledOnce());
   });
 
@@ -164,10 +192,10 @@ describe('AddPickup', () => {
     await waitFor(() => expect(toasts()).toEqual(['That time is outside the chapter.']));
     expect(onDone).not.toHaveBeenCalled();
     expect((screen.getByRole('textbox', { name: 'Line to re-record' }) as HTMLInputElement).value).toBe('A line');
-    expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('1:39:00.0');
+    expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('01:39:00');
   });
 
-  it.each(['-1', '0', '5:99', '05:12.55', '1e3', '∞', 'Infinity', '5:12 pm', '', '   ', '１２:００', '99999999:00'])(
+  it.each(['-1', '0', '5:99', '05:12.5555', '1e3', '∞', 'Infinity', '5:12 pm', '', '   ', '１２:００', '99999999:00'])(
     'absurd time %j is refused with the way to type it, and nothing is sent',
     async (text) => {
       const { onAdd, user, toasts } = setup();
@@ -175,7 +203,7 @@ describe('AddPickup', () => {
       if (text.trim()) await user.type(box, text);
       await user.type(screen.getByRole('textbox', { name: 'Line to re-record' }), 'A line');
       await user.click(screen.getByRole('button', { name: 'Add pickup' }));
-      expect(problemWith(box).says).toBe('Type the time like 05:12.0.');
+      expect(problemWith(box).says).toBe('Type the time like 00:05:12.');
       expect(toasts()).toEqual([]);
       expect(onAdd).not.toHaveBeenCalled();
     },

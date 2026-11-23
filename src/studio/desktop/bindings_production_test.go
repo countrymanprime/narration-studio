@@ -189,6 +189,24 @@ func productionHost(t *testing.T) *Host {
 	return stagesHost(t, 5)
 }
 
+// chapterStatusOf is a chapter's status as the shared chapter list (ManuscriptChapters) says it: the overview no
+// longer carries it.
+func chapterStatusOf(t *testing.T, host *Host, id string) any {
+	t.Helper()
+	raw, err := host.ManuscriptChapters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, list := decodeChapterList(t, raw)
+	for _, chapter := range list {
+		if chapter["id"] == id {
+			return chapter["status"]
+		}
+	}
+	t.Fatalf("the chapter list has no %q", id)
+	return nil
+}
+
 func TestProductionOverviewReadsTheChaptersTheirReadinessAndTheTimeLog(t *testing.T) {
 	host := productionHost(t)
 	overview := decodeAnswer(t)(host.ProductionOverview())
@@ -198,8 +216,11 @@ func TestProductionOverviewReadsTheChaptersTheirReadinessAndTheTimeLog(t *testin
 		t.Fatalf("overview = %v", overview)
 	}
 	chapter := chapters[1].(map[string]any)
-	if chapter["id"] != "c-0001" || chapter["status"] != "recording" || chapter["pfh"] != nil {
-		t.Fatalf("chapter = %v", chapter)
+	if chapter["id"] != "c-0001" || chapter["pfh"] != nil || len(chapter) != 4 {
+		t.Fatalf("chapter = %v, want only id, hoursLogged, pfh and readiness", chapter)
+	}
+	if status := chapterStatusOf(t, host, "c-0001"); status != "recording" {
+		t.Fatalf("status = %v, want the shared chapter list to say recording", status)
 	}
 	readiness, _ := chapter["readiness"].(map[string]any)
 	if readiness == nil || readiness["target"] != "editing" {
@@ -238,9 +259,8 @@ func TestProductionTimerStartsStopsAndRefusesASecondTimer(t *testing.T) {
 	if again["stopped"] != false || again["session"] != nil {
 		t.Fatalf("second stop = %v, want a no-op", again)
 	}
-	chapter := decodeAnswer(t)(host.ProductionOverview())["chapters"].([]any)[1].(map[string]any)
-	if chapter["status"] != "recording" {
-		t.Fatalf("status = %v, want it untouched by the timer", chapter["status"])
+	if status := chapterStatusOf(t, host, "c-0001"); status != "recording" {
+		t.Fatalf("status = %v, want it untouched by the timer", status)
 	}
 	if _, err := os.Stat(filepath.Join(host.config.projectFolder, brand.ProjectFolder, "production", "sessions.json")); err != nil {
 		t.Fatalf("the time log was not written: %v", err)
@@ -398,7 +418,7 @@ func TestProductionSetPaymentClearsTheAmountForRoyaltyShareOrNone(t *testing.T) 
 		if _, err := host.ProductionStopTimer(); err != nil {
 			t.Fatal(err)
 		}
-		if before, _, err := host.buildProductionOverview(); err != nil || before.Totals.EffectiveRate == nil {
+		if before, _, _, err := host.buildProductionOverview(); err != nil || before.Totals.EffectiveRate == nil {
 			t.Fatalf("%s: want an effective rate while per finished hour, got %+v %v", payment, before.Totals, err)
 		}
 		encoded, err := host.ProductionSetPayment(payment)
@@ -415,7 +435,7 @@ func TestProductionSetPaymentClearsTheAmountForRoyaltyShareOrNone(t *testing.T) 
 		if _, err := host.ProductionSetDeadline("2026-12-01", &amount); err == nil || !strings.Contains(err.Error(), "per finished hour") {
 			t.Fatalf("%s: want an amount refused with a sentence, got %v", payment, err)
 		}
-		overview, _, err := host.buildProductionOverview()
+		overview, _, _, err := host.buildProductionOverview()
 		if err != nil {
 			t.Fatal(err)
 		}

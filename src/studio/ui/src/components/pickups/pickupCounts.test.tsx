@@ -22,6 +22,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import { CHAPTERS, MIXED } from './list/pickupFixtures';
 import { openPickups } from './list/pickupRows';
 import { PickupsPage } from './PickupsPage';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -103,7 +104,7 @@ describe('every pickup count comes from the Pickups list', () => {
   it("the Pickups page's chapter groups add up to the same count", async () => {
     const api = apiWith();
     const chapters = CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' }) as never);
-    api.manuscriptChapters = async () => chapters;
+    api.manuscriptChapters = async () => chaptersOf(chapters);
     const Page = wrap(api);
     render(
       <Page>

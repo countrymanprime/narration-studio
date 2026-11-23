@@ -1,4 +1,4 @@
-import type { ProductionChapter } from '../../../api/contracts/production';
+import type { ProductionChapter } from '../composeOverview';
 import type { StageChapterRecommendation } from '../../../types';
 import { WPH } from '../../schedule/estimates';
 import type { ChapterCheckStatus } from '../chapterCheckStatus';

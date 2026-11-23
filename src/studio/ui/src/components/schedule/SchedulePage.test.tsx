@@ -5,49 +5,21 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
-import type { ProductionMilestone, ProductionOverview } from '../../api/contracts/production';
+import type { ProductionMilestone } from '../../api/contracts/production';
 import { createMockApi } from '../../api/mockApi';
 import type { ProductionSeed } from '../../api/productionMock';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { overlay } from '../../overlay/overlayService';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { NarrationApi } from '../../types';
-import { WPH } from './estimates';
 import { SchedulePage } from './SchedulePage';
+import { chapterList } from './scheduleKit.test';
+import { chaptersOf } from '../../api/chaptersOf';
 
 const TODAY = new Date(2026, 9, 1);
 const REC: ProductionMilestone = { name: 'All chapters recorded', dueDate: '2026-10-06', measure: 'rec' };
 const CUSTOM_DONE: ProductionMilestone = { name: 'Contract signed', dueDate: '2026-09-20', done: true };
 const CUSTOM: ProductionMilestone = { name: 'Retail sample', dueDate: '2026-10-12', note: 'Proofer wants the sample first' };
-
-const overview = (statuses: ChapterStatus[]): ProductionOverview => ({
-  chapters: statuses.map((status, i) => ({
-    id: `c${i + 1}`,
-    title: `Chapter ${i + 1}`,
-    contentKind: 'narration',
-    status,
-    wordCount: WPH,
-    recordedSeconds: null,
-    hoursLogged: 0,
-    pfh: null,
-    readiness: null,
-  })),
-  totals: {
-    chapters: statuses.length,
-    finalizedChapters: 0,
-    wordCount: statuses.length * WPH,
-    recordedSeconds: 0,
-    measuredChapters: 0,
-    hoursLogged: 0,
-    hoursByStage: {},
-    bookPfh: null,
-    contractedAmount: null,
-    effectiveRate: null,
-  },
-  deadline: null,
-  running: null,
-  nextUp: [],
-});
 
 let journal: Journal;
 let api: NarrationApi;
@@ -60,12 +32,18 @@ afterEach(() => {
   act(() => overlay.getSnapshot().dialogs.forEach((entry) => ('close' in entry ? entry.close() : entry.answer(false))));
 });
 
-type Setup = { seed?: ProductionSeed; statuses?: ChapterStatus[]; profile?: string };
+type Setup = { seed?: ProductionSeed; statuses?: ChapterStatus[]; profile?: string; credits?: boolean };
 
-async function mount({ seed = {}, statuses = ['not_started', 'not_started'], profile = 'acx@2026-09' }: Setup = {}) {
+async function mount({ seed = {}, statuses = ['not_started', 'not_started'], profile = 'acx@2026-09', credits = false }: Setup = {}) {
   api = createMockApi(
     {
-      productionOverview: async () => overview(statuses),
+      manuscriptChapters: async () => {
+        const list = chapterList(statuses);
+        if (!credits) return chaptersOf(list);
+        // The opening and closing credits are chapters of the list like any other (owner rule), here not started.
+        const credit = (id: string, index: number) => ({ ...list[0]!, id, title: id, index, status: 'not_started' as const, isCredits: true as const });
+        return chaptersOf([credit('credits-opening', 0), ...list, credit('credits-closing', list.length + 1)]);
+      },
       deliveryProfiles: async () => ({
         profiles: [],
         globalDefault: { id: 'acx' },
@@ -114,6 +92,14 @@ describe('the verdict for each deadline', () => {
 
   it('reads Finished when every chapter is delivered, whatever the date', async () => {
     expect(await verdict({ deadline: '2026-09-28' }, ['finalized', 'finalized'])).toMatch(/Finished/);
+  });
+
+  it('counts the credits as narration: delivered chapters with the credits not started are not Finished', async () => {
+    expect(await verdict({ deadline: '2026-09-28' }, ['finalized', 'finalized'])).toMatch(/Finished/);
+    cleanup();
+    await mount({ seed: { deadline: '2026-09-28' }, statuses: ['finalized', 'finalized'], credits: true });
+    await screen.findByText(/Due Sep 28/);
+    await waitFor(() => expect(document.querySelector('[data-verdict]')?.textContent ?? '').toMatch(/Behind/));
   });
 
   it('says there is no due date when none is set', async () => {

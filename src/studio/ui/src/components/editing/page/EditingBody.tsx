@@ -69,7 +69,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
+import { docTimeOf, doubledCut, doubledStart, stretchOrigin, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -199,9 +199,8 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Playback: the chapter on the document's clock, and a take on its own.
   // The host's peaks are in source seconds and the page's axis is the document's: this puts each item's peaks where its audio is heard.
-  const clocks = useMemo(() => itemClocks(doc, read.answer), [doc, read.answer]);
+  const clocks = useMemo(() => itemClocks(doc), [doc]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
-  const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const sound = useChapterSound(chapterId, clocks);
   // Where each word plays in the DAW project now (the host's word table): the one map the follow-along, play-from-a-word and play-a-range read.
   const { clock, pending: clockPending } = useWordClock(chapterId, doc, locator.token, caps);
@@ -211,7 +210,6 @@ export function EditingBody(props: EditingBodyProps) {
     mediaUrl: tracks.mediaUrl,
     sync: { clock, clockPending, chapterId, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
-    onOutputDevice: setDeviceProblem,
   });
   useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
@@ -282,14 +280,10 @@ export function EditingBody(props: EditingBodyProps) {
       const line = lines.byId.get(id);
       const take = line?.takes.find((t) => t.active) ?? line?.takes[0];
       const cut = doubledCut(read, id);
-      const start = doc.paras.find((p) => p.p.id === id)?.start;
-      // The cut is seconds into the paragraph's take, which is a second of the item's source; the DAW wants the project's time. The word table says where
-      // the paragraph's words play, so the cut is carried from its first word to the project (a cut in a pause between two words included).
-      const heard = cut !== null && start != null ? locator.source(start + cut) : null;
-      const first = doc.items.find((i) => i.pid === id && i.kind === 'w' && !i.cut && i.t0 != null);
-      const token = first ? locator.token(first.key) : undefined;
-      const firstStart = token === undefined ? undefined : read.workspace.tokens.find((t) => t.i === token)?.start;
-      const docCut = heard && first && first.t0 != null && firstStart !== undefined ? first.t0 + (heard.sourceTime - firstStart) : null;
+      const origin = stretchOrigin(read, id);
+      // The cut is seconds into the paragraph's take, which is a second of the item's source; the DAW wants the project's time, so the cut is put on the
+      // document's clock (the one the waveform and the play use) and carried from there.
+      const docCut = cut !== null && origin !== null ? docTimeOf(doc, read, id, origin + cut) : null;
       const at = docCut === null ? null : (clock?.projectNear(docCut) ?? null);
       if (!line || !take || at === null) return null;
       return { chapterId, takeId: take.id, label: take.label, at: Math.round(at * 1000) / 1000 };
@@ -642,7 +636,7 @@ export function EditingBody(props: EditingBodyProps) {
               end={total}
               narrow={compact}
               {...(playUnavailable ? { unavailable: playUnavailable } : {})}
-              output={<EditingOutput prefs={output} onChange={changeOutput} deviceProblem={deviceProblem} caps={caps} />}
+              output={<EditingOutput prefs={output} onChange={changeOutput} caps={caps} />}
             />
             <KeyHints hints={hints} id="keyhints" />
           </div>

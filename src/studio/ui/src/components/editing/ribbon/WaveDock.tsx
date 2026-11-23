@@ -9,6 +9,7 @@ import { wordAtTime, wordsCovered, type Span } from './rangeMath';
 import { RibbonView } from './Ribbon';
 import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
 import { clock } from '../../../clock';
+import { useToastClearance } from '../../../hooks/useToastClearance';
 
 /** Where the chapter's audio ends on the document clock: past the last line's last word by the runway. */
 export function docEnd(doc: ChapterDoc): number {
@@ -136,8 +137,16 @@ export function WaveDock({ chapterId, clocks, take, playFrom, reason }: WaveDock
   );
 
   const entry = pickEntries(peaks, clocks, 0, end);
+  // Messages rise above the dock and the bar under it, not over the waveform's buttons.
+  const dock = useRef<HTMLElement>(null);
+  useToastClearance(dock, true, true);
   return (
-    <section aria-label="Waveform of the chapter" className="relative z-10 flex-none border-t border-[var(--border)] bg-[var(--surface-2)]" id="wavedock">
+    <section
+      ref={dock}
+      aria-label="Waveform of the chapter"
+      className="relative z-10 flex-none border-t border-[var(--border)] bg-[var(--surface-2)]"
+      id="wavedock"
+    >
       <RibbonView
         layout={layout}
         head={{ take }}

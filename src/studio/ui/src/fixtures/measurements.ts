@@ -29,6 +29,3 @@ export const PICKUP_BOOTH: { readonly setupSeconds: number; readonly seconds: Re
   setupSeconds: 180,
   seconds: { c3a: 55, c3b: 40, c3c: 70, p1: 60, p2: 45, p4: 50 },
 };
-
-/** The finished length of the chapters that have been measured, in seconds, by chapter id. */
-export const CHAPTER_LENGTHS: Readonly<Record<string, number>> = { '1': 685, '2': 670, '4': 868 };

@@ -66,7 +66,7 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
   };
   const chapterName = async (chapterId: string): Promise<string> => {
     try {
-      const chapter = (await base.manuscriptChapters()).find((candidate) => candidate.id === chapterId);
+      const chapter = (await base.manuscriptChapters()).chapters.find((candidate) => candidate.id === chapterId);
       return chapter?.title ?? chapterId;
     } catch {
       return chapterId;

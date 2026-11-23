@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type {
   ManuscriptChapterKindResult,
   ManuscriptChapter,
+  ManuscriptChapterList,
   ManuscriptCharacterCandidate,
   ManuscriptDropped,
   ManuscriptFileSelection,
@@ -28,7 +29,7 @@ const contentKindFromWire = z
   .optional()
   .transform((value) => (value === '' ? undefined : value));
 
-export const recordedThroughSchema = z.object({
+const recordedThroughSchema = z.object({
   paragraphId: z.string().min(1),
   paragraph: z.number().int().positive().optional(),
   word: z.number().int().nonnegative(),
@@ -188,5 +189,6 @@ export const workJobSchema = z.object({
 
 // What each list binding returns. The host sends null for an empty list in places (a nil Go slice), so every one accepts it.
 export const chaptersSchema = listFromNull(chapterSchema);
+export const chapterListSchema = z.object({ project: z.string(), chapters: chaptersSchema }) satisfies z.ZodType<ManuscriptChapterList>;
 export const paragraphsSchema = listFromNull(paragraphSchema);
 export const notesSchema = listFromNull(noteSchema);

@@ -31,7 +31,11 @@ export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, book
   return {
     chapters: {
       schema: chaptersSchema,
-      load: () => api.manuscriptChapters(),
+      // The host names the project it read the list from, and the store holds the list under that project (#4040).
+      read: async () => {
+        const answer = await api.manuscriptChapters();
+        return { project: answer.project, payload: answer.chapters };
+      },
       events: ['job:ended', 'chapters:written', 'daw:record-ended', 'chapter-sync'],
       topics: [MANUSCRIPT_CHANGED],
       refreshOnFocus: true,

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { useMonitorLevel } from '../../booth/frame/useMonitorLevel';
 import type { OutputPrefs } from '../../engine/outputPrefs';
+import { missingOutputSentence } from '../../voicesamples/audioOutputs';
 import { MonitorRow, OutputControls } from './OutputControls';
 import { useOutputDevices } from './useOutputDevices';
 
@@ -20,16 +21,18 @@ function DawMonitorRow({ name }: { name: string }) {
 export interface EditingOutputProps {
   prefs: OutputPrefs;
   onChange: (patch: Partial<OutputPrefs>) => void;
-  deviceProblem: string | null;
   caps: DawCapabilities | null;
 }
 
 /** The page's output controls with the computer's outputs and, with a DAW that can set it, the DAW's monitor level. */
-export function EditingOutput({ prefs, onChange, deviceProblem, caps }: EditingOutputProps) {
-  const { listing, refresh } = useOutputDevices();
+export function EditingOutput({ prefs, onChange, caps }: EditingOutputProps) {
+  const { listing, refresh } = useOutputDevices({
+    saved: prefs.device,
+    missingSentence: (name) => missingOutputSentence(name, 'Sound plays'),
+  });
   const daw = useMemo(() => monitorDaw(caps), [caps]);
   return (
-    <OutputControls prefs={prefs} onChange={onChange} devices={listing} deviceProblem={deviceProblem} onCheckDevices={refresh}>
+    <OutputControls prefs={prefs} onChange={onChange} devices={listing} onCheckDevices={refresh}>
       {daw ? <DawMonitorRow name={daw} /> : null}
     </OutputControls>
   );

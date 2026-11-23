@@ -1,7 +1,6 @@
 {
   "chapters": [
     {
-      "contentKind": "narration",
       "hoursLogged": 2.25,
       "id": "c-0001",
       "pfh": 11.440677966101696,
@@ -9,24 +8,9 @@
         "reason": "3 clicks are still in the take",
         "target": "proofing",
         "verdict": "not_ready"
-      },
-      "recordedSeconds": 708,
-      "recordedThrough": {
-        "complete": true,
-        "confident": true,
-        "paragraph": 40,
-        "paragraphId": "p-000040",
-        "percent": 100,
-        "source": "proof",
-        "word": 12
-      },
-      "status": "editing",
-      "subtitle": "Down the Rabbit-Hole",
-      "title": "Chapter 1",
-      "wordCount": 3000
+      }
     },
     {
-      "contentKind": "narration",
       "hoursLogged": 0,
       "id": "c-0002",
       "pfh": null,
@@ -34,73 +18,22 @@
         "reason": "No recording check has run yet",
         "target": "editing",
         "verdict": "unknown"
-      },
-      "recordedSeconds": null,
-      "recordedThrough": {
-        "complete": false,
-        "confident": true,
-        "paragraph": 12,
-        "paragraphId": "p-000052",
-        "percent": 38,
-        "source": "booth",
-        "word": 3
-      },
-      "recordedUnavailable": "unlinked",
-      "status": "recording",
-      "title": "The Pool of Tears",
-      "wordCount": 3000
+      }
     },
     {
-      "contentKind": "narration",
       "hoursLogged": 0,
       "id": "c-0003",
       "pfh": null,
       "readiness": {
         "reason": "",
         "verdict": "none"
-      },
-      "recordedSeconds": null,
-      "status": "not_started",
-      "title": "A Caucus-Race and a Long Tale",
-      "wordCount": 3000
+      }
     }
   ],
   "deadline": {
     "date": "2026-10-14",
     "daysLeft": 18
   },
-  "nextUp": [
-    {
-      "chapterId": "c-0001",
-      "readiness": {
-        "reason": "3 clicks are still in the take",
-        "target": "proofing",
-        "verdict": "not_ready"
-      },
-      "stage": "editing",
-      "subtitle": "Down the Rabbit-Hole",
-      "title": "Chapter 1"
-    },
-    {
-      "chapterId": "c-0002",
-      "readiness": {
-        "reason": "No recording check has run yet",
-        "target": "editing",
-        "verdict": "unknown"
-      },
-      "stage": "recording",
-      "title": "The Pool of Tears"
-    },
-    {
-      "chapterId": "c-0003",
-      "readiness": {
-        "reason": "",
-        "verdict": "none"
-      },
-      "stage": "not_started",
-      "title": "A Caucus-Race and a Long Tale"
-    }
-  ],
   "running": {
     "chapterId": "c-0002",
     "id": "running",

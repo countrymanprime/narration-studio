@@ -15,6 +15,7 @@ import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { NarrationApi } from '../../types';
 import { COVERAGE_REASON_TEXT } from '../production/recordingCheckText';
 import { openCheckRecordings } from './openCheckRecordings';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -58,12 +59,8 @@ function host(overrides: Partial<NarrationApi> = {}) {
   const results: Record<string, CoverageResult> = {};
   let runs = 0;
   const api = createMockApi({
-    manuscriptChapters: async () => [
-      chapter('a'),
-      chapter('b'),
-      chapter('c', { recordedSeconds: undefined, recordedFraction: 0.5 }),
-      chapter('none', { recordedSeconds: 0 }),
-    ],
+    manuscriptChapters: async () =>
+      chaptersOf([chapter('a'), chapter('b'), chapter('c', { recordedSeconds: undefined, recordedFraction: 0.5 }), chapter('none', { recordedSeconds: 0 })]),
     coverageEngines: async () => engines,
     coverageResult: async (id) => results[id] ?? never(id),
     subscribeCoverage: (onUpdate) => {
@@ -107,7 +104,7 @@ describe('CheckRecordingsDialog', () => {
   it('offers-the-credits-chapter-ticked-and-checks-it', async () => {
     // The credits are chapters of the manuscript's list: no recording measured, still offered when asked for, checked by their own id.
     const credits = chapter('credits-opening', { title: 'Opening credits', recordedSeconds: undefined, wordCount: 0, isCredits: true, index: -2 });
-    const { api, starts } = host({ manuscriptChapters: async () => [credits, chapter('a')] });
+    const { api, starts } = host({ manuscriptChapters: async () => chaptersOf([credits, chapter('a')]) });
     open(api, ['credits-opening']);
     const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
     expect(
@@ -309,10 +306,8 @@ describe('CheckRecordingsDialog', () => {
 
   it('audio-to-check-says-not-measured-rather-than-0-min', async () => {
     const { api } = host({
-      manuscriptChapters: async () => [
-        chapter('c', { recordedSeconds: undefined, recordedFraction: 0.5 }),
-        chapter('d', { recordedSeconds: undefined, recordedFraction: 1 }),
-      ],
+      manuscriptChapters: async () =>
+        chaptersOf([chapter('c', { recordedSeconds: undefined, recordedFraction: 0.5 }), chapter('d', { recordedSeconds: undefined, recordedFraction: 1 })]),
     });
     open(api, ['c', 'd']);
     await screen.findByText('Audio to check');

@@ -9,6 +9,12 @@ export const productionStates: StateEntry[] = [
     description:
       'Production when its overview could not be read (?mockInvalidPayload=production): the title, "This page could not be loaded" with Retry; navigation still works',
   },
+  {
+    page: 'production',
+    state: 'chapters-load-failed',
+    description:
+      'Production when the shared chapter list could not be read but the overview could (?mockChapters=fails): the same title, "This page could not be loaded" with the read\'s own sentence and Retry as when the overview fails, and no toast',
+  },
   // The Production home at `/` (mock 01)
   {
     page: 'production',

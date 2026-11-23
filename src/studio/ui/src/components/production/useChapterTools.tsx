@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
-import type { ProductionChapter } from '../../api/contracts/production';
+import type { ProductionChapter } from './composeOverview';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ManuscriptChapter } from '../../types';
@@ -23,6 +23,7 @@ import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingchec
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { RemovedFromRecordingList } from './RemovedFromRecordingList';
 import type { CreditsKind, CreditsRow } from '../credits/useCreditsRows';
+import { useReadChapters } from '../../studio/useChapters';
 
 /** The attribute on the element around the pipeline table; a right click (or the Menu key) on one of its body rows opens the row menu. */
 export const PIPELINE_AREA = 'data-pipeline';
@@ -120,14 +121,21 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const [restoringId, setRestoringId] = useState('');
   const creditsRows = credits.rows;
 
-  const loadChapters = useCallback(async () => {
-    try {
-      setChapters(await api.manuscriptChapters());
-    } catch (error) {
-      setChapters([]);
-      notify(describeApiError(error), 'error');
-    }
-  }, [api, notify]);
+  // The list is the store's: a mount or a refresh key serves what it holds (the store reads again by its own events); only a write this page just made (a chapter's
+  // kind) reads it now, since no event announces that one.
+  const readChapters = useReadChapters();
+  const loadChapters = useCallback(
+    async (afterWrite = false) => {
+      try {
+        setChapters(await readChapters(afterWrite));
+      } catch (error) {
+        setChapters([]);
+        // A list that cannot be read on a mount is the page's error card (the shared list's error path); only a read after a write this page made says it here.
+        if (afterWrite) notify(describeApiError(error), 'error');
+      }
+    },
+    [readChapters, notify],
+  );
   // `afterWrite`: a link was just written and said so, so a failed read is "the change was made, but the list could not be read again", as every other surface says it (#3398).
   const loadTrackLinks = useCallback(
     async (afterWrite = false) => {
@@ -197,7 +205,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
 
   // Remove rethrows on failure so the slide-over's confirm stays open for a retry.
   const afterKind = async () => {
-    await loadChapters();
+    await loadChapters(true);
     await loadTrackLinks();
     onChanged();
   };

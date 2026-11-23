@@ -3,6 +3,7 @@
 // Story Bible stayed old on Script until a job ended. Opening Script reads the lists it already holds again.
 import { describe, expect, it, vi } from 'vitest';
 import { createScriptData, failedRead } from './scriptData';
+import { chaptersOf } from '../../../../api/chaptersOf';
 
 function ports() {
   let name = 'Alice';
@@ -15,7 +16,7 @@ function ports() {
       chapterIds.filter((id) => id !== 'silent').map((chapterId) => ({ id: `cue-${chapterId}`, chapterId })),
     ),
   };
-  const manuscript = { manuscriptChapters: async () => [], manuscriptParagraphs: vi.fn(async (chapterId: string) => [{ id: `p-${chapterId}` }]) };
+  const manuscript = { manuscriptChapters: async () => chaptersOf([]), manuscriptParagraphs: vi.fn(async (chapterId: string) => [{ id: `p-${chapterId}` }]) };
   const data = createScriptData({
     manuscript,
     marks: { marksList: async () => ({ marks: [] }) },

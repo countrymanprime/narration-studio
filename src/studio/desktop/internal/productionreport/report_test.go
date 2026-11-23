@@ -18,15 +18,19 @@ import (
 
 func number(v float64) *float64 { return &v }
 
+// sampleChapters are the chapters sampleOverview's totals were built from: the report reads titles and readiness here.
+func sampleChapters() []production.ChapterInput {
+	return []production.ChapterInput{
+		{ID: "ch-1", Title: "Down the Rabbit-Hole", Status: stages.StageFinalized, WordCount: 3200, RecordedSeconds: number(708),
+			Readiness: &production.Readiness{Verdict: stages.VerdictRecommended}},
+		{ID: "ch-2", Title: "The Pool of Tears", Status: stages.StageEditing, WordCount: 2800, RecordedSeconds: number(512),
+			Readiness: &production.Readiness{Verdict: stages.VerdictNotReady, Reason: "2 pickups open"}},
+		{ID: "ch-3", Title: "A Caucus-Race and a Long Tale", Status: stages.StageNotStarted, WordCount: 2600},
+	}
+}
+
 func sampleOverview() production.Overview {
 	return production.Overview{
-		Chapters: []production.OverviewChapter{
-			{ID: "ch-1", Title: "Down the Rabbit-Hole", Status: stages.StageFinalized, WordCount: 3200, RecordedSeconds: number(708), HoursLogged: 3,
-				PFH: number(1.5), Readiness: &production.Readiness{Verdict: stages.VerdictRecommended}},
-			{ID: "ch-2", Title: "The Pool of Tears", Status: stages.StageEditing, WordCount: 2800, RecordedSeconds: number(512), HoursLogged: 1,
-				Readiness: &production.Readiness{Verdict: stages.VerdictNotReady, Reason: "2 pickups open"}},
-			{ID: "ch-3", Title: "A Caucus-Race and a Long Tale", Status: stages.StageNotStarted, WordCount: 2600, HoursLogged: 0},
-		},
 		Totals: production.Totals{
 			Chapters: 3, FinalizedChapters: 1, WordCount: 8600, RecordedSeconds: 1220, MeasuredChapters: 2, HoursLogged: 4,
 			HoursByStage: map[stages.Stage]float64{stages.StageRecording: 2, stages.StageEditing: 1.5, stages.StageProofing: 0.5},
@@ -41,6 +45,7 @@ func sampleInput() Input {
 		GeneratedAt: "2026-09-27T18:00:00Z", AppVersion: "0.9.0",
 		Options:  Options{Include: AllSections},
 		Overview: sampleOverview(),
+		Chapters: sampleChapters(),
 		Milestones: []project.Milestone{
 			{Name: "ACX 15-minute checkpoint", DueDate: "2026-10-15", Note: "The rights holder approves the first 15 minutes."},
 			{Name: "Final delivery", DueDate: "2026-09-01"},

@@ -6,7 +6,7 @@ Schedule answers one question: will the book be done by its due date. It holds t
 recorded audio against the plan, the work left and how it is worked out, and the book's milestones. It sits after
 [Production](production.md) in the navigation. With no manuscript it asks you to import one first. Every change is one
 step you can undo from the toast that follows it or from the undo history.
-While the plan is being read, the page shows its title and empty cards where the chart, the contract, the worked-out sums and the milestones will be; if the plan cannot be read, it says so with **Retry**.
+While the plan is being read, the page shows its title and empty cards where the chart, the contract, the worked-out sums and the milestones will be; if the plan or the book's chapter list cannot be read, it says so with **Retry**.
 
 ![Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones](../../images/ui/schedule-on-pace.webp)
 

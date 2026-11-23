@@ -657,3 +657,44 @@ describe('overlay.open headerless', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
   });
 });
+
+describe('overlay.dismissDialogs (a project attach, #4057)', () => {
+  it('answers an open question No, closes the dialog under it without asking, and leaves the toasts alone', async () => {
+    mount();
+    const asked = vi.fn(async () => false);
+    service.open({
+      kind: 'dialog',
+      title: 'Milestone',
+      dismissOnOutsidePress: false,
+      beforeClose: asked,
+      render: ({ close }) => <button onClick={close}>Close milestone</button>,
+    });
+    await screen.findByRole('dialog', { name: 'Milestone' });
+    service.toast('Saved');
+    // The question stacks above the others, as a page's own question would.
+    const question = ask();
+    await screen.findByRole('alertdialog', { name: 'Delete the take?' });
+    service.dismissDialogs();
+    await expect(question).resolves.toBe(false);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Milestone' })).toBeNull());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    // A typed-text dialog's own question is for a way out the narrator chose; the project it was about is gone, so nothing asks.
+    expect(asked).not.toHaveBeenCalled();
+    expect(service.getSnapshot().dialogs).toHaveLength(0);
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Saved']);
+  });
+
+  it('closes a slide-over too', async () => {
+    mount();
+    service.open({ kind: 'slideOver', title: 'History', render: () => <p>History body</p> });
+    await screen.findByText('History body');
+    service.dismissDialogs();
+    await waitFor(() => expect(screen.queryByText('History body')).toBeNull());
+    expect(service.getSnapshot().dialogs).toHaveLength(0);
+  });
+
+  it('does nothing when nothing is open', () => {
+    mount();
+    expect(() => service.dismissDialogs()).not.toThrow();
+  });
+});

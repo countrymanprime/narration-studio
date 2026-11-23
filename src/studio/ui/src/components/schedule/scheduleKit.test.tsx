@@ -3,8 +3,8 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
-import type { ChapterStatus } from '../../api/contracts/manuscript';
-import type { ProductionMilestone, ProductionOverview, ProductionPlan } from '../../api/contracts/production';
+import type { ChapterStatus, ManuscriptChapter } from '../../api/contracts/manuscript';
+import type { ProductionMilestone, ProductionPlan } from '../../api/contracts/production';
 import { createMockApi } from '../../api/mockApi';
 import type { ProductionSeed } from '../../api/productionMock';
 import { OverlayHost } from '../../overlay/OverlayHost';
@@ -14,39 +14,14 @@ import type { NarrationApi } from '../../types';
 import { WPH } from './estimates';
 import { PLATFORM_PROFILES } from './profiles';
 import { SchedulePage } from './SchedulePage';
+import { chaptersOf } from '../../api/chaptersOf';
 
 export const TODAY = new Date(2026, 9, 1);
 export const REC: ProductionMilestone = { name: 'All chapters recorded', dueDate: '2026-10-06', measure: 'rec' };
 export const CUSTOM: ProductionMilestone = { name: 'Retail sample', dueDate: '2026-10-12' };
 
-export const overview = (statuses: ChapterStatus[]): ProductionOverview => ({
-  chapters: statuses.map((status, i) => ({
-    id: `c${i + 1}`,
-    title: `Chapter ${i + 1}`,
-    contentKind: 'narration',
-    status,
-    wordCount: WPH,
-    recordedSeconds: null,
-    hoursLogged: 0,
-    pfh: null,
-    readiness: null,
-  })),
-  totals: {
-    chapters: statuses.length,
-    finalizedChapters: 0,
-    wordCount: statuses.length * WPH,
-    recordedSeconds: 0,
-    measuredChapters: 0,
-    hoursLogged: 0,
-    hoursByStage: {},
-    bookPfh: null,
-    contractedAmount: null,
-    effectiveRate: null,
-  },
-  deadline: null,
-  running: null,
-  nextUp: [],
-});
+export const chapterList = (statuses: ChapterStatus[]): ManuscriptChapter[] =>
+  statuses.map((status, index) => ({ id: `c${index + 1}`, title: `Chapter ${index + 1}`, index, wordCount: WPH, status, contentKind: 'narration' as const }));
 
 export const kit: { journal: Journal; api: NarrationApi } = {} as { journal: Journal; api: NarrationApi };
 
@@ -62,7 +37,10 @@ export function installKit(): void {
 }
 
 export type Wrap = Partial<
-  Pick<NarrationApi, 'productionPlan' | 'productionOverview' | 'saveProductionMilestones' | 'setProductionDeadline' | 'setProductionPayment'>
+  Pick<
+    NarrationApi,
+    'productionPlan' | 'manuscriptChapters' | 'productionOverview' | 'saveProductionMilestones' | 'setProductionDeadline' | 'setProductionPayment'
+  >
 >;
 export type Mount = {
   seed?: ProductionSeed;
@@ -77,7 +55,7 @@ export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not
   const production: ProductionSeed = { deadline: '2026-10-31', contractedAmount: 250, payment: 'per_finished_hour', milestones: [REC, CUSTOM], ...seed };
   const base = createMockApi(
     {
-      productionOverview: async () => overview(statuses),
+      manuscriptChapters: async () => chaptersOf(chapterList(statuses)),
       deliveryProfiles: async () => ({
         profiles: [],
         globalDefault: { id: PLATFORM_PROFILES[0].id },
@@ -103,6 +81,6 @@ export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not
 export const stored = (): Promise<ProductionPlan> => kit.api.productionPlan();
 export const toasts = () => overlay.getSnapshot().toasts.map((t) => t.text);
 
-it('builds an overview with one narrated chapter per status', () => {
-  expect(overview(['not_started', 'finalized']).chapters.map((c) => c.status)).toEqual(['not_started', 'finalized']);
+it('builds a chapter list with one narrated chapter per status', () => {
+  expect(chapterList(['not_started', 'finalized']).map((c) => c.status)).toEqual(['not_started', 'finalized']);
 });

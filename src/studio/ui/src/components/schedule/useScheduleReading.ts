@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ProductionPlan } from '../../api/contracts/production';
 import type { Measured } from '../../api/schemas/base';
 import type { TakeLogEntry } from '../../fixtures/measurements';
 import { usePort } from '../../ports/usePort';
+import { useChapters, useReadChapters } from '../../studio/useChapters';
 import { isNarrationChapter } from '../../chapterKinds';
 import { recordedAudioHours } from '../../recordedThrough';
 import { scheduleChapters, type ScheduleChapter } from './progress';
@@ -45,7 +46,7 @@ export type ScheduleReading = {
 };
 
 /**
- * What the Schedule reads from the host and keeps fresh: the plan, the chapters the estimates come from, the delivery profile and the take
+ * What the Schedule reads from the host and keeps fresh: the plan, the shared chapter list the estimates come from, the delivery profile and the take
  * log. It reads when the page opens, when the window is focused again (at most every 30 s), every minute while open, when the journal changes, and on `reload`.
  * A failed re-read keeps the last reading and says so; a first read that fails is an error with Retry.
  */
@@ -53,6 +54,8 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
   const production = usePort('production');
   const deliveryProfiles = usePort('deliveryProfiles');
   const measurements = usePort('measurements');
+  // The chapters (their set, names, kinds, words, stages and recorded length) are the shared list every page reads, not a copy from the overview.
+  const readChapters = useReadChapters();
   const [state, setState] = useState<Phase>({ phase: 'loading' });
   const [refreshFailure, setRefreshFailure] = useState<string | null>(null);
   const [clock, setClock] = useState(() => Date.now());
@@ -61,59 +64,68 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
   const plan = useRef<ProductionPlan | null>(null);
   const live = useRef(true);
 
-  const reload = useCallback(async (): Promise<void> => {
-    const writesAtStart = writes.current;
-    lastAttempt.current = Date.now();
-    try {
-      const [fresh, overview, profiles, log] = await Promise.all([
-        production.productionPlan(),
-        production.productionOverview(),
-        // The profile only decides which measures are offered; if it cannot be read the neutral profile applies.
-        Promise.allSettled([deliveryProfiles.deliveryProfiles()]),
-        // The take log only draws the chart's recorded line; a refused read leaves the line out with its reason.
-        measurements.takeLog().catch((error: unknown): Measured<TakeLogEntry[]> => ({ ok: false, reason: apiErrorMessage(error) })),
-      ]);
-      // A save answered while this read was under way: its plan is newer than what this read saw, so this read gives way.
-      if (!live.current || writes.current !== writesAtStart) return;
-      const read = profiles[0];
-      plan.current = fresh;
-      setRefreshFailure(null);
-      setClock(Date.now());
-      setState({
-        phase: 'ready',
-        plan: fresh,
-        chapters: scheduleChapters(overview.chapters),
-        profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
-        recordedHours: recordedAudioHours(overview.chapters.filter(isNarrationChapter)),
-        takeLog: log,
-        readAt: Date.now(),
-      });
-    } catch (error) {
-      if (!live.current || writes.current !== writesAtStart) return;
-      const message = apiErrorMessage(error);
-      // With a reading on screen the page keeps it and says it is old; with none the first read failed.
-      if (plan.current) setRefreshFailure(message);
-      else setState({ phase: 'error', message: `The schedule could not be read: ${message}` });
-    }
-  }, [production, deliveryProfiles, measurements]);
+  // `fresh` reads the list now: the tick, the focus and Retry exist for a DAW or disk change that sends no event. The first read and a journal change take the held list.
+  const read = useCallback(
+    async (fresh: boolean): Promise<void> => {
+      const writesAtStart = writes.current;
+      lastAttempt.current = Date.now();
+      try {
+        const [nextPlan, chapters, profiles, log] = await Promise.all([
+          production.productionPlan(),
+          readChapters(fresh),
+          // The profile only decides which measures are offered; if it cannot be read the neutral profile applies.
+          Promise.allSettled([deliveryProfiles.deliveryProfiles()]),
+          // The take log only draws the chart's recorded line; a refused read leaves the line out with its reason.
+          measurements.takeLog().catch((error: unknown): Measured<TakeLogEntry[]> => ({ ok: false, reason: apiErrorMessage(error) })),
+        ]);
+        // A save answered while this read was under way: its plan is newer than what this read saw, so this read gives way.
+        if (!live.current || writes.current !== writesAtStart) return;
+        const read = profiles[0];
+        plan.current = nextPlan;
+        setRefreshFailure(null);
+        setClock(Date.now());
+        setState({
+          phase: 'ready',
+          plan: nextPlan,
+          chapters: scheduleChapters(chapters),
+          profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
+          recordedHours: recordedAudioHours(chapters.filter(isNarrationChapter)),
+          takeLog: log,
+          readAt: Date.now(),
+        });
+      } catch (error) {
+        if (!live.current || writes.current !== writesAtStart) return;
+        const message = apiErrorMessage(error);
+        // With a reading on screen the page keeps it and says it is old; with none the first read failed.
+        if (plan.current) setRefreshFailure(message);
+        else setState({ phase: 'error', message: `The schedule could not be read: ${message}` });
+      }
+    },
+    [production, deliveryProfiles, measurements, readChapters],
+  );
+  // Retry from the first read's error swaps the error for the skeleton while it reads again, as on every other page (the error comes back if it fails again).
+  const reload = useCallback(() => {
+    setState((current) => (current.phase === 'error' ? { phase: 'loading' } : current));
+    return read(true);
+  }, [read]);
 
   useEffect(() => {
     live.current = true;
-    void reload();
+    void read(false);
     return () => {
       live.current = false;
     };
-  }, [reload]);
+  }, [read]);
 
   useEffect(() => {
     const tick = window.setInterval(() => {
       setClock(Date.now());
-      void reload();
+      void read(true);
     }, REREAD_EVERY_MS);
     const back = () => {
       if (document.visibilityState === 'hidden') return;
       setClock(Date.now());
-      if (Date.now() - lastAttempt.current >= REREAD_FOCUS_GAP_MS) void reload();
+      if (Date.now() - lastAttempt.current >= REREAD_FOCUS_GAP_MS) void read(true);
     };
     window.addEventListener('focus', back);
     document.addEventListener('visibilitychange', back);
@@ -122,10 +134,10 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
       window.removeEventListener('focus', back);
       document.removeEventListener('visibilitychange', back);
     };
-  }, [reload]);
+  }, [read]);
 
   // An entry taken back from the history panel changes the plan without this page: read it again, so the page shows what the host holds.
-  useEffect(() => journal.subscribe(() => void reload()), [journal, reload]);
+  useEffect(() => journal.subscribe(() => void read(false)), [journal, read]);
 
   const keepPlan = useCallback((next: ProductionPlan) => {
     writes.current += 1;
@@ -133,8 +145,19 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
     setState((now) => (now.phase === 'ready' ? { ...now, plan: next } : now));
   }, []);
 
+  // The chapter figures follow the live shared list, as the pace does: when the store re-reads the list (a focus, an event, another page) every figure on this page moves
+  // with it, so the page never sets an old copy of the list beside the pace worked out from the new one. The read above still decides loading, the first error and the plan.
+  const shared = useChapters().chapters;
+  const view = useMemo<Phase>(
+    () =>
+      state.phase === 'ready' && shared
+        ? { ...state, chapters: scheduleChapters(shared), recordedHours: recordedAudioHours(shared.filter(isNarrationChapter)) }
+        : state,
+    [state, shared],
+  );
+
   return {
-    state,
+    state: view,
     refreshFailure,
     day: fixedToday ?? new Date(clock),
     reload,

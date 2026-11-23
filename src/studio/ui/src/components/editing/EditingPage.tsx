@@ -5,7 +5,8 @@ import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
-import { usePort } from '../../ports/usePort';
+import { useReadChapters } from '../../studio/useChapters';
+import { ProjectChangedError } from '../../studio/store/createStudioStore';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
 import { Panel } from '../primitives/Panel';
@@ -97,16 +98,17 @@ function EditingLoaded({
   dawConnectGraceMs = DAW_CONNECT_GRACE_MS,
   projectFolder = '',
 }: EditingPageProps) {
-  const manuscript = usePort('manuscript');
+  const readChapters = useReadChapters(projectFolder);
   const keymap = useUserKeymap();
   const daw = useDawStatus();
   // The DAW dialog is the shared chip's (`DawConnectionChip`); the page is told when it is up, so the chapter-link dialog waits for it.
   const [dawDialogOpen, setDawDialogOpen] = useState(false);
   const panels = usePanels(drawer);
   const width = useWindowWidth();
-  const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
-  // The project the chapters in `chapters` were read for.
+  const [read, setChapters] = useState<ManuscriptChapter[] | null>(null);
+  // The project the chapters in `read` were read for; the page draws them only under that folder, so a project switch shows the skeleton, never the old project's chapter.
   const [chaptersOf, setChaptersOf] = useState('');
+  const chapters = chaptersOf === projectFolder ? read : null;
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string>();
   const [attempt, setAttempt] = useState(0);
@@ -119,14 +121,18 @@ function EditingLoaded({
 
   useEffect(() => {
     let live = true;
-    manuscript.manuscriptChapters().then(
+    // The first read of the page serves the store's list; a Retry reads it now. The list is for this folder or the read fails (the store knows the project).
+    readChapters(attempt > 0).then(
       (all) => {
         if (!live) return;
         setChapters(all.filter(isNarrationChapter));
         setChaptersOf(projectFolder);
+        setError(null);
+        setErrorDetails(undefined);
       },
       (e: unknown) => {
-        if (!live) return;
+        // A read that heard the project was another one: the page is about to be drawn for it (its folder prop follows the bootstrap), so it says nothing.
+        if (!live || e instanceof ProjectChangedError) return;
         setError(apiErrorMessage(e));
         setErrorDetails(apiErrorDetails(e));
       },
@@ -134,7 +140,7 @@ function EditingLoaded({
     return () => {
       live = false;
     };
-  }, [manuscript, attempt, projectFolder]);
+  }, [readChapters, attempt, projectFolder]);
   // Retry: forgets the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
   const retry = useCallback(() => {
     setError(null);

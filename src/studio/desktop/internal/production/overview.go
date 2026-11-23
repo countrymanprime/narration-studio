@@ -1,11 +1,8 @@
 package production
 
 import (
-	"cmp"
-	"slices"
 	"time"
 
-	"desktop/internal/recordedthrough"
 	"desktop/internal/stages"
 )
 
@@ -13,9 +10,6 @@ import (
 // and measured recorded time from the manuscript, readiness from the stage recommendations), the time log and the plan,
 // and it only arranges and adds them up. It never writes a chapter status and never recomputes a readiness signal: the
 // board shows what the signal owners already said.
-
-// nextUpLimit is how many chapters "Next up" lists.
-const nextUpLimit = 5
 
 // Readiness is a chapter's current-stage verdict as the stage recommendations gave it (stages.Assessment): whether
 // the stage it is at looks finished (recommended), is held back by something known (not_ready), or cannot be told
@@ -27,19 +21,13 @@ type Readiness struct {
 }
 
 // ChapterInput is one manuscript chapter as the host read it. RecordedSeconds is nil when the chapter's recorded
-// length is not measured, with RecordedUnavailable saying why; Readiness is nil for a chapter the stage
-// recommendations did not assess.
+// length is not measured; Readiness is nil for a chapter the stage recommendations did not assess.
 type ChapterInput struct {
-	ID                  string
-	Title               string
-	Subtitle            string
-	ContentKind         string
-	Status              stages.Stage
-	WordCount           int
-	RecordedSeconds     *float64
-	RecordedUnavailable string
-	// RecordedThrough is how far the chapter is recorded (the chapter list's recordedThrough), nil when nothing says.
-	RecordedThrough *recordedthrough.Through
+	ID              string
+	Title           string
+	Status          stages.Stage
+	WordCount       int
+	RecordedSeconds *float64
 	Readiness       *Readiness
 }
 
@@ -53,21 +41,13 @@ type OverviewInput struct {
 	Now      time.Time
 }
 
-// OverviewChapter is one row of the Production page's board.
+// OverviewChapter is one chapter's numbers on the Production page's board. The page takes the chapter's title,
+// status and recorded length from the shared chapter list and joins these by ID.
 type OverviewChapter struct {
-	ID                  string       `json:"id"`
-	Title               string       `json:"title"`
-	Subtitle            string       `json:"subtitle,omitempty"`
-	ContentKind         string       `json:"contentKind"`
-	Status              stages.Stage `json:"status"`
-	WordCount           int          `json:"wordCount"`
-	RecordedSeconds     *float64     `json:"recordedSeconds"`
-	RecordedUnavailable string       `json:"recordedUnavailable,omitempty"`
-	// RecordedThrough is passed through unchanged, so the board says what the Booth resumes at.
-	RecordedThrough *recordedthrough.Through `json:"recordedThrough,omitempty"`
-	HoursLogged     float64                  `json:"hoursLogged"`
-	PFH             *float64                 `json:"pfh"`
-	Readiness       *Readiness               `json:"readiness"`
+	ID          string     `json:"id"`
+	HoursLogged float64    `json:"hoursLogged"`
+	PFH         *float64   `json:"pfh"`
+	Readiness   *Readiness `json:"readiness"`
 }
 
 // Totals are the book-wide figures of the page's KPI row. A nil figure is undefined: shown as "—", never 0.
@@ -90,49 +70,29 @@ type Deadline struct {
 	DaysLeft int    `json:"daysLeft"`
 }
 
-// NextUpItem is one chapter "Next up" lists: the stage to work on and why it is listed.
-type NextUpItem struct {
-	ChapterID string       `json:"chapterId"`
-	Title     string       `json:"title"`
-	Subtitle  string       `json:"subtitle,omitempty"`
-	Stage     stages.Stage `json:"stage"`
-	Readiness *Readiness   `json:"readiness"`
-}
-
 // Overview is ProductionOverview's answer.
 type Overview struct {
 	Chapters []OverviewChapter `json:"chapters"`
 	Totals   Totals            `json:"totals"`
 	Deadline *Deadline         `json:"deadline"`
 	Running  *Session          `json:"running"`
-	NextUp   []NextUpItem      `json:"nextUp"`
 }
 
-// BuildOverview arranges the chapters, the time log and the plan into the Production page's board, KPIs and
-// "Next up" list.
+// BuildOverview arranges the chapters, the time log and the plan into the Production page's per-chapter numbers and KPI figures.
 func BuildOverview(in OverviewInput) Overview {
 	recorded := map[string]float64{}
 	overview := Overview{
 		Chapters: make([]OverviewChapter, 0, len(in.Chapters)),
 		Totals:   Totals{Chapters: len(in.Chapters), HoursByStage: HoursByStage(in.Sessions)},
-		NextUp:   []NextUpItem{},
 	}
 	for _, chapter := range in.Chapters {
 		row := OverviewChapter{
-			ID:                  chapter.ID,
-			Title:               chapter.Title,
-			Subtitle:            chapter.Subtitle,
-			ContentKind:         chapter.ContentKind,
-			Status:              chapter.Status,
-			WordCount:           chapter.WordCount,
-			RecordedUnavailable: chapter.RecordedUnavailable,
-			RecordedThrough:     chapter.RecordedThrough,
-			HoursLogged:         ChapterHours(in.Sessions, chapter.ID),
-			Readiness:           chapter.Readiness,
+			ID:          chapter.ID,
+			HoursLogged: ChapterHours(in.Sessions, chapter.ID),
+			Readiness:   chapter.Readiness,
 		}
 		if chapter.RecordedSeconds != nil && measured(*chapter.RecordedSeconds) {
 			value := *chapter.RecordedSeconds
-			row.RecordedSeconds = &value
 			recorded[chapter.ID] = value
 			overview.Totals.RecordedSeconds += value
 			overview.Totals.MeasuredChapters++
@@ -162,70 +122,7 @@ func BuildOverview(in OverviewInput) Overview {
 		session := in.Sessions[index].clone()
 		overview.Running = &session
 	}
-	overview.NextUp = nextUp(in.Chapters)
 	return overview
-}
-
-// nextUp ranks the narration chapters not yet finalized by the risk each puts on the deadline. The book
-// has one deadline and no chapter has its own, so a chapter's risk is how far it is from done and whether something
-// is known to hold it back: first the chapters in progress whose stage is held back (not_ready), then the rest in
-// progress whose readiness cannot be told, then those in progress that look ready to move on, then the chapters not
-// started. Within each, the least advanced stage comes first, then book order.
-func nextUp(chapters []ChapterInput) []NextUpItem {
-	type ranked struct {
-		group, stage, order int
-		item                NextUpItem
-	}
-	var candidates []ranked
-	for order, chapter := range chapters {
-		// A manuscript imported before structural classification has no kind: every chapter of it is narration, as
-		// the manuscript package reads it.
-		if (chapter.ContentKind != "" && chapter.ContentKind != "narration") || chapter.Status == stages.StageFinalized {
-			continue
-		}
-		stage, known := stageOrder[chapter.Status]
-		if !known {
-			continue
-		}
-		candidates = append(candidates, ranked{
-			group: riskGroup(chapter),
-			stage: stage,
-			order: order,
-			item:  NextUpItem{ChapterID: chapter.ID, Title: chapter.Title, Subtitle: chapter.Subtitle, Stage: chapter.Status, Readiness: chapter.Readiness},
-		})
-	}
-	slices.SortStableFunc(candidates, func(a, b ranked) int {
-		return cmp.Or(cmp.Compare(a.group, b.group), cmp.Compare(a.stage, b.stage), cmp.Compare(a.order, b.order))
-	})
-	out := []NextUpItem{}
-	for _, candidate := range candidates[:min(len(candidates), nextUpLimit)] {
-		out = append(out, candidate.item)
-	}
-	return out
-}
-
-// stageOrder is how far along each stage a chapter can be listed at is.
-var stageOrder = map[stages.Stage]int{
-	stages.StageNotStarted: 0,
-	stages.StageRecording:  1,
-	stages.StageEditing:    2,
-	stages.StageProofing:   3,
-}
-
-func riskGroup(chapter ChapterInput) int {
-	if chapter.Status == stages.StageNotStarted {
-		return 3
-	}
-	if chapter.Readiness == nil {
-		return 1
-	}
-	switch chapter.Readiness.Verdict {
-	case stages.VerdictNotReady:
-		return 0
-	case stages.VerdictRecommended:
-		return 2
-	}
-	return 1
 }
 
 // daysBetween counts whole calendar days from now's date to due's date: the same number all day, whatever the hour.

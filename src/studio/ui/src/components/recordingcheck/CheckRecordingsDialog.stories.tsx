@@ -9,6 +9,7 @@ import type { CoverageResult, CoverageStartResult } from '../../api/contracts/co
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { NarrationApi } from '../../types';
 import { CheckRecordingsDialog } from './CheckRecordingsDialog';
+import { chaptersOf } from '../../api/chaptersOf';
 
 // The Check recordings dialog body (docs/research/mockups/research-mock/src/pages/pickups/CheckRecordings.tsx), the app's one recording check:
 // every page's entry opens it through `openCheckRecordings`.
@@ -51,7 +52,7 @@ const running = (id: string): CoverageStartResult => ({
 
 const host = (overrides: Partial<NarrationApi> = {}) =>
   createMockApi({
-    manuscriptChapters: async () => chapters,
+    manuscriptChapters: async () => chaptersOf(chapters),
     coverageEngines: async () => engines,
     coverageResult: async (id) => results[id] ?? { chapterId: id, state: 'never', reasons: [] },
     subscribeCoverage: () => () => undefined,
@@ -119,10 +120,8 @@ export const CreditsRowChapter: Story = {
   args: { preselected: ['credits-opening'] },
   parameters: {
     api: host({
-      manuscriptChapters: async () => [
-        { id: 'credits-opening', title: 'Opening credits', index: -2, wordCount: 0, status: 'recording', isCredits: true },
-        ...chapters,
-      ],
+      manuscriptChapters: async () =>
+        chaptersOf([{ id: 'credits-opening', title: 'Opening credits', index: -2, wordCount: 0, status: 'recording', isCredits: true }, ...chapters]),
     }),
   },
   play: async ({ canvasElement }) => {
@@ -134,7 +133,7 @@ export const CreditsRowChapter: Story = {
 
 export const NoRecordedChapters: Story = {
   args: { preselected: [] },
-  parameters: { api: host({ manuscriptChapters: async () => [chapter(5, { recordedSeconds: 0 })] }) },
+  parameters: { api: host({ manuscriptChapters: async () => chaptersOf([chapter(5, { recordedSeconds: 0 })]) }) },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText('No chapter has a recording to check yet.')).toBeTruthy();
   },

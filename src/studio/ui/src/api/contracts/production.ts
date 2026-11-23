@@ -1,4 +1,4 @@
-import type { ChapterStatus, ManuscriptContentKind, RecordedThrough, RecordedUnavailable } from './manuscript';
+import type { ChapterStatus } from './manuscript';
 import type { StageVerdict } from './stages';
 
 /**
@@ -65,18 +65,12 @@ export type ProductionReadiness = {
   reason: string;
 };
 
-/** One row of the board. `recordedSeconds` is the measured length of its confirmed track, `null` with `recordedUnavailable` saying why. */
-export type ProductionChapter = {
+/**
+ * One chapter's numbers on the wire. The page takes the chapter itself (title, status, recorded length) from the shared chapter list and joins these by
+ * `id` (components/production/composeOverview.ts).
+ */
+export type ProductionChapterNumbers = {
   id: string;
-  title: string;
-  subtitle?: string;
-  contentKind: ManuscriptContentKind | '';
-  status: ChapterStatus;
-  wordCount: number;
-  recordedSeconds: number | null;
-  recordedUnavailable?: RecordedUnavailable;
-  /** How far the chapter is recorded: the chapter list's `recordedThrough`, passed through, so the board and the Booth agree. */
-  recordedThrough?: RecordedThrough;
   hoursLogged: number;
   /** Hours logged on the chapter per finished hour of it; `null` with no measured audio or no logged time. */
   pfh: number | null;
@@ -104,22 +98,12 @@ export type ProductionTotals = {
 /** The book's due date (`YYYY-MM-DD`) and the whole days left until it, negative once passed. */
 export type ProductionDeadline = { date: string; daysLeft: number };
 
-/** One chapter "Next up" lists, in the host's order. */
-export type ProductionNextUpItem = {
-  chapterId: string;
-  title: string;
-  subtitle?: string;
-  stage: ChapterStatus;
-  readiness: ProductionReadiness | null;
-};
-
 export type ProductionOverview = {
-  chapters: ProductionChapter[];
+  chapters: ProductionChapterNumbers[];
   totals: ProductionTotals;
   /** The plan's deadline with the days left; `null` until one is set. */
   deadline: ProductionDeadline | null;
   running: ProductionSession | null;
-  nextUp: ProductionNextUpItem[];
 };
 
 export type ProductionStartResult =

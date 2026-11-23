@@ -646,6 +646,7 @@
         "src/components/engine/AudacityLinkCard.tsx",
         "src/components/engine/CapabilityReferenceDialog.tsx",
         "src/components/settings/controls/MicBody.tsx",
+        "src/components/settings/controls/SampleOutputBody.tsx",
         "src/components/storybible/voicesamples/VoiceSamplesBody.tsx"
       ],
       "a11yDebt": false
@@ -2403,7 +2404,6 @@
         "Listing Outputs",
         "No Outputs Listed",
         "Saved Output Not Connected",
-        "Output Refused",
         "Long And Foreign Names",
         "Daw Monitor Level",
         "Daw Monitor Reading",
@@ -4250,6 +4250,7 @@
         "src/components/editing/CleanupAction.tsx",
         "src/components/editing/EditingCheckPanel.tsx",
         "src/components/editing/backups/useBackups.ts",
+        "src/components/editing/bar/useScriptPlayback.ts",
         "src/components/editing/cleanup/registerLevelsSection.tsx",
         "src/components/editing/page/EditingBody.tsx",
         "src/components/editing/range/replace/ReplaceDialog.tsx",

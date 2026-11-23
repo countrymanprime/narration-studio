@@ -66,7 +66,7 @@ func (h *Host) buildProductionReport(include ProductionReportInclude) (project, 
 	if project == "" {
 		return "", "", productionreport.Report{}, fmt.Errorf("open a project first; the report is kept in its " + brand.ProjectFolder + "/production/reports folder")
 	}
-	overview, milestones, err := h.buildProductionOverview()
+	overview, chapters, milestones, err := h.buildProductionOverview()
 	if err != nil {
 		return "", "", productionreport.Report{}, err
 	}
@@ -76,12 +76,13 @@ func (h *Host) buildProductionReport(include ProductionReportInclude) (project, 
 		GeneratedAt: generatedAt, AppVersion: h.version,
 		Options:    productionreport.Options{Include: productionreport.Sections(include)},
 		Overview:   overview,
+		Chapters:   chapters,
 		Milestones: milestones,
 		Now:        now,
 	}
 	// Each of these reads only for a section that is ticked, so a report without it never touches the pickup list or the measurement.
 	if include.Pickups {
-		if in.Pickups, err = h.reportPickups(overview); err != nil {
+		if in.Pickups, err = h.reportPickups(chapters); err != nil {
 			return "", "", productionreport.Report{}, err
 		}
 	}
@@ -92,14 +93,14 @@ func (h *Host) buildProductionReport(include ProductionReportInclude) (project, 
 }
 
 // reportPickups counts the open pickups of each chapter, in the manuscript's order, from the same merged list the Pickups page reads.
-func (h *Host) reportPickups(overview production.Overview) ([]productionreport.PickupChapter, error) {
+func (h *Host) reportPickups(inputs []production.ChapterInput) ([]productionreport.PickupChapter, error) {
 	list, err := h.pickupList().List()
 	if err != nil {
 		return nil, fmt.Errorf("could not read the pickup list: %w", err)
 	}
 	byChapter := map[string]*productionreport.PickupChapter{}
-	chapters := make([]productionreport.PickupChapter, len(overview.Chapters))
-	for i, chapter := range overview.Chapters {
+	chapters := make([]productionreport.PickupChapter, len(inputs))
+	for i, chapter := range inputs {
 		chapters[i].Chapter = chapter.Title
 		byChapter[chapter.ID] = &chapters[i]
 	}

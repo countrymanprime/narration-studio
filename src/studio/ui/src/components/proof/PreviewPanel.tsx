@@ -18,6 +18,7 @@ import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
 import { ProofOptions } from './proofOptions/ProofOptions';
 import { clock } from '../../clock';
+import { useReadChapters } from '../../studio/useChapters';
 
 type Phase = 'loading' | 'ready' | 'error';
 
@@ -67,11 +68,12 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
   const [reads, setReads] = useState(0);
   const readAgain = useCallback(() => setReads((n) => n + 1), []);
   const navigate = useGuardedNavigate();
+  const readChapters = useReadChapters();
 
   useEffect(() => {
     let active = true;
     setPhase('loading');
-    Promise.all([api.previewCandidates(), api.manuscriptChapters(), api.previewPin()])
+    Promise.all([api.previewCandidates(), readChapters(reads > 0), api.previewPin()])
       .then(([preview, loadedChapters, pin]) => {
         if (!active) return;
         setResult(preview);
@@ -87,7 +89,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
     return () => {
       active = false;
     };
-  }, [api, reads]);
+  }, [api, reads, readChapters]);
 
   // Every pin action (User Flow step 5) re-reads the pin the binding itself just resolved, rather than guessing the
   // new state locally: the host recomputes evidence and staleness fresh on every call (SR D1), so this is the one

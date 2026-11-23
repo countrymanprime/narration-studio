@@ -5,11 +5,13 @@ import type { CreditsRenderResult, GuideEntity, GuideType, ManuscriptChapter, Ma
 import type { BoothSource } from '../page/useBoothData';
 import { readBoothQuery } from '../page/boothQuery';
 import { creditsKindOf } from '../page/useBoothData';
+import { loadLastPlace } from '../page/lastPlace';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionSkeleton } from './CompanionSkeleton';
 import { CompanionHost } from './CompanionHost';
 import { addressPath } from '../../../navigation/address';
+import { useReadChapters } from '../../../studio/useChapters';
 
 const NO_ENTITIES: GuideEntity[] = [];
 const NO_NOTES: ManuscriptNote[] = [];
@@ -18,15 +20,18 @@ const NO_TYPES: GuideType[] = [];
 type Props = {
   /** Opens Settings > Credits, where a token with no value is filled in. */
   onFixCredits?: () => void;
+  /** The open project's folder: the key of the place the Booth remembers (`loadLastPlace`). */
+  projectFolder?: string;
 };
 
 /**
  * The Companion's route (`/companion?chapter=<id>`; the credits are chapters, and `?credits=opening` is the old spelling of `?chapter=credits-opening`): the chapter rule of the old Booth page without its
- * picker. With neither in the address it reads the chapter a running session is on, else the last chapter read; an unknown
+ * picker. With neither in the address it reads the chapter a running session is on, else the chapter the Booth remembers for this project, else the last chapter read, else the first; an unknown
  * chapter sends the narrator to `/booth`.
  */
-export function CompanionPage({ onFixCredits }: Props) {
+export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
   const api = useApi();
+  const readChapters = useReadChapters();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
@@ -41,7 +46,7 @@ export function CompanionPage({ onFixCredits }: Props) {
   useEffect(() => {
     let live = true;
     void Promise.all([
-      api.manuscriptChapters(),
+      readChapters(),
       api.readerState().catch(() => undefined),
       api.teleprompterState().catch(() => undefined),
       api.guideEntities().catch(() => NO_ENTITIES),
@@ -56,14 +61,17 @@ export function CompanionPage({ onFixCredits }: Props) {
         setTypes(nextTypes);
         setNotes(nextNotes);
         const running = host && ACTIVE_PHASES.includes(host.phase) ? narration.find((item) => item.id === host.chapter)?.id : undefined;
+        // The Booth's remembered chapter, used when it is in this list.
+        const kept = projectFolder ? loadLastPlace(projectFolder)?.chapterId : undefined;
+        const remembered = kept ? narration.find((item) => item.id === kept)?.id : undefined;
         const last = narration.find((item) => item.id === reader?.activeChapter || item.title === reader?.activeChapter);
-        setFallback(running || (last ?? narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id || '');
+        setFallback(running || remembered || (last ?? narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id || '');
       })
       .catch(() => live && setChapters([]));
     return () => {
       live = false;
     };
-  }, [api]);
+  }, [api, readChapters, projectFolder]);
 
   const asked = readBoothQuery(params)?.chapter;
   const chosen = asked ?? fallback;

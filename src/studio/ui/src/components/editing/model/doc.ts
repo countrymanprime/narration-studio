@@ -105,6 +105,8 @@ export interface DocItem {
   /** Seconds from the start of the take (or of the paragraph), before any cut: where cuts and effects are made. */
   off0: number | null;
   off1: number | null;
+  /** Where the word's sound begins in the recording (`item`, and seconds of its file): the word's own place, whichever script word it is set against. */
+  src?: { item: number; start: number };
   takeId?: string;
   /** Cut from the audio: the id of the cut that took it out. */
   cut?: string;
@@ -363,6 +365,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
             t1: r3(seg.abs(h.off1)),
             off0: seg.rel(h.off0),
             off1: seg.rel(h.off1),
+            ...(h.src ? { src: h.src } : {}),
             takeId: seg.takeId,
             fx: [],
             run: xRun.length ? run - 1 : run++,
@@ -398,6 +401,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
           t1: h ? r3(seg.abs(h.off1)) : r3(prevEnd),
           off0: h ? seg.rel(h.off0) : null,
           off1: h ? seg.rel(h.off1) : null,
+          ...(h?.src ? { src: h.src } : {}),
           takeId: seg.takeId,
           fx: [],
         };

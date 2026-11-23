@@ -526,13 +526,15 @@ func TestASeededBookHoldsTheChecksFindingsBibleMarksAndPickupsItWasAskedFor(t *t
 			t.Fatal(err)
 		}
 	}
-	var chapters []struct {
-		ID               string   `json:"id"`
-		RecordedFraction *float64 `json:"recordedFraction"`
+	var chapters struct {
+		Chapters []struct {
+			ID               string   `json:"id"`
+			RecordedFraction *float64 `json:"recordedFraction"`
+		} `json:"chapters"`
 	}
 	read(host.ManuscriptChapters, &chapters)
 	fractions := map[string]*float64{}
-	for _, chapter := range chapters {
+	for _, chapter := range chapters.Chapters {
 		fractions[chapter.ID] = chapter.RecordedFraction
 	}
 	// The chapter list also holds the opening and closing credits the host adds.

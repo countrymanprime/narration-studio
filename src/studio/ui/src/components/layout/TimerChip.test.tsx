@@ -3,7 +3,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createMockApi } from '../../api/mockApi';
 import { PRODUCTION_SCENARIOS } from '../../api/productionMock';
-import type { ProductionOverview } from '../../api/contracts/production';
+import type { ProductionBoard } from '../production/composeOverview';
+import { composeOverview } from '../production/composeOverview';
 import { TimerChip, elapsedClock, runningTimerOf } from './TimerChip';
 
 afterEach(cleanup);
@@ -25,8 +26,11 @@ describe('elapsedClock', () => {
 });
 
 describe('runningTimerOf', () => {
-  const overview = async (seed?: keyof typeof PRODUCTION_SCENARIOS): Promise<ProductionOverview> =>
-    createMockApi({}, seed ? { production: PRODUCTION_SCENARIOS[seed] } : {}).productionOverview();
+  // The board the Production page hands the chip: the shared chapter list (its titles) with the overview's numbers and running timer.
+  const overview = async (seed?: keyof typeof PRODUCTION_SCENARIOS): Promise<ProductionBoard> => {
+    const api = createMockApi({}, seed ? { production: PRODUCTION_SCENARIOS[seed] } : {});
+    return composeOverview(await api.productionOverview(), (await api.manuscriptChapters()).chapters);
+  };
 
   it('is null when no timer runs', async () => {
     expect(runningTimerOf(await overview())).toBeNull();
@@ -37,9 +41,9 @@ describe('runningTimerOf', () => {
     expect(runningTimerOf(read)).toEqual({ startedAt: read.running!.startedAt, chapterTitle: 'Chapter 6', stage: 'recording' });
   });
 
-  it('falls back to the chapter id when the chapter is not in the overview', async () => {
+  it('falls back to the chapter id when the chapter is not in the list', async () => {
     const read = await overview('on-pace');
-    expect(runningTimerOf({ ...read, chapters: [] })?.chapterTitle).toBe('chapter-6');
+    expect(runningTimerOf(composeOverview(read, []))?.chapterTitle).toBe('chapter-6');
   });
 });
 

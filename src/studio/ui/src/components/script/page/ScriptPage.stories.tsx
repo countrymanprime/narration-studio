@@ -10,6 +10,7 @@ import type { NarrationApi } from '../../../types';
 import type { ScriptViewState } from './data/scriptView';
 import { useScriptView } from './data/useScriptData';
 import { ScriptPage } from './ScriptPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 // The rebuilt Script page (docs/research/mockups/research-mock/src/pages/script/ScriptPage.tsx) over the browser mock host: the chapter
 // list, the reader and the rail, with drawers below the mock's widths (the rail from 1280 px, the chapter list from 1180 px). The
@@ -134,7 +135,7 @@ export const ChapterDrawer: Story = {
 // A project with no manuscript: the empty state and its import button. It never opens the import by itself.
 export const NoManuscript: Story = {
   beforeEach: () => {
-    api = createMockApi({ manuscriptChapters: async () => [] });
+    api = createMockApi({ manuscriptChapters: async () => chaptersOf([]) });
   },
   play: async ({ canvasElement }) => {
     await expect(await within(canvasElement).findByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();

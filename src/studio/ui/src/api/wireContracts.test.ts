@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { DESKTOP_HOST_API_VERSION } from '../hostApi';
 import { AUDACITY_LINK_MOCK_SEEDS, type AudacityLinkMockName, type AudacityLinkMockSeed } from './audacityLinkMock';
 import { createMockApi } from './mockApi';
-import type { ManuscriptChapter } from './contracts/manuscript';
+import type { ManuscriptChapterList } from './contracts/manuscript';
 import {
   backedUpAnswer,
   backupRestoredAnswer,
@@ -101,6 +101,7 @@ import { diagnosticsJobSchema } from './schemas/diagnostics';
 import {
   chapterKindResultSchema,
   chapterSchema,
+  chapterListSchema,
   chaptersSchema,
   fileSelectionSchema,
   notesSchema,
@@ -275,8 +276,8 @@ function expectMatches(schema: z.ZodType, value: unknown, payload: string): void
 const readGolden = (file: string): unknown => JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'));
 
 /** The manuscript's own chapters: the mock's chapter list also holds the credits (opening first, closing last), which these cases are not about. */
-const ownChapters = async (api: { manuscriptChapters(): Promise<ManuscriptChapter[]> }) =>
-  (await api.manuscriptChapters()).filter((chapter) => !chapter.isCredits);
+const ownChapters = async (api: { manuscriptChapters(): Promise<ManuscriptChapterList> }) =>
+  (await api.manuscriptChapters()).chapters.filter((chapter) => !chapter.isCredits);
 
 describe('golden payloads written by the Go host and the Python sidecars', () => {
   it('every committed file has a schema, and every schema row has a file', () => {
@@ -564,6 +565,21 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(chapters.map((chapter) => chapter.recordedFraction)).toEqual([0.75, ...chapters.slice(1).map(() => undefined)]);
     const unmeasured = parseWire(chaptersSchema, readGolden('manuscript-chapters.json'), ctx('chapters'));
     expect(unmeasured.every((chapter) => chapter.recordedFraction === undefined)).toBe(true);
+  });
+
+  it('the chapter list answer names the project it was read from (#4040)', () => {
+    const answer = readGolden('manuscript-chapters-answer.json');
+    expectMatches(chapterListSchema, answer, 'chapter list answer');
+    const list = parseWire(chapterListSchema, answer, ctx('chapters'));
+    expect(list.project).toBe('C:/Projects/Alice');
+    expect(list.chapters.length).toBeGreaterThan(0);
+  });
+
+  it('the mock chapter list names the folder its bootstrap names', async () => {
+    const api = createMockApi();
+    const list = await api.manuscriptChapters();
+    expectMatches(chapterListSchema, list, 'mock chapter list');
+    expect(list.project).toBe((await api.bootstrap()).projectFolder);
   });
 
   it('the credits are chapters of the list: opening first, closing last, marked isCredits, with no paragraphs', () => {
@@ -5329,10 +5345,11 @@ describe('the production tracking mock', () => {
     const { totals } = overview;
     expect(totals.bookPfh).toBeCloseTo(totals.hoursLogged / (totals.recordedSeconds / 3600));
     expect(totals.effectiveRate).toBeCloseTo((totals.contractedAmount ?? 0) / totals.hoursLogged);
-    // An unmeasured chapter has no PFH, whatever was logged on it.
-    for (const chapter of overview.chapters.filter((row) => row.recordedSeconds === null)) expect(chapter.pfh).toBeNull();
-    expect(overview.nextUp.length).toBeGreaterThan(0);
-    expect(overview.nextUp.every((item) => item.stage !== 'finalized')).toBe(true);
+    // An unmeasured chapter (the shared list's `recordedSeconds`, joined by id) has no PFH, whatever was logged on it.
+    const { chapters: list } = await createMockApi({}, { production: PRODUCTION_SCENARIOS[seed] }).manuscriptChapters();
+    const unmeasured = new Set(list.filter((row) => (row.recordedSeconds ?? null) === null).map((row) => row.id));
+    expect(unmeasured.size).toBeGreaterThan(0);
+    for (const chapter of overview.chapters.filter((row) => unmeasured.has(row.id))) expect(chapter.pfh).toBeNull();
   });
 });
 

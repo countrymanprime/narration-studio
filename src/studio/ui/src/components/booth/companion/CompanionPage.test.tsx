@@ -9,6 +9,7 @@ import { CommandRouter } from '../../../input/router';
 import { withoutCredits } from '../../../chapterKinds';
 import type { CreditsRenderResult, NarrationApi } from '../../../types';
 import { CompanionPage } from './CompanionPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 const spies = vi.hoisted(() => ({ toggleFullscreen: vi.fn(async () => true), shellProps: vi.fn(), resume: vi.fn() }));
 
@@ -49,12 +50,12 @@ function Probe() {
 
 /** The first chapter of the book's text; the list opens with the opening credits. */
 async function firstChapter() {
-  return withoutCredits(await createMockApi().manuscriptChapters())[0]!;
+  return withoutCredits((await createMockApi().manuscriptChapters()).chapters)[0]!;
 }
 
 async function renderCompanion(entry: string, overrides: Partial<NarrationApi> = {}) {
   const api = createMockApi(overrides);
-  const chapters = await api.manuscriptChapters();
+  const chapters = (await api.manuscriptChapters()).chapters;
   render(
     <MemoryRouter initialEntries={[entry]}>
       <ApiProvider api={api}>
@@ -128,7 +129,7 @@ describe('CompanionPage', () => {
     const reader = await api.readerState();
     await renderCompanion('/companion');
     await screen.findByRole('heading', { level: 1, name: 'Companion' });
-    const chapters = await api.manuscriptChapters();
+    const chapters = (await api.manuscriptChapters()).chapters;
     const expected = chapters.find((item) => item.id === reader.activeChapter || item.title === reader.activeChapter) ?? withoutCredits(chapters)[0]!;
     expect(spies.shellProps.mock.calls.at(-1)![0].chapterId).toBe(expected.id);
   });
@@ -141,7 +142,9 @@ describe('CompanionPage', () => {
 
   it('a credits file with no template goes to the Booth with its id, not to another chapter', async () => {
     const base = createMockApi();
-    await renderCompanion('/companion?chapter=credits-closing', { manuscriptChapters: async () => withoutCredits(await base.manuscriptChapters()) });
+    await renderCompanion('/companion?chapter=credits-closing', {
+      manuscriptChapters: async () => chaptersOf(withoutCredits((await base.manuscriptChapters()).chapters)),
+    });
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?chapter=credits-closing'));
   });
 });

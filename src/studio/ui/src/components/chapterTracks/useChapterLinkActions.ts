@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import type { ManuscriptChapter, TrackMapping } from '../../types';
 import type { ChapterCreateChoice, ChapterCreateOptions, ChapterTrackCreateResult, ChapterTrackSetResult } from '../../api/contracts/chapterTrackMap';
 import { usePort } from '../../ports/usePort';
+import { useReadChapters } from '../../studio/useChapters';
 import { chapterNameLookup } from './useChapterNameOf';
 import { describeApiError } from '../../api/errorMessage';
 import { hasVisibleText, spaceOutInvisible } from '../../visibleText';
@@ -41,11 +42,9 @@ export function displacedSentence(displaced: TrackMapping, nameOf?: (chapterId: 
 export const changedButUnread = (reason: unknown): string => `The change was made, but the list could not be read again: ${describeApiError(reason)}`;
 
 /** A link written: the host's answer, and the sentence for the chapter that lost the track, or '' when the track was free. */
-async function manuscriptNames(manuscript: {
-  manuscriptChapters: () => Promise<ManuscriptChapter[]>;
-}): Promise<((chapterId: string) => string | undefined) | undefined> {
+async function manuscriptNames(readChapters: () => Promise<ManuscriptChapter[]>): Promise<((chapterId: string) => string | undefined) | undefined> {
   try {
-    return chapterNameLookup(await manuscript.manuscriptChapters());
+    return chapterNameLookup(await readChapters());
   } catch {
     return undefined;
   }
@@ -77,18 +76,19 @@ type ChapterLinkActions = {
  */
 export function useChapterLinkActions(): ChapterLinkActions {
   const trackMap = usePort('chapterTrackMap');
-  const manuscript = usePort('manuscript');
+  // The names come from the list every page shares: a link press reads no chapter list of its own when the store holds it (#3272).
+  const readChapters = useReadChapters();
   const set = useCallback(
     async (chapterId: string, trackGuid: string, nameOf?: (chapterId: string) => string | undefined): Promise<LinkWritten> => {
       const result = await trackMap.chapterTrackSet(chapterId, trackGuid);
       // The chapter that lost the track is named as the manuscript names it now (a renamed chapter reads the same on every screen); a caller that
       // has the chapters passes its own, and a manuscript that cannot be read leaves the title the host kept.
-      const names = nameOf ?? (result.displaced ? await manuscriptNames(manuscript) : undefined);
+      const names = nameOf ?? (result.displaced ? await manuscriptNames(readChapters) : undefined);
       // A host that answers the chapter just linked as the one displaced has displaced no one.
       const displacedNotice = result.displaced && result.displaced.chapterId !== chapterId ? displacedSentence(result.displaced, names) : '';
       return { result, displacedNotice, linkedNotice: displacedNotice ? `Track linked. ${displacedNotice}` : 'Track linked.' };
     },
-    [trackMap, manuscript],
+    [trackMap, readChapters],
   );
   const unlink = useCallback((chapterId: string) => trackMap.chapterTrackUnlink(chapterId), [trackMap]);
   const create = useCallback(

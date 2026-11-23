@@ -85,6 +85,8 @@ import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
+import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
+import { pageBoundaryKey } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -458,17 +460,27 @@ function AppRoutes() {
     const active = document.activeElement;
     if (!active || active === document.body) focusPageMain();
   }, [projectPickerOpen]);
+  // The bootstrap is the one statement of which project the app is on, and the chapter store is told from it (#3998). An answer is applied only when it is the
+  // newest asked for and the store was not reset since it was asked (a project attach came in between: the answer may name the project before, and the
+  // bootstrap the attach asks for follows it). The store is told in the same turn as the check, so a reset cannot slip in between the check and the telling.
+  const studio = useStoreHandle();
+  const bootstrapSeq = useRef(0);
   const refreshBootstrap = useCallback(async () => {
+    const mine = ++bootstrapSeq.current;
+    const generation = studio.generation();
     try {
       const next = await api.bootstrap();
+      if (mine !== bootstrapSeq.current || studio.generation() !== generation) return;
+      studio.setProject(next.projectFolder);
       setDiagnosticId(next.diagnosticId);
       setData(next);
       setDataReadAt(Date.now());
     } catch (error) {
+      if (mine !== bootstrapSeq.current) return;
       // Every caller runs this from an event or a `void`, so a failure has nowhere to go but the narrator.
       setNotice(describeApiError(error), 'error');
     }
-  }, [api, setNotice]);
+  }, [api, setNotice, studio]);
 
   // The DAW's reachability and its open project are a live heartbeat, but bootstrap is a snapshot taken at startup: the navigation's pill,
   // Settings' DAW Integration and the engine panel read it, so it is read again whenever the DAW starts or stops answering and when the
@@ -659,6 +671,34 @@ function AppRoutes() {
     return api.subscribeLiveUpdateHealth(() => setNotice(LIVE_UPDATES_DEGRADED));
   }, [api, hasBootstrap, setNotice]);
 
+  // What a page opened for the project that was open (a question, a dialog, a slide-over) is closed when the project changes: confirming it would act on that project's chapter. It
+  // closes when the host says it attached (below) and again when the new project's data arrives, so a layer opened between the two, while the page still shows the old project,
+  // does not outlive it either. Text typed into a closed dialog is gone, so the narrator is told why it went.
+  const closeProjectDialogs = useCallback(() => {
+    // What is on screen now: layers the overlay service holds, and those a page draws from its own state (they go with the page's remount a moment later, so this is the last time they can be counted).
+    const showing = document.querySelectorAll(OPEN_LAYER_SELECTOR).length;
+    const focusWasInside = document.activeElement instanceof HTMLElement && document.activeElement.closest(OPEN_LAYER_SELECTOR) !== null;
+    const closed = overlay.dismissDialogs();
+    // The audio engine panel lists the old project's chapter links; it closes with the rest.
+    setEnginePanelOpen(false);
+    if (Math.max(showing, closed) > 0) overlay.toast('The project changed, so what was open was closed.', { topic: 'project-changed-closed' });
+    // A layer a page draws from its own state goes with the page's remount and takes focus with it (to the document body, one Tab from "Skip to content"): focus goes to the page, as it does for the layers the service holds.
+    if (focusWasInside) {
+      requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (!active || active === document.body) document.getElementById('main-content')?.focus({ preventScroll: true });
+      });
+    }
+  }, [overlay]);
+  const shownProject = useRef(data?.projectFolder);
+  useEffect(() => {
+    const before = shownProject.current;
+    if (before === data?.projectFolder) return;
+    shownProject.current = data?.projectFolder;
+    // The first bootstrap names a project; it is not a change from one (a layer the narrator opened while the app was still loading, the jump menu, is still theirs).
+    if (before !== undefined) closeProjectDialogs();
+  }, [data?.projectFolder, closeProjectDialogs]);
+
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then
   // this one subscription refreshes the shared application bootstrap.
@@ -670,14 +710,17 @@ function AppRoutes() {
       if (state.attached) {
         // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
         overlay.dismissUndo();
+        // A question or dialog a page opened for the project that was open (the Editor's cut question, a milestone form) is about its chapters: confirming it would act on them in the new project.
+        closeProjectDialogs();
         history.resetFloor();
-        void refreshBootstrap();
+        // After this turn: the store's own listener resets it on the same event, in whichever order the two were subscribed, and the answer is judged against the reset.
+        queueMicrotask(() => void refreshBootstrap());
       } else if (state.reason && !attachRefusalClaimed()) {
         // A dialog that writes the reason in its own alert (the Booth's connect dialog) claims it, so it is not toasted over the page as well.
         setNotice(state.reason, 'error');
       }
     });
-  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice]);
+  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice, closeProjectDialogs]);
 
   useEffect(() => {
     if (!hasBootstrap) return;
@@ -748,10 +791,13 @@ function AppRoutes() {
   // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>". The chapters are the store's `chapters` slot:
   // loaded when a manuscript arrives or the project changes, stale on `job:ended`, and a failed read keeps the last list ("a failure never
   // replaces a cached value"), where the local state emptied it.
-  const studio = useStoreHandle();
   const projectFolder = data?.projectFolder;
+  // `refreshBootstrap` tells the store which project each answer names; the first bootstrap, read outside it, is told here.
   useEffect(() => {
-    if (hasManuscript) void studio.load('chapters').catch(() => {});
+    if (data && studio.project() === undefined) studio.setProject(data.projectFolder);
+  }, [studio, data]);
+  useEffect(() => {
+    if (hasManuscript) void studio.ensure('chapters').catch(() => {});
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
@@ -1430,7 +1476,8 @@ function AppRoutes() {
                     contextMenu={contextMenu}
                     zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
                   >
-                    <ErrorBoundary key={location.pathname.split('/')[1] || 'production'} onError={() => trace('ui.error', { source: 'boundary' })}>
+                    {/* Keyed by project as well as page: a project change remounts the page, so a dialog or draft a page holds in its own state for the old project (a confirm that would apply to its chapter) goes with it (#4057). */}
+                    <ErrorBoundary key={pageBoundaryKey(data.projectFolder, location.pathname)} onError={() => trace('ui.error', { source: 'boundary' })}>
                       <Routes>
                         <Route
                           path="/"
@@ -1544,7 +1591,10 @@ function AppRoutes() {
                           path="/companion"
                           element={
                             data.manuscript ? (
-                              <CompanionPage onFixCredits={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'credits' }))} />
+                              <CompanionPage
+                                projectFolder={data.projectFolder}
+                                onFixCredits={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'credits' }))}
+                              />
                             ) : (
                               <Navigate to="/" replace />
                             )

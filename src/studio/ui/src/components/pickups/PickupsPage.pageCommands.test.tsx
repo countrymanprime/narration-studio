@@ -23,6 +23,7 @@ import { ALL_DONE, CHAPTERS, MIXED } from './list/pickupFixtures';
 import { boothSessionPath, PickupsPage } from './PickupsPage';
 import { pickupToReturnTo } from './pickupReturn';
 import { pickup } from './list/pickupFixtures';
+import { chaptersOf } from '../../api/chaptersOf';
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = () => {};
@@ -36,7 +37,7 @@ const listOf = (pickups: PickupList['pickups']): PickupList => ({ pickups, leftO
 
 function renderPage(api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(listOf(MIXED)) })) {
   vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
-    CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })) as never,
+    chaptersOf(CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })) as never),
   );
   const goTo = vi.fn();
   const view = render(
@@ -75,7 +76,7 @@ describe('pickups-page-commands', () => {
     await listed();
     const lines = items('Pickups');
     expect(lines).toHaveLength(MIXED.filter((p) => !p.done).length);
-    expect(lines.map((row) => row.label)).toContain('05:12.0 · She walked past the orchard wall.');
+    expect(lines.map((row) => row.label)).toContain('00:05:12 · She walked past the orchard wall.');
     expect(lines.map((row) => row.label).join('\n')).not.toContain('Recorded again already');
     expect(lines.find((row) => row.label.includes('A click before'))!.hint).toBe('Chapter 2 · Low Tide');
   });

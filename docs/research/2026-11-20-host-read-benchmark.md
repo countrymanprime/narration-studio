@@ -241,6 +241,47 @@ Host calls and answer size (calls / KB, `--runs 3`) of the Production page befor
 
 The saved call is one `ManuscriptChapters` read, whose warm cost on the real host is in the [host read table](#host-reads): 9.5 ms at 1 h, 653 ms at 17 h, 1,514 ms at 40 h and 2,257 ms at 300 chapters. The mock answers from memory, so its milliseconds say nothing about that; the calls and KB do.
 
+Booth and Editing then took the same list (the Editor, the Booth and the Production pipeline through `useReadChapters`; #3994 and #3934 revived on the project record of #3998). Calls / KB on the same rig, built from `main` at 00a3bfc and from the branch, `--runs 5`, run one after the other (the first three-run table had both builds running at once). Nodes are 3,983 (Booth) and 4,098 (Editing) before and after.
+
+| Booth | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 63 / 145 | 63 / 155 | 63 / 178 | 64 / 221 |
+| Cold, after | 63 / 145 | 63 / 155 | 63 / 178 | 64 / 221 |
+| Warm, before | 52 / 107 | 53 / 112 | 53 / 122 | 53 / 140 |
+| Warm, after | 52 / 106 | 52 / 109 | 51 / 113 | 51 / 123 |
+
+| Editing | 1 h | 5 h | 17 h | 40 h |
+| --- | --- | --- | --- | --- |
+| Cold, before | 56 / 260 | 56 / 271 | 56 / 293 | 56 / 337 |
+| Cold, after | 56 / 260 | 56 / 271 | 56 / 293 | 56 / 337 |
+| Warm, before | 41 / 212 | 41 / 217 | 42 / 342 | 42 / 360 |
+| Warm, after | 40 / 211 | 41 / 328 | 41 / 333 | 41 / 342 |
+
+A cold start reads the list once either way. A warm visit makes one fewer call at 17 and 40 h (Booth 53 to 51, Editing 42 to 41). The Editing warm KB cells jump between about 217 and 330 in both builds: a store refresh of the list (an event or a focus, 100 to 150 KB at 17 to 40 h) lands inside the quiet window in some runs and not in others, so the KB of those cells says nothing about the change. The Production pipeline already read the store (#3910); its calls are unchanged (34 warm at every size), and what changed is that its own copy of the read (the generation and refresh-key bookkeeping around `ensure`/`load`) is one call of the shared hook. The goal of these moves is one list for every page, not the call count; the count is reported so a regression would show.
+Production's rows, header, pace and Next up then took their chapters from the shared list too (#4058; the host's overview supplies only the per-chapter numbers), and the target popover took its chapters from it. Calls / KB for 1, 5, 17 and 40 h, `--runs 5`, current `main` against this head, run one after the other:
+
+| Production | Calls | KB at 1, 5, 17, 40 h |
+| --- | --- | --- |
+| Cold, `main` | 52 | 122, 164, 254, 423 |
+| Cold, this head | 52 | 122, 164, 254, 423 |
+| Warm, `main` | 34 | 63, 96, 168, 303 |
+| Warm, this head | 34 | 63, 96, 168, 303 |
+
+Nodes are unchanged, and the call sets of a cold start are the same names and counts in both builds (`?mockCallLog=1`, 17 h). A first version of the change read the list once more on a cold start (53 calls, 441 KB at 40 h): the page's reader started the read before App's `load` of the same list, and `load` does not join a read in flight. App now asks for the list with `ensure`, which joins it. This was done for consistency, not speed: the page has one source of chapter names, order and statuses, so a rename or a failed list read shows on Production as on every other page.
+
+The other readers then moved (Script, Story Bible, Proof, Pickups, Master & QC, Settings, with the rail's Master & QC badge, the Companion and the dialogs). Calls / KB, `--runs 5`, `main` at 00a3bfc against the head of that change, one build after the other; 1, 5, 17 and 40 hours. Nodes are unchanged on every page.
+
+| Page | Cold, before | Cold, after | Warm, before | Warm, after |
+| --- | --- | --- | --- | --- |
+| Script | 36 / 173, 183, 207, 253 | 35 / 171, 180, 199, 235 | 22 / 124, 130, 141, 162 | 21 / 123, 126, 132, 144 |
+| Story Bible | 35 / 90, 100, 123, 166 | 34 / 88, 96, 114, 148 | 21 / 41, 46, 56, 74 | 19 / 39, 39, 39, 39 |
+| Proof | 41 / 129, 140, 163, 206 | 40 / 129, 137, 155, 189 | 23 / 77, 82, 92, 110 | 21 / 75, 75, 75, 75 |
+| Pickups | 30 / 76, 87, 109, 153 | 29 / 75, 83, 101, 135 | 12 / 22, 27, 36, 55 | 10 / 19, 19, 19, 19 |
+| Master & QC | 29 / 89, 100, 123, 166 | 28 / 88, 96, 114, 148 | 15 / 41, 46, 56, 74 | 13 / 39, 39, 39, 39 |
+| Settings | 47 / 104, 118, 152, 217 | 47 / 104, 118, 152, 217 | 33 / 56, 64, 86, 126 | 32 / 55, 61, 77, 108 |
+
+(Calls are the same at every size; the four KB figures are 1, 5, 17 and 40 h.) A cold start makes one call fewer on five pages and a warm visit one or two fewer: the pages no longer read the list the store already holds, so after the first read their warm KB no longer grows with the book (Pickups 55 KB at 40 h before, 19 after; Proof 110 to 75). Settings' cold start is unchanged (47 calls); why was not traced. The real-host cost of each saved read is the `ManuscriptChapters` row of the [host read table](#host-reads) (653 ms at 17 h, 1,514 ms at 40 h).
+
 ## The track list: a 5 s poll against REAPER's change event
 
 [#3880](https://github.com/countrymanprime/narration-studio/issues/3880), slice 1. Before it, every page that shows the project's tracks (`useLiveTracks`, behind the engine panel, Link chapters, Editing, Proof, Pickups and the Booth's voices) read `TracksLive`, `ChapterTrackLinks` and `VoiceTracksGet` every 5 s while the window was visible. With a revision from REAPER's heartbeat it reads on `daw_tracks_changed`, on focus and on Refresh, and every 30 s for a save in REAPER, which sends no event. Same rig and method as [above](#host-reads): `host-read-bench.mjs seed` then `reads --runs 3` (three processes, medians), here with `--tracks N` for the extra empty tracks. The three reads' warm medians are one tick; the poll is 12 ticks a minute, the event idle 2 (the 30 s read), a change 1.
@@ -341,6 +382,23 @@ Through the binding on the seeded rig, after: 315 ms (10 min) and 1,466 ms (60 m
 - **What the change does:** decodes 16 and 24-bit samples in a loop of their own, reads a chapter's separate source files together, and lets a read that outlives the call's 30 s finish in the background and fill the cache, so the item says "still being read" and the next call has it (before, every call timed out the same way and showed nothing).
 - **Not measured:** a real recording on a real disk, a stereo or multi-file chapter on the rig, the time from opening a chapter to a drawn waveform in the page, and the owner's own files.
 
+## Editing's click to the DAW's play call: no wait on the watch lease
+
+[#4043](https://github.com/countrymanprime/narration-studio/issues/4043), refs [#3880](https://github.com/countrymanprime/narration-studio/issues/3880). A click on a word and Play asked the DAW to play only once the page's watch lease had been answered (the lease is the page's first `dawTransportSync('watch')`), and, the first time, once the DAW's capabilities and the word table had been read; until then the press said "Checking whether the DAW can play this" and did nothing. The play now goes to the DAW in the same tick; a table or capabilities not yet read send the app's own audio in the same tick instead, with the reason (that case is shown by the tests, `a word table still being read does not stop the click ...`, not by the table below, which times only the DAW's `play` call).
+
+Method (the existing sync harness, `transportSync.test.tsx`; no second rig): the mock DAW's `watch` answers after a set time, the narrator presses Play at 0 ms and again every 100 ms, and the time of the first `play` call that reaches the DAW is read off the test's fake clock, on `main` and on the change (a throwaway test, not committed; the guard for the new behaviour is `plays at once with the link and the word time held, whatever the watch lease says ...`).
+
+| Watch answered after | First `play` call, before | After |
+| --- | --- | --- |
+| 0 ms | 100 ms (the first press was told to wait) | 0 ms |
+| 150 ms | 200 ms | 0 ms |
+| 1 s | 1,000 ms | 0 ms |
+| 5 s | 5,000 ms | 0 ms |
+
+- The "before" is the first press after the lease answered; with a lease that never answers there was no play call at all, one "checking" toast per press (read from the old test and code, not timed: there is no row for it).
+- The chapter's size does not enter the path: the press resolves the word's project time from the word table the page holds (a map lookup) and the DAW's play call is the only host call. **Not measured at several chapter sizes:** the harness chapter is the three-paragraph fixture; the table the real page holds is the read table's `WorkspaceWordTimes`, not timed here.
+- **Not measured:** the time from the DAW receiving `play` to sound (a defer cycle plus the audio device), the lease's real round trip on a live REAPER, and the real host's behaviour when its reads are slow (the owner's hang was not reproduced there).
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.
@@ -350,4 +408,42 @@ Through the binding on the seeded rig, after: 315 ms (10 min) and 1,466 ms (60 m
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
 - **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real recordings on a real disk (the sparse-file numbers are above), take evidence and delivery measurements.
 - **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
-- **Run counts** are small (one to three), so differences under 10 % between cells are noise.
+- **Run counts** are small (one to five), so differences under 10 % between cells are noise.
+- **The Editor, Booth and Production moves (#3658):** real-host timing under the pages' concurrent calls, Windows, 300 chapters on the mock (the mock sizes a book in hours), a cold OS file cache, and the pages' time to usable (the mock's milliseconds are fixtures).
+
+## Schedule, Companion and the pace on the shared list (#4062)
+
+The Schedule, the Companion's "This chapter" and the finished-hour pace no longer read the chapters from `productionOverview`: they take the chapter set, names, kinds, words and recorded seconds from the shared chapter list (the store's `chapters` slot), and the overview's `hoursLogged`, `pfh` and `readiness` stay on the overview, matched by id. The Schedule's first read serves the held list; its minute tick, focus and Retry read it fresh. The measurements port no longer has `chapterLengths`, so the pace is no longer a second overview read on every page that shows it.
+
+Mock host, `scripts/dev/page-bench.mjs`, 1, 5, 17 and 40 h, `--runs 5`, `main` (bf91de08f) against this change, one build after the other. Calls / answer KB, cold then warm:
+
+| Page | 1 h | 5 h | 17 h | 40 h |
+| - | - | - | - | - |
+| Production cold, main | 50 / 119 | 50 / 157 | 50 / 237 | 50 / 388 |
+| Production cold, this change | 46 / 111 | 46 / 136 | 46 / 187 | 46 / 285 |
+| Production warm, main | 32 / 61 | 32 / 88 | 32 / 151 | 32 / 268 |
+| Production warm, this change | 28 / 52 | 28 / 67 | 28 / 101 | 28 / 164 |
+| Schedule cold, main | 26 / 80 | 26 / 94 | 26 / 126 | 26 / 186 |
+| Schedule cold, this change | 24 / 75 | 24 / 81 | 24 / 93 | 24 / 118 |
+| Schedule warm, main | 12 / 32 | 12 / 40 | 12 / 59 | 12 / 95 |
+| Schedule warm, this change | 10 / 27 | 10 / 27 | 10 / 27 | 10 / 27 |
+| Booth cold and warm | unchanged: 60 / 142-186 cold, 49 / 105 warm | | | |
+
+Nodes are unchanged on all three pages. Time to usable moved by less than the run-to-run spread (Production cold at 40 h read 639 ms on main and 780 ms here; the other cells differ by under 10 %), so no time gain is claimed: the mock's milliseconds are fixtures. The saved calls are the overview reads the pace and the Schedule made beside the page's own, and the saved KB are their answers, which carried every chapter's title and numbers. This was done for consistency, not for speed.
+
+Not measured: the real host and Windows, 300 chapters on the mock, the Companion (it is not in the page list of the bench), the Schedule's minute tick (it now reads the chapter list, not the overview).
+
+## The overview without chapter fields (#4062 part 2)
+
+`ProductionOverview` now sends each chapter as `id`, `hoursLogged`, `pfh` and `readiness`, and no `nextUp` list: the Production page takes the chapter's name, status and recorded length from the shared chapter list and ranks Next up itself. Measured on this branch's parent (`c41a4414b`) and on the branch, with `node scripts/dev/host-read-bench.mjs reads <folder> --runs 1` over the same seeded 17 h (44 chapters) and 40 h (103 chapters) books, so each answer is the host's own JSON:
+
+| Book | Answer before | Answer after | Chapters |
+| --- | --- | --- | --- |
+| 17 h | 15,291 bytes | 4,173 bytes | 44 |
+| 40 h | 34,177 bytes | 9,249 bytes | 103 |
+
+That is 347 bytes a chapter before and 94 after at 17 h (332 and 90 at 40 h), about 73 % less. The decodes, listings and allocations of the read are the same as before (158 / 71 decodes at 17 h, 335 / 130 at 40 h), because the host still reads the chapter list to compute the figures. The warm medians of one run each (86.0 then 88.3 ms at 17 h, 151.3 then 165.5 ms at 40 h) are inside the run-to-run spread of one process, so no time gain is claimed; the saving is the answer's size and what the page decodes and validates with it.
+
+## The chapter list names its project (#4040)
+
+`ManuscriptChapters` now answers `{"project": ..., "chapters": [...]}` instead of the bare array: `project` is the folder text the service that read the list belongs to, the same text `Bootstrap` sends as `projectFolder`. The envelope adds 26 bytes plus the JSON-escaped folder. Measured on the 17 h book (`node scripts/dev/host-read-bench.mjs seed /tmp/claude-0/bench17 --size 17h`, then `reads --runs 1`) the answer is 64,172 bytes with a 21-character folder, 47 bytes more than the 64,125 the array alone was (64.1 KB, as in the [host reads table](#host-reads)); that is the answer of the branch, and the "before" size is the array it carried, computed by subtracting the envelope (the run on the parent was not repeated). At 40 h the same arithmetic gives about 149.6 KB plus the folder, 149.7 KB: computed, not measured. The host calls, decodes and listings do not change: it is the same read with a longer answer.

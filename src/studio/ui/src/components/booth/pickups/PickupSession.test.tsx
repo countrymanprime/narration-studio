@@ -141,7 +141,7 @@ describe('a pickup session in the Booth', () => {
     // The first line is the current one.
     expect(document.querySelector('[data-pj="a"]')?.getAttribute('aria-current')).toBe('true');
     const card = (document.querySelector('[data-pj="a"]') as HTMLElement).closest('li') as HTMLElement;
-    expect(within(card).getByText('Ch 3 · 1:05')).toBeTruthy();
+    expect(within(card).getByText('Ch 3 · 00:01:05')).toBeTruthy();
     expect(within(card).getByText('Open')).toBeTruthy();
   });
 

@@ -80,7 +80,7 @@ export type ShowInDawPorts = {
  * The one place a Show in {DAW} press reaches the host (#2826): the call the target's kind has, and the sentence that says where the DAW went or why
  * it did not. Null when the host answered with nothing to say. A menu entry that cannot render the button calls this directly; nothing else
  * calls `workspaceGoTo`, `findingsGoTo` or `trackSelectInReaper` for a "show me" (`showInDawGuard.test.ts`). `when` writes the place the DAW moved to: the shared
- * default is the page-neutral clock, and Editing and Proof pass their own full form, so Pickups keeps the text it always had.
+ * default is the page-neutral clock; Editing and Proof pass their own full form and Pickups its hh:mm:ss, so a place reads as the row that sent the DAW there.
  */
 export async function showInDaw(
   ports: ShowInDawPorts,
