@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -231,4 +232,61 @@ func TestPeaksFileReadsAFileAndReportsAMissingOne(t *testing.T) {
 	if _, err := PeaksFile(context.Background(), filepath.Join(t.TempDir(), "missing.wav"), nil, 50); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("err = %v, want a missing file", err)
 	}
+}
+
+// A whole file read in segments gives exactly the peaks of one read (#4042): a bucket never spans two seconds, so the segments join without a seam,
+// at a rate whose frames a bucket do not divide evenly, in mono and stereo, with a length that is not a whole number of segments.
+func TestPeaksFileInSegmentsEqualsOneRead(t *testing.T) {
+	cases := []struct {
+		name     string
+		channels int
+		rate     int
+		seconds  float64
+	}{
+		{"mono 8 kHz, 131 s", 1, 8000, 131},
+		{"stereo 11.025 kHz, 127.4 s", 2, 11025, 127.4},
+		{"mono 44.1 kHz, 123.9 s", 1, 44100, 123.9},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// A tone whose level changes with time, so a seam or a shifted bucket shows in the bytes.
+			mono := sine(c.rate, c.seconds, 220, -12, 0)
+			for i := range mono {
+				mono[i] *= 0.2 + 0.8*float64(i%(c.rate*7))/float64(c.rate*7)
+			}
+			samples := mono
+			if c.channels == 2 {
+				samples = stereo(mono)
+			}
+			path := filepath.Join(t.TempDir(), "long.wav")
+			if err := os.WriteFile(path, encodeWAV(t, c.channels, c.rate, 16, false, samples), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			whole, err := os.Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = whole.Close() }()
+			one, err := ComputePeaks(context.Background(), whole, nil, DefaultPeaksPerSecond)
+			if err != nil {
+				t.Fatal(err)
+			}
+			segmented, err := PeaksFile(context.Background(), path, nil, DefaultPeaksPerSecond)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(one, segmented) {
+				t.Fatalf("buckets %d vs %d, first difference at byte %d", one.Buckets, segmented.Buckets, firstDifference(one.MinMax, segmented.MinMax))
+			}
+		})
+	}
+}
+
+func firstDifference(a, b []byte) int {
+	for i := range min(len(a), len(b)) {
+		if a[i] != b[i] {
+			return i
+		}
+	}
+	return min(len(a), len(b))
 }

@@ -378,7 +378,19 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 
 Through the binding on the seeded rig, after: 315 ms (10 min) and 1,466 ms (60 min) on the first call, 4 and 7.5 ms on the next. The seeded rig has one source file a chapter, so the parallel read of a chapter's several files is not on the committed rig. An independent break round timed a chapter of six recordings (240 minutes together) outside it: 2.3 to 2.5 s after, 6.0 to 8.4 s before.
 
-- **Target:** under 1 s for an hour of mono audio on a first read; **not met**: 1.4 s here. An independent re-run on a busier container of the same container size measured 3.75, 2.74 and 3.62 s before and 2.23, 2.57 and 2.45 s after for 60 min (about 25 to 30 % less), so the direction is firm and the absolute figure is not. A stereo hour took 3.8 s before the change.
+### One recording split into segments ([#4042](https://github.com/countrymanprime/narration-studio/issues/4042), second change)
+
+`measure.PeaksFile` reads a whole file of two minutes or more in segments of whole seconds, one per core up to four, each through its own slice of the file, and joins the peaks (`TestPeaksFileInSegmentsEqualsOneRead` pins that the result equals one read, at 8, 11.025 and 44.1 kHz, mono and stereo). A bucket never spans two seconds, so there is no seam.
+
+| Recording | First read, one read | First read, in segments | Through the binding, in segments |
+| --- | --- | --- | --- |
+| 10 min | 0.20 s | 0.12 s | 95 ms |
+| 30 min | 0.71 s | 0.34 s | not run |
+| 60 min | 1.40 s | 0.70 s | 486 ms |
+
+The target (under 1 s for an hour of mono audio, first read) is **met on this 4-CPU container** at 0.70 s below the binding and 0.49 s through it; fewer cores or a slow disk cost more (the sparse file reads no disk). Not measured: stereo or 96 kHz at length on the rig, a real disk, two or more cores busy with other reads (each file may use up to four cores while the host's read slots bound the files).
+
+- **Target (first change):** under 1 s for an hour of mono audio on a first read; **not met** by it alone: 1.4 s here; met by the segments change above. An independent re-run on a busier container of the same container size measured 3.75, 2.74 and 3.62 s before and 2.23, 2.57 and 2.45 s after for 60 min (about 25 to 30 % less), so the direction is firm and the absolute figure is not. A stereo hour took 3.8 s before the change.
 - **What the change does:** decodes 16 and 24-bit samples in a loop of their own, reads a chapter's separate source files together, and lets a read that outlives the call's 30 s finish in the background and fill the cache, so the item says "still being read" and the next call has it (before, every call timed out the same way and showed nothing).
 - **Not measured:** a real recording on a real disk, a stereo or multi-file chapter on the rig, the time from opening a chapter to a drawn waveform in the page, and the owner's own files.
 
