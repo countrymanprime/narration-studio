@@ -258,6 +258,16 @@ Booth and Editing then took the same list (the Editor, the Booth and the Product
 | Warm, after | 40 / 211 | 41 / 328 | 41 / 333 | 41 / 342 |
 
 A cold start reads the list once either way. A warm visit makes one fewer call at 17 and 40 h (Booth 53 to 51, Editing 42 to 41). The Editing warm KB cells jump between about 217 and 330 in both builds: a store refresh of the list (an event or a focus, 100 to 150 KB at 17 to 40 h) lands inside the quiet window in some runs and not in others, so the KB of those cells says nothing about the change. The Production pipeline already read the store (#3910); its calls are unchanged (34 warm at every size), and what changed is that its own copy of the read (the generation and refresh-key bookkeeping around `ensure`/`load`) is one call of the shared hook. The goal of these moves is one list for every page, not the call count; the count is reported so a regression would show.
+Production's rows, header, pace and Next up then took their chapters from the shared list too (#4058; the host's overview supplies only the per-chapter numbers), and the target popover took its chapters from it. Calls / KB for 1, 5, 17 and 40 h, `--runs 5`, current `main` against this head, run one after the other:
+
+| Production | Calls | KB at 1, 5, 17, 40 h |
+| --- | --- | --- |
+| Cold, `main` | 52 | 122, 164, 254, 423 |
+| Cold, this head | 52 | 122, 164, 254, 423 |
+| Warm, `main` | 34 | 63, 96, 168, 303 |
+| Warm, this head | 34 | 63, 96, 168, 303 |
+
+Nodes are unchanged, and the call sets of a cold start are the same names and counts in both builds (`?mockCallLog=1`, 17 h). A first version of the change read the list once more on a cold start (53 calls, 441 KB at 40 h): the page's reader started the read before App's `load` of the same list, and `load` does not join a read in flight. App now asks for the list with `ensure`, which joins it. This was done for consistency, not speed: the page has one source of chapter names, order and statuses, so a rename or a failed list read shows on Production as on every other page.
 
 The other readers then moved (Script, Story Bible, Proof, Pickups, Master & QC, Settings, with the rail's Master & QC badge, the Companion and the dialogs). Calls / KB, `--runs 5`, `main` at 00a3bfc against the head of that change, one build after the other; 1, 5, 17 and 40 hours. Nodes are unchanged on every page.
 

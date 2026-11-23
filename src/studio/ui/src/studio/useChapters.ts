@@ -28,6 +28,7 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     () => undefined,
   );
   const [own, setOwn] = useState<readonly ManuscriptChapter[]>();
+  const [ownError, setOwnError] = useState<Error>();
   // Ask when the list is not held and no read of it has failed: first mount, a project switch that emptied the slot. A read the switch dropped is read
   // again by `ensure` itself. A failure is not asked again by this hook (an event or the caller's `refreshKey` does), so a host that is down is not read in a loop.
   // A reader that mounts on a list whose read failed asks once more.
@@ -53,13 +54,13 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     let live = true;
     manuscript
       .manuscriptChapters()
-      .then((chapters) => live && setOwn(chapters))
-      .catch(() => undefined);
+      .then((chapters) => live && (setOwn(chapters), setOwnError(undefined)))
+      .catch((e: unknown) => live && setOwnError(e instanceof Error ? e : new Error(String(e))));
     return () => {
       live = false;
     };
   }, [store, manuscript, enabled, refreshKey]);
-  return { chapters: store ? held : own, error };
+  return { chapters: store ? held : own, error: store ? error : ownError };
 }
 
 /**

@@ -24,6 +24,8 @@ const COVERED: Record<string, readonly string[]> = {
   'components/engine/useChapterLinks.ts': ['components/engine/ChapterLinksTable.test.tsx'],
   // The pipeline's cells take the list from the store (ensure/load) and fall back to the port with no store; the credits pairing is checked in ProductionPage.test.tsx.
   'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
+  // The page's rows, header, pace and Next up are the shared list with the overview's numbers (composeOverview.ts, #4058): the credits are rows like any chapter.
+  'components/production/ProductionPage.tsx': ['components/production/ProductionPage.test.tsx'],
   'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],
@@ -32,6 +34,8 @@ const COVERED: Record<string, readonly string[]> = {
 
 /** Source file -> why the credits are left out of what it reads (a chapter's own text, or nothing to list). */
 const EXEMPT: Record<string, string> = {
+  'components/production/target/TargetInfoButton.tsx':
+    "counts the narration chapters' words for the pace figure; the credits are narration chapters and count like any other (ProductionPage.test)",
   'components/chapterTracks/useChapterNameOf.ts': 'names one chapter by its id; the credits are named like any chapter (useChapterNameOf.test)',
   'components/chapterTracks/useChapterLinkActions.ts':
     "reads the chapters only to name the chapter that lost a track; the credits are linked and named like any chapter, and a name the list lacks falls back to the host's kept title",

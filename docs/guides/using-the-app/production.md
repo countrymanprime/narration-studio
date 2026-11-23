@@ -8,7 +8,7 @@ editing and proofing is left, the open pickups, the due date and whether the pac
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage; a chapter's name reads "Title: Subtitle" with the subtitle dimmed.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
-While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, the page says so with **Retry**.
+While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, or the book's chapter list cannot be read, the page says so with **Retry**.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header](../../images/ui/production-home.webp)
 
@@ -34,8 +34,9 @@ mark opens it again; both go by themselves as soon as the engine connects. It ne
 switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
 is one answer on Production, the Booth and the Companion: the DAW's own sentence when it cannot.
 
-If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
-be loaded" with the reason and a **Retry** button, which reads it again.
+If the production overview or the book's chapter list cannot be read when the page opens, Production keeps its title and
+says "This page could not be loaded" with the reason and a **Retry** button, which reads both again. The chapter list is
+the same one the Booth, Editing and the other pages use, so a rename or a re-split shows here too.
 
 ## Common tasks
 
