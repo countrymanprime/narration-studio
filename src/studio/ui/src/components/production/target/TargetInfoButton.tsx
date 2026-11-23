@@ -5,10 +5,9 @@ import { useChapters } from '../../../studio/useChapters';
 import { isNarrationChapter } from '../../../chapterKinds';
 import { IconButton } from '../../primitives/IconButton';
 import { Popover, POPOVER_POPUP_SELECTOR } from '../../primitives/Popover';
-import { useMeasured } from '../measured/useMeasured';
 import { MIN_OWN_RATE_CHAPTERS, WPH } from '../../schedule/estimates';
 import { announceRateBasis } from '../../schedule/useEffectiveWph';
-import { basisOf, ownRate, targetHours, type PaceChapter } from './pace.selectors';
+import { basisOf, chapterLengthsOf, ownRate, targetHours, type PaceChapter } from './pace.selectors';
 import { TargetPopover } from './TargetPopover';
 
 /** How long the pointer may be off both the icon and the popover before a hover-opened popover closes (the mock's 250 ms). */
@@ -23,8 +22,6 @@ const tagOf = (id: string, title: string): string => (/^\d+$/.test(id) ? `Ch ${i
  */
 export function TargetInfoButton() {
   const production = usePort('production');
-  const measurements = usePort('measurements');
-  const measured = useMeasured(measurements, '', []);
   const [plan, setPlan] = useState<ProductionPlan | null>(null);
   // The chapters (their set and word counts) are the shared list every page reads, not a copy from the overview.
   const shared = useChapters().chapters;
@@ -53,7 +50,7 @@ export function TargetInfoButton() {
   }, [production]);
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const lengths = measured.answers?.chapterLengths ?? { ok: false as const, reason: 'Reading the measured lengths…' };
+  const lengths = chapterLengthsOf(shared);
   const own = ownRate(chapters, lengths, MIN_OWN_RATE_CHAPTERS);
   const basis = basisOf(plan?.rateBasis, own);
 

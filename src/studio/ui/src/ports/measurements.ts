@@ -1,6 +1,5 @@
 import type { Measured } from '../api/schemas/base';
-import { audibleSeconds } from '../recordedThrough';
-import { CHAPTER_LENGTHS, PICKUP_BOOTH, ROOM_TONE_DB, TAKE_LOG, type TakeLogEntry } from '../fixtures/measurements';
+import { PICKUP_BOOTH, ROOM_TONE_DB, TAKE_LOG, type TakeLogEntry } from '../fixtures/measurements';
 import type { NarrationApi } from '../types';
 
 // The measurements port: every sourced number a screen shows is asked here and answers a value or a
@@ -14,15 +13,12 @@ export interface MeasurementsPort {
   takeLog(): Promise<Measured<TakeLogEntry[]>>;
   /** Time in the Booth to redo these pickups, in seconds. */
   pickupSessionSeconds(ids: string[]): Promise<Measured<number>>;
-  /** The finished length of the chapters that have been measured, in seconds, by chapter id. */
-  chapterLengths(): Promise<Measured<Record<string, number>>>;
 }
 
 /** The `NarrationApi` methods the host adapter calls. */
-export type MeasurementsHostApi = Pick<NarrationApi, 'productionOverview' | 'recorderState' | 'teleprompterRoomTone'>;
+export type MeasurementsHostApi = Pick<NarrationApi, 'recorderState' | 'teleprompterRoomTone'>;
 
 const NOTHING = 'Nothing has been measured yet.';
-const NO_LENGTHS = 'No chapter has a measured length yet.';
 
 const none = <T>(reason: string): Measured<T> => ({ ok: false, reason });
 
@@ -46,16 +42,6 @@ export function createHostMeasurements(api: MeasurementsHostApi): MeasurementsPo
       return tone.db === null ? none(`Nothing has measured the room through ${mic} yet: open Levels or record a take.`) : { ok: true, value: tone.db };
     },
     pickupSessionSeconds: () => Promise.resolve(none('No pickup has been redone in the Booth yet.')),
-    async chapterLengths() {
-      const overview = await api.productionOverview();
-      const lengths: Record<string, number> = {};
-      for (const chapter of overview.chapters) {
-        // One rule for audio: a length under a second is no length (0 s), so the pace and every other reader of these lengths agree with the board.
-        const seconds = audibleSeconds(chapter.recordedSeconds);
-        if (seconds !== null) lengths[chapter.id] = seconds;
-      }
-      return Object.keys(lengths).length ? { ok: true, value: lengths } : none(NO_LENGTHS);
-    },
     async takeLog() {
       const state = await api.recorderState();
       if (state.engine === 'daw') {
@@ -74,23 +60,16 @@ export type MockMeasurementsOptions = {
   roomTone?: Readonly<Record<string, number>>;
   log?: readonly TakeLogEntry[];
   booth?: typeof PICKUP_BOOTH;
-  lengths?: Readonly<Record<string, number>>;
 };
 
 /** The mock: answers from the sample data in `fixtures/measurements.ts`, or from `options`. */
 export function createMockMeasurements(options: MockMeasurementsOptions = {}): MeasurementsPort {
-  const { none: off = false, roomTone = ROOM_TONE_DB, log = TAKE_LOG, booth = PICKUP_BOOTH, lengths = CHAPTER_LENGTHS } = options;
+  const { none: off = false, roomTone = ROOM_TONE_DB, log = TAKE_LOG, booth = PICKUP_BOOTH } = options;
   return {
     roomTone(mic) {
       const db = roomTone[mic];
       return Promise.resolve(off || db === undefined ? none(NOTHING) : { ok: true, value: db });
     },
-    chapterLengths: () =>
-      Promise.resolve(
-        off || !Object.keys(lengths).length
-          ? none(NO_LENGTHS)
-          : { ok: true, value: Object.fromEntries(Object.entries(lengths).map(([id, seconds]) => [id, audibleSeconds(seconds) ?? 0])) },
-      ),
     takeLog: () => Promise.resolve(off || !log.length ? none(NOTHING) : { ok: true, value: log.map((entry) => ({ ...entry })) }),
     pickupSessionSeconds(ids) {
       const known = Object.values(booth.seconds);

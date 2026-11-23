@@ -6,10 +6,9 @@ import { hasRecording, recordedLabel } from './components/proof/checkcard/cardSe
 import { bookFigures } from './components/production/overview/overviewFigures';
 import { rankNextUp } from './components/production/pipeline/nextUpRanking';
 import { buildPipelineRows } from './components/production/pipeline/pipelineRows';
-import { ownRate } from './components/production/target/pace.selectors';
+import { chapterLengthsOf, ownRate } from './components/production/target/pace.selectors';
 import { audioToCheck, recordedChapters } from './components/recordingcheck/checkSelection';
 import { MIN_OWN_RATE_CHAPTERS } from './components/schedule/estimates';
-import { createHostMeasurements } from './ports/measurements';
 import {
   chapterRecordedDetail,
   recordedAtDetail,
@@ -109,15 +108,14 @@ describe('every figure of a chapter under a second equals its figure at 0 s', ()
     }
   }
 
-  it('the narrator’s own rate does not count a chapter under a second', async () => {
+  it('the narrator’s own rate does not count a chapter under a second', () => {
     const chapters = [1, 2, 3].map((n) => ({ id: String(n), tag: `Chapter ${n}`, words: 2000 }));
-    const ownFor = async (third: number) => {
+    const ownFor = (third: number) => {
       const rows = [800, 800, third].map((recordedSeconds, index) => ({ id: String(index + 1), recordedSeconds }));
-      const port = createHostMeasurements({ productionOverview: async () => ({ chapters: rows }) } as never);
-      return ownRate(chapters, await port.chapterLengths(), MIN_OWN_RATE_CHAPTERS);
+      return ownRate(chapters, chapterLengthsOf(rows), MIN_OWN_RATE_CHAPTERS);
     };
-    const zero = await ownFor(0);
-    for (const seconds of SUB) expect(await ownFor(seconds), `${seconds} s`).toEqual(zero);
+    const zero = ownFor(0);
+    for (const seconds of SUB) expect(ownFor(seconds), `${seconds} s`).toEqual(zero);
   });
 
   // The other half of the rule: from one second there IS audio, so no figure reads none, for every host value (a host 0% included).

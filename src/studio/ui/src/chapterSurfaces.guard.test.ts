@@ -26,6 +26,8 @@ const COVERED: Record<string, readonly string[]> = {
   'components/production/usePipelineSources.ts': ['components/production/ProductionPage.test.tsx'],
   // The page's rows, header, pace and Next up are the shared list with the overview's numbers (composeOverview.ts, #4058): the credits are rows like any chapter.
   'components/production/ProductionPage.tsx': ['components/production/ProductionPage.test.tsx'],
+  // The pace over the narration chapters of the list, the credits included (useEffectiveWph.test.tsx).
+  'components/schedule/useEffectiveWph.ts': ['components/schedule/useEffectiveWph.test.tsx'],
   'studio/useChapters.ts': ['components/chapterTracks/useChapterNameOf.test.tsx'],
   'components/layout/useNavCounts.ts': ['components/layout/useNavCounts.test.tsx'],
   'components/recordingcheck/CheckRecordingsDialog.tsx': ['components/recordingcheck/CheckRecordingsDialog.test.tsx'],

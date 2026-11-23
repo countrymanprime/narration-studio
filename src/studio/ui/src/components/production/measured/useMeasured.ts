@@ -7,7 +7,6 @@ type MeasuredAnswers = {
   roomTone: Measured<number>;
   takeLog: Measured<TakeLogEntry[]>;
   pickupSessionSeconds: Measured<number>;
-  chapterLengths: Measured<Record<string, number>>;
 };
 
 export type MeasuredState =
@@ -22,7 +21,7 @@ const settle = async <T>(read: () => Promise<Measured<T>>): Promise<Measured<T>>
   }
 };
 
-/** Reads the four answers once, and again when the port instance, the microphone or the pickups change or `refresh()` is called. A refused read is a reason, never a throw; the last answer stays while re-reading. */
+/** Reads the three answers once, and again when the port instance, the microphone or the pickups change or `refresh()` is called. A refused read is a reason, never a throw; the last answer stays while re-reading. */
 export function useMeasured(port: MeasurementsPort, mic: string, pickupIds: readonly string[]): MeasuredState {
   const [answers, setAnswers] = useState<MeasuredAnswers | null>(null);
   const [tick, setTick] = useState(0);
@@ -34,9 +33,8 @@ export function useMeasured(port: MeasurementsPort, mic: string, pickupIds: read
       settle(() => port.roomTone(mic)),
       settle(() => port.takeLog()),
       settle(() => port.pickupSessionSeconds(ids ? ids.split('\u0000') : [])),
-      settle(() => port.chapterLengths()),
-    ]).then(([roomTone, takeLog, pickupSessionSeconds, chapterLengths]) => {
-      if (live) setAnswers({ roomTone, takeLog, pickupSessionSeconds, chapterLengths });
+    ]).then(([roomTone, takeLog, pickupSessionSeconds]) => {
+      if (live) setAnswers({ roomTone, takeLog, pickupSessionSeconds });
     });
     return () => {
       live = false;
