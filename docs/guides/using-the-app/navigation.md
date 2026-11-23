@@ -47,6 +47,8 @@ When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left`
 
 ## The header and the footer
 
+Every page keeps a strip along the bottom of its area, one message high, for the messages that come and go (the toast with **Undo** or **Retry**). A message stands in that strip, so nothing on the page moves or is covered when one comes, and the strip is empty when there is none. A window 520 px tall or shorter has no strip: there a message floats at the bottom edge, above the bars along it.
+
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, a zoom chip when you are zoomed,
 **Jump to or run…** (`Ctrl+K`), and the engine chip. The zoom chip appears on the left of the jump button, in the header's empty middle, so the jump button and the engine chip do not move when it comes or goes. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it (Escape does the same), and opening a
