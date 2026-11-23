@@ -172,7 +172,8 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
           className={`min-h-6 max-w-[40%] min-w-6 flex-none truncate py-0.5 text-left font-semibold underline underline-offset-2 ${HIT_AREA}`}
           onClick={(event) => {
             const button = event.currentTarget;
-            const had = button.contains(document.activeElement);
+            // Focus is handed to the next toast only when a key pressed the button (`detail` 0): a mouse press hands it nowhere, so focus the app moved is never a hold on a toast the narrator did not reach for (#4063).
+            const had = event.detail === 0 && button.contains(document.activeElement);
             message.action!.onAction();
             if (had) settle(button, false);
             else dismiss(id);
@@ -187,7 +188,7 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
         className="inline-flex size-[var(--button-height-sm)] flex-none items-center justify-center rounded-[var(--radius-button)] hover:opacity-75"
         onClick={(event) => {
           // Dismissing the button that has focus must not drop focus on the page: it moves to the next toast's Dismiss, else the one before, else where it was before the toast.
-          if (document.activeElement === event.currentTarget) settle(event.currentTarget, true);
+          if (event.detail === 0 && document.activeElement === event.currentTarget) settle(event.currentTarget, true);
           else dismiss(id);
         }}
       >

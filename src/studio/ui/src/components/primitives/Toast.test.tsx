@@ -183,6 +183,32 @@ describe('ToastRegion', () => {
     expect(retry.className).toContain('min-w-6');
   });
 
+  // A press of the mouse on a stack's Dismiss or Retry must not put focus on the next toast: focus there holds it (the timer waits on focus) with no ring, and it never expires (#4063, qa-breaker B1).
+  it.each(['Dismiss message', 'Retry'])("a mouse press on %s in a stack leaves the next toast's timer running", (name) => {
+    const dismiss = vi.fn();
+    const action = { label: 'Retry', onAction: vi.fn() };
+    render(
+      <ToastRegion
+        messages={[
+          { ...failure(1, 'Older'), action },
+          { ...failure(2, 'Newer'), action },
+        ]}
+        dismiss={dismiss}
+      />,
+    );
+    const newer = screen.getByText('Newer').closest('[data-tone]') as HTMLElement;
+    const button = within(newer).getByRole('button', { name });
+    button.focus();
+    fireEvent.click(button, { detail: 1 });
+    act(() => void vi.advanceTimersByTime(500));
+    expect(dismiss).toHaveBeenCalledWith(2);
+    const older = screen.getByText('Older').closest('[data-tone]') as HTMLElement;
+    expect(older.contains(document.activeElement)).toBe(false);
+    dismiss.mockClear();
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS));
+    expect(dismiss).toHaveBeenCalledWith(1);
+  });
+
   it('dismisses the message whose button was pressed', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(1), failure(2)]} dismiss={dismiss} />);
