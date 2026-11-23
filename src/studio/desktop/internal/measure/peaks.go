@@ -126,7 +126,7 @@ func ComputePeaks(ctx context.Context, r io.Reader, rng *Range, perSecond int) (
 // split and its merge.
 const parallelPeaksMinSeconds = 120
 
-// maxPeaksSegments bounds how many cores one file's peaks use at once; the host's own read slots bound the files (#4042).
+// maxPeaksSegments is how many segments one file is split into; every segment decode holds one of DecodeSlots, so the host's cores stay the bound (#4042).
 const maxPeaksSegments = 4
 
 // PeaksFile computes the peaks of the WAV file at path (see ComputePeaks). A whole file of two minutes or more is read in segments of whole
@@ -146,6 +146,10 @@ func PeaksFile(ctx context.Context, path string, rng *Range, perSecond int) (Pea
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return Peaks{}, err
 	}
+	if err := DecodeSlots.Acquire(ctx); err != nil {
+		return Peaks{}, err
+	}
+	defer DecodeSlots.Release()
 	return ComputePeaks(ctx, file, rng, perSecond)
 }
 
@@ -187,6 +191,10 @@ func segmentedPeaks(ctx context.Context, file *os.File, perSecond int) (peaks Pe
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			if errs[i] = DecodeSlots.Acquire(ctx); errs[i] != nil {
+				return
+			}
+			defer DecodeSlots.Release()
 			offset := head.dataStart + first*int64(head.frameBytes)
 			length := min(segmentFrames, frames-first) * int64(head.frameBytes)
 			parts[i], errs[i] = ComputePeaks(ctx, io.MultiReader(bytes.NewReader(header), io.NewSectionReader(file, offset, length)), nil, perSecond)

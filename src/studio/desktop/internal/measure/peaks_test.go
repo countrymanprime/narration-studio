@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
+	"time"
 )
 
 // minMax reads bucket k of a Peaks back as two signed values.
@@ -246,6 +248,7 @@ func TestPeaksFileInSegmentsEqualsOneRead(t *testing.T) {
 		{"mono 8 kHz, 131 s", 1, 8000, 131},
 		{"stereo 11.025 kHz, 127.4 s", 2, 11025, 127.4},
 		{"mono 44.1 kHz, 123.9 s", 1, 44100, 123.9},
+		{"mono 48 kHz 24-bit, 126 s", 1, 48000, 126},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -259,7 +262,7 @@ func TestPeaksFileInSegmentsEqualsOneRead(t *testing.T) {
 				samples = stereo(mono)
 			}
 			path := filepath.Join(t.TempDir(), "long.wav")
-			if err := os.WriteFile(path, encodeWAV(t, c.channels, c.rate, 16, false, samples), 0o600); err != nil {
+			if err := os.WriteFile(path, encodeWAV(t, c.channels, c.rate, bitsFor(c.rate), false, samples), 0o600); err != nil {
 				t.Fatal(err)
 			}
 			whole, err := os.Open(path)
@@ -270,6 +273,14 @@ func TestPeaksFileInSegmentsEqualsOneRead(t *testing.T) {
 			one, err := ComputePeaks(context.Background(), whole, nil, DefaultPeaksPerSecond)
 			if err != nil {
 				t.Fatal(err)
+			}
+			file, err := os.Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = file.Close() }()
+			if _, ran, err := segmentedPeaks(context.Background(), file, DefaultPeaksPerSecond); err != nil || (!ran && runtime.NumCPU() > 1) {
+				t.Fatalf("the segmented read did not run (ran %v, err %v) on %d CPUs: the test would compare a read with itself", ran, err, runtime.NumCPU())
 			}
 			segmented, err := PeaksFile(context.Background(), path, nil, DefaultPeaksPerSecond)
 			if err != nil {
@@ -289,4 +300,60 @@ func firstDifference(a, b []byte) int {
 		}
 	}
 	return min(len(a), len(b))
+}
+
+// Decodes at once are bounded by the slots, and a done context never takes a free one (#4042).
+func TestDecodeSlotsHoldBackDecodesBeyondTheirNumberAndLetGoOnCancel(t *testing.T) {
+	slots := NewSlots(2)
+	ctx := context.Background()
+	for range 2 {
+		if err := slots.Acquire(ctx); err != nil {
+			t.Fatal("two slots should be free")
+		}
+	}
+	waiting, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	defer cancel()
+	if err := slots.Acquire(waiting); err == nil {
+		t.Fatal("a third decode got a slot while two were held")
+	}
+	slots.Release()
+	done, stop := context.WithCancel(ctx)
+	stop()
+	if err := slots.Acquire(done); err == nil {
+		t.Fatal("a done context took a free slot")
+	}
+	if err := slots.Acquire(ctx); err != nil {
+		t.Fatalf("a released slot was not free: %v", err)
+	}
+}
+
+// The segments of one file hold the shared slots: with every slot held, a read waits and answers its context's error instead of decoding (#4042).
+func TestPeaksFileWaitsForADecodeSlotAndStopsWithItsContext(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "long.wav")
+	if err := os.WriteFile(path, encodeWAV(t, 1, 8000, 16, false, sine(8000, 130, 220, -12, 0)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for range cap(DecodeSlots) {
+		if err := DecodeSlots.Acquire(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	defer func() {
+		for range cap(DecodeSlots) {
+			DecodeSlots.Release()
+		}
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := PeaksFile(ctx, path, nil, DefaultPeaksPerSecond); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("a read with no slot free answered %v, want its context's deadline", err)
+	}
+}
+
+// bitsFor gives the 24-bit file the rig and the owner's recordings are (48 kHz), 16-bit for the rest.
+func bitsFor(rate int) int {
+	if rate == 48000 {
+		return 24
+	}
+	return 16
 }
