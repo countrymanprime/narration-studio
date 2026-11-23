@@ -32,21 +32,6 @@ afterEach(() => {
 const info = (id: number, text = `Message ${id}`): ToastMessage => ({ id, text, tone: 'info' });
 const failure = (id: number, text = `Failure ${id}`): ToastMessage => ({ id, text, tone: 'error' });
 
-describe('a toast with an action in a window of 24 rem or less (#3322)', () => {
-  it('puts the action row under the text, and takes that row from the text cap so the toast stays inside a short window', () => {
-    const action = { label: 'Check again', onAction: vi.fn() };
-    render(<ToastRegion messages={[{ ...failure(1, 'Long refusal'), action }]} dismiss={vi.fn()} />);
-    const withAction = screen.getByText('Long refusal').closest('[data-tone]') as HTMLElement;
-    expect(withAction.className).toContain('max-[24rem]:flex-wrap');
-    expect(withAction.className).toContain('max-[24rem]:[--toast-action-row:2.75rem]');
-    // The cap subtracts the row (zero where the action sits beside the text).
-    expect(screen.getByText('Long refusal').className).toContain('var(--toast-action-row,0rem)');
-    // The text is capped at what the glyph leaves of the row, not forced to it: a short text stays beside the buttons, a long one fills the row and sends them under it.
-    expect(screen.getByText('Long refusal').className).toContain('max-[24rem]:max-w-[calc(100%-1.75rem)]');
-    expect(screen.getByText('Long refusal').className).not.toContain('basis');
-  });
-});
-
 describe('a stack of toasts keeps every action beside its text (#3322)', () => {
   it('only a toast that is alone puts its action row under the text: rows under each of several would not fit a short window', () => {
     const action = { label: 'Retry', onAction: vi.fn() };
@@ -254,7 +239,7 @@ describe('ToastRegion', () => {
     expect(region.className).toContain('[:root[data-modal-open]_&]:right-[var(--page-gutter)]');
     expect(region.className).not.toContain('top-4');
     // The region always stands at the gutter: the shell ends the page above it (`--toast-h`), so it rises over no bar and is raised by none (#4063).
-    expect(region.className).toContain('bottom-[var(--page-gutter)]');
+    expect(region.className).toContain('bottom-[var(--toast-bottom,var(--page-gutter))]');
     expect(region.className).not.toContain('--toast-reserve');
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
     const first = render(
@@ -283,79 +268,55 @@ describe('ToastRegion', () => {
     expect(toast.className).toContain('overflow-hidden');
     expect(toast.querySelector('[data-toast-edge]')!.className).toContain('bg-[var(--danger)]');
   });
-
-  it('lets a long unbroken message wrap inside the toast and keeps the toast within the window (#2793)', () => {
-    render(<ToastRegion messages={[info(1, `C:\\${'LongFolder\\'.repeat(40)}`)]} dismiss={vi.fn()} />);
-    const text = screen.getByText(/^C:/);
-    expect(text.className).toContain('[overflow-wrap:anywhere]');
-    expect(text.closest('[data-tone]')?.className).toContain('max-w-full');
-  });
 });
 
-describe('ToastRegion sharing a small window between toasts (issue 2899)', () => {
-  it.each([1, 2, 5])('tells its CSS how many toasts share the window: %i', (n) => {
-    render(<ToastRegion messages={Array.from({ length: n }, (_, i) => failure(i + 1))} dismiss={vi.fn()} />);
-    expect((document.querySelector('[data-toast-region]') as HTMLElement).style.getPropertyValue('--toast-n')).toBe(String(n));
-  });
-  it('counts one toast when there are none, so the cap never divides by zero', () => {
-    render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
-    expect((document.querySelector('[data-toast-region]') as HTMLElement).style.getPropertyValue('--toast-n')).toBe('1');
-  });
-});
-
-describe('ToastRegion with a message far taller than the window (issue 2899)', () => {
+describe('a toast is one line (#4063)', () => {
   const HUGE = 'x'.repeat(10_000);
-  const textOf = (id: string) => screen.getByText(id, { exact: false }).closest('[data-toast-text]') as HTMLElement;
 
   it.each([
     ['one 10,000-letter word', HUGE],
     ['emoji and right-to-left text', 'שלום \u{1F3A4} '.repeat(2_000)],
-  ])('wraps %s anywhere and caps the text to the window, scrolling inside the toast', (_name, text) => {
+  ])('cuts %s to one line with an ellipsis, keeps all of it in the live region and as the title, and leaves the buttons their room', (_name, text) => {
     render(<ToastRegion messages={[{ ...failure(1, text), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
     const el = document.querySelector('[data-toast-text]') as HTMLElement;
-    expect(el.className).toContain('[overflow-wrap:anywhere]');
-    expect(el.className).toContain('overflow-y-auto');
-    expect(el.className).toContain('--toast-n');
-    expect(el.className).toContain('max-h-[max(1.5rem,calc(');
-    // The action and Dismiss are siblings of the scrolling text, so they never scroll away with it.
+    expect(el.className).toContain('truncate');
+    expect(el.textContent).toBe(text);
+    expect(el.getAttribute('title')).toBe(text);
+    expect(el.tabIndex).toBe(-1);
+    expect(el.closest('[data-tone]')!.className).toContain('h-[2.8125rem]');
+    // The action and Dismiss are siblings of the cut text, so they never go with it.
     expect(within(el.parentElement!).getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(within(el.parentElement!).getByRole('button', { name: 'Dismiss message' })).toBeTruthy();
-    expect(el.contains(screen.getByRole('button', { name: 'Retry' }))).toBe(false);
   });
 
-  it('puts the text in the tab order only while it overflows, so a short message adds no Tab stop', () => {
-    const observers: Array<() => void> = [];
-    vi.stubGlobal(
-      'ResizeObserver',
-      class {
-        constructor(cb: () => void) {
-          observers.push(cb);
-        }
-        observe() {}
-        disconnect() {}
-      },
-    );
-    const sizes = { scrollHeight: 10, clientHeight: 10 };
-    const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(() => sizes.scrollHeight);
-    const clientHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => sizes.clientHeight);
-    render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
-    expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
-    sizes.scrollHeight = 500;
-    act(() => observers.forEach((cb) => cb()));
-    expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
-    scrollHeight.mockRestore();
-    clientHeight.mockRestore();
-    vi.unstubAllGlobals();
+  it('adds no Tab stop for the text, long or short', () => {
+    render(<ToastRegion messages={[info(1, HUGE), info(2, 'Entry saved.')]} dismiss={vi.fn()} />);
+    for (const el of document.querySelectorAll<HTMLElement>('[data-toast-text]')) expect(el.getAttribute('tabindex')).toBeNull();
+  });
+});
+
+describe('the slot the shell keeps for one toast (#4063)', () => {
+  const slot = () => document.documentElement.style.getPropertyValue('--toast-slot');
+  afterEach(() => cleanup());
+
+  it('is set while the region is mounted, even with no toast, in px, and goes with the region', () => {
+    const { unmount } = render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    expect(slot()).toMatch(/^\d+px$/);
+    expect(document.documentElement.style.getPropertyValue('--toast-bottom')).toMatch(/^\d+px$/);
+    unmount();
+    expect(slot()).toBe('');
   });
 
-  it('leaves an ordinary short message out of the tab order', () => {
-    render(<ToastRegion messages={[info(1, 'Entry saved.')]} dismiss={vi.fn()} />);
-    expect(textOf('Entry saved.').getAttribute('tabindex')).toBeNull();
+  it('is one toast high plus the gap under it and the air above it, so showing one toast moves nothing', () => {
+    render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    const bottom = Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-bottom'));
+    // 45 px of toast and 8 px of air at a 16 px root font.
+    expect(Number.parseFloat(slot())).toBe(Math.ceil(bottom + 45 + 8));
   });
 });
 
 describe('ToastRegion, action labels and focus (issue 2899)', () => {
-  it('caps a long action label at a share of the toast and wraps it, so Dismiss and the message keep their room', () => {
+  it('cuts a long action label to one line at a share of the toast, so Dismiss and the message keep their room', () => {
     render(
       <ToastRegion
         messages={[{ ...failure(1, 'Failed'), action: { label: `Retry ${'the whole export again '.repeat(10)}`, onAction: vi.fn() } }]}
@@ -363,12 +324,10 @@ describe('ToastRegion, action labels and focus (issue 2899)', () => {
       />,
     );
     const action = screen.getByRole('button', { name: /^Retry the whole/ });
-    // Natural width for a short label (flex-none: it never shrinks to a sliver and wraps letter by letter), a cap at 40% of the toast for a long one, which then wraps.
     expect(action.className).toContain('max-w-[40%]');
     expect(action.className).toContain('flex-none');
-    expect(action.className).toContain('[overflow-wrap:anywhere]');
-    // Never more than three lines, whatever the label: the whole label is the button's title.
-    expect(action.className).toContain('line-clamp-3');
+    expect(action.className).toContain('truncate');
+    // The whole label is the button's title.
     expect(action.getAttribute('title')).toMatch(/^Retry the whole export again/);
     expect(screen.getByRole('button', { name: 'Dismiss message' }).className).toContain('flex-none');
   });

@@ -101,8 +101,8 @@ function focusMainOnceDialogsClose(main: HTMLElement | null): (() => void) | und
   };
 }
 
-/** While a message shows, the shell ends the page above it (`--toast-h`, published by `ToastRegion`; the page, not the navigation rail, which keeps every button in reach), so the message stands in a strip of its own and covers no button of any page. Over a dialog the page is behind the scrim and keeps its size. */
-const TOAST_STRIP = 'pb-[var(--toast-h,0px)] [:root[data-modal-open]_&]:pb-0';
+/** The shell always keeps a slot under the page for one message (`--toast-slot`, set by `ToastRegion`), so a message shows in it and moves nothing and covers nothing; a stack takes more (`--toast-h`). Over a dialog the page keeps the slot. */
+const TOAST_STRIP = 'pb-[max(var(--toast-slot,0px),var(--toast-h,0px))] [:root[data-modal-open]_&]:pb-[var(--toast-slot,0px)]';
 
 export function AppShell({
   pathname,
