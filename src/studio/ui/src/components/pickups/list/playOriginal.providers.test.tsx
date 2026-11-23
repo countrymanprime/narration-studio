@@ -64,6 +64,7 @@ let audio: FakeAudio;
 let transport: ReturnType<typeof vi.fn<(action: string, seconds: number, until?: number, chapterId?: string) => Promise<DawResult>>>;
 const refused: string[] = [];
 const notices: string[] = [];
+const retries: (() => void)[] = [];
 
 function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false, linked: 'tr' | '{GONE}' | null = 'tr') {
   const api = createMockApi({
@@ -100,8 +101,14 @@ function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTrack
   const view = renderHook(
     () =>
       usePlayOriginal(
-        (text) => refused.push(text),
-        (text) => notices.push(text),
+        (text, retry) => {
+          refused.push(text);
+          if (retry) retries.push(retry);
+        },
+        (text, retry) => {
+          notices.push(text);
+          if (retry) retries.push(retry);
+        },
       ),
     { wrapper },
   );
@@ -129,6 +136,7 @@ beforeEach(() => {
   transport = vi.fn(async () => ok);
   refused.length = 0;
   notices.length = 0;
+  retries.length = 0;
 });
 afterEach(() => {
   cleanup();
@@ -156,23 +164,43 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     await act(() => result.current.play(pickup(15)));
     expect(transport).toHaveBeenCalledWith('playRange', 12, 18, 'chapter-1');
   });
-  // #3366 (qa B2): a list that is gone when the DAW's capabilities answer starts nothing.
-  it('does not start the DAW after the list unmounted', async () => {
-    let answer: (caps: DawCapabilities) => void = () => {};
-    const late = new Promise<DawCapabilities>((resolve) => {
-      answer = resolve;
-    });
-    const { result, unmount } = await mountRead(DAW_SETUPS.reaper, { capabilities: () => late });
-    let pressed: Promise<void> = Promise.resolve();
-    act(() => {
-      pressed = result.current.play(pickup(15));
-    });
+  // #4076, owner rule on #4043: no read of the DAW's capabilities stands between the click and the play call.
+  it('plays in the DAW at once while its capabilities have not answered, and never at all', async () => {
+    const { result } = await mountRead(DAW_SETUPS.reaper, { capabilities: () => new Promise<never>(() => {}) });
+    await act(() => result.current.play(pickup(15)));
+    expect(transport).toHaveBeenCalledWith('playRange', 12, 18, 'chapter-1');
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(notices).toEqual([]);
+    expect(refused).toEqual([]);
+  });
+  it('plays the original in the app, with the reason and a Retry, when the DAW, not yet heard, refuses', async () => {
+    transport = vi.fn(async () => ({ ...ok, ok: false, message: 'REAPER does not have this book open.', refused: 'REAPER does not have this book open.' }));
+    const { result } = await mountRead(DAW_SETUPS.reaper, { capabilities: () => new Promise<never>(() => {}) });
+    await act(() => result.current.play(pickup(15)));
+    await flush();
+    expect(audio.play).toHaveBeenCalled();
+    expect(notices).toEqual(['REAPER does not have this book open. Played in the app instead.']);
+    expect(retries.at(-1)).toBeTypeOf('function');
+    transport = vi.fn(async () => ok);
+    await act(async () => retries.at(-1)!());
+    expect(transport).toHaveBeenCalledWith('playRange', 12, 18, 'chapter-1');
+  });
+  it('a Retry offered for an older press plays nothing once the line was stopped, and none plays after the list was left', async () => {
+    transport = vi.fn(async () => ({ ...ok, ok: false, message: 'refused', refused: 'refused' }));
+    const { result, unmount } = await mountRead(DAW_SETUPS.reaper);
+    await act(() => result.current.play(pickup(15)));
+    await flush();
+    const first = retries.at(-1)!;
+    await act(() => result.current.play(pickup(15)));
+    transport.mockClear();
+    await act(async () => first());
+    expect(transport).not.toHaveBeenCalled();
+    await act(() => result.current.play(pickup(15)));
+    await flush();
+    const last = retries.at(-1)!;
     unmount();
-    answer(DAW_SETUPS.reaper);
-    await act(async () => {
-      await pressed;
-      await vi.advanceTimersByTimeAsync(0);
-    });
+    transport.mockClear();
+    await act(async () => last());
     expect(transport).not.toHaveBeenCalled();
   });
   it('a second press stops the DAW', async () => {

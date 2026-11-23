@@ -383,6 +383,22 @@ Method (the existing sync harness, `transportSync.test.tsx`; no second rig): the
 - The chapter's size does not enter the path: the press resolves the word's project time from the word table the page holds (a map lookup) and the DAW's play call is the only host call. **Not measured at several chapter sizes:** the harness chapter is the three-paragraph fixture; the table the real page holds is the read table's `WorkspaceWordTimes`, not timed here.
 - **Not measured:** the time from the DAW receiving `play` to sound (a defer cycle plus the audio device), the lease's real round trip on a live REAPER, and the real host's behaviour when its reads are slow (the owner's hang was not reproduced there).
 
+## Proof's Hear it and Pickups' play original: no wait on the DAW's capabilities
+
+[#4076](https://github.com/countrymanprime/narration-studio/issues/4076), refs [#4043](https://github.com/countrymanprime/narration-studio/issues/4043). Hear it waited for the Inspector's read of the DAW's capabilities (it said "Checking whether the DAW can play this" and played nothing until the read answered), and play original awaited `daw.capabilities()` before its play call, so a slow or hung read held the sound back. Both now ask the DAW in the press's own tick, whatever the read has answered, and the app plays with the reason and a Retry toast when the DAW refuses.
+
+Method (the same fake-clock harness as above, no second rig; throwaway tests, not committed): the DAW's capabilities answer after a set time; the narrator presses at 0 ms (Hear it: and again every 100 ms, as the page cannot know when the read lands), and the time of the first `FindingsLoop` / `playRange` call is read off the fake clock. `main`'s code against this change.
+
+| Capabilities answered after | Hear it, first `FindingsLoop` before | After | Play original, first `playRange` before | After |
+| --- | --- | --- | --- | --- |
+| 0 ms | 0 ms | 0 ms | 0 ms | 0 ms |
+| 150 ms | 200 ms | 0 ms | 140 ms | 0 ms |
+| 1 s | 1,000 ms | 0 ms | 990 ms | 0 ms |
+| 5 s | 5,000 ms | 0 ms | 4,990 ms | 0 ms |
+
+- Play original's clock ticks every 10 ms, so its "before" is the read's time to within 10 ms. A read that never answers held both back for good before.
+- **Not measured:** a real REAPER's answer to a play asked before its capabilities were read (the host bounds its own call), the time from the DAW's `play` to sound.
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.

@@ -10,6 +10,7 @@ import type { Finding } from '../../../types';
 import { HearIt, HEAR_AROUND_SECONDS, type HearItApi } from './HearIt';
 import { inspectorFinding } from './testFinding';
 import { DAW_SETUPS } from '../../../fixtures/daw';
+import { overlay } from '../../../overlay/overlayService';
 
 afterEach(cleanup);
 
@@ -24,8 +25,12 @@ const refusedAs = (reason: 'standalone' | 'not_running' | 'no_item' | 'stale' | 
   ({ outcome: 'refused', reason, message }) as FindingNavigation;
 
 let play: ReturnType<typeof vi.fn>;
+let toast: ReturnType<typeof vi.spyOn>;
+/** The last toast's text, and whether it offers Retry (the only way a play that did not happen is said: never a line in the row). */
+const toasted = () => toast.mock.calls.at(-1) as [string, { tone?: string; action?: { label: string; onAction: () => void } } | undefined];
 let currentTimes: number[];
 beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
   play = vi.fn(async () => undefined);
   currentTimes = [];
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(play as never);
@@ -102,8 +107,10 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
       expect(t.mediaUrl).toHaveBeenCalledWith('C:/Book/ch1 take.wav');
       expect(currentTimes.at(-1)).toBe(7);
-      // The DAW's reason comes first, so the narrator knows why the app plays it (playback/providers.ts).
-      expect(status()).toBe(`refused: ${reason} Playing in the app, 3 s either side. Press again to stop.`);
+      // The DAW's reason, and who played instead, is a toast with Retry (playback/providers.ts); the row says it is playing.
+      expect(toasted()[0]).toBe(`refused: ${reason} Played in the app instead.`);
+      expect(toasted()[1]?.action?.label).toBe('Retry');
+      expect(status()).toBe('Playing in the app, 3 s either side. Press again to stop.');
     },
   );
 
@@ -111,7 +118,8 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     setup(placed(), () => Promise.reject(new Error('bridge gone')));
     await userEvent.click(hear());
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
-    expect(status()).toMatch(/^The DAW was not asked: .*bridge gone.* Playing in the app/);
+    expect(toasted()[0]).toMatch(/^The DAW was not asked: .*bridge gone.* Played in the app instead\.$/);
+    expect(status()).toMatch(/^Playing in the app/);
   });
 
   it('asks the DAW nothing while it is not running, and plays in the app with its sentence', async () => {
@@ -130,20 +138,67 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     expect(status()).toMatch(/Playing in the app/);
   });
 
-  it('waits for the DAW to be read, and plays in the app when the read failed', async () => {
+  // #4076, owner rule on #4043: the DAW's capabilities not being answered yet is no reason to hold the click back.
+  it('asks the DAW at once before its capabilities answer, and plays it', async () => {
     const api: HearItApi = {
       findingsLoop: vi.fn(async () => looping),
       findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
     };
-    const view = render(
+    render(
       <ApiProvider api={createMockApi()}>
         <Harness finding={placed()} api={api} dawName="the DAW" />
       </ApiProvider>,
     );
     await userEvent.click(hear());
-    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Checking whether the DAW can play this. Try again in a moment.');
-    expect(play).not.toHaveBeenCalled();
-    view.rerender(
+    await waitFor(() => expect(status()).toBe('Playing in the DAW, 3 s either side. Press again to stop.'));
+    expect(api.findingsLoop).toHaveBeenCalledTimes(1);
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('plays in the app, with the reason and Retry, when the DAW, not yet heard, refuses', async () => {
+    const api: HearItApi = {
+      findingsLoop: vi.fn(async () => refusedAs('not_running', 'REAPER is not running.')),
+      findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+    };
+    render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={api} dawName="the DAW" />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+    expect(toasted()[0]).toBe('REAPER is not running. Played in the app instead.');
+    // Retry asks the DAW again.
+    toasted()[1]!.action!.onAction();
+    await waitFor(() => expect(api.findingsLoop).toHaveBeenCalledTimes(2));
+  });
+
+  it('a Retry offered for an older press plays nothing, and none plays once the note was left', async () => {
+    const api: HearItApi = {
+      findingsLoop: vi.fn(async () => refusedAs('not_running', 'REAPER is not running.')),
+      findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+    };
+    const dismiss = vi.spyOn(overlay, 'dismissTopic');
+    const { unmount } = render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={api} dawName="REAPER" />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    const retry = toasted()[1]!.action!.onAction;
+    unmount();
+    expect(dismiss).toHaveBeenCalledWith('proof-hear-it-retry');
+    retry();
+    expect(api.findingsLoop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a read that failed is asked again and plays in the app, saying why', async () => {
+    const api: HearItApi = {
+      findingsLoop: vi.fn(async () => looping),
+      findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+    };
+    render(
       <ApiProvider api={createMockApi()}>
         <Harness finding={placed()} api={api} dawName="the DAW" capabilitiesFailed />
       </ApiProvider>,
@@ -151,20 +206,24 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     await userEvent.click(hear());
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     expect(api.findingsLoop).not.toHaveBeenCalled();
+    expect(toasted()[0]).toMatch(/could not ask the DAW/);
   });
 
   it('never plays in the app while the DAW records: shows the DAW’s sentence', async () => {
     setup(placed(), refusedAs('recording', 'REAPER is recording, so nothing was moved. Stop recording first.'));
     await userEvent.click(hear());
-    // The host's sentence is about moving the cursor; Hear it says what it means for playing.
-    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'REAPER is recording, so nothing plays. Stop recording first.');
+    // The host's sentence is about moving the cursor; Hear it says what it means for playing. It is a toast with Retry, never a line in the row.
+    await waitFor(() => expect(toasted()[0]).toBe('REAPER is recording, so nothing plays. Stop recording first.'));
+    expect(toasted()[1]?.action?.label).toBe('Retry');
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(play).not.toHaveBeenCalled();
   });
 
   it('shows the DAW’s sentence when the app has no audio for the note either', async () => {
     setup(placed({ source: { item_guid: 'g1' } }), refusedAs('not_running', 'REAPER is not answering.'));
     await userEvent.click(hear());
-    expect((await screen.findByRole('alert')).textContent).toBe('REAPER is not answering. The app has no audio file for this note either.');
+    await waitFor(() => expect(toasted()[0]).toBe('REAPER is not answering. The app has no audio file for this note either.'));
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(play).not.toHaveBeenCalled();
   });
 

@@ -9,7 +9,7 @@ import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
-import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
+import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 import { chapterLink, linkStateOf, tracksUnreadable, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
@@ -47,9 +47,14 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
  * the linked DAW's transport (`transport_sync`) from the pickup's project second, stopped after the stretch, then the range player the Proof
  * takes use on the source file (no project change either way). A DAW that cannot play now or refuses hands the line to the app with a notice;
  * a DAW that is recording keeps the room quiet. One line plays at a time; pressing the playing line again stops it. A refusal comes back as
- * a sentence through `onRefused`, a fallback's notice through `onNotice`.
+ * a sentence through `onRefused`, a fallback's notice through `onNotice`, each with a `retry` that plays the line again while it is still the newest
+ * press and the list is here. The press asks the DAW at once, on what the list last heard of its capabilities (nothing, until the first read
+ * answers): no read and no check stands between the click and the play call (owner rule on #4043, #4076).
  */
-export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice: (sentence: string) => void = onRefused) {
+export function usePlayOriginal(
+  onRefused: (sentence: string, retry?: () => void) => void,
+  onNotice: (sentence: string, retry?: () => void) => void = onRefused,
+) {
   // The tracks and links are the shared state's, as the Engine list and the Booth read them: a press never waits on a read of its own, and a
   // track renamed or deleted in REAPER is what the next press plays (#3366).
   const trackState = useChapterTrackState();
@@ -66,6 +71,9 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   const owner = useRef<number | null>(null);
   // A DAW play was started and not stopped since: an earlier press's, which a later press that ended in the app must not leave running.
   const dawStarted = useRef(false);
+  // What the DAW last said it can do: read when the list mounts and again at every press, never waited for.
+  const dawCaps = useRef<{ caps: DawCapabilities | null; failed: boolean }>({ caps: null, failed: false });
+  const mounted = useRef(true);
   const live = useRef({ onRefused, onNotice, playingId, inDaw });
   const shared = useRef(trackState);
   shared.current = trackState;
@@ -109,25 +117,42 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
     setPlayingId(null);
   }, [player, stopDaw]);
 
-  const play = useCallback(
+  const readCaps = useCallback((): void => {
+    daw.capabilities().then(
+      (caps) => {
+        if (mounted.current) dawCaps.current = { caps, failed: false };
+      },
+      () => {
+        if (mounted.current) dawCaps.current = { caps: dawCaps.current.caps, failed: true };
+      },
+    );
+  }, [daw]);
+  useEffect(() => {
+    mounted.current = true;
+    readCaps();
+    return () => {
+      mounted.current = false;
+    };
+  }, [readCaps]);
+
+  // Plays the line; a press on the playing line stops it (`play`), a Retry plays it again (`begin`).
+  const begin = useCallback(
     async (pickup: PickupItem): Promise<void> => {
-      if (live.current.playingId === pickup.id) return stop();
       stop();
       const mine = asked.current;
       owner.current = mine;
-      let caps: DawCapabilities | null = null;
-      let capsFailed = false;
-      try {
-        caps = await daw.capabilities();
-      } catch {
-        capsFailed = true;
-      }
+      const { caps, failed: capsFailed } = dawCaps.current;
+      // Asked again for the next press; this one does not wait for it.
+      readCaps();
+      const retry = (): void => {
+        if (mounted.current && asked.current === mine) void begin(pickup);
+      };
       const name = caps?.daw ?? 'The DAW';
       const transport: PlaybackProvider<PickupItem> = {
         name,
         readiness: (p) => {
-          const declared = dawReadiness(caps, 'transport_sync', capsFailed);
-          if (!declared.ready) return declared.wait ? { ready: false, why: null } : declared;
+          const declared = playReadiness(caps, 'transport_sync', capsFailed);
+          if (!declared.ready) return declared;
           return p.at === null ? { ready: false, why: `This line has no place in ${name}'s project.` } : { ready: true };
         },
         play: async (p) => {
@@ -193,10 +218,17 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
         if (dawStarted.current) stopDaw();
       }
       if (!wanted() || !notice) return;
-      if (by === null) live.current.onRefused(notice);
-      else live.current.onNotice(notice);
+      if (by === null) live.current.onRefused(notice, retry);
+      else live.current.onNotice(notice, retry);
     },
-    [daw, player, stop, stopDaw, sync, layout],
+    [daw, player, stop, stopDaw, sync, layout, readCaps],
+  );
+  const play = useCallback(
+    async (pickup: PickupItem): Promise<void> => {
+      if (live.current.playingId === pickup.id) return stop();
+      return begin(pickup);
+    },
+    [begin, stop],
   );
 
   /* The app's range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */

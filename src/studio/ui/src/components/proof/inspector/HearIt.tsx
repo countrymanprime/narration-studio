@@ -7,7 +7,9 @@ import type { Finding, NarrationApi } from '../../../types';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { IconButton } from '../../primitives/IconButton';
 import type { DawCapabilities } from '../../../api/contracts/daw';
-import { APP, dawReadiness, playThrough, type PlaybackProvider } from '../../../playback/providers';
+import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
+import { APP, playReadiness, playThrough, type PlaybackProvider } from '../../../playback/providers';
 
 /** The audio heard either side of a note. The host's loop pads by the same amount (`bridge.ContextPaddingSeconds`). */
 export const HEAR_AROUND_SECONDS = 3;
@@ -19,6 +21,8 @@ export const STOP_HEARING_LABEL = 'Stop hearing it';
 export type HearItApi = Pick<NarrationApi, 'findingsLoop' | 'findingsStopLoop'>;
 
 const ROLL = { pre: HEAR_AROUND_SECONDS, post: HEAR_AROUND_SECONDS };
+/** One Retry toast at a time: a newer press, or leaving the note, withdraws it. */
+const HEAR_TOPIC = 'proof-hear-it-retry';
 const NO_TIME = 'This note has no time in its audio to play.';
 const NO_FILE = 'The app has no audio file for this note either.';
 const APP_FAILED = 'The audio file for this note could not be played.';
@@ -39,8 +43,8 @@ const appRange = (finding: Finding) =>
  * Proof's Hear it (mock Inspector "Play ±3 s (Space)", superseding PRD line 50): plays the note with `HEAR_AROUND_SECONDS` either side,
  * through the playback providers (playback/providers.ts): the DAW's loop (`FindingsLoop`, the `navigate` capability) first, then the app's
  * range player on the note's source file. A DAW that cannot loop now, refuses for any reason but recording, or fails hands the note to the
- * app, and the status line says why. A second press stops whichever is playing, and leaving
- * the note stops a DAW loop this button started. The DAW's sentence is shown when neither can play. The Pickups page's Hear through the
+ * app, and a toast with Retry says why. A second press stops whichever is playing, and leaving
+ * the note stops a DAW loop this button started. The DAW's sentence is a toast with Retry when neither can play. The Pickups page's Hear through the
  * DAW (research note A7) is a separate stream; this file is the shape it can share.
  */
 export function HearIt({
@@ -73,14 +77,20 @@ export function HearIt({
   const looped = useRef(false);
   const stopLoop = useRef(api.findingsStopLoop);
   stopLoop.current = api.findingsStopLoop;
+  // The newest press, so a Retry offered for an older one, or after the note was left, plays nothing.
+  const pressed = useRef(0);
+  const mounted = useRef(true);
+  const again = useRef<() => void>(() => {});
 
   // Leaving the note (the Inspector remounts per note) stops a DAW loop this button started; the app player stops itself on unmount.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      overlay.dismissTopic(HEAR_TOPIC);
       if (looped.current) void stopLoop.current().catch(() => undefined);
-    },
-    [],
-  );
+    };
+  }, []);
 
   // The app player ended its range or could not load the file: the button goes back to Hear it.
   const { isPlaying, loadError } = player;
@@ -88,11 +98,14 @@ export function HearIt({
     if (playing !== 'app' || isPlaying) return;
     setPlaying(null);
     // The clip ended: its "Playing" line goes with it.
-    report.current(loadError ? { message: APP_FAILED, failed: true } : undefined);
+    report.current(undefined);
+    if (loadError) overlay.toast(APP_FAILED, { tone: 'error', action: retryAction(() => mounted.current && again.current()), topic: HEAR_TOPIC });
   }, [playing, isPlaying, loadError]);
 
   const stop = () =>
     action.run('hear', async () => {
+      pressed.current += 1;
+      overlay.dismissTopic(HEAR_TOPIC);
       if (playing === 'app') player.stop();
       else {
         looped.current = false;
@@ -108,10 +121,13 @@ export function HearIt({
 
   const start = () =>
     action.run('hear', async () => {
+      const press = ++pressed.current;
+      overlay.dismissTopic(HEAR_TOPIC);
       setResult(undefined);
       const loop: PlaybackProvider<Finding> = {
         name: dawName,
-        readiness: () => dawReadiness(capabilities ?? null, 'navigate', capabilitiesFailed),
+        // A DAW that has not yet said what it can do is asked at once: no check stands between the click and the sound.
+        readiness: () => playReadiness(capabilities ?? null, 'navigate', capabilitiesFailed),
         play: async (note) => {
           let answer: FindingNavigation;
           try {
@@ -139,14 +155,14 @@ export function HearIt({
           return { played: true };
         },
       };
-      const { by, notice, passed } = await playThrough([loop, app], finding);
+      const { by, notice } = await playThrough([loop, app], finding);
       if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
-      if (by === APP) {
-        const why = passed.length ? `${passed.join(' ')} ` : '';
-        return setResult({ message: `${why}Playing in the app, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
-      }
-      if (notice) setResult({ message: notice, failed: true });
+      // What did not play, and why, is a toast with Retry, never a line in the row; a press that was replaced says nothing.
+      if (notice && pressed.current === press)
+        overlay.toast(notice, { tone: 'error', action: retryAction(() => mounted.current && pressed.current === press && again.current()), topic: HEAR_TOPIC });
+      if (by === APP) setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
     });
+  again.current = () => void start();
 
   const on = playing !== null;
   return (
