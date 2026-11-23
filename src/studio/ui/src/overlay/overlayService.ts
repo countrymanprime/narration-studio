@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hasVisibleText } from '../visibleText';
 import type { DialogSize } from '../components/primitives/Dialog';
 import { type ToastAction, type ToastMessage, type ToastTone } from '../components/primitives/Toast';
 
@@ -71,8 +72,6 @@ type OverlaySnapshot = {
   announcement: string;
 };
 
-/** A message of nothing a person can see: spaces, zero-width and format characters (a zero-width space or joiner, the byte-order mark), the characters Unicode says to ignore (a combining grapheme joiner, a variation selector), bare combining marks, the Braille blank and the Hangul fillers. */
-const INVISIBLE_ONLY = /^[\s\p{Cf}\p{Default_Ignorable_Code_Point}\p{M}\u2800\u3164\uFFA0\u115F\u1160]*$/u;
 const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 
 /**
@@ -159,7 +158,7 @@ export function createOverlayService(): OverlayService {
   const toast = (raw: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     // Bidi controls (an override that reverses the words after it) are not text a narrator reads; a message of nothing else is not a message.
     const text = raw.replace(BIDI_CONTROLS, '');
-    if (INVISIBLE_ONLY.test(text)) return;
+    if (!hasVisibleText(text)) return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = {
       id: ++lastId,

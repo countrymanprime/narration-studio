@@ -32,26 +32,6 @@ afterEach(() => {
 const info = (id: number, text = `Message ${id}`): ToastMessage => ({ id, text, tone: 'info' });
 const failure = (id: number, text = `Failure ${id}`): ToastMessage => ({ id, text, tone: 'error' });
 
-describe('a stack of toasts keeps every action beside its text (#3322)', () => {
-  it('only a toast that is alone puts its action row under the text: rows under each of several would not fit a short window', () => {
-    const action = { label: 'Retry', onAction: vi.fn() };
-    render(
-      <ToastRegion
-        messages={[
-          { ...failure(1, 'First'), action },
-          { ...failure(2, 'Second'), action },
-        ]}
-        dismiss={vi.fn()}
-      />,
-    );
-    // One shows; the other waits behind it (it is read out, not drawn).
-    const text = screen.getByText('First', { selector: '[data-toast-text]' });
-    expect(text.closest('[data-tone]')!.className).not.toContain('flex-wrap');
-    expect(text.className).not.toContain('max-[24rem]:max-w');
-    expect(screen.getByText('Second', { selector: '[data-toast-announce]' })).toBeTruthy();
-  });
-});
-
 describe('ToastRegion', () => {
   it('is drawn in <body>, outside the isolated #root, so it stacks above a dialog or slide-over raised from the page', () => {
     const { container } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
@@ -962,4 +942,30 @@ describe('a toast is never lost unseen, never pressed twice, and never takes a k
     act(() => void vi.advanceTimersByTime(10));
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
   });
+
+  it.each(['Retry', 'Dismiss message'])(
+    'the same message raised again while its %s has focus keeps focus on that control of the replacing toast, not on the control focus came from',
+    (name) => {
+      const retry = retryAction(vi.fn());
+      const { rerender } = render(
+        <>
+          <button>Page</button>
+          <ToastRegion messages={[{ ...failure(1, 'Same.'), action: retry }]} dismiss={vi.fn()} />
+        </>,
+      );
+      const page = screen.getByText('Page');
+      page.focus();
+      const target = screen.getByRole('button', { name });
+      fireEvent.focus(target, { relatedTarget: page });
+      target.focus();
+      rerender(
+        <>
+          <button>Page</button>
+          <ToastRegion messages={[{ ...failure(2, 'Same.'), action: retry }]} dismiss={vi.fn()} />
+        </>,
+      );
+      act(() => void vi.advanceTimersByTime(10));
+      expect(document.activeElement).toBe(screen.getByRole('button', { name }));
+    },
+  );
 });

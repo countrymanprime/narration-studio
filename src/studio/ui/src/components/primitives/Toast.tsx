@@ -148,12 +148,22 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
   const origin = useRef<HTMLElement | null>(null);
   // A press (a click or a key on the toast's own buttons) hands focus on by itself (`settle`); a toast that goes any other way with focus inside it (the same message raised again, replacing it) hands it on here, so focus never falls to <body>.
   const pressed = useRef(false);
+  // Which of the toast's own buttons has focus (its action's label, or 'Dismiss message'): the toast that replaces this one in place has the same control, and focus stays on that.
+  const focusedButton = useRef<string | null>(null);
   useEffect(
     () => () => {
       if (pressed.current || !focused.current) return;
+      const name = focusedButton.current;
       window.setTimeout(() => {
         const active = document.activeElement;
-        if (!active || active === document.body) focusTarget(origin.current)?.focus();
+        if (active && active !== document.body) return;
+        const same =
+          name === null
+            ? null
+            : [...document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')].find(
+                (b) => (b.getAttribute('aria-label') ?? b.textContent) === name,
+              );
+        (same ?? focusTarget(origin.current))?.focus();
       }, 0);
     },
     [],
@@ -196,6 +206,8 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
       onFocus={(event) => {
         focused.current = true;
         hold();
+        const button = (event.target as HTMLElement).closest('button');
+        focusedButton.current = button ? (button.getAttribute('aria-label') ?? button.textContent) : null;
         const from = event.relatedTarget;
         if (from instanceof HTMLElement && !event.currentTarget.contains(from)) origin.current = from;
       }}
@@ -238,8 +250,8 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
         data-toast-text
         dir="auto"
         tabIndex={scrolls ? 0 : undefined}
-        // The text keeps the keys that scroll it: the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts). It is a scroller (which Chromium makes a tab stop) only
-        // while it overflows: a message that fits, even by a sub-pixel, is plain text and no tab stop.
+        // The attribute is always set: the text keeps the keys that scroll it, so the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts). Only while the
+        // text overflows is it a scroller (which Chromium makes a tab stop): a message that fits, even by a sub-pixel, is plain text and no tab stop.
         data-owns-keys=""
         className={`max-h-[2.5em] min-w-0 leading-tight [overflow-wrap:anywhere] ${scrolls ? `overflow-y-auto ${TEXT_SCROLL_CUE}` : 'overflow-hidden'}`}
       >

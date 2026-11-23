@@ -104,7 +104,7 @@ for (const theme of ['light', 'dark'] as const) {
         await settleLayout(page);
         await expect(regions(page)).toHaveCount(1);
         // Not an empty wrapper: the raised toasts are in that one region, visible, with text.
-        // One toast is drawn, the rest wait behind it with a count (#4063); a waiting toast with an action stays mounted, hidden.
+        // One toast is drawn, the rest wait behind it with a count (#4063); a waiting toast is not drawn (its text is read out from a hidden line).
         const toasts = regions(page).locator('[data-tone]:not([hidden])');
         await expect.poll(() => toasts.count(), `${size.name}: a toast in the region`).toBe(1);
         if (c.toasts > 1) await expect(regions(page).locator('[data-toast-more]'), `${size.name}: the rest are counted`).toHaveText(`+${c.toasts - 1}`);

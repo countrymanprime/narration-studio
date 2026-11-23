@@ -34,6 +34,18 @@ const CASES: Case[] = [
   ...['App & updates', 'Appearance & keys', 'Delivery', 'Models & downloads', 'Project', 'Recording & DAW', 'Speech to text', 'Voice & pronunciation'].map(
     (category): Case => ({ name: `Settings: ${category}`, lightOnly: true, open: (page) => openSettings(page, category) }),
   ),
+  // Proof's chapter view (/proof/:chapterId): the title row's Check recordings sits where a toast stands.
+  {
+    name: 'Proof chapter',
+    open: async (page) => {
+      await page.goto('/proof/chapter-1');
+      await settlePage(page);
+      await page
+        .getByRole('button', { name: /Check (recordings|again)/ })
+        .first()
+        .waitFor();
+    },
+  },
   {
     name: 'Editing chapter',
     open: async (page) => {

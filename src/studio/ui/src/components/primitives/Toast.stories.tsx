@@ -50,7 +50,7 @@ export const LongUnbrokenWithAction: Story = {
   },
 };
 
-// Messages queue up instead of replacing each other: one shows, an error before information, with the count of the rest.
+// Messages queue up instead of replacing each other: one shows, the oldest first, with the count of the rest.
 export const Queue: Story = {
   args: {
     messages: [
@@ -211,7 +211,7 @@ function WithBoothBars({ children }: { children: ReactNode }) {
   }, []);
   return <>{children}</>;
 }
-/** Two long failures with Retry: one shows in the slot under the page with +1 behind it (the toasts stand under the page, so no bar is simulated). */
+/** Two long failures with Retry: one shows in the slot under the page with +1 behind it (the decorator sets --toast-clear to 210px to stand in for the Booth's bars). */
 export const TwoToastsAboveTheBoothBars: Story = {
   decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
   // The count is the shared badge, named for a screen reader.

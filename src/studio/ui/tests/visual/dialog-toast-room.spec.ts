@@ -139,7 +139,7 @@ for (const c of CASES) {
         .not.toBe('');
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
-      if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
+      if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not one`);
       // A long message is two lines at most over a dialog, so it never takes the dialog's room.
       const cap = height > 400 ? 41 : 40;
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
@@ -214,8 +214,8 @@ for (const c of CASES) {
   });
 }
 
-// The older toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
-test('over a dialog the older toast waits for the newest to go', async ({ page }) => {
+// The other toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
+test('over a dialog the queued toasts wait behind the one showing', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   await page.setViewportSize({ width: 275, height: 280 });
