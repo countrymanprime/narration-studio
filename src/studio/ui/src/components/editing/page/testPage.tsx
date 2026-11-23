@@ -173,16 +173,24 @@ export const FINDING: Finding = {
 } as unknown as Finding;
 
 /** The api the page reads. `heard: false` answers Chapter One with nothing transcribed. */
-export function pageApi({ heard = true, ...overrides }: Partial<NarrationApi> & { heard?: boolean } = {}): NarrationApi {
-  return createMockApi({
-    manuscriptChapters: async () => CHAPTERS,
-    workspaceAlignment: async (chapterId: string) => alignmentOf(chapterId, heard),
-    workspaceTakes: async (chapterId: string, firstToken: number, lastToken: number) => takesOf(chapterId, firstToken, lastToken),
-    chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ chapterId: 'c1', trackGuid: TRACK_GUID }] }),
-    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', revision: '', project: PROJECT }),
-    findingsGet: async (id: string) => (id === FINDING.id ? FINDING : Promise.reject(new Error('no such finding'))),
-    ...overrides,
-  } as Partial<NarrationApi>);
+/** `projectFolder` is the folder the page is mounted with (its `projectFolder` prop): the host stamps the chapter list with the project it read it from, and a store told another one holds the list back (#4040). */
+export function pageApi({
+  heard = true,
+  projectFolder = '',
+  ...overrides
+}: Partial<NarrationApi> & { heard?: boolean; projectFolder?: string } = {}): NarrationApi {
+  return createMockApi(
+    {
+      manuscriptChapters: async () => CHAPTERS,
+      workspaceAlignment: async (chapterId: string) => alignmentOf(chapterId, heard),
+      workspaceTakes: async (chapterId: string, firstToken: number, lastToken: number) => takesOf(chapterId, firstToken, lastToken),
+      chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ chapterId: 'c1', trackGuid: TRACK_GUID }] }),
+      tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', revision: '', project: PROJECT }),
+      findingsGet: async (id: string) => (id === FINDING.id ? FINDING : Promise.reject(new Error('no such finding'))),
+      ...overrides,
+    } as Partial<NarrationApi>,
+    { projectFolder },
+  );
 }
 
 /**
