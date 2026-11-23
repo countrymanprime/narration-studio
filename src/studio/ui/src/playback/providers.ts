@@ -1,4 +1,5 @@
 import type { DawCapabilities } from '../api/contracts/daw';
+import { capitalised, noAnswerSentence } from '../studio/dawNames';
 import { within } from '../within';
 
 // The playback port (docs/design/editing-daw-transport-sync.md, Who plays): every place that plays audio asks an ordered list of
@@ -41,10 +42,8 @@ export type PlayOutcome = { by: string | null; notice: string | null; passed: re
 
 export const APP = 'the app';
 
-/** A provider's name opening a sentence: "the DAW" reads "The DAW", "REAPER" stays. */
-export const sentenceStart = (name: string): string => name.charAt(0).toUpperCase() + name.slice(1);
 /** What a DAW that is recording says in place of a play: the one sentence every page shows for it. */
-export const recordingSentence = (name: string): string => `${sentenceStart(name)} is recording, so nothing plays. Stop recording first.`;
+export const recordingSentence = (name: string): string => `${capitalised(name)} is recording, so nothing plays. Stop recording first.`;
 
 /** A page's read of the DAW's capabilities: whether the last one failed, and a read again. */
 export interface DawRead {
@@ -84,7 +83,7 @@ export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], 
     const playing = Promise.resolve(provider.play(request, { late: () => late }));
     const answered = rule.deadlineMs === undefined ? { value: await playing } : await within(playing, rule.deadlineMs);
     if (!answered) late = true;
-    const attempt: PlayAttempt = answered ? answered.value : { played: false, why: `${sentenceStart(provider.name)} did not answer.` };
+    const attempt: PlayAttempt = answered ? answered.value : { played: false, why: noAnswerSentence(provider.name) };
     if (attempt.played) return { by: provider.name, notice: whys.length ? `${join(whys)} Played in ${provider.name} instead.` : null, passed: whys };
     if (attempt.final) return { by: null, notice: attempt.why, passed: whys };
     whys.push(attempt.why);

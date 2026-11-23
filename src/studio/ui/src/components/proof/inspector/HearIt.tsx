@@ -10,6 +10,7 @@ import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
+import { capitalised } from '../../../studio/dawNames';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, recordingSentence, type PlaybackProvider } from '../../../playback/providers';
 
@@ -45,7 +46,7 @@ const appRange = (finding: Finding) =>
  * Proof's Hear it (mock Inspector "Play ±3 s (Space)", superseding PRD line 50): plays the note with `HEAR_AROUND_SECONDS` either side,
  * through the playback providers (playback/providers.ts): the DAW's loop (`FindingsLoop`, the `navigate` capability) first, then the app's
  * range player on the note's source file. A DAW that cannot loop now, refuses for any reason but recording, or fails hands the note to the
- * app, and a toast with Retry says why. A second press stops whichever is playing, and leaving
+ * app, and a toast says why (with Retry when nothing could play). A second press stops whichever is playing, and leaving
  * the note stops a DAW loop this button started. The DAW's sentence is a toast with Retry when neither can play. The Pickups page's Hear through the
  * DAW (research note A7) is a separate stream; this file is the shape it can share.
  */
@@ -145,7 +146,8 @@ export function HearIt({
           if (answer.outcome === 'looping') {
             // The deadline passed while the DAW was answering: the app plays in its place, so this loop is stopped, not left beside it.
             // A loop a newer press started since is that press's, and is not stopped here.
-            if (late()) {
+            // The same when the note was left, or a newer press made, while the DAW was answering inside the deadline.
+            if (late() || !newest.current(press)) {
               if (!looped.current) void api.findingsStopLoop().catch(() => undefined);
               return { played: true };
             }
@@ -155,7 +157,7 @@ export function HearIt({
           }
           // A DAW that is recording keeps the room quiet: the app does not play over it.
           if (answer.outcome === 'refused' && answer.reason === 'recording') return { played: false, why: recordingSentence(dawName), final: true };
-          return { played: false, why: answer.outcome === 'refused' ? answer.message : `${dawName} did not loop the note.` };
+          return { played: false, why: answer.outcome === 'refused' ? answer.message : `${capitalised(dawName)} did not loop the note.` };
         },
       };
       const app: PlaybackProvider<Finding> = {

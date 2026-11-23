@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 // Class guard for #4076 (owner rule on #4043, "no excuse for it to not be able to play the audio if it has [the track and timestamp]"): no play path
 // waits on a readiness check between a click and the play call. A path that plays asks the DAW at once, whatever the DAW's capabilities have answered
-// (`playReadiness`: unknown means ask), and the app plays when the DAW refuses, with the reason and a Retry. So every caller of `playThrough` is listed
+// (`playReadiness`: unknown means ask), and the app plays when the DAW refuses, saying why (a Retry only when nothing could play). So every caller of `playThrough` is listed
 // here, uses `playReadiness` and never `dawReadiness` (which waits on an unanswered DAW), `CHECKING` or `wait: true`, and does not `await` a read of the
 // DAW's capabilities before it plays. Each page's own test plays with the capabilities unanswered (`takeAudition.test.tsx`, `useScriptPlayback`'s,
 // `HearIt.test.tsx`, `playOriginal.providers.test.tsx`). A new caller of `playThrough` fails this test until it is added to the list.

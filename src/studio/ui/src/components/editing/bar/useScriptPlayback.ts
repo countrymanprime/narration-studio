@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { capitalised } from '../../../studio/dawNames';
 import { dawNameOf } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
@@ -226,7 +227,8 @@ export function useScriptPlayback({
             if (!declared.ready) return declared;
             const remote = remoteRef.current;
             const refusal = remote ? remote.refusal(at) : null;
-            if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
+            if (refusal === 'not_ready')
+              return { ready: false, why: remote?.refusedWith() ?? `${capitalised(name)} has not answered, or has another project open.` };
             if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
           },
@@ -236,7 +238,7 @@ export function useScriptPlayback({
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
             const why = await remoteRef.current?.start(at, stopAt.current ?? undefined);
-            return why === null ? { played: true } : { played: false, why: `${name} could not play it: ${why ?? 'it is not answering.'}` };
+            return why === null ? { played: true } : { played: false, why: `${capitalised(name)} could not play it: ${why ?? 'it is not answering.'}` };
           },
         });
       }

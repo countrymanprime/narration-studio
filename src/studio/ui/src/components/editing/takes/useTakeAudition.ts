@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { capitalised } from '../../../studio/dawNames';
 import { dawNameOf } from '../../engine/ShowInDaw';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
@@ -127,7 +128,7 @@ export function useTakeAudition({
             }
             why = result.message;
           } catch (error) {
-            why = `${name} was not asked: ${error instanceof Error ? error.message : String(error)}`;
+            why = `${capitalised(name)} was not asked: ${error instanceof Error ? error.message : String(error)}`;
           }
           if (asked.current === mine) {
             setPlaying(null);

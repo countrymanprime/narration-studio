@@ -183,6 +183,15 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     expect(notices).toEqual(['REAPER does not have this book open. Played in the app instead.']);
     expect(retries).toEqual([]);
   });
+  it('opens its sentences with a capital while the DAW has no name yet', async () => {
+    transport = vi.fn(async () => {
+      throw new Error('bridge down');
+    });
+    const { result } = await mountRead(DAW_SETUPS.reaper, { capabilities: () => new Promise<never>(() => {}) });
+    await act(() => result.current.play(pickup(15)));
+    await flush();
+    expect(notices[0]).toMatch(/^The DAW was not asked: bridge down/);
+  });
   it('offers Retry, which asks the DAW again, when nothing played', async () => {
     transport = vi.fn(async () => ({ ...ok, ok: false, message: 'REAPER does not have this book open.', refused: 'REAPER does not have this book open.' }));
     // The tracks never read: the app has no recording to play, so the refusal is the end.
@@ -225,7 +234,7 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     });
     expect(audio.play).toHaveBeenCalled();
     expect(result.current.pendingId).toBeNull();
-    expect(notices).toEqual(['REAPER did not answer. Played in the app instead.']);
+    expect(notices).toEqual(['REAPER did not answer in time. Played in the app instead.']);
   });
   it('a playRange answered after the deadline is stopped, not left playing beside the app', async () => {
     let answer: (value: DawResult) => void = () => {};

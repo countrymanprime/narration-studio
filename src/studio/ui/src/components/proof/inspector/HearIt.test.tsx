@@ -198,6 +198,23 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     }
   });
 
+  it('stops a loop the DAW starts after the note was left, inside the deadline', async () => {
+    let answerLoop: (value: FindingNavigation) => void = () => {};
+    const api: HearItApi = {
+      findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => (answerLoop = resolve))),
+      findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+    };
+    const { unmount } = render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    unmount();
+    answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+    await waitFor(() => expect(api.findingsStopLoop).toHaveBeenCalledTimes(1));
+  });
+
   it('a Retry offered for an older press plays nothing, and none plays once the note was left', async () => {
     const api: HearItApi = {
       findingsLoop: vi.fn(async () => refusedAs('not_running', 'REAPER is not running.')),
@@ -258,7 +275,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       expect(hear().getAttribute('aria-busy')).toBe('true');
       await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
       await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
-      expect(toasted()[0]).toBe('REAPER did not answer. Played in the app instead.');
+      expect(toasted()[0]).toBe('REAPER did not answer in time. Played in the app instead.');
       // The button was busy while the DAW was asked, and is not now.
       // The DAW answers after all: its loop is stopped, not left beside the app's clip.
       answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });

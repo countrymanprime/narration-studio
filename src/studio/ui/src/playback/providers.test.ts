@@ -179,7 +179,7 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     const app = provider(APP, { ready: true }, { played: true });
     const pending = playThrough([hung, app.p], 0, { deadlineMs: PLAY_DEADLINE_MS });
     await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
-    expect(await pending).toMatchObject({ by: APP, notice: 'REAPER did not answer. Played in the app instead.' });
+    expect(await pending).toMatchObject({ by: APP, notice: 'REAPER did not answer in time. Played in the app instead.' });
   });
   it('tells a provider that answers after the deadline that it is late', async () => {
     let answer: (a: { played: true }) => void = () => {};
@@ -204,7 +204,7 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     const app = provider(APP, { ready: true }, { played: true });
     const pending = playThrough([hung, app.p], 0, { deadlineMs: PLAY_DEADLINE_MS });
     await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
-    expect((await pending).notice).toBe('The DAW did not answer. Played in the app instead.');
+    expect((await pending).notice).toBe('The DAW did not answer in time. Played in the app instead.');
     expect(recordingSentence('the DAW')).toBe('The DAW is recording, so nothing plays. Stop recording first.');
   });
   it('a keepQuiet that never answers does not hold the app back', async () => {
