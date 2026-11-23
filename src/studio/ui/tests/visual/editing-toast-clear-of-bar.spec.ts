@@ -19,7 +19,6 @@ async function raiseRetryToast(page: Page): Promise<void> {
   await settlePage(page);
   const bar = page.getByRole('toolbar', { name: 'Playback and selection' });
   await bar.waitFor();
-  await bar.scrollIntoViewIfNeeded();
   await bar.getByRole('button', { name: 'Play from here' }).click();
   await page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' }).waitFor();
 }

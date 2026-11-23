@@ -34,6 +34,19 @@ describe('useToastClearance', () => {
   });
 });
 
+describe('useToastClearance in a column that scrolls', () => {
+  it('reads the bar again when something scrolls, so the toasts follow where the bar stands now', () => {
+    let top = 700;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({ height: 100, top }) as DOMRect);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    render(<Bar />);
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('100px');
+    top = 500;
+    document.body.dispatchEvent(new Event('scroll'));
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('300px');
+  });
+});
+
 describe('useToastClearance with several bars', () => {
   it('raises the toasts by all the bars at the bottom, so a notice above the footer stays uncovered, and lowers them as each goes', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {

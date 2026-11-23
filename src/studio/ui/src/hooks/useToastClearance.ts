@@ -26,8 +26,9 @@ function apply(): void {
 
 /**
  * Keeps toasts clear of a bar fixed along the bottom of the page (the Booth's footer, and the setup notice above it): while `bar` is
- * mounted, a message rises above it by the bar's height and its bottom margin instead of covering its chips or its words. Bars add up,
- * so the notice stays visible above the footer and the toasts above both. Follows each bar as it grows or shrinks, and puts the toasts
+ * mounted, a message rises above it by the bar's height and its bottom margin, or by the distance from the highest bar's top edge to the window's
+ * bottom when that is more (the gap a page keeps under its bars), instead of covering its chips or its words. Bars add up, so the notice
+ * stays visible above the footer and the toasts above both. Follows each bar as it grows, shrinks or scrolls, and puts the toasts
  * back when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout).
  */
 export function useToastClearance(bar: RefObject<HTMLElement | null>, active = true): void {
@@ -39,9 +40,15 @@ export function useToastClearance(bar: RefObject<HTMLElement | null>, active = t
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
     observer?.observe(element);
     window.addEventListener('resize', apply);
+    // A bar in a column that scrolls moves under the toast, so its top edge is read again on every scroll (capture: scroll does not bubble) and
+    // once the first layout has settled.
+    window.addEventListener('scroll', apply, true);
+    const settled = requestAnimationFrame(apply);
     return () => {
       observer?.disconnect();
       window.removeEventListener('resize', apply);
+      window.removeEventListener('scroll', apply, true);
+      cancelAnimationFrame(settled);
       bars.delete(element);
       apply();
     };
