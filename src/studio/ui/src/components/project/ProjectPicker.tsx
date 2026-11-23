@@ -36,6 +36,7 @@ export function ProjectPicker({
   notify,
   onCreated,
   onBack,
+  onSwitched,
   currentName,
   onOpenSettings,
   focusSettings,
@@ -43,6 +44,8 @@ export function ProjectPicker({
   notify: Notify;
   onCreated: () => void;
   onBack?: () => void;
+  /** A switch went through: the folder the narrator chose. */
+  onSwitched?: (path: string) => void;
   currentName?: string;
   onOpenSettings?: () => void;
   /** Focus the Settings button when the picker appears: the narrator is coming back from Settings. */
@@ -104,11 +107,11 @@ export function ProjectPicker({
   // A successful switch/create emits the native "system:attached" event,
   // which App.tsx's existing subscription already turns into a bootstrap
   // refresh - this component only needs to surface a refusal, if any.
-  // A switch that went through closes the picker over an open project, whatever the folder: choosing the book that is already open (the host may spell its folder another way) changes
-  // nothing the app could close it on. A refusal keeps it open with its reason.
-  const applyResult = (result: ProjectSwitchResult) => {
+  // A refusal keeps the picker open with its reason. A switch that went through is told to the app with the folder chosen: the app closes the picker at once only when that is the project
+  // already open (the host may spell its folder another way, so no folder changes for it to close on); another book closes it when the new project arrives.
+  const applyResult = (result: ProjectSwitchResult, path: string) => {
     setReason(result.switched ? '' : (result.reason ?? ''));
-    if (result.switched) onBack?.();
+    if (result.switched) onSwitched?.(path);
   };
 
   // Every action funnels through here so a failed IPC call (e.g. the dialog
@@ -126,7 +129,7 @@ export function ProjectPicker({
     }
   };
 
-  const openRecent = (entry: RecentProject) => runAction(async () => applyResult(await api.switchProject(entry.path, entry.name)));
+  const openRecent = (entry: RecentProject) => runAction(async () => applyResult(await api.switchProject(entry.path, entry.name), entry.path));
 
   // Pinned projects first, each group in the host's most-recent-first order.
   const visible = [...recents.filter((entry) => entry.pinned), ...recents.filter((entry) => !entry.pinned)].filter((entry) => !hidden.includes(entry.path));
@@ -215,12 +218,12 @@ export function ProjectPicker({
     runAction(async () => {
       const selection = await api.selectProjectFolder();
       if (!selection.selected || !selection.path) return;
-      applyResult(await api.switchProject(selection.path));
+      applyResult(await api.switchProject(selection.path), selection.path);
     });
 
   const projectCreated = (result: ProjectSwitchResult) => {
     setNewProjectOpen(false);
-    applyResult(result);
+    applyResult(result, '');
     onCreated();
   };
 

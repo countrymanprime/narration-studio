@@ -108,11 +108,6 @@ export type OverlayService = {
    * project the narrator is no longer in, so confirming one would act on the old project's chapter while the host is on the new one (#4057). Answers how many it closed.
    */
   dismissDialogs: () => number;
-  /**
-   * Holds the open questions: while held, a press of a question's confirm does nothing (No and closing still work). The host said it attached a project and the app does not yet know whether it is
-   * the open one (#4057, #4099): the question may be about a chapter of the project that was open. Released when the answer comes.
-   */
-  hold: (held: boolean) => void;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -128,7 +123,6 @@ export type OverlayService = {
  */
 export function createOverlayService(): OverlayService {
   let snapshot: OverlaySnapshot = { dialogs: [], toasts: [], announcement: '' };
-  let held = false;
   let lastId = 0;
   // The control that had focus when each layer opened. A layer opened from another layer (History from the jump menu) inherits the
   // opener of the layer it came from: that layer is closing, so its own controls will be gone when this one closes.
@@ -194,7 +188,6 @@ export function createOverlayService(): OverlayService {
       new Promise<boolean>((resolve) => {
         const id = ++lastId;
         const answer = (confirmed: boolean) => {
-          if (held && confirmed) return;
           if (removeDialog(id)) resolve(confirmed);
         };
         update({ dialogs: [...snapshot.dialogs, { id, kind: 'confirm', spec, answer }] });
@@ -234,9 +227,6 @@ export function createOverlayService(): OverlayService {
         else entry.close();
       }
       return open.length;
-    },
-    hold: (value) => {
-      held = value;
     },
     dismissUndo: () => {
       if (!snapshot.toasts.some((m) => m.undo)) return;

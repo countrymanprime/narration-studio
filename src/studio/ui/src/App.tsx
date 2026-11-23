@@ -478,22 +478,6 @@ function AppRoutes() {
   // bootstrap the attach asks for follows it). The store is told in the same turn as the check, so a reset cannot slip in between the check and the telling.
   const studio = useStoreHandle();
   const bootstrapSeq = useRef(0);
-  // The host said it attached a project: what is tied to the project that was open (an Undo toast, a dialog, the Back floor) goes only once the bootstrap names another folder, since
-  // the event names none and the host sends it for the open folder again (a second launch) as well. `leaveProject` is set below, where the layers it closes are known.
-  const attachPending = useRef(false);
-  const leaveProject = useRef<() => void>(() => undefined);
-  // Until the bootstrap says which folder the host is on, a question or dialog a page holds is inert: it may be about a chapter of the project that was open. Released when the answer comes.
-  const heldLayers = useRef<Element[]>([]);
-  const holdLayers = useCallback(() => {
-    overlay.hold(true);
-    heldLayers.current = [...document.querySelectorAll(OPEN_LAYER_SELECTOR)];
-    for (const layer of heldLayers.current) layer.setAttribute('inert', '');
-  }, [overlay]);
-  const releaseLayers = useCallback(() => {
-    overlay.hold(false);
-    for (const layer of heldLayers.current) layer.removeAttribute('inert');
-    heldLayers.current = [];
-  }, [overlay]);
   const bootstrapNow = useRef<Bootstrap | undefined>(undefined);
   const refreshBootstrap = useCallback(async () => {
     const mine = ++bootstrapSeq.current;
@@ -501,27 +485,16 @@ function AppRoutes() {
     try {
       const next = await api.bootstrap();
       if (mine !== bootstrapSeq.current || studio.generation() !== generation) return;
-      if (attachPending.current) {
-        attachPending.current = false;
-        if (!bootstrapNow.current || !isSameProject(bootstrapNow.current.projectFolder, next.projectFolder)) leaveProject.current();
-        releaseLayers();
-      }
       studio.setProject(next.projectFolder);
       setDiagnosticId(next.diagnosticId);
       setData((current) => keepFolderSpelling(current, next));
       setDataReadAt(Date.now());
     } catch (error) {
       if (mine !== bootstrapSeq.current) return;
-      // The answer that would say whether the project changed did not come: what was open is closed, as it was before the attach was told apart.
-      if (attachPending.current) {
-        attachPending.current = false;
-        leaveProject.current();
-        releaseLayers();
-      }
       // Every caller runs this from an event or a `void`, so a failure has nowhere to go but the narrator.
       setNotice(describeApiError(error), 'error');
     }
-  }, [api, setNotice, studio, releaseLayers]);
+  }, [api, setNotice, studio]);
 
   // The DAW's reachability and its open project are a live heartbeat, but bootstrap is a snapshot taken at startup: the navigation's pill,
   // Settings' DAW Integration and the engine panel read it, so it is read again whenever the DAW starts or stops answering and when the
@@ -731,13 +704,6 @@ function AppRoutes() {
       });
     }
   }, [overlay]);
-  leaveProject.current = () => {
-    // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
-    overlay.dismissUndo();
-    // A question or dialog a page opened for the project that was open (the Editor's cut question, a milestone form) is about its chapters: confirming it would act on them in the new project.
-    closeProjectDialogs();
-    history.resetFloor();
-  };
   const shownProject = useRef(data?.projectFolder);
   useEffect(() => {
     const before = shownProject.current;
@@ -827,8 +793,11 @@ function AppRoutes() {
       // Entries from the project that was open before this switch stay behind the new floor: they
       // would open this project's pages with the previous project's data, so Back stops here.
       if (state.attached) {
-        attachPending.current = true;
-        holdLayers();
+        // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
+        overlay.dismissUndo();
+        // A question or dialog a page opened for the project that was open (the Editor's cut question, a milestone form) is about its chapters: confirming it would act on them in the new project.
+        closeProjectDialogs();
+        history.resetFloor();
         // After this turn: the store's own listener resets it on the same event, in whichever order the two were subscribed, and the answer is judged against the reset.
         queueMicrotask(() => void refreshBootstrap());
       } else if (state.reason && !attachRefusalClaimed()) {
@@ -836,7 +805,7 @@ function AppRoutes() {
         setNotice(state.reason, 'error');
       }
     });
-  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice, closeProjectDialogs, holdLayers]);
+  }, [api, hasBootstrap, history, overlay, refreshBootstrap, setNotice, closeProjectDialogs]);
 
   useEffect(() => {
     if (!hasBootstrap) return;
@@ -1555,6 +1524,7 @@ function AppRoutes() {
           notify={setNotice}
           onCreated={() => navigate('/script')}
           onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
+          onSwitched={(path) => data.projectFolder && isSameProject(path, data.projectFolder) && setProjectPickerOpen(false)}
           currentName={data.projectFolder ? data.projectName : undefined}
           onOpenSettings={data.projectFolder ? undefined : openSettings}
           focusSettings={cameFromSettings.current}

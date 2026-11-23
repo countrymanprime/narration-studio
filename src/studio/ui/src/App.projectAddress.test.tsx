@@ -517,41 +517,6 @@ describe('the chapter in the address is not carried into another project (#4059)
     ).not.toMatch(/project changed/i);
   });
 
-  // The host sends its attach event for the open folder too (a second launch of the DAW with the same project): nothing is closed and nothing is said until the bootstrap names another folder.
-  it.each([
-    ['the same spelling', (folder: string) => folder],
-    ['another spelling', (folder: string) => folder.replace(/\//g, '\\')],
-  ])('an attach of the open folder in %s keeps the jump menu open and shows no project-changed toast', async (_name, spell) => {
-    const { api, first } = await openAt('/editing/chapter-7');
-    await onChapter(/^Chapter: Chapter 7:/);
-    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
-    await screen.findByRole('combobox', { name: 'Jump menu' });
-    await api.switchProject(spell(first), 'Alice');
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    expect(screen.queryByRole('combobox', { name: 'Jump menu' })).not.toBeNull();
-    expect(
-      overlay
-        .getSnapshot()
-        .toasts.map((toast) => toast.text)
-        .join('|'),
-    ).not.toMatch(/project changed/i);
-  });
-
-  it('an attach of another folder still closes what was open and says so', async () => {
-    const { api } = await openAt('/editing/chapter-7');
-    await onChapter(/^Chapter: Chapter 7:/);
-    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
-    await screen.findByRole('combobox', { name: 'Jump menu' });
-    await api.switchProject(OTHER, 'Voltage and the Undercroft');
-    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
-    expect(
-      overlay
-        .getSnapshot()
-        .toasts.map((toast) => toast.text)
-        .join('|'),
-    ).toMatch(/project changed/i);
-  });
-
   it('a project at the root folder opens after no project, and closing it shows the picker', async () => {
     const { api } = await openAt('/booth');
     await onChapter(/^Chapter: /);
