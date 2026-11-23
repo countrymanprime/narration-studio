@@ -16,6 +16,9 @@ async function raiseAndFocusDismiss(page: Page): Promise<void> {
   await dismiss.focus();
 }
 
+// A hand-back that must NOT happen cannot be polled for: the window is the toast's 250 ms wait (`ACTION_FOCUS_MS`) and then some, after which the field must still have focus.
+const PAST_HAND_BACK_MS = 400;
+
 const jumpField = (page: Page) => page.getByRole('combobox', { name: 'Jump menu' });
 
 test('hold Enter on Dismiss, open the Jump menu with a click, release Enter: the field keeps focus', async ({ page }) => {
@@ -27,7 +30,7 @@ test('hold Enter on Dismiss, open the Jump menu with a click, release Enter: the
     .click();
   await expect(jumpField(page)).toBeFocused();
   await page.keyboard.up('Enter');
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(PAST_HAND_BACK_MS);
   await expect(jumpField(page)).toBeFocused();
   await page.keyboard.type('script');
   await expect(jumpField(page)).toHaveValue('script');
@@ -41,10 +44,10 @@ test('hold Enter on Dismiss, Ctrl+K, release K then Enter: the field keeps focus
   await expect(jumpField(page)).toBeFocused();
   await page.keyboard.up('KeyK');
   await page.keyboard.up('Control');
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(PAST_HAND_BACK_MS);
   await expect(jumpField(page)).toBeFocused();
   await page.keyboard.up('Enter');
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(PAST_HAND_BACK_MS);
   await expect(jumpField(page)).toBeFocused();
 });
 
@@ -57,10 +60,9 @@ test('Dismiss pressed and released with nothing else touched hands focus back to
   await page.evaluate(() => (window as unknown as Raise).__raiseToast('The save failed. Try again.'));
   const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
   await expect(dismiss).toBeVisible();
-  // Tab from the opener goes through the page to the toast; focus it directly the way a narrator's Tab would end up there.
+  // The opener had focus before the toast took it: focus goes back to it, polled for (the toast waits a moment so the press can move focus itself).
   await dismiss.focus();
   await page.keyboard.press('Enter');
   await expect(dismiss).toHaveCount(0);
-  await page.waitForTimeout(400);
-  await expect(page.locator(':focus')).not.toHaveJSProperty('tagName', 'BODY');
+  await expect(opener).toBeFocused();
 });

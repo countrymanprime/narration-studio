@@ -526,13 +526,12 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
     const second = document.createElement('button');
     document.body.append(first, second);
     const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
-    first.focus();
+    // Where focus was before each toast took it is said by the event's relatedTarget; focus itself never leaves the toasts, so nothing outside takes it and only the owner decides which hand-back runs.
     const undoOne = screen.getByRole('button', { name: 'Undo' });
     fireEvent.focus(undoOne, { relatedTarget: first });
     undoOne.focus();
     fireEvent.click(undoOne, { detail: 0 });
     view.rerender(<ToastRegion messages={[withUndo(2)]} dismiss={vi.fn()} />);
-    second.focus();
     const undoTwo = screen.getByRole('button', { name: 'Undo' });
     fireEvent.focus(undoTwo, { relatedTarget: second });
     undoTwo.focus();
@@ -643,6 +642,128 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
         origin.remove();
       });
     }
+
+    // Where focus was before each toast took it, said the way the toast reads it (the focus event's relatedTarget).
+    const pressWithOrigin = (button: HTMLElement, origin: HTMLElement, held: string | null = null) => {
+      origin.focus();
+      fireEvent.focus(button, { relatedTarget: origin });
+      button.focus();
+      if (held) fireEvent.keyDown(button, { key: held, code: held });
+      fireEvent.click(button, { detail: 0 });
+    };
+
+    for (const presser of pressers) {
+      it(`${presser.name}: focus that went to a field and came back to nothing is theirs, not handed back`, () => {
+        const origin = document.createElement('button');
+        const field = document.createElement('input');
+        document.body.append(origin, field);
+        const view = render(<ToastRegion messages={presser.messages()} dismiss={vi.fn()} />);
+        pressWithOrigin(screen.getByRole('button', { name: presser.button }), origin);
+        view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+        // Something outside the toasts took focus (not a dialog: a plain field), and let it go again: the narrator's, so focus stays on nothing.
+        field.focus();
+        field.blur();
+        act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+        expect(document.activeElement).toBe(document.body);
+        origin.remove();
+        field.remove();
+      });
+    }
+
+    it('Dismiss: focus that went to a plain field (no dialog) is left there', () => {
+      const origin = document.createElement('button');
+      const field = document.createElement('input');
+      document.body.append(origin, field);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      pressWithOrigin(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      field.focus();
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+      expect(document.activeElement).toBe(field);
+      origin.remove();
+      field.remove();
+    });
+
+    it("a different key coming up does not end the wait when nothing else took focus: only the held key's own keyup does", () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      pressWithOrigin(screen.getByRole('button', { name: 'Dismiss message' }), origin, 'Enter');
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      fireEvent.keyUp(document.body, { key: 'k', code: 'KeyK' });
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+      expect(document.activeElement).toBe(document.body);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+      expect(document.activeElement).toBe(origin);
+      origin.remove();
+    });
+
+    it("two keys held: the first coming up does not stop swallowing the second's repeats, and the last coming up does", () => {
+      const field = document.createElement('input');
+      document.body.append(field);
+      render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+      const undo = screen.getByRole('button', { name: 'Undo' });
+      undo.focus();
+      fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+      fireEvent.keyDown(undo, { key: ' ', code: 'Space' });
+      fireEvent.keyUp(undo, { key: ' ', code: 'Space' });
+      const stillHeld = createEvent.keyDown(field, { key: 'Enter', code: 'Enter', repeat: true });
+      fireEvent(field, stillHeld);
+      expect(stillHeld.defaultPrevented).toBe(true);
+      fireEvent.keyUp(undo, { key: 'Enter', code: 'Enter' });
+      const done = createEvent.keyDown(field, { key: 'Enter', code: 'Enter', repeat: true });
+      fireEvent(field, done);
+      expect(done.defaultPrevented).toBe(false);
+      field.remove();
+    });
+
+    for (const [name, lose] of [
+      ['the window loses focus', () => fireEvent.blur(window)],
+      [
+        'the page is hidden',
+        () => {
+          Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+          fireEvent(document, new Event('visibilitychange'));
+        },
+      ],
+    ] as const) {
+      it(`a held key whose keyup never arrives (${name}) stops swallowing repeats and no longer holds the hand-back`, () => {
+        const origin = document.createElement('button');
+        const field = document.createElement('input');
+        document.body.append(origin, field);
+        const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+        pressWithOrigin(screen.getByRole('button', { name: 'Dismiss message' }), origin, 'Enter');
+        view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+        act(() => void lose());
+        // The wait ended with it: focus is handed back though the key never came up, and its repeats are no longer swallowed.
+        act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+        expect(document.activeElement).toBe(origin);
+        const repeat = createEvent.keyDown(field, { key: 'Enter', code: 'Enter', repeat: true });
+        fireEvent(field, repeat);
+        expect(repeat.defaultPrevented).toBe(false);
+        Reflect.deleteProperty(document, 'visibilityState');
+        origin.remove();
+        field.remove();
+      });
+    }
+
+    it("a click without a keydown (a screen reader's activate) after a lost key hands focus back instead of waiting for a key that is not held", () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+      const undo = screen.getByRole('button', { name: 'Undo' });
+      origin.focus();
+      fireEvent.focus(undo, { relatedTarget: origin });
+      undo.focus();
+      fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+      fireEvent.blur(window);
+      fireEvent.click(undo, { detail: 0 });
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+      expect(document.activeElement).toBe(origin);
+      origin.remove();
+    });
 
     it('still hands focus back to the origin when nothing else took it, for a held Dismiss', () => {
       const origin = document.createElement('button');
