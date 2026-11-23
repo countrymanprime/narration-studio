@@ -225,7 +225,7 @@ export function ProjectPicker({
     <CommandScope kind="page">
       <div className="flex h-full flex-col overflow-hidden">
         <ExtensionBanner />
-        <main ref={mainRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
           {/* min-w-0: the column otherwise grows to its longest nowrap child (a project path) and overflows narrow screens. */}
           {/* Top-aligned: centred, the mark landed at a different height for every list length and banner (alignment audit XPJ-1, R3PJ-1). */}
           <div className="mx-auto flex w-full max-w-[47.5rem] min-w-0 flex-col gap-5 pt-[min(6vh,3rem)]">

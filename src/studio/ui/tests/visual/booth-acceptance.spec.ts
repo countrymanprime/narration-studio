@@ -306,6 +306,8 @@ test('row 27: B bookmarks the word: a ribbon in the margin, and the toast offers
   await page.keyboard.press('b');
   await expect(page.getByText('A bookmark goes on a line of the text, not on the chapter title.')).toBeVisible();
   await expect(page.locator('[data-bmk-margin] [data-bm]')).toHaveCount(0);
+  // One toast shows at a time (#4063): the title's message is dismissed so the next one, with its Undo, takes the slot.
+  await page.getByRole('button', { name: 'Dismiss message' }).click();
   await toFirstParagraph(page);
   await page.keyboard.press('b');
   await expect(page.locator('[data-bmk-margin] [data-bm]').first()).toBeVisible();

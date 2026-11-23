@@ -65,6 +65,23 @@ async function toRecordReady(page: Page): Promise<void> {
   await expect(record(page)).toBeEnabled();
 }
 
+/** One toast shows at a time and the rest wait behind it (#4063): dismiss what shows until the message asked for takes the slot, as a narrator would. */
+async function toastShows(page: Page, text: RegExp): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const hit = await page.getByText(text).first().isVisible();
+        if (!hit) {
+          const dismiss = page.locator('[data-toast-region] [data-tone]:not([hidden]) [aria-label="Dismiss message"]');
+          if ((await dismiss.count()) > 0) await dismiss.first().click();
+        }
+        return hit;
+      },
+      { message: `the message ${text} shows`, timeout: 15_000 },
+    )
+    .toBe(true);
+}
+
 test.describe('Booth with a moving mock DAW', () => {
   // A linked project holds the dialog back for the connect grace (20 s, RecordSetup); the mark opens it at once, but the default 30 s budget is
   // still a coin flip on a loaded runner once a DAW has to start and answer.
@@ -166,7 +183,7 @@ test.describe('Booth with a moving mock DAW', () => {
     // A DAW that stopped answering has no take any more: the Booth says so instead of keeping a REC pill it cannot vouch for,
     // and Record is off with the way forward.
     // It did not say the take ended: it went quiet, and the Booth says it cannot tell.
-    await expect(page.getByText(/REAPER stopped answering, so the Booth can't tell whether the take is still running/).first()).toBeVisible();
+    await toastShows(page, /REAPER stopped answering, so the Booth can't tell whether the take is still running/);
     await expect(page.getByText(/The take ended there/)).toHaveCount(0);
     await expect(stop(page)).toHaveCount(0);
     await expect(record(page)).toBeDisabled();
@@ -319,7 +336,7 @@ test.describe('Booth with a moving mock DAW', () => {
     // Close the dialog: what is under test is the mark and the messages that rise above it.
     await dialog(page).getByRole('button', { name: 'Close' }).click();
     await expect(dialog(page)).toHaveCount(0);
-    // The notice is above the toasts: neither covers the other, and the notice is topmost at its own points. Measured as soon as the
+    // The notice is above the toasts' strip: neither covers the other, and the notice is topmost at its own points. Measured as soon as the
     // dialog is gone (while it is open the toasts sit at the window's top), because an information toast leaves after TOAST_INFO_MS
     // and a slow runner spent longer than that on the Space round trip below.
     const box = await notice(page).boundingBox();
@@ -329,7 +346,7 @@ test.describe('Booth with a moving mock DAW', () => {
       .first()
       .boundingBox();
     expect(box && toast).toBeTruthy();
-    expect(toast!.y + toast!.height, 'the toast sits above the notice').toBeLessThanOrEqual(box!.y + 1);
+    expect(toast!.y, 'the toast stands under the notice, in the strip the shell keeps for it (#4063)').toBeGreaterThanOrEqual(box!.y + box!.height - 1);
     const topmost = await page.evaluate(() => {
       const el = document.querySelector('#brec-setup')!;
       const r = el.getBoundingClientRect();
@@ -390,7 +407,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await record(page).click();
     await expect(stop(page)).toBeVisible();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
-    await expect(page.getByText(/stopped recording\. The take ended there/).first()).toBeVisible();
+    await toastShows(page, /stopped recording\. The take ended there/);
     await expect(record(page)).toBeEnabled();
     await record(page).click();
     await expect(stop(page)).toBeVisible();

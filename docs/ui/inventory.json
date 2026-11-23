@@ -3779,6 +3779,7 @@
         "src/components/primitives/KindChip.tsx",
         "src/components/primitives/SpeakerTag.tsx",
         "src/components/primitives/StageGrid.tsx",
+        "src/components/primitives/Toast.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/production/overview/StageBar.tsx",
         "src/components/production/pipeline/NextUp.tsx",
@@ -4311,6 +4312,7 @@
         "src/hooks/useErrorToast.ts",
         "src/hooks/useToasts.ts",
         "src/jobEnded.ts",
+        "src/main.tsx",
         "src/overlay/OverlayHost.tsx",
         "src/overlay/overlayService.ts"
       ],
@@ -4435,6 +4437,7 @@
         "src/components/primitives/Table.tsx",
         "src/components/primitives/TagInput.tsx",
         "src/components/primitives/TitleSubtitle.tsx",
+        "src/components/primitives/Toast.tsx",
         "src/components/primitives/TreeCaret.tsx",
         "src/components/primitives/TreeSelect.tsx",
         "src/components/production/ImportReview.tsx",
