@@ -93,7 +93,9 @@ for (const c of [
     await expect(toast).toBeVisible();
     const notice = (await page.locator('#brec-setup').boundingBox())!;
     const hit = (await toast.boundingBox())!;
-    expect(hit.y, 'the toast begins where the notice ends').toBeGreaterThanOrEqual(notice.y + notice.height - 1);
+    // Above 520 px of height the toast stands in the slot under the page, below the notice; in a shorter window there is no slot and it rises above the notice as it did before (#4063).
+    if (c.height > 520) expect(hit.y, 'the toast begins where the notice ends').toBeGreaterThanOrEqual(notice.y + notice.height - 1);
+    else expect(hit.y + hit.height, 'the toast ends where the notice begins').toBeLessThanOrEqual(notice.y + 1);
     const topmost = await page.evaluate(() => {
       const el = document.querySelector('#brec-setup')!;
       const r = el.getBoundingClientRect();
