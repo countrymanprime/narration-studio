@@ -98,7 +98,7 @@ class PressOwner {
     this.open = true;
   }
   /**
-   * A key went down on a toast's button. Its repeats must press nothing, and may not press what the press hands focus to, until it comes up: one listener set for all keys held at once, ended when the last comes
+   * A key went down on a toast's button. Its repeats (and only its) must press nothing, and may not press what the press hands focus to, until it comes up: one listener set for all keys held at once, ended when the last comes
    * up, when the window loses focus (alt-tab, a native dialog, an iframe) or when the page is hidden, where a keyup may never arrive (#4063).
    */
   keyDown(code: string): void {
@@ -106,7 +106,8 @@ class PressOwner {
     this.held.add(code);
     if (this.slots.has('keys')) return;
     const swallow = (event: KeyboardEvent) => {
-      if (!event.repeat) return;
+      // Only the repeats of a key held on a toast's button: another key's (a Backspace held in a field) is its own, even while a held key's keyup is lost.
+      if (!event.repeat || !this.held.has(keyOf(event))) return;
       event.preventDefault();
       event.stopPropagation();
     };
@@ -196,14 +197,20 @@ function scheduleHandBack(
   owner.hold('hand-back', cancel);
 }
 
-/** Whether focus has gone, since now, to anything outside the toasts (a dialog or menu that opened, a field that was reached, the page): then it is theirs, and a hand-back leaves it. */
+/** Whether focus has moved since now, to anywhere (a dialog or menu that opened, a field, another toast's button the narrator tabbed to; even if it has let go again): then it is theirs, and a hand-back leaves it. */
 function watchFocusTaken(): { taken: () => boolean; stop: () => void } {
   let taken = false;
-  const watch = (event: FocusEvent) => {
-    if (!(event.target instanceof Element) || !event.target.closest('[data-toast-region]')) taken = true;
+  const watch = () => {
+    taken = true;
   };
   document.addEventListener('focusin', watch, true);
   return { taken: () => taken, stop: () => document.removeEventListener('focusin', watch, true) };
+}
+
+/** The topmost open dialog, alert dialog, menu or modal outside the toasts, if any: a hand-back never leaves it (#4103). */
+function openLayer(): Element | null {
+  const layers = [...document.querySelectorAll('dialog[open], [role="dialog"], [role="alertdialog"], [role="menu"], [aria-modal="true"]')];
+  return layers.filter((el) => !el.closest('[data-toast-region], [hidden], [inert]')).pop() ?? null;
 }
 
 function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessage; dismiss: (id: number) => void; owner: PressOwner; more?: number }) {
@@ -295,6 +302,9 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       const target = resolve();
       const active = document.activeElement;
       if (focus.taken()) return;
+      // A dialog or menu is open: the target (the origin that is gone, then the page's <main>) may lie behind it. Focus goes to something inside the dialog or among the toasts (Tab reaches them), or nowhere.
+      const layer = openLayer();
+      if (layer && target && !layer.contains(target) && !target.closest('[data-toast-region]')) return;
       if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
     };
     const key = pressKey.current;

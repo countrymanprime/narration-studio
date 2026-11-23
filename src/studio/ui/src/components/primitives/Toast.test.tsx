@@ -765,6 +765,106 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
       origin.remove();
     });
 
+    it("a held key whose keyup never comes swallows only its own repeats: another key's are its own", () => {
+      const field = document.createElement('input');
+      document.body.append(field);
+      render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+      const undo = screen.getByRole('button', { name: 'Undo' });
+      undo.focus();
+      fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+      // Enter's keyup is lost (alt-tab, a native dialog): while that lasts, a Backspace held in a field repeats as it should, and Enter's own repeats are still swallowed.
+      const backspace = createEvent.keyDown(field, { key: 'Backspace', code: 'Backspace', repeat: true });
+      fireEvent(field, backspace);
+      expect(backspace.defaultPrevented).toBe(false);
+      const enter = createEvent.keyDown(field, { key: 'Enter', code: 'Enter', repeat: true });
+      fireEvent(field, enter);
+      expect(enter.defaultPrevented).toBe(true);
+      field.remove();
+    });
+
+    it("a focus move to another toast's button (a Tab) before the held key comes up counts as taken: the next toast's button keeps focus", () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      pressWithOrigin(screen.getByRole('button', { name: 'Dismiss message' }), origin, 'Enter');
+      // The first toast went; the next one is in the slot, and the narrator's Tab lands on its button while Enter is still down.
+      view.rerender(<ToastRegion messages={[withUndo(2)]} dismiss={vi.fn()} />);
+      const next = screen.getByRole('button', { name: 'Undo' });
+      next.focus();
+      fireEvent.keyUp(next, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+      expect(document.activeElement).toBe(next);
+      origin.remove();
+    });
+
+    it('origin gone while a dialog is open: the hand-back stays inside the dialog, never on the page behind it', () => {
+      const origin = document.createElement('button');
+      const main = document.createElement('main');
+      main.id = 'main-content';
+      main.tabIndex = -1;
+      const dialog = document.createElement('div');
+      dialog.setAttribute('role', 'dialog');
+      const inside = document.createElement('button');
+      dialog.append(inside);
+      document.body.append(origin, main, dialog);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      pressWithOrigin(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      // The control that had focus before the toast is gone (its page changed); the dialog is open. The fallback target, <main>, is behind the dialog.
+      origin.remove();
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+      expect(document.activeElement).not.toBe(main);
+      expect(document.activeElement === document.body || dialog.contains(document.activeElement)).toBe(true);
+      dialog.remove();
+      main.remove();
+    });
+
+    it('the same, with a native <dialog open> and an aria-modal layer: <main> behind them is not the target', () => {
+      for (const make of [
+        () => {
+          const el = document.createElement('dialog');
+          el.setAttribute('open', '');
+          return el;
+        },
+        () => {
+          const el = document.createElement('section');
+          el.setAttribute('aria-modal', 'true');
+          return el;
+        },
+      ]) {
+        const origin = document.createElement('button');
+        const main = document.createElement('main');
+        main.id = 'main-content';
+        main.tabIndex = -1;
+        const layer = make();
+        document.body.append(origin, main, layer);
+        const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+        pressWithOrigin(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+        origin.remove();
+        view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+        act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+        expect(document.activeElement).not.toBe(main);
+        view.unmount();
+        layer.remove();
+        main.remove();
+      }
+    });
+
+    it('with no layer open and the origin gone, the hand-back still falls back to <main>', () => {
+      const origin = document.createElement('button');
+      const main = document.createElement('main');
+      main.id = 'main-content';
+      main.tabIndex = -1;
+      document.body.append(origin, main);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      pressWithOrigin(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      origin.remove();
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+      expect(document.activeElement).toBe(main);
+      main.remove();
+    });
+
     it('still hands focus back to the origin when nothing else took it, for a held Dismiss', () => {
       const origin = document.createElement('button');
       document.body.append(origin);

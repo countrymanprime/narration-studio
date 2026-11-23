@@ -66,3 +66,43 @@ test('Dismiss pressed and released with nothing else touched hands focus back to
   await expect(dismiss).toHaveCount(0);
   await expect(opener).toBeFocused();
 });
+
+test("Enter's keyup lost: a held Backspace in the Jump field still repeats", async ({ page }) => {
+  await raiseAndFocusDismiss(page);
+  await page.keyboard.down('Enter');
+  await page
+    .getByRole('button', { name: /Jump to or run/ })
+    .first()
+    .click();
+  await expect(jumpField(page)).toBeFocused();
+  await page.keyboard.type('abcdefg');
+  // Enter is never released (the lost keyup). A Backspace held down repeats (Playwright sends the repeats when a down comes for a key already down): every one deletes a letter.
+  await page.keyboard.down('Backspace');
+  await page.keyboard.down('Backspace');
+  await page.keyboard.down('Backspace');
+  await page.keyboard.down('Backspace');
+  await page.keyboard.up('Backspace');
+  await expect(jumpField(page)).toHaveValue('abc');
+});
+
+test("held Dismiss, Tab into the next toast, release Enter: the next toast's button keeps focus", async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as Partial<Raise>).__raiseToast === 'function');
+  await page.evaluate(() => {
+    (window as unknown as Raise).__raiseToast('First message.');
+    (window as unknown as Raise).__raiseToast('Second message.');
+  });
+  const region = page.locator('[data-toast-region]');
+  await expect(region.getByText('First message.')).toBeVisible();
+  await region.getByRole('button', { name: 'Dismiss message' }).focus();
+  await page.keyboard.down('Enter');
+  // The first toast went and the second took its place; the narrator's Tab reaches the second toast's button while Enter is still down.
+  await expect(region.getByText('Second message.')).toBeVisible();
+  await page.keyboard.press('Tab');
+  const nextButton = region.getByRole('button', { name: 'Retry' });
+  await expect(nextButton).toBeFocused();
+  await page.keyboard.up('Enter');
+  await page.waitForTimeout(PAST_HAND_BACK_MS);
+  await expect(nextButton).toBeFocused();
+});
