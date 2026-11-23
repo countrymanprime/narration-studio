@@ -410,7 +410,11 @@ func TestPeaksFileThroughTheHostsRunnerEqualsOneRead(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Fatalf("err %v, equal %v", err, reflect.DeepEqual(got, want))
 	}
-	// The first real error is answered, not the cancellation it caused.
+	// The first real error is answered, not the cancellation it caused. Four workers wait for the stop, so there are four slots whatever the machine
+	// has: with fewer, one waiting worker would hold the slot another needs to fail.
+	saved := sharedDecodeSlots
+	sharedDecodeSlots = make(decodeSlots, 4)
+	t.Cleanup(func() { sharedDecodeSlots = saved })
 	boom := errors.New("boom")
 	err = runDecodes(context.Background(), 4, func(ctx context.Context, i int) error {
 		if i == 2 {
