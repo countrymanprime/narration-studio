@@ -85,6 +85,7 @@ import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
+import { pageBoundaryKey } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -1447,10 +1448,7 @@ function AppRoutes() {
                     zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
                   >
                     {/* Keyed by project as well as page: a project change remounts the page, so a dialog or draft a page holds in its own state for the old project (a confirm that would apply to its chapter) goes with it (#4057). */}
-                    <ErrorBoundary
-                      key={`${data.projectFolder}|${location.pathname.split('/')[1] || 'production'}`}
-                      onError={() => trace('ui.error', { source: 'boundary' })}
-                    >
+                    <ErrorBoundary key={pageBoundaryKey(data.projectFolder, location.pathname)} onError={() => trace('ui.error', { source: 'boundary' })}>
                       <Routes>
                         <Route
                           path="/"

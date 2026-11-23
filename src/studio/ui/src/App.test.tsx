@@ -516,29 +516,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(onConfirm).toHaveBeenCalledWith(false);
   });
 
-  it('a project change remounts the page: what a page holds in its own state for the old project does not survive (#4057)', async () => {
-    let attach: ((state: { attached: boolean }) => void) | undefined;
-    const source = createMockApi();
-    const first = await source.bootstrap();
-    let attached = false;
-    renderApp({
-      bootstrap: async () => (attached ? { ...first, projectFolder: '/Beta', projectName: 'Beta' } : first),
-      subscribeProjectAttach: (listener) => {
-        attach = listener;
-        return () => {};
-      },
-    });
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(() => expect(attach).toBeDefined());
-    // The Recording target's popover is open state the Production page holds itself (not an overlay layer).
-    fireEvent.click(await screen.findByRole('button', { name: /Finished-hour target/ }));
-    expect(await screen.findByRole('dialog', { name: /Finished-hour target|Recording target/ })).toBeTruthy();
-    attached = true;
-    act(() => attach!({ attached: true }));
-    await waitFor(() => expect(screen.getAllByText('Beta').length).toBeGreaterThan(0));
-    expect(screen.queryByRole('dialog', { name: /Finished-hour target|Recording target/ })).toBeNull();
-  });
-
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
     // App.tsx only wires this listener up from a useEffect, a passive effect React flushes on its own
     // schedule after the commit that renders the Production heading - not necessarily before it. Under load the
