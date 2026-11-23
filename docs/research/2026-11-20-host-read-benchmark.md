@@ -382,4 +382,20 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 
 The Schedule, the Companion's "This chapter" and the finished-hour pace no longer read the chapters from `productionOverview`: they take the chapter set, names, kinds, words and recorded seconds from the shared chapter list (the store's `chapters` slot), and the overview's `hoursLogged`, `pfh` and `readiness` stay on the overview, matched by id. The Schedule's first read serves the held list; its minute tick, focus and Retry read it fresh. The measurements port no longer has `chapterLengths`, so the pace is no longer a second overview read on every page that shows it.
 
-- measurements: see PR body
+Mock host, `scripts/dev/page-bench.mjs`, 1, 5, 17 and 40 h, `--runs 5`, `main` (bf91de08f) against this change, one build after the other. Calls / answer KB, cold then warm:
+
+| Page | 1 h | 5 h | 17 h | 40 h |
+| - | - | - | - | - |
+| Production cold, main | 50 / 119 | 50 / 157 | 50 / 237 | 50 / 388 |
+| Production cold, this change | 46 / 111 | 46 / 136 | 46 / 187 | 46 / 285 |
+| Production warm, main | 32 / 61 | 32 / 88 | 32 / 151 | 32 / 268 |
+| Production warm, this change | 28 / 52 | 28 / 67 | 28 / 101 | 28 / 164 |
+| Schedule cold, main | 26 / 80 | 26 / 94 | 26 / 126 | 26 / 186 |
+| Schedule cold, this change | 24 / 75 | 24 / 81 | 24 / 93 | 24 / 118 |
+| Schedule warm, main | 12 / 32 | 12 / 40 | 12 / 59 | 12 / 95 |
+| Schedule warm, this change | 10 / 27 | 10 / 27 | 10 / 27 | 10 / 27 |
+| Booth cold and warm | unchanged: 60 / 142-186 cold, 49 / 105 warm | | | |
+
+Nodes are unchanged on all three pages. Time to usable moved by less than the run-to-run spread (Production cold at 40 h read 639 ms on main and 780 ms here; the other cells differ by under 10 %), so no time gain is claimed: the mock's milliseconds are fixtures. The saved calls are the overview reads the pace and the Schedule made beside the page's own, and the saved KB are their answers, which carried every chapter's title and numbers. This was done for consistency, not for speed.
+
+Not measured: the real host and Windows, 300 chapters on the mock, the Companion (it is not in the page list of the bench), the Schedule's minute tick (it now reads the chapter list, not the overview).
