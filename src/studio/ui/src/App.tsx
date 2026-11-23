@@ -678,9 +678,11 @@ function AppRoutes() {
   }, [overlay]);
   const shownProject = useRef(data?.projectFolder);
   useEffect(() => {
-    if (shownProject.current === data?.projectFolder) return;
+    const before = shownProject.current;
+    if (before === data?.projectFolder) return;
     shownProject.current = data?.projectFolder;
-    closeProjectDialogs();
+    // The first bootstrap names a project; it is not a change from one (a layer the narrator opened while the app was still loading, the jump menu, is still theirs).
+    if (before !== undefined) closeProjectDialogs();
   }, [data?.projectFolder, closeProjectDialogs]);
 
   // Wails forwards a second REAPER launch to the existing native window. The
