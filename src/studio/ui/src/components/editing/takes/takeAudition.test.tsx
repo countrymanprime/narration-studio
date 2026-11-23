@@ -9,7 +9,7 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
 import { PortOverrides } from '../../../ports/usePort';
-import { dawPlayOwner } from '../../../playback/dawPlayOwner';
+import { previewPlayOwner } from '../../../playback/dawPlayOwner';
 import { READ_FAILED, type DawRead } from '../../../playback/providers';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import type { LinePassage, LineTake } from './types';
@@ -74,7 +74,7 @@ const flush = () =>
   });
 
 beforeEach(() => {
-  dawPlayOwner.forget();
+  previewPlayOwner.forget();
   hidden = null;
   vi.useFakeTimers();
   audio = new FakeAudio();
