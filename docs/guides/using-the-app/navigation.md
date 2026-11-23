@@ -47,7 +47,7 @@ When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left`
 
 ## The header and the footer
 
-Every page keeps a strip along the bottom of its area, one message high, for the messages that come and go (the toast with **Undo** or **Retry**). A message stands in that strip, so nothing on the page moves or is covered when one comes, and the strip is empty when there is none; a second message showing at the same time makes the strip taller and the page shorter until one goes. A window 520 px tall or shorter has no strip: there a message floats at the bottom edge, above the bars along it.
+Every page keeps a strip along the bottom of its area, one message high, for the messages that come and go (the toast with **Undo** or **Retry**). A message stands in that strip, so nothing on the page moves or is covered when one comes, and the strip is empty when there is none; a second message waits behind the first, with a small **+1** in it, and takes its place when the first goes, so the strip never changes size. A long message shows two lines and scrolls inside the message (Tab reaches it). A window 520 px tall or shorter has no strip: there a message floats at the bottom edge, above the bars along it.
 
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, a zoom chip when you are zoomed,
 **Jump to or run…** (`Ctrl+K`), and the engine chip. The zoom chip appears on the left of the jump button, in the header's empty middle, so the jump button and the engine chip do not move when it comes or goes. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.

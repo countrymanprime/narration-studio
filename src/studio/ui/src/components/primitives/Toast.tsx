@@ -3,7 +3,7 @@ import { HIT_AREA } from './hitArea';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type ToastTone = 'info' | 'error';
@@ -55,7 +55,33 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
   return Math.min(message.tone === 'error' ? Math.max(own, base) : own, TOAST_MAX_MS);
 }
 
-function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessage; dismiss: (id: number) => void; waiting?: boolean }) {
+// The cue that the text has more above or below, in the toast's own colours, drawn only while the text scrolls (on text that fits it left two grey blocks in the scrollbar gutter).
+const TEXT_SCROLL_CUE =
+  '[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
+
+function ToastItem({
+  message,
+  dismiss,
+  waiting = false,
+  more = 0,
+}: {
+  message: ToastMessage;
+  dismiss: (id: number) => void;
+  waiting?: boolean;
+  more?: number;
+}) {
+  // A message of more than two lines is read by scrolling its text, which then needs the keyboard too: the text takes focus only while it overflows (#2793).
+  const text = useRef<HTMLSpanElement>(null);
+  const [scrolls, setScrolls] = useState(false);
+  useEffect(() => {
+    const el = text.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () => setScrolls(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [message.text]);
   const [leaving, setLeaving] = useState(false);
   const isError = message.tone === 'error';
   const { id } = message;
@@ -90,7 +116,9 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
   // The control that had focus before the toast took it: where focus goes back once the toast is gone and no other toast is to take it.
   const origin = useRef<HTMLElement | null>(null);
   const settle = (from: HTMLElement, always: boolean) => {
-    const all = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')];
+    const all = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')].filter(
+      (button) => !button.closest('[hidden]'),
+    );
     const own = from.closest('[data-tone]')?.querySelector<HTMLElement>('[aria-label="Dismiss message"]');
     const at = own ? all.indexOf(own) : -1;
     const target = all[at + 1] ?? all[at - 1] ?? origin.current;
@@ -134,10 +162,10 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
         focused.current = false;
         hold();
       }}
-      // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
+      // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 56 px tall (room for two lines of text) with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
-      className={`relative ${waiting ? 'hidden' : 'flex'} h-[2.8125rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      className={`relative ${waiting ? 'hidden' : 'flex'} h-[3.5rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {/* The time left (#3667): a 3 px bar along the bottom edge inside the clipped box, so it takes no room and sits under no button (the buttons end 6 px above it). It shrinks over the
@@ -161,11 +189,26 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
       ) : (
         message.icon && <FontAwesomeIcon icon={message.icon} aria-hidden="true" className="flex-none" />
       )}
-      {/* One line, always: a long message (one word of 10,000 letters, a pasted error) is cut with an ellipsis and carries its whole text as its title; the text stays in the live region, so a screen
-          reader reads all of it. The toast is a fixed 45 px high, so the slot the shell keeps for it (`--toast-slot`) never changes size and showing one moves nothing (#4063). */}
-      <span data-toast-text dir="auto" title={message.text} className="min-w-0 truncate">
+      {/* At most two lines (#4063, #2793): a long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast, which is a fixed height, so the slot the shell
+          keeps for it (`--toast-slot`) never changes size and showing one moves nothing. The text takes focus only while it scrolls, so the keyboard reaches all of it; a screen reader reads all of it from the live region. */}
+      <span
+        ref={text}
+        data-toast-text
+        dir="auto"
+        tabIndex={scrolls ? 0 : undefined}
+        className={`max-h-[2.5em] min-w-0 overflow-y-auto leading-tight [overflow-wrap:anywhere] ${scrolls ? TEXT_SCROLL_CUE : ''}`}
+      >
         {message.text}
       </span>
+      {more > 0 && (
+        <span
+          data-toast-more
+          title={`${more} more ${more === 1 ? 'message' : 'messages'} waiting`}
+          className="flex-none text-[0.75rem] font-semibold tabular-nums opacity-80"
+        >
+          +{more}
+        </span>
+      )}
       {message.action && (
         <button
           title={message.action.label}
@@ -196,20 +239,6 @@ function ToastItem({ message, dismiss, waiting = false }: { message: ToastMessag
       </button>
     </div>
   );
-}
-
-/** Whether a modal dialog is open: `useToastsClearOfModal` sets the root's attribute while one is. */
-function useModalOpen(): boolean {
-  const [open, setOpen] = useState(() => typeof document !== 'undefined' && document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE));
-  useEffect(() => {
-    const root = document.documentElement;
-    const update = () => setOpen(root.hasAttribute(MODAL_OPEN_ATTRIBUTE));
-    update();
-    const watch = new MutationObserver(update);
-    watch.observe(root, { attributes: true, attributeFilter: [MODAL_OPEN_ATTRIBUTE] });
-    return () => watch.disconnect();
-  }, []);
-  return open;
 }
 
 // The region keeps the page gutter from the window's right and bottom edges, where the top bar's and the footer's content end (alignment audit XBO-13).
@@ -250,15 +279,15 @@ function keepFocusInDialog(): void {
 /** Where the toasts stand above the window's bottom edge, in px, and the slot the shell keeps for one toast there (`--toast-bottom`, `--toast-slot`). */
 const TOAST_SLOT_PROPERTY = '--toast-slot';
 const TOAST_BOTTOM_PROPERTY = '--toast-bottom';
-/** A toast's height (`h-[2.8125rem]`) and the air above it, in rem; the gap under it is the page gutter, or half of it in a window 400 px tall or less, where a permanent slot costs more of what is left. */
-const TOAST_HEIGHT_REM = 2.8125;
+/** A toast's height (`h-[3.5rem]`: two lines of text) and the air above it, in rem; the gap under it is the page gutter, or half of it in a window 400 px tall or less, where a permanent slot costs more of what is left. */
+const TOAST_HEIGHT_REM = 3.5;
 const TOAST_AIR_REM = 0.5;
 /** A window this tall or shorter keeps no slot: the toast floats at the edge. Far below the product's 960 px minimum window, where the Booth's panels need the room (`tiny-window-overflow.spec.ts`, 300 to 520 px). */
 const SHORT_WINDOW_PX = 520;
 
 /**
  * Keeps a slot for one toast, always, so showing one moves nothing (#4063, owner decision): the shell ends the page above it (`AppShell`), and a toast stands in it at the gutter, covering no
- * button and shifting no layout (`error-shift.spec.ts`). The slot is one toast high, so a second toast, or a taller stack, takes more (`--toast-h`). Set on the root in px, because the clearance
+ * button and shifting no layout (`error-shift.spec.ts`). The slot is one toast high and never grows: the region shows one toast, and the others wait their turn (`pickShown`), so a second message moves nothing. Set on the root in px, because the clearance
  * of what is fixed over the window's bottom edge reads it as a number (`useToastClearance`). Removed with the region.
  */
 function useToastSlot(): void {
@@ -295,7 +324,7 @@ const STRIP_MAX_SHARE = 0.6;
  * While a toast shows, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top.
  * Over an open modal dialog, `Dialog` reads it in a window 400 px tall or less and takes what is left above the toasts, so a toast does not sit on its content or its focused
  * control (#3605, #3601; `DIALOG_TOAST_ROOM`). With no dialog open, the shell reads it (`AppShell`) and ends the page above the toasts, so a toast stands in a strip of its own
- * and covers no button, whatever the page, its bars or its scrolling columns are (#4063): the strip is held to `STRIP_MAX_SHARE` of the window (a stack of one-line toasts). With no toast the property is not set,
+ * and covers no button, whatever the page, its bars or its scrolling columns are (#4063): the strip is held to `STRIP_MAX_SHARE` of the window. With no toast the property is not set,
  * so nothing moves. It follows the region's height, a resize of the window and a dialog opening or closing.
  */
 function useToastHeightPublished(region: { current: HTMLElement | null }, showing: boolean): void {
@@ -309,7 +338,7 @@ function useToastHeightPublished(region: { current: HTMLElement | null }, showin
       const rem = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
       const room = Math.ceil(window.innerHeight - first.getBoundingClientRect().top + TOAST_AIR_REM * rem);
       const modal = root.hasAttribute(MODAL_OPEN_ATTRIBUTE);
-      // A short window keeps no strip (see `useToastSlot`), over a dialog or not the room is what a dialog reads.
+      // A short window keeps no strip (see `useToastSlot`), over a dialog or not the room is what a dialog reads. One toast is showing at most, so the strip is the slot's own height.
       const strip = window.innerHeight <= SHORT_WINDOW_PX ? 0 : Math.min(room, Math.floor(window.innerHeight * STRIP_MAX_SHARE));
       root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${modal ? room : strip}px`);
       // The dialog's room just changed: the field being typed in must not be left half under the popup's new edge.
@@ -367,18 +396,24 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // The messages the app shows, newest last. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
+/** Which queued message shows: an action toast (an Undo, a Retry) first, then an error, then information; the oldest of a rank first, and a later one of a higher rank takes the slot. */
+function rank(message: ToastMessage): number {
+  return message.action ? 0 : message.tone === 'error' ? 1 : 2;
+}
+export function pickShown(queued: readonly ToastMessage[]): ToastMessage | undefined {
+  let best: ToastMessage | undefined;
+  for (const message of queued) if (!best || rank(message) < rank(best)) best = message;
+  return best;
+}
+
 export function ToastRegion({ messages: queued, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   const region = useRef<HTMLDivElement>(null);
-  // With a dialog open only the newest toast shows, at every window size, and it is one 45 px line: a toast that size fits the 4.75rem every dialog leaves under it, so it covers
-  // no button and the dialog does not move when it comes or goes (#3605; a stack, or a message of three lines, was taller than that room at any width).
-  // The older ones stay queued, unmounted, so their time starts when they appear, after the newest goes. An older information toast with an action is the exception: what its
-  // action can still do is timed from when it was raised (the picker sends a removal 6 s after Remove), so it stays mounted, not drawn, with its clock running, and comes back
-  // with the time it has left or not at all; shown afresh, its Undo answered "already removed" (qa on #3745).
-  // With no dialog open there is no chrome to keep, and an older error with its Retry is not hidden by a newer message.
-  const modal = useModalOpen();
-  const messages = modal ? queued.slice(-1) : queued;
-  const waits = (message: ToastMessage) => !messages.includes(message);
-  const mounted = queued.filter((message) => !waits(message) || (message.tone === 'info' && message.action !== undefined));
+  // One toast shows, in a slot that never changes size (#4063); the others wait their turn, with a count in the toast (`+N`), and nothing is drawn over a button. Which shows: `pickShown`. A waiting
+  // toast is not mounted, so its time starts when it shows, except one with an action (an Undo, a Retry): that stays mounted, not drawn, with its clock running, because what its action can still do is timed from when it was raised (the picker sends a removal 6 s after Remove; an Undo shown afresh answered "already removed", qa on #3745). An action toast ranks first, so only another action toast can make one wait, and it then shows for the time it has left. Over a dialog the same one toast shows, a box that fits the 4.75rem every dialog leaves under it (#3605).
+  const shown = pickShown(queued);
+  const messages = shown ? [shown] : [];
+  const waits = (message: ToastMessage) => message !== shown;
+  const mounted = queued.filter((message) => !waits(message) || message.action !== undefined);
   const showing = messages.length > 0;
   useToastSlot();
   useToastHeightPublished(region, showing);
@@ -388,7 +423,6 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
     <div
       ref={region}
       data-toast-region
-      style={{ '--toast-n': Math.max(1, messages.length) } as CSSProperties}
       onKeyDown={(event) => routeTabAcrossToasts(event, topModal())}
       // While a modal is open, a press on a toast's plain text would take focus from the dialog's control to <body> (the toast is outside the dialog); a press on
       // the toast's own button or link is the browser's.
@@ -396,20 +430,20 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
         if (document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE) && !(event.target as Element).closest('button, a, input, select, textarea, [tabindex]'))
           event.preventDefault();
       }}
-      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[var(--toast-bottom,var(--page-gutter))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end [&>div:not(:empty)+div:not(:empty)]:mt-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)] [@media(max-height:520px)]:bottom-[calc(var(--page-gutter)+min(var(--toast-clear,0px),calc(100dvh-2*var(--page-gutter)-max(8rem,calc(var(--toast-n,1)*2.8125rem+(var(--toast-n,1)-1)*0.5rem+0.25rem)))))]"
+      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[var(--toast-bottom,var(--page-gutter))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end [&>div:not(:empty)+div:not(:empty)]:mt-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)] [@media(max-height:520px)]:bottom-[calc(var(--page-gutter)+min(var(--toast-clear,0px),calc(100dvh-2*var(--page-gutter)-8rem)))]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {mounted
           .filter((message) => message.tone === 'error')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} waiting={waits(message)} more={waits(message) ? 0 : queued.length - 1} />
           ))}
       </div>
       <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {mounted
           .filter((message) => message.tone === 'info')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} waiting={waits(message)} />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} waiting={waits(message)} more={waits(message) ? 0 : queued.length - 1} />
           ))}
       </div>
     </div>,

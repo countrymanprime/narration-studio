@@ -61,13 +61,15 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(await timesSaid(page, REFUSAL)).toBe(1);
       // The footer is the size it was before the refusal (it never grew a sentence's rows).
       expect(await footerHeight(page)).toBe(idleFooter);
-      // The message is whole and inside the window: its text does not scroll, its action and Dismiss are on screen, nothing overflows sideways.
+      // The message is whole and inside the window: its text is the whole sentence, and when it is longer than two lines it scrolls inside the toast and takes a Tab stop so every word is
+      // reachable (#2793); its action and Dismiss are on screen, nothing overflows sideways.
       const fits = await page.evaluate(() => {
         const text = document.querySelector<HTMLElement>('[data-toast-region] [data-tone="error"] [data-toast-text]')!;
         const box = document.querySelector('[data-toast-region] [data-tone="error"]')!.getBoundingClientRect();
         const dismiss = document.querySelector('[data-toast-region] [data-tone="error"] [aria-label="Dismiss message"]')!.getBoundingClientRect();
         return {
-          clipped: text.scrollHeight > text.clientHeight + 1,
+          clipped: text.scrollHeight > text.clientHeight + 1 && text.tabIndex !== 0,
+          whole: text.textContent?.includes('Unlock it and try again.') ?? false,
           inside: box.left >= 0 && box.right <= window.innerWidth && box.top >= 0 && box.bottom <= window.innerHeight,
           dismissInside: dismiss.right <= window.innerWidth && dismiss.bottom <= window.innerHeight,
           sideways: document.documentElement.scrollWidth > window.innerWidth,
@@ -76,6 +78,7 @@ for (const scheme of ['light', 'dark'] as const) {
       });
       expect(await toastProblems(page)).toEqual([]);
       expect(fits.clipped).toBe(false);
+      expect(fits.whole).toBe(true);
       expect(fits.inside).toBe(true);
       expect(fits.dismissInside).toBe(true);
       expect(fits.sideways).toBe(false);
@@ -191,14 +194,17 @@ for (const { width, height } of [
     await expect(record(page)).toBeVisible({ timeout: 8000 });
     await pastStartGuard(page);
     await page.keyboard.press('Space');
-    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
     await page.keyboard.press('b');
-    await expect.poll(async () => page.locator('[data-toast-region] [data-tone]').count()).toBeGreaterThanOrEqual(3);
+    // One toast shows in the slot and the rest wait behind it with a count (#4063); each takes the slot in turn, so every one is looked at.
+    const more = page.locator('[data-toast-region] [data-toast-more]');
+    await expect(more).toBeVisible();
+    await expect.poll(async () => Number((await more.textContent())?.replace('+', ''))).toBeGreaterThanOrEqual(2);
     await page.waitForTimeout(400);
+    expect(await page.locator('[data-toast-region] [data-tone]:not([hidden])').count()).toBe(1);
     expect(await toastProblems(page)).toEqual([]);
     // Every button is the topmost element at its own centre: nothing covers it.
     const covered = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')]
+      [...document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone]:not([hidden]) button')]
         .filter((button) => {
           const box = button.getBoundingClientRect();
           const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);

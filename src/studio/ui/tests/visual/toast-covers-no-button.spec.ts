@@ -1,6 +1,6 @@
 // Owner rule: no toast or element may cover a button (#4063). On every page with the sidebar, at 1440x900, 1100x800, 960x700 and 768x1024, in both themes, an error toast
 // with Retry (one, and two stacked), the longest kind the app raises, overlaps no button, link or [role=button] of the page that is visible at that moment, and
-// the toast's own buttons are at least 24 px each way (WCAG 2.2 target size). The shell always keeps a slot for one toast under the page (`--toast-slot`, and `--toast-h` for a stack; `AppShell`); a page that cannot is listed in TOAST_COVERS_DEBT with a reason and an issue, as `layout-debt.ts` does.
+// the toast's own buttons are at least 24 px each way (WCAG 2.2 target size). The shell always keeps a slot for one toast under the page (`--toast-slot`; `AppShell`) that never grows: one toast shows, the rest wait behind it; a page that cannot is listed in TOAST_COVERS_DEBT with a reason and an issue, as `layout-debt.ts` does.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
@@ -75,6 +75,14 @@ const visibleButtons = (): string[] => {
 };
 
 /** What is raised: the longest message the app says with a second toast, a pasted error of 1,500 characters (the qa-breaker's B2), and the four toasts the app keeps (B3). The last two run on three pages in light. */
+/** Where every button the page shows stands, by label and place: a toast, one or four, must move none of them (the Booth's Record must not jump when a take's second toast arrives). */
+const buttonPlaces = () =>
+  [...document.querySelectorAll<HTMLElement>('button, a[href], [role="button"]')]
+    .filter((b) => !b.closest('[data-toast-region], [hidden], [inert], [aria-hidden="true"]'))
+    .map((b, i) => ({ key: `${i} ${b.getAttribute('aria-label') ?? b.textContent?.trim().slice(0, 30)}`, r: b.getBoundingClientRect() }))
+    .filter(({ r }) => r.width > 0 && r.height > 0)
+    .map(({ key, r }) => `${key} @${Math.round(r.left)},${Math.round(r.top)}`);
+
 const VARIANTS: Array<{ name: string; texts: string[]; pages?: string[]; themes: ReadonlyArray<'light' | 'dark'> }> = [
   { name: 'a Retry toast', texts: [LONG, 'The take could not be saved. Try again.'], themes: ['light', 'dark'] },
   {
@@ -103,12 +111,14 @@ for (const variant of VARIANTS) {
           await c.open(page);
           await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
           const before = await page.evaluate(visibleButtons);
+          const placesBefore = await page.evaluate(buttonPlaces);
           for (const text of variant.texts) {
             await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
           }
           await page.locator('[data-toast-region] [data-tone="error"]').first().waitFor();
           await page.mouse.move(size.width - 2, 2);
           await page.waitForFunction(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-h')) > 0);
+          const placesAfter = await page.evaluate(buttonPlaces);
           await page.waitForTimeout(250);
           const after = await page.evaluate(visibleButtons);
           // A button in view before the toast that is out of view after it must be in a scrolling column, so it is still reachable; the page is shorter by the strip.
@@ -156,9 +166,12 @@ for (const variant of VARIANTS) {
               const r = t.getBoundingClientRect();
               return [r.left, r.top, r.right, r.bottom].map(Math.round);
             });
-            return { covered, small, boxes, count: toasts.length };
+            return { covered, small, boxes, count: toasts.length, more: Number(region.querySelector('[data-toast-more]')?.textContent?.replace('+', '') ?? 0) };
           });
-          expect(result.count, 'every toast is drawn').toBe(variant.texts.length);
+          // One toast shows in the slot, and the rest wait behind it with a count; a second or a fourth never resizes the strip or moves the page.
+          expect(result.count, 'one toast is drawn').toBe(1);
+          expect(result.more, 'the rest are counted').toBe(variant.texts.length - 1);
+          expect(placesAfter, 'showing toasts moves no button').toEqual(placesBefore);
           const debt = TOAST_COVERS_DEBT.find((d) => d.page === c.name && d.widths.includes(size.width));
           if (debt) {
             expect(result.covered.length, `${c.name} is listed as covered (${debt.reason}, #${debt.issue}); delete the entry once it is not`).toBeGreaterThan(

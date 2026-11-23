@@ -103,8 +103,10 @@ for (const theme of ['light', 'dark'] as const) {
         await settleLayout(page);
         await expect(regions(page)).toHaveCount(1);
         // Not an empty wrapper: the raised toasts are in that one region, visible, with text.
-        const toasts = regions(page).locator('[data-tone]');
-        await expect.poll(() => toasts.count(), `${size.name}: toasts in the region`).toBeGreaterThanOrEqual(c.toasts);
+        // One toast is drawn, the rest wait behind it with a count (#4063); a waiting toast with an action stays mounted, hidden.
+        const toasts = regions(page).locator('[data-tone]:not([hidden])');
+        await expect.poll(() => toasts.count(), `${size.name}: a toast in the region`).toBe(1);
+        if (c.toasts > 1) await expect(regions(page).locator('[data-toast-more]'), `${size.name}: the rest are counted`).toHaveText(`+${c.toasts - 1}`);
         for (let i = 0; i < (await toasts.count()); i += 1) {
           await expect(toasts.nth(i)).toBeVisible();
           expect(((await toasts.nth(i).textContent()) ?? '').trim().length, `${size.name}: toast ${i} has text`).toBeGreaterThan(0);
@@ -115,7 +117,7 @@ for (const theme of ['light', 'dark'] as const) {
         expect(region.x + region.width, `${size.name}: right edge on screen`).toBeLessThanOrEqual(size.width);
         expect(region.y + region.height, `${size.name}: bottom edge on screen`).toBeLessThanOrEqual(size.height);
         if (c.action) {
-          const buttons = regions(page).getByRole('button', { name: c.action });
+          const buttons = toasts.getByRole('button', { name: c.action });
           await expect(buttons.first()).toBeVisible();
           for (let i = 0; i < (await buttons.count()); i += 1) {
             const box = (await buttons.nth(i).boundingBox())!;

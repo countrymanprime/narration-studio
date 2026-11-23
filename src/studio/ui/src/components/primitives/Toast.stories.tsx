@@ -50,7 +50,7 @@ export const LongUnbrokenWithAction: Story = {
   },
 };
 
-// Messages queue up instead of replacing each other; errors sit above the information messages.
+// Messages queue up instead of replacing each other: one shows, an error before information, with the count of the rest.
 export const Queue: Story = {
   args: {
     messages: [
@@ -131,7 +131,7 @@ export const DismissRemovesOne: Story = {
   },
 };
 
-// One word with no spaces, 10,000 letters long, on a toast that has an action (#2899): the text wraps inside a box that is never taller than the window,
+// One word with no spaces, 10,000 letters long, on a toast that has an action (#2899): the text wraps inside a box that is two lines at most, a fixed height,
 // scrolls inside itself, and the action and Dismiss stay on screen and reachable. In a real browser this fails if the toast grows past the window.
 export const HugeWord: Story = {
   args: { messages: [{ ...failure(1, 'x'.repeat(10_000)), action: { label: 'Retry', onAction: fn() } }] },
@@ -148,21 +148,22 @@ export const HugeWord: Story = {
       await expect(button.bottom).toBeLessThanOrEqual(window.innerHeight);
       await expect(button.right).toBeLessThanOrEqual(window.innerWidth);
     }
-    // The text is one line cut with an ellipsis inside the box (nothing runs off sideways), and its whole text is the title. A browser
+    // The text wraps anywhere inside the box (nothing runs off sideways), is at most two lines high and scrolls inside itself, and takes focus because it does. A browser
     // with layout only: the unit run has none (every size is 0), where this is skipped.
     const text = toast!.querySelector<HTMLElement>('[data-toast-text]');
     await expect(text).not.toBeNull();
     if (text!.clientHeight > 0) {
       await expect(text!.getBoundingClientRect().right).toBeLessThanOrEqual(toast!.getBoundingClientRect().right + 1);
-      await expect(getComputedStyle(text!).textOverflow).toBe('ellipsis');
-      await expect(text!.getAttribute('title')).toBe(text!.textContent);
+      await expect(text!.scrollHeight).toBeGreaterThan(text!.clientHeight);
+      await expect(text!.clientHeight).toBeLessThanOrEqual(toast!.clientHeight);
+      await expect(text!.tabIndex).toBe(0);
     }
     void canvasElement;
   },
 };
 
 const action = { label: 'Retry', onAction: fn() };
-// Several toasts at once share the window: each one's text is capped to its share, so no toast's Retry or Dismiss ends up above the window (#2899).
+// Several toasts at once: one shows in the slot, the rest wait behind it with a +N count (#4063); each one's text is capped at two lines, so no toast's Retry or Dismiss ends up above the window (#2899).
 export const TwoHugeWords: Story = {
   args: {
     messages: [
@@ -210,7 +211,7 @@ function WithBoothBars({ children }: { children: ReactNode }) {
   }, []);
   return <>{children}</>;
 }
-/** Two long failures with Retry: the stack the shell's strip is held to half the window for (the toasts stand under the page, so no bar is simulated). */
+/** Two long failures with Retry: one shows in the slot under the page with +1 behind it (the toasts stand under the page, so no bar is simulated). */
 export const TwoToastsAboveTheBoothBars: Story = {
   decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
   args: {
@@ -250,7 +251,7 @@ async function everyButtonOnScreen(toasts: number, buttonCount = toasts * 2) {
   }
   return true;
 }
-// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four) above the Booth's bars: the stack gives the bars less room so each toast keeps its least height (#3322).
+// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four): one shows, three wait behind it (+3), above the Booth's bars in a short window (#3322).
 export const FourToastsAboveTheBoothBars: Story = {
   decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
   args: {

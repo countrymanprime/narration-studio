@@ -101,7 +101,7 @@ function focusMainOnceDialogsClose(main: HTMLElement | null): (() => void) | und
   };
 }
 
-/** The shell always keeps a slot under the page for one message (`--toast-slot`, set by `ToastRegion`), so a message shows in it and moves nothing and covers nothing; a stack takes more (`--toast-h`). Over a dialog the page keeps the slot. */
+/** The shell always keeps a slot under the page for one message (`--toast-slot`, set by `ToastRegion`), so a message shows in it and moves nothing and covers nothing, and it never grows: one message shows, the rest wait behind it. Over a dialog the page keeps the slot. */
 const TOAST_STRIP = 'pb-[max(var(--toast-slot,0px),var(--toast-h,0px))] [:root[data-modal-open]_&]:pb-[var(--toast-slot,0px)]';
 
 export function AppShell({

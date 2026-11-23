@@ -13,7 +13,7 @@ const bars = new Map<HTMLElement, boolean>();
 /** Fired on the window when the toasts' strip changes (`--toast-h`, published by `ToastRegion`): the bars moved with the page, so the clearance is read again. */
 export const TOAST_ROOM_EVENT = 'toast-room';
 
-/** The strip the shell keeps under the page for a message (`--toast-slot`, or `--toast-h` for a stack): it lifts every bar by that much, so what is fixed over the window's edge clears it too. A dialog leaves the slot, where the page keeps its size. */
+/** The strip the shell keeps under the page for a message (`--toast-slot`): it lifts every bar by that much, so what is fixed over the window's edge clears it too. A dialog leaves the slot, where the page keeps its size. */
 function strip(): number {
   const root = document.documentElement;
   const slot = Number.parseFloat(root.style.getPropertyValue('--toast-slot')) || 0;
