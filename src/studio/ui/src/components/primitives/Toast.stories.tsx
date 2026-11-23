@@ -229,11 +229,14 @@ export const TwoToastsAboveTheBoothBars: Story = {
 };
 
 /** Every button of every toast is on screen: the story runs in the 320 x 300 window (the `tiny-window` tag), so the window is the one measured. */
-async function everyButtonOnScreen(toasts: number, buttonCount = toasts * 2) {
+async function everyButtonOnScreen(toasts: number, buttonCount = toasts * 2, waiting = 0) {
   // Let the layout settle (the bars' variable, the toasts' share of the window) before measuring.
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   const buttons = [...document.body.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')];
   await expect(buttons).toHaveLength(buttonCount);
+  // One toast is drawn whatever is queued (#4063); the rest wait behind it, counted by the badge.
+  await expect(document.body.querySelectorAll('[data-toast-region] [data-tone]')).toHaveLength(toasts);
+  await expect(document.body.querySelector('[data-toast-more]')?.textContent ?? null).toBe(waiting > 0 ? `+${waiting}` : null);
   // The unit run has no layout (every size is 0, the window is its own): the measuring below is for the browser, where the story runs in the 320 x 300 window.
   if (buttons[0]!.getBoundingClientRect().width === 0) return false;
   await expect([window.innerWidth, window.innerHeight]).toEqual([320, 300]);
@@ -282,14 +285,15 @@ export const TwoHugeWordsInTinyWindow: Story = {
   ...TwoHugeWords,
   tags: ['tiny-window'],
   play: async () => {
-    await everyButtonOnScreen(2);
+    // One toast shows (Retry and Dismiss), the other waits: +1.
+    await everyButtonOnScreen(1, 2, 1);
   },
 };
 export const FiveLongMessagesInTinyWindow: Story = {
   ...FiveLongMessages,
   tags: ['tiny-window'],
   play: async () => {
-    await everyButtonOnScreen(5);
+    await everyButtonOnScreen(1, 2, 4);
   },
 };
 export const LongRefusalWithActionInTinyWindow: Story = {
@@ -303,8 +307,8 @@ export const FourToastsAboveTheBoothBarsInTinyWindow: Story = {
   ...FourToastsAboveTheBoothBars,
   tags: ['tiny-window'],
   play: async () => {
-    // Three buttons carry an action and all four have Dismiss.
-    await everyButtonOnScreen(4, 7);
+    // The first of four shows with its Retry and Dismiss; three wait behind it.
+    await everyButtonOnScreen(1, 2, 3);
   },
 };
 export const LongActionLabelInTinyWindow: Story = {
@@ -318,6 +322,6 @@ export const TwoToastsAboveTheBoothBarsInTinyWindow: Story = {
   ...TwoToastsAboveTheBoothBars,
   tags: ['tiny-window'],
   play: async () => {
-    await everyButtonOnScreen(2);
+    await everyButtonOnScreen(1, 2, 1);
   },
 };
