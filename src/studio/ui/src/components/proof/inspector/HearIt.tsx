@@ -135,7 +135,7 @@ export function HearIt({
         name: dawName,
         // A DAW that has not yet said what it can do is asked at once: no check stands between the click and the sound.
         readiness: () => playReadiness(capabilities ?? null, 'navigate', capabilitiesFailed),
-        play: async (note) => {
+        play: async (note, { late }) => {
           let answer: FindingNavigation;
           try {
             answer = await api.findingsLoop(note.id);
@@ -143,6 +143,11 @@ export function HearIt({
             return { played: false, why: `The DAW was not asked: ${apiErrorMessage(error)}` };
           }
           if (answer.outcome === 'looping') {
+            // The deadline passed while the DAW was answering: the app plays in its place, so this loop is stopped, not left beside it.
+            if (late()) {
+              void api.findingsStopLoop().catch(() => undefined);
+              return { played: true };
+            }
             looped.current = true;
             setPlaying('daw');
             return { played: true };

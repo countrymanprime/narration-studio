@@ -246,6 +246,21 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     expect(notices).toEqual(['REAPER did not answer. Played in the app instead.']);
     expect(retries).toHaveLength(1);
   });
+  it('a playRange answered after the deadline is stopped, not left playing beside the app', async () => {
+    let answer: (value: DawResult) => void = () => {};
+    transport = vi.fn((action: string) => (action === 'playRange' ? new Promise<DawResult>((resolve) => (answer = resolve)) : Promise.resolve(ok)));
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    act(() => void result.current.play(pickup(15)));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    });
+    expect(transport).not.toHaveBeenCalledWith('stop', 0);
+    await act(async () => {
+      answer(ok);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(transport).toHaveBeenCalledWith('stop', 0);
+  });
   it('a second press stops the DAW', async () => {
     const { result } = await mountRead(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(15)));

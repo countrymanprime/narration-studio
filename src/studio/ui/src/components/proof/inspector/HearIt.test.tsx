@@ -221,9 +221,10 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
 
   it('a loop call that never answers hands the note to the app after the deadline, with Retry', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    let answerLoop: (value: FindingNavigation) => void = () => {};
     try {
       const api: HearItApi = {
-        findingsLoop: vi.fn(() => new Promise<FindingNavigation>(() => {})),
+        findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => (answerLoop = resolve))),
         findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
       };
       render(
@@ -236,6 +237,10 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
       expect(toasted()[0]).toBe('REAPER did not answer. Played in the app instead.');
       expect(toasted()[1]?.action?.label).toBe('Retry');
+      // The DAW answers after all: its loop is stopped, not left beside the app's clip.
+      answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(api.findingsStopLoop).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();
     }

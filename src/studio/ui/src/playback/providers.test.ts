@@ -172,6 +172,24 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
     expect(await pending).toMatchObject({ by: APP, notice: 'REAPER did not answer. Played in the app instead.' });
   });
+  it('tells a provider that answers after the deadline that it is late', async () => {
+    let answer: (a: { played: true }) => void = () => {};
+    const seen = { before: true, after: false };
+    const slow = {
+      name: 'REAPER',
+      readiness: () => ({ ready: true as const }),
+      play: (_: number, ctx: { late: () => boolean }) => {
+        seen.before = ctx.late();
+        return new Promise<{ played: true }>((resolve) => (answer = (a) => ((seen.after = ctx.late()), resolve(a))));
+      },
+    };
+    const app = provider(APP, { ready: true }, { played: true });
+    const pending = playThrough([slow, app.p], 0);
+    await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    await pending;
+    answer({ played: true });
+    expect(seen).toEqual({ before: false, after: true });
+  });
   it('a keepQuiet that never answers does not hold the app back', async () => {
     const fails = provider('REAPER', { ready: true }, { played: false, why: 'Refused.' });
     const app = provider(APP, { ready: true }, { played: true });

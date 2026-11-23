@@ -158,7 +158,7 @@ export function usePlayOriginal(
           if (!declared.ready) return declared;
           return p.at === null ? { ready: false, why: `This line has no place in ${name}'s project.` } : { ready: true };
         },
-        play: async (p) => {
+        play: async (p, { late }) => {
           // A newer press, or Stop, came while the DAW's capabilities were asked: that press owns the DAW now, and this one sends nothing (qa B4).
           if (asked.current !== mine) return { played: true };
           const from = Math.max(0, p.at! - ORIGINAL_AROUND);
@@ -168,6 +168,11 @@ export function usePlayOriginal(
             const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND, p.chapterId);
             if (result.ok) {
               dawStarted.current = true;
+              // The deadline passed while the DAW was answering: the app plays in its place, so this DAW play is stopped, not left beside it.
+              if (late()) {
+                stopDaw();
+                return { played: true };
+              }
               if (asked.current !== mine) {
                 // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
                 if (owner.current === null) stopDaw();
