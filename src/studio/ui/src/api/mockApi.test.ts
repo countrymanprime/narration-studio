@@ -318,21 +318,17 @@ describe('the mock sends chapter sync state when removing a chapter from recordi
   });
 });
 
-// The host builds the chapter list and the Production overview from the same chapters (bindings_production.go), and the Production page now takes its rows from
-// the list (#4058), so a `?mockProduction=` scenario must say the same about each chapter in both reads or the page draws the default book, not the scenario.
-describe('the mock chapter list and the Production overview agree under every production scenario (#4058)', () => {
+// The host builds the chapter list and the Production overview from the same chapters (bindings_production.go), and the page draws the overview's totals beside the
+// list's rows, so a `?mockProduction=` scenario must say the same about the chapters in both reads (#4058). The overview's chapters carry only numbers now; its totals
+// are what has to match the list.
+describe('the mock overview totals agree with the chapter list under every production scenario (#4058)', () => {
   it.each(['on-pace', 'at-risk', 'linked'] as const)('%s', async (log) => {
     const api = createMockApi({}, { production: { log } });
     const [list, overview] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
-    for (const chapter of overview.chapters) {
-      const listed = list.find((item) => item.id === chapter.id);
-      expect(listed, chapter.id).toBeDefined();
-      expect([chapter.id, listed?.status, listed?.recordedSeconds ?? null, listed?.recordedUnavailable]).toEqual([
-        chapter.id,
-        chapter.status,
-        chapter.recordedSeconds,
-        chapter.recordedUnavailable,
-      ]);
-    }
+    expect(overview.chapters.map((chapter) => chapter.id)).toEqual(list.map((chapter) => chapter.id));
+    expect(overview.totals.chapters).toBe(list.length);
+    expect(overview.totals.finalizedChapters).toBe(list.filter((chapter) => chapter.status === 'finalized').length);
+    expect(overview.totals.measuredChapters).toBe(list.filter((chapter) => chapter.recordedSeconds !== undefined && chapter.recordedSeconds !== null).length);
+    expect(overview.totals.recordedSeconds).toBe(list.reduce((sum, chapter) => sum + (chapter.recordedSeconds ?? 0), 0));
   });
 });

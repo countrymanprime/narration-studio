@@ -2,16 +2,15 @@
 // src/studio/desktop/bindings_production.go's ProductionPlan, ProductionSetDeadline, ProductionSetPayment and ProductionSaveMilestones
 // do, with the same refusals (internal/production/plan.go): an impossible date, a negative amount, an amount under a royalty share
 // or none, an unknown payment type, a milestone with no name or a bad measure, estimate or template. The overview and timer follow the same
-// arithmetic and "Next up" order as the host (src/studio/desktop/internal/production/overview.go) over the mock's own
+// arithmetic as the host (src/studio/desktop/internal/production/overview.go) over the mock's own
 // chapters, stage recommendations and plan, and the stage timer. `?mockProduction=on-pace|at-risk` seeds a time log and a plan
 // (PRODUCTION_SCENARIOS); with no seed nothing is logged or set, which is what a narrator sees first.
 import { STATUS_ORDER } from '../chapterStatus';
 import type { ChapterStatus, ManuscriptChapter, RecordedUnavailable } from './contracts/manuscript';
 import type {
   ProductionApi,
-  ProductionChapter,
+  ProductionChapterNumbers,
   ProductionMilestone,
-  ProductionNextUpItem,
   ProductionOverview,
   ProductionPayment,
   ProductionRateBasis,
@@ -24,6 +23,9 @@ import type {
 } from './contracts/production';
 import type { StageRecommendations } from './contracts/stages';
 import { brand } from '../brand.gen';
+
+/** A chapter with its numbers and the three figures the totals add up; only the numbers go on the wire. */
+type BoardRow = ProductionChapterNumbers & { status: ChapterStatus; wordCount: number; recordedSeconds: number | null };
 
 type SeedLog = 'on-pace' | 'at-risk' | 'linked';
 
@@ -79,8 +81,8 @@ export function scenarioFromToday(name: SeedLog, now: Date = new Date()): Produc
 
 /**
  * A chapter of the chapter list as a `?mockProduction=` scenario says it is: its status and recorded audio (or why it has none). The host builds the chapter
- * list and the Production overview from the same chapters, so the two agree; the mock's overview already applies the scenario, and the list must too, now that
- * the Production page takes its rows from the list. Applied twice it changes nothing more.
+ * list and the Production overview from the same chapters, so the two agree; the mock does the same: the overview's figures and the list both go through this
+ * one function. Applied twice it changes nothing more.
  */
 export function seededChapter(seed: ProductionSeed | undefined, chapter: ManuscriptChapter): ManuscriptChapter {
   const log = seed?.log ? LOGS[seed.log] : undefined;
@@ -98,7 +100,6 @@ export function seededChapter(seed: ProductionSeed | undefined, chapter: Manuscr
   };
 }
 
-const NEXT_UP_LIMIT = 5;
 const TIMEABLE: readonly ChapterStatus[] = STATUS_ORDER;
 
 // Measured seconds of each seeded chapter's confirmed track: finished chapters in full, chapters 4 and 5 part-way, 6, 11 and 12 not
@@ -268,29 +269,6 @@ function readinessOf(recommendation: StageRecommendations['chapters'][number]): 
   return { verdict: recommendation.verdict, ...(recommendation.target ? { target: recommendation.target } : {}), reason: held?.reason ?? '' };
 }
 
-// The host's riskGroup (overview.go): held back first, then cannot be told, then ready to move on, then not started.
-function riskGroup(chapter: ProductionChapter): number {
-  if (chapter.status === 'not_started') return 3;
-  if (chapter.readiness?.verdict === 'not_ready') return 0;
-  if (chapter.readiness?.verdict === 'recommended') return 2;
-  return 1;
-}
-
-function nextUp(chapters: ProductionChapter[]): ProductionNextUpItem[] {
-  return chapters
-    .map((chapter, order) => ({ chapter, order, stage: chapter.status === 'finalized' ? undefined : STATUS_ORDER.indexOf(chapter.status) }))
-    .filter(({ chapter, stage }) => stage !== undefined && (chapter.contentKind === '' || chapter.contentKind === 'narration'))
-    .sort((a, b) => riskGroup(a.chapter) - riskGroup(b.chapter) || (a.stage ?? 0) - (b.stage ?? 0) || a.order - b.order)
-    .slice(0, NEXT_UP_LIMIT)
-    .map(({ chapter }) => ({
-      chapterId: chapter.id,
-      title: chapter.title,
-      ...(chapter.subtitle ? { subtitle: chapter.subtitle } : {}),
-      stage: chapter.status,
-      readiness: chapter.readiness,
-    }));
-}
-
 /** The payment type choosing the delivery profile profileId gives a contract that has none yet (production.DefaultPaymentFor): ACX pays per finished hour. */
 const defaultPaymentFor = (profileId: string): ProductionPayment | null => (profileId === 'acx' ? 'per_finished_hour' : null);
 
@@ -323,21 +301,19 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
   const overview = async (): Promise<ProductionOverview> => {
     // Like the host (internal/production/overview.go), stage recommendations that cannot be read leave every chapter's readiness
     // null rather than failing the whole overview.
-    const [manuscript, recommendations] = await Promise.all([deps.chapters(), deps.recommendations().catch((): StageRecommendations => ({ chapters: [] }))]);
+    const [chapterList, recommendations] = await Promise.all([deps.chapters(), deps.recommendations().catch((): StageRecommendations => ({ chapters: [] }))]);
+    // The scenario is applied by `seededChapter`, the one place that also builds the chapter list's rows, so the totals below and the list the page draws cannot disagree.
+    const manuscript = chapterList.map((chapter) => seededChapter(seed, chapter));
     const readiness = new Map(recommendations.chapters.map((chapter) => [chapter.chapterId, readinessOf(chapter)]));
-    const chapters: ProductionChapter[] = manuscript.map((chapter) => {
-      const measured = log ? log.recorded[chapter.id] : chapter.recordedSeconds;
+    // The figures below (totals) read the whole row; only the numbers go on the wire, as the host sends them.
+    const chapters: BoardRow[] = manuscript.map((chapter) => {
+      const measured = chapter.recordedSeconds;
       const hoursLogged = sessions.filter((session) => session.chapterId === chapter.id).reduce((sum, session) => sum + hoursOf(session), 0);
       return {
         id: chapter.id,
-        title: chapter.title,
-        ...(chapter.subtitle ? { subtitle: chapter.subtitle } : {}),
-        contentKind: chapter.contentKind ?? '',
-        status: log?.status ?? chapter.status,
+        status: chapter.status,
         wordCount: chapter.wordCount,
         recordedSeconds: measured ?? null,
-        ...(chapter.recordedThrough ? { recordedThrough: chapter.recordedThrough } : {}),
-        ...(measured === undefined ? { recordedUnavailable: log?.unavailable?.[chapter.id] ?? chapter.recordedUnavailable ?? 'unlinked' } : {}),
         hoursLogged,
         pfh: measured === undefined ? null : perFinishedHour(hoursLogged, measured),
         readiness: readiness.get(chapter.id) ?? null,
@@ -351,7 +327,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
     }
     const { contractedAmount } = answer(plan);
     return {
-      chapters,
+      chapters: chapters.map(({ id, hoursLogged, pfh, readiness }) => ({ id, hoursLogged, pfh, readiness })),
       totals: {
         chapters: chapters.length,
         finalizedChapters: chapters.filter((chapter) => chapter.status === 'finalized').length,
@@ -366,7 +342,6 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       },
       deadline: plan.deadline === null ? null : { date: plan.deadline, daysLeft: daysLeft(plan.deadline, seed.shiftDays ?? 0) },
       running: running(),
-      nextUp: nextUp(chapters),
     };
   };
 

@@ -5329,10 +5329,11 @@ describe('the production tracking mock', () => {
     const { totals } = overview;
     expect(totals.bookPfh).toBeCloseTo(totals.hoursLogged / (totals.recordedSeconds / 3600));
     expect(totals.effectiveRate).toBeCloseTo((totals.contractedAmount ?? 0) / totals.hoursLogged);
-    // An unmeasured chapter has no PFH, whatever was logged on it.
-    for (const chapter of overview.chapters.filter((row) => row.recordedSeconds === null)) expect(chapter.pfh).toBeNull();
-    expect(overview.nextUp.length).toBeGreaterThan(0);
-    expect(overview.nextUp.every((item) => item.stage !== 'finalized')).toBe(true);
+    // An unmeasured chapter (the shared list's `recordedSeconds`, joined by id) has no PFH, whatever was logged on it.
+    const list = await createMockApi({}, { production: PRODUCTION_SCENARIOS[seed] }).manuscriptChapters();
+    const unmeasured = new Set(list.filter((row) => (row.recordedSeconds ?? null) === null).map((row) => row.id));
+    expect(unmeasured.size).toBeGreaterThan(0);
+    for (const chapter of overview.chapters.filter((row) => unmeasured.has(row.id))) expect(chapter.pfh).toBeNull();
   });
 });
 

@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createMockApi } from '../../api/mockApi';
 import { PRODUCTION_SCENARIOS } from '../../api/productionMock';
-import type { ProductionOverview } from '../../api/contracts/production';
+import type { ProductionBoard } from '../production/composeOverview';
 import { composeOverview } from '../production/composeOverview';
 import { TimerChip, elapsedClock, runningTimerOf } from './TimerChip';
 
@@ -27,7 +27,7 @@ describe('elapsedClock', () => {
 
 describe('runningTimerOf', () => {
   // The board the Production page hands the chip: the shared chapter list (its titles) with the overview's numbers and running timer.
-  const overview = async (seed?: keyof typeof PRODUCTION_SCENARIOS): Promise<ProductionOverview> => {
+  const overview = async (seed?: keyof typeof PRODUCTION_SCENARIOS): Promise<ProductionBoard> => {
     const api = createMockApi({}, seed ? { production: PRODUCTION_SCENARIOS[seed] } : {});
     return composeOverview(await api.productionOverview(), await api.manuscriptChapters());
   };

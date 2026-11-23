@@ -1,7 +1,7 @@
 // The Production page's figures as pure functions of the plan, the overview and what the host measured.
 // Each returns a value or the reason there is none; a component prints it and computes nothing.
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
-import type { ProductionChapter } from '../../../api/contracts/production';
+import type { ProductionChapter } from '../composeOverview';
 import type { Measured } from '../../../api/schemas/base';
 import { isNarrationChapter } from '../../../chapterKinds';
 import { recordedShare } from '../../../recordedThrough';

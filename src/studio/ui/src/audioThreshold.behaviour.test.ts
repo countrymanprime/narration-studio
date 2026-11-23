@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ManuscriptChapter } from './api/contracts/manuscript';
-import type { ProductionChapter } from './api/contracts/production';
+import type { ProductionChapter } from './components/production/composeOverview';
 import { recordedStart } from './components/booth/companion/companionResume';
 import { hasRecording, recordedLabel } from './components/proof/checkcard/cardSelectors';
 import { bookFigures } from './components/production/overview/overviewFigures';

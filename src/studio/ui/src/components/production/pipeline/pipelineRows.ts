@@ -1,7 +1,7 @@
 import { aboutHours } from '../productionFormat';
 import { audibleSeconds, hasAudio, recordedAtOf, recordedPercent, throughPercent } from '../../../recordedThrough';
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
-import type { ProductionChapter } from '../../../api/contracts/production';
+import type { ProductionChapter } from '../composeOverview';
 import { chapterName, chapterParts } from '../../../chapterName';
 import { reached } from '../../../chapterStatus';
 import { spokenMarked } from '../../../clock';

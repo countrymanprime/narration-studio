@@ -399,3 +399,14 @@ Mock host, `scripts/dev/page-bench.mjs`, 1, 5, 17 and 40 h, `--runs 5`, `main` (
 Nodes are unchanged on all three pages. Time to usable moved by less than the run-to-run spread (Production cold at 40 h read 639 ms on main and 780 ms here; the other cells differ by under 10 %), so no time gain is claimed: the mock's milliseconds are fixtures. The saved calls are the overview reads the pace and the Schedule made beside the page's own, and the saved KB are their answers, which carried every chapter's title and numbers. This was done for consistency, not for speed.
 
 Not measured: the real host and Windows, 300 chapters on the mock, the Companion (it is not in the page list of the bench), the Schedule's minute tick (it now reads the chapter list, not the overview).
+
+## The overview without chapter fields (#4062 part 2)
+
+`ProductionOverview` now sends each chapter as `id`, `hoursLogged`, `pfh` and `readiness`, and no `nextUp` list: the Production page takes the chapter's name, status and recorded length from the shared chapter list and ranks Next up itself. Measured on this branch's parent (`c41a4414b`) and on the branch, with `node scripts/dev/host-read-bench.mjs reads <folder> --runs 1` over the same seeded 17 h (44 chapters) and 40 h (103 chapters) books, so each answer is the host's own JSON:
+
+| Book | Answer before | Answer after | Chapters |
+| --- | --- | --- | --- |
+| 17 h | 15,291 bytes | 4,173 bytes | 44 |
+| 40 h | 34,177 bytes | 9,249 bytes | 103 |
+
+That is 347 bytes a chapter before and 94 after at 17 h (332 and 90 at 40 h), about 73 % less. The decodes, listings and allocations of the read are the same as before (158 / 71 decodes at 17 h, 335 / 130 at 40 h), because the host still reads the chapter list to compute the figures. The warm medians of one run each (86.0 then 88.3 ms at 17 h, 151.3 then 165.5 ms at 40 h) are inside the run-to-run spread of one process, so no time gain is claimed; the saving is the answer's size and what the page decodes and validates with it.

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStopwatch } from '@fortawesome/free-solid-svg-icons';
-import type { ProductionOverview } from '../../api/contracts/production';
+import type { ProductionBoard } from '../production/composeOverview';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import { STATUS_LABELS } from '../../chapterStatus';
 import { HeaderChip } from '../primitives/HeaderChip';
@@ -11,7 +11,7 @@ import { clock } from '../../clock';
 export type RunningTimer = { startedAt: string; chapterTitle: string; stage: ChapterStatus };
 
 /** The running timer on the Production board (the overview composed with the shared chapter list, which names the chapter), or null when none runs. */
-export function runningTimerOf(overview: ProductionOverview): RunningTimer | null {
+export function runningTimerOf(overview: ProductionBoard): RunningTimer | null {
   const { running } = overview;
   if (!running) return null;
   const chapter = overview.chapters.find((candidate) => candidate.id === running.chapterId);
