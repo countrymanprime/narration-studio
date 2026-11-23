@@ -34,6 +34,8 @@ export interface TakeAuditionOptions {
 export interface TakeAudition {
   /** The take playing now, or null. */
   playingId: string | null;
+  /** The take last asked that played nothing (the notice offers Retry), or null; a comparison waits on it. */
+  failedId: string | null;
   /** Plays the take, or stops it when it is the one playing. */
   play: (take: LineTake) => void;
   stop: () => void;
@@ -57,6 +59,7 @@ export function useTakeAudition({
   const player = useRangePlayer(mediaUrl, { pre: 0, post: 0 }, output);
   const [playing, setPlaying] = useState<string | null>(null);
   const [inDaw, setInDaw] = useState(false);
+  const [failedId, setFailedId] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
   const newest = useNewestPlay(TAKE_TOPIC);
@@ -83,6 +86,7 @@ export function useTakeAudition({
     if (shown.current.playing !== null && shown.current.inDaw) void daw.stopPreview().catch(() => undefined);
     setPlaying(null);
     setInDaw(false);
+    setFailedId(null);
   }, [daw, player]);
 
   const play = useCallback(
@@ -90,6 +94,7 @@ export function useTakeAudition({
       if (playing === take.id && (inDaw || player.isPlaying)) return stop();
       const { caps: now, read: dawRead, notify: say, passageOf: lineOf, stopChapter: quiet } = live.current;
       const ask = newest.begin();
+      setFailedId(null);
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = now?.daw ?? 'The DAW';
       const preview: PlaybackProvider<LineTake> = {
@@ -145,6 +150,7 @@ export function useTakeAudition({
       // A DAW that has not yet answered may still be recording: the room is kept quiet for it too (a failed capabilities read leaves the check out: the DAW is not known to be there; a failed projectState read does not hold the play back).
       const keepQuiet = now || !dawRead?.failed ? quietWhileRecording(() => daw.projectState(), name) : undefined;
       void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
+        if (by === null && asked.current === mine) setFailedId(take.id);
         // Retry only when nothing played: a take that fell back to the app and plays is not offered a Retry, which would stop it.
         if (notice && asked.current === mine)
           say(
@@ -167,5 +173,5 @@ export function useTakeAudition({
 
   useEffect(() => () => clearTimer(), []);
 
-  return { playingId: inDaw || player.isPlaying ? playing : null, play, stop };
+  return { playingId: inDaw || player.isPlaying ? playing : null, failedId, play, stop };
 }

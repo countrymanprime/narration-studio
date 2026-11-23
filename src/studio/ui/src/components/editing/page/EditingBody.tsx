@@ -699,6 +699,7 @@ export function EditingBody(props: EditingBodyProps) {
                 onTake={pid === current ? lineTakes.onTake : null}
                 keptId={keep.kept[pid] ?? null}
                 playingId={audition.playingId}
+                failedId={audition.failedId}
                 hiddenIds={hide.hiddenIds(pid)}
                 firstReadId={stackBase(pid)}
                 sourceLabel={sourceLabel}
