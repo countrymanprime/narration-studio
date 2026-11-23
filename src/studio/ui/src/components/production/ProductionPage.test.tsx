@@ -231,6 +231,23 @@ describe('production loading state', () => {
     expect(await pipeline()).toBeTruthy();
   });
 
+  it('shows the skeleton while Retry reads a chapter list that is still down, then the error again', async () => {
+    let release: () => void = () => undefined;
+    let reads = 0;
+    const manuscriptChapters = vi.fn(async () => {
+      reads += 1;
+      if (reads > 1) await new Promise<void>((resolve) => (release = resolve));
+      throw new Error('the chapter list is down');
+    });
+    await renderPage({ overrides: { manuscriptChapters } });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    fireEvent.click(retry);
+    // The old failure is still in the store, but the page does not look dead while the new read runs.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+    release();
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+  });
+
   it('is replaced by the overview when the log arrives', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
     await pipeline();

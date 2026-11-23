@@ -168,6 +168,12 @@ export const productionDrivers: Record<string, Driver> = {
     await page.getByText('This page could not be loaded').waitFor();
     await page.getByRole('button', { name: 'Retry' }).waitFor();
   },
+  'chapters-load-failed': async (page) => {
+    await page.goto('/?mockChapters=fails');
+    await settlePage(page);
+    await page.getByText('This page could not be loaded').waitFor();
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+  },
   'no-data': onMockDay(async (page) => {
     await openProduction(page);
     await page.getByText('Set it on the Schedule').waitFor();

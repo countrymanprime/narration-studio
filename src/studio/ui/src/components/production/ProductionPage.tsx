@@ -149,6 +149,8 @@ export function ProductionPage({
   const manuscriptKey = data.manuscript ? `${data.manuscript.id}:${data.manuscript.importedAt}` : 'no-manuscript';
   const manuscriptImport = useManuscriptImport({ data, go, notify, refreshBootstrap });
   const [load, setLoad] = useState<Load>({ status: 'loading' });
+  // Retry on a list that could not be read: the old failure stays in the store until a read succeeds, so the page shows its skeleton while this read runs.
+  const [retryingList, setRetryingList] = useState(false);
   const [plan, setPlan] = useState<ProductionPlan>();
   const rateBasis = useRateBasis(plan?.rateBasis);
   const caps = useDawStatus().caps ?? undefined;
@@ -355,8 +357,9 @@ export function ProductionPage({
     : { ok: false as const, reason: 'Reading the pickup sessions…' };
 
   // A chapter list that cannot be read is the page's error like any other page's, with the shared list read again by Retry.
-  const failure = load.status === 'error' ? load.message : found && shared.error && !shared.chapters ? apiErrorMessage(shared.error) : undefined;
-  const loading = load.status === 'loading' || (found && load.status === 'ready' && !composed && !failure);
+  const failure =
+    load.status === 'error' ? load.message : found && !retryingList && shared.error && !shared.chapters ? apiErrorMessage(shared.error) : undefined;
+  const loading = load.status === 'loading' || retryingList || (found && load.status === 'ready' && !composed && !failure);
   if (failure !== undefined)
     return (
       <LoadError
@@ -364,7 +367,8 @@ export function ProductionPage({
         message={failure}
         retry={() => {
           setLoad({ status: 'loading' });
-          void store?.load('chapters').catch(() => undefined);
+          setRetryingList(true);
+          void (store?.load('chapters') ?? Promise.resolve()).catch(() => undefined).finally(() => setRetryingList(false));
           void read();
         }}
       />
