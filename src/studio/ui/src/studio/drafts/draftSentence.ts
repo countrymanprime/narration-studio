@@ -1,4 +1,5 @@
 import { plural } from '../../plural';
+import { isolatedIfRtl } from '../../visibleText';
 
 /**
  * What one holder says about itself: a specific singular `label` ("your edit of the note on “Alice”"), a nameless `brief` for when the label does not fit
@@ -87,7 +88,7 @@ export function draftQuestion(held: readonly HeldDraft[]): { body: string; canSa
     // Save is gone, and the narrator is told why in one short sentence that names the thing, and what brings Save back (#3457, ux-reviewer).
     const first = stuck.find((draft) => draft.needs) ?? stuck[0]!;
     const name = length(first.label) <= STUCK_NAME ? first.label : (first.brief ?? first.label);
-    const why = first.needs ? `${capital(name)} still needs ${first.needs}.` : `${capital(name)} can't be saved yet.`;
+    const why = first.needs ? `${isolatedIfRtl(capital(name))} still needs ${first.needs}.` : `${isolatedIfRtl(capital(name))} can't be saved yet.`;
     // One held thing is named once, in the first sentence: the second says "it" (#3457, qa-breaker round 2).
     return { body: `${why} Discard ${held.length === 1 ? (/^\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)} before leaving?`, canSave: false };
   }

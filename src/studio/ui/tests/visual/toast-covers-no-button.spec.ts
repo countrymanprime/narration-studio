@@ -4,7 +4,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage, openSettings } from './drivers/shared';
-import { raiseToast } from './helpers/raiseToast';
+import { raiseToast, toastHookReady } from './helpers/raiseToast';
 
 // The product's windows: 960 px wide and up (its minimum), and one tablet size. A window 520 px tall or shorter (360x500, 320x300) is far below the minimum and keeps no slot: the toast floats there, so the guard does not hold at those sizes.
 const SIZES = [
@@ -126,6 +126,8 @@ for (const variant of VARIANTS) {
           await page.goto('/');
           await settlePage(page);
           await c.open(page);
+          // The hook is waited for before anything is measured, as it was before the helper: its arrival must not move what is measured.
+          await toastHookReady(page);
           const before = await page.evaluate(visibleButtons);
           const placesBefore = await page.evaluate(buttonPlaces);
           for (const text of variant.texts) {

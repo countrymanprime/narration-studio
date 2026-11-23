@@ -52,6 +52,8 @@ const isLatinLetter = (ch: string): boolean => /[A-Za-z]/.test(ch);
 /** The characters that end a bidi paragraph or a line (LF, CR, U+001C to U+001E, NEL, the line and paragraph separators): inside a name one would end its isolate and swap its words, so each becomes a space. */
 // eslint-disable-next-line no-control-regex
 const LINE_BREAKS = /[\n\r\u001C-\u001E\u0085\u2028\u2029]/g;
+/** One line or paragraph break, for a test that keeps no state between characters. */
+const LINE_BREAK_CHAR = new RegExp(LINE_BREAKS.source);
 /** A name as it goes into a sentence: no bidi control and no line or paragraph break of its own. */
 const plainName = (name: string): string => stripBidi(name).replace(LINE_BREAKS, ' ');
 
@@ -104,6 +106,9 @@ export const withBalancedIsolates = (text: string): string => {
       open.push({ at: -1, kept: false });
     } else if (ch === PDI) {
       if (open.pop()?.kept) out.push(ch);
+    } else if (open.length > 0 && LINE_BREAK_CHAR.test(ch)) {
+      // A break inside an isolate would end it, so the rest of the name is drawn outside it.
+      out.push(' ');
     } else if (!IS_BIDI.test(ch)) out.push(ch);
   }
   // An isolate that never closed is removed.

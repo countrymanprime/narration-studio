@@ -12,6 +12,7 @@ import { useRangePlayer } from '../../engine/useRangePlayer';
 import { stopSample } from '../../voicesamples/samplePlayerStore';
 import type { CharacterChoice } from './voiceSampleCharacters';
 import { DialogFooter } from '../range/common/DialogFooter';
+import { isolatedIfRtl } from '../../../visibleText';
 
 /** The part of the words the narrator can hear before saving: a stretch of one item's source file. */
 export type Audition = {
@@ -161,7 +162,7 @@ export function VoiceSampleDialog({
     void submit();
   };
 
-  const countText = full ? `${name} has ${limit} samples. Delete one first.` : `${count} of ${limit} samples`;
+  const countText = full ? `${isolatedIfRtl(name)} has ${limit} samples. Delete one first.` : `${count} of ${limit} samples`;
   return (
     <form className="flex flex-col gap-3" onSubmit={onSubmit} onKeyDown={onKeyDown} data-voice-sample-dialog>
       {refusal ? (

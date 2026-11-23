@@ -7,6 +7,7 @@ import { createMockApi } from '../../api/mockApi';
 import type { TrackMapping } from '../../types';
 import { displacedSentence, keptTitle, useChapterLinkActions } from './useChapterLinkActions';
 import { chaptersOf } from '../../api/chaptersOf';
+import { textDirection } from '../../visibleText';
 
 const mapping = (chapterId: string, chapterTitle: string): TrackMapping => ({ trackGuid: 'T', chapterId, chapterTitle, confirmedAt: '' });
 const setAnswer = (displaced: TrackMapping | null) => ({ documentId: 'd', link: mapping('c1', 'One'), displaced, mappings: [mapping('c1', 'One')] });
@@ -22,6 +23,20 @@ describe('displacedSentence', () => {
     expect(displacedSentence(mapping('c2', 'Two'), () => 'Chapter 2')).toBe('Chapter 2 was linked to that track and is now not linked.');
     expect(displacedSentence(mapping('c2', ' Kept '), () => undefined)).toBe('Kept was linked to that track and is now not linked.');
     expect(displacedSentence(mapping('c2', '  '))).toBe('A chapter no longer in the manuscript was linked to that track and is now not linked.');
+  });
+});
+
+describe('displacedSentence with a long right-to-left name (#4113)', () => {
+  // 78 Arabic letters, more than the Latin letters of the sentence around them.
+  const AR = '\u0627\u0644\u0641'.repeat(26);
+  const isolated = `${'\u2068'}${AR}${'\u2069'}`;
+  it.each([
+    ['the manuscript name', () => displacedSentence(mapping('c2', 'Two'), () => AR)],
+    ['the stored title', () => displacedSentence(mapping('c2', AR))],
+  ])('isolates %s and reads left to right', (_label, make) => {
+    const text = make();
+    expect(text).toBe(`${isolated} was linked to that track and is now not linked.`);
+    expect(textDirection(text)).toBe('ltr');
   });
 });
 

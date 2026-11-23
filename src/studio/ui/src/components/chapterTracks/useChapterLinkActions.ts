@@ -5,7 +5,7 @@ import { usePort } from '../../ports/usePort';
 import { useReadChapters } from '../../studio/useChapters';
 import { chapterNameLookup } from './useChapterNameOf';
 import { describeApiError } from '../../api/errorMessage';
-import { hasVisibleText, spaceOutInvisible } from '../../visibleText';
+import { hasVisibleText, isolatedIfRtl, spaceOutInvisible } from '../../visibleText';
 
 /** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover sentence then says "a chapter no
  * longer in the manuscript", so none is silent or reads " was linked to that track" with no name (#3053). */
@@ -31,7 +31,7 @@ const MAX_TITLE = 80;
  */
 export function displacedSentence(displaced: TrackMapping, nameOf?: (chapterId: string) => string | undefined): string {
   const name = keptTitle(nameOf?.(displaced.chapterId)) ?? keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript';
-  return `${name} was linked to that track and is now not linked.`;
+  return `${isolatedIfRtl(name)} was linked to that track and is now not linked.`;
 }
 
 /**

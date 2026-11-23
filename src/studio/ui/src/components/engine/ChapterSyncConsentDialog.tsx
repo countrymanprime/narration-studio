@@ -5,6 +5,7 @@ import { Dialog } from '../primitives/Dialog';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { chapterSyncNotChaptersText, chapterSyncProjectName, chapterSyncReasonText, type ChapterSyncDaw } from './chapterSyncText';
 import { plural } from '../../plural';
+import { isolatedIfRtl } from '../../visibleText';
 
 /**
  * "Sync chapters to tracks?" shown once per project, the
@@ -35,7 +36,7 @@ export function ChapterSyncConsentDialog({
       variant="alert"
       description={
         daw.daw === 'Audacity'
-          ? `${chapterSyncProjectName(projectFile, daw)} is now linked. The app can tie each chapter to its Audacity track by name, and keep them in step as you add tracks. It only reads what Audacity reports; nothing in Audacity changes. Chapters you linked yourself are kept.`
+          ? `${isolatedIfRtl(chapterSyncProjectName(projectFile, daw))} is now linked. The app can tie each chapter to its Audacity track by name, and keep them in step as you add tracks. It only reads what Audacity reports; nothing in Audacity changes. Chapters you linked yourself are kept.`
           : `${projectFile} is now linked. The app can tie each chapter to its REAPER track by name, and keep them in step as you add tracks. It only reads the saved project; nothing in REAPER changes. Chapters you linked yourself are kept.`
       }
       onClose={busy ? undefined : onNotNow}

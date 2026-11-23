@@ -2,6 +2,7 @@
 // for the Script view store (`ScriptView.update`), so they are pure and the page decides when to apply them. The state itself (`find`) lives in
 // `scriptView.ts`. `find.open` means a search is showing in the reader: every match marked, the current one in view.
 
+import { isolatedIfRtl } from '../../../../../visibleText';
 import type { ScriptViewState } from '../../data/scriptView';
 
 type Patch = (state: ScriptViewState) => Partial<ScriptViewState>;
@@ -10,7 +11,7 @@ type Patch = (state: ScriptViewState) => Partial<ScriptViewState>;
 const QUOTED = 40;
 
 /** The term in curly quotes, as a sentence about the search says it. */
-export const quoteTerm = (term: string): string => `“${term.length > QUOTED ? `${term.slice(0, QUOTED)}…` : term}”`;
+export const quoteTerm = (term: string): string => `“${isolatedIfRtl(term.length > QUOTED ? `${term.slice(0, QUOTED)}…` : term)}”`;
 
 /** Shows the search for `term` with the match at `index` current. */
 export const openFind =

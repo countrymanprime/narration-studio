@@ -133,6 +133,14 @@ describe('a name inside a sentence (#4113)', () => {
     expect(withBalancedIsolates(isolatedIfRtl('C:\\\u05e1\\book', 'ltr'))).toBe(`${LRI}` + 'C:\\\u05e1\\book' + `${PDI}`);
   });
 
+  it('turns a line or paragraph break inside a kept isolate into a space, so the isolate holds', () => {
+    for (const sep of ['\u0085', '\u2029', '\u001c', '\n', '\r']) {
+      expect(withBalancedIsolates(`${FSI}a${sep}b${PDI}: 3`)).toBe(`${FSI}a b${PDI}: 3`);
+    }
+    // Outside an isolate a line break is the host's own and stays (a two-line toast).
+    expect(withBalancedIsolates('a\nb')).toBe('a\nb');
+  });
+
   it('removes forty thousand unclosed isolates and keeps forty thousand closed ones', () => {
     // A pass that looked back for each opener would be quadratic here; the answer is what is checked, not how long it took.
     expect(withBalancedIsolates(`${FSI.repeat(40_000)}tail`)).toBe('tail');

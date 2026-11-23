@@ -8,6 +8,7 @@ import type { Track } from '../../api/contracts/tracks';
 import type { VoiceTracksState } from '../../api/contracts/voiceTracks';
 import { VoicesCard } from './VoicesCard';
 import { useIsRecording } from '../../daw/useIsRecording';
+import { isolatedIfRtl } from '../../visibleText';
 
 vi.mock('../../daw/useIsRecording', () => ({ useIsRecording: vi.fn(() => false) }));
 
@@ -213,7 +214,7 @@ describe('the Voices card', () => {
   // #3828 findings 4 and 6: marking a voice can move keys the page does not show, so the press says where the keys stand, worked out from the keys before
   // and after (never from a name), and every press says something so a notice never outlives the row it described.
   describe('the notice a Voice switch gives', () => {
-    const iso = (name: string) => `\u2068${name}\u2069`;
+    const iso = isolatedIfRtl;
     const drawFolder = (names: string[], notVoiceGuids: string[] = [], layout: 'folders' | 'flat' = 'folders', narratorGuids: string[] = []) => {
       cleanup();
       const list = [track('c8', 'Ch 8', 0, true), ...names.map((name, at) => track(`t${at}`, name, 1)), track('c9', 'Chapter 9', 0)];

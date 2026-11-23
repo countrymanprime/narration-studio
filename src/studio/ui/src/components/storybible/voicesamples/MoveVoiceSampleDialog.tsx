@@ -5,6 +5,7 @@ import { Dialog } from '../../primitives/Dialog';
 import { FIELD_LABEL_CLASSES } from '../../primitives/Field';
 import { Select } from '../../primitives/Select';
 import type { SaveAnswer } from './EditVoiceSampleDialog';
+import { isolatedIfRtl } from '../../../visibleText';
 
 export type MoveChoice = { id: string; name: string };
 
@@ -88,8 +89,8 @@ export function MoveVoiceSampleDialog({
           />
           <span className="text-sm text-[var(--text-muted)]">
             {full
-              ? `${chosen?.name ?? 'This character'} has ${limit} samples. Delete one first.`
-              : `${chosen?.name ?? 'This character'} has ${count} of ${limit} samples.`}
+              ? `${isolatedIfRtl(chosen?.name ?? 'This character')} has ${limit} samples. Delete one first.`
+              : `${isolatedIfRtl(chosen?.name ?? 'This character')} has ${count} of ${limit} samples.`}
           </span>
         </div>
         {failure ? (

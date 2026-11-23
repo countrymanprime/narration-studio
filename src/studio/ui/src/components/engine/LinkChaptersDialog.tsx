@@ -27,6 +27,7 @@ import { trackName } from '../tracks/trackName';
 import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { chapterNameLookup } from '../chapterTracks/useChapterNameOf';
 import { heldLabel, holderName, holderOf } from '../mapping/trackChoices';
+import { isolatedIfRtl } from '../../visibleText';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -343,7 +344,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         <div className="mt-3">
           <ToolResult
             tone="warning"
-            message={`${sharing.map(({ chapter }) => chapterName(chapter, 'short')).join(', ')}: the folder also holds another chapter's linked track. That track's items stay with its own chapter.`}
+            message={`${isolatedIfRtl(sharing.map(({ chapter }) => chapterName(chapter, 'short')).join(', '))}: the folder also holds another chapter's linked track. That track's items stay with its own chapter.`}
           />
         </div>
       )}
