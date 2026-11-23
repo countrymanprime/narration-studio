@@ -254,9 +254,12 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
         </ApiProvider>,
       );
       fireEvent.click(hear());
+      await vi.advanceTimersByTimeAsync(10);
+      expect(hear().getAttribute('aria-busy')).toBe('true');
       await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
       await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
       expect(toasted()[0]).toBe('REAPER did not answer. Played in the app instead.');
+      // The button was busy while the DAW was asked, and is not now.
       // The DAW answers after all: its loop is stopped, not left beside the app's clip.
       answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
       await vi.advanceTimersByTimeAsync(0);

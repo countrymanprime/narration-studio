@@ -1,5 +1,6 @@
 import type { DawCapabilities } from '../api/contracts/daw';
 import { PLAY_DEADLINE_MS } from '../components/engine/ShowInDaw';
+import { within } from '../within';
 
 // The playback port (docs/design/editing-daw-transport-sync.md, Who plays): every place that plays audio asks an ordered list of
 // providers, the linked DAW's first and the app's own player last, and `playThrough` takes the first that is ready and plays. A
@@ -36,16 +37,6 @@ export interface PlayRule {
   deadlineMs?: number;
 }
 
-/** `work`, or `late` once `ms` passed: a DAW call that never answers must not leave the click silent. */
-async function within<T>(work: T | Promise<T>, ms: number, late: T, onLate: () => void = () => {}): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([work, new Promise<T>((resolve) => (timer = setTimeout(() => (onLate(), resolve(late)), ms)))]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 /** Who played (null: nothing did), what to tell the narrator, if anything, and the reasons of the providers passed over before it. */
 export type PlayOutcome = { by: string | null; notice: string | null; passed: readonly string[] };
 
@@ -80,17 +71,14 @@ export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], 
     }
     if (index > 0 && rule.keepQuiet) {
       // A read of the DAW's state that never answers does not hold the app back (as one that fails does not).
-      const quiet = await within(rule.keepQuiet(), rule.deadlineMs ?? PLAY_DEADLINE_MS, null);
+      const quiet = (await within(rule.keepQuiet(), rule.deadlineMs ?? PLAY_DEADLINE_MS))?.value ?? null;
       if (quiet) return { by: null, notice: quiet, passed: whys };
     }
     if (rule.stillWanted && !rule.stillWanted()) return { by: null, notice: null, passed: whys };
     let late = false;
-    const attempt = await within<PlayAttempt>(
-      provider.play(request, { late: () => late }),
-      rule.deadlineMs ?? PLAY_DEADLINE_MS,
-      { played: false, why: `${provider.name} did not answer.` },
-      () => (late = true),
-    );
+    const answered = await within(Promise.resolve(provider.play(request, { late: () => late })), rule.deadlineMs ?? PLAY_DEADLINE_MS);
+    if (!answered) late = true;
+    const attempt: PlayAttempt = answered ? answered.value : { played: false, why: `${provider.name} did not answer.` };
     if (attempt.played) return { by: provider.name, notice: whys.length ? `${join(whys)} Played in ${provider.name} instead.` : null, passed: whys };
     if (attempt.final) return { by: null, notice: attempt.why, passed: whys };
     whys.push(attempt.why);

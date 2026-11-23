@@ -143,8 +143,9 @@ export function HearIt({
           }
           if (answer.outcome === 'looping') {
             // The deadline passed while the DAW was answering: the app plays in its place, so this loop is stopped, not left beside it.
+            // A loop a newer press started since is that press's, and is not stopped here.
             if (late()) {
-              void api.findingsStopLoop().catch(() => undefined);
+              if (!looped.current) void api.findingsStopLoop().catch(() => undefined);
               return { played: true };
             }
             looped.current = true;

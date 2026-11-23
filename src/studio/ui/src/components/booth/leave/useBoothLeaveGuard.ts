@@ -6,6 +6,7 @@ import { pageNameFor } from '../../layout/railPages';
 import { noAnswerSentence } from '../../../studio/dawNames';
 import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { CHAPTER_OPEN_ANYWAY, stopRecordingSpec } from './stopRecordingSpec';
+import { within } from '../../../within';
 
 /** The seam the Booth gives the guard: not a `DawClient`, only what leaving needs to know and do. */
 export type BoothLeaveSession = {
@@ -58,19 +59,6 @@ const STOPPING_TOAST_MS = LEAVE_WAIT_MS + 2 * LEAVE_STOP_WAIT_MS + 1000;
  * its reply (which writes the take's undo entry) is waited for this long before the end is believed on its own.
  */
 const END_GRACE_MS = 1500;
-
-/** `work`'s answer, or null when it has not come after `ms`: an answer that never comes must not hold the narrator in the Booth. */
-async function within<T>(work: Promise<T>, ms: number): Promise<{ value: T } | null> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<null>((resolve) => {
-    timer = setTimeout(() => resolve(null), ms);
-  });
-  try {
-    return await Promise.race([work.then((value) => ({ value })), late]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 /** The end check's answer, or false when it has not come after `LEAVE_WAIT_MS` or failed: an end not known to be with the DAW answering is not an end. */
 async function confirmedWithin(check: Promise<boolean> | undefined): Promise<boolean> {
