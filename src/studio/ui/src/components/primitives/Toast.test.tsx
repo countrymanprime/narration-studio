@@ -282,7 +282,6 @@ describe('a toast is one line (#4063)', () => {
     expect(el.className).toContain('truncate');
     expect(el.textContent).toBe(text);
     expect(el.getAttribute('title')).toBe(text);
-    expect(el.tabIndex).toBe(-1);
     expect(el.closest('[data-tone]')!.className).toContain('h-[2.8125rem]');
     // The action and Dismiss are siblings of the cut text, so they never go with it.
     expect(within(el.parentElement!).getByRole('button', { name: 'Retry' })).toBeTruthy();

@@ -223,7 +223,7 @@ test.describe('a modal with a toast showing, 320x300', () => {
 
 // `Dialog` takes what is left above the toasts in a window under 300 px tall (#3605, #3601; `dialog-toast-room.spec.ts`), so a toast showing over an open dialog publishes `--toast-h`: the room
 // from the window's bottom edge up to its top (plus 8 px). It is set while a toast shows, over a dialog or not (with no dialog the shell ends the page above it); not with no toast.
-test('a toast over an open dialog publishes the room it takes, and only then', async ({ page }) => {
+test('a toast publishes the room it takes while it shows, and a dialog reads it', async ({ page }) => {
   const toastHeight = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'));
   await page.setViewportSize({ width: 320, height: 290 });
   await page.goto('/?mockNoProject=1');

@@ -1,4 +1,4 @@
-// A toast whose message is one long unbroken word (a Windows path is the realistic case) wraps inside the window instead of running off both edges (#2793).
+// A toast whose message is one long unbroken word (a Windows path is the realistic case) is cut to one line inside the window instead of running off both edges (#2793).
 import { expect, test } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';

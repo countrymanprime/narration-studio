@@ -213,7 +213,7 @@ function useModalOpen(): boolean {
 
 // The region keeps the page gutter from the window's right and bottom edges, where the top bar's and the footer's content end (alignment audit XBO-13).
 // While a modal dialog is open the toasts stay in the window's bottom-right corner, at the gutter: a dialog hangs from the top and stops at
-// least 4.75rem above the bottom edge (`Dialog`, above 400 px of height; at 400 px and below it takes what is left above the toast, `--toast-h`), so a toast there is clear of its action row when it is no taller than that room (alignment audit cause P; over a dialog the newest toast shows alone with its text held to two lines, so it is never taller than that room, #3605), and the bars a toast
+// least 4.75rem above the bottom edge (`Dialog`, above 400 px of height; at 400 px and below it takes what is left above the toast, `--toast-h`), so a toast there is clear of its action row when it is no taller than that room (alignment audit cause P; over a dialog the newest toast shows alone, one 45 px line, so it is never taller than that room, #3605), and the bars a toast
 // otherwise rises above are behind the scrim. At the top of the window a toast covered the top bar's buttons, the Booth's included (R4BO2-4).
 // A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
 const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
@@ -290,7 +290,7 @@ const STRIP_MAX_SHARE = 0.6;
  * While a toast shows, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top.
  * Over an open modal dialog, `Dialog` reads it in a window 400 px tall or less and takes what is left above the toasts, so a toast does not sit on its content or its focused
  * control (#3605, #3601; `DIALOG_TOAST_ROOM`). With no dialog open, the shell reads it (`AppShell`) and ends the page above the toasts, so a toast stands in a strip of its own
- * and covers no button, whatever the page, its bars or its scrolling columns are (#4063): the strip is held to `STRIP_MAX_SHARE` of the window (the toasts' text is capped to half of it, so the stack fits). With no toast the property is not set,
+ * and covers no button, whatever the page, its bars or its scrolling columns are (#4063): the strip is held to `STRIP_MAX_SHARE` of the window (a stack of one-line toasts). With no toast the property is not set,
  * so nothing moves. It follows the region's height, a resize of the window and a dialog opening or closing.
  */
 function useToastHeightPublished(region: { current: HTMLElement | null }, showing: boolean): void {
@@ -301,7 +301,8 @@ function useToastHeightPublished(region: { current: HTMLElement | null }, showin
     const publish = () => {
       // From the first toast drawn: the region's own top may hold an empty live region above it.
       const first = box.querySelector('[data-tone]:not([hidden])') ?? box;
-      const room = Math.ceil(window.innerHeight - first.getBoundingClientRect().top + 8);
+      const rem = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
+      const room = Math.ceil(window.innerHeight - first.getBoundingClientRect().top + TOAST_AIR_REM * rem);
       const modal = root.hasAttribute(MODAL_OPEN_ATTRIBUTE);
       root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${modal ? room : Math.min(room, Math.floor(window.innerHeight * STRIP_MAX_SHARE))}px`);
       // The dialog's room just changed: the field being typed in must not be left half under the popup's new edge.
@@ -361,7 +362,7 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
 export function ToastRegion({ messages: queued, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   const region = useRef<HTMLDivElement>(null);
-  // With a dialog open only the newest toast shows, at every window size, and its text is held to two lines: a toast that size fits the 4.75rem every dialog leaves under it, so it covers
+  // With a dialog open only the newest toast shows, at every window size, and it is one 45 px line: a toast that size fits the 4.75rem every dialog leaves under it, so it covers
   // no button and the dialog does not move when it comes or goes (#3605; a stack, or a message of three lines, was taller than that room at any width).
   // The older ones stay queued, unmounted, so their time starts when they appear, after the newest goes. An older information toast with an action is the exception: what its
   // action can still do is timed from when it was raised (the picker sends a removal 6 s after Remove), so it stays mounted, not drawn, with its clock running, and comes back

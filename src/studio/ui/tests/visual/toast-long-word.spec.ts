@@ -30,7 +30,7 @@ for (const [width, height] of [
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(width);
-    // The whole word wraps inside it rather than being cut.
+    // The word is cut to one line inside it (the whole word is the text's title).
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   });
 }

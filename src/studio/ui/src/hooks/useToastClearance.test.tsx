@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 describe('useToastClearance', () => {
-  it('raises the toasts by the bar height while it is mounted and puts them back when it goes', () => {
+  it('holds the bar height in the clearance while it is mounted and drops it when it goes', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 96.4 } as DOMRect);
     const { unmount } = render(<Bar />);
     expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('97px');
@@ -57,7 +57,7 @@ describe('useToastClearance in a column that scrolls', () => {
 });
 
 describe('useToastClearance with several bars', () => {
-  it('raises the toasts by all the bars at the bottom, so a notice above the footer stays uncovered, and lowers them as each goes', () => {
+  it('holds all the bars at the bottom in the clearance, so a notice above the footer stays uncovered, and lowers it as each goes', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       return { height: Number(this.dataset.h) } as DOMRect;
     });
