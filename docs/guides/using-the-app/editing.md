@@ -31,7 +31,7 @@ This page is a reference to everything Editing shows. To do one thing, start her
 
 The header sits inside the one bordered card that holds the script, so the title, the chapter step (the previous and
 next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
-the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
+the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the **Check recordings** icon (off, with its reason, while the chapter has no audio or the DAW cannot check), the timeline strip button (a timeline icon, on a window 1360 px
 wide or more) and the button that opens the drawer are all in it. Where the header is too narrow for the whole legend, the kinds with nothing marked are the ones left out.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. When the host's answer is in a shape the app cannot read, the reason is the plain sentence "The app received data it could not read."; the technical text is behind **Details** on the card, with a copy button, and in the host log. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
@@ -109,9 +109,9 @@ so the page can read the new track. When the Booth has already read this chapter
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. The editing check's own panel, opened from the audio engine panel for a chapter with no link, offers the same kind of track picker and refuses a track another chapter holds, naming that chapter. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
-that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recordings** icon beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
-check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
+that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note. The
+**Check recordings** icon in the page's header, once the chapter has loaded, whether or not it was checked (off, with its reason, while the chapter has no audio), opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+check every page opens, with this chapter ticked: run it again after a new take or a pickup. When the dialog closes the page reads the chapter again (and draws its waveform again), so
 what the check found shows without a reload. Opening Editing never starts a check.
 
 A chapter you recorded since its last check may be checked in the background, whatever page is open
@@ -205,7 +205,7 @@ is a hairline. A chapter recorded quietly draws as tall as one that was normalis
 click or plosive does not make the rest small. Each bar is two layers, as in REAPER: a faint bar for the peak (the highest and lowest sample in each 20 ms) and a solid core inside it for the RMS (the average loudness of that 20 ms), on the same scale. The core is always shorter than the peak, and it shows how loud a word is as against how sharp its loudest sample is.
 While the chapter plays, the bars already played are in the accent colour and the rest grey, and a swell travels with the playhead, like a
 stadium wave: the bars just ahead of it rise, the ones under it stand up to half again their own height and the ones behind settle back, so
-the shape of the audio stays the same under it. While the waveform is still being read, a low row of grey bars stands in its place with a
+the shape of the audio stays the same under it. A long recording the host is still reading shows the grey reading row in place of its waveform, and the page asks again every 15 seconds until it is there. While the waveform is still being read, a low row of grey bars stands in its place with a
 swell crossing it from left to right about every second and a half. With **Motion** set to reduce in Settings (or Windows asking for
 it), nothing moves.
 

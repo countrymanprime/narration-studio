@@ -521,6 +521,16 @@ describe('EditingPage', () => {
         return note!;
       });
 
+    it('Check recordings in the header is off, with its reason, while the chapter has no audio (#4042)', async () => {
+      mount({ api: unlinked });
+      await shown();
+      await closeDialog(); // the link dialog opens by itself on a chapter with no track
+      const check = screen.getByRole('button', { name: 'Check recordings' });
+      await waitFor(() => expect(check.getAttribute('aria-disabled')).toBe('true'));
+      fireEvent.click(check);
+      expect(screen.queryByRole('dialog', { name: 'Check recordings' })).toBeNull();
+    });
+
     const dialog = () => screen.findByRole('dialog');
     const closeDialog = async () => {
       const open = await dialog();
