@@ -22,6 +22,8 @@ type Flight = {
 
 /** How long a read may be out before a later one is made anyway (the host bounds its own read at 5 s; a binding that never settles must not stop every later read). */
 export const WORD_TIMES_READ_LIMIT_MS = 20_000;
+/** How long the first read of a chapter's table may be out before the page stops saying it is checking and a play says it cannot place the words (a late table still applies). */
+export const WORD_TIMES_ANSWER_LIMIT_MS = 6_000;
 
 const freshFlight = (generation: number): Flight => ({
   generation,
@@ -67,6 +69,13 @@ export function useWordClock(
     setTable(null);
     setAnswered(false);
   }, [sync, chapterId, enabled]);
+
+  // A read that never answers must not hold the page in "checking": after the limit the page treats the table as unavailable (a late one still applies).
+  useEffect(() => {
+    if (!enabled || !visible || answered) return;
+    const timer = window.setTimeout(() => setAnswered(true), WORD_TIMES_ANSWER_LIMIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [enabled, visible, answered, chapterId]);
 
   useEffect(() => {
     if (!enabled || !visible) return;
