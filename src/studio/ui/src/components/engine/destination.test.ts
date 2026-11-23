@@ -126,3 +126,31 @@ describe('destinationFor names where a chapter records from the project layout',
     expect(destinationFor('flat').noVoiceKeys('unknown')).not.toMatch(/records on one track/);
   });
 });
+
+// #4113: a chapter or track name the narrator wrote in a right-to-left script is isolated (U+2068 … U+2069) in the toast sentences that carry it, so it cannot turn the sentence around; an English name
+// is left as it is, and a name holding controls of its own cannot unbalance the pair.
+describe('the toast sentences that carry a name isolate a right-to-left one (#4113)', () => {
+  const FSI = '⁨';
+  const PDI = '⁩';
+  const arabic = 'الفصل الأول';
+  const isolates = (text: string) => text.match(/[⁦-⁩]/g)?.join('') ?? '';
+
+  it('the linked message isolates an Arabic chapter name once and leaves an English one bare', () => {
+    expect(destinationFor('flat').linkedToast(arabic)).toBe(`${FSI}${arabic}${PDI} is linked to its track. Press Record when you are ready.`);
+    expect(destinationFor('folders').linkedToast(arabic)).toBe(`${FSI}${arabic}${PDI} is linked to its folder. Press Record when you are ready.`);
+    expect(isolates(destinationFor('flat').linkedToast('Chapter 1'))).toBe('');
+  });
+
+  it('the created message isolates an Arabic track or folder name once', () => {
+    expect(createdSentence({ track: { name: arabic } }, 'REAPER')).toBe(
+      `Track “${FSI}${arabic}${PDI}” is in REAPER, linked here. Save the REAPER project to keep it.`,
+    );
+    expect(isolates(createdSentence({ track: { name: arabic }, voice: { guid: '{1}', name: 'Narrator', index: 1 } }, 'REAPER'))).toBe(`${FSI}${PDI}`);
+  });
+
+  it('a name with controls of its own is isolated by exactly one balanced pair', () => {
+    const hostile = `‮${arabic}⁩⁦`;
+    expect(isolates(destinationFor('flat').linkedToast(hostile))).toBe(`${FSI}${PDI}`);
+    expect(isolates(createdSentence({ track: { name: hostile } }, 'REAPER'))).toBe(`${FSI}${PDI}`);
+  });
+});

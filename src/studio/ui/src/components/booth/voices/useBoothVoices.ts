@@ -1,3 +1,4 @@
+import { isolatedIfRtl } from '../../../visibleText';
 import { HELD_TOPIC } from '../record/useRecordControl';
 import { COLD_READ_NO_VOICE_REASON } from '../../../input/hints';
 import { releaseFocusToPage } from '../releaseFocusToPage';
@@ -506,7 +507,7 @@ export function useBoothVoices({
       if (heldNow.current) return notify(heldNow.current, 'info', undefined, HELD_TOPIC);
       const narrator = voices.find((voice) => voice.narrator);
       if (!narrator) {
-        notify(`${character.name} has no track, and this chapter has no Narrator track to record on.`, 'error');
+        notify(`${isolatedIfRtl(character.name)} has no track, and this chapter has no Narrator track to record on.`, 'error');
         return;
       }
       if (sending.current) queued.current = narrator;

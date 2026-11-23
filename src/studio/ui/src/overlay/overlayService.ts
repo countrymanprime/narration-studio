@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { hasVisibleText } from '../visibleText';
+import { hasVisibleText, withBalancedIsolates } from '../visibleText';
 import type { DialogSize } from '../components/primitives/Dialog';
 import { type ToastAction, type ToastMessage, type ToastTone } from '../components/primitives/Toast';
 
@@ -157,7 +157,8 @@ export function createOverlayService(): OverlayService {
 
   const toast = (raw: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     // Bidi controls (an override that reverses the words after it) are not text a narrator reads; a message of nothing else is not a message.
-    const text = raw.replace(BIDI_CONTROLS, '');
+    // The isolates the app puts round a name (U+2068 … U+2069, `bidiIsolated`) stay when balanced: they keep a right-to-left name from turning its sentence around (#4113); a stray or unclosed one goes.
+    const text = withBalancedIsolates(raw, BIDI_CONTROLS);
     if (!hasVisibleText(text)) return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = {

@@ -1,5 +1,6 @@
 import { linkStateLabel } from '../chapterTracks/chapterLink';
 import { trackName as readable } from '../tracks/trackName';
+import { isolatedIfRtl } from '../../visibleText';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 
@@ -65,7 +66,7 @@ export function destinationFor(layout: VoiceTracksLayout) {
     /** The footer's reason beside Record. */
     footerMissing: (chapter: string) => `${chapter}’s ${noun} is not in the project. Press Record to link one.`,
     footerNoLink: (chapter: string) => `${chapter} has no ${noun} to record on. Press Record to link one.`,
-    linkedToast: (chapter: string) => `${chapter} is linked to its ${noun}. Press Record when you are ready.`,
+    linkedToast: (chapter: string) => `${isolatedIfRtl(chapter)} is linked to its ${noun}. Press Record when you are ready.`,
     /** The setup chip's words and tooltip sentence for a chapter with no link or several. */
     chipNoTrack: { words: `no ${noun}`, sentence: `this chapter has no ${noun} to record on` },
     chipMissing: { words: linkStateLabel('missing', folders).toLowerCase(), sentence: `this chapter’s ${noun} is not in the project` },
@@ -111,6 +112,6 @@ export function childNames(created: CreatedDestination): string | null {
  * A toast fits two lines when the name is about 26 characters or fewer; a longer one scrolls inside it, which is the narrator's own name for the track. The tracks the folder holds are named in the engine panel.
  */
 export function createdSentence(created: CreatedDestination, dawName: string): string {
-  const what = `${created.voice ? 'Folder' : 'Track'} “${readable(created.track.name, created.track.index)}”`;
+  const what = `${created.voice ? 'Folder' : 'Track'} “${isolatedIfRtl(readable(created.track.name, created.track.index))}”`;
   return `${what} is in ${dawName}, linked here. Save the ${dawName} project to keep it.${created.message ? ` ${created.message}` : ''}`;
 }

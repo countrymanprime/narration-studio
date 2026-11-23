@@ -21,6 +21,7 @@ import { useIsRecording } from '../../daw/useIsRecording';
 import { assignmentOf, folderChildren, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 import { chapterLink } from '../chapterTracks/chapterLink';
+import { bidiIsolated } from '../../visibleText';
 
 const LAYOUTS = [
   { value: 'flat', label: 'Flat' },
@@ -69,9 +70,6 @@ function switchConsequence(voice: Voice, before: readonly Voice[], after: readon
     .join(', ');
   return `${lead} Keys now: ${shown}${changed.length > 5 ? `, and ${changed.length - 5} more` : ''}.`;
 }
-
-/** A track's name inside a sentence of another direction: isolated, so a right-to-left name does not turn the sentence around. */
-const bidiIsolated = (name: string) => `\u2068${name}\u2069`;
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 

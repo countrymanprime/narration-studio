@@ -365,6 +365,18 @@ describe('overlay.toast with no words (issue 2899)', () => {
     expect(service.getSnapshot().toasts).toHaveLength(1);
   });
 
+  // #4113: the isolates the app puts round a right-to-left name stay; a stray or unclosed one, and every other control, go.
+  it('keeps the isolates that open and close round a name, and strips the others (#4113)', () => {
+    service.toast('\u2068\u0627\u0644\u0641\u0635\u0644\u2069 is linked.');
+    service.toast('stray \u2069 close and \u2068 open', { tone: 'error' });
+    service.toast('\u202E\u2068x\u2069\u202C \u2067y\u2069 z', { tone: 'error' });
+    expect(service.getSnapshot().toasts.map((m) => m.text)).toEqual([
+      '\u2068\u0627\u0644\u0641\u0635\u0644\u2069 is linked.',
+      'stray  close and  open',
+      '\u2068x\u2069 y z',
+    ]);
+  });
+
   it.each(['', ' ', '   ', '\n', '\n\n\n\n', '\t \n \u00A0'])('raises no toast for the text %j', (text) => {
     service.toast(text);
     service.toast(text, { tone: 'error' });

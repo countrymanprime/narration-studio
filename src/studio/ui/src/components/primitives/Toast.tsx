@@ -3,6 +3,7 @@ import { HIT_AREA } from './hitArea';
 import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
 import { formatCount, plural } from '../../plural';
+import { textDirection } from '../../visibleText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -42,9 +43,6 @@ export const TOAST_MAX_MS = 60_000;
 export const TOAST_ACTION_MS = 12_000;
 const FADE_MS = 150;
 /** The time-left bar's look, one for the animated bar and the stepped one drawn under reduced motion so they cannot drift (#3667). */
-/** A letter of the app's own language: a message with one is a sentence of the app, laid out left to right (#4113). */
-const LATIN_LETTER = /[A-Za-z]/;
-
 const COUNTDOWN_BAR = 'pointer-events-none absolute right-0 bottom-0 h-[3px] origin-left bg-[color-mix(in_srgb,var(--toast-text)_55%,transparent)]';
 /** How often the time-left bar steps under reduced motion (#3667): the one exception to the motion rule, a timer shown without moving. */
 const TOAST_STEP_MS = 1000;
@@ -251,10 +249,10 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
       <span
         ref={text}
         data-toast-text
-        // The app's own sentences are English, so a message with any Latin letter reads left to right whatever its first letter is: `dir="auto"` took the direction of the first strong character, so a
-        // sentence that began with a right-to-left chapter or track name ("<Arabic> is linked to its track. Press Record…") turned the whole line around and sent the full stop to the start (#4113).
-        // A name inside it then reorders only within itself. A message with no Latin letter at all (a text that is all right-to-left) still lets the browser choose (#2957).
-        dir={LATIN_LETTER.test(message.text) ? 'ltr' : 'auto'}
+        // The app's own sentences are English: `dir="auto"` took the direction of the first strong character, so a sentence that began with a right-to-left chapter or track name ("<Arabic> is linked
+        // to its track. Press Record…") turned the whole line around and sent the full stop to the start (#4113). `textDirection` reads it left to right when the app's own words outnumber (or equal)
+        // the right-to-left ones, outside the names the builders isolate, and leaves `auto` to a message that is mostly right to left (#2957).
+        dir={textDirection(message.text)}
         tabIndex={scrolls ? 0 : undefined}
         // The attribute is always set: the text keeps the keys that scroll it, so the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts). Only while the
         // text overflows is it a scroller (which Chromium makes a tab stop): a message that fits, even by a sub-pixel, is plain text and no tab stop.
