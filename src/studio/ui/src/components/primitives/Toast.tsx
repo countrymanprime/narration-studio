@@ -263,7 +263,8 @@ function useToastSlot(): void {
     const root = document.documentElement;
     const set = () => {
       const rem = Number.parseFloat(getComputedStyle(root).fontSize) || 16;
-      const gutter = Number.parseFloat(getComputedStyle(root).getPropertyValue('--page-gutter')) || rem;
+      // The page gutter is 1rem (`--page-gutter`, styles.css).
+      const gutter = rem;
       const bottom = window.innerHeight <= 400 ? gutter / 2 : gutter;
       root.style.setProperty(TOAST_BOTTOM_PROPERTY, `${bottom}px`);
       root.style.setProperty(TOAST_SLOT_PROPERTY, `${Math.ceil(bottom + (TOAST_HEIGHT_REM + TOAST_AIR_REM) * rem)}px`);
@@ -298,7 +299,9 @@ function useToastHeightPublished(region: { current: HTMLElement | null }, showin
     const box = region.current;
     if (!showing || !box) return;
     const publish = () => {
-      const room = Math.ceil(window.innerHeight - box.getBoundingClientRect().top + 8);
+      // From the first toast drawn: the region's own top also holds the empty live region above it and the gap between them.
+      const first = box.querySelector('[data-tone]:not([hidden])') ?? box;
+      const room = Math.ceil(window.innerHeight - first.getBoundingClientRect().top + 8);
       const modal = root.hasAttribute(MODAL_OPEN_ATTRIBUTE);
       root.style.setProperty(TOAST_HEIGHT_PROPERTY, `${modal ? room : Math.min(room, Math.floor(window.innerHeight * STRIP_MAX_SHARE))}px`);
       // The dialog's room just changed: the field being typed in must not be left half under the popup's new edge.

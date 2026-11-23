@@ -140,16 +140,17 @@ for (const c of CASES) {
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
       if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
-      // A long message scrolls inside two lines (2.5rem, 40 px, at 400 px of height or less) over a dialog, so it never takes the dialog's room.
+      // A long message is one line over a dialog, so it never takes the dialog's room.
       const cap = height > 400 ? 41 : 40;
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
       if (text > cap + 1) problems.push(`${width}x${height}: the toast's text is ${text} px high, over its ${cap} px`);
       if (c.longText && width <= 400) {
-        const scrolls = await page.evaluate(() => {
-          const el = document.querySelector('[data-toast-region] [data-toast-text]')!;
-          return el.scrollHeight > el.clientHeight + 1;
+        // A long message is one line, cut with an ellipsis (#4063): it takes no more of the dialog's room than a short one, and carries its whole text as its title.
+        const cut = await page.evaluate(() => {
+          const el = document.querySelector('[data-toast-region] [data-toast-text]') as HTMLElement;
+          return el.scrollWidth > el.clientWidth + 1 && (el.getAttribute('title') ?? '').length > 40;
         });
-        if (!scrolls) problems.push(`${width}x${height}: the long message fits in 2.5rem, so its scroll is not exercised`);
+        if (!cut) problems.push(`${width}x${height}: the long message is not cut to one line with its whole text as the title`);
       }
       if (
         c.focusField &&
