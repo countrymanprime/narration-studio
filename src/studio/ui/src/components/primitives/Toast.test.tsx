@@ -393,6 +393,19 @@ describe('a toast text is measured without its scrollbar, and again when the fon
     expect(textOf('xxxx').className).toContain('overflow-y-auto');
   });
 
+  it("keeps the narrator's place in the text: the scroll position is put back after the read", () => {
+    render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
+    const text = textOf('xxxx');
+    text.scrollTop = 40;
+    // The read clamps the position, as widening the box can in a browser; it is put back.
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      this.scrollTop = 0;
+      return sizes.scrollHeight;
+    });
+    act(() => listeners.forEach((cb) => cb()));
+    expect(text.scrollTop).toBe(40);
+  });
+
   it('measures again when the fonts have loaded: a box that scrolled in the fallback font stops scrolling', () => {
     render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
     expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');

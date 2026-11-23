@@ -1,8 +1,9 @@
 // A toast whose text box scrolls loses the scrollbar's gutter (styles.css keeps one, `scrollbar-gutter: stable`, on every auto-scrolling box, and a gutter outlives `overflow: hidden`),
 // so its text wraps to one more line than it would without. A box measured while it scrolled kept overflowing after what made it overflow was gone, such as a wider fallback font before the
-// web font arrived (#4112). This spec uses the real gutter of the browser, with no stand-in and no dependence on font metrics: it finds a message that fits two lines without the gutter and not
-// with it, raises it while the box is squeezed so it scrolls, and lifts the squeeze: the box must stop scrolling and drop out of the tab order.
-import { expect, test, type Page } from '@playwright/test';
+// web font arrived, or a squeeze that was lifted (#4112). Both tests use the browser's real gutter, with no stand-in: they find in the page a message that fits two lines without the gutter and not
+// with it, raise it while the box overflows, and expect the box to stop scrolling and drop out of the tab order once the cause is gone. The window is narrow (about the gutter's width), so the
+// message is searched for in the real layout, and the font test searches across box widths too; neither skips: a browser with no such message fails them.
+import { expect, test, type Browser, type Page } from '@playwright/test';
 import { hookReady, raiseToast } from './helpers/raiseToast';
 
 const PROSE =
@@ -10,10 +11,14 @@ const PROSE =
 
 const TEXT = '[data-toast-region] [data-toast-text]';
 
+/** The web font the toast text is set in (`styles.css`). */
+const FAMILY = '"IBM Plex Sans"';
+
 async function open(page: Page): Promise<void> {
   await page.setViewportSize({ width: 768, height: 900 });
   await page.goto('/?mockNoProject=1');
   await hookReady(page);
+  await page.evaluate(() => document.fonts.ready);
 }
 
 const state = (page: Page) =>
@@ -22,46 +27,90 @@ const state = (page: Page) =>
     tabIndex: (element as HTMLElement).tabIndex,
   }));
 
-/** The longest prefix of the prose that fits the toast's two lines without the scrollbar's gutter and not with it, found in the real layout (a Retry toast with another waiting behind it). */
-async function messageInTheGutterWindow(page: Page): Promise<string> {
-  // A long message fills the box and scrolls, which is the state with the real gutter on it.
-  await raiseToast(page, PROSE, 'Retry');
-  await raiseToast(page, 'y', null);
-  await expect(page.locator(TEXT)).toHaveText(PROSE);
-  await expect.poll(async () => (await state(page)).overflowY).toBe('auto');
-  const found = await page.locator(TEXT).evaluate((element, prose) => {
-    const box = element as HTMLElement;
-    // The box scrolls here, with the `overflow-y-auto` class's stable gutter: the width it has without a scrollbar is its full width, and the gutter is what the scrollbar takes.
-    const free = box.offsetWidth;
-    const gutter = box.offsetWidth - box.clientWidth;
-    if (gutter <= 0) return { gutter, text: '' };
-    const probe = document.createElement('span');
-    probe.className = box.className;
-    Object.assign(probe.style, { position: 'absolute', visibility: 'hidden', maxHeight: 'none', overflowY: 'hidden', scrollbarGutter: 'auto' });
-    box.parentElement!.append(probe);
-    const lineHeight = Number.parseFloat(getComputedStyle(box).lineHeight);
-    const lines = (text: string, width: number) => {
-      probe.textContent = text;
-      probe.style.width = `${width}px`;
-      return Math.round(probe.scrollHeight / lineHeight);
-    };
-    let best = '';
-    // Every length from 40 characters, so the 10 px window is found whatever the font (a word at a time is too coarse).
-    for (let n = 40; n <= prose.length; n++) {
-      const text = prose.slice(0, n).trimEnd();
-      if (lines(text, free) <= 2 && lines(text, free - gutter) > 2) best = text;
-    }
-    probe.remove();
-    return { gutter, text: best };
-  }, PROSE);
-  expect(found.gutter, 'this browser draws no scrollbar gutter on the toast, so the test proves nothing').toBeGreaterThan(0);
-  expect(found.text, 'no message fits two lines without the gutter and not with it at this width').not.toBe('');
-  return found.text;
+/** The box's width and the gutter its scrollbar takes (the box scrolls, so the stylesheet's stable gutter is on it). */
+const boxAndGutter = (page: Page) =>
+  page.locator(TEXT).evaluate((element) => {
+    const width = element.getBoundingClientRect().width;
+    return { width, gutter: width - element.clientWidth };
+  });
+
+type Row = { width: number; n: number; full: number; narrow: number };
+
+/** What each prose prefix needs at each box width, as the page lays it out now: the lines at the width and at the width left beside the gutter. One probe, for every test. */
+async function linesTable(page: Page, widths: number[], gutter: number): Promise<Row[]> {
+  return page.locator(TEXT).evaluate(
+    (element, args) => {
+      const box = element as HTMLElement;
+      const probe = document.createElement('span');
+      probe.className = box.className;
+      Object.assign(probe.style, { position: 'absolute', visibility: 'hidden', maxHeight: 'none', overflowY: 'hidden', scrollbarGutter: 'auto' });
+      box.parentElement!.append(probe);
+      const lineHeight = Number.parseFloat(getComputedStyle(box).lineHeight);
+      const lines = (text: string, width: number) => {
+        probe.textContent = text;
+        probe.style.width = `${width}px`;
+        return Math.round(probe.scrollHeight / lineHeight);
+      };
+      const rows: Row[] = [];
+      for (const width of args.widths) {
+        for (let n = 40; n <= args.prose.length; n++) {
+          const text = args.prose.slice(0, n).trimEnd();
+          rows.push({ width, n, full: lines(text, width), narrow: lines(text, width - args.gutter) });
+        }
+      }
+      probe.remove();
+      return rows;
+    },
+    { widths, gutter, prose: PROSE },
+  );
+}
+
+/** A page whose web fonts are held until `release()`, so what it draws is laid out in the fallback font first; it asserts the hold took effect. */
+async function openWithFontsHeld(page: Page): Promise<() => void> {
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/*.woff2', async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.goto('/?mockNoProject=1', { waitUntil: 'domcontentloaded' });
+  await hookReady(page);
+  expect(
+    await page.evaluate((family) => !document.fonts.check(`1em ${family}`), FAMILY),
+    `the web font ${FAMILY} should be held, or the test proves nothing`,
+  ).toBe(true);
+  return () => {
+    release();
+  };
+}
+
+/** Runs `body` with a fresh page and closes it, with its routes, whatever happens. */
+async function withPage(browser: Browser, body: (page: Page) => Promise<void>): Promise<void> {
+  const page = await browser.newPage();
+  try {
+    await body(page);
+  } finally {
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await page.close();
+  }
 }
 
 test('a toast text that scrolled stops scrolling once it fits again, although it would not fit beside the scrollbar gutter', async ({ page }) => {
   await open(page);
-  const message = await messageInTheGutterWindow(page);
+  // A long message fills the box and scrolls: that is the state with the real gutter on it.
+  await raiseToast(page, PROSE, 'Retry');
+  await raiseToast(page, 'y', null);
+  await expect(page.locator(TEXT)).toHaveText(PROSE);
+  await expect.poll(async () => (await state(page)).overflowY).toBe('auto');
+  const { width, gutter } = await boxAndGutter(page);
+  expect(gutter, 'this browser draws no scrollbar gutter on the toast, so the test proves nothing').toBeGreaterThan(0);
+  const rows = await linesTable(page, [width], gutter);
+  const candidates = rows.filter((row) => row.full <= 2 && row.narrow > 2);
+  expect(candidates.length, 'no message fits two lines without the gutter and not with it at this width').toBeGreaterThan(0);
+  const chosen = candidates[Math.floor(candidates.length / 2)];
+  expect(chosen).toBeDefined();
+  const message = PROSE.slice(0, chosen?.n).trimEnd();
   // Raised with room, the message fits and is plain text.
   await open(page);
   await raiseToast(page, message, 'Retry');
@@ -86,80 +135,58 @@ test('a toast text that scrolled stops scrolling once it fits again, although it
   await expect(page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' })).toBeFocused();
 });
 
-/** What a prose prefix of each length needs in the box as it is now: the lines at the box's full width and at the width left beside the gutter. */
-async function linesPerLength(page: Page): Promise<{ free: number; gutter: number; lines: Array<{ n: number; full: number; narrow: number }> }> {
-  return page.locator(TEXT).evaluate((element, prose) => {
-    const box = element as HTMLElement;
-    const free = box.offsetWidth;
-    const gutter = box.offsetWidth - box.clientWidth;
-    const probe = document.createElement('span');
-    probe.className = box.className;
-    Object.assign(probe.style, { position: 'absolute', visibility: 'hidden', maxHeight: 'none', overflowY: 'hidden', scrollbarGutter: 'auto' });
-    box.parentElement!.append(probe);
-    const lineHeight = Number.parseFloat(getComputedStyle(box).lineHeight);
-    const lines = (text: string, width: number) => {
-      probe.textContent = text;
-      probe.style.width = `${width}px`;
-      return Math.round(probe.scrollHeight / lineHeight);
-    };
-    const result = [];
-    for (let n = 40; n <= prose.length; n++) {
-      const text = prose.slice(0, n).trimEnd();
-      result.push({ n, full: lines(text, free), narrow: lines(text, free - gutter) });
-    }
-    probe.remove();
-    return { free, gutter, lines: result };
-  }, PROSE);
-}
-
-/** A page whose web fonts are held until `release()` is called, so what it draws is laid out in the fallback font first. */
-async function openWithFontsHeld(page: Page): Promise<() => void> {
-  let release: () => void = () => {};
-  const held = new Promise<void>((resolve) => (release = resolve));
-  await page.route('**/*.woff2', async (route) => {
-    await held;
-    await route.continue();
-  });
-  await page.setViewportSize({ width: 768, height: 900 });
-  await page.goto('/?mockNoProject=1', { waitUntil: 'domcontentloaded' });
-  await hookReady(page);
-  return release;
-}
-
 test('a toast raised while the web fonts are held stops scrolling once they have loaded', async ({ browser }) => {
-  // First page: what each prose prefix needs in the fallback font while the fonts are held, and in the web font once they have loaded.
-  const probePage = await browser.newPage();
-  const releaseProbe = await openWithFontsHeld(probePage);
-  await raiseToast(probePage, PROSE, 'Retry');
-  await raiseToast(probePage, 'y', null);
-  await expect(probePage.locator(TEXT)).toHaveText(PROSE);
-  await expect.poll(async () => (await state(probePage)).overflowY).toBe('auto');
-  const fallback = await linesPerLength(probePage);
-  releaseProbe();
-  await probePage.evaluate(() => document.fonts.ready);
-  const web = await linesPerLength(probePage);
-  await probePage.close();
-  expect(web.gutter, 'this browser draws no scrollbar gutter on the toast, so the test proves nothing').toBeGreaterThan(0);
-  // A prefix that needs three lines in the fallback font (so it scrolls when raised there), fits two lines in the web font at full width, and would wrap to three beside the gutter: the case where a
-  // box measured while it scrolls stays scrolling after the fonts load.
-  const candidates = fallback.lines.filter((row, index) => {
-    const after = web.lines[index];
+  // First page: what each prose prefix needs at each box width in the fallback font while the fonts are held, and in the web font once they have loaded.
+  let fallback: Row[] = [];
+  let web: Row[] = [];
+  let gutter = 0;
+  let widths: number[] = [];
+  await withPage(browser, async (probe) => {
+    const release = await openWithFontsHeld(probe);
+    await raiseToast(probe, PROSE, 'Retry');
+    await raiseToast(probe, 'y', null);
+    await expect(probe.locator(TEXT)).toHaveText(PROSE);
+    await expect.poll(async () => (await state(probe)).overflowY).toBe('auto');
+    const natural = await boxAndGutter(probe);
+    gutter = natural.gutter;
+    expect(gutter, 'this browser draws no scrollbar gutter on the toast, so the test proves nothing').toBeGreaterThan(0);
+    // Box widths from its natural width downwards: a squeeze (max-width) sets them in the second page, as a narrower toast would.
+    widths = Array.from({ length: 40 }, (_, step) => Math.floor(natural.width) - 3 * step);
+    fallback = await linesTable(probe, widths, gutter);
+    release();
+    await probe.evaluate(() => document.fonts.ready);
+    web = await linesTable(probe, widths, gutter);
+  });
+  // A (width, prefix) pair that needs three lines in the fallback font (so it scrolls when raised there), fits two lines in the web font at that width, and would wrap to three beside the gutter: the
+  // case where a box measured while it scrolls stays scrolling after the fonts load.
+  const webOf = new Map(web.map((row) => [`${row.width}:${row.n}`, row]));
+  const pairs = fallback.filter((row) => {
+    const after = webOf.get(`${row.width}:${row.n}`);
     return row.full > 2 && after !== undefined && after.full <= 2 && after.narrow > 2;
   });
-  test.skip(candidates.length === 0, 'no message wraps to three lines in the fallback font and fits two in the web font beside the gutter at this width');
-  const chosen = candidates[Math.floor(candidates.length / 2)];
+  expect(
+    pairs.length,
+    `no (box width, message) pair wraps to three lines in the fallback font and fits two in the web font beside the gutter, at any of ${widths.length} widths`,
+  ).toBeGreaterThan(0);
+  test.info().annotations.push({
+    type: 'pairs',
+    description: `${pairs.length} (width, message) pairs at ${new Set(pairs.map((row) => row.width)).size} of ${widths.length} widths`,
+  });
+  const chosen = pairs[Math.floor(pairs.length / 2)];
+  expect(chosen).toBeDefined();
   const message = PROSE.slice(0, chosen?.n).trimEnd();
-  // Second page: the message is raised while the fonts are held (it scrolls), then they load (it must stop).
-  const page = await browser.newPage();
-  const release = await openWithFontsHeld(page);
-  await raiseToast(page, message, 'Retry');
-  await raiseToast(page, 'A second message waits behind it.', null);
-  await expect(page.locator(TEXT)).toHaveText(message);
-  await expect.poll(async () => (await state(page)).tabIndex).toBe(0);
-  expect((await state(page)).overflowY).toBe('auto');
-  release();
-  await page.evaluate(() => document.fonts.ready);
-  await expect.poll(async () => (await state(page)).tabIndex).toBe(-1);
-  expect((await state(page)).overflowY).toBe('hidden');
-  await page.close();
+  // Second page: the box is held at that width, the message is raised while the fonts are held (it scrolls), then they load (it must stop).
+  await withPage(browser, async (page) => {
+    const release = await openWithFontsHeld(page);
+    await page.addStyleTag({ content: `${TEXT} { max-width: ${chosen?.width}px !important; }` });
+    await raiseToast(page, message, 'Retry');
+    await raiseToast(page, 'A second message waits behind it.', null);
+    await expect(page.locator(TEXT)).toHaveText(message);
+    await expect.poll(async () => (await state(page)).tabIndex).toBe(0);
+    expect((await state(page)).overflowY).toBe('auto');
+    release();
+    await page.evaluate(() => document.fonts.ready);
+    await expect.poll(async () => (await state(page)).tabIndex).toBe(-1);
+    expect((await state(page)).overflowY).toBe('hidden');
+  });
 });

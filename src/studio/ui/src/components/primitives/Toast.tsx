@@ -103,11 +103,14 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
     // box, and a gutter outlives `overflow: hidden`) are switched off for the read and put back.
     const measure = () => {
       const { overflowY, scrollbarGutter } = el.style;
+      // Toggling the gutter widens the box, which can clamp the scroll position: the narrator's place in the text is put back.
+      const top = el.scrollTop;
       el.style.overflowY = 'hidden';
       el.style.scrollbarGutter = 'auto';
       const overflows = el.scrollHeight > el.clientHeight + 1;
       el.style.overflowY = overflowY;
       el.style.scrollbarGutter = scrollbarGutter;
+      el.scrollTop = top;
       // The text is a Tab stop only while it scrolls: if it had focus when it stops, focus goes to the toast's first button (its action, else Dismiss), not to the page (focus is never left on <body>).
       if (!overflows && document.activeElement === el) el.closest<HTMLElement>('[data-tone]')?.querySelector('button')?.focus();
       setScrolls(overflows);
