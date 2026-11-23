@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
-	"time"
 )
 
 // minMax reads bucket k of a Peaks back as two signed values.
@@ -310,114 +309,6 @@ func firstDifference(a, b []byte) int {
 	return min(len(a), len(b))
 }
 
-// Decodes at once are bounded by the slots, and a done context never takes a free one (#4042).
-func TestDecodeSlotsHoldBackDecodesBeyondTheirNumberAndLetGoOnCancel(t *testing.T) {
-	slots := NewSlots(2)
-	ctx := context.Background()
-	for range 2 {
-		if err := slots.Acquire(ctx); err != nil {
-			t.Fatal("two slots should be free")
-		}
-	}
-	waiting, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
-	defer cancel()
-	if err := slots.Acquire(waiting); err == nil {
-		t.Fatal("a third decode got a slot while two were held")
-	}
-	slots.Release()
-	done, stop := context.WithCancel(ctx)
-	stop()
-	if err := slots.Acquire(done); err == nil {
-		t.Fatal("a done context took a free slot")
-	}
-	if err := slots.Acquire(ctx); err != nil {
-		t.Fatalf("a released slot was not free: %v", err)
-	}
-}
-
-// The segments of one file hold the shared slots: with every slot held, a read waits and answers its context's error instead of decoding (#4042).
-func TestPeaksFileWaitsForADecodeSlotAndStopsWithItsContext(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "long.wav")
-	if err := os.WriteFile(path, encodeWAV(t, 1, 8000, 16, false, sine(8000, 130, 220, -12, 0)), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	for range cap(DecodeSlots) {
-		if err := DecodeSlots.Acquire(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}
-	defer func() {
-		for range cap(DecodeSlots) {
-			DecodeSlots.Release()
-		}
-	}()
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-	if _, err := PeaksFile(ctx, path, nil, DefaultPeaksPerSecond); !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("a read with no slot free answered %v, want its context's deadline", err)
-	}
-}
-
-// bitsFor gives the 24-bit file the rig and the owner's recordings are (48 kHz), 16-bit for the rest.
-func bitsFor(rate int) int {
-	if rate == 48000 {
-		return 24
-	}
-	return 16
-}
-
-// A part short of its seconds, before the last, is not joined: it would draw the audio after it at the wrong time (a file cut short during the read).
-func TestSegmentsCompleteRefusesAPartShortOfItsSeconds(t *testing.T) {
-	whole := func(n int) Peaks { return Peaks{Buckets: n} }
-	if !segmentsComplete([]Peaks{whole(100), whole(100), whole(40)}, 100) {
-		t.Fatal("a short last part is the end of the file")
-	}
-	if !segmentsComplete([]Peaks{whole(100), whole(0), whole(0)}, 100) {
-		t.Fatal("parts after the end of the file are empty")
-	}
-	if segmentsComplete([]Peaks{whole(100), whole(60), whole(100)}, 100) {
-		t.Fatal("a short middle part would shift the audio after it")
-	}
-}
-
-// A file with a large chunk before its data is read whole, not copied into memory for every segment.
-func TestPeaksFileDoesNotCopyAChunkBeforeTheData(t *testing.T) {
-	const rate, seconds = 8000, 130
-	body := encodeWAV(t, 1, rate, 16, false, sine(rate, seconds, 220, -12, 0))
-	// fmt chunk, a 64 MB JUNK chunk of holes, then the data chunk of the file above.
-	file := filepath.Join(t.TempDir(), "junk.wav")
-	out, err := os.Create(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	junk := 64 << 20
-	head := append([]byte{}, body[:36]...) // RIFF header and fmt chunk
-	head = append(head, 'J', 'U', 'N', 'K', byte(junk&0xff), byte(junk>>8&0xff), byte(junk>>16&0xff), byte(junk>>24&0xff))
-	if _, err := out.Write(head); err != nil {
-		t.Fatal(err)
-	}
-	if err := out.Truncate(int64(len(head) + junk)); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := out.WriteAt(body[36:], int64(len(head)+junk)); err != nil {
-		t.Fatal(err)
-	}
-	_ = out.Close()
-	var before, after runtime.MemStats
-	runtime.ReadMemStats(&before)
-	peaks, err := PeaksFile(context.Background(), file, nil, DefaultPeaksPerSecond)
-	runtime.ReadMemStats(&after)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if peaks.Buckets != seconds*DefaultPeaksPerSecond {
-		t.Fatalf("%d buckets, want %d", peaks.Buckets, seconds*DefaultPeaksPerSecond)
-	}
-	if grown := after.TotalAlloc - before.TotalAlloc; grown > 16<<20 {
-		t.Fatalf("reading allocated %d MB: the chunk before the data was copied", grown>>20)
-	}
-}
-
 // One segment, many more segments than seconds, a corrupt sample and a done context each answer what one read answers (#4042).
 func TestPeaksFileInSegmentsAnswersTheSameInTheEdgeCases(t *testing.T) {
 	saved := peaksSegmentCount
@@ -492,5 +383,72 @@ func TestPeaksFileReadsAgainWhenASegmentComesUpShort(t *testing.T) {
 	got, err := PeaksFile(context.Background(), path, nil, DefaultPeaksPerSecond)
 	if err != nil || got.Buckets != 130*DefaultPeaksPerSecond {
 		t.Fatalf("the fallback read answered %d buckets (err %v), want %d", got.Buckets, err, 130*DefaultPeaksPerSecond)
+	}
+}
+
+// bitsFor gives the 24-bit file the rig and the owner's recordings are (48 kHz), 16-bit for the rest.
+func bitsFor(rate int) int {
+	if rate == 48000 {
+		return 24
+	}
+	return 16
+}
+
+// The count of segments is at least one and at most maxPeaksSegments, whatever the machine has.
+func TestPeaksSegmentCountIsBoundedByTheCores(t *testing.T) {
+	if n := peaksSegmentCount(); n < 1 || n > maxPeaksSegments {
+		t.Fatalf("%d segments, want 1 to %d", n, maxPeaksSegments)
+	}
+}
+
+// A part short of its seconds, before the last, is not joined: it would draw the audio after it at the wrong time (a file cut short during the read).
+func TestSegmentsCompleteRefusesAPartShortOfItsSeconds(t *testing.T) {
+	whole := func(n int) Peaks { return Peaks{Buckets: n} }
+	if !segmentsComplete([]Peaks{whole(100), whole(100), whole(40)}, 100) {
+		t.Fatal("a short last part is the end of the file")
+	}
+	if !segmentsComplete([]Peaks{whole(100), whole(0), whole(0)}, 100) {
+		t.Fatal("parts after the end of the file are empty")
+	}
+	if segmentsComplete([]Peaks{whole(100), whole(60), whole(100)}, 100) {
+		t.Fatal("a short middle part would shift the audio after it")
+	}
+}
+
+// A file with a large chunk before its data is read whole, not copied into memory for every segment.
+func TestPeaksFileDoesNotCopyAChunkBeforeTheData(t *testing.T) {
+	const rate, seconds = 8000, 130
+	body := encodeWAV(t, 1, rate, 16, false, sine(rate, seconds, 220, -12, 0))
+	// fmt chunk, a 64 MB JUNK chunk of holes, then the data chunk of the file above.
+	file := filepath.Join(t.TempDir(), "junk.wav")
+	out, err := os.Create(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	junk := 64 << 20
+	head := append([]byte{}, body[:36]...) // RIFF header and fmt chunk
+	head = append(head, 'J', 'U', 'N', 'K', byte(junk&0xff), byte(junk>>8&0xff), byte(junk>>16&0xff), byte(junk>>24&0xff))
+	if _, err := out.Write(head); err != nil {
+		t.Fatal(err)
+	}
+	if err := out.Truncate(int64(len(head) + junk)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := out.WriteAt(body[36:], int64(len(head)+junk)); err != nil {
+		t.Fatal(err)
+	}
+	_ = out.Close()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	peaks, err := PeaksFile(context.Background(), file, nil, DefaultPeaksPerSecond)
+	runtime.ReadMemStats(&after)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if peaks.Buckets != seconds*DefaultPeaksPerSecond {
+		t.Fatalf("%d buckets, want %d", peaks.Buckets, seconds*DefaultPeaksPerSecond)
+	}
+	if grown := after.TotalAlloc - before.TotalAlloc; grown > 16<<20 {
+		t.Fatalf("reading allocated %d MB: the chunk before the data was copied", grown>>20)
 	}
 }

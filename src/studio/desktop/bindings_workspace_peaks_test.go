@@ -7,11 +7,13 @@ import (
 	"desktop/internal/evidence"
 	"desktop/internal/measure"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -295,14 +297,14 @@ func TestAPeaksCallThatRanOutOfTimeOnAnUnreadRecordingSaysItIsStillBeingRead(t *
 	cancel()
 	store := evidence.NewCacheStore(project)
 	// Every slot is held, so the read cannot start decoding before the call looks: the answer does not depend on a race.
-	for range cap(measure.DecodeSlots) {
-		if err := measure.DecodeSlots.Acquire(context.Background()); err != nil {
+	for range cap(sharedDecodeSlots) {
+		if err := sharedDecodeSlots.acquire(context.Background()); err != nil {
 			t.Fatal(err)
 		}
 	}
 	got := newPeaksSources(expired, context.Background(), store, project).whole(file)
-	for range cap(measure.DecodeSlots) {
-		measure.DecodeSlots.Release()
+	for range cap(sharedDecodeSlots) {
+		sharedDecodeSlots.release()
 	}
 	// The read goes on in the background; the folder is not removed under it.
 	for deadline := time.Now().Add(10 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
@@ -339,4 +341,108 @@ func TestABackgroundPeaksReadStopsWhenTheHostStops(t *testing.T) {
 		}
 		return nil
 	})
+}
+
+// Decodes at once are bounded by the slots, and a done context never takes a free one (#4042).
+func TestDecodeSlotsHoldBackDecodesBeyondTheirNumberAndLetGoOnCancel(t *testing.T) {
+	slots := make(decodeSlots, 2)
+	ctx := context.Background()
+	for range 2 {
+		if err := slots.acquire(ctx); err != nil {
+			t.Fatal("two slots should be free")
+		}
+	}
+	waiting, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	defer cancel()
+	if err := slots.acquire(waiting); err == nil {
+		t.Fatal("a third decode got a slot while two were held")
+	}
+	slots.release()
+	done, stop := context.WithCancel(ctx)
+	stop()
+	if err := slots.acquire(done); err == nil {
+		t.Fatal("a done context took a free slot")
+	}
+	if err := slots.acquire(ctx); err != nil {
+		t.Fatalf("a released slot was not free: %v", err)
+	}
+}
+
+// With every slot held, a read waits for one and stops with its context instead of decoding.
+func TestPeaksFileWaitsForADecodeSlotAndStopsWithItsContext(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "long.wav")
+	if err := os.WriteFile(path, minimalMonoWAV(t, 130, 8000), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for range cap(sharedDecodeSlots) {
+		if err := sharedDecodeSlots.acquire(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	defer func() {
+		for range cap(sharedDecodeSlots) {
+			sharedDecodeSlots.release()
+		}
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := measure.PeaksFile(ctx, path, nil, measure.DefaultPeaksPerSecond); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("a read with no slot free answered %v, want its context's deadline", err)
+	}
+}
+
+// The host's concurrent runner gives exactly the peaks of one read, over a file long enough to be split, and stops the other segments on an error.
+func TestPeaksFileThroughTheHostsRunnerEqualsOneRead(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "long.wav")
+	if err := os.WriteFile(path, minimalMonoWAV(t, 130, 8000), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = file.Close() }()
+	want, err := measure.ComputePeaks(context.Background(), file, nil, measure.DefaultPeaksPerSecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := measure.PeaksFile(context.Background(), path, nil, measure.DefaultPeaksPerSecond)
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("err %v, equal %v", err, reflect.DeepEqual(got, want))
+	}
+	// The first real error is answered, not the cancellation it caused. Four workers wait for the stop, so there are four slots whatever the machine
+	// has: with fewer, one waiting worker would hold the slot another needs to fail.
+	saved := sharedDecodeSlots
+	sharedDecodeSlots = make(decodeSlots, 4)
+	t.Cleanup(func() { sharedDecodeSlots = saved })
+	boom := errors.New("boom")
+	err = runDecodes(context.Background(), 4, func(ctx context.Context, i int) error {
+		if i == 2 {
+			return boom
+		}
+		<-ctx.Done()
+		return ctx.Err()
+	})
+	if !errors.Is(err, boom) {
+		t.Fatalf("answered %v, want the error that stopped the others", err)
+	}
+}
+
+// BenchmarkWaveformSegmentedTimeToFirst is a recording's cold first read through the host's concurrent runner (the one the app runs: the
+// benchmark in internal/measure runs the plain one-after-the-other default). Run it with
+// go test . -run '^$' -bench WaveformSegmentedTimeToFirst -benchtime 1x
+func BenchmarkWaveformSegmentedTimeToFirst(b *testing.B) {
+	for _, minutes := range []int{10, 30, 60} {
+		path := filepath.Join(b.TempDir(), "chapter.wav")
+		if err := writeSparseWAV(path, perfAudioRate, minutes*60); err != nil {
+			b.Fatal(err)
+		}
+		b.Run(fmt.Sprintf("cold/%dmin", minutes), func(b *testing.B) {
+			for range b.N {
+				if _, err := measure.PeaksFile(context.Background(), path, nil, measure.DefaultPeaksPerSecond); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
