@@ -57,7 +57,7 @@ type Port = { env: BookmarkEnv; spot: (offset?: number) => { chapterId: string; 
 
 async function build(api: BookmarksApi, spot: Port['spot']): Promise<Port> {
   const store = createStudioStore({
-    registry: createSlots({ manuscriptChapters: async () => [] }, api),
+    registry: createSlots({ manuscriptChapterList: async () => ({ project: 'A', chapters: [] }) }, api),
     subscribe: () => () => undefined,
     subscribeFocus: () => () => undefined,
   });

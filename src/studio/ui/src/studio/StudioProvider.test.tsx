@@ -105,7 +105,7 @@ describe('provider-creates-and-starts-the-store', () => {
   it('starts the store on mount and stops it on unmount, using a store a test passes', () => {
     const stop = vi.fn();
     const store = createStudioStore({
-      registry: createSlots({ manuscriptChapters: async () => [] }, { bookmarksList: async () => [] }),
+      registry: createSlots({ manuscriptChapterList: async () => ({ project: 'A', chapters: [] }) }, { bookmarksList: async () => [] }),
       subscribe: () => () => undefined,
     });
     const start = vi.spyOn(store, 'start').mockReturnValue(stop);
@@ -165,13 +165,13 @@ describe('project-switch-clears-both', () => {
 describe('createHostEvents wired by the provider', () => {
   it('reloads the chapters slot when a job ends', async () => {
     let ended: () => void = () => undefined;
-    const load = vi.fn().mockResolvedValue([]);
+    const load = vi.fn().mockResolvedValue({ project: 'A', chapters: [] });
     const subscribe = createHostEvents({
       subscribeJobEnded: (cb: () => void) => ((ended = cb), () => undefined),
       subscribeChapterSync: () => () => undefined,
     } as never);
     const store = createStudioStore({
-      registry: createSlots({ manuscriptChapters: load }, { bookmarksList: async () => [] }),
+      registry: createSlots({ manuscriptChapterList: load }, { bookmarksList: async () => [] }),
       subscribe,
       subscribeFocus: () => () => undefined,
     });

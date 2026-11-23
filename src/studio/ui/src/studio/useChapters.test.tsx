@@ -170,3 +170,24 @@ describe('useReadChapters (#3658, #3998)', () => {
     expect((await result.current.cells()).length).toBeGreaterThan(0);
   });
 });
+
+describe('useReadChapters when the host is on a project the window has not heard of (#4040)', () => {
+  it('a reader that names A, given a list the host read from B, fails with the project changed once the store is told B', async () => {
+    const api = createMockApi();
+    const real = api.manuscriptChapterList.bind(api);
+    const read = vi.fn(async () => ({ ...(await real()), project: 'B' }));
+    api.manuscriptChapterList = read;
+    const { result } = renderHook(() => ({ readChapters: useReadChapters('A'), store: useStoreHandle() }), { wrapper: withProvider(api) });
+    const asked = result.current.readChapters();
+    const outcome = expect(asked).rejects.toThrow('The project changed');
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(read).toHaveBeenCalledTimes(1); // the gap answer is held back and the reader waits, no loop of reads
+    act(() => {
+      result.current.store.reset();
+      result.current.store.setProject('B');
+    });
+    await outcome;
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+});

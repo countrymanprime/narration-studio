@@ -6,12 +6,12 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('slots-registry-has-chapters', () => {
   it('reads chapters through the port, is stale on job:ended and reloads on focus', async () => {
-    const manuscriptChapters = vi.fn().mockResolvedValue([]);
-    const { chapters } = createSlots({ manuscriptChapters }, { bookmarksList: vi.fn() });
+    const manuscriptChapterList = vi.fn().mockResolvedValue({ project: 'A', chapters: [] });
+    const { chapters } = createSlots({ manuscriptChapterList }, { bookmarksList: vi.fn() });
     expect(chapters.events).toEqual(['job:ended', 'chapters:written', 'daw:record-ended', 'chapter-sync']);
     expect(chapters.refreshOnFocus).toBe(true);
-    await chapters.load();
-    expect(manuscriptChapters).toHaveBeenCalledOnce();
+    await chapters.read();
+    expect(manuscriptChapterList).toHaveBeenCalledOnce();
     expect(chapters.schema['~standard'].validate(null)).toMatchObject({ value: [] });
   });
 });
@@ -44,7 +44,7 @@ describe('host-events-adapter', () => {
 describe('slots-registry-has-bookmarks', () => {
   it('reads the bookmark list through the port and reloads on focus, not on a host event', async () => {
     const bookmarksList = vi.fn().mockResolvedValue([]);
-    const { bookmarks } = createSlots({ manuscriptChapters: vi.fn() }, { bookmarksList });
+    const { bookmarks } = createSlots({ manuscriptChapterList: vi.fn() }, { bookmarksList });
     expect(bookmarks.refreshOnFocus).toBe(true);
     expect('events' in bookmarks).toBe(false);
     await bookmarks.load();
