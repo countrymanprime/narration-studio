@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppliedOutput, type OutputPrefs } from './outputPrefs';
-import { onSampleStart } from '../voicesamples/samplePlayerStore';
+import { onSampleStart, stopOtherAudio } from '../voicesamples/samplePlayerStore';
 
 // Fixed lead-in/trail-off ("pre/post roll") around a matched span. Not a setting (YAGNI): nothing calls for
 // narrator tuning, and a constant keeps both audition sides consistent.
@@ -82,9 +82,12 @@ export function useRangePlayer(
 
   // `at` starts the range part way in, at a time in its own source file (the Takes panel's A/B swaps to the same word of
   // the other take); by default it starts at the range's lead-in.
+  const stopRef = useRef<() => void>(() => {});
   const play = useCallback(
     (next: AuditionRange, at?: number) => {
       const audio = audioRef.current!;
+      // One sound at a time: starting this read stops the script, a take, a comparison and a sample.
+      stopOtherAudio(stopRef.current);
       setLoadError(false);
       setRange(next);
       audio.src = mediaUrl(next.sourceFile);
@@ -105,7 +108,8 @@ export function useRangePlayer(
     setIsPlaying(false);
   }, []);
 
-  // A voice sample starting takes the audio (docs/prds/character-voice-samples.prd.md, Playback).
+  // Another sound starting takes the audio (docs/prds/character-voice-samples.prd.md, Playback).
+  stopRef.current = stop;
   useEffect(() => onSampleStart(stop), [stop]);
 
   /** Where the audio is now, in its source file's seconds. */

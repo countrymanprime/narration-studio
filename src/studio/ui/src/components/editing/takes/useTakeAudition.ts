@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
+import { onSampleStart, stopOtherAudio } from '../../voicesamples/samplePlayerStore';
 import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
 import type { OutputPrefs } from '../../engine/outputPrefs';
@@ -12,6 +13,7 @@ import type { LinePassage, LineTake } from './types';
 /** The Retry a take that did not play offers is one toast at a time; a newer play or leaving the page withdraws it. */
 const TAKE_TOPIC = 'editing-take-retry';
 
+const NOT_PLAYED = "This take's audio couldn't be played. Check that its source file is still where the project expects it.";
 const TAKE_GONE = 'That take is not under its line any more, so there is nothing to play again.';
 
 /** The longest stretch the DAW's preview plays (bridge.MaxPreviewSeconds); a longer take plays its first minute. */
@@ -63,6 +65,7 @@ export function useTakeAudition({
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
   const newest = useNewestPlay(TAKE_TOPIC);
+  const lastAsk = useRef<{ ask: number; take: LineTake } | null>(null);
   const playAgain = useRef<(take: LineTake) => void>(() => {});
   const live = useRef({ caps, read, notify, passageOf, stopChapter });
   useEffect(() => {
@@ -77,6 +80,13 @@ export function useTakeAudition({
   // What the last render showed, so stop knows whether the DAW holds a preview of the app's.
   const shown = useRef({ playing, inDaw });
   shown.current = { playing, inDaw };
+
+  // Another sound starting (the script, a sample, a read elsewhere) takes the DAW's preview too; the app's own range player is stopped by its own registration.
+  const stopRef = useRef(() => {});
+  /** True while this audition starts its own player, whose start asks every other sound to stop: that must not stop this one. */
+  const starting = useRef(false);
+  const interrupt = useRef(() => stopRef.current()).current;
+  useEffect(() => onSampleStart(interrupt), [interrupt]);
 
   const stop = useCallback(() => {
     asked.current += 1;
@@ -94,6 +104,7 @@ export function useTakeAudition({
       if (playing === take.id && (inDaw || player.isPlaying)) return stop();
       const { caps: now, read: dawRead, notify: say, passageOf: lineOf, stopChapter: quiet } = live.current;
       const ask = newest.begin();
+      lastAsk.current = { ask, take };
       setFailedId(null);
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = now?.daw ?? 'The DAW';
@@ -139,12 +150,18 @@ export function useTakeAudition({
         name: APP,
         readiness: () => ({ ready: true }),
         play: (t) => {
-          player.play({ sourceFile: t.sourceFile, rangeStart: t.sourceStart, rangeEnd: t.sourceStart + t.sourceLength });
+          starting.current = true;
+          try {
+            player.play({ sourceFile: t.sourceFile, rangeStart: t.sourceStart, rangeEnd: t.sourceStart + t.sourceLength });
+          } finally {
+            starting.current = false;
+          }
           setPlaying(t.id);
           return { played: true };
         },
       };
       quiet();
+      stopOtherAudio(interrupt);
       stop();
       const mine = asked.current;
       // A DAW that has not yet answered may still be recording: the room is kept quiet for it too (a failed capabilities read leaves the check out: the DAW is not known to be there; a failed projectState read does not hold the play back).
@@ -167,9 +184,33 @@ export function useTakeAudition({
           );
       });
     },
-    [daw, player, playing, inDaw, stop, newest],
+    [daw, player, playing, inDaw, stop, newest, interrupt],
   );
   playAgain.current = play;
+  stopRef.current = () => {
+    if (shown.current.inDaw && !starting.current) stop();
+  };
+
+  // The app's player could not load or play the take: Stop is not left showing for silence; the narrator is told and offered Retry.
+  const { loadError } = player;
+  const reported = useRef(false);
+  useEffect(() => {
+    if (!loadError) {
+      reported.current = false;
+      return;
+    }
+    const last = lastAsk.current;
+    if (reported.current || !last || shown.current.playing === null || shown.current.inDaw) return;
+    reported.current = true;
+    setPlaying(null);
+    setFailedId(last.take.id);
+    live.current.notify(NOT_PLAYED, () => {
+      const current = live.current.passageOf(last.take)?.takes.find((x) => x.id === last.take.id);
+      if (!newest.current(last.ask)) return;
+      if (current) playAgain.current(current);
+      else live.current.notify(TAKE_GONE);
+    });
+  }, [loadError, newest]);
 
   useEffect(() => () => clearTimer(), []);
 

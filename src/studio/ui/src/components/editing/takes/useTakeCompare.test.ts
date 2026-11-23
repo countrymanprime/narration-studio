@@ -28,3 +28,17 @@ describe('a comparison whose take played nothing', () => {
     expect(onPlay.mock.calls[1]![0].id).toBe('t2');
   });
 });
+
+describe('a take started by hand during a comparison (#4080)', () => {
+  it('ends the comparison even before its own take was seen playing', () => {
+    const onPlay = vi.fn();
+    const props: TakeCompareArgs = { passage, keptId: null, playingId: null, onPlay };
+    const { result, rerender } = renderHook((p: TakeCompareArgs) => useTakeCompare(p), { initialProps: props });
+    act(() => result.current.playEvery());
+    expect(result.current.running).toBe('every');
+    // The narrator presses Play on t2 while the run's t1 has not started yet.
+    rerender({ ...props, playingId: 't2' });
+    expect(result.current.running).toBeNull();
+    expect(onPlay).toHaveBeenCalledTimes(1);
+  });
+});

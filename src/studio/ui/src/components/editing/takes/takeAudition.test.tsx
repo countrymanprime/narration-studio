@@ -281,3 +281,24 @@ describe('without-a-daw-that-plays-the-app-plays-the-take', () => {
     expect(notices).toEqual([]);
   });
 });
+
+describe('the-app-cannot-play-the-take (#4079)', () => {
+  it('a take whose audio fails to load stops showing Stop, says why and offers Retry, which plays it again', async () => {
+    const { result } = mount(DAW_SETUPS['reaper-off']);
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    expect(result.current.playingId).toBe('take-1');
+    notices.length = 0;
+    retries.length = 0;
+    act(() => void audio.dispatchEvent(new Event('error')));
+    await flush();
+    expect(result.current.playingId).toBeNull();
+    expect(notices.join(' ')).toMatch(/couldn't be played/);
+    expect(retries.at(-1)).toBeTypeOf('function');
+    audio.play.mockClear();
+    act(() => retries.at(-1)!());
+    await flush();
+    expect(audio.play).toHaveBeenCalled();
+    expect(result.current.playingId).toBe('take-1');
+  });
+});

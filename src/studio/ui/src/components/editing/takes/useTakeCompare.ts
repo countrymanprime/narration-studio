@@ -112,11 +112,12 @@ export function useTakeCompare({ passage, keptId, playingId, onPlay, failedId = 
       current.seen = false;
       return;
     }
-    if (!current.seen) return;
+    // Another take started by hand ends the run, even before the run's own take was seen playing.
     if (playingId !== null) {
       end();
       return;
     }
+    if (!current.seen) return;
     const next = current.queue.shift();
     const take = byId(next ?? null);
     if (!take) {

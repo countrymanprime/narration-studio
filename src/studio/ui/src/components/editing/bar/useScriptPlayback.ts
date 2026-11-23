@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
-import { onSampleStart } from '../../voicesamples/samplePlayerStore';
+import { onSampleStart, stopOtherAudio } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { firstFrom, leadStart } from '../model';
@@ -201,6 +201,8 @@ export function useScriptPlayback({
   const go = useCallback(
     (t: number): void => {
       const { caps: now, read: dawRead, notify: say } = live.current;
+      // One sound at a time: a take, a comparison or a sample playing is stopped by this play, as a take's play stops the script.
+      stopOtherAudio(halt);
       fading.current?.();
       fading.current = null;
       halted.current = false;

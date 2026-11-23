@@ -55,6 +55,21 @@ export function onSampleStart(stop: () => void): () => void {
   return () => void interrupts.delete(stop);
 }
 
+/**
+ * The one rule that keeps a single sound playing: a player that is about to start calls this with its own stop, and every other registered
+ * audio (the script, a take, a comparison, Hear it, play original, a sample) stops. Starting any of them is the same call.
+ */
+export function stopOtherAudio(except?: () => void): void {
+  for (const stop of interrupts) {
+    if (stop === except) continue;
+    try {
+      stop();
+    } catch {
+      // Another player's stop failing must not keep this one from playing.
+    }
+  }
+}
+
 /** When Escape last stopped a sample, so a page whose own Escape leaves it (the Booth) can tell that this press was the sample's. */
 let escapeStoppedAt = -Infinity;
 const ESCAPE_WINDOW_MS = 100;
@@ -130,13 +145,7 @@ export type StartOptions = {
  * overlaps. A load that fails, or a `play()` the platform refuses, returns the player to idle and reports through `report`.
  */
 export function playSample(id: string, options: StartOptions): void {
-  for (const stop of interrupts) {
-    try {
-      stop();
-    } catch {
-      // Another page's stop failing must not keep a sample from playing.
-    }
-  }
+  stopOtherAudio();
   const el = element();
   generation += 1;
   const mine = generation;
