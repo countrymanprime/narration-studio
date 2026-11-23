@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/PendingSpinner`. Source: `src/components/primitives/PendingSpinner.tsx`.
 
+![PendingSpinner, Default, light theme](../images/pendingspinner.webp)
+
 ## Stories
 
 - Default

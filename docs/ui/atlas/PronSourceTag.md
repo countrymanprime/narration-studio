@@ -2,6 +2,8 @@
 
 Storybook title: `StoryBible/PronSourceTag`. Source: `src/components/storybible/source/PronSourceTag.tsx`.
 
+![PronSourceTag, Each Source Read Only, light theme](../images/pronsourcetag.webp)
+
 ## Stories
 
 - Each Source Read Only

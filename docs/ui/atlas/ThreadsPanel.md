@@ -2,6 +2,8 @@
 
 Storybook title: `Script/ThreadsPanel`. Source: `src/components/script/page/rail/threads/ThreadsPanel.tsx`.
 
+![ThreadsPanel, Note, light theme](../images/threadspanel.webp)
+
 ## Stories
 
 - Note

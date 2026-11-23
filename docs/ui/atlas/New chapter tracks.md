@@ -2,6 +2,8 @@
 
 Storybook title: `Chapter tracks/New chapter tracks`. Source: `src/components/chapterTracks/NewChapterTracks.stories.tsx`.
 
+![New chapter tracks, Voices And Extras, light theme](../images/new-chapter-tracks.webp)
+
 ## Stories
 
 - Voices And Extras

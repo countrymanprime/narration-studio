@@ -2,6 +2,8 @@
 
 Storybook title: `Proof/Spot takes`. Source: `src/components/proof/spot/Spot.stories.tsx`.
 
+![Spot takes, Badge, light theme](../images/spot-takes.webp)
+
 ## Stories
 
 - Badge

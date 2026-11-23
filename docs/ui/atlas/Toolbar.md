@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Toolbar`. Source: `src/components/primitives/Toolbar.tsx`.
 
+![Toolbar, Booth Command Bar, light theme](../images/toolbar.webp)
+
 ## Stories
 
 - Booth Command Bar

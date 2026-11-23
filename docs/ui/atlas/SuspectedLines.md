@@ -2,6 +2,8 @@
 
 Storybook title: `Booth/SuspectedLines`. Source: `src/components/booth/suspected/SuspectedLines.tsx`.
 
+![SuspectedLines, None, light theme](../images/suspectedlines.webp)
+
 ## Stories
 
 - None

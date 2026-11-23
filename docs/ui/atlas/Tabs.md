@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Tabs`. Source: `src/components/primitives/Tabs.tsx`.
 
+![Tabs, Underline, light theme](../images/tabs.webp)
+
 ## Stories
 
 - Underline

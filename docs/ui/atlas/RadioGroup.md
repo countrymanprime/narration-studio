@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/RadioGroup.stories.tsx`.
 
+![RadioGroup, Default, light theme](../images/radiogroup.webp)
+
 ## Stories
 
 - Default

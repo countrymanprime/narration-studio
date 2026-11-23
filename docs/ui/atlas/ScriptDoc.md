@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/ScriptDoc`. Source: `src/components/editing/script/ScriptDoc.tsx`.
 
+![ScriptDoc, Default, light theme](../images/scriptdoc.webp)
+
 ## Stories
 
 - Default

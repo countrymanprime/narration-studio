@@ -2,6 +2,8 @@
 
 Storybook title: `Pickups/PickupsTable`. Source: `src/components/pickups/list/PickupsTable.tsx`.
 
+![PickupsTable, Several Chapters, light theme](../images/pickupstable.webp)
+
 ## Stories
 
 - Several Chapters

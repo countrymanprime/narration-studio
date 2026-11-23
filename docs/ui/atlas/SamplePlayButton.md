@@ -2,6 +2,8 @@
 
 Storybook title: `Voice samples/SamplePlayButton`. Source: `src/components/voicesamples/SamplePlayButton.tsx`.
 
+![SamplePlayButton, Idle, light theme](../images/sampleplaybutton.webp)
+
 ## Stories
 
 - Idle

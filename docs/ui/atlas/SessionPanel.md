@@ -2,6 +2,8 @@
 
 Storybook title: `Pickups/SessionPanel`. Source: `src/components/pickups/list/SessionPanel.tsx`.
 
+![SessionPanel, Included Lines, light theme](../images/sessionpanel.webp)
+
 ## Stories
 
 - Included Lines

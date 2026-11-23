@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/SectionLabel.tsx`.
 
+![SectionLabel, Default, light theme](../images/sectionlabel.webp)
+
 ## Stories
 
 - Default

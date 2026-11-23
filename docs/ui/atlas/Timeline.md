@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/Timeline`. Source: `src/components/primitives/Timeline.tsx`.
 
+![Timeline, Proof Pass, light theme](../images/timeline.webp)
+
 ## Stories
 
 - Proof Pass

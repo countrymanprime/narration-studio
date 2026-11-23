@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/NumberInput.tsx`.
 
+![NumberInput, Default, light theme](../images/numberinput.webp)
+
 ## Stories
 
 - Default

@@ -2,6 +2,8 @@
 
 Storybook title: `Primitives/StageGrid`. Source: `src/components/primitives/StageGrid.tsx`.
 
+![StageGrid, Production Home, light theme](../images/stagegrid.webp)
+
 ## Stories
 
 - Production Home

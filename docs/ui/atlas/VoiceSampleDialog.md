@@ -2,6 +2,8 @@
 
 Storybook title: `Editing/VoiceSampleDialog`. Source: `src/components/editing/voicesample/VoiceSampleDialog.tsx`.
 
+![VoiceSampleDialog, Ready To Save, light theme](../images/voicesampledialog.webp)
+
 ## Stories
 
 - Ready To Save
