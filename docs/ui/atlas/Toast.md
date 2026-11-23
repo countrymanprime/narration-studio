@@ -51,6 +51,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/editing/cleanup/registerLevelsSection.tsx`
 - `src/components/editing/page/EditingBody.tsx`
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
+- `src/components/editing/takes/useTakeAudition.ts`
 - `src/components/engine/AudacityLinkCard.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
