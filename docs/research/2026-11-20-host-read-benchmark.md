@@ -383,6 +383,22 @@ Method (the existing sync harness, `transportSync.test.tsx`; no second rig): the
 - The chapter's size does not enter the path: the press resolves the word's project time from the word table the page holds (a map lookup) and the DAW's play call is the only host call. **Not measured at several chapter sizes:** the harness chapter is the three-paragraph fixture; the table the real page holds is the read table's `WorkspaceWordTimes`, not timed here.
 - **Not measured:** the time from the DAW receiving `play` to sound (a defer cycle plus the audio device), the lease's real round trip on a live REAPER, and the real host's behaviour when its reads are slow (the owner's hang was not reproduced there).
 
+## A take's click to the DAW's preview call: no wait on the capabilities read
+
+[#4053](https://github.com/countrymanprime/narration-studio/issues/4053). Playing a take under a line said "Checking whether the DAW can play this" and played nothing until the DAW's capabilities had been read. The preview now goes to the DAW in the same tick; if the DAW refuses, the app plays the take and says why.
+
+Method (the same fake clock and mock DAW as the section above; the take's own harness, `useDawCapabilities` with `useTakeAudition` as `EditingBody` wires them, not `transportSync.test.tsx`, which drives the script's Play; a throwaway test, not committed; no second rig): the capabilities read answers after a set time, the narrator presses the take's Play at 0 ms and again every 100 ms, and the time of the first `previewTake` call that reaches the mock DAW is read off the fake clock, on `main` at `fbdc9a9` and on the change.
+
+| Capabilities answered after | First `previewTake` call, before | After |
+| --- | --- | --- |
+| 0 ms | 100 ms (the first press was told to wait) | 0 ms |
+| 250 ms | 300 ms | 0 ms |
+| 1 s | 1,000 ms | 0 ms |
+| never | none (one "checking" toast per press, 16 presses in 1.5 s) | 0 ms |
+
+- The "before" is the first press at or after the answer. With the mock DAW refusing the preview, the app's own audio plays in the same tick as the call, at every row, with one notice and no Retry.
+- **Not measured:** the time from the DAW receiving `previewTake` to sound (a defer cycle plus the audio device), a real REAPER's round trip for the capabilities read and for a refusal (the mock refuses in the same tick, so a real refusal puts the app's first sound later by the DAW's reply time), and other chapter or take counts (the fixture is one line with one take).
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.

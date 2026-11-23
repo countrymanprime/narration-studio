@@ -214,6 +214,7 @@ describe('before-the-daw-answers', () => {
     expect(audio.play).not.toHaveBeenCalled();
     expect(previewTake).toHaveBeenCalledTimes(1);
     expect(notices).toHaveLength(1);
+    expect(notices[0]).toMatch(/recording/i);
     expect(retries[0]).toBeTypeOf('function');
     projectState.mockResolvedValue({ playState: 'stopped' });
     act(() => retries[0]!());
