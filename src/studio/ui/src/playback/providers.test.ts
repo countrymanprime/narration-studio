@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ASK_DEADLINE_MS } from '../components/engine/ShowInDaw';
 import type { DawCapabilities, DawCapabilityLevel } from '../api/contracts/daw';
 import { DAW_SETUPS } from '../fixtures/daw';
 import {
@@ -157,5 +158,25 @@ describe('playReadiness', () => {
   it('still says a failed read and leaves the rest to what the DAW declared', () => {
     expect(playReadiness(null, 'file_preview', true)).toEqual({ ready: false, why: READ_FAILED });
     expect(playReadiness({ daw: 'REAPER', reachable: true, capabilities: {} } as never, 'file_preview')).toEqual({ ready: false, why: null });
+  });
+});
+
+// #4076 (owner decision on #4077): a DAW call that never answers is never silent. The deadline is the page's own limit on a DAW call (`ASK_DEADLINE_MS`).
+describe('a-provider-that-never-answers-is-passed-over', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  it('moves on to the app after the deadline and says the DAW did not answer', async () => {
+    const hung = { name: 'REAPER', readiness: () => ({ ready: true as const }), play: () => new Promise<never>(() => {}) };
+    const app = provider(APP, { ready: true }, { played: true });
+    const pending = playThrough([hung, app.p], 0);
+    await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    expect(await pending).toMatchObject({ by: APP, notice: 'REAPER did not answer. Played in the app instead.' });
+  });
+  it('a keepQuiet that never answers does not hold the app back', async () => {
+    const fails = provider('REAPER', { ready: true }, { played: false, why: 'Refused.' });
+    const app = provider(APP, { ready: true }, { played: true });
+    const pending = playThrough([fails.p, app.p], 0, { keepQuiet: () => new Promise<never>(() => {}) });
+    await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    expect(await pending).toMatchObject({ by: APP });
   });
 });

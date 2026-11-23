@@ -9,7 +9,7 @@ import { IconButton } from '../../primitives/IconButton';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
-import { APP, playReadiness, playThrough, type PlaybackProvider } from '../../../playback/providers';
+import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 
 /** The audio heard either side of a note. The host's loop pads by the same amount (`bridge.ContextPaddingSeconds`). */
 export const HEAR_AROUND_SECONDS = 3;
@@ -71,6 +71,7 @@ export function HearIt({
   onResult: (result: { message: string; failed: boolean } | undefined) => void;
 }) {
   const tracks = usePort('tracks');
+  const daw = usePort('daw');
   const player = useRangePlayer(tracks.mediaUrl, ROLL);
   const action = usePendingAction();
   const [playing, setPlaying] = useState<Playing>(null);
@@ -161,7 +162,10 @@ export function HearIt({
           return { played: true };
         },
       };
-      const { by, notice } = await playThrough([loop, app], finding);
+      const { by, notice } = await playThrough([loop, app], finding, {
+        // A DAW that is recording keeps the room quiet whatever stopped it from looping: the app does not play over it (as a take does).
+        keepQuiet: quietWhileRecording(() => daw.projectState(), dawName),
+      });
       if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
       // What did not play, and why, is a toast with Retry, never a line in the row; a press that was replaced says nothing.
       if (notice && pressed.current === press)

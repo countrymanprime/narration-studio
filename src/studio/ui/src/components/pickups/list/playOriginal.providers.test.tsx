@@ -10,6 +10,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
+import { ASK_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { PortOverrides } from '../../../ports/usePort';
 import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import { usePlayOriginal } from './usePlayOriginal';
@@ -233,6 +234,17 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     const before = cleared;
     await act(() => result.current.play({ ...pickup(20), id: 'p2' }));
     expect(cleared).toBeGreaterThan(before);
+  });
+  it('a playRange that never answers hands the line to the app after the deadline, with Retry', async () => {
+    transport = vi.fn(() => new Promise<DawResult>(() => {}));
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    act(() => void result.current.play(pickup(15)));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    });
+    expect(audio.play).toHaveBeenCalled();
+    expect(notices).toEqual(['REAPER did not answer. Played in the app instead.']);
+    expect(retries).toHaveLength(1);
   });
   it('a second press stops the DAW', async () => {
     const { result } = await mountRead(DAW_SETUPS.reaper);

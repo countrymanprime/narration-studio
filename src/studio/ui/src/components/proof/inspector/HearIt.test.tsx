@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,9 @@ import type { Finding } from '../../../types';
 import { HearIt, HEAR_AROUND_SECONDS, type HearItApi } from './HearIt';
 import { inspectorFinding } from './testFinding';
 import { DAW_SETUPS } from '../../../fixtures/daw';
+import { PortOverrides } from '../../../ports/usePort';
+import { createMockDawClient } from '../../../ports/daw';
+import { ASK_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
 
 afterEach(cleanup);
@@ -191,6 +194,51 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     expect(dismiss).toHaveBeenCalledWith('proof-hear-it-retry');
     retry();
     expect(api.findingsLoop).toHaveBeenCalledTimes(1);
+  });
+
+  // Owner decision on #4077: the app never plays into a recording room, whatever stopped the DAW from looping (as a take does).
+  it('plays nothing and says why when the DAW records and its loop call fails', async () => {
+    const api: HearItApi = {
+      findingsLoop: vi.fn(async () => Promise.reject(new Error('bridge gone'))),
+      findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+    };
+    const daw = {
+      ...createMockDawClient(DAW_SETUPS.reaper),
+      projectState: async () => ({ savedAt: null, unsavedChanges: false, playState: 'recording' as const, playPosition: 1 }),
+    };
+    render(
+      <ApiProvider api={createMockApi()}>
+        <PortOverrides clients={{ daw }}>
+          <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+        </PortOverrides>
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    await waitFor(() => expect(toasted()[0]).toBe('REAPER is recording, so nothing plays. Stop recording first.'));
+    expect(toasted()[1]?.action?.label).toBe('Retry');
+    expect(play).not.toHaveBeenCalled();
+  });
+
+  it('a loop call that never answers hands the note to the app after the deadline, with Retry', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const api: HearItApi = {
+        findingsLoop: vi.fn(() => new Promise<FindingNavigation>(() => {})),
+        findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+      };
+      render(
+        <ApiProvider api={createMockApi()}>
+          <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+        </ApiProvider>,
+      );
+      fireEvent.click(hear());
+      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+      await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+      expect(toasted()[0]).toBe('REAPER did not answer. Played in the app instead.');
+      expect(toasted()[1]?.action?.label).toBe('Retry');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a Retry while the app plays the fallback stops the app clip before it asks again', async () => {
