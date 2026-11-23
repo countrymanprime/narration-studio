@@ -1,5 +1,6 @@
 import { plural } from '../../plural';
 import { trackName as readable } from '../tracks/trackName';
+import { isolatedIfRtl } from '../../visibleText';
 import type {
   ChapterSyncBackgroundWait,
   ChapterSyncChapter,
@@ -21,14 +22,16 @@ export function chapterSyncReasonText(item: ChapterSyncNeedsYou): string {
       return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} both look like it.`;
     }
     case 'uncertain':
-      return item.best ? `“${readable(item.best.trackName, item.best.trackIndex)}” is close, but not a confident match.` : 'No track is a confident match.';
+      return item.best
+        ? `“${isolatedIfRtl(readable(item.best.trackName, item.best.trackIndex))}” is close, but not a confident match.`
+        : 'No track is a confident match.';
     case 'region':
       return 'Only a project region names this chapter, not a track.';
     case 'rejected':
       return 'You unlinked this chapter before; sync will not relink it on its own.';
     case 'not-mutual':
       return item.best
-        ? `“${readable(item.best.trackName, item.best.trackIndex)}” matches another chapter better.`
+        ? `“${isolatedIfRtl(readable(item.best.trackName, item.best.trackIndex))}” matches another chapter better.`
         : 'Its closest track matches another chapter better.';
   }
 }
@@ -58,7 +61,7 @@ export function chapterSyncPanelReasonText(item: ChapterSyncNeedsYou): string {
     return `${count} tracks match: ${quotedList(item.candidates.map((candidate) => readable(candidate.trackName, candidate.trackIndex)))}. A chapter is checked from one track.`;
   }
   if (item.reason === 'uncertain' && item.best)
-    return `Closest track “${readable(item.best.trackName, item.best.trackIndex)}” is not a confident match, so it was not linked on its own.`;
+    return `Closest track “${isolatedIfRtl(readable(item.best.trackName, item.best.trackIndex))}” is not a confident match, so it was not linked on its own.`;
   return chapterSyncReasonText(item);
 }
 

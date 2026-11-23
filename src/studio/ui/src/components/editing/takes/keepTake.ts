@@ -28,11 +28,11 @@ async function choose(daw: DawClient, passage: LinePassage, take: LineTake): Pro
   try {
     result = await daw.useTake(passage.chapterId, passage.firstToken, passage.lastToken, take.id);
   } catch (error) {
-    return { ok: false, refusal: { code: 'daw_failed', reason: `Could not keep ${take.label}: ${apiErrorMessage(error)}` } };
+    return { ok: false, refusal: { code: 'daw_failed', reason: `Could not keep ${isolatedIfRtl(take.label)}: ${apiErrorMessage(error)}` } };
   }
   if (result.ok) return { ok: true, value: result };
   const sentence = (result.refused ?? result.message ?? '').trim();
-  return { ok: false, refusal: { code: 'daw_refused', reason: sentence || `Could not keep ${take.label}.` } };
+  return { ok: false, refusal: { code: 'daw_refused', reason: sentence || `Could not keep ${isolatedIfRtl(take.label)}.` } };
 }
 
 /**

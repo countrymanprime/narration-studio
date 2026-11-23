@@ -50,7 +50,7 @@ export function DiagnosticsSection() {
       const { path } = await api.systemSaveDiagnostics();
       if (!path) return; // the narrator closed the folder picker
       const copied = await copyText(path);
-      overlay.toast(copied ? `Saved to ${isolatedIfRtl(path)}. The path is copied.` : `Saved to ${isolatedIfRtl(path)}.`);
+      overlay.toast(copied ? `Saved to ${isolatedIfRtl(path, 'ltr')}. The path is copied.` : `Saved to ${isolatedIfRtl(path, 'ltr')}.`);
     } catch (failure) {
       overlay.toast(apiErrorMessage(failure), { tone: 'error' });
     } finally {

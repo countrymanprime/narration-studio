@@ -4,7 +4,7 @@ import { overlay } from '../../../overlay/overlayService';
 import { useCommand } from '../../../input/useCommand';
 import type { DawClient } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
-import { BIDI_CONTROLS } from '../../../visibleText';
+import { stripBidi } from '../../../visibleText';
 
 /** What the **Save in REAPER and read** button shows: whether a click is being answered. The answer itself is a toast. */
 export interface SaveInDaw {
@@ -34,7 +34,7 @@ const watchers = new Set<(running: Promise<boolean>) => void>();
 
 /** The sentence for a toast: words the narrator can read, never blank (bidi controls alone are not words), never longer than MAX_TOAST. */
 const sayable = (text: string | undefined, fallback: string): string => {
-  const words = (text ?? '').replace(BIDI_CONTROLS, '').replace(/\s/g, '') === '' ? fallback : (text as string).trim();
+  const words = stripBidi(text ?? '').replace(/\s/g, '') === '' ? fallback : (text as string).trim();
   return words.length > MAX_TOAST ? `${words.slice(0, MAX_TOAST - 1)}…` : words;
 };
 

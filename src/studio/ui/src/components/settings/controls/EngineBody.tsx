@@ -201,7 +201,7 @@ export function EngineBody() {
   const start = async () => {
     setStarting(true);
     const started = await startDaw({ project, system }, choice?.daw ?? 'none');
-    if (started.ok) notify(`Started ${choice?.daw ?? 'the DAW'} (${isolatedIfRtl(started.path)}).`);
+    if (started.ok) notify(`Started ${choice?.daw ?? 'the DAW'} (${isolatedIfRtl(started.path, 'ltr')}).`);
     else notify(started.message, 'error');
     setStarting(false);
   };

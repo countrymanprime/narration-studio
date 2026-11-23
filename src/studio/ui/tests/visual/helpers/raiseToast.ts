@@ -4,7 +4,7 @@ type Raise = (text: string, label?: string | null) => void;
 
 /**
  * Raises an error toast with the text, through the mock build's `window.__raiseToast` (`main.tsx`): Retry is its button unless `label` is another one, or `null` for none.
- * An omitted label is not passed at all: a script argument that is `undefined` arrives as `null`, which is "no button".
+ * An omitted label is not passed at all: an `undefined` inside the argument array arrives in the page as `null`, which means "no button".
  */
 export async function raiseToast(page: Page, text: string, label?: string | null): Promise<void> {
   await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');

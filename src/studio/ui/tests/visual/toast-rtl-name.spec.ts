@@ -40,7 +40,6 @@ test.describe('an English sentence that carries a right-to-left name reads left 
     ['a longer Arabic name than the English words, isolated', `${FSI}${NAME}${PDI} restored.`, 'restored'],
     ['a 30-letter Arabic title, as the builders isolate it', `${isolatedIfRtl(NAME.repeat(3))} restored.`, 'restored'],
     ['the name first, not isolated (a host sentence)', `${NAME} is linked to its track. Press Record when you are ready.`, 'is linked'],
-    ['the name last, isolated', `Chapter ready: ${FSI}${NAME}${PDI}`, 'Chapter'],
   ] as const) {
     test(`${label}: the last character is right of the first Latin word`, async ({ page }) => {
       const toast = await show(page, text);

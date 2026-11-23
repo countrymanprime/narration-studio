@@ -38,10 +38,13 @@ const RLI = '\u2067'; // right-to-left isolate
 const PDI = '\u2069'; // closes the nearest isolate
 
 /** The bidi controls that are not text a narrator reads: the Arabic letter mark, the left and right marks, the embeddings and overrides (U+202A to U+202E) and the isolates (U+2066 to U+2069). */
-export const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 /** A letter of a right-to-left script: a letter in Hebrew, Arabic and its extensions, Syriac, Thaana, N'Ko and the other blocks that read right to left, or their presentation forms (a digit, a vowel mark or a stop in those blocks is not one). */
 const RTL_BLOCK = /[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC\u{10800}-\u{10FFF}\u{1E800}-\u{1EFFF}]/u;
 const IS_BIDI = new RegExp(BIDI_CONTROLS.source);
+
+/** The text without its bidi controls (the Arabic letter mark, the left and right marks, embeddings, overrides and isolates). */
+export const stripBidi = (text: string): string => text.replace(BIDI_CONTROLS, '');
 const LETTER = /\p{L}/u;
 const isRtlLetter = (ch: string): boolean => RTL_BLOCK.test(ch) && LETTER.test(ch);
 const isLatinLetter = (ch: string): boolean => /[A-Za-z]/.test(ch);
@@ -50,7 +53,7 @@ const isLatinLetter = (ch: string): boolean => /[A-Za-z]/.test(ch);
 // eslint-disable-next-line no-control-regex
 const LINE_BREAKS = /[\n\r\u001C-\u001E\u0085\u2028\u2029]/g;
 /** A name as it goes into a sentence: no bidi control and no line or paragraph break of its own. */
-const plainName = (name: string): string => name.replace(BIDI_CONTROLS, '').replace(LINE_BREAKS, ' ');
+const plainName = (name: string): string => stripBidi(name).replace(LINE_BREAKS, ' ');
 
 /**
  * A name inside a sentence, isolated: the direction of its own first strong letter, kept to itself. The name has no bidi control of its own left in it, so the pair is always balanced.
@@ -60,9 +63,10 @@ export const bidiIsolated = (name: string, direction: 'auto' | 'ltr' = 'auto'): 
 
 /**
  * A name for a toast sentence: isolated when it holds a right-to-left letter, otherwise left as it is (an English name in an English sentence needs no isolate, and the two invisible
- * characters would be in every copy, search and character count of the sentence). Controls of its own are removed either way.
+ * characters would be in every copy, search and character count of the sentence). Controls of its own are removed either way. A path is isolated `ltr`: it reads left to right whatever its folders are called.
  */
-export const isolatedIfRtl = (name: string): string => (Array.from(name).some(isRtlLetter) ? bidiIsolated(name) : plainName(name));
+export const isolatedIfRtl = (name: string, direction: 'auto' | 'ltr' = 'auto'): string =>
+  Array.from(name).some(isRtlLetter) ? bidiIsolated(name, direction) : plainName(name);
 
 /**
  * The direction a message is laid out in: left to right when the app's own words in it (not what is inside an isolate, at any depth) have at least as many Latin letters as right-to-left ones, so a
@@ -85,17 +89,17 @@ export const textDirection = (text: string): 'ltr' | 'auto' => {
 };
 
 /**
- * A message with its bidi controls removed except the first-strong isolates the app puts round a name, kept when they open and close: a stray close, an unclosed open and an isolate that a removed
- * opener (a left-to-right or right-to-left isolate, an embedding) left unbalanced all go, so no part of a name ends outside its pair. One pass, linear in the message.
+ * A message with its bidi controls removed except the first-strong and left-to-right isolates the app puts round a name or a path, kept when they open and close: a stray close, an unclosed open and
+ * an isolate that a removed opener (a right-to-left isolate, an embedding) left unbalanced all go, so no part of a name ends outside its pair. One pass, linear in the message.
  */
 export const withBalancedIsolates = (text: string): string => {
   const out: string[] = [];
   const open: { at: number; kept: boolean }[] = [];
   for (const ch of text) {
-    if (ch === FSI) {
+    if (ch === FSI || ch === LRI) {
       open.push({ at: out.length, kept: true });
       out.push(ch);
-    } else if (ch === LRI || ch === RLI) {
+    } else if (ch === RLI) {
       // Removed, but its close is its own: the close that matches it must go with it, not close a name opened earlier.
       open.push({ at: -1, kept: false });
     } else if (ch === PDI) {
