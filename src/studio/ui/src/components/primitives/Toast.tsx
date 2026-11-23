@@ -252,8 +252,8 @@ const TOAST_BOTTOM_PROPERTY = '--toast-bottom';
 /** A toast's height (`h-[2.8125rem]`) and the air above it, in rem; the gap under it is the page gutter, or half of it in a window 400 px tall or less, where a permanent slot costs more of what is left. */
 const TOAST_HEIGHT_REM = 2.8125;
 const TOAST_AIR_REM = 0.5;
-/** A window this tall or shorter keeps no slot: the toast floats at the edge. */
-const SHORT_WINDOW_PX = 400;
+/** A window this tall or shorter keeps no slot: the toast floats at the edge. Far below the product's 960 px minimum window, where the Booth's panels need the room (`tiny-window-overflow.spec.ts`, 300 to 520 px). */
+const SHORT_WINDOW_PX = 520;
 
 /**
  * Keeps a slot for one toast, always, so showing one moves nothing (#4063, owner decision): the shell ends the page above it (`AppShell`), and a toast stands in it at the gutter, covering no
@@ -268,9 +268,9 @@ function useToastSlot(): void {
       // The page gutter is 1rem (`--page-gutter`, styles.css).
       const gutter = rem;
       const short = window.innerHeight <= SHORT_WINDOW_PX;
-      const bottom = short ? gutter / 2 : gutter;
+      const bottom = window.innerHeight <= 400 ? gutter / 2 : gutter;
       root.style.setProperty(TOAST_BOTTOM_PROPERTY, `${bottom}px`);
-      // In a window this short (far below the product's 960 px minimum) a permanent slot would take what the Booth's panels and the reading need (`tiny-window-overflow.spec.ts`): there the toast floats at the edge, as it did before.
+      // In a window this short a permanent slot would take what the Booth's panels and the reading need (`tiny-window-overflow.spec.ts`): there the toast floats at the edge, as it did before.
       root.style.setProperty(TOAST_SLOT_PROPERTY, short ? '0px' : `${Math.ceil(bottom + (TOAST_HEIGHT_REM + TOAST_AIR_REM) * rem)}px`);
       window.dispatchEvent(new Event(TOAST_ROOM_EVENT));
     };

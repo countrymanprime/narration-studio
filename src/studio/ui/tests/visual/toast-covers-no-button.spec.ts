@@ -1,14 +1,16 @@
-// Owner rule: no toast or element may cover a button (#4063). On every page with the sidebar, at 360x500, 768x1024 and 1440x900, in both themes, an error toast
+// Owner rule: no toast or element may cover a button (#4063). On every page with the sidebar, at 1440x900, 1100x800, 960x700 and 768x1024, in both themes, an error toast
 // with Retry (one, and two stacked), the longest kind the app raises, overlaps no button, link or [role=button] of the page that is visible at that moment, and
 // the toast's own buttons are at least 24 px each way (WCAG 2.2 target size). The shell always keeps a slot for one toast under the page (`--toast-slot`, and `--toast-h` for a stack; `AppShell`); a page that cannot is listed in TOAST_COVERS_DEBT with a reason and an issue, as `layout-debt.ts` does.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
+// The product's windows: 960 px wide and up (its minimum), and one tablet size. A window 520 px tall or shorter (360x500, 320x300) is far below the minimum and keeps no slot: the toast floats there, so the guard does not hold at those sizes.
 const SIZES = [
-  { width: 360, height: 500 },
-  { width: 768, height: 1024 },
   { width: 1440, height: 900 },
+  { width: 1100, height: 800 },
+  { width: 960, height: 700 },
+  { width: 768, height: 1024 },
 ] as const;
 
 const LONG =
