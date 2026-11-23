@@ -14,26 +14,17 @@
     {
       "contentKind": "narration",
       "id": "c-0001",
-      "index": null,
+      "index": 1,
       "paragraphIds": [
         {
           "id": "p-000001",
           "index": 0
         }
       ],
-      "recordedSeconds": 4,
-      "recordedThrough": {
-        "complete": true,
-        "confident": false,
-        "paragraph": 1,
-        "paragraphId": "p-000001",
-        "percent": 100,
-        "source": "daw",
-        "word": 0
-      },
-      "status": "recording",
+      "recordedUnavailable": "unlinked",
+      "status": "not_started",
       "title": "Chapter One",
-      "wordCount": null
+      "wordCount": 7
     },
     {
       "contentKind": "narration",
