@@ -11,8 +11,8 @@ export interface TakeCompareArgs {
   playingId: string | null;
   /** The take's own Play; called again for the take that plays, it stops. */
   onPlay: (take: LineTake) => void;
-  /** The take that was asked and played nothing (refused, the notice offers Retry), or null. A run waits on it for the Retry. */
-  failedId?: string | null;
+  /** The take whose play is being asked, or that was asked and played nothing (the notice offers Retry), or null. A run holds on it. */
+  waitingId?: string | null;
 }
 
 export interface TakeCompareState {
@@ -43,6 +43,8 @@ interface Run {
   queue: string[];
   current: string;
   seen: boolean;
+  /** True once the run held on `current` (its play was asked, or played nothing). */
+  holding: boolean;
 }
 
 /**
@@ -50,7 +52,7 @@ interface Run {
  * starts when the one playing ends; Stop and Escape (while focus is on the compare controls, where a press of Play leaves it) end the run. The pickers start on the kept take (else the active one) and on the suggested
  * take (else the next one): a suggestion only fills a picker, it keeps nothing. A take that cannot be heard is left out of the run, with its reason.
  */
-export function useTakeCompare({ passage, keptId, playingId, onPlay, failedId = null }: TakeCompareArgs): TakeCompareState {
+export function useTakeCompare({ passage, keptId, playingId, onPlay, waitingId = null }: TakeCompareArgs): TakeCompareState {
   const { takes } = passage;
   const [pickA, setA] = useState<string | null>(null);
   const [pickB, setB] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export function useTakeCompare({ passage, keptId, playingId, onPlay, failedId = 
     const { takes: all, playingId: now, onPlay: play } = live.current;
     const [first, ...queue] = ids;
     if (first === undefined) return;
-    run.current = { queue, current: first, seen: now === first };
+    run.current = { queue, current: first, seen: now === first, holding: false };
     setRunning(kind);
     const take = all.find((t) => t.id === first);
     // The take already playing is the start of the run; calling its Play would stop it.
@@ -107,9 +109,14 @@ export function useTakeCompare({ passage, keptId, playingId, onPlay, failedId = 
       current.seen = true;
       return;
     }
-    // A take that played nothing is not one that ended: the run stays on it, so Retry plays it and the run goes on from there.
-    if (failedId === current.current) {
-      current.seen = false;
+    // A take being asked, or one that played nothing, has not ended: the run holds on it, so Retry plays it and the run goes on from there.
+    // A different take asked by hand while the run holds ends the run.
+    if (waitingId === current.current) {
+      current.holding = true;
+      return;
+    }
+    if (waitingId !== null && current.holding) {
+      end();
       return;
     }
     if (!current.seen) return;
@@ -125,8 +132,9 @@ export function useTakeCompare({ passage, keptId, playingId, onPlay, failedId = 
     }
     current.current = take.id;
     current.seen = false;
+    current.holding = false;
     onPlay(take);
-  }, [playingId, failedId, byId, onPlay, end]);
+  }, [playingId, waitingId, byId, onPlay, end]);
 
   // Closing the takes mid-run stops what the run started.
   useEffect(

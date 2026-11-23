@@ -12,7 +12,8 @@ import type { LinePassage, LineTake } from './types';
 /** The Retry a take that did not play offers is one toast at a time; a newer play or leaving the page withdraws it. */
 const TAKE_TOPIC = 'editing-take-retry';
 
-const TAKE_GONE = 'That take is not under its line any more, so there is nothing to play again.';
+/** Said when a take is no longer under its line: at once for its play, and for a Retry pressed after it left. */
+const TAKE_GONE = "This take's line is not on the page any more.";
 
 /** The longest stretch the DAW's preview plays (bridge.MaxPreviewSeconds); a longer take plays its first minute. */
 const MAX_PREVIEW_SECONDS = 60;
@@ -34,8 +35,8 @@ export interface TakeAuditionOptions {
 export interface TakeAudition {
   /** The take playing now, or null. */
   playingId: string | null;
-  /** The take last asked that played nothing (the notice offers Retry), or null; a comparison waits on it. */
-  failedId: string | null;
+  /** The take whose play is being asked, or that was asked and played nothing (the notice offers Retry), or null; a comparison holds on it. */
+  waitingId: string | null;
   /** Plays the take, or stops it when it is the one playing. */
   play: (take: LineTake) => void;
   stop: () => void;
@@ -60,6 +61,7 @@ export function useTakeAudition({
   const [playing, setPlaying] = useState<string | null>(null);
   const [inDaw, setInDaw] = useState(false);
   const [failedId, setFailedId] = useState<string | null>(null);
+  const [askingId, setAskingId] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
   const newest = useNewestPlay(TAKE_TOPIC);
@@ -87,6 +89,7 @@ export function useTakeAudition({
     setPlaying(null);
     setInDaw(false);
     setFailedId(null);
+    setAskingId(null);
   }, [daw, player]);
 
   const play = useCallback(
@@ -102,7 +105,7 @@ export function useTakeAudition({
         readiness: (t) => {
           const declared = playReadiness(now, 'file_preview', !!dawRead?.failed);
           if (!declared.ready) return declared;
-          return lineOf(t) ? { ready: true } : { ready: false, why: "This take's line is not on the page any more." };
+          return lineOf(t) ? { ready: true } : { ready: false, why: TAKE_GONE };
         },
         play: async (t) => {
           const line = lineOf(t)!;
@@ -147,10 +150,14 @@ export function useTakeAudition({
       quiet();
       stop();
       const mine = asked.current;
+      setAskingId(take.id);
       // A DAW that has not yet answered may still be recording: the room is kept quiet for it too (a failed capabilities read leaves the check out: the DAW is not known to be there; a failed projectState read does not hold the play back).
       const keepQuiet = now || !dawRead?.failed ? quietWhileRecording(() => daw.projectState(), name) : undefined;
       void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
-        if (by === null && asked.current === mine) setFailedId(take.id);
+        if (asked.current === mine) {
+          setAskingId(null);
+          if (by === null) setFailedId(take.id);
+        }
         // Retry only when nothing played: a take that fell back to the app and plays is not offered a Retry, which would stop it.
         if (notice && asked.current === mine)
           say(
@@ -173,5 +180,5 @@ export function useTakeAudition({
 
   useEffect(() => () => clearTimer(), []);
 
-  return { playingId: inDaw || player.isPlaying ? playing : null, failedId, play, stop };
+  return { playingId: inDaw || player.isPlaying ? playing : null, waitingId: askingId ?? failedId, play, stop };
 }
