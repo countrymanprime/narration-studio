@@ -377,3 +377,9 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to five), so differences under 10 % between cells are noise.
 - **The Editor, Booth and Production moves (#3658):** real-host timing under the pages' concurrent calls, Windows, 300 chapters on the mock (the mock sizes a book in hours), a cold OS file cache, and the pages' time to usable (the mock's milliseconds are fixtures).
+
+## Schedule, Companion and the pace on the shared list (#4062)
+
+The Schedule, the Companion's "This chapter" and the finished-hour pace no longer read the chapters from `productionOverview`: they take the chapter set, names, kinds, words and recorded seconds from the shared chapter list (the store's `chapters` slot), and the overview's `hoursLogged`, `pfh` and `readiness` stay on the overview, matched by id. The Schedule's first read serves the held list; its minute tick, focus and Retry read it fresh. The measurements port no longer has `chapterLengths`, so the pace is no longer a second overview read on every page that shows it.
+
+- measurements: see PR body
