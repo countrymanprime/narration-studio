@@ -368,6 +368,42 @@ describe('a-daw-that-does-not-answer-the-preview', () => {
     });
     expect(stopPreview.mock.calls.length).toBeGreaterThan(before);
   });
+  it('a preview answered after the page was left is stopped', async () => {
+    let answer: (r: DawResult) => void = () => {};
+    const stopPreview = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result, unmount } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => (answer = resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    unmount();
+    await act(async () => {
+      answer({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(stopPreview).toHaveBeenCalledTimes(1);
+  });
+  it('a preview that ended by itself leaves no owner: an older take answering late is stopped, not left playing', async () => {
+    const answers: ((r: DawResult) => void)[] = [];
+    const stopPreview = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => answers.push(resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    act(() => result.current.play(LINE.takes[1]));
+    await flush();
+    await act(async () => {
+      answers[1]!({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    // The newer take's preview plays its length (take-2 is 90 s, a minute is played) and ends by itself.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+    expect(result.current.playingId).toBeNull();
+    const before = stopPreview.mock.calls.length;
+    await act(async () => {
+      answers[0]!({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(stopPreview.mock.calls.length).toBeGreaterThan(before);
+  });
   it('after the deadline hands the take to the app, the take is shown playing in the app and ends with its audio (not stuck in the DAW)', async () => {
     const previewTake = vi.fn(() => new Promise<DawResult>(() => {}));
     const { result } = mount(DAW_SETUPS.reaper, { previewTake });
