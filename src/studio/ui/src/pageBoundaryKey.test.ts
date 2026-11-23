@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENTRY_OWNERS_KEPT, addressWithoutProject, isOtherProject, pageBoundaryKey, pageOfPath, rememberEntryOwner } from './pageBoundaryKey';
+import { addressWithoutProject, isOtherProject, pageBoundaryKey, pageOfPath } from './pageBoundaryKey';
 
 describe('pageBoundaryKey: what remounts the routed page (#4057)', () => {
   it('is the same while the page and the project stay, whatever the chapter or sub-path', () => {
@@ -46,27 +46,8 @@ describe('isOtherProject: only a known, different project drops an address (#405
     ['unknown owner (recorded before the bootstrap answered)', undefined, 'C:/A', false],
     ['the same project', 'C:/A', 'C:/A', false],
     ['another project', 'C:/B', 'C:/A', true],
-    ['an entry from before this session', null, 'C:/A', true],
     ['no project known yet', 'C:/B', undefined, false],
   ] as const)('%s', (_name, owner, current, expected) => {
     expect(isOtherProject(owner, current)).toBe(expected);
-  });
-});
-
-describe('rememberEntryOwner: the entries kept are capped (#4059)', () => {
-  it('keeps the most recent ones and drops the oldest', () => {
-    const owners = new Map<string, string | null | undefined>();
-    for (let i = 0; i < ENTRY_OWNERS_KEPT + 5; i++) rememberEntryOwner(owners, `k${i}`, 'C:/A');
-    expect(owners.size).toBe(ENTRY_OWNERS_KEPT);
-    expect(owners.has('k0')).toBe(false);
-    expect(owners.has(`k${ENTRY_OWNERS_KEPT + 4}`)).toBe(true);
-  });
-  it('does not move an entry already kept', () => {
-    const owners = new Map<string, string | null | undefined>();
-    rememberEntryOwner(owners, 'a', undefined);
-    rememberEntryOwner(owners, 'b', 'C:/A');
-    rememberEntryOwner(owners, 'a', 'C:/A');
-    expect([...owners.keys()]).toEqual(['a', 'b']);
-    expect(owners.get('a')).toBe('C:/A');
   });
 });

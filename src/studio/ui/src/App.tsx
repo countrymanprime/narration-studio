@@ -1,10 +1,10 @@
 import { EDITABLE } from './input/targets';
 import { logUi } from './api/uiLog';
 import { appExtension } from './appExtension';
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react';
 import { useWindowClose } from './hooks/useWindowClose';
 import { focusPageMain } from './components/primitives/focusReturn';
-import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useNavigationType, useParams, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
 import { AppShell, isActivePath, shellPages } from './components/layout/AppShell';
@@ -86,7 +86,7 @@ import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
-import { addressWithoutProject, isOtherProject, pageBoundaryKey, pageOfPath, rememberEntryOwner } from './pageBoundaryKey';
+import { addressWithoutProject, isOtherProject, pageBoundaryKey, pageOfPath } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -700,29 +700,29 @@ function AppRoutes() {
   }, [data?.projectFolder, closeProjectDialogs]);
 
   // The address of a page names a chapter of the project it was written under (`?chapter=`, `/editing/:chapterId`, `#file=`). After a project change it is cut back to the page
-  // before the new project's page mounts, so that page opens on its own remembered chapter and never writes the old project's as its own (#4059). Each history entry keeps the
-  // project it was first seen under, so a Back onto an entry written under the other project is dropped too. This is judged in render, which `shownProject` above (an effect, after
-  // the new page has mounted) cannot do, and the entries' owners are what it cannot carry.
-  const entryOwners = useRef(new Map<string, string | null | undefined>());
-  const navigationType = useNavigationType();
+  // before the new project's page mounts, so that page opens on its own remembered chapter and never writes the old project's as its own (#4059). The project is stamped into
+  // the history entry itself, so it survives a reload and a Back onto any older entry is judged by it. An entry with no stamp (a typed fragment, the first entry before the
+  // bootstrap answered) is the open project's own. Judged in render: `shownProject` above is an effect, after the new page has mounted.
   const project = data?.projectFolder;
-  // An entry the router gave no key (the first one, a typed fragment) is `default`; the first one is told by its index and is the open project's like any other, while the
-  // others are judged by the project open now (never cut).
-  const historyIndex: unknown = (window.history.state as { idx?: unknown } | null)?.idx;
-  const entry = location.key !== 'default' ? location.key : typeof historyIndex === 'number' && historyIndex === 0 ? 'default#0' : undefined;
-  const owners = entryOwners.current;
-  if (entry !== undefined) {
-    // First seen: written under the project open now, unless the narrator arrived on it by Back or Forward and the app had seen others already: an entry from before this
-    // session (a reload keeps the history but not its owners) may have been written under any project.
-    if (!owners.has(entry)) rememberEntryOwner(owners, entry, navigationType === 'POP' && owners.size > 0 ? null : project);
-    // The first bootstrap names a project; it is not a change from one.
-    else if (owners.get(entry) === undefined && project !== undefined) rememberEntryOwner(owners, entry, project);
-  }
+  // The entry in history is the shown location's only when their keys agree: a router move in a transition writes history first and shows the location after.
+  const entryState = (): { project?: unknown } | null => {
+    const state = window.history.state as { key?: string; project?: unknown } | null;
+    return (state?.key ?? 'default') === location.key ? state : null;
+  };
+  // While a move waits in a transition the location on screen is behind history, and its entry is no longer readable: the project it was shown under is kept here.
+  const shownUnder = useRef<{ key: string; project: string } | undefined>(undefined);
+  const stamped = entryState()?.project ?? (shownUnder.current?.key === location.key ? shownUnder.current.project : undefined);
   const bareAddress = addressWithoutProject(location);
   const addressStale =
-    entry !== undefined &&
-    isOtherProject(owners.get(entry), project) &&
+    typeof stamped === 'string' &&
+    isOtherProject(stamped, project) &&
     (bareAddress.pathname !== location.pathname || bareAddress.search !== location.search || bareAddress.hash !== location.hash);
+  // A router push or replace writes a fresh state with no stamp, so each render puts the project on the entry it is showing. A stale entry is cut instead (its replacement is stamped).
+  useLayoutEffect(() => {
+    const state = entryState();
+    if (project !== undefined && !addressStale && state && state.project !== project) window.history.replaceState({ ...state, project }, '');
+    if (state && !addressStale && project !== undefined) shownUnder.current = { key: location.key, project };
+  });
   useEffect(() => {
     if (addressStale) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
   }, [addressStale, navigate, bareAddress.pathname, bareAddress.hash]);
