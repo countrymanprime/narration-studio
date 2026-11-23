@@ -8,7 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { readPickupIds } from '../booth/page/boothQuery';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
-import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
+import { addressPagePath, pageOfPath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { Button } from '../primitives/Button';
 import { BoothSkeleton } from '../booth/page/BoothSkeleton';
@@ -138,33 +138,44 @@ export function AddressGate({
 }
 
 const CHECKING = { label: 'Checking this link', status: 'Checking this link…' } as const;
+const OPENING = { label: 'Opening this project', status: 'Opening this project…' } as const;
 
 /**
  * What stands in for the page while the chapter list is read once more: the page's own title and its loaded frame as blocks (Proof's two
  * columns, the Booth's top bar and reading column, Editing's header and script), with the one polite sentence "Checking this link…".
+ * `copy` names it otherwise, and a page the gate has no title for gets the frame with no title.
  */
-function CheckingLink({ page }: { page: AddressPage }) {
-  if (page === 'proof') return <ProofSkeleton {...CHECKING} />;
-  if (page === 'booth') return <CheckingBooth />;
+function CheckingLink({ page, copy = CHECKING }: { page: AddressPage | undefined; copy?: { label: string; status: string } }) {
+  if (page === 'proof') return <ProofSkeleton {...copy} />;
+  if (page === 'booth') return <CheckingBooth copy={copy} />;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
-        <Heading title={TITLE[page]} />
+        {page ? <Heading title={TITLE[page]} /> : <Skeleton className="h-8 w-40 max-w-full" />}
         <Skeleton className="h-8 w-56 max-w-full" />
       </header>
-      <EditingBodySkeleton {...CHECKING} />
+      <EditingBodySkeleton {...copy} />
     </div>
   );
 }
 
+/**
+ * The page's place while its address, written under the other project, is cut back to the page (#4059): the same loading frame the gate draws for a link it is
+ * checking, so the window is never empty for the frames between the project changing and the page opening on its own chapter.
+ */
+export function OpeningProjectPage({ pathname }: { pathname: string }) {
+  const page = (Object.keys(TITLE) as AddressPage[]).find((candidate) => addressPagePath(candidate) === pageOfPath(pathname));
+  return <CheckingLink page={page} copy={OPENING} />;
+}
+
 /** The Booth fills the window, so a link that is only being checked shows its title and a way out in its top bar, and Escape leaves as it does from a bad link. */
-function CheckingBooth() {
+function CheckingBooth({ copy }: { copy: { label: string; status: string } }) {
   const navigate = useNavigate();
   return (
     <CommandScope kind="booth">
       <LeaveBoothOnEscape />
       <BoothSkeleton
-        {...CHECKING}
+        {...copy}
         title={<Heading title={TITLE.booth} />}
         exit={
           <Button variant="secondary" onClick={() => navigate('/', { replace: true })}>

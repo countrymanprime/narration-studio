@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { addressWithoutProject, isOtherProject } from '../pageBoundaryKey';
+import { addressWithoutProject } from '../navigation/address';
+import { isOtherProject } from '../pageBoundaryKey';
 
 /**
  * Where the narrator was when a link or Ctrl+, brought them to Settings, so the page can offer "Back to <page>". Arriving by the navigation

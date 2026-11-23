@@ -344,4 +344,22 @@ describe('the chapter in the address is not carried into another project (#4059)
       expect(address()).toBe('/editing');
     });
   });
+
+  // The window is never empty while the old address is cut: the page's place holds the design system's loading frame, named for the narrator.
+  it.each([
+    ['Editing', '/editing/chapter-7', /^Chapter: Chapter 7:/],
+    ['Booth', '/booth?chapter=chapter-9', /^Chapter: Chapter 9:/],
+  ])('%s: the page\u2019s place shows the loading frame while its address is cut', async (_page, start, chapter) => {
+    const { api } = await openAt(start);
+    await onChapter(chapter);
+    let seen = false;
+    const watch = new MutationObserver(() => {
+      if (document.querySelector('[role="group"][aria-busy="true"][aria-label="Opening this project"]')) seen = true;
+    });
+    watch.observe(document.body, { childList: true, subtree: true });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await waitFor(() => expect(address().split('?')[0]).toBe(start.split(/[/?]/)[1] === 'booth' ? '/booth' : '/editing'));
+    watch.disconnect();
+    expect(seen).toBe(true);
+  });
 });

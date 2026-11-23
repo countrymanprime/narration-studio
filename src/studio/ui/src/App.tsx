@@ -61,7 +61,7 @@ import { BoothNextPage } from './components/booth/page/BoothNextPage';
 import { type BoothTarget } from './components/booth/page/boothQuery';
 import { addressPagePath, addressPath, type AddressPage } from './navigation/address';
 import { scriptPath } from './navigation/scriptPath';
-import { AddressGate } from './components/layout/AddressGate';
+import { AddressGate, OpeningProjectPage } from './components/layout/AddressGate';
 import { NotFoundPage } from './components/layout/NotFoundPage';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import { EnginePanel } from './components/engine/EnginePanel';
@@ -86,7 +86,8 @@ import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
-import { addressWithoutProject, isOtherProject, pageBoundaryKey, pageOfPath } from './pageBoundaryKey';
+import { addressWithoutProject, pageOfPath } from './navigation/address';
+import { isOtherProject, pageBoundaryKey } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -1519,7 +1520,9 @@ function AppRoutes() {
                     zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
                   >
                     {/* Keyed by project as well as page: a project change remounts the page, so a dialog or draft a page holds in its own state for the old project (a confirm that would apply to its chapter) goes with it (#4057). */}
-                    {addressStale ? null : (
+                    {addressStale ? (
+                      <OpeningProjectPage pathname={location.pathname} />
+                    ) : (
                       <ErrorBoundary key={pageBoundaryKey(data.projectFolder, location.pathname)} onError={() => trace('ui.error', { source: 'boundary' })}>
                         <Routes>
                           <Route
