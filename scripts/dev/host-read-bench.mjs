@@ -4,14 +4,15 @@
 // marks and a pickup list, and times the read bindings the pages call when they open, on the real host with no window and no DAW.
 //
 //   node scripts/dev/host-read-bench.mjs seed  <new-folder> [--size 1h|17h|40h|300] [--chapters N] [--paragraphs N] [--items N]
-//                                                           [--tracks N] [--checked N] [--checks N]
+//                                                           [--tracks N] [--checked N] [--checks N] [--audio MINUTES]
 //   node scripts/dev/host-read-bench.mjs reads <seeded-folder> [--runs N]
 //   node scripts/dev/host-read-bench.mjs retention <seeded-folder> [--cache-entries N] [--files N]
 //
 // `seed` writes the book through the host's own code (TestSeedAPerfBook, src/studio/desktop/perfbook_test.go). --size picks a measured
 // size: 1h is 3 chapters, 17h is 44, 40h is 103 (40 paragraphs of about 88 words each), 300 is 300 chapters of 6 paragraphs; the other
 // options override it. --items is the takes on each chapter's track (100), --tracks the extra empty tracks, --checked how many chapters
-// have a recording check (all) and --checks how many times each was checked (1).
+// have a recording check (all) and --checks how many times each was checked (1). --audio M gives each chapter its own M-minute 48 kHz
+// 24-bit recording (a sparse file) for the WorkspacePeaks read; without it every take shares one 2 s file (#4042).
 // `retention` runs the ledger retention pass (#3816) twice over a copy of the book and prints what each pass cost and removed, and the first call
 // of three ledger-walking reads before and after (TestPrintTheRetentionPass, retention_perf_test.go); seed with --checks 3 for superseded records.
 // --files N adds N TTS previews and N Transcript Compare runs (three files each) and runs their two steps twice.
@@ -23,7 +24,7 @@ import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const SIZES = { '1h': 'chapters=3', '17h': 'chapters=44', '40h': 'chapters=103', 300: 'chapters=300 paragraphs=6' };
-const OPTIONS = ['chapters', 'paragraphs', 'items', 'tracks', 'checked', 'checks'];
+const OPTIONS = ['chapters', 'paragraphs', 'items', 'tracks', 'checked', 'checks', 'audio'];
 const [verb, folder, ...rest] = process.argv.slice(2);
 const args = Object.fromEntries(rest.flatMap((arg, i) => (arg.startsWith('--') ? [[arg.slice(2), rest[i + 1]]] : [])));
 

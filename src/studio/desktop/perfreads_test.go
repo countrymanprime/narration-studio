@@ -19,7 +19,7 @@ type perfRead struct {
 }
 
 // perfReads are the read bindings the pages call on opening, slowest first on a checked book. PickupsCount needs a live
-// bridge and WorkspacePeaks needs audio; neither is here.
+// bridge, which is not here. WorkspacePeaks reads the seeded book's 2 s file by default; seed with audio=N for recordings (#4042).
 var perfReads = []perfRead{
 	{"PickupsList", (*Host).PickupsList},
 	{"ManuscriptChapters", (*Host).ManuscriptChapters},
@@ -28,6 +28,7 @@ var perfReads = []perfRead{
 	{"FindingsList({})", func(h *Host) (string, error) { return h.FindingsList(FindingsQuery{}) }},
 	{"FindingsSummary", (*Host).FindingsSummary},
 	{"WorkspaceAlignment(c-0001)", func(h *Host) (string, error) { return h.WorkspaceAlignment(perfChapterID(0)) }},
+	{"WorkspacePeaks(c-0001)", func(h *Host) (string, error) { return h.WorkspacePeaks(perfChapterID(0)) }},
 	{"StageRecommendations", (*Host).StageRecommendations},
 	{"ChapterTrackLinks", (*Host).ChapterTrackLinks},
 	{"TracksLive", (*Host).TracksLive},
