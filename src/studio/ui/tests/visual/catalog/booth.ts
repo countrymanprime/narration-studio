@@ -375,6 +375,12 @@ export const boothStates: StateEntry[] = [
     state: 'levels-menu-preroll-about',
     description:
       'Booth, the Levels menu\'s Punch line ("Pre-roll off · 2 measures (4.0 s)") with its info button opened from the keyboard: the note under it, inside the menu, says what REAPER\'s pre-roll does, how long one measure is at the cursor, and where to change it in REAPER',
+    sameAs: {
+      of: 'booth/levels-menu-preroll',
+      reason:
+        'At 1024x768 the 80 px the shell keeps for a toast (#4063) leaves the menu too little height: the note sits below its fold, and the menu opens at the top again when the capture resizes the window, so the picture is the menu without the note. The note shows at the desktop, tablet and reflow widths.',
+      viewports: ['small-desktop'],
+    },
     ...REFLOW,
   },
   {
