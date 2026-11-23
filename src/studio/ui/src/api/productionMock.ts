@@ -81,8 +81,8 @@ export function scenarioFromToday(name: SeedLog, now: Date = new Date()): Produc
 
 /**
  * A chapter of the chapter list as a `?mockProduction=` scenario says it is: its status and recorded audio (or why it has none). The host builds the chapter
- * list and the Production overview from the same chapters, so the two agree; the mock's overview already applies the scenario, and the list must too, now that
- * the Production page takes its rows from the list. Applied twice it changes nothing more.
+ * list and the Production overview from the same chapters, so the two agree; the mock does the same: the overview's figures and the list both go through this
+ * one function. Applied twice it changes nothing more.
  */
 export function seededChapter(seed: ProductionSeed | undefined, chapter: ManuscriptChapter): ManuscriptChapter {
   const log = seed?.log ? LOGS[seed.log] : undefined;
@@ -301,15 +301,17 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
   const overview = async (): Promise<ProductionOverview> => {
     // Like the host (internal/production/overview.go), stage recommendations that cannot be read leave every chapter's readiness
     // null rather than failing the whole overview.
-    const [manuscript, recommendations] = await Promise.all([deps.chapters(), deps.recommendations().catch((): StageRecommendations => ({ chapters: [] }))]);
+    const [chapterList, recommendations] = await Promise.all([deps.chapters(), deps.recommendations().catch((): StageRecommendations => ({ chapters: [] }))]);
+    // The scenario is applied by `seededChapter`, the one place that also builds the chapter list's rows, so the totals below and the list the page draws cannot disagree.
+    const manuscript = chapterList.map((chapter) => seededChapter(seed, chapter));
     const readiness = new Map(recommendations.chapters.map((chapter) => [chapter.chapterId, readinessOf(chapter)]));
     // The figures below (totals) read the whole row; only the numbers go on the wire, as the host sends them.
     const chapters: BoardRow[] = manuscript.map((chapter) => {
-      const measured = log ? log.recorded[chapter.id] : chapter.recordedSeconds;
+      const measured = chapter.recordedSeconds;
       const hoursLogged = sessions.filter((session) => session.chapterId === chapter.id).reduce((sum, session) => sum + hoursOf(session), 0);
       return {
         id: chapter.id,
-        status: log?.status ?? chapter.status,
+        status: chapter.status,
         wordCount: chapter.wordCount,
         recordedSeconds: measured ?? null,
         hoursLogged,

@@ -11,7 +11,7 @@ import (
 func seconds(value float64) *float64 { return &value }
 
 func chapter(id string, status stages.Stage, verdict stages.Verdict) ChapterInput {
-	input := ChapterInput{ID: id, Title: "Chapter " + id, ContentKind: "narration", Status: status, WordCount: 3000}
+	input := ChapterInput{ID: id, Title: "Chapter " + id, Status: status, WordCount: 3000}
 	if verdict != "" {
 		input.Readiness = &Readiness{Verdict: verdict}
 	}
@@ -110,7 +110,6 @@ func TestContractProductionOverview(t *testing.T) {
 	due := "2026-10-14"
 	first := chapter("c-0001", stages.StageEditing, stages.VerdictNotReady)
 	first.Title = "Chapter 1"
-	first.Subtitle = "Down the Rabbit-Hole"
 	first.RecordedSeconds = seconds(708)
 	first.Readiness.Target = stages.StageProofing
 	first.Readiness.Reason = "3 clicks are still in the take"

@@ -317,3 +317,18 @@ describe('the mock sends chapter sync state when removing a chapter from recordi
     expect(sent).toBe(0);
   });
 });
+
+// The host builds the chapter list and the Production overview from the same chapters (bindings_production.go), and the page draws the overview's totals beside the
+// list's rows, so a `?mockProduction=` scenario must say the same about the chapters in both reads (#4058). The overview's chapters carry only numbers now; its totals
+// are what has to match the list.
+describe('the mock overview totals agree with the chapter list under every production scenario (#4058)', () => {
+  it.each(['on-pace', 'at-risk', 'linked'] as const)('%s', async (log) => {
+    const api = createMockApi({}, { production: { log } });
+    const [list, overview] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
+    expect(overview.chapters.map((chapter) => chapter.id)).toEqual(list.map((chapter) => chapter.id));
+    expect(overview.totals.chapters).toBe(list.length);
+    expect(overview.totals.finalizedChapters).toBe(list.filter((chapter) => chapter.status === 'finalized').length);
+    expect(overview.totals.measuredChapters).toBe(list.filter((chapter) => chapter.recordedSeconds !== undefined && chapter.recordedSeconds !== null).length);
+    expect(overview.totals.recordedSeconds).toBe(list.reduce((sum, chapter) => sum + (chapter.recordedSeconds ?? 0), 0));
+  });
+});

@@ -25,8 +25,6 @@ type Readiness struct {
 type ChapterInput struct {
 	ID              string
 	Title           string
-	Subtitle        string
-	ContentKind     string
 	Status          stages.Stage
 	WordCount       int
 	RecordedSeconds *float64
@@ -80,8 +78,7 @@ type Overview struct {
 	Running  *Session          `json:"running"`
 }
 
-// BuildOverview arranges the chapters, the time log and the plan into the Production page's board, KPIs and
-// "Next up" list.
+// BuildOverview arranges the chapters, the time log and the plan into the Production page's per-chapter numbers and KPI figures.
 func BuildOverview(in OverviewInput) Overview {
 	recorded := map[string]float64{}
 	overview := Overview{

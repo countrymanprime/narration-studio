@@ -140,7 +140,7 @@ func (h *Host) saveProductionPlan(what string, change func(*project.Manifest) er
 // errProductionNoProject is the answer of every production binding before a project is open.
 var errProductionNoProject = errors.New("open a project before tracking production time")
 
-// ProductionOverview is the Production page's board, KPI figures and "Next up" list.
+// ProductionOverview is the Production page's per-chapter numbers (hours logged, per finished hour, readiness) and KPI figures; the chapters themselves come from ManuscriptChapters.
 func (h *Host) ProductionOverview() (string, error) {
 	return h.sharedRead("ProductionOverview", func() (string, error) {
 		overview, _, _, err := h.buildProductionOverview()
@@ -265,17 +265,13 @@ func productionChapters(text *manuscript.Service, recommendations *stages.Servic
 	for _, chapter := range chapters {
 		id, _ := chapter["id"].(string)
 		title, _ := chapter["title"].(string)
-		subtitle, _ := chapter["subtitle"].(string)
-		kind, _ := chapter["contentKind"].(string)
 		status, _ := chapter["status"].(string)
 		input := production.ChapterInput{
-			ID:          id,
-			Title:       title,
-			Subtitle:    subtitle,
-			ContentKind: kind,
-			Status:      stages.Stage(status),
-			WordCount:   wordCount(chapter["wordCount"]),
-			Readiness:   readiness[id],
+			ID:        id,
+			Title:     title,
+			Status:    stages.Stage(status),
+			WordCount: wordCount(chapter["wordCount"]),
+			Readiness: readiness[id],
 		}
 		if seconds, ok := chapter["recordedSeconds"].(float64); ok {
 			input.RecordedSeconds = &seconds
