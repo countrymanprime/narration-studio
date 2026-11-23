@@ -12,7 +12,7 @@ import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { Journal } from '../../../studio/journal/createJournal';
 import type { StoppedTake } from '../pickups/usePickupSession';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
-import { noAnswerSentence, recordsInApp, recorderName, recorderNameCapital, unreachedSentence } from '../../../studio/dawNames';
+import { noAnswerSentence, recordsInApp, recorderName, unreachedSentence } from '../../../studio/dawNames';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
 import { useFullscreenKey } from '../useFullscreenKey';
@@ -58,9 +58,9 @@ import { claimListening, joinListening, type ListeningClaim, ownsListening, rele
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
 import { pageNameFor } from '../../layout/railPages';
+import { CHECK_OFFER, listeningFailedSentence, rollLandedSentence, rollTimeoutSentence, TAKE_UNFOLLOWED } from '../toastSentences';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
-const CHECK_OFFER = 'Check this recording against the script?';
 /** The offer stays long enough to Tab to its button, then goes: the narrator is reading on. */
 const CHECK_OFFER_MS = 10_000;
 const CHECK_OFFER_TOPIC = 'booth-check-offer';
@@ -666,7 +666,7 @@ export function useBoothPage(options: BoothPageOptions) {
           ? kept
             ? 'The text could not follow your voice in time, and the take is still in the DAW.'
             : 'The take was taken back because the text could not follow your voice in time.'
-          : `Recording did not start: the text cannot follow your voice (${(heard.reason || 'listening failed').replace(/[.\s]+$/, '')}).${kept ? '' : ' Nothing was recorded.'}`,
+          : listeningFailedSentence(heard.reason, kept),
         {
           tone: 'error',
           topic: PRESS_TOPIC,
@@ -728,17 +728,13 @@ export function useBoothPage(options: BoothPageOptions) {
         // from before the roll, or already rolling; the sentence says to look. A roll that lands later is checked against the take it was for (#3409).
         const rollsBefore = rollsOk.current;
         const take = takeSeq.current;
-        const name = recorderNameCapital(control.capabilities?.daw);
         /** One short sentence for a roll that lands when its press is no longer current: it replaces the roll's timeout sentence, whose advice is stale. */
         const landed = () => {
           overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
-          overlay.toast(
-            `A roll the Booth stopped waiting for has landed. ${name} may be recording, and a take in progress may have been cut. Check ${recorderLabel}.`,
-            {
-              tone: 'error',
-              topic: ROLL_LANDED_TOPIC,
-            },
-          );
+          overlay.toast(rollLandedSentence(control.capabilities?.daw), {
+            tone: 'error',
+            topic: ROLL_LANDED_TOPIC,
+          });
         };
         const asked = await limited('roll', daw.roll(recordId, takeAt.current + latest.current.elapsed(), { confirmed }), (late) => {
           // The app does nothing to the DAW for an answer it stopped waiting for: it cannot tell the roll's recording from the narrator's own, so a stale
@@ -766,13 +762,10 @@ export function useBoothPage(options: BoothPageOptions) {
         // The take ended meanwhile (the DAW's own stop was announced): the sentence about a take that may still be recording would contradict it.
         if (!mounted.current || !latest.current.recording) return { ok: false, changed: false, undoSteps: 0, message: '' };
         // Said here as an error, like the other limits; the empty message tells the roll hook there is nothing more to say.
-        overlay.toast(
-          `${name} did not answer the roll in time. The take may still be recording from before; check ${recorderLabel}, then press R to roll again.`,
-          {
-            tone: 'error',
-            topic: ROLL_TIMEOUT_TOPIC,
-          },
-        );
+        overlay.toast(rollTimeoutSentence(control.capabilities?.daw), {
+          tone: 'error',
+          topic: ROLL_TIMEOUT_TOPIC,
+        });
         return { ok: false, changed: false, undoSteps: 0, message: '' };
       },
       pause,
@@ -1557,7 +1550,7 @@ function holdWhileMenuOpen(hold: () => () => void): () => void {
 
 /** The listening of a take ended without following it after its press was left behind by a chapter change, and the take still records here. */
 function sayTakeUnfollowed(overlay: Pick<OverlayService, 'toast'>): void {
-  overlay.toast('The text could not follow your voice for the take that is still recording. Press Stop, then record again.', {
+  overlay.toast(TAKE_UNFOLLOWED, {
     tone: 'error',
     topic: UNFOLLOWED_TOPIC,
   });

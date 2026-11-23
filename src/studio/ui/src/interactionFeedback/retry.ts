@@ -36,6 +36,8 @@ const SE = 'Runs inside a dialog that has already closed and moved on to the sca
 /** Judged error toasts. `yes` must carry a Retry (or an equal action) in the call; `no` and `n/a` say why in a sentence. */
 export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/main.tsx#1': yes("The mock build's test hook (`window.__raiseToast`) raises a Retry toast for the toast guard; the shipped build drops it."),
+  'src/main.tsx#2': no('The same test hook with no button, to measure a message that has none; the shipped build drops it.'),
+  'src/main.tsx#3': yes('The same test hook with another button label ("Check again"), to measure a message that carries it; the shipped build drops it.'),
   'src/App.tsx#1': no(BT),
   'src/App.tsx#2': no(BT),
   'src/App.tsx#3': no(BT),
