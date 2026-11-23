@@ -1,4 +1,5 @@
 import { pageOfPath } from './navigation/address';
+import { folderKey } from './projectFolder';
 
 /**
  * The key of the boundary around the routed page. It changes with the page and with the project, so React remounts the page when either changes: what a page holds in its
@@ -6,22 +7,6 @@ import { pageOfPath } from './navigation/address';
  */
 export function pageBoundaryKey(projectFolder: string, pathname: string): string {
   return JSON.stringify([projectFolder, pageOfPath(pathname).slice(1) || 'production']);
-}
-
-/**
- * A project folder as one folder: a backslash and a slash are the same separator, repeated and trailing separators are nothing, and a leading double separator (a network share) stays. The case is kept: on
- * a case-sensitive file system `X` and `x` are two folders. The host may spell the one folder both ways (the start-up path and the recent list do).
- */
-function folderKey(folder: string): string {
-  const slashed = folder.replace(/\\/g, '/');
-  const lead = slashed.startsWith('//') ? '//' : '';
-  return (
-    lead +
-    slashed
-      .slice(lead.length)
-      .replace(/\/{2,}/g, '/')
-      .replace(/\/+$/, '')
-  );
 }
 
 /**
