@@ -36,6 +36,7 @@ for (const size of SIZES) {
       page.locator('[role="alert"]:not([data-toast-region] *)').filter({ hasText: /Played in the app instead/ }),
       'the reason is not a line in the row',
     ).toHaveCount(0);
+    await page.screenshot({ path: `test-results/play-retry-proof-${size.width}x${size.height}.png` });
     const result = await coveredByToast(page, { selector: 'button' });
     expect(result.count).toBeGreaterThan(0);
     expect(result.covered, `toast ${JSON.stringify(result.toast)} covers ${JSON.stringify(result.covered)}`).toEqual([]);
