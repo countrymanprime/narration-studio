@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -250,46 +251,51 @@ func TestPeaksFileInSegmentsEqualsOneRead(t *testing.T) {
 		{"mono 44.1 kHz, 123.9 s", 1, 44100, 123.9},
 		{"mono 48 kHz 24-bit, 126 s", 1, 48000, 126},
 	}
+	saved := peaksSegmentCount
+	t.Cleanup(func() { peaksSegmentCount = saved })
 	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			// A tone whose level changes with time, so a seam or a shifted bucket shows in the bytes.
-			mono := sine(c.rate, c.seconds, 220, -12, 0)
-			for i := range mono {
-				mono[i] *= 0.2 + 0.8*float64(i%(c.rate*7))/float64(c.rate*7)
-			}
-			samples := mono
-			if c.channels == 2 {
-				samples = stereo(mono)
-			}
-			path := filepath.Join(t.TempDir(), "long.wav")
-			if err := os.WriteFile(path, encodeWAV(t, c.channels, c.rate, bitsFor(c.rate), false, samples), 0o600); err != nil {
-				t.Fatal(err)
-			}
-			whole, err := os.Open(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = whole.Close() }()
-			one, err := ComputePeaks(context.Background(), whole, nil, DefaultPeaksPerSecond)
-			if err != nil {
-				t.Fatal(err)
-			}
-			file, err := os.Open(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer func() { _ = file.Close() }()
-			if _, ran, err := segmentedPeaks(context.Background(), file, DefaultPeaksPerSecond); err != nil || (!ran && runtime.NumCPU() > 1) {
-				t.Fatalf("the segmented read did not run (ran %v, err %v) on %d CPUs: the test would compare a read with itself", ran, err, runtime.NumCPU())
-			}
-			segmented, err := PeaksFile(context.Background(), path, nil, DefaultPeaksPerSecond)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(one, segmented) {
-				t.Fatalf("buckets %d vs %d, first difference at byte %d", one.Buckets, segmented.Buckets, firstDifference(one.MinMax, segmented.MinMax))
-			}
-		})
+		for _, segments := range []int{2, 3, 4} {
+			t.Run(fmt.Sprintf("%s in %d segments", c.name, segments), func(t *testing.T) {
+				peaksSegmentCount = func() int { return segments }
+				// A tone whose level changes with time, so a seam or a shifted bucket shows in the bytes.
+				mono := sine(c.rate, c.seconds, 220, -12, 0)
+				for i := range mono {
+					mono[i] *= 0.2 + 0.8*float64(i%(c.rate*7))/float64(c.rate*7)
+				}
+				samples := mono
+				if c.channels == 2 {
+					samples = stereo(mono)
+				}
+				path := filepath.Join(t.TempDir(), "long.wav")
+				if err := os.WriteFile(path, encodeWAV(t, c.channels, c.rate, bitsFor(c.rate), false, samples), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				whole, err := os.Open(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer func() { _ = whole.Close() }()
+				one, err := ComputePeaks(context.Background(), whole, nil, DefaultPeaksPerSecond)
+				if err != nil {
+					t.Fatal(err)
+				}
+				file, err := os.Open(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer func() { _ = file.Close() }()
+				if _, ran, err := segmentedPeaks(context.Background(), file, DefaultPeaksPerSecond); err != nil || !ran {
+					t.Fatalf("the segmented read did not run (ran %v, err %v): the test would compare a read with itself", ran, err)
+				}
+				segmented, err := PeaksFile(context.Background(), path, nil, DefaultPeaksPerSecond)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !reflect.DeepEqual(one, segmented) {
+					t.Fatalf("buckets %d vs %d, first difference at byte %d", one.Buckets, segmented.Buckets, firstDifference(one.MinMax, segmented.MinMax))
+				}
+			})
+		}
 	}
 }
 
@@ -356,4 +362,56 @@ func bitsFor(rate int) int {
 		return 24
 	}
 	return 16
+}
+
+// A part short of its seconds, before the last, is not joined: it would draw the audio after it at the wrong time (a file cut short during the read).
+func TestSegmentsCompleteRefusesAPartShortOfItsSeconds(t *testing.T) {
+	whole := func(n int) Peaks { return Peaks{Buckets: n} }
+	if !segmentsComplete([]Peaks{whole(100), whole(100), whole(40)}, 100) {
+		t.Fatal("a short last part is the end of the file")
+	}
+	if !segmentsComplete([]Peaks{whole(100), whole(0), whole(0)}, 100) {
+		t.Fatal("parts after the end of the file are empty")
+	}
+	if segmentsComplete([]Peaks{whole(100), whole(60), whole(100)}, 100) {
+		t.Fatal("a short middle part would shift the audio after it")
+	}
+}
+
+// A file with a large chunk before its data is read whole, not copied into memory for every segment.
+func TestPeaksFileDoesNotCopyAChunkBeforeTheData(t *testing.T) {
+	const rate, seconds = 8000, 130
+	body := encodeWAV(t, 1, rate, 16, false, sine(rate, seconds, 220, -12, 0))
+	// fmt chunk, a 64 MB JUNK chunk of holes, then the data chunk of the file above.
+	file := filepath.Join(t.TempDir(), "junk.wav")
+	out, err := os.Create(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	junk := 64 << 20
+	head := append([]byte{}, body[:36]...) // RIFF header and fmt chunk
+	head = append(head, 'J', 'U', 'N', 'K', byte(junk&0xff), byte(junk>>8&0xff), byte(junk>>16&0xff), byte(junk>>24&0xff))
+	if _, err := out.Write(head); err != nil {
+		t.Fatal(err)
+	}
+	if err := out.Truncate(int64(len(head) + junk)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := out.WriteAt(body[36:], int64(len(head)+junk)); err != nil {
+		t.Fatal(err)
+	}
+	_ = out.Close()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	peaks, err := PeaksFile(context.Background(), file, nil, DefaultPeaksPerSecond)
+	runtime.ReadMemStats(&after)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if peaks.Buckets != seconds*DefaultPeaksPerSecond {
+		t.Fatalf("%d buckets, want %d", peaks.Buckets, seconds*DefaultPeaksPerSecond)
+	}
+	if grown := after.TotalAlloc - before.TotalAlloc; grown > 16<<20 {
+		t.Fatalf("reading allocated %d MB: the chunk before the data was copied", grown>>20)
+	}
 }
