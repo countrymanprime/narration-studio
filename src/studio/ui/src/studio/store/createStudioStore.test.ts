@@ -703,6 +703,21 @@ describe.each(['read', 'load'] as const)('the store knows which project a held l
     }
   });
 
+  // Only a slot without a stamp is held under the store's belief, and while the host's answer to an attach is not heard that belief is no project at all.
+  it.runIf(form === 'load')('an unstamped read that starts while the store is unconfirmed is not held under the old project', async () => {
+    const { host, read, slot } = hostOn('A');
+    const { store } = make({ a: slot });
+    store.setProject('A');
+    await store.ensure('a', { project: 'A' });
+    host.project = 'B';
+    store.reset(); // system:attached: the store waits for the bootstrap
+    await store.ensure('a'); // B's list, read before the store heard of B
+    expect(store.projectOf('a')).toBeUndefined();
+    store.setProject('A'); // the news names the old folder again: B's list is not A's
+    await store.ensure('a', { project: 'A' });
+    expect(read).toHaveBeenCalledTimes(3);
+  });
+
   it('a reader that names no project reads as before, whatever the store is waiting for', async () => {
     const { slot } = hostOn('A');
     const { store } = make({ a: slot });

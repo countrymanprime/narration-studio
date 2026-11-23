@@ -2969,7 +2969,7 @@ describe('App shell mounts', () => {
   });
 
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
-    const manuscriptChapters = vi.fn().mockResolvedValue([]);
+    const manuscriptChapters = vi.fn().mockResolvedValue(chaptersOf([]));
     renderApp({ manuscriptChapters, bootstrap: bootstrapWithCandidate({ path: 'a.docx', name: 'a.docx' }) });
     // The shell has mounted; the import step for the candidate can open first and make it inert, so look past that.
     await screen.findByRole('button', { name: /Jump to or run/, hidden: true });
