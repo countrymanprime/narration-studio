@@ -1,7 +1,7 @@
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useLayoutEffect, useState, type ReactNode } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { ToastRegion, type ToastMessage } from './Toast';
 
 const meta = {
@@ -156,7 +156,8 @@ export const HugeWord: Story = {
       await expect(text!.getBoundingClientRect().right).toBeLessThanOrEqual(toast!.getBoundingClientRect().right + 1);
       await expect(text!.scrollHeight).toBeGreaterThan(text!.clientHeight);
       await expect(text!.clientHeight).toBeLessThanOrEqual(toast!.clientHeight);
-      await expect(text!.tabIndex).toBe(0);
+      // The text measures itself after the first paint, so it is a Tab stop a moment later, never before it scrolls.
+      await waitFor(() => expect(text!.tabIndex).toBe(0));
     }
     void canvasElement;
   },
