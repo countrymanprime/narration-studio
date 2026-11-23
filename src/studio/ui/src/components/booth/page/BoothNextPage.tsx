@@ -253,7 +253,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   if (holding)
     return (
       <BoothExit onExit={leave}>
-        <BoothSkeleton />
+        <BoothSkeleton status="Opening your chapter…" />
       </BoothExit>
     );
   if (!source) {

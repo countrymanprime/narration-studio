@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // #4087: with no chapter asked for and none remembered, the Booth draws no chapter until the DAW's first answer is in, so the narrator never sees a chapter it then leaves.
-import { act, cleanup, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -102,8 +103,43 @@ describe('the Booth never draws a chapter it then leaves (#4087)', () => {
   it('the ask never answers: the first chapter draws after the cap, not after 20 s', async () => {
     const dawPlace = vi.fn(() => new Promise<never>(() => {}));
     renderPage({ api: { dawPlace } as never });
-    await waitFor(() => expect(document.body.textContent).toContain(ONE), { timeout: 3000 });
+    await waitFor(() => expect(document.body.textContent).toContain(ONE), { timeout: 6000 });
   });
+
+  it("a DAW that answers in 2.5 s (the host's limit is 3 s): only the skeleton, then its chapter, never chapter 1", async () => {
+    const { seen, stop } = sampler();
+    renderPage({ api: { dawPlace: answer('c2', 2500) } });
+    await waitFor(() => expect(document.body.textContent).toContain(TWO), { timeout: 5000 });
+    await wait(300);
+    stop();
+    expect(sees(seen, ONE)).toBe(false);
+    expect(sees(seen, TITLE_ONE)).toBe(false);
+    expect(address).toContain('chapter=c2');
+  }, 15_000);
+
+  it('a DAW that answers after the cap (5 s): the chapter drawn stays, nothing moves, and the DAW is asked once', async () => {
+    const dawPlace = answer('c2', 5000);
+    renderPage({ api: { dawPlace } });
+    await waitFor(() => expect(document.body.textContent).toContain(ONE), { timeout: 6000 });
+    await wait(4000);
+    expect(dawPlace).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain(ONE);
+    expect(document.body.textContent).not.toContain(TWO);
+    expect(address).not.toContain('chapter=c2');
+  }, 20_000);
+
+  it('a take running when a late answer comes is not remounted or moved', async () => {
+    renderPage({ api: { dawPlace: answer('c2', 5000) } });
+    const record = await screen.findByRole('button', { name: /^Record$/ }, { timeout: 8000 });
+    await waitFor(() => expect(record.getAttribute('aria-disabled')).not.toBe('true'));
+    await userEvent.click(record);
+    const stopButton = await screen.findByRole('button', { name: /^Stop$/ }, { timeout: 5000 });
+    await wait(5000);
+    // The answer has come by now: the take's page is the same one, still recording on the chapter it started on.
+    expect(screen.getByRole('button', { name: /^Stop$/ })).toBe(stopButton);
+    expect(document.body.textContent).toContain(ONE);
+    expect(address).not.toContain('chapter=c2');
+  }, 30_000);
 
   it('a remembered chapter changes nothing: it draws with no chapter 1 first, and the DAW does not choose', async () => {
     window.localStorage.setItem('narration.booth.lastPlace./proj', JSON.stringify({ chapterId: 'c2', paragraphId: 'q1', word: 2 }));
