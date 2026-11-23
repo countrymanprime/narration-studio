@@ -20,12 +20,9 @@ import {
 } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
-let step = 0;
-/** The pointer moves onto a toast: a move in the window to a new place, then the enter the browser sends. */
+/** The pointer moves over a toast: a move on it, which is what holds it (the browser's enter, sent when a toast appears under a resting pointer, does not). */
 function hoverOn(toast: Element): void {
-  step += 1;
-  fireEvent.pointerMove(window, { clientX: step, clientY: step });
-  fireEvent.pointerEnter(toast, { clientX: step, clientY: step });
+  fireEvent.pointerMove(toast, { clientX: 5, clientY: 5 });
 }
 afterEach(() => {
   cleanup();
@@ -178,19 +175,17 @@ describe('ToastRegion', () => {
   });
 
   // A toast under a pointer that rests on the control that raised it, or that shifts under it in a stack, is not held: the browser says the pointer entered, the narrator did not reach for it (#4063).
-  it('does not hold an error under a pointer that has not moved, and holds it once the pointer moves onto it', () => {
+  it('does not hold an error the browser says the pointer entered, and holds it once the pointer moves on it', () => {
     const dismiss = vi.fn();
-    fireEvent.pointerMove(window, { clientX: 40, clientY: 50 });
-    act(() => void vi.advanceTimersByTime(1000));
     render(<ToastRegion messages={[failure(7)]} dismiss={dismiss} />);
     const toast = screen.getByText('Failure 7').closest('[data-tone]') as HTMLElement;
     fireEvent.pointerEnter(toast, { clientX: 40, clientY: 50 });
-    fireEvent.pointerMove(toast, { clientX: 40, clientY: 50 });
     act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS));
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(7);
     dismiss.mockClear();
     render(<ToastRegion messages={[failure(8)]} dismiss={dismiss} />);
     const second = screen.getByText('Failure 8').closest('[data-tone]') as HTMLElement;
+    fireEvent.pointerEnter(second, { clientX: 44, clientY: 50 });
     hoverOn(second);
     act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 2));
     expect(dismiss).not.toHaveBeenCalled();
@@ -760,10 +755,10 @@ describe('the room the toasts take, published for a dialog in a short window', (
     expect(published()).toMatch(/^\d+px$/);
   });
 
-  it('is set for a toast with no dialog open, held to half the window, and not left behind when the region unmounts', () => {
+  it('is set for a toast with no dialog open, held to 60% of the window, and not left behind when the region unmounts', () => {
     const { unmount } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
     expect(published()).toMatch(/^\d+px$/);
-    expect(Number.parseInt(published(), 10)).toBeLessThanOrEqual(window.innerHeight / 2);
+    expect(Number.parseInt(published(), 10)).toBeLessThanOrEqual(window.innerHeight * 0.6);
     unmount();
     expect(published()).toBe('');
     const modal = render(

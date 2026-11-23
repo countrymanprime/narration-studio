@@ -72,82 +72,103 @@ const visibleButtons = (): string[] => {
     });
 };
 
-for (const theme of ['light', 'dark'] as const) {
-  for (const size of SIZES) {
-    for (const c of CASES) {
-      test(`${c.name}: a Retry toast covers no button (${theme}, ${size.width}x${size.height})`, async ({ page }) => {
-        await page.emulateMedia({ colorScheme: theme });
-        await page.setViewportSize(size);
-        await page.goto('/');
-        await settlePage(page);
-        await c.open(page);
-        await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-        const before = await page.evaluate(visibleButtons);
-        for (const text of [LONG, 'The take could not be saved. Try again.']) {
-          await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
-        }
-        await page.locator('[data-toast-region] [data-tone="error"]').first().waitFor();
-        await page.mouse.move(size.width - 2, 2);
-        await page.waitForFunction(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-h')) > 0);
-        await page.waitForTimeout(250);
-        const after = await page.evaluate(visibleButtons);
-        // A button in view before the toast that is out of view after it must be in a scrolling column, so it is still reachable; the page is shorter by the strip.
-        const lost = before.filter((name) => !after.includes(name) && name.endsWith('(no scrolling column holds it)'));
-        const result = await page.evaluate(() => {
-          const region = document.querySelector('[data-toast-region]')!;
-          const toasts = [...region.querySelectorAll<HTMLElement>('[data-tone]')].filter((t) => t.getBoundingClientRect().width > 0);
-          /** The part of a box a page can show: cut by every ancestor that clips, and by the window. */
-          const visible = (el: Element): DOMRect | null => {
-            const r = el.getBoundingClientRect();
-            let left = Math.max(r.left, 0);
-            let top = Math.max(r.top, 0);
-            let right = Math.min(r.right, window.innerWidth);
-            let bottom = Math.min(r.bottom, window.innerHeight);
-            for (let p = el.parentElement; p; p = p.parentElement) {
-              const s = getComputedStyle(p);
-              if (s.display === 'none' || s.visibility === 'hidden') return null;
-              if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;
-              const b = p.getBoundingClientRect();
-              left = Math.max(left, b.left);
-              top = Math.max(top, b.top);
-              right = Math.min(right, b.right);
-              bottom = Math.min(bottom, b.bottom);
-            }
-            return right > left && bottom > top ? new DOMRect(left, top, right - left, bottom - top) : null;
-          };
-          const covered: string[] = [];
-          for (const b of document.querySelectorAll('button, a[href], [role="button"]')) {
-            if (b.closest('[data-toast-region]') || b.closest('[hidden], [inert], [aria-hidden="true"]')) continue;
-            const v = visible(b);
-            if (!v || v.width < 1 || v.height < 1) continue;
-            for (const t of toasts) {
-              const tr = t.getBoundingClientRect();
-              if (v.left < tr.right - 0.5 && v.right > tr.left + 0.5 && v.top < tr.bottom - 0.5 && v.bottom > tr.top + 0.5)
-                covered.push(
-                  `${b.getAttribute('aria-label') ?? b.textContent?.trim().slice(0, 30) ?? b.tagName} @${Math.round(v.left)},${Math.round(v.top)} ${Math.round(v.width)}x${Math.round(v.height)}`,
-                );
-            }
+/** What is raised: the longest message the app says with a second toast, a pasted error of 1,500 characters (the qa-breaker's B2), and the four toasts the app keeps (B3). The last two run on three pages in light. */
+const VARIANTS: Array<{ name: string; texts: string[]; pages?: string[]; themes: ReadonlyArray<'light' | 'dark'> }> = [
+  { name: 'a Retry toast', texts: [LONG, 'The take could not be saved. Try again.'], themes: ['light', 'dark'] },
+  {
+    name: 'a pasted error of 1,500 characters',
+    texts: [`${'Unexpected failure in the host: '.repeat(48)}end`],
+    pages: ['Editing chapter', 'Production', 'Script'],
+    themes: ['light'],
+  },
+  {
+    name: 'four toasts',
+    texts: ['Take one failed.', 'Take two failed.', 'Take three failed.', 'Take four failed.'],
+    pages: ['Editing chapter', 'Production', 'Settings'],
+    themes: ['light'],
+  },
+];
+
+for (const variant of VARIANTS) {
+  for (const theme of variant.themes) {
+    for (const size of SIZES) {
+      for (const c of CASES.filter((k) => !variant.pages || variant.pages.includes(k.name))) {
+        test(`${c.name}: ${variant.name} covers no button (${theme}, ${size.width}x${size.height})`, async ({ page }) => {
+          await page.emulateMedia({ colorScheme: theme });
+          await page.setViewportSize(size);
+          await page.goto('/');
+          await settlePage(page);
+          await c.open(page);
+          await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+          const before = await page.evaluate(visibleButtons);
+          for (const text of variant.texts) {
+            await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
           }
-          const small = [...region.querySelectorAll('button')]
-            .map((b) => ({ n: b.getAttribute('aria-label') ?? b.textContent, r: b.getBoundingClientRect() }))
-            .filter(({ r }) => r.width > 0 && (r.width < 24 || r.height < 24))
-            .map(({ n, r }) => `${n} ${r.width.toFixed(1)}x${r.height.toFixed(1)}`);
-          const boxes = toasts.map((t) => {
-            const r = t.getBoundingClientRect();
-            return [r.left, r.top, r.right, r.bottom].map(Math.round);
+          await page.locator('[data-toast-region] [data-tone="error"]').first().waitFor();
+          await page.mouse.move(size.width - 2, 2);
+          await page.waitForFunction(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-h')) > 0);
+          await page.waitForTimeout(250);
+          const after = await page.evaluate(visibleButtons);
+          // A button in view before the toast that is out of view after it must be in a scrolling column, so it is still reachable; the page is shorter by the strip.
+          const lost = before.filter((name) => !after.includes(name) && name.endsWith('(no scrolling column holds it)'));
+          const result = await page.evaluate(() => {
+            const region = document.querySelector('[data-toast-region]')!;
+            const toasts = [...region.querySelectorAll<HTMLElement>('[data-tone]')].filter((t) => t.getBoundingClientRect().width > 0);
+            /** The part of a box a page can show: cut by every ancestor that clips, and by the window. */
+            const visible = (el: Element): DOMRect | null => {
+              const r = el.getBoundingClientRect();
+              let left = Math.max(r.left, 0);
+              let top = Math.max(r.top, 0);
+              let right = Math.min(r.right, window.innerWidth);
+              let bottom = Math.min(r.bottom, window.innerHeight);
+              for (let p = el.parentElement; p; p = p.parentElement) {
+                const s = getComputedStyle(p);
+                if (s.display === 'none' || s.visibility === 'hidden') return null;
+                if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;
+                const b = p.getBoundingClientRect();
+                left = Math.max(left, b.left);
+                top = Math.max(top, b.top);
+                right = Math.min(right, b.right);
+                bottom = Math.min(bottom, b.bottom);
+              }
+              return right > left && bottom > top ? new DOMRect(left, top, right - left, bottom - top) : null;
+            };
+            const covered: string[] = [];
+            for (const b of document.querySelectorAll('button, a[href], [role="button"]')) {
+              if (b.closest('[data-toast-region]') || b.closest('[hidden], [inert], [aria-hidden="true"]')) continue;
+              const v = visible(b);
+              if (!v || v.width < 1 || v.height < 1) continue;
+              for (const t of toasts) {
+                const tr = t.getBoundingClientRect();
+                if (v.left < tr.right - 0.5 && v.right > tr.left + 0.5 && v.top < tr.bottom - 0.5 && v.bottom > tr.top + 0.5)
+                  covered.push(
+                    `${b.getAttribute('aria-label') ?? b.textContent?.trim().slice(0, 30) ?? b.tagName} @${Math.round(v.left)},${Math.round(v.top)} ${Math.round(v.width)}x${Math.round(v.height)}`,
+                  );
+              }
+            }
+            const small = [...region.querySelectorAll('button')]
+              .map((b) => ({ n: b.getAttribute('aria-label') ?? b.textContent, r: b.getBoundingClientRect() }))
+              .filter(({ r }) => r.width > 0 && (r.width < 24 || r.height < 24))
+              .map(({ n, r }) => `${n} ${r.width.toFixed(1)}x${r.height.toFixed(1)}`);
+            const boxes = toasts.map((t) => {
+              const r = t.getBoundingClientRect();
+              return [r.left, r.top, r.right, r.bottom].map(Math.round);
+            });
+            return { covered, small, boxes, count: toasts.length };
           });
-          return { covered, small, boxes, count: toasts.length };
+          expect(result.count, 'every toast is drawn').toBe(variant.texts.length);
+          const debt = TOAST_COVERS_DEBT.find((d) => d.page === c.name && d.widths.includes(size.width));
+          if (debt) {
+            expect(result.covered.length, `${c.name} is listed as covered (${debt.reason}, #${debt.issue}); delete the entry once it is not`).toBeGreaterThan(
+              0,
+            );
+          } else {
+            expect(result.covered, `toasts ${JSON.stringify(result.boxes)} cover: ${JSON.stringify(result.covered)}`).toEqual([]);
+          }
+          expect(lost, 'no button is shut out of reach by the strip').toEqual([]);
+          expect(result.small, 'the toast buttons are at least 24 px each way').toEqual([]);
         });
-        expect(result.count, 'both toasts are drawn').toBe(2);
-        const debt = TOAST_COVERS_DEBT.find((d) => d.page === c.name && d.widths.includes(size.width));
-        if (debt) {
-          expect(result.covered.length, `${c.name} is listed as covered (${debt.reason}, #${debt.issue}); delete the entry once it is not`).toBeGreaterThan(0);
-        } else {
-          expect(result.covered, `toasts ${JSON.stringify(result.boxes)} cover: ${JSON.stringify(result.covered)}`).toEqual([]);
-        }
-        expect(lost, 'no button is shut out of reach by the strip').toEqual([]);
-        expect(result.small, 'the toast buttons are at least 24 px each way').toEqual([]);
-      });
+      }
     }
   }
 }

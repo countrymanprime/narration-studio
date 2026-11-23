@@ -59,19 +59,6 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
 const TEXT_SCROLL_CUE =
   '[:root[data-modal-open]_&]:[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
-/** How long after the pointer last moved a toast still counts it as arriving: a pointer that entered because the pointer moved enters in the same frame, one that "entered" because the toast moved under it did not move at all. */
-const POINTER_MOVE_MS = 150;
-/** The last time the pointer really moved in the window (a move that changes its place). A toast that appears, shifts in a stack or comes back under a resting pointer sees an enter, never a move (#4063). */
-let lastMove = { x: Number.NaN, y: Number.NaN, at: Number.NEGATIVE_INFINITY };
-if (typeof window !== 'undefined')
-  window.addEventListener(
-    'pointermove',
-    (event) => {
-      if (event.clientX !== lastMove.x || event.clientY !== lastMove.y) lastMove = { x: event.clientX, y: event.clientY, at: Date.now() };
-    },
-    { capture: true, passive: true },
-  );
-
 function ToastItem({ message, dismiss, alone, waiting = false }: { message: ToastMessage; dismiss: (id: number) => void; alone: boolean; waiting?: boolean }) {
   const [leaving, setLeaving] = useState(false);
   // A message taller than the toast may be is read by scrolling its text, which then needs the keyboard too: it takes focus only while it overflows.
@@ -98,10 +85,9 @@ function ToastItem({ message, dismiss, alone, waiting = false }: { message: Toas
   const focused = useRef(false);
   const [held, setHeld] = useState(false);
   const hold = () => setHeld(hover.current || focused.current);
-  // A toast under a pointer that is not moving is not hovered, however it came there (it appeared, another toast above it went, it came back after a dialog): the browser says
-  // the pointer entered, but the narrator did not reach for it, and holding it would keep it up for ever. Only a pointer that has just moved holds it (#4063).
+  // A toast under a pointer that is not moving is not hovered, however it came there (it appeared under the button that raised it, another toast above it went, it came back after a
+  // dialog): the browser says the pointer entered, but the narrator did not reach for it, and holding it would keep it up for ever. Only a pointer that moves over the toast holds it (#4063).
   const pointerOn = () => {
-    if (!hover.current && Date.now() - lastMove.at > POINTER_MOVE_MS) return;
     hover.current = true;
     hold();
   };
@@ -155,7 +141,6 @@ function ToastItem({ message, dismiss, alone, waiting = false }: { message: Toas
     <div
       data-tone={message.tone}
       hidden={waiting}
-      onPointerEnter={pointerOn}
       onPointerMove={pointerOn}
       onPointerLeave={() => ((hover.current = false), hold())}
       onFocus={(event) => {
@@ -203,7 +188,7 @@ function ToastItem({ message, dismiss, alone, waiting = false }: { message: Toas
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // nothing else (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
-        className={`${withAction ? (glyph ? 'max-[24rem]:max-w-[calc(100%-1.75rem)] max-[24rem]:[:root[data-modal-open]_&]:max-w-none' : 'max-[24rem]:max-w-full max-[24rem]:[:root[data-modal-open]_&]:max-w-none') : ''} max-h-[max(1.5rem,calc((100dvh-2*var(--page-gutter)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem-var(--toast-action-row,0rem)))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [:root[data-modal-open]_&]:max-h-[2lh] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 ${scrolls ? TEXT_SCROLL_CUE : ''}`}
+        className={`${withAction ? (glyph ? 'max-[24rem]:max-w-[calc(100%-1.75rem)] max-[24rem]:[:root[data-modal-open]_&]:max-w-none' : 'max-[24rem]:max-w-full max-[24rem]:[:root[data-modal-open]_&]:max-w-none') : ''} max-h-[max(1.5rem,calc((50dvh-2*var(--page-gutter)-(var(--toast-n,1)-1)*0.5rem)/var(--toast-n,1)-1.5rem-var(--toast-action-row,0rem)))] min-w-0 overflow-y-auto [overflow-wrap:anywhere] [:root[data-modal-open]_&]:max-h-[2lh] [@media(max-height:400px)]:[:root[data-modal-open]_&]:max-h-10 ${scrolls ? TEXT_SCROLL_CUE : ''}`}
       >
         {message.text}
       </span>
@@ -290,13 +275,13 @@ function keepFocusInDialog(): void {
 /** The custom property the toasts publish while they show: how much of the window's bottom they take (their height, the gap under them and 0.5rem of air), in px. */
 export const TOAST_HEIGHT_PROPERTY = '--toast-h';
 /** The most of the window the page gives up to the toasts, as a share of its height: a stack in a very short window may lie over the page by design, because every toast and button must stay inside the window. */
-const STRIP_MAX_SHARE = 0.5;
+const STRIP_MAX_SHARE = 0.6;
 
 /**
  * While a toast shows, publishes `--toast-h` on the root: the room from the window's bottom edge up to the toasts' top.
  * Over an open modal dialog, `Dialog` reads it in a window 400 px tall or less and takes what is left above the toasts, so a toast does not sit on its content or its focused
  * control (#3605, #3601; `DIALOG_TOAST_ROOM`). With no dialog open, the shell reads it (`AppShell`) and ends the page above the toasts, so a toast stands in a strip of its own
- * and covers no button, whatever the page, its bars or its scrolling columns are (#4063): the strip is held to `STRIP_MAX_SHARE` of the window. With no toast the property is not set,
+ * and covers no button, whatever the page, its bars or its scrolling columns are (#4063): the strip is held to `STRIP_MAX_SHARE` of the window (the toasts' text is capped to half of it, so the stack fits). With no toast the property is not set,
  * so nothing moves. It follows the region's height, a resize of the window and a dialog opening or closing.
  */
 function useToastHeightPublished(region: { current: HTMLElement | null }, showing: boolean): void {
