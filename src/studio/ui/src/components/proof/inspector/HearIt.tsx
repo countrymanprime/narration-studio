@@ -167,6 +167,8 @@ export function HearIt({
         },
       };
       const { by, notice } = await playThrough([loop, app], finding, {
+        // Leaving the note, or a newer press, while the DAW is asked: the app does not play an old note late.
+        stillWanted: () => newest.current(press),
         // A DAW that is recording keeps the room quiet whatever stopped it from looping: the app does not play over it (as a take does).
         keepQuiet: quietWhileRecording(() => daw.projectState(), dawName),
       });

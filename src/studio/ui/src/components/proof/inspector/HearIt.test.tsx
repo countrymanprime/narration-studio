@@ -176,6 +176,28 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     await waitFor(() => expect(api.findingsLoop).toHaveBeenCalledTimes(2));
   });
 
+  it('plays nothing late once the note was left while the DAW was being asked', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const api: HearItApi = {
+        findingsLoop: vi.fn(() => new Promise<FindingNavigation>(() => {})),
+        findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+      };
+      const { unmount } = render(
+        <ApiProvider api={createMockApi()}>
+          <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+        </ApiProvider>,
+      );
+      fireEvent.click(hear());
+      await vi.advanceTimersByTimeAsync(10);
+      unmount();
+      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+      expect(play).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a Retry offered for an older press plays nothing, and none plays once the note was left', async () => {
     const api: HearItApi = {
       findingsLoop: vi.fn(async () => refusedAs('not_running', 'REAPER is not running.')),
