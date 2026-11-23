@@ -415,3 +415,127 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
     await expect(popup).toBeVisible();
   });
 });
+
+test.describe('a toast button keeps its Space (#4094)', () => {
+  const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+
+  for (const name of ['Retry', 'Dismiss message']) {
+    test(`Space on the toast's ${name} presses it and starts no take`, async ({ page }) => {
+      await openBooth(page);
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+      const button = page.locator('[data-toast-region]').getByRole('button', { name });
+      await expect(button).toBeVisible();
+      await button.focus();
+      await page.keyboard.press('Space');
+      // The button was pressed (the toast is gone) and the pedal's take never started: Record is still Record and the DAW is not recording.
+      await expect(page.getByText('The save failed. Try again.')).toHaveCount(0);
+      await expect(record(page)).toBeVisible();
+      expect(await dawRecording(page)).toBe(false);
+    });
+  }
+
+  test("Space on the toast's Dismiss with Text settings open presses it and starts no take", async ({ page }) => {
+    await openBooth(page);
+    await pastStartGuard(page);
+    await page.getByRole('button', { name: 'Text settings' }).click();
+    const popup = page.getByRole('dialog', { name: /text settings/i });
+    await focusSettled(page, popup);
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+    const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByText('The save failed. Try again.')).toHaveCount(0);
+    await expect(record(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(false);
+  });
+
+  test("during a take, Space on the toast's Dismiss still stops the take", async ({ page }) => {
+    await openBooth(page);
+    await record(page).click();
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await pastStartGuard(page);
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+    const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(false);
+  });
+
+  for (const name of ['Retry', 'Dismiss message']) {
+    test(`a second Space just after one on the toast's ${name} starts no take`, async ({ page }) => {
+      await openBooth(page);
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+      const button = page.locator('[data-toast-region]').getByRole('button', { name });
+      await expect(button).toBeVisible();
+      await button.focus();
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(30);
+      await page.keyboard.press('Space');
+      await expect(record(page)).toBeVisible();
+      expect(await dawRecording(page)).toBe(false);
+    });
+  }
+
+  for (const code of ['Enter', 'NumpadEnter']) {
+    test(`a second ${code} just after one on the toast's Retry starts no take`, async ({ page }) => {
+      await openBooth(page);
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+      const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
+      await expect(retry).toBeVisible();
+      await retry.focus();
+      await page.keyboard.press(code);
+      await page.waitForTimeout(30);
+      await page.keyboard.press(code);
+      await expect(record(page)).toBeVisible();
+      expect(await dawRecording(page)).toBe(false);
+    });
+  }
+
+  for (const name of ['Retry', 'Dismiss message']) {
+    test(`during a cold read, Space on the toast's ${name} stops the cold read`, async ({ page }) => {
+      await openBooth(page);
+      await page.getByRole('button', { name: 'Record options' }).click();
+      await page.getByRole('radio', { name: 'Cold read' }).click();
+      await page.keyboard.press('Escape');
+      await pastStartGuard(page);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press('Space');
+      await expect(page.getByText('Mic on · cold read', { exact: true })).toBeVisible();
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+      const button = page.locator('[data-toast-region]').getByRole('button', { name });
+      await expect(button).toBeVisible();
+      await button.focus();
+      await page.keyboard.press('Space');
+      await expect(page.getByText('Mic on · cold read', { exact: true })).toHaveCount(0);
+    });
+  }
+
+  test("a second Space just after one on a toast's Dismiss, with Record the control that had focus, starts no take", async ({ page }) => {
+    await openBooth(page);
+    await pastStartGuard(page);
+    await record(page).focus();
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+    const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(30);
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(false);
+  });
+});

@@ -1408,7 +1408,11 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [toggleColdRead, toggleTake]);
   useCommand('booth.mode.switch', () => void switchMode());
   useCommand('reading.toggle', () => void pressMain());
-  usePedalSpace(pressMain);
+  usePedalSpace(
+    pressMain,
+    // A take, a start the host has, or a cold read: all of them are stopped by the pedal's Space from anywhere, a toast's button included (#4094).
+    useCallback(() => latest.current.takeOut || latest.current.coldRead, []),
+  );
   useCommand('booth.phrase.next', () => moveReading(nextPhrase(latest.current.units, latest.current.at)));
   useCommand('booth.phrase.prev', () => moveReading(backPhrase(latest.current.at)));
   useCommand('booth.word.next', () => moveReading(stepWord(latest.current.units, latest.current.at, 1)));
