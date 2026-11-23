@@ -489,6 +489,105 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(within(appToasts('alert')).getByText(/The app is busy/)).toBeTruthy();
   });
 
+  it('a project attach closes every question and dialog a page opened for the old project, and nothing they would have done happens (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const onConfirm = vi.fn();
+    // The Editor's cut question and a form dialog: both are opened through the overlay service by a page, for that page's project; the question stacks above.
+    act(() => void overlay.open({ kind: 'dialog', title: 'Milestone', dismissOnOutsidePress: false, render: () => <p>A form for the old project</p> }));
+    let question: Promise<void> = Promise.resolve();
+    act(() => {
+      question = overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm);
+    });
+    expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
+    expect(screen.getByText('A form for the old project')).toBeTruthy();
+    act(() => attach!({ attached: true }));
+    await question;
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.queryByText('A form for the old project')).toBeNull();
+    // The question was answered No: its confirm path (the cut, its record) did not run.
+    expect(onConfirm).toHaveBeenCalledWith(false);
+    // Text typed into a dialog that went is gone: the narrator is told why, once.
+    expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
+  });
+
+  it('a dialog opened after the attach but before the new project loads is closed when the new project arrives (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    const source = createMockApi();
+    const first = await source.bootstrap();
+    const named = (name: string) => ({ ...first, projectFolder: `/${name}`, projectName: name });
+    let answer: ((value: Awaited<ReturnType<typeof source.bootstrap>>) => void) | undefined;
+    let attached = false;
+    renderApp({
+      bootstrap: () => (attached ? new Promise((resolve) => (answer = resolve)) : Promise.resolve(named('Alpha'))),
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await waitFor(() => expect(screen.getAllByText('Alpha').length).toBeGreaterThan(0));
+    await waitFor(() => expect(attach).toBeDefined());
+    attached = true;
+    act(() => attach!({ attached: true }));
+    await waitFor(() => expect(answer).toBeDefined());
+    // The page still shows the old project's data: a question opened now is about Alpha's chapter.
+    const onConfirm = vi.fn();
+    act(() => {
+      void overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm);
+    });
+    expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
+    act(() => answer!(named('Beta')));
+    await waitFor(() => expect(screen.getAllByText('Beta').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(onConfirm).toHaveBeenCalledWith(false);
+  });
+
+  it('puts focus on the page when the project change removes a layer a page held itself, not on the document body (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    // A layer drawn from a page's own state, with focus inside it; the page's remount takes it away (here: removed by hand in the same tick).
+    const layer = document.createElement('div');
+    layer.setAttribute('role', 'dialog');
+    layer.innerHTML = '<button id="held-layer-button">Inside</button>';
+    document.body.appendChild(layer);
+    document.getElementById('held-layer-button')!.focus();
+    expect(document.activeElement?.id).toBe('held-layer-button');
+    act(() => {
+      attach!({ attached: true });
+      layer.remove();
+    });
+    await waitFor(() => expect(document.activeElement?.id).toBe('main-content'));
+    expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
+  });
+
+  it('says nothing when a project change closes no dialog (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    act(() => attach!({ attached: true }));
+    await waitFor(() => expect(screen.queryByText('The project changed, so what was open was closed.')).toBeNull());
+  });
+
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
     // App.tsx only wires this listener up from a useEffect, a passive effect React flushes on its own
     // schedule after the commit that renders the Production heading - not necessarily before it. Under load the

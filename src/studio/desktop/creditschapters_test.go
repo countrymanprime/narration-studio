@@ -52,3 +52,110 @@ func TestACreditsChapterTitleResolvesForTheTakesWorkspace(t *testing.T) {
 		t.Fatalf("title = %q, %v", title, err)
 	}
 }
+
+// The credits provider is bound to the project its service was configured for (#4040): a list read from project A's service after
+// the host switched to B still carries A's credit statuses and A's credit values, not B's.
+func TestAServiceReadAfterAProjectSwitchKeepsItsOwnProjectsCredits(t *testing.T) {
+	host := stagesHost(t, 5)
+	if _, err := host.CreditsSaveProjectValues("Alice", "", "Lewis Carroll", "", "", "", "", "", "", "Ada Finch"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.CreditsSetStatus("closing", "finalized"); err != nil {
+		t.Fatal(err)
+	}
+	svcA := host.services().manuscript
+	creditsRows := func() map[string]map[string]any {
+		t.Helper()
+		list, err := svcA.Chapters()
+		if err != nil {
+			t.Fatal(err)
+		}
+		rows := map[string]map[string]any{}
+		for _, row := range list {
+			if id, _ := row["id"].(string); id == "credits-opening" || id == "credits-closing" {
+				rows[id] = row
+			}
+		}
+		if len(rows) != 2 {
+			t.Fatalf("credits rows = %v", rows)
+		}
+		return rows
+	}
+	before := creditsRows()
+
+	host.mu.Lock()
+	next := host.config
+	next.projectFolder, next.projectName = t.TempDir(), "B"
+	attached, reason := host.attachProjectLocked(next)
+	host.mu.Unlock()
+	if !attached {
+		t.Fatalf("attach B failed: %s", reason)
+	}
+	t.Cleanup(func() { host.waitForBackground(); host.closeRetention() })
+	if _, err := host.CreditsSaveProjectValues("The Hitchhiker's Guide to the Galaxy and Beyond", "", "Douglas Noel Adams", "", "", "", "", "", "", "Someone Else Entirely"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.CreditsSetStatus("closing", "editing"); err != nil {
+		t.Fatal(err)
+	}
+
+	after := creditsRows()
+	for _, id := range []string{"credits-opening", "credits-closing"} {
+		if after[id]["status"] != before[id]["status"] || after[id]["wordCount"] != before[id]["wordCount"] {
+			t.Fatalf("%s read from A's service after the switch = %v, want A's %v", id, after[id], before[id])
+		}
+	}
+	if after["credits-closing"]["status"] != "finalized" {
+		t.Fatalf("closing status = %v, want finalized (A's)", after["credits-closing"]["status"])
+	}
+	// B differs from A, so the assertions above can tell the two projects apart, and the switch built a new service.
+	if host.services().manuscript == svcA {
+		t.Fatal("the switch kept A's service")
+	}
+	if b := host.creditTokens()["Title"]; b == "Alice" {
+		t.Fatalf("project B's title = %q, want B's own", b)
+	}
+}
+
+// The coverage service's credits loader is bound to its project too (#4040): a credits check still running after a switch is judged against
+// the credits text of the project it belongs to (the folder and settings store captured when its service was set up), not the new project's.
+func TestACreditsScriptOfAProjectKeepsItsOwnTextAfterASwitch(t *testing.T) {
+	host := stagesHost(t, 5)
+	if _, err := host.CreditsSaveProjectValues("Alice", "", "Lewis Carroll", "", "", "", "", "", "", "Ada Finch"); err != nil {
+		t.Fatal(err)
+	}
+	svc := host.services()
+	folderA, storeA := svc.config.projectFolder, svc.settings
+	textA, err := host.creditsScriptOf(folderA, storeA, "opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host.mu.Lock()
+	next := host.config
+	next.projectFolder, next.projectName = t.TempDir(), "B"
+	attached, reason := host.attachProjectLocked(next)
+	host.mu.Unlock()
+	if !attached {
+		t.Fatalf("attach B failed: %s", reason)
+	}
+	t.Cleanup(func() { host.waitForBackground(); host.closeRetention() })
+	if _, err := host.CreditsSaveProjectValues("The Hitchhiker's Guide to the Galaxy and Beyond", "", "Douglas Noel Adams", "", "", "", "", "", "", "Someone Else Entirely"); err != nil {
+		t.Fatal(err)
+	}
+
+	again, err := host.creditsScriptOf(folderA, storeA, "opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Text != textA.Text {
+		t.Fatalf("A's credits text after the switch = %q, want A's %q", again.Text, textA.Text)
+	}
+	live, err := host.creditsScript("opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.Text == textA.Text {
+		t.Fatalf("the live credits text is still A's (%q): the two projects cannot be told apart", live.Text)
+	}
+}

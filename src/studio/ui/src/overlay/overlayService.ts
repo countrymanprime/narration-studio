@@ -87,6 +87,9 @@ type UndoToastOptions = {
   survivesMoves?: number;
 };
 
+/** What counts as an open layer on screen: a dialog, a question or a slide-over, whoever holds it. */
+export const OPEN_LAYER_SELECTOR = '[role="dialog"], [role="alertdialog"], [data-slide-over]';
+
 export type OverlayService = {
   /** `until` closes the question unanswered (as a No) when what it asks about stopped being true, so a question never outlives its reason. */
   confirm: (spec: ConfirmSpec, until?: AbortSignal) => Promise<boolean>;
@@ -100,6 +103,11 @@ export type OverlayService = {
   settleUndo: (live: (entry: number) => boolean) => void;
   /** Takes away every Undo toast: what they offered to undo belongs to a page, chapter or project the narrator has left. */
   dismissUndo: () => void;
+  /**
+   * Closes every open question, dialog and slide-over without asking them (a confirm is answered No; `beforeClose` is not asked): what they were opened about belongs to a
+   * project the narrator is no longer in, so confirming one would act on the old project's chapter while the host is on the new one (#4057). Answers how many it closed.
+   */
+  dismissDialogs: () => number;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -124,7 +132,7 @@ export function createOverlayService(): OverlayService {
   const openerNow = (): HTMLElement | null => {
     const active = document.activeElement;
     if (!(active instanceof HTMLElement) || active === document.body) return null;
-    if (active.closest('[role="dialog"], [role="alertdialog"], [data-slide-over]')) {
+    if (active.closest(OPEN_LAYER_SELECTOR)) {
       const top = snapshot.dialogs[snapshot.dialogs.length - 1];
       return top ? (openers.get(top.id) ?? null) : closedOpener;
     }
@@ -211,6 +219,14 @@ export function createOverlayService(): OverlayService {
     settleUndo: (live) => {
       const gone = (m: ToastMessage) => m.undo?.entry !== undefined && !live(m.undo.entry);
       if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
+    },
+    dismissDialogs: () => {
+      const open = [...snapshot.dialogs];
+      for (const entry of open) {
+        if (entry.kind === 'confirm') entry.answer(false);
+        else entry.close();
+      }
+      return open.length;
     },
     dismissUndo: () => {
       if (!snapshot.toasts.some((m) => m.undo)) return;
