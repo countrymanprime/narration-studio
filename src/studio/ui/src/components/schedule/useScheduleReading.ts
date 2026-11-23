@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ProductionPlan } from '../../api/contracts/production';
 import type { Measured } from '../../api/schemas/base';
 import type { TakeLogEntry } from '../../fixtures/measurements';
 import { usePort } from '../../ports/usePort';
-import { useReadChapters } from '../../studio/useChapters';
+import { useChapters, useReadChapters } from '../../studio/useChapters';
 import { isNarrationChapter } from '../../chapterKinds';
 import { recordedAudioHours } from '../../recordedThrough';
 import { scheduleChapters, type ScheduleChapter } from './progress';
@@ -145,8 +145,19 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
     setState((now) => (now.phase === 'ready' ? { ...now, plan: next } : now));
   }, []);
 
+  // The chapter figures follow the live shared list, as the pace does: when the store re-reads the list (a focus, an event, another page) every figure on this page moves
+  // with it, so the page never sets an old copy of the list beside the pace worked out from the new one. The read above still decides loading, the first error and the plan.
+  const shared = useChapters().chapters;
+  const view = useMemo<Phase>(
+    () =>
+      state.phase === 'ready' && shared
+        ? { ...state, chapters: scheduleChapters(shared), recordedHours: recordedAudioHours(shared.filter(isNarrationChapter)) }
+        : state,
+    [state, shared],
+  );
+
   return {
-    state,
+    state: view,
     refreshFailure,
     day: fixedToday ?? new Date(clock),
     reload,
