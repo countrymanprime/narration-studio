@@ -330,9 +330,9 @@ describe('the sentence of a take whose listening failed (finding 5)', () => {
     mountBooth(host);
     await ready();
     await space();
-    const text = await screen.findByText(/Recording did not start: the text cannot follow your voice/);
-    expect(text.textContent).toContain('another application).');
-    expect(text.textContent).not.toContain('.).');
+    const text = await screen.findByText(/Recording did not start:/);
+    expect(text.textContent).toContain('another application. Nothing was recorded.');
+    expect(text.textContent).not.toContain('..');
   });
 });
 
@@ -404,7 +404,7 @@ describe('a press that joined a session whose start then fails', () => {
     await waitFor(() => expect(second.recordStart).toHaveBeenCalledTimes(1));
     await control.refuse();
     await waitFor(() => expect(second.recordStop).toHaveBeenCalled());
-    expect(await screen.findByText(/Recording did not start: the text cannot follow your voice/)).toBeTruthy();
+    expect(await screen.findByText(/Recording did not start:/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull();
   });
 });
@@ -727,7 +727,7 @@ describe('a session stop the host never finishes', () => {
       await space();
       await act(() => vi.advanceTimersByTimeAsync(STOP_WAIT_FOR_TEST));
       await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
-      expect(await screen.findByText(/Recording did not start: the text cannot follow your voice/)).toBeTruthy();
+      expect(await screen.findByText(/Recording did not start:/)).toBeTruthy();
       expect(page.recordStop).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
@@ -755,7 +755,7 @@ describe('the roll of a take has a limit', () => {
       await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
       expect(screen.queryByText(/did not answer the roll\./)).toBeNull();
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.roll + 5));
-      await screen.findByText(/REAPER did not answer the roll\. The take may still run; check it, then roll again\./);
+      await screen.findByText(/REAPER did not answer the roll\. The take may still run; check the take, then roll again\./);
       roll.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
       await act(() => vi.advanceTimersByTimeAsync(1_000));
       await r();
@@ -1152,7 +1152,7 @@ describe('a stop the app sent is not announced as REAPER stopping the take', () 
     act(() => push({ recording: true }));
     await settle();
     await control.refuse();
-    await screen.findByText(/Recording did not start: the text cannot follow your voice/);
+    await screen.findByText(/Recording did not start:/);
     await settle();
     await new Promise((resolve) => setTimeout(resolve, 100));
     // Said once, whenever it comes: the toast is checked on its calls, not on what is on screen at the moment.

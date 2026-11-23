@@ -40,7 +40,7 @@ describe('destinationFor names where a chapter records from the project layout',
       'this chapter has no track to record on',
       'several tracks',
       'this chapter is linked to several tracks',
-      'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).',
+      'This chapter records on one track, so there is no voice to choose. A folder of voices has them.',
       'Ch 1 is not linked to a track in REAPER, so there is no audio to edit.',
     ]);
   });
@@ -86,11 +86,11 @@ describe('destinationFor names where a chapter records from the project layout',
       'this chapter has no folder to record on',
       'several folders',
       'this chapter is linked to several folders',
-      'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.',
-      'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.',
-      'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.',
-      'Every track in this chapter’s folder is turned off as not a voice, so there is no voice to choose. Turn one back on in the Voices card.',
-      'The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel.',
+      'This chapter is not linked to a folder of voices, so there is no voice to choose. Link or create one.',
+      'This chapter has one track, not a folder of voices, so there is no voice to choose. Link a folder.',
+      'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add one in REAPER.',
+      'Every track in this chapter’s folder is turned off as not a voice. Turn one on in the Voices card.',
+      'This chapter’s track is no longer in the project, so there is no voice to choose. Link it again.',
       'Ch 1 is not linked to a folder in REAPER, so there is no audio to edit.',
     ]);
     expect(all.filter((sentence) => /records on one track/.test(sentence))).toEqual([]);
@@ -103,22 +103,22 @@ describe('destinationFor names where a chapter records from the project layout',
       voice: { guid: '{4}', name: 'Narrator', index: 4 },
       children: [made('Narrator', 4), made('Alice', 5), made('Extras', 6)],
     };
-    expect(createdSentence(folder, 'REAPER')).toBe('Folder “Opening” is in REAPER, linked here. Save the project to keep it.');
+    expect(createdSentence(folder, 'REAPER')).toBe('Folder “Opening” is in REAPER, linked here. Save the REAPER project to keep it.');
     const partial = { ...folder, children: [made('Narrator', 4)], message: 'REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.' };
     expect(createdSentence(partial, 'REAPER')).toBe(
-      'Folder “Opening” is in REAPER, linked here. Save the project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
+      'Folder “Opening” is in REAPER, linked here. Save the REAPER project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
     );
-    expect(createdSentence({ track: { name: 'Opening' } }, 'REAPER')).toBe('Track “Opening” is in REAPER, linked here. Save the project to keep it.');
+    expect(createdSentence({ track: { name: 'Opening' } }, 'REAPER')).toBe('Track “Opening” is in REAPER, linked here. Save the REAPER project to keep it.');
   });
 
   it('a folder whose every track is marked as not a voice names the switch in either layout, and in Flat the other fix (#3828)', () => {
     const flat = destinationFor('flat').noVoiceKeys('marked');
     const folders = destinationFor('folders').noVoiceKeys('marked');
-    expect(flat).toContain('Turn one back on in the Voices card');
-    expect(flat).toContain('link the chapter to a track of its own');
+    expect(flat).toContain('Turn one on in the Voices card');
+    expect(flat).toContain('link a track');
     expect(flat).not.toMatch(/records on one track/);
-    expect(folders).toContain('Turn one back on in the Voices card');
-    expect(folders).not.toContain('link the chapter');
+    expect(folders).toContain('Turn one on in the Voices card');
+    expect(folders).not.toContain('link a track');
   });
 
   it('a link to a track the project does not hold gets one sentence in either layout (#3269)', () => {

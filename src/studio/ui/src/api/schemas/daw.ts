@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   DAW_BACKUPS_MAX,
+  DAW_KINDS,
   DAW_LEVEL_MAX,
   DAW_METER_FLOOR_DB,
   DAW_FX_RANGE_MAX_SETTINGS,
@@ -29,7 +30,6 @@ import type {
   DawChosenFx,
   DawFxRangeSettings,
   DawFxSetting,
-  DawKind,
   DawLastAction,
   DawMeters,
   DawMonitorLevel,
@@ -48,7 +48,6 @@ import type {
 } from '../contracts/daw';
 import { optionalFromNull } from './base';
 
-const DAW_KINDS = ['REAPER', 'Audacity', 'Built-in', 'none'] as const satisfies readonly DawKind[];
 const DAW_CAPABILITY_LEVELS = ['unsupported', 'not_yet_available', 'experimental', 'supported'] as const satisfies readonly DawCapabilityLevel[];
 const DAW_CAPABILITY_REASONS = ['standalone', 'not_running', 'failed', 'not_yet', 'unsupported'] as const satisfies readonly DawCapabilityReason[];
 const DAW_CAPABILITY_MODES = ['native', 'app', 'steps'] as const satisfies readonly DawCapabilityMode[];

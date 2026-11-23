@@ -294,7 +294,13 @@ test('a session stop the host never finishes: the next Record says the text cann
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(500);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/Recording did not start: the text cannot follow your voice/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Recording did not start:/).first()).toBeVisible({ timeout: 30_000 });
+  // The sentence holds its two lines beside Retry (#4095): it does not scroll inside the toast.
+  const failed = await page
+    .locator('[data-toast-region] [data-toast-text]')
+    .filter({ hasText: /Recording did not start:/ })
+    .evaluate((el) => ({ clientHeight: el.clientHeight, scrollHeight: el.scrollHeight }));
+  expect(failed.scrollHeight).toBeLessThanOrEqual(failed.clientHeight + 1);
   await expect(record(page)).toBeVisible();
   expect((await calls(page)).listeningStarts).toBe(2);
 });

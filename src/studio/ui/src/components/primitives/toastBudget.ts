@@ -7,3 +7,6 @@
 export const TOAST_CHAR_BUDGET = { plain: 104, retry: 90, checkAgain: 78 } as const;
 
 export type ToastButton = keyof typeof TOAST_CHAR_BUDGET;
+
+// `as`: Object.keys gives string[]; the keys of the budget table are exactly the button types.
+export const TOAST_BUTTONS = Object.keys(TOAST_CHAR_BUDGET) as ToastButton[];

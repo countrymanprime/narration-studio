@@ -132,8 +132,8 @@ test('a lookup of the chosen start that never answers ends the press with one er
   await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/did not come back in time\. No start is chosen/).first()).toBeVisible({ timeout: 12_000 });
-  expect(await timesSaid(page, /did not come back in time\. No start is chosen/)).toBe(1);
+  await expect(page.getByText(/did not come back in time\. No take started/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /did not come back in time\. No take started/)).toBe(1);
   // The press's note about the start is gone with it, and the message is an error that stays until dismissed or its 20 s are up.
   await expect(page.getByText(/Starting from/)).toHaveCount(0);
   await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(1);
@@ -146,7 +146,7 @@ test('a lookup refusal does not stay beside the take a later press starts', asyn
   await arm(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
-  await expect(page.getByText(/did not come back in time\. No start is chosen/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/did not come back in time\. No take started/).first()).toBeVisible({ timeout: 12_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
@@ -342,7 +342,7 @@ test('a dropped unheard take does not also say that REAPER stopped recording', a
   await expect(record(page)).toBeEnabled();
   await showChapterTop(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/Recording did not start: the text cannot follow your voice/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/Recording did not start:/).first()).toBeVisible({ timeout: 10_000 });
   expect(await dawRecording(page)).toBe(false);
   // The second sentence came a few seconds after the first.
   await page.waitForTimeout(4000);

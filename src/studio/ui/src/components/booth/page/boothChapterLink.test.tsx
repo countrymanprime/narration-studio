@@ -266,7 +266,7 @@ describe('an unlinked chapter in the Booth', () => {
           .getSnapshot()
           .toasts.map((t) => t.text)
           .join(' '),
-      ).toContain(`Save the project to keep it. ${message}`),
+      ).toContain(`Save the REAPER project to keep it. ${message}`),
     );
   });
 
@@ -395,7 +395,7 @@ describe('an unlinked chapter in the Booth', () => {
           .getSnapshot()
           .toasts.map((t) => t.text)
           .join(' '),
-      ).toBe('Folder “Chapter 1” is in REAPER, linked here. Save the project to keep it.'),
+      ).toBe('Folder “Chapter 1” is in REAPER, linked here. Save the REAPER project to keep it.'),
     );
   });
 

@@ -434,7 +434,7 @@ describe('a take being followed is read again (QA B4, B8)', () => {
     await quiet(false);
     await tick();
     // A take REAPER started was followed, not ended by the Booth: the sentence says it stopped listening (walkthrough 8).
-    expect(notify).toHaveBeenCalledWith('REAPER answers again. The Booth stopped listening while it was quiet; check it is still recording.', TAKE_TOPIC);
+    expect(notify).toHaveBeenCalledWith('REAPER answers again. The Booth stopped listening; check REAPER is still recording.', TAKE_TOPIC);
     // The DAW answers: the take is over for certain, and nothing runs that is the DAW's (QA B4).
     expect(hook.result.current.startedByApp).toBe(true);
     expect(hook.result.current.endUnconfirmed()).toBe(false);

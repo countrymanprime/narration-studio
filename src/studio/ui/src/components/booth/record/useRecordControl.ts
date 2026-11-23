@@ -6,7 +6,7 @@ import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/
 import { usePort } from '../../../ports/usePort';
 import type { DawClient, DawRecordStart } from '../../../ports/daw';
 import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
-import { backInDaw, lostInDaw, stoppedInDaw } from '../toastSentences';
+import { backInDaw, heldInDawSentence, lostInDaw, START_GUARD_SENTENCE, stoppedInDaw, unseenTakeNotStopped } from '../toastSentences';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
 import { sentenceOr } from './sentenceOr';
@@ -30,9 +30,6 @@ export const READY_FOLLOWING_POLL_MS = 60_000;
 
 /** How long after a take starts that a press is not taken for Stop: a double click or a key repeat must not start and end a take at once. */
 export const START_GUARD_MS = 1000;
-/** What the Booth says when Stop is pressed on a take the DAW started: the app never stops a take it did not start (#3666). */
-export const heldInDawSentence = (daw: DawKind | undefined, what: 'stop it' | 'roll again' | 'change the voice' = 'stop it') =>
-  `${recorderNameCapital(daw)} started this take, so ${what} in ${recorderName(daw)}.`;
 /** Why a change that waits for the take to end is off while one runs: a take the DAW started is stopped there, not here. The one place this sentence is written for the Booth. */
 export const notWhileRecording = (daw: DawKind | undefined, followedInDaw: boolean) =>
   followedInDaw ? heldInDawSentence(daw, 'stop it') : NOT_WHILE_RECORDING;
@@ -44,8 +41,6 @@ const RECORD_BLOCKED_TOPIC = 'record-blocked';
 const STOPPED_LISTENING_TOPIC = 'daw-stopped-listening';
 /** The topic of the notice that the lane has not been read yet: gone once it is. */
 const UNDECIDED_TOPIC = 'daw-undecided';
-/** What the Booth says when a press inside that guard is ignored. */
-export const START_GUARD_SENTENCE = 'Recording just started. Press Stop again in a moment if you meant to stop.';
 
 /** The statuses that say the DAW records: true of the moment of the read only, so they are not kept once the transport says it stopped. */
 const isRecordingStatus = (status: ReadAloudReaperStatus) => status === 'recording_here' || status === 'recording_elsewhere';
@@ -817,13 +812,13 @@ export function useRecordControl({
 
   /** Ends a take that started where nobody can see it: the page is gone, or the press had been given up on. A failure is said, because the DAW is still recording. */
   const stopUnseenTake = useCallback(
-    (how: string) => {
+    (how: 'late' | 'leaving') => {
       // The page may be gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
       // bookkeeping, so a take it kept is not in Undo.)
       const name = recorderName(capabilitiesRef.current?.daw);
       const unstopped = (why: string) => {
         logUi('ui.record', `The late take was not stopped: ${why}`);
-        overlay.toast(`A take started ${how} and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
+        overlay.toast(unseenTakeNotStopped(how, why, name), { tone: 'error' });
       };
       void daw.recordStop().then(
         (stopped) => (stopped.ok ? undefined : unstopped(stopped.refused ?? stopped.message)),
@@ -853,7 +848,7 @@ export function useRecordControl({
         return;
       }
       logUi('ui.record', 'A take started after its press had given up waiting; stopping it.');
-      stopUnseenTake('after Record had given up waiting');
+      stopUnseenTake('late');
     },
     [stopUnseenTake, chapterId],
   );
@@ -961,7 +956,7 @@ export function useRecordControl({
           // The Booth is gone: nobody can see this take or stop it, so it ends here, once. (The leave guard waits for a start that is out, so this is
           // only a start that nothing could wait for.)
           logUi('ui.record', 'A take started after the Booth was left; stopping it.');
-          stopUnseenTake('as you left the Booth');
+          stopUnseenTake('leaving');
           return false;
         }
         if (result.ok) {

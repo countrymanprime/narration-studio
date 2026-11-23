@@ -58,10 +58,9 @@ import { claimListening, joinListening, type ListeningClaim, ownsListening, rele
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
 import { pageNameFor } from '../../layout/railPages';
-import { rollLandedSentence, rollTimeoutSentence, TAKE_UNFOLLOWED } from '../toastSentences';
+import { CHECK_OFFER, listeningFailedSentence, rollLandedSentence, rollTimeoutSentence, TAKE_UNFOLLOWED } from '../toastSentences';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
-const CHECK_OFFER = 'Check this recording against the script?';
 /** The offer stays long enough to Tab to its button, then goes: the narrator is reading on. */
 const CHECK_OFFER_MS = 10_000;
 const CHECK_OFFER_TOPIC = 'booth-check-offer';
@@ -667,7 +666,7 @@ export function useBoothPage(options: BoothPageOptions) {
           ? kept
             ? 'The text could not follow your voice in time, and the take is still in the DAW.'
             : 'The take was taken back because the text could not follow your voice in time.'
-          : `Recording did not start: the text cannot follow your voice (${(heard.reason || 'listening failed').replace(/[.\s]+$/, '')}).${kept ? '' : ' Nothing was recorded.'}`,
+          : listeningFailedSentence(heard.reason || 'listening failed', kept),
         {
           tone: 'error',
           topic: PRESS_TOPIC,

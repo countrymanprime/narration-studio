@@ -12,8 +12,8 @@ import type { NarrationApi } from '../../../types';
 import { apiWithTracks, dawClientFor } from './fixtures';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor } from './recordSetupModel';
-import { POLL_MS, START_GUARD_MS, START_GUARD_SENTENCE, TAKE_TOPIC, useRecordControl, forgetAppTake, skipStartGuard } from './useRecordControl';
-import { stoppedInDaw } from '../toastSentences';
+import { POLL_MS, START_GUARD_MS, TAKE_TOPIC, useRecordControl, forgetAppTake, skipStartGuard } from './useRecordControl';
+import { START_GUARD_SENTENCE, stoppedInDaw } from '../toastSentences';
 
 // The Booth records with the app's own recorder through the DAW port. These drive the control over a port whose answers the test
 // controls, one cell of the state matrix at a time (definition-of-done, rule 3). The host's side is bindings_booth_record_test.go.

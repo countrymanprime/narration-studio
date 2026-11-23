@@ -16,6 +16,11 @@ export type ChapterRecordState = {
 
 /** Why the Booth does not follow a take the DAW holds: another track is armed, several are, none is, or the lane could not be read yet. */
 export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'no_project' | 'unread';
+
+/** Every `NotFollowedWhy`, once: a `Record`, so a new reason is a type error here until it is listed (the Booth's sentence guard walks this list). */
+const NOT_FOLLOWED_KEYS: Record<NotFollowedWhy, true> = { other_track: true, several_tracks: true, no_track_armed: true, no_project: true, unread: true };
+// `as`: Object.keys gives string[]; the keys of the Record above are exactly the reasons.
+export const NOT_FOLLOWED_WHYS = Object.keys(NOT_FOLLOWED_KEYS) as NotFollowedWhy[];
 /** The reasons the DAW's take is not followed, as a clause after "the DAW is recording": the refusal's words. `no_project` and `unread` are worded where they are said. */
 const REFUSAL_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread' | 'no_project'>, string> = {
   other_track: 'on another track',

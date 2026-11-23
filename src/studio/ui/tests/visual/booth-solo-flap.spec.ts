@@ -33,9 +33,7 @@ test('an owed restore is sent again when the window gets focus, with the narrato
   await goToPage(page, 'Booth');
   await expect.poll(() => soloed(page)).not.toBe('');
   await page.evaluate(() =>
-    window.__NARRATION_MOCK_DAW__?.refuseNextRestore(
-      'REAPER could not take the solo off the chapter’s track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent.',
-    ),
+    window.__NARRATION_MOCK_DAW__?.refuseNextRestore('REAPER could not unsolo the chapter’s track, so others may stay silent. Unsolo it in REAPER.'),
   );
   // The Booth has no navigation rail: Escape leaves it for the Script page (booth-acceptance row 32).
   await page.keyboard.press('Escape');

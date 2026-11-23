@@ -316,7 +316,7 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS + 50));
     await waitFor(() => expect(daw.result.current.recording).toBe(false));
     const said = daw.notify.mock.calls.map(([sentence]) => sentence as string);
-    expect(said).toContain("REAPER stopped answering, so the Booth can't tell if the take still runs. Check it.");
+    expect(said).toContain("REAPER stopped answering, so the Booth can't tell if the take still runs. Check the take.");
     expect(said.some((sentence) => /The take ended there/.test(sentence))).toBe(false);
   });
 
@@ -421,7 +421,7 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     daw.set(CONNECTED);
     act(() => daw.emit(CONNECTED));
     const said = () => daw.notify.mock.calls.map(([sentence]) => sentence as string).filter((sentence) => /answers again/.test(sentence));
-    await waitFor(() => expect(said()).toEqual(['REAPER answers again. This window ended its take when it went quiet; check it was kept.']));
+    await waitFor(() => expect(said()).toEqual(['REAPER answers again. This window ended its take when it went quiet; check REAPER kept it.']));
     act(() => daw.emit(CONNECTED));
     expect(said()).toHaveLength(1);
   });
