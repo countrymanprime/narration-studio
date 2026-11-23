@@ -22,6 +22,7 @@ import type { ScriptViewState } from './data/scriptView';
 import { useScriptView } from './data/useScriptData';
 import { DRAWER_FOCUS_DELAY_MS } from './layout/useDrawerFocus';
 import { ScriptPage, type ScriptPageProps } from './ScriptPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 let view: ScriptViewState;
 /** What the sources that answer later (the book's, on the host) answer for a term, as the jump menu would ask them. */
@@ -43,7 +44,10 @@ afterEach(() => {
 type Mount = { api?: NarrationApi; at?: string; props?: Partial<ScriptPageProps> };
 
 /** The chapter list of a book whose library has no credits templates: the host lists no credits chapters then. */
-const noCreditsList = async () => withoutCredits(await createMockApi().manuscriptChapters());
+const noCreditsList = async () => {
+  const list = await createMockApi().manuscriptChapters();
+  return { ...list, chapters: withoutCredits(list.chapters) };
+};
 
 function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}) {
   const handlers = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
@@ -213,7 +217,7 @@ describe('rail-tabs-rove-and-show-the-right-body', () => {
 
 describe('no-manuscript-shows-the-empty-state-and-moves-nowhere', () => {
   it('draws the need-a-manuscript state, offers the import, and goes to Production only when asked', async () => {
-    const api = createMockApi({ manuscriptChapters: async () => [] });
+    const api = createMockApi({ manuscriptChapters: async () => chaptersOf([]) });
     mount({ api });
     expect(await screen.findByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
     expect(document.querySelector('[data-script-columns]')).toBeNull();
@@ -254,7 +258,7 @@ describe('right-click-menus-reach-what-the-page-draws', () => {
 
   it('a mark, a chapter row, a chapter card and a Words row each get their menu', async () => {
     const api = createMockApi({ manuscriptChapters: noCreditsList });
-    const [chapter] = withoutCredits(await api.manuscriptChapters());
+    const [chapter] = withoutCredits((await api.manuscriptChapters()).chapters);
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const types = await api.marksList();
     await api.marksAdd(chapter!.id, line!.id, 0, 5, types.types[0]!.key, 'Check this');
@@ -433,9 +437,9 @@ describe('credits-cards-and-banner-stay', () => {
 
   it('is the empty state when the list holds only the credits: they are not a manuscript', async () => {
     const base = createMockApi();
-    const credits = (await base.manuscriptChapters()).filter((chapter) => chapter.isCredits);
+    const credits = (await base.manuscriptChapters()).chapters.filter((chapter) => chapter.isCredits);
     expect(credits.length).toBe(2);
-    mount({ api: createMockApi({ manuscriptChapters: async () => credits }) });
+    mount({ api: createMockApi({ manuscriptChapters: async () => chaptersOf(credits) }) });
     expect(await screen.findByText('This project has no manuscript yet. Import one to begin.')).toBeTruthy();
   });
 
@@ -510,7 +514,7 @@ describe('credits-cards-and-banner-stay', () => {
 
   it('marks the chapter that holds the retail sample and exactly its lines', async () => {
     const base = createMockApi();
-    const chapter = withoutCredits(await base.manuscriptChapters())[0]!;
+    const chapter = withoutCredits((await base.manuscriptChapters()).chapters)[0]!;
     const ids = chapter.paragraphIds ?? [];
     const sample = {
       startParagraphId: ids[1]!.id,
@@ -569,7 +573,7 @@ describe('view-state-is-one-module', () => {
 describe('deep-links-from-other-pages', () => {
   it('#p<index> asks the reader for that paragraph and takes the hash off the address', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = (await api.manuscriptChapters()).chapters;
     const target = chapters.find((chapter) => chapter.id !== chapters[0]!.id && (chapter.paragraphIds?.length ?? 0) > 1)!.paragraphIds![1]!;
     const asked: string[] = [];
     function Probe() {
@@ -663,7 +667,7 @@ describe('dictionary-download-in-place', () => {
     const api = createMockApi({ manuscriptChapters: noCreditsList }, { dictionary: 'missing' });
     const install = vi.spyOn(api, 'assetsInstall');
     // A story element named in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
-    for (const chapter of withoutCredits(await api.manuscriptChapters())) {
+    for (const chapter of withoutCredits((await api.manuscriptChapters()).chapters)) {
       const [line] = await api.manuscriptParagraphs(chapter.id);
       await api.guideCreate(/\p{L}{5,}/u.exec(line!.text)![0], 'Item', []);
     }
@@ -869,7 +873,7 @@ describe('Script loading state', () => {
   });
 
   it('shows the empty state, not a skeleton, for a manuscript with no chapters', async () => {
-    mount({ api: createMockApi({ manuscriptChapters: async () => [] }) });
+    mount({ api: createMockApi({ manuscriptChapters: async () => chaptersOf([]) }) });
     await screen.findByText('This project has no manuscript yet. Import one to begin.');
     expect(region()).toBeNull();
   });

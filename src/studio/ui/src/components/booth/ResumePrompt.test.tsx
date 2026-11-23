@@ -10,6 +10,7 @@ import { CommandRouter } from '../../input/router';
 import { WIRE_TELEPROMPTER_DEVICES } from '../../api/mockFixtures';
 import { EnginePanelProvider } from '../engine/EnginePanelContext';
 import type { DawTransport, NarrationApi, TeleprompterLocateResult, TeleprompterResumeFollowEvent, TeleprompterState } from '../../types';
+import { chaptersOf } from '../../api/chaptersOf';
 
 // The resume prompt, as the Companion's header shows it: a compact notice or choice for where
 // the chapter's recording ends (TeleprompterLocate). It never starts anything by itself, and it settles - and
@@ -44,7 +45,7 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
       },
       // These tests are about the located resume point, so the host has recorded nothing it could start from by itself: the mock's
       // Chapter 1 is recorded through ¶ 14 (#2633), which the dialog would offer first as "Continuing at…".
-      manuscriptChapters: async () => (await base.manuscriptChapters()).map(({ recordedThrough: _recorded, ...chapter }) => chapter),
+      manuscriptChapters: async () => chaptersOf((await base.manuscriptChapters()).chapters.map(({ recordedThrough: _recorded, ...chapter }) => chapter)),
       ...overrides,
       teleprompterLocate,
       teleprompterStart,

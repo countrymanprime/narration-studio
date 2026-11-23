@@ -7,6 +7,7 @@ import type { ManuscriptChapter } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { PrepState } from '../../../../api/contracts/scriptPrep';
 import type { NarrationApi } from '../../../../types';
+import { chaptersOf } from '../../../../api/chaptersOf';
 
 const numbered = (n: number): string => `Chapter ${n}`;
 const chapter = (id: string, index: number, title: string, wordCount: number, extra: Partial<ManuscriptChapter> = {}): ManuscriptChapter => ({
@@ -91,7 +92,7 @@ export function chapterHost(
 ): NarrationApi {
   const states = new Map<string, PrepState>(Object.entries(prep));
   return createMockApi({
-    manuscriptChapters: async () => CHAPTERS,
+    manuscriptChapters: async () => chaptersOf(CHAPTERS),
     scriptPrepList: async () => ({ chapters: CHAPTERS.map((row) => ({ chapterId: row.id, state: states.get(row.id) ?? 'none' })), words: [] }),
     scriptPrepSetChapter: async (chapterId, state) => {
       states.set(chapterId, state);

@@ -29,8 +29,9 @@ describe('withCoalescedReads', () => {
     const wrapped = withCoalescedReads(api);
     const answers = [wrapped.manuscriptChapters(), wrapped.manuscriptChapters(), wrapped.manuscriptChapters()];
     expect(calls).toEqual(['manuscriptChapters']);
-    waiting[0]!.resolve([{ id: 'c1' }]);
-    expect(await Promise.all(answers)).toEqual([[{ id: 'c1' }], [{ id: 'c1' }], [{ id: 'c1' }]]);
+    waiting[0]!.resolve({ project: 'A', chapters: [{ id: 'c1' }] });
+    const answer = { project: 'A', chapters: [{ id: 'c1' }] };
+    expect(await Promise.all(answers)).toEqual([answer, answer, answer]);
   });
 
   it('keeps nothing once the call answers: the next read goes to the host again', async () => {
@@ -140,15 +141,16 @@ describe('withCoalescedReads', () => {
   it('lets the first caller edit its answer in place without changing what a joiner receives', async () => {
     const { api, waiting } = gated();
     const wrapped = withCoalescedReads(api);
-    const first = (wrapped.manuscriptChapters() as unknown as Promise<{ n: number }[]>).then((list) => {
-      list.splice(0, 1);
-      list.push({ n: 99 });
+    type Answer = { project: string; chapters: { n: number }[] };
+    const first = (wrapped.manuscriptChapters() as unknown as Promise<Answer>).then((list) => {
+      list.chapters.splice(0, 1);
+      list.chapters.push({ n: 99 });
       return list;
     });
-    const second = wrapped.manuscriptChapters() as unknown as Promise<{ n: number }[]>;
-    waiting[0]!.resolve([{ n: 1 }, { n: 2 }]);
+    const second = wrapped.manuscriptChapters() as unknown as Promise<Answer>;
+    waiting[0]!.resolve({ project: 'A', chapters: [{ n: 1 }, { n: 2 }] });
     await first;
-    expect(await second).toEqual([{ n: 1 }, { n: 2 }]);
+    expect(await second).toEqual({ project: 'A', chapters: [{ n: 1 }, { n: 2 }] });
   });
 
   it('gives the host the same wrapper for the same handler, so it can still de-duplicate by identity', () => {
@@ -170,10 +172,10 @@ describe('withCoalescedReads', () => {
     const wrapped = withCoalescedReads(api);
     const first = wrapped.manuscriptChapters();
     const second = wrapped.manuscriptChapters();
-    waiting[0]!.resolve([{ id: 'c1' }]);
+    waiting[0]!.resolve({ project: 'A', chapters: [{ id: 'c1' }] });
     const [a, b] = await Promise.all([first, second]);
-    (a as { id: string }[])[0]!.id = 'changed';
-    expect((b as { id: string }[])[0]!.id).toBe('c1');
+    a.chapters[0]!.id = 'changed';
+    expect(b.chapters[0]!.id).toBe('c1');
   });
 
   it('rejects every caller that joined a failed call, then asks the host again', async () => {

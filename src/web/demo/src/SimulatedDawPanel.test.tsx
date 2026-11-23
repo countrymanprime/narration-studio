@@ -21,7 +21,7 @@ describe('the Simulated DAW panel', () => {
 
     await userEvent.click(badge);
     expect(screen.getByRole('region', { name: 'Simulated DAW' }).textContent).toContain('Nothing yet');
-    const [chapter] = (await sim.api.manuscriptChapters()).filter((candidate) => candidate.index > 0);
+    const [chapter] = (await sim.api.manuscriptChapters()).chapters.filter((candidate) => candidate.index > 0);
     await act(async () => {
       await sim.api.dawGoToChapter(chapter.id, 'at', 12.4);
     });

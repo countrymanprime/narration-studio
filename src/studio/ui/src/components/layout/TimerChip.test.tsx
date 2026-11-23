@@ -29,7 +29,7 @@ describe('runningTimerOf', () => {
   // The board the Production page hands the chip: the shared chapter list (its titles) with the overview's numbers and running timer.
   const overview = async (seed?: keyof typeof PRODUCTION_SCENARIOS): Promise<ProductionBoard> => {
     const api = createMockApi({}, seed ? { production: PRODUCTION_SCENARIOS[seed] } : {});
-    return composeOverview(await api.productionOverview(), await api.manuscriptChapters());
+    return composeOverview(await api.productionOverview(), (await api.manuscriptChapters()).chapters);
   };
 
   it('is null when no timer runs', async () => {

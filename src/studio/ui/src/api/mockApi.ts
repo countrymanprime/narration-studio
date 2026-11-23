@@ -174,7 +174,7 @@ export function createMockApi(
     },
     initial.settings,
   );
-  const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
+  const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter), projectFolder: () => project.projectFolder() });
   const { manuscriptReady: textReady, hasImported: manuscriptImported } = manuscript;
   // A Voice folders project's Chapter 1 also has a line Alice speaks, and no voice records her: the Booth's "No track" row and the
   // speaker "Who is in Num N?" ticks (#2839). The cue is placed in the loaded text, so the manuscript is ready only once it is in.
@@ -184,7 +184,11 @@ export function createMockApi(
   });
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
   // Every read of the chapter list holds the credits (a credits file is a chapter): the Production overview, the pages and the host agree.
-  const chaptersWithCredits = async () => credits.withCreditsChapters(await manuscript.bindings.manuscriptChapters());
+  const listWithCredits = async () => {
+    const list = await manuscript.bindings.manuscriptChapters();
+    return { project: list.project, chapters: credits.withCreditsChapters(list.chapters) };
+  };
+  const chaptersWithCredits = async () => (await listWithCredits()).chapters;
   const assets = createAssetsMock(initial);
   const proofing = createProofingMock(s, assets);
   // The findings mock is built further down; the pickup list reads its accepted notes through this once it exists.
@@ -483,7 +487,10 @@ export function createMockApi(
     },
     ...system.bindings,
     ...manuscript.bindings,
-    manuscriptChapters: async () => (await chaptersWithCredits()).map((chapter) => seededChapter(initial.production, chapter)),
+    manuscriptChapters: async () => {
+      const list = await listWithCredits();
+      return { project: list.project, chapters: list.chapters.map((chapter) => seededChapter(initial.production, chapter)) };
+    },
     // The host's ManuscriptSetChapterKind sends chaptersync:state after a successful change (bindings.go, via linksChanged), so the mock does too.
     manuscriptSetChapterKind: async (chapterId, kind) => {
       const result = await manuscript.bindings.manuscriptSetChapterKind(chapterId, kind);

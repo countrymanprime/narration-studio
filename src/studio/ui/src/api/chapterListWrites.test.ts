@@ -3,6 +3,7 @@ import type { NarrationApi } from '../types';
 import { createMockApi } from './mockApi';
 import { withCoalescedReads } from './withCoalescedReads';
 import { CHAPTER_LIST_WRITERS, onChapterListWritten, withChapterListWrites } from './chapterListWrites';
+import { chaptersOf } from './chaptersOf';
 
 function apiOf(methods: Record<string, unknown>): NarrationApi {
   return methods as unknown as NarrationApi;
@@ -47,7 +48,7 @@ describe('withChapterListWrites (#3658)', () => {
   });
 
   it('says nothing for a read or any other call, and hands out the same function for a method every time', async () => {
-    const api = withChapterListWrites(apiOf({ manuscriptChapters: vi.fn(async () => []), chapterTrackSet: vi.fn(async () => ({})) }));
+    const api = withChapterListWrites(apiOf({ manuscriptChapters: vi.fn(async () => chaptersOf([])), chapterTrackSet: vi.fn(async () => ({})) }));
     const heard = vi.fn();
     const off = onChapterListWritten(heard);
     await api.manuscriptChapters();

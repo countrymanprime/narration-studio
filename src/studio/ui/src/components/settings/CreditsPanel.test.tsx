@@ -893,7 +893,7 @@ describe('Retail sample', () => {
 
   it('saves the range the narrator picks and shows its length, as a marker that adds no time', async () => {
     const { api } = renderPanel();
-    const chapter = withoutCredits(await api.manuscriptChapters())[1];
+    const chapter = withoutCredits((await api.manuscriptChapters()).chapters)[1];
     await screen.findByRole('combobox', { name: 'Sample starts in' });
     pick('Sample starts in', chapter.id);
     pick('Start line', '1');
@@ -916,7 +916,7 @@ describe('Retail sample', () => {
 
   it('shows the refusal for a range over 5 minutes and keeps nothing', async () => {
     const { api } = renderPanel();
-    const chapters = withoutCredits(await api.manuscriptChapters());
+    const chapters = withoutCredits((await api.manuscriptChapters()).chapters);
     await screen.findByRole('combobox', { name: 'Sample starts in' });
     pick('Sample starts in', chapters[0].id);
     pick('Start line', '1');
@@ -929,7 +929,7 @@ describe('Retail sample', () => {
 
   it('clears a saved sample', async () => {
     const plain = createMockApi();
-    const chapter = withoutCredits(await plain.manuscriptChapters())[1];
+    const chapter = withoutCredits((await plain.manuscriptChapters()).chapters)[1];
     const [first, second] = chapter.paragraphIds ?? [];
     const api = createMockApi({}, { retailSample: { startParagraphId: first.id, endParagraphId: second.id } });
     render(

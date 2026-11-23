@@ -6,11 +6,11 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('slots-registry-has-chapters', () => {
   it('reads chapters through the port, is stale on job:ended and reloads on focus', async () => {
-    const manuscriptChapters = vi.fn().mockResolvedValue([]);
+    const manuscriptChapters = vi.fn().mockResolvedValue({ project: 'A', chapters: [] });
     const { chapters } = createSlots({ manuscriptChapters }, { bookmarksList: vi.fn() });
     expect(chapters.events).toEqual(['job:ended', 'chapters:written', 'daw:record-ended', 'chapter-sync']);
     expect(chapters.refreshOnFocus).toBe(true);
-    await chapters.load();
+    await chapters.read();
     expect(manuscriptChapters).toHaveBeenCalledOnce();
     expect(chapters.schema['~standard'].validate(null)).toMatchObject({ value: [] });
   });

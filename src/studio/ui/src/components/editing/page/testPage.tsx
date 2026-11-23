@@ -16,6 +16,7 @@ import { createJournal, type Journal } from '../../../studio/journal/createJourn
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { ManuscriptChapter, NarrationApi } from '../../../types';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 const chapter = (id: string, title: string, index: number): ManuscriptChapter =>
   ({ id, title, index, wordCount: 10, status: 'not_started', contentKind: 'narration' }) as ManuscriptChapter;
@@ -172,17 +173,34 @@ export const FINDING: Finding = {
   manuscript: { chapter_id: 'c1', span: { paragraph_id: 'p1', ordinal: 3 } },
 } as unknown as Finding;
 
-/** The api the page reads. `heard: false` answers Chapter One with nothing transcribed. */
-export function pageApi({ heard = true, ...overrides }: Partial<NarrationApi> & { heard?: boolean } = {}): NarrationApi {
-  return createMockApi({
-    manuscriptChapters: async () => CHAPTERS,
-    workspaceAlignment: async (chapterId: string) => alignmentOf(chapterId, heard),
-    workspaceTakes: async (chapterId: string, firstToken: number, lastToken: number) => takesOf(chapterId, firstToken, lastToken),
-    chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ chapterId: 'c1', trackGuid: TRACK_GUID }] }),
-    tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', revision: '', project: PROJECT }),
-    findingsGet: async (id: string) => (id === FINDING.id ? FINDING : Promise.reject(new Error('no such finding'))),
-    ...overrides,
-  } as Partial<NarrationApi>);
+/**
+ * The api the page reads. `heard: false` answers Chapter One with nothing transcribed. `projectFolder` is the folder the page is mounted with (its
+ * `projectFolder` prop), or a function a test moves to switch the host's project: the host stamps the chapter list with the project it read it from
+ * when the read starts, and a store told another one holds the list back (#4040), so this harness's host answers for the folder it is on.
+ */
+export function pageApi({
+  heard = true,
+  projectFolder = '',
+  ...overrides
+}: Partial<NarrationApi> & { heard?: boolean; projectFolder?: string | (() => string) } = {}): NarrationApi {
+  const folderOf = typeof projectFolder === 'function' ? projectFolder : () => projectFolder;
+  const list = overrides.manuscriptChapters ?? (async () => chaptersOf(CHAPTERS));
+  return createMockApi(
+    {
+      workspaceAlignment: async (chapterId: string) => alignmentOf(chapterId, heard),
+      workspaceTakes: async (chapterId: string, firstToken: number, lastToken: number) => takesOf(chapterId, firstToken, lastToken),
+      chapterTrackMapList: async () => ({ documentId: 'd', mappings: [{ chapterId: 'c1', trackGuid: TRACK_GUID }] }),
+      tracksLive: async () => ({ source: 'saved' as const, reason: '' as const, message: '', readAt: '2026-11-11T00:00:00Z', revision: '', project: PROJECT }),
+      findingsGet: async (id: string) => (id === FINDING.id ? FINDING : Promise.reject(new Error('no such finding'))),
+      ...overrides,
+      // The host answers for the folder it is on when the read starts, whatever project the test's list names.
+      manuscriptChapters: async () => {
+        const project = folderOf();
+        return { ...(await list()), project };
+      },
+    } as Partial<NarrationApi>,
+    { projectFolder: folderOf() },
+  );
 }
 
 /**

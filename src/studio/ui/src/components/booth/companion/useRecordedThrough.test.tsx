@@ -8,6 +8,7 @@ import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { NarrationApi } from '../../../types';
 import { CHAPTERS } from '../page/testPage';
 import { useRecordedThrough } from './useRecordedThrough';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 const zero: RecordedThrough = { paragraphId: 'p2', word: 3, percent: 0, complete: false, source: 'booth', confident: true };
 
@@ -18,7 +19,7 @@ describe('useRecordedThrough', () => {
     const api = {
       ...createMockApi(),
       manuscriptChapters: async () =>
-        CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: answer.seconds } : chapter)),
+        chaptersOf(CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: answer.seconds } : chapter))),
     } as NarrationApi;
     const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
     const { result, rerender } = renderHook(({ active }) => useRecordedThrough('c1', active), { wrapper, initialProps: { active: false } });
@@ -42,7 +43,7 @@ describe('useRecordedThrough', () => {
       manuscriptChapters: async () => {
         reads.count += 1;
         if (reads.count > 1) throw new Error('unreadable');
-        return CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 12 } : chapter));
+        return chaptersOf(CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 12 } : chapter)));
       },
     } as NarrationApi;
     const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
@@ -56,7 +57,7 @@ describe('useRecordedThrough', () => {
   });
 
   it('is null for a chapter the list does not have, and for a first read that fails; undefined while it is read', async () => {
-    const missing = { ...createMockApi(), manuscriptChapters: async () => CHAPTERS } as NarrationApi;
+    const missing = { ...createMockApi(), manuscriptChapters: async () => chaptersOf(CHAPTERS) } as NarrationApi;
     const wrap =
       (api: NarrationApi) =>
       ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;

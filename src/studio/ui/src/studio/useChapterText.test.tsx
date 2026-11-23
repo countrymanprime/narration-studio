@@ -25,7 +25,7 @@ const withProvider = (api: ReturnType<typeof createMockApi>) =>
 describe('useChapterText (#3658)', () => {
   it('reads a chapter once for readers that mount together and for one that mounts later', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const read = vi.spyOn(api, 'manuscriptParagraphs');
     const first = renderHook(() => [useChapterText(chapter!.id), useChapterText(chapter!.id)], { wrapper: withProvider(api) });
     await waitFor(() => expect(first.result.current[0]!.paragraphs).toBeDefined());
@@ -36,7 +36,7 @@ describe('useChapterText (#3658)', () => {
 
   it('reads another chapter when the chapter changes, and not the first again when it comes back', async () => {
     const api = createMockApi();
-    const [one, two] = await api.manuscriptChapters();
+    const [one, two] = (await api.manuscriptChapters()).chapters;
     const read = vi.spyOn(api, 'manuscriptParagraphs');
     const { result, rerender } = renderHook(({ id }) => useChapterText(id), { wrapper: withProvider(api), initialProps: { id: one!.id } });
     await waitFor(() => expect(result.current.paragraphs).toBeDefined());
@@ -54,7 +54,7 @@ describe('useChapterText (#3658)', () => {
     expect(none.result.current).toEqual({ paragraphs: undefined, error: undefined, loading: false });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(read).not.toHaveBeenCalled();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const some = renderHook(() => useChapterText(chapter!.id), { wrapper: withProvider(api) });
     expect(some.result.current.loading).toBe(true);
     await waitFor(() => expect(some.result.current.loading).toBe(false));
@@ -62,7 +62,7 @@ describe('useChapterText (#3658)', () => {
 
   it('empties on a project switch and reads again for the new project', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const read = vi.spyOn(api, 'manuscriptParagraphs');
     const { result } = renderHook(() => ({ text: useChapterText(chapter!.id), store: useStoreHandle() }), { wrapper: withProvider(api) });
     await waitFor(() => expect(result.current.text.paragraphs).toBeDefined());
@@ -72,7 +72,7 @@ describe('useChapterText (#3658)', () => {
 
   it('reads the port itself where no provider is above it', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const read = vi.spyOn(api, 'manuscriptParagraphs');
     const alone = renderHook(() => useChapterText(chapter!.id), {
       wrapper: ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>,
@@ -109,7 +109,7 @@ describe('useChapterText with a store of its own (#3658)', () => {
 
   it('reads a mounted chapter again after a job ends and shows the new text', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     let text = 'first';
     vi.spyOn(api, 'manuscriptParagraphs').mockImplementation(async (id) => [
       { id: 'p1', chapterId: id, chapter: 'Chapter', index: 0, text, entityIds: [] } as unknown as ManuscriptParagraph,
@@ -124,7 +124,7 @@ describe('useChapterText with a store of its own (#3658)', () => {
 
   it('settles when two mounted chapters do not fit the budget together: neither is dropped, the read count stops', async () => {
     const api = createMockApi();
-    const [one, two] = await api.manuscriptChapters();
+    const [one, two] = (await api.manuscriptChapters()).chapters;
     const read = vi.spyOn(api, 'manuscriptParagraphs');
     const { wrapper } = harness(api, 10);
     const { result } = renderHook(() => [useChapterText(one!.id), useChapterText(two!.id)], { wrapper });
@@ -138,7 +138,7 @@ describe('useChapterText with a store of its own (#3658)', () => {
 
   it('reads the chapter again when a project switch lands while its first read is in flight', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const real = api.manuscriptParagraphs.bind(api);
     let release: () => void = () => undefined;
     const spy = vi.spyOn(api, 'manuscriptParagraphs').mockImplementationOnce(async (id) => {
@@ -156,7 +156,7 @@ describe('useChapterText with a store of its own (#3658)', () => {
 
   it('does not read a failed chapter in a loop', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const spy = vi.spyOn(api, 'manuscriptParagraphs').mockRejectedValue(new Error('offline'));
     const { wrapper } = harness(api);
     const { result } = renderHook(() => useChapterText(chapter!.id), { wrapper });
@@ -167,7 +167,7 @@ describe('useChapterText with a store of its own (#3658)', () => {
   });
   it('a reader that mounts on a chapter whose read failed reads it again', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const real = api.manuscriptParagraphs.bind(api);
     const spy = vi
       .spyOn(api, 'manuscriptParagraphs')
@@ -183,7 +183,7 @@ describe('useChapterText with a store of its own (#3658)', () => {
 
   it('shows the new text when a job ended while the chapter was being read', async () => {
     const api = createMockApi();
-    const [chapter] = await api.manuscriptChapters();
+    const [chapter] = (await api.manuscriptChapters()).chapters;
     const real = api.manuscriptParagraphs.bind(api);
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
@@ -205,7 +205,7 @@ describe('useChapterText with a store of its own (#3658)', () => {
 describe('useChapterText with many readers and swaps (#3658)', () => {
   it("asks for each chapter once and does not redraw a reader for another chapter's read", async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = (await api.manuscriptChapters()).chapters;
     const ids = chapters.slice(0, 8).map((chapter) => chapter.id);
     const real = api.manuscriptParagraphs.bind(api);
     // Each answer lands in its own tick.
@@ -248,7 +248,7 @@ describe('useChapterText with many readers and swaps (#3658)', () => {
 
   it('two readers that swap chapters in one commit read neither again', async () => {
     const api = createMockApi();
-    const [one, two] = await api.manuscriptChapters();
+    const [one, two] = (await api.manuscriptChapters()).chapters;
     const read = vi.spyOn(api, 'manuscriptParagraphs');
     const keyed = createKeyedSlots(api);
     const store = createStudioStore({

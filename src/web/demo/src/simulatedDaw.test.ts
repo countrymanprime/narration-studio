@@ -6,7 +6,7 @@ import { clock, simulateDaw } from './simulatedDaw';
 
 // What the public site boots with: a linked REAPER that answers.
 const on = {};
-const firstChapter = async (api: Parameters<typeof simulateDaw>[0]) => (await api.manuscriptChapters()).filter((candidate) => candidate.index > 0)[0];
+const firstChapter = async (api: Parameters<typeof simulateDaw>[0]) => (await api.manuscriptChapters()).chapters.filter((candidate) => candidate.index > 0)[0];
 const timedNote = async (api: Parameters<typeof simulateDaw>[0]) => {
   const { findings } = await api.findingsList({});
   const note = findings.find((finding) => finding.time_range);
