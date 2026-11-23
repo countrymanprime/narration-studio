@@ -238,9 +238,8 @@ async function everyButtonOnScreen(toasts: number, buttonCount = toasts * 2) {
   }
   return true;
 }
-// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four) above the Booth's bars: the stack gives the bars less room so each toast keeps its least height.
-export const FourToastsAboveTheBoothBars: Story = {
-  decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
+// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four): the shell's strip is held to half the window, and each toast keeps its least height.
+export const FourToasts: Story = {
   args: {
     messages: [
       { ...failure(1, 'REAPER refused to start recording because the armed track is locked, so nothing was recorded. Unlock it and try again.'), action },
@@ -280,8 +279,8 @@ export const LongRefusalWithActionInTinyWindow: Story = {
     await everyButtonOnScreen(1);
   },
 };
-export const FourToastsAboveTheBoothBarsInTinyWindow: Story = {
-  ...FourToastsAboveTheBoothBars,
+export const FourToastsInTinyWindow: Story = {
+  ...FourToasts,
   tags: ['tiny-window'],
   play: async () => {
     // Three buttons carry an action and all four have Dismiss.
@@ -295,8 +294,8 @@ export const LongActionLabelInTinyWindow: Story = {
     await everyButtonOnScreen(1);
   },
 };
-export const TwoToastsAboveTheBoothBarsInTinyWindow: Story = {
-  ...TwoToastsAboveTheBoothBars,
+export const TwoLongToastsInTinyWindow: Story = {
+  ...TwoLongToasts,
   tags: ['tiny-window'],
   play: async () => {
     await everyButtonOnScreen(2);
