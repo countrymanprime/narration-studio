@@ -659,7 +659,7 @@ describe('overlay.open headerless', () => {
 });
 
 describe('overlay.dismissDialogs (a project attach, #4057)', () => {
-  it('answers every open question No, closes every dialog and slide-over without asking, and leaves the toasts alone', async () => {
+  it('answers an open question No, closes the dialog under it without asking, and leaves the toasts alone', async () => {
     mount();
     const asked = vi.fn(async () => false);
     service.open({
@@ -670,7 +670,6 @@ describe('overlay.dismissDialogs (a project attach, #4057)', () => {
       render: ({ close }) => <button onClick={close}>Close milestone</button>,
     });
     await screen.findByRole('dialog', { name: 'Milestone' });
-    service.open({ kind: 'slideOver', title: 'History', render: () => <p>History body</p> });
     service.toast('Saved');
     // The question stacks above the others, as a page's own question would.
     const question = ask();
@@ -678,12 +677,20 @@ describe('overlay.dismissDialogs (a project attach, #4057)', () => {
     service.dismissDialogs();
     await expect(question).resolves.toBe(false);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Milestone' })).toBeNull());
-    expect(screen.queryByText('History body')).toBeNull();
     expect(screen.queryByRole('alertdialog')).toBeNull();
     // A typed-text dialog's own question is for a way out the narrator chose; the project it was about is gone, so nothing asks.
     expect(asked).not.toHaveBeenCalled();
     expect(service.getSnapshot().dialogs).toHaveLength(0);
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Saved']);
+  });
+
+  it('closes a slide-over too', async () => {
+    mount();
+    service.open({ kind: 'slideOver', title: 'History', render: () => <p>History body</p> });
+    await screen.findByText('History body');
+    service.dismissDialogs();
+    await waitFor(() => expect(screen.queryByText('History body')).toBeNull());
+    expect(service.getSnapshot().dialogs).toHaveLength(0);
   });
 
   it('does nothing when nothing is open', () => {
