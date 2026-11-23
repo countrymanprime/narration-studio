@@ -9,8 +9,7 @@ import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
-import { capitalised, notAskedSentence } from '../../../studio/dawNames';
-import { reasonSentence } from '../../../api/errorMessage';
+import { capitalised, notAskedSentence, stopFailedSentence } from '../../../studio/dawNames';
 import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, recordingSentence, type PlaybackProvider } from '../../../playback/providers';
@@ -90,7 +89,10 @@ export function HearIt({
   dropLoop.current = () => {
     void stopLoop
       .current()
-      .catch((error: unknown) => overlay.toast(`${reasonSentence(notAskedSentence(dawName, error, 'stop'))} Stop it in ${dawName}.`, { tone: 'error' }));
+      .then((answer) => {
+        if (answer.outcome === 'refused') overlay.toast(stopFailedSentence(dawName, { refused: answer.message }), { tone: 'error' });
+      })
+      .catch((error: unknown) => overlay.toast(stopFailedSentence(dawName, { thrown: error }), { tone: 'error' }));
   };
   // The newest press, so a Retry offered for an older one, or after the note was left, plays nothing.
   const newest = useNewestPlay(HEAR_TOPIC);
@@ -131,9 +133,9 @@ export function HearIt({
         dawPlayOwner.release();
         try {
           const answer = await api.findingsStopLoop();
-          if (answer.outcome === 'refused') overlay.toast(`${reasonSentence(answer.message)} Stop it in ${dawName}.`, { tone: 'error' });
+          if (answer.outcome === 'refused') overlay.toast(stopFailedSentence(dawName, { refused: answer.message }), { tone: 'error' });
         } catch (error) {
-          overlay.toast(`${reasonSentence(notAskedSentence(dawName, error, 'stop'))} Stop it in ${dawName}.`, { tone: 'error' });
+          overlay.toast(stopFailedSentence(dawName, { thrown: error }), { tone: 'error' });
         }
       }
       setPlaying(null);
@@ -200,6 +202,8 @@ export function HearIt({
         // A click that plays is never silent for long: a DAW that has not answered passes the note to the app.
         deadlineMs: PLAY_DEADLINE_MS,
       });
+      // The press ended in the app (a deadline, a refusal): the DAW is given up, so an older press's orphaned stop may run.
+      if (by !== dawName) dawPlayOwner.release(token);
       if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
       // What did not play, and why, is a toast, never a line in the row. Retry only when nothing played: a note that fell back to the app and plays is not
       // offered a Retry, which would stop it. A press that was replaced says nothing.

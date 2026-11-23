@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { noAnswerSentence, notAskedSentence, recorderName, unreachedSentence } from './dawNames';
+import { noAnswerSentence, notAskedSentence, recorderName, stopFailedSentence, unreachedSentence } from './dawNames';
 
 describe('noAnswerSentence', () => {
   it('names who did not answer, whoever records', () => {
@@ -71,5 +71,14 @@ describe('notAskedSentence', () => {
     expect(notAskedSentence('the DAW', new Error('bridge down'))).toBe('The DAW was not asked: bridge down');
     expect(notAskedSentence('REAPER', 'no socket')).toBe('REAPER was not asked: no socket');
     expect(notAskedSentence('the DAW', 'no socket', 'stop')).toBe('The DAW was not asked to stop: no socket');
+  });
+});
+
+describe('stopFailedSentence', () => {
+  it('says the refusal and where to stop it', () => {
+    expect(stopFailedSentence('REAPER', { refused: 'REAPER is not running' })).toBe('REAPER is not running. Stop it in REAPER.');
+  });
+  it('says who was not asked when the call threw', () => {
+    expect(stopFailedSentence('REAPER', { thrown: new Error('bridge down') })).toBe('REAPER was not asked to stop: bridge down. Stop it in REAPER.');
   });
 });

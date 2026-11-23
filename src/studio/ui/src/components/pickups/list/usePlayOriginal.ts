@@ -9,8 +9,7 @@ import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
-import { reasonSentence } from '../../../api/errorMessage';
-import { notAskedSentence } from '../../../studio/dawNames';
+import { notAskedSentence, stopFailedSentence } from '../../../studio/dawNames';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { overlay } from '../../../overlay/overlayService';
 import { dawPlayOwner } from '../../../playback/dawPlayOwner';
@@ -119,11 +118,11 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       (result) => {
         if (result.ok) return;
         const name = dawNameOf(dawCaps.current.caps);
-        live.current.onRefused(`${reasonSentence(result.message)} Stop it in ${name}.`);
+        live.current.onRefused(stopFailedSentence(name, { refused: result.message }));
       },
       (error: unknown) => {
         const name = dawNameOf(dawCaps.current.caps);
-        live.current.onRefused(`${reasonSentence(notAskedSentence(name, error, 'stop'))} Stop it in ${name}.`);
+        live.current.onRefused(stopFailedSentence(name, { thrown: error }));
       },
     );
   }, [sync]);

@@ -1,6 +1,6 @@
 // What a launch's DAW kind is called in a sentence, and whether the app's own recorder is what records. Pages ask these, never type a DAW's name.
 import type { DawKind } from '../api/contracts/daw';
-import { readableFailure } from '../api/errorMessage';
+import { readableFailure, reasonSentence } from '../api/errorMessage';
 
 /** What the Booth calls what records: the DAW's name, "the built-in recorder" for the app's own, "the DAW" before anything is known. */
 export function recorderName(daw: DawKind | undefined): string {
@@ -27,6 +27,12 @@ export function noAnswerSentence(name: string): string {
 /** What a page says when a call to the DAW threw (the bridge is down) before the DAW was asked: who was not asked, and the reason. `name` is as the page writes it (`dawNameOf`, `recorderName`); `action` says what it was not asked to do ("stop"). It ends without a full stop: `playThrough` and `reasonSentence` add one. */
 export function notAskedSentence(name: string, error: unknown, action?: string): string {
   return `${capitalised(name)} was not asked${action ? ` to ${action}` : ''}: ${readableFailure(error, 'the host gave no reason')}`;
+}
+
+/** What a page says when a stop it asked for failed: the reason (a refusal's `message`, or the thrown error as `notAskedSentence` words it) and where to stop it. `name` is as the page writes it. */
+export function stopFailedSentence(name: string, failure: { refused: string } | { thrown: unknown }): string {
+  const reason = 'refused' in failure ? failure.refused : notAskedSentence(name, failure.thrown, 'stop');
+  return `${reasonSentence(reason)} Stop it in ${name}.`;
 }
 
 /** What the Booth says when a stop or an undo threw (the bridge is down): the recorder, not "the stop", is who could not be reached. Same `name` as `noAnswerSentence`. */

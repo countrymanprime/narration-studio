@@ -14,6 +14,7 @@ import { PortOverrides } from '../../../ports/usePort';
 import { createMockDawClient } from '../../../ports/daw';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 
 afterEach(cleanup);
 
@@ -33,6 +34,7 @@ let toast: ReturnType<typeof vi.spyOn>;
 const toasted = () => toast.mock.calls.at(-1) as [string, { tone?: string; action?: { label: string; onAction: () => void } } | undefined];
 let currentTimes: number[];
 beforeEach(() => {
+  dawPlayOwner.release();
   toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
   play = vi.fn(async () => undefined);
   currentTimes = [];
@@ -381,6 +383,58 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     unmount();
     answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
     await waitFor(() => expect(toasted()[0]).toBe('REAPER was not asked to stop: bridge write failed. Stop it in REAPER.'));
+  });
+
+  it('says where to stop a loop the DAW refused to stop after the note was left', async () => {
+    let answerLoop: (value: FindingNavigation) => void = () => {};
+    const api: HearItApi = {
+      findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => (answerLoop = resolve))),
+      findingsStopLoop: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'not_running' as const, message: 'REAPER is not running' })),
+    };
+    const { unmount } = render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    unmount();
+    answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+    await waitFor(() => expect(toasted()[0]).toBe('REAPER is not running. Stop it in REAPER.'));
+  });
+
+  it("stops an old note's loop once the newer press ends in the app at its deadline", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const answers: ((value: FindingNavigation) => void)[] = [];
+      const stopLoop = vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 }));
+      const apiFor = (): HearItApi => ({
+        findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => answers.push(resolve))),
+        findingsStopLoop: stopLoop,
+      });
+      const first = render(
+        <ApiProvider api={createMockApi()}>
+          <Harness finding={placed()} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+        </ApiProvider>,
+      );
+      fireEvent.click(hear());
+      await vi.advanceTimersByTimeAsync(10);
+      first.unmount();
+      render(
+        <ApiProvider api={createMockApi()}>
+          <Harness finding={placed({ id: 'f2' })} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+        </ApiProvider>,
+      );
+      fireEvent.click(hear());
+      await vi.advanceTimersByTimeAsync(10);
+      answers[0]!({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(stopLoop).not.toHaveBeenCalled();
+      // The new note's DAW never answers: its deadline hands it to the app, so nobody owns the DAW and the old loop is stopped.
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
+      await waitFor(() => expect(stopLoop).toHaveBeenCalledTimes(1));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a Retry offered for an older press plays nothing, and none plays once the note was left', async () => {
