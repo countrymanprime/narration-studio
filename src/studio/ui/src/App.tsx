@@ -680,6 +680,8 @@ function AppRoutes() {
       if (state.attached) {
         // What an Undo toast offered was about the project that was open; its journal entries are cleared, and the ones without an entry go here.
         overlay.dismissUndo();
+        // A question or dialog a page opened for the project that was open (the Editor's cut question, a milestone form) is about its chapters: confirming it would act on them in the new project.
+        overlay.dismissDialogs();
         history.resetFloor();
         // After this turn: the store's own listener resets it on the same event, in whichever order the two were subscribed, and the answer is judged against the reset.
         queueMicrotask(() => void refreshBootstrap());

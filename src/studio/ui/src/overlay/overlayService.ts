@@ -100,6 +100,11 @@ export type OverlayService = {
   settleUndo: (live: (entry: number) => boolean) => void;
   /** Takes away every Undo toast: what they offered to undo belongs to a page, chapter or project the narrator has left. */
   dismissUndo: () => void;
+  /**
+   * Closes every open question, dialog and slide-over without asking them (a confirm is answered No; `beforeClose` is not asked): what they were opened about belongs to a
+   * project the narrator is no longer in, so confirming one would act on the old project's chapter while the host is on the new one (#4057).
+   */
+  dismissDialogs: () => void;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -211,6 +216,12 @@ export function createOverlayService(): OverlayService {
     settleUndo: (live) => {
       const gone = (m: ToastMessage) => m.undo?.entry !== undefined && !live(m.undo.entry);
       if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
+    },
+    dismissDialogs: () => {
+      for (const entry of [...snapshot.dialogs]) {
+        if (entry.kind === 'confirm') entry.answer(false);
+        else entry.close();
+      }
     },
     dismissUndo: () => {
       if (!snapshot.toasts.some((m) => m.undo)) return;

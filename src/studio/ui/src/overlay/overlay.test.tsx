@@ -657,3 +657,35 @@ describe('overlay.open headerless', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
   });
 });
+
+describe('overlay.dismissDialogs (a project attach, #4057)', () => {
+  it('answers every open question No, closes every dialog and slide-over without asking, and leaves the toasts alone', async () => {
+    mount();
+    const question = ask();
+    const asked = vi.fn(async () => false);
+    service.open({
+      kind: 'dialog',
+      title: 'Milestone',
+      dismissOnOutsidePress: false,
+      beforeClose: asked,
+      render: ({ close }) => <button onClick={close}>Close milestone</button>,
+    });
+    service.open({ kind: 'slideOver', title: 'History', render: () => <p>History body</p> });
+    service.toast('Saved');
+    await screen.findByRole('dialog', { name: 'Milestone' });
+    service.dismissDialogs();
+    await expect(question).resolves.toBe(false);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Milestone' })).toBeNull());
+    expect(screen.queryByText('History body')).toBeNull();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    // A typed-text dialog's own question is for a way out the narrator chose; the project it was about is gone, so nothing asks.
+    expect(asked).not.toHaveBeenCalled();
+    expect(service.getSnapshot().dialogs).toHaveLength(0);
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Saved']);
+  });
+
+  it('does nothing when nothing is open', () => {
+    mount();
+    expect(() => service.dismissDialogs()).not.toThrow();
+  });
+});

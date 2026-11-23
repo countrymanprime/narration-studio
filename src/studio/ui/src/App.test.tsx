@@ -489,6 +489,30 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(within(appToasts('alert')).getByText(/The app is busy/)).toBeTruthy();
   });
 
+  it('a project attach closes every question and dialog a page opened for the old project, and nothing they would have done happens (#4057)', async () => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const onConfirm = vi.fn();
+    // The Editor's cut question and a form dialog: both are opened through the overlay service by a page, for that page's project.
+    const question = act(async () => overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm));
+    overlay.open({ kind: 'dialog', title: 'Milestone', dismissOnOutsidePress: false, render: () => <p>A form for the old project</p> });
+    expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
+    expect(screen.getByText('A form for the old project')).toBeTruthy();
+    act(() => attach!({ attached: true }));
+    await question;
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(screen.queryByText('A form for the old project')).toBeNull();
+    // The question was answered No: its confirm path (the cut, its record) did not run.
+    expect(onConfirm).toHaveBeenCalledWith(false);
+  });
+
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
     // App.tsx only wires this listener up from a useEffect, a passive effect React flushes on its own
     // schedule after the commit that renders the Production heading - not necessarily before it. Under load the
