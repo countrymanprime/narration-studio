@@ -1591,7 +1591,10 @@ function AppRoutes() {
                           path="/companion"
                           element={
                             data.manuscript ? (
-                              <CompanionPage onFixCredits={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'credits' }))} />
+                              <CompanionPage
+                                projectFolder={data.projectFolder}
+                                onFixCredits={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'credits' }))}
+                              />
                             ) : (
                               <Navigate to="/" replace />
                             )
