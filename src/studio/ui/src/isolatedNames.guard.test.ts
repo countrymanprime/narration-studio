@@ -199,6 +199,8 @@ const APP_DEFINED: Record<string, string> = {
  * shown in a sentence. The key is `<file>: <expression>`; each has the reason.
  */
 const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
+  'components/editing/bar/useScriptPlayback.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'playback/providers.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/booth/record/RecordSetup.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/booth/record/recordCheck.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/booth/record/takeWords.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
@@ -226,7 +228,7 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
 };
 
 /** A product name the app defines, whichever file it is in: the DAW's name (REAPER, Audacity), never a narrator's or an author's. */
-const DAW_NAMES = /^(?:\w+\.)?dawName$|^daw\.name$|^recorderName\(/;
+const DAW_NAMES = /^(?:capitalised\()?(?:\w+\.)?dawName\)?$|^daw\.name$|^recorderName\(/;
 /** Files where a bare `name` is the DAW's name (a parameter of that file's sentences). */
 const DAW_NAME_FILES = new Set([
   'components/booth/record/RecordSetup.tsx',

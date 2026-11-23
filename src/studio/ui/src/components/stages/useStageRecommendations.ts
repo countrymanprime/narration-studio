@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { chapterName } from '../../chapterName';
 import { isolatedIfRtl } from '../../visibleText';
 import { useApi } from '../../api/ApiContext';
-import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
+import { apiErrorMessage, describeApiError, reasonSentence } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import type { ChapterStatus, StageChapterRecommendation, StageDecisionResult } from '../../types';
 import type { Notify } from '../primitives/Toast';
@@ -19,8 +19,6 @@ export type StagesState = {
   byChapter: ReadonlyMap<string, StageChapterRecommendation>;
   error: string;
 };
-
-const sentence = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}${/[.!?]$/.test(text) ? '' : '.'}`;
 
 export function decidedMessage(decision: StageDecision, chapter: StageChapterRecommendation, previous: StageChapterRecommendation): string {
   const name = isolatedIfRtl(chapterName(chapter, 'short'));
@@ -79,7 +77,7 @@ export function useStageRecommendations({
       try {
         const result = await send(decision, chapter);
         if (result.status === 'refused') {
-          notify(sentence(result.message), 'error');
+          notify(reasonSentence(result.message), 'error');
           await refresh();
           return;
         }

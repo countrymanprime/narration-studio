@@ -16,11 +16,13 @@ import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton'
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
-import { ALL_SCOPE, pickupTime, inScope, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, pickupTime, inScope, type ChapterRef } from './list/pickupRows';
+import { reasonSentence } from '../../api/errorMessage';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';
-import { usePlayOriginal } from './list/usePlayOriginal';
+import { ORIGINAL_TOPIC, usePlayOriginal } from './list/usePlayOriginal';
+import { retryAction } from '../primitives/Toast';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { addMarkers as addMarkersFor, useMarkersGate } from '../engine/AddMarkers';
 import { SessionPanel } from './list/SessionPanel';
@@ -68,8 +70,8 @@ export function PickupsPage({
   const daw = usePort('daw');
   const overlay = useOverlay();
   const original = usePlayOriginal(
-    (sentence) => overlay.toast(sentence, { tone: 'error' }),
-    (sentence) => overlay.toast(sentence),
+    (sentence, retry) => overlay.toast(sentence, { tone: 'error', ...(retry ? { action: retryAction(retry), topic: ORIGINAL_TOPIC } : {}) }),
+    (sentence) => overlay.toast(sentence, { topic: ORIGINAL_TOPIC }),
   );
   // The jump menu's Check recordings is off for the same reason the button is (#2833).
   const checkReason = useCheckRecordingsGate();
