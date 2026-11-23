@@ -3,8 +3,8 @@ import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePedalSpace } from './usePedalSpace';
 
-function Harness({ toggle }: { toggle: () => unknown }) {
-  usePedalSpace(toggle);
+function Harness({ toggle, running = false }: { toggle: () => unknown; running?: boolean }) {
+  usePedalSpace(toggle, () => running);
   return (
     <div>
       <button type="button">Chapter list</button>
@@ -48,5 +48,22 @@ describe('the pedal Space (#4094)', () => {
     const event = pressSpace(getByRole('button', { name }));
     expect(toggle).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('stops a running take from a toast button: the pedal always stops the take', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<Harness toggle={toggle} running />);
+    const event = pressSpace(getByRole('button', { name: 'Retry' }));
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('takes a second Space within a moment of one that pressed a toast button as the same tap, and starts no take', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<Harness toggle={toggle} />);
+    pressSpace(getByRole('button', { name: 'Retry' }));
+    const second = pressSpace(getByRole('button', { name: 'Chapter list' }));
+    expect(toggle).not.toHaveBeenCalled();
+    expect(second.defaultPrevented).toBe(true);
   });
 });

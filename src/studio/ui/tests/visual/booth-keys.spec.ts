@@ -452,4 +452,36 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     await expect(record(page)).toBeVisible();
     expect(await dawRecording(page)).toBe(false);
   });
+
+  test("during a take, Space on the toast's Dismiss still stops the take", async ({ page }) => {
+    await openBooth(page);
+    await record(page).click();
+    await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await pastStartGuard(page);
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+    const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(false);
+  });
+
+  for (const name of ['Retry', 'Dismiss message']) {
+    test(`a second Space just after one on the toast's ${name} starts no take`, async ({ page }) => {
+      await openBooth(page);
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+      const button = page.locator('[data-toast-region]').getByRole('button', { name });
+      await expect(button).toBeVisible();
+      await button.focus();
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(30);
+      await page.keyboard.press('Space');
+      await expect(record(page)).toBeVisible();
+      expect(await dawRecording(page)).toBe(false);
+    });
+  }
 });
