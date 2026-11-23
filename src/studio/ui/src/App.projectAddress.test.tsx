@@ -74,6 +74,25 @@ const sameTask = async (move: () => Promise<void>) => {
     env.IS_REACT_ACT_ENVIRONMENT = before;
   }
 };
+// Counts the DOM changes that left the page's place empty (the shell's main with nothing drawn in it): the window must never show the other project's page, nor none.
+const watchEmptyPage = () => {
+  let empty = 0;
+  const watch = new MutationObserver(() => {
+    const main = document.querySelector('main');
+    if (main && main.querySelector('h1, button, [aria-busy="true"]') === null) empty += 1;
+  });
+  watch.observe(document.body, { childList: true, subtree: true });
+  return () => {
+    watch.disconnect();
+    return empty;
+  };
+};
+// The step can be pressed before the page has its chapters (it then does nothing): press it again until the chapter shows.
+const stepTo = (label: RegExp) =>
+  waitFor(() => {
+    if (!screen.queryByRole('button', { name: label })) fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+    expect(screen.getByRole('button', { name: label })).toBeTruthy();
+  });
 const address = () => window.location.pathname + window.location.search;
 
 describe('the chapter in the address is not carried into another project (#4059)', () => {
@@ -257,8 +276,7 @@ describe('the chapter in the address is not carried into another project (#4059)
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await waitFor(() => expect(address()).toBe('/editing'));
     await onChapter(/^Chapter: Chapter 1:/);
-    fireEvent.click(await screen.findByRole('button', { name: 'Next chapter' }));
-    await onChapter(/^Chapter: Chapter 2:/);
+    await stepTo(/^Chapter: Chapter 2:/);
     typeAddress('/editing/chapter-2#note');
     await onChapter(/^Chapter: Chapter 2:/);
     expect(window.location.pathname + window.location.hash).toBe('/editing/chapter-2#note');
@@ -335,31 +353,31 @@ describe('the chapter in the address is not carried into another project (#4059)
       act(() => void overlay.open({ kind: 'dialog', title: 'Open question', dismissOnOutsidePress: false, render: () => <p>A form</p> }));
       // The switch is sent as the Back arrives (a capture listener runs before the guard's), so it renders between the guard stopping the pop and its restore.
       window.addEventListener('popstate', () => void api.switchProject(OTHER, 'Voltage and the Undercroft'), { capture: true, once: true });
+      const empty = watchEmptyPage();
       await sameTask(async () => {
         window.history.back();
         await new Promise((resolve) => setTimeout(resolve, 300));
       });
-      // The page itself, not the shell around it: B opens Editing on its own first chapter, on the bare address.
+      // The page itself, not the shell around it: B's page is drawn at once on its own first chapter, and the address is cut when the guard restores history.
       await onChapter(/^Chapter: Chapter 1:/);
-      expect(address()).toBe('/editing');
+      await waitFor(() => expect(address()).toBe('/editing'));
+      expect(empty()).toBe(0);
     });
   });
 
-  // The window is never empty while the old address is cut: the page's place holds the design system's loading frame, named for the narrator.
+  // The other project's page is drawn in the first render after the switch, on its own page with no chapter in the address, never an empty page between.
   it.each([
-    ['Editing', '/editing/chapter-7', /^Chapter: Chapter 7:/],
-    ['Booth', '/booth?chapter=chapter-9', /^Chapter: Chapter 9:/],
-  ])('%s: the page\u2019s place shows the loading frame while its address is cut', async (_page, start, chapter) => {
+    ['Editing', '/editing/chapter-7', /^Chapter: Chapter 7:/, 'narration.editing.lastChapter', 'chapter-4', /^Chapter: Chapter 4:/],
+    ['Booth', '/booth?chapter=chapter-9', /^Chapter: Chapter 9:/, 'narration.booth.lastPlace', 'chapter-3', /^Chapter: Chapter 3:/],
+  ])('%s: the new project\u2019s page is drawn at once, never an empty page', async (_page, start, chapter, key, kept, expected) => {
     const { api } = await openAt(start);
     await onChapter(chapter);
-    let seen = false;
-    const watch = new MutationObserver(() => {
-      if (document.querySelector('[role="group"][aria-busy="true"][aria-label="Opening this project"]')) seen = true;
-    });
-    watch.observe(document.body, { childList: true, subtree: true });
+    window.localStorage.setItem(`${key}.${OTHER}`, key.includes('booth') ? JSON.stringify({ chapterId: kept, paragraphId: '', word: 0 }) : kept);
+    const empty = watchEmptyPage();
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
-    await waitFor(() => expect(address().split('?')[0]).toBe(start.split(/[/?]/)[1] === 'booth' ? '/booth' : '/editing'));
-    watch.disconnect();
-    expect(seen).toBe(true);
+    await onChapter(expected);
+    expect(empty()).toBe(0);
+    expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
+    expect(loadEditingChapter(OTHER)).not.toBe('chapter-7');
   });
 });
