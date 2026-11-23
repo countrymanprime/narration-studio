@@ -18,6 +18,7 @@ import { BoothNextPage } from '../page/BoothNextPage';
 import { BoothHost, CHAPTERS, dawFor, newJournal, pageApi } from '../page/testPage';
 import { forgetAppTake } from '../record/useRecordControl';
 import { CompanionPage } from './CompanionPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 beforeEach(() => forgetAppTake());
 afterEach(() => {
@@ -32,7 +33,10 @@ const recordedBook = (recorded: RecordedThrough): ManuscriptChapter[] =>
 
 function apiWith(recorded: RecordedThrough, locate = vi.fn(() => Promise.reject(new Error('no recording')))): { api: NarrationApi; locate: typeof locate } {
   return {
-    api: pageApi({ manuscriptChapters: async () => recordedBook(recorded), teleprompterLocate: locate as unknown as NarrationApi['teleprompterLocate'] }),
+    api: pageApi({
+      manuscriptChapters: async () => chaptersOf(recordedBook(recorded)),
+      teleprompterLocate: locate as unknown as NarrationApi['teleprompterLocate'],
+    }),
     locate,
   };
 }
@@ -105,7 +109,7 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
         return () => subscribers.delete(on);
       },
       manuscriptChapters: async () =>
-        CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: host.seconds } : chapter)),
+        chaptersOf(CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: host.seconds } : chapter))),
     } as Partial<NarrationApi>);
     renderCompanion(api);
     const notice = await screen.findByRole('region', { name: 'Where you stopped' });
@@ -132,7 +136,7 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
         return () => subscribers.delete(on);
       },
       manuscriptChapters: async () =>
-        CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: host.seconds } : chapter)),
+        chaptersOf(CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: host.seconds } : chapter))),
       // The overview only adds the readiness reason; the length and the stage are the shared list's.
       productionOverview: async () => ({ ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 99 }] }),
     } as Partial<NarrationApi>);
@@ -161,7 +165,8 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
         subscribers.add(on);
         return () => subscribers.delete(on);
       },
-      manuscriptChapters: async () => CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 12 } : chapter)),
+      manuscriptChapters: async () =>
+        chaptersOf(CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 12 } : chapter))),
       productionOverview: async () => {
         reads.overview += 1;
         if (reads.overview > 1) throw new Error('Production board unreadable');
@@ -186,7 +191,8 @@ describe('one-resume-point-for-the-booth-and-the-companion', () => {
     const base = pageApi({} as Partial<NarrationApi>);
     const overview = await base.productionOverview();
     const api = pageApi({
-      manuscriptChapters: async () => CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 0.5 } : chapter)),
+      manuscriptChapters: async () =>
+        chaptersOf(CHAPTERS.map((chapter) => (chapter.id === 'c1' ? { ...chapter, recordedThrough: zero, recordedSeconds: 0.5 } : chapter))),
       productionOverview: async () => ({ ...overview, chapters: [{ ...overview.chapters[0], id: 'c1', recordedSeconds: 99 }] }),
     } as Partial<NarrationApi>);
     renderCompanion(api);

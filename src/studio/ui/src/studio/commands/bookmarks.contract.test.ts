@@ -57,7 +57,7 @@ type Port = { env: BookmarkEnv; spot: (offset?: number) => { chapterId: string; 
 
 async function build(api: BookmarksApi, spot: Port['spot']): Promise<Port> {
   const store = createStudioStore({
-    registry: createSlots({ manuscriptChapterList: async () => ({ project: 'A', chapters: [] }) }, api),
+    registry: createSlots({ manuscriptChapters: async () => ({ project: 'A', chapters: [] }) }, api),
     subscribe: () => () => undefined,
     subscribeFocus: () => () => undefined,
   });
@@ -67,7 +67,7 @@ async function build(api: BookmarksApi, spot: Port['spot']): Promise<Port> {
 
 const mockPort = async (): Promise<Port> => {
   const api = createMockApi();
-  const [chapter] = withoutCredits(await api.manuscriptChapters());
+  const [chapter] = withoutCredits((await api.manuscriptChapters()).chapters);
   const [line] = await api.manuscriptParagraphs(chapter!.id);
   return build(api, (offset = 2) => ({ chapterId: chapter!.id, paragraphId: line!.id, offset }));
 };

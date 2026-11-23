@@ -124,7 +124,6 @@ describe('withCoalescedReads', () => {
         'dawCapabilities',
         'dawChoice',
         'findingsSummary',
-        'manuscriptChapterList',
         'manuscriptChapters',
         'measureState',
         'pickupsList',
@@ -173,8 +172,8 @@ describe('withCoalescedReads', () => {
     const second = wrapped.manuscriptChapters();
     waiting[0]!.resolve([{ id: 'c1' }]);
     const [a, b] = await Promise.all([first, second]);
-    (a as { id: string }[])[0]!.id = 'changed';
-    expect((b as { id: string }[])[0]!.id).toBe('c1');
+    (a as unknown as { id: string }[])[0]!.id = 'changed';
+    expect((b as unknown as { id: string }[])[0]!.id).toBe('c1');
   });
 
   it('rejects every caller that joined a failed call, then asks the host again', async () => {

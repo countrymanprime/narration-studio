@@ -174,9 +174,9 @@ describe('useReadChapters (#3658, #3998)', () => {
 describe('useReadChapters when the host is on a project the window has not heard of (#4040)', () => {
   it('a reader that names A, given a list the host read from B, fails with the project changed once the store is told B', async () => {
     const api = createMockApi();
-    const real = api.manuscriptChapterList.bind(api);
+    const real = api.manuscriptChapters.bind(api);
     const read = vi.fn(async () => ({ ...(await real()), project: 'B' }));
-    api.manuscriptChapterList = read;
+    api.manuscriptChapters = read;
     const { result } = renderHook(() => ({ readChapters: useReadChapters('A'), store: useStoreHandle() }), { wrapper: withProvider(api) });
     const asked = result.current.readChapters();
     const outcome = expect(asked).rejects.toThrow('The project changed');

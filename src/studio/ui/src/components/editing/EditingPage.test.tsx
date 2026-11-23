@@ -26,6 +26,7 @@ import { CHAPTERS_WITH_CREDITS, dawFor, EditingHost, FINDING, newJournal, noAudi
 import { buildDoc } from './model';
 import { finding } from './cleanup/cleanupFixtures';
 import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
+import { chaptersOf } from '../../api/chaptersOf';
 
 class FakeAudio extends EventTarget {
   src = '';
@@ -79,15 +80,7 @@ afterEach(() => {
  */
 function switchableApi(folder: string, overrides: Partial<NarrationApi> = {}): { api: NarrationApi; host: { folder: string } } {
   const host = { folder };
-  const api: NarrationApi = pageApi({
-    projectFolder: folder,
-    manuscriptChapterList: async () => {
-      const project = host.folder;
-      return { project, chapters: await api.manuscriptChapters() };
-    },
-    ...overrides,
-  });
-  return { api, host };
+  return { api: pageApi({ projectFolder: () => host.folder, ...overrides }), host };
 }
 
 type Options = Partial<EditingPageProps> & { setup?: DawSetupId; daw?: DawClient; api?: Partial<NarrationApi> & { heard?: boolean } };
@@ -313,7 +306,7 @@ describe('EditingPage', () => {
 
     it('keeps the chapter on screen, and the saved one, when the store later lists it differently (a re-split)', async () => {
       let list = [chapterOf('c1', 'Chapter One', 0), chapterOf('c2', 'Chapter Two', 1)];
-      const api = pageApi({ projectFolder: '/p', manuscriptChapters: async () => list });
+      const api = pageApi({ projectFolder: '/p', manuscriptChapters: async () => chaptersOf(list) });
       render(treeFor(api, '/p', 'c1'));
       await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./p')).toBe('c1'));
       list = [chapterOf('c1a', 'Chapter One (part 1)', 0), chapterOf('c1b', 'Chapter One (part 2)', 1), chapterOf('c2', 'Chapter Two', 2)];
@@ -326,7 +319,7 @@ describe('EditingPage', () => {
 
     it("saves nothing under the old folder when the store resets before the folder prop changes, then reads the new project's list for the new folder (R10-1)", async () => {
       let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
-      const read = vi.fn(async () => list);
+      const read = vi.fn(async () => chaptersOf(list));
       const { api, host } = switchableApi('/a', { manuscriptChapters: read });
       window.localStorage.setItem('narration.editing.lastChapter./a', 'a2');
       const view = render(treeFor(api, '/a'));
@@ -345,7 +338,7 @@ describe('EditingPage', () => {
 
     it("serves the old project's held list under the new folder never: the folder prop changes before the store resets (R10-10)", async () => {
       let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
-      const { api, host } = switchableApi('/a', { manuscriptChapters: async () => list });
+      const { api, host } = switchableApi('/a', { manuscriptChapters: async () => chaptersOf(list) });
       const view = render(treeFor(api, '/a'));
       await screen.findByText('This chapter has no text yet.');
       list = [chapterOf('b1', 'Beta One', 0), chapterOf('b2', 'Beta Two', 1)];
@@ -363,7 +356,7 @@ describe('EditingPage', () => {
       const { api, host } = switchableApi('/a', {
         manuscriptChapters: async () => {
           if (project === 'b') await gate;
-          return project === 'a' ? [chapterOf('a1', 'Alpha One', 0)] : [chapterOf('b1', 'Beta One', 0)];
+          return project === 'a' ? chaptersOf([chapterOf('a1', 'Alpha One', 0)]) : chaptersOf([chapterOf('b1', 'Beta One', 0)]);
         },
       });
       const view = render(treeFor(api, '/a'));
@@ -390,7 +383,7 @@ describe('EditingPage', () => {
             first = false;
             await new Promise<void>((resolve) => (release = resolve));
           }
-          return [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
+          return chaptersOf([chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)]);
         },
       });
       render(treeFor(api, '/a'));
@@ -430,7 +423,7 @@ describe('EditingPage', () => {
 
   it('two quick Next clicks end on the newest chapter: the DAW is last sent there and that is the one kept', async () => {
     const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-    mount({ projectFolder: '/proj', chapterId: 's1', api: { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) } });
+    mount({ projectFolder: '/proj', chapterId: 's1', api: { dawGoToChapter, manuscriptChapters: async () => chaptersOf(styledChapters('numbered', 5)) } });
     await screen.findByRole('button', { name: /Change chapter/ });
     fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
@@ -444,7 +437,7 @@ describe('EditingPage', () => {
     window.localStorage.setItem('narration.editing.lastChapter./a', 's2');
     window.localStorage.setItem('narration.editing.lastChapter./b', 's4');
     const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-    const { api, host } = switchableApi('/a', { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) });
+    const { api, host } = switchableApi('/a', { dawGoToChapter, manuscriptChapters: async () => chaptersOf(styledChapters('numbered', 5)) });
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
         <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
@@ -466,7 +459,7 @@ describe('EditingPage', () => {
   it("a project switch after choosing a chapter opens the other project's remembered chapter and does not overwrite it", async () => {
     window.localStorage.setItem('narration.editing.lastChapter./b', 's4');
     const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-    const { api, host } = switchableApi('/a', { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) });
+    const { api, host } = switchableApi('/a', { dawGoToChapter, manuscriptChapters: async () => chaptersOf(styledChapters('numbered', 5)) });
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
         <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
@@ -1035,7 +1028,7 @@ describe('EditingPage', () => {
       for (const count of [12, 40]) {
         for (const n of [1, count]) {
           cleanup();
-          mount({ chapterId: `s${n}`, api: { manuscriptChapters: async () => styledChapters(style, count) } });
+          mount({ chapterId: `s${n}`, api: { manuscriptChapters: async () => chaptersOf(styledChapters(style, count)) } });
           const name = `${HEADING_LABELS[style](n)} Title of ${n}`;
           expect(await screen.findByRole('button', { name: `Chapter: ${name}. Change chapter` }), `${style} ${count}: ${name}`).toBeTruthy();
         }
@@ -1044,13 +1037,13 @@ describe('EditingPage', () => {
   });
 
   it('lists how far each chapter is recorded beside its name, as the Booth does', async () => {
-    const chapters = await pageApi().manuscriptChapters();
+    const chapters = (await pageApi().manuscriptChapters()).chapters;
     const recorded = chapters.map((chapter, index) =>
       index === 0
         ? { ...chapter, recordedThrough: { paragraphId: 'x', word: 0, percent: 100, complete: true, source: 'proof' as const, confident: true } }
         : { ...chapter, recordedThrough: { paragraphId: 'x', word: 0, percent: 40, complete: false, source: 'daw' as const, confident: false } },
     );
-    mount({ api: { manuscriptChapters: async () => recorded } });
+    mount({ api: { manuscriptChapters: async () => chaptersOf(recorded) } });
     await script();
     await userEvent.setup().click(screen.getByRole('button', { name: /Change chapter/ }));
     const items = await screen.findAllByRole('menuitemradio');
@@ -1059,7 +1052,7 @@ describe('EditingPage', () => {
 
   // Owner rule: the credits are chapters, so the picker lists both (opening first, closing last), the stepper walks to them, and each opens.
   describe('the credits are chapters', () => {
-    const withCredits = { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS };
+    const withCredits = { manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS) };
 
     // Credits are not linked to a track, so the link dialog opens by itself over the page: the queries look behind it.
     it('lists the opening credits first and the closing credits last in the chapter picker', async () => {
@@ -1580,7 +1573,7 @@ describe('EditingPage loading state', () => {
   });
 
   it('shows the empty panel, not a skeleton, for a manuscript with no narration chapters', async () => {
-    mount({ api: { manuscriptChapters: async () => [] } });
+    mount({ api: { manuscriptChapters: async () => chaptersOf([]) } });
     expect(await screen.findByText('This manuscript has no chapters to edit')).toBeTruthy();
     expect(region('Loading the editor')).toBeNull();
   });

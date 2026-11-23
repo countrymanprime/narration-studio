@@ -2,6 +2,7 @@
 import { cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { installKit, mountSchedule } from './scheduleKit.test';
+import { chaptersOf } from '../../api/chaptersOf';
 
 installKit();
 afterEach(cleanup);
@@ -12,8 +13,10 @@ describe('the Schedule’s recorded hours and audio under one second', () => {
     await mountSchedule({
       wrap: (base) => ({
         manuscriptChapters: async () =>
-          (await base.manuscriptChapters()).map((chapter, index) =>
-            index === 0 ? { ...chapter, recordedSeconds } : { ...chapter, recordedSeconds: undefined },
+          chaptersOf(
+            (await base.manuscriptChapters()).chapters.map((chapter, index) =>
+              index === 0 ? { ...chapter, recordedSeconds } : { ...chapter, recordedSeconds: undefined },
+            ),
           ),
       }),
     });

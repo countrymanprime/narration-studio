@@ -91,7 +91,7 @@ describe('every surface that reads the chapter list shows the credits', () => {
   });
 
   it('the mock host answers the list the pages read: opening first, closing last, both narration', async () => {
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = (await createMockApi().manuscriptChapters()).chapters;
     expect(chapters[0]?.id).toBe('credits-opening');
     expect(chapters[chapters.length - 1]?.id).toBe('credits-closing');
     expect(chapters.filter(isCreditsChapter)).toHaveLength(2);

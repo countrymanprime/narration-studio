@@ -12,6 +12,7 @@ import { failingTwo, passing, profile, waiting } from '../../masterqc/files/test
 import { styledChapters, type HeadingStyle } from '../../script/page/chapters/chapterFixtures';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import { DeliveryPage } from './DeliveryPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -54,7 +55,7 @@ function mount(
   props: { hasManuscript?: boolean; onOpenInMaster?: (id: string) => void } = {},
 ) {
   const api = createMockApi({
-    manuscriptChapters: async () => CHAPTERS,
+    manuscriptChapters: async () => chaptersOf(CHAPTERS),
     measureState: async () => measureJob(files),
     exportState: async () => exported,
     packageState: async () => IDLE,
@@ -158,7 +159,7 @@ describe('DeliveryPage', () => {
 
   it('lists the first hundred chapters of a very long book and the rest on request, counting all of them', async () => {
     const many = Array.from({ length: 150 }, (_, n) => chapter(n + 1, `Part ${n + 1} of the long book`));
-    mount([], { manuscriptChapters: async () => many });
+    mount([], { manuscriptChapters: async () => chaptersOf(many) });
     expect(await screen.findByText('0 of 150')).toBeTruthy();
     expect(screen.getAllByText('Not mastered')).toHaveLength(100);
     await userEvent.click(screen.getByRole('button', { name: 'Show the other 50 chapters' }));
@@ -204,7 +205,7 @@ describe('DeliveryPage', () => {
     for (const style of ['gutenberg', 'numbered', 'colon'] as HeadingStyle[]) {
       cleanup();
       const chapters = styledChapters(style, 40);
-      mount([], { manuscriptChapters: async () => chapters });
+      mount([], { manuscriptChapters: async () => chaptersOf(chapters) });
       await screen.findByText('0 of 40');
       const rows = screen.getAllByRole('button', { name: /Open in Master & QC/ });
       expect(rows, style).toHaveLength(40);
@@ -219,7 +220,7 @@ describe('DeliveryPage', () => {
   // The credits are chapters of the host's list: the opening first, the closing last, each judged by its measured file and counted in "n of N".
   describe('the credits rows', () => {
     const rowNames = () => screen.getAllByRole('button', { name: /Open in Master & QC/ }).map((row) => row.getAttribute('aria-label')?.split(':')[0]);
-    const both = { manuscriptChapters: async () => [credits('opening'), ...CHAPTERS, credits('closing')] };
+    const both = { manuscriptChapters: async () => chaptersOf([credits('opening'), ...CHAPTERS, credits('closing')]) };
 
     it('lists the opening credits first and the closing credits last, and counts them', async () => {
       mount([...PASSING, passing('Opening credits.wav')], both);
@@ -237,7 +238,7 @@ describe('DeliveryPage', () => {
     });
 
     it('draws a kind the list lacks as no row', async () => {
-      mount(PASSING, { manuscriptChapters: async () => [...CHAPTERS, credits('closing')] });
+      mount(PASSING, { manuscriptChapters: async () => chaptersOf([...CHAPTERS, credits('closing')]) });
       await screen.findByText('4 of 5');
       expect(rowNames().at(-1)).toBe('Closing credits');
       expect(rowNames()[0]).toBe('Chapter 01');

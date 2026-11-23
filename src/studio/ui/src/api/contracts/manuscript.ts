@@ -185,13 +185,8 @@ export interface ManuscriptApi {
   manuscriptImportCommit(jobId: string, options: { confirmedReset: boolean; selection?: ManuscriptImportSelection }): Promise<WorkJob>;
   manuscriptImportCancel(jobId: string): Promise<void>;
   clearProjectData(): Promise<void>;
-  /**
-   * The chapter list: the same host call as `manuscriptChapterList`, without the project it names. Readers that must know which project
-   * the list belongs to (the store's chapters slot) use `manuscriptChapterList`.
-   */
-  manuscriptChapters(): Promise<ManuscriptChapter[]>;
   /** The chapter list and the project the host read it from (#4040): the folder text Bootstrap sends as `projectFolder`. */
-  manuscriptChapterList(): Promise<ManuscriptChapterList>;
+  manuscriptChapters(): Promise<ManuscriptChapterList>;
   manuscriptParagraphs(chapter: string): Promise<ManuscriptParagraph[]>;
   /** Searches the whole book, ignoring case; refused for a term over MANUSCRIPT_SEARCH_TERM_MAX characters after trimming. */
   manuscriptSearch(query: string): Promise<ManuscriptSearchResult>;

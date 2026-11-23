@@ -13,7 +13,6 @@ export const COALESCED_READS: ReadonlySet<string> = new Set([
   'dawCapabilities',
   'dawChoice',
   'findingsSummary',
-  'manuscriptChapterList',
   'manuscriptChapters',
   'measureState',
   'pickupsList',

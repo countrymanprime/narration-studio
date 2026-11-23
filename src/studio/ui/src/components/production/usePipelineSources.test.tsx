@@ -10,6 +10,7 @@ import type { ScriptPrep } from '../../api/contracts/scriptPrep';
 import { createMockApi } from '../../api/mockApi';
 import type { ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi } from '../../types';
 import { usePipelineSources } from './usePipelineSources';
+import { chaptersOf } from '../../api/chaptersOf';
 
 const finding = (chapterId: string | undefined, status: Finding['review']['status'], extra: Partial<Finding> = {}) =>
   ({ id: `${chapterId}-${status}-${Math.random()}`, manuscript: chapterId ? { chapter_id: chapterId } : undefined, review: { status }, ...extra }) as Finding;
@@ -38,7 +39,7 @@ function sources(over: {
     findingsList: () =>
       over.failFindings ? Promise.reject(new Error('down')) : Promise.resolve({ findings: over.findings ?? [], total: over.findings?.length ?? 0 }),
     measureState: () => Promise.resolve({ phase: 'success', files: over.files ?? [] } as unknown as MeasureJob),
-    manuscriptChapters: () => Promise.resolve(over.chapters ?? []),
+    manuscriptChapters: () => Promise.resolve(chaptersOf(over.chapters ?? [])),
     scriptPrepList: () => (over.prep === 'down' ? Promise.reject(new Error('down')) : Promise.resolve({ chapters: over.prep ?? [], words: [] })),
   } as NarrationApi;
   const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
@@ -109,7 +110,7 @@ describe('usePipelineSources', () => {
       ...createMockApi(),
       findingsList: () => Promise.resolve({ findings: [], total: 0 }),
       measureState: () => Promise.resolve({ phase: 'success', files: [] } as unknown as MeasureJob),
-      manuscriptChapters: () => Promise.resolve([]),
+      manuscriptChapters: () => Promise.resolve(chaptersOf([])),
       scriptPrepList: () =>
         down ? Promise.reject(new Error('down')) : Promise.resolve({ chapters: [{ chapterId: 'c1', state: 'prepped' as const }], words: [] }),
     } as NarrationApi;
@@ -142,7 +143,7 @@ describe('usePipelineSources under the store (#3658)', () => {
       ...createMockApi(),
       findingsList: () => Promise.resolve({ findings: [], total: 0 }),
       measureState: () => Promise.resolve({ phase: 'success', files } as unknown as MeasureJob),
-      manuscriptChapters: vi.fn(chapters),
+      manuscriptChapters: vi.fn(async () => chaptersOf(await chapters())),
       scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
     } as unknown as NarrationApi & { manuscriptChapters: ReturnType<typeof vi.fn> };
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -191,7 +192,7 @@ describe('usePipelineSources under the store (#3658)', () => {
       ...createMockApi(),
       findingsList: () => Promise.resolve({ findings: [], total: 0 }),
       measureState: () => Promise.resolve({ phase: 'success', files: files[project as 'a' | 'b'] } as unknown as MeasureJob),
-      manuscriptChapters: async () => lists[project as 'a' | 'b'],
+      manuscriptChapters: async () => chaptersOf(lists[project as 'a' | 'b']),
       scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
     } as unknown as NarrationApi;
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -227,7 +228,7 @@ describe('usePipelineSources under the store (#3658)', () => {
         return { findings: [finding('c-0001', 'dismissed')], total: 1 };
       },
       measureState: () => Promise.resolve({ phase: 'success', files: [] } as unknown as MeasureJob),
-      manuscriptChapters: async () => [chapter('c-0001', 0, 'Alpha')],
+      manuscriptChapters: async () => chaptersOf([chapter('c-0001', 0, 'Alpha')]),
       scriptPrepList: async () => {
         if (project === 'b') await gate;
         return { chapters: [{ chapterId: 'c-0001', state: 'ready' }], words: [] } as unknown as ScriptPrep;
@@ -261,7 +262,7 @@ describe('usePipelineSources under the store (#3658)', () => {
       measureState: () => Promise.resolve({ phase: 'success', files: [file(key === 'a' ? 'Alpha.wav' : 'Beta.wav', 'met')] } as unknown as MeasureJob),
       manuscriptChapters: async () => {
         if (key === 'b') await gate;
-        return key === 'a' ? [chapter('c1', 0, 'Alpha')] : [chapter('c1', 0, 'Beta')];
+        return key === 'a' ? chaptersOf([chapter('c1', 0, 'Alpha')]) : chaptersOf([chapter('c1', 0, 'Beta')]);
       },
       scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
     } as unknown as NarrationApi;
@@ -293,7 +294,7 @@ describe('usePipelineSources under the store (#3658)', () => {
       measureState: () => Promise.resolve({ phase: 'success', files: [file(measured[project], 'met')] } as unknown as MeasureJob),
       manuscriptChapters: async () => {
         if (project === 'b') throw new Error('offline');
-        return [chapter('c1', 0, 'Alpha')];
+        return chaptersOf([chapter('c1', 0, 'Alpha')]);
       },
       scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
     } as unknown as NarrationApi;
@@ -325,7 +326,7 @@ describe('usePipelineSources under the store (#3658)', () => {
         await new Promise((resolve) => setTimeout(resolve, mine === 'b' ? 80 : 5));
         return { phase: 'success', files: [file(mine === 'c' ? 'Gamma.wav' : 'Alpha.wav', 'met')] } as unknown as MeasureJob;
       },
-      manuscriptChapters: async () => [chapter('c1', 0, key === 'c' ? 'Gamma' : 'Alpha')],
+      manuscriptChapters: async () => chaptersOf([chapter('c1', 0, key === 'c' ? 'Gamma' : 'Alpha')]),
       scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
     } as unknown as NarrationApi;
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -352,7 +353,7 @@ describe('usePipelineSources under the store (#3658)', () => {
       measureState: () => Promise.resolve({ phase: 'success', files: [file('Alpha.wav', 'met')] } as unknown as MeasureJob),
       manuscriptChapters: async () => {
         if (fail) throw new Error('offline');
-        return [chapter('c1', 0, title)];
+        return chaptersOf([chapter('c1', 0, title)]);
       },
       scriptPrepList: () => Promise.resolve({ chapters: [], words: [] }),
     } as unknown as NarrationApi;
@@ -392,7 +393,7 @@ describe('usePipelineSources under the store (#3658)', () => {
       },
       manuscriptChapters: async () => {
         counts.chapters += 1;
-        return [chapter('c1', 0, 'Alpha')];
+        return chaptersOf([chapter('c1', 0, 'Alpha')]);
       },
       scriptPrepList: async () => {
         counts.prep += 1;

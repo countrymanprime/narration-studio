@@ -25,6 +25,7 @@ import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
 import { ProjectTrackProviders } from '../chapterTracks/ChapterTrackState';
 import { PageFooterProvider } from '../primitives/KeyHints';
+import { chaptersOf } from '../../api/chaptersOf';
 
 /** What a chapter tile draws: its number and count, which it draws as generated content from data-text. */
 const drawn = (tile: HTMLElement): string => [...tile.querySelectorAll('[data-text]')].map((part) => part.getAttribute('data-text')).join('');
@@ -735,8 +736,10 @@ describe('check-recordings-opens-from-proof', () => {
     const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
     const api = createMockApi();
     // The card checks a chapter that has a recording and text.
-    const chapters = await api.manuscriptChapters();
-    vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters.map((c) => ({ ...c, recordedSeconds: 120, wordCount: Math.max(c.wordCount, 100) })));
+    const chapters = (await api.manuscriptChapters()).chapters;
+    vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
+      chaptersOf(chapters.map((c) => ({ ...c, recordedSeconds: 120, wordCount: Math.max(c.wordCount, 100) }))),
+    );
     renderPage({ api, at: '/proof?chapter=chapter-1' });
     await noteRows();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
@@ -830,7 +833,7 @@ describe('ProofPage loading state', () => {
 });
 
 /** The mock's chapters carry no measured recording; Compare, like Check recordings, is off without one. */
-const recordedApi = () => createMockApi({ manuscriptChapters: async () => WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 })) });
+const recordedApi = () => createMockApi({ manuscriptChapters: async () => chaptersOf(WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 }))) });
 
 describe('Compare on the Proof page (#2822)', () => {
   it('opens the Compare panel under the check card from the chapter in view, and closes it again', async () => {
@@ -879,7 +882,7 @@ describe('Compare on the Proof page (#2822)', () => {
 describe('Proof when the tracks could not be read (#3394)', () => {
   it('says the shared sentence in the timeline slot, not that there is no recording', async () => {
     const api = createMockApi({
-      manuscriptChapters: async () => WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 })),
+      manuscriptChapters: async () => chaptersOf(WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 }))),
       tracksLive: async () => {
         throw new Error('REAPER did not answer.');
       },

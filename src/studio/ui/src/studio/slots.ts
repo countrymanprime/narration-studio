@@ -27,13 +27,13 @@ export type HostEventApi = Pick<SystemApi, 'subscribeJobEnded'> & { subscribeRec
  * a chapter sync updates, or a page publishes `MANUSCRIPT_CHANGED`, and reloaded when the window regains focus. The bookmarks:
  * every bookmark in reading order, reloaded on focus and by the bookmark commands after each change and each undo.
  */
-export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapterList'>, bookmarks: Pick<BookmarksApi, 'bookmarksList'>) {
+export function createSlots(api: Pick<ManuscriptApi, 'manuscriptChapters'>, bookmarks: Pick<BookmarksApi, 'bookmarksList'>) {
   return {
     chapters: {
       schema: chaptersSchema,
       // The host names the project it read the list from, and the store holds the list under that project (#4040).
       read: async () => {
-        const answer = await api.manuscriptChapterList();
+        const answer = await api.manuscriptChapters();
         return { project: answer.project, payload: answer.chapters };
       },
       events: ['job:ended', 'chapters:written', 'daw:record-ended', 'chapter-sync'],

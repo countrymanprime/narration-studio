@@ -70,7 +70,7 @@ const spot = (n: number, offset: number) => ({ chapterId: chapter.id, paragraphI
 
 beforeEach(async () => {
   api = createMockApi();
-  const [first] = withoutCredits(await api.manuscriptChapters());
+  const [first] = withoutCredits((await api.manuscriptChapters()).chapters);
   chapter = first!;
   lines = new Map((await api.manuscriptParagraphs(chapter.id)).map((p) => [p.id, p.text]));
 });
