@@ -60,7 +60,7 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/proof/inspector/Inspector.tsx': 2,
   'components/proof/inspector/InspectorActions.tsx': 1,
   'components/proof/inspector/TrimGap.tsx': 1,
-  'components/schedule/SchedulePage.tsx': 2,
+  'components/schedule/SchedulePage.tsx': 1,
   'components/script/page/chapters/CreditsSection.tsx': 1,
   'components/script/page/rail/threads/ThreadsTab.tsx': 1,
   'components/script/page/rail/words/DefinitionBlock.tsx': 1,
