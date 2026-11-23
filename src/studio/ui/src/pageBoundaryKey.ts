@@ -29,3 +29,12 @@ export function historyHoldsMove(state: HistoryEntryState, locationKey: string, 
   if (state?.key === undefined) return state?.idx !== undefined && shown?.key === locationKey && shown.idx !== undefined && !sameIndex;
   return state.key !== locationKey && !sameIndex;
 }
+
+/**
+ * Whether the address may be cut now (replaced with the page's bare address). Never while history holds a move, and never against an entry whose key is not the location's the cut was computed from, even
+ * on the same index: a page replaced the entry (the Booth writing its chapter) and the cut would overwrite that write; the router commits the new location and the cut is worked out again from it (#4099).
+ */
+export function historyAllowsCut(state: HistoryEntryState, locationKey: string, shown: { key: string; idx: unknown } | undefined): boolean {
+  if (historyHoldsMove(state, locationKey, shown)) return false;
+  return state?.key === undefined || state.key === locationKey;
+}

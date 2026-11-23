@@ -58,6 +58,18 @@ let appMounts = 0;
 // Whether this process has mounted the app yet: the first mount pays the cold start (see the Back/Forward block's warm-up).
 let appEverMounted = false;
 
+/** A host whose bootstrap names another folder once `switchTo` is called: an attach event only closes what a page held when the bootstrap then names another project (#4099). */
+async function hostSwitching() {
+  const first = await createMockApi().bootstrap();
+  let other = false;
+  return {
+    bootstrap: () => Promise.resolve(other ? { ...first, projectFolder: '/Other', projectName: 'Other' } : first),
+    switchTo: () => {
+      other = true;
+    },
+  };
+}
+
 function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial: Parameters<typeof createMockApi>[1] = {}, journal?: Journal) {
   appMounts += 1;
   appEverMounted = true;
@@ -492,7 +504,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
   it('a project attach closes every question and dialog a page opened for the old project, and nothing they would have done happens (#4057)', async () => {
     let attach: ((state: { attached: boolean }) => void) | undefined;
+    const host = await hostSwitching();
     renderApp({
+      bootstrap: host.bootstrap,
       subscribeProjectAttach: (listener) => {
         attach = listener;
         return () => {};
@@ -509,6 +523,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     });
     expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
     expect(screen.getByText('A form for the old project')).toBeTruthy();
+    host.switchTo();
     act(() => attach!({ attached: true }));
     await question;
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
@@ -552,7 +567,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
   it('puts focus on the page when the project change removes a layer a page held itself, not on the document body (#4057)', async () => {
     let attach: ((state: { attached: boolean }) => void) | undefined;
+    const host = await hostSwitching();
     renderApp({
+      bootstrap: host.bootstrap,
       subscribeProjectAttach: (listener) => {
         attach = listener;
         return () => {};
@@ -567,10 +584,14 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     document.body.appendChild(layer);
     document.getElementById('held-layer-button')!.focus();
     expect(document.activeElement?.id).toBe('held-layer-button');
-    act(() => {
-      attach!({ attached: true });
+    host.switchTo();
+    // The page's remount takes the layer away right after the project change is counted and told: here, as the notice is raised.
+    const toast = overlay.toast.bind(overlay);
+    vi.spyOn(overlay, 'toast').mockImplementation((...args) => {
       layer.remove();
+      return toast(...args);
     });
+    act(() => attach!({ attached: true }));
     await waitFor(() => expect(document.activeElement?.id).toBe('main-content'));
     expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
   });

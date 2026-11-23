@@ -1,57 +1,86 @@
 /**
- * A project folder as one folder: a backslash and a slash are the same separator, repeated and trailing separators are nothing, and a leading double separator (a network share) stays. The case is kept: on
- * a case-sensitive file system `X` and `x` are two folders. The host may spell the one folder both ways (the start-up path and the recent list do), so everything the app keeps per project
- * (an address's owner, a remembered place) goes through this one function (#4099).
+ * A project folder as one folder: a backslash and a slash are the same separator, repeated and trailing separators are nothing, and a leading double separator (a network share) stays.
+ * The root folder is `/` and a drive's root `C:/` (an empty folder means no project, so no root normalises to it, and `C:` without a separator is not the root). The host may spell the one folder both ways (the start-up path and the recent list do),
+ * so everything the app keeps per project (an address's owner, a remembered place) goes through this one function (#4099).
+ *
+ * The case is folded for a Windows-style path (a drive letter, or a network share) and only for those: the host compares them without case (internal/recents/store.go `samePath`,
+ * internal/project/match.go `normalizePath`), while a POSIX path is case-sensitive (`X` and `x` are two folders there).
  */
 export function folderKey(folder: string): string {
   const slashed = folder.replace(/\\/g, '/');
   const lead = slashed.startsWith('//') ? '//' : '';
-  return (
+  const joined =
     lead +
     slashed
       .slice(lead.length)
       .replace(/\/{2,}/g, '/')
-      .replace(/\/+$/, '')
-  );
+      .replace(/\/+$/, '');
+  if (joined === '') return folder === '' ? '' : '/';
+  // A drive and its root are two folders on Windows (`C:` is the drive's own current directory, `C:/` its root).
+  if (/^[A-Za-z]:$/.test(joined) && /[\\/]$/.test(folder)) return `${joined.toLowerCase()}/`;
+  return lead !== '' || /^[A-Za-z]:/.test(joined) ? joined.toLowerCase() : joined;
 }
 
 /** Whether two project folders are one folder (see `folderKey`). */
 export const isSameProject = (a: string, b: string): boolean => folderKey(a) === folderKey(b);
 
-const keyFor = (name: string, folder: string): string => `narration.${name}.${folder}`;
+const prefixOf = (name: string): string => `narration.${name}.`;
 
 /** The browser-storage key of what `name` (for example `booth.lastPlace`) keeps for this project: the normalised folder, so one folder spelled two ways is one place. */
-export const projectStorageKey = (name: string, folder: string): string => keyFor(name, folderKey(folder));
+export const projectStorageKey = (name: string, folder: string): string => prefixOf(name) + folderKey(folder);
 
-/** The spellings of this folder an earlier build may have written a key under: as the caller has it, the folder with backslashes, and each with a trailing separator. */
-function legacySpellings(folder: string): string[] {
-  const normal = folderKey(folder);
-  const backslashed = normal.replace(/\//g, '\\');
-  return [...new Set([folder, backslashed, `${normal}/`, `${backslashed}\\`])].filter((spelling) => spelling !== normal);
+/** How many storage keys a read looks through for an old spelling; a storage fuller than this is not searched past it. */
+const SCAN_LIMIT = 5000;
+
+/** A value an earlier build kept for this project under a spelling other than the normalised one. */
+export type LegacyEntry = { key: string; value: string };
+
+/**
+ * What earlier builds kept for this project under `name`, whatever the spelling: every storage key with the prefix `narration.<name>.` whose folder part is this folder by
+ * `folderKey`, other than the normalised key itself. The caller's own spelling comes first, then the rest in key order. Empty when storage cannot be read; never throws.
+ */
+export function legacyEntries(name: string, folder: string): LegacyEntry[] {
+  try {
+    const prefix = prefixOf(name);
+    const wanted = folderKey(folder);
+    const normalised = prefix + wanted;
+    const own = prefix + folder;
+    const storage = window.localStorage;
+    const keys: string[] = [];
+    for (let i = 0; i < Math.min(storage.length, SCAN_LIMIT); i += 1) {
+      const key = storage.key(i);
+      if (key !== null && key !== normalised && key.startsWith(prefix) && folderKey(key.slice(prefix.length)) === wanted) keys.push(key);
+    }
+    keys.sort((a, b) => (a === own ? -1 : b === own ? 1 : a < b ? -1 : a > b ? 1 : 0));
+    return keys.flatMap((key) => {
+      const value = storage.getItem(key);
+      return value === null ? [] : [{ key, value }];
+    });
+  } catch {
+    return [];
+  }
 }
 
 /**
- * Reads what `name` keeps for this project. A value under the normalised key wins. Failing that, the value an earlier build wrote under the folder as it was then spelled (as the caller
- * has it, then with backslashes, then each with a trailing separator; the first found) is copied to the normalised key (the old key is left alone) and returned. Two old spellings
- * that both hold a value are not merged: the first in that order is taken. Null when no project is open (an empty folder), storage is blocked or holds nothing; never throws.
+ * Reads what `name` keeps for this project. A value under the normalised key wins. Failing that, what an earlier build kept under any spelling of the folder (`legacyEntries`) is
+ * chosen by `choose` (the first by default: the caller's own spelling, else the lowest key, as a plain value carries nothing to compare them by), copied to the normalised key (the old
+ * keys are left alone) and returned. Null when no project is open (an empty folder), storage is blocked or holds nothing; never throws.
  */
-export function readProjectStorage(name: string, folder: string): string | null {
+export function readProjectStorage(name: string, folder: string, choose: (entries: LegacyEntry[]) => string = (entries) => entries[0]!.value): string | null {
   if (!folder) return null;
   try {
     const key = projectStorageKey(name, folder);
     const kept = window.localStorage.getItem(key);
     if (kept !== null) return kept;
-    for (const spelling of legacySpellings(folder)) {
-      const legacy = window.localStorage.getItem(keyFor(name, spelling));
-      if (legacy === null) continue;
-      try {
-        window.localStorage.setItem(key, legacy);
-      } catch {
-        /* the copy is only a convenience: the value is still returned */
-      }
-      return legacy;
+    const entries = legacyEntries(name, folder);
+    if (entries.length === 0) return null;
+    const chosen = entries.length === 1 ? entries[0]!.value : choose(entries);
+    try {
+      window.localStorage.setItem(key, chosen);
+    } catch {
+      /* the copy is only a convenience: the value is still returned */
     }
-    return null;
+    return chosen;
   } catch {
     return null;
   }

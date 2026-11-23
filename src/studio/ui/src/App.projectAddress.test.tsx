@@ -362,6 +362,37 @@ describe('the chapter in the address is not carried into another project (#4059)
       expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
     });
 
+    it('a Back held by the shortcut sheet with the switch in the same tick leaves the Booth on the new project\u2019s remembered chapter', async () => {
+      const { api } = await openAt('/script');
+      await screen.findByRole('heading', { level: 1, name: 'Script' });
+      window.localStorage.setItem(`narration.booth.lastPlace.${await aliceFolder()}`, JSON.stringify({ chapterId: 'chapter-2', paragraphId: '', word: 0 }));
+      await jumpTo('Booth');
+      await onChapter(/^Chapter: Chapter 2:/);
+      await waitFor(() => expect(address()).toBe('/booth?chapter=chapter-2'));
+      seedOther('booth', 'chapter-3');
+      fireEvent.keyDown(document, { key: '?', code: 'Slash', shiftKey: true });
+      await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+      const replaces: string[] = [];
+      const replaceState = window.history.replaceState;
+      window.history.replaceState = function (this: History, state: unknown, unused: string, url?: string | URL | null) {
+        replaces.push(String(url));
+        return replaceState.call(this, state, unused, url);
+      };
+      try {
+        await sameTask(async () => {
+          window.history.back();
+          await api.switchProject(OTHER, 'Voltage and the Undercroft');
+        });
+        await onChapter(/^Chapter: Chapter 3:/);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      } finally {
+        window.history.replaceState = replaceState;
+      }
+      expect(address()).toBe('/booth?chapter=chapter-3');
+      // Nothing wrote the bare address over the Booth's own chapter after it.
+      expect(replaces.lastIndexOf('/booth')).toBeLessThan(replaces.lastIndexOf('/booth?chapter=chapter-3'));
+    });
+
     it('a Back the app\u2019s guard stops, with the switch landing before it restores history, leaves the page rendered', async () => {
       const { api } = await openAt('/script');
       await screen.findByRole('heading', { level: 1, name: 'Script' });
@@ -484,5 +515,68 @@ describe('the chapter in the address is not carried into another project (#4059)
         .toasts.map((toast) => toast.text)
         .join('|'),
     ).not.toMatch(/project changed/i);
+  });
+
+  // The host sends its attach event for the open folder too (a second launch of the DAW with the same project): nothing is closed and nothing is said until the bootstrap names another folder.
+  it.each([
+    ['the same spelling', (folder: string) => folder],
+    ['another spelling', (folder: string) => folder.replace(/\//g, '\\')],
+  ])('an attach of the open folder in %s keeps the jump menu open and shows no project-changed toast', async (_name, spell) => {
+    const { api, first } = await openAt('/editing/chapter-7');
+    await onChapter(/^Chapter: Chapter 7:/);
+    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+    await api.switchProject(spell(first), 'Alice');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(screen.queryByRole('combobox', { name: 'Jump menu' })).not.toBeNull();
+    expect(
+      overlay
+        .getSnapshot()
+        .toasts.map((toast) => toast.text)
+        .join('|'),
+    ).not.toMatch(/project changed/i);
+  });
+
+  it('an attach of another folder still closes what was open and says so', async () => {
+    const { api } = await openAt('/editing/chapter-7');
+    await onChapter(/^Chapter: Chapter 7:/);
+    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+    expect(
+      overlay
+        .getSnapshot()
+        .toasts.map((toast) => toast.text)
+        .join('|'),
+    ).toMatch(/project changed/i);
+  });
+
+  it('a project at the root folder opens after no project, and closing it shows the picker', async () => {
+    const { api } = await openAt('/booth');
+    await onChapter(/^Chapter: /);
+    await api.switchProject('', '');
+    await screen.findByText('Choose your project');
+    await api.switchProject('/', 'Root');
+    await onChapter(/^Chapter: /);
+    await api.switchProject('', '');
+    await screen.findByText('Choose your project');
+  });
+
+  it('rapid A, B, A, B, A switches: the last project\u2019s Booth opens on its own kept chapter, and nothing of B is written under A', async () => {
+    const { api, first } = await openAt('/booth?chapter=chapter-3');
+    await onChapter(/^Chapter: Chapter 3:/);
+    await waitFor(() => expect(loadLastPlace(first)?.chapterId).toBe('chapter-3'));
+    // As the host sends them (jsdom shows the break only some of the time without the fix; the browser run showed it on both tries): each switch is asked without waiting for the one before to be drawn.
+    const switches = [OTHER, first.replace(/\//g, '\\') + '\\', OTHER, `${first}/`];
+    for (const [i, folder] of switches.entries()) {
+      void api.switchProject(folder, 'x');
+      if (i < switches.length - 1) await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    await onChapter(/^Chapter: Chapter 3:/);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await onChapter(/^Chapter: Chapter 3:/);
+    expect(loadLastPlace(first)?.chapterId).toBe('chapter-3');
+    expect(address()).toBe('/booth?chapter=chapter-3');
   });
 });

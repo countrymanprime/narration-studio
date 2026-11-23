@@ -95,6 +95,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
   'src/hooks/useDawSoloesChapter.ts#1':
     "The DAW's quiet around the chapter the Booth is on (dawSoloChapter and dawSoloRestore, Booth.follow_chapter_in_daw): a call that fails leaves the DAW as it was or leaves the chapter soloed, never anything else, and the DAW's own ledger puts a solo it could not be told to put back at the bridge's next start. The one rejection is swallowed so the next call in the order still runs; the page's own DAW notices say whether the DAW answers, and a narrator's action never waits on it.",
+  'src/components/booth/page/lastPlace.ts#1':
+    'Reading the chapter places kept beside a last place, to tell two old spellings of the folder apart by when each chapter was left; with storage unreadable that one counts as having none, and the first spelling is taken.',
   'src/projectFolder.ts#1':
     "Copying a place an earlier build kept under the raw folder to the normalised key, in localStorage, per project (the Booth's last place and chapter places, Editing's, Proof's and Master & QC's last chapter); with storage full or blocked the copy is skipped, the value is still read and used for this visit, and the next read tries the copy again.",
   'src/hooks/useDawPullBack.ts#1':
