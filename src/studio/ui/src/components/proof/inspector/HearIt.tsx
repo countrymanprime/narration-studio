@@ -11,6 +11,7 @@ import { retryAction } from '../../primitives/Toast';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { capitalised, notAskedSentence } from '../../../studio/dawNames';
 import { reasonSentence } from '../../../api/errorMessage';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, recordingSentence, type PlaybackProvider } from '../../../playback/providers';
 
@@ -31,10 +32,6 @@ const NO_FILE = 'The app has no audio file for this note either.';
 const APP_FAILED = 'The audio file for this note could not be played.';
 
 type Playing = 'daw' | 'app' | null;
-
-/** Whether a Hear it loop (of this or another note) is the DAW's now (0: none): an answer that comes for an older press stops nothing a newer press started, even on another note. */
-let loopOwner = 0;
-let pressesMade = 0;
 
 /** The app's own player can play the note: it names its source file and a time in it. */
 const appRange = (finding: Finding) =>
@@ -104,7 +101,7 @@ export function HearIt({
   useEffect(
     () => () => {
       if (looped.current) {
-        loopOwner = 0;
+        dawPlayOwner.release();
         dropLoop.current();
       }
     },
@@ -128,7 +125,7 @@ export function HearIt({
       if (playing === 'app') player.stop();
       else {
         looped.current = false;
-        loopOwner = 0;
+        dawPlayOwner.release();
         try {
           await api.findingsStopLoop();
         } catch (error) {
@@ -142,7 +139,7 @@ export function HearIt({
   const start = () =>
     action.run('hear', async () => {
       const press = newest.begin();
-      const token = ++pressesMade;
+      const token = dawPlayOwner.begin();
       lastAsk.current = press;
       // A Retry while the app's fallback plays starts over: the app's clip stops first, so two players never run.
       player.stop();
@@ -154,9 +151,11 @@ export function HearIt({
         readiness: () => playReadiness(capabilities ?? null, 'navigate', capabilitiesFailed),
         play: async (note, { late }) => {
           let answer: FindingNavigation;
+          dawPlayOwner.claim(token);
           try {
             answer = await api.findingsLoop(note.id);
           } catch (error) {
+            dawPlayOwner.release(token);
             return { played: false, why: notAskedSentence(dawName, error) };
           }
           if (answer.outcome === 'looping') {
@@ -164,14 +163,15 @@ export function HearIt({
             // A loop a newer press started since is that press's, and is not stopped here.
             // The same when the note was left, or a newer press made, while the DAW was answering inside the deadline.
             if (late() || !newest.current(press)) {
-              if (loopOwner === 0) dropLoop.current();
+              if (dawPlayOwner.mayStop(token)) dropLoop.current();
               return { played: true };
             }
             looped.current = true;
-            loopOwner = token;
             setPlaying('daw');
             return { played: true };
           }
+          // Not looping: the DAW's play is nobody's, whatever the app does next.
+          dawPlayOwner.release(token);
           // A DAW that is recording keeps the room quiet: the app does not play over it.
           if (answer.outcome === 'refused' && answer.reason === 'recording') return { played: false, why: recordingSentence(dawName), final: true };
           return { played: false, why: answer.outcome === 'refused' ? answer.message : `${capitalised(dawName)} did not loop the note.` };

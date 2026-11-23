@@ -12,6 +12,7 @@ import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 import { notAskedSentence } from '../../../studio/dawNames';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { overlay } from '../../../overlay/overlayService';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 import { chapterLink, linkStateOf, tracksUnreadable, type ChapterLinkState } from '../../chapterTracks/chapterLink';
@@ -25,9 +26,6 @@ const ORIGINAL_AROUND = 3;
 const RESET_MARGIN_MS = 300;
 /** Why a line cannot be heard: the host gave it no place in the recording. */
 const NO_PLACE = 'This line has no place in the recording yet.';
-/** Plays begun in this app, across lists, and which of them last sent the DAW a play that it still owns (0: none): a late answer for an older press stops nothing a newer press started, even after the page was left and opened again. */
-let playsBegun = 0;
-let dawOwner = 0;
 /** The recording is in the project but the app's player could not play it. */
 const CLIP_FAILED = 'The recording for this line could not be played.';
 const NO_AUDIO = 'The recording of this chapter is not in the project, so the original cannot be played.';
@@ -126,7 +124,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
     overlay.dismissTopic(ORIGINAL_TOPIC);
     asked.current += 1;
     owner.current = null;
-    dawOwner = 0;
+    dawPlayOwner.release();
     if (live.current.inDaw) stopDaw();
     player.stop();
     setInDaw(false);
@@ -143,7 +141,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       // A read that failed is asked again for the next press; this one does not wait for it.
       if (!caps && capsFailed) readCapsAgain();
       const ask = newest.begin();
-      const token = ++playsBegun;
+      const token = dawPlayOwner.begin();
       lastPlay.current = { pickup, ask };
       const retry = (): void => {
         if (newest.current(ask) && asked.current === mine) void begin(pickup);
@@ -163,19 +161,19 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
           let why: string;
           try {
             // The DAW plays the stretch and stops itself at its end (play_range), so the end is the DAW's and the timer below only puts the button back.
-            dawOwner = token;
+            dawPlayOwner.claim(token);
             const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND, p.chapterId);
             if (result.ok) {
               dawStarted.current = true;
               // The deadline passed while the DAW was answering: the app plays in its place, so this DAW play is stopped, not left beside it.
               // An older press's late answer stops nothing a newer press started.
               if (late()) {
-                if (dawOwner === 0 || dawOwner === token) stopDaw();
+                if (dawPlayOwner.mayStop(token)) stopDaw();
                 return { played: true };
               }
               if (asked.current !== mine) {
                 // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
-                if (dawOwner === 0 || dawOwner === token) stopDaw();
+                if (dawPlayOwner.mayStop(token)) stopDaw();
                 return { played: true };
               }
               setPlayingId(p.id);
@@ -227,7 +225,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       // late answer comes (qa B1 on #3402).
       if (by !== name && owner.current === mine) {
         owner.current = null;
-        if (dawOwner === token) dawOwner = 0;
+        dawPlayOwner.release(token);
         if (dawStarted.current) stopDaw();
       }
       if (!wanted() || !notice) return;
@@ -263,7 +261,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       asked.current += 1;
       owner.current = null;
       if (live.current.inDaw) {
-        dawOwner = 0;
+        dawPlayOwner.release();
         stopDaw();
       }
       clearTimer();

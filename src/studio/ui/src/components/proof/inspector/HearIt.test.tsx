@@ -283,6 +283,32 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     expect(stopLoop).not.toHaveBeenCalled();
   });
 
+  it("an old note's answer that lands while a newer note is still being asked stops nothing", async () => {
+    const answers: ((value: FindingNavigation) => void)[] = [];
+    const stopLoop = vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 }));
+    const apiFor = (): HearItApi => ({
+      findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => answers.push(resolve))),
+      findingsStopLoop: stopLoop,
+    });
+    const first = render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    first.unmount();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed({ id: 'f2' })} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    // The old note's answer lands first, while the new note's loop is still being asked: the DAW's play is the new press's by now.
+    answers[0]!({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(stopLoop).not.toHaveBeenCalled();
+  });
+
   it('says where to stop a loop it could not stop after the note was left', async () => {
     let answerLoop: (value: FindingNavigation) => void = () => {};
     const api: HearItApi = {
