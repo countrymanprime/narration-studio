@@ -127,4 +127,30 @@ describe('the Companion opens on the chapter the Booth remembers', () => {
     view.rerender(tree(api, '/companion', '/b'));
     await waitFor(() => expect(shown()).toBe('chapter-2'));
   });
+
+  it('with-nothing-remembered-it-opens-on-the-chapter-the-daw-is-on-and-full-app-goes-there', async () => {
+    const dawPlace = async () => ({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 });
+    await open('/companion', { readerState: ON_CHAPTER_1, dawPlace });
+    await waitFor(() => expect(shown()).toBe('chapter-6'));
+    await userEvent.setup().click(await screen.findByRole('button', { name: /full app/i }));
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?chapter=chapter-6'));
+  });
+
+  it('the-remembered-chapter-wins-over-the-daws', async () => {
+    saveLastPlace('/proj', place('chapter-3'));
+    const dawPlace = async () => ({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 });
+    await open('/companion', { readerState: ON_CHAPTER_1, dawPlace });
+    await waitFor(() => expect(shown()).toBe('chapter-3'));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(shown()).toBe('chapter-3');
+  });
+
+  it('a-running-session-wins-over-the-daw', async () => {
+    const base = createMockApi();
+    const dawPlace = async () => ({ ok: true, message: '', chapterId: 'chapter-6', selected: 1, cursor: 10 });
+    await open('/companion', { dawPlace, teleprompterState: async () => ({ ...(await base.teleprompterState()), phase: 'running', chapter: 'chapter-2' }) });
+    await waitFor(() => expect(shown()).toBe('chapter-2'));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(shown()).toBe('chapter-2');
+  });
 });
