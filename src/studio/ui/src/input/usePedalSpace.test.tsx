@@ -9,6 +9,7 @@ function Harness({ toggle, running = false }: { toggle: () => unknown; running?:
     <div>
       <button type="button">Chapter list</button>
       <button type="button">Record</button>
+      <input type="radio" aria-label="Main button choice" />
       <div data-toast-region>
         <div data-tone="error">
           <button type="button">Retry</button>
@@ -22,9 +23,9 @@ function Harness({ toggle, running = false }: { toggle: () => unknown; running?:
 }
 
 /** A Space press on the focused control, as the browser delivers it to the document's capture listener first. */
-function pressSpace(target: HTMLElement): KeyboardEvent {
+function pressSpace(target: HTMLElement, code = 'Space'): KeyboardEvent {
   target.focus();
-  const event = new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true });
+  const event = new KeyboardEvent('keydown', { key: code === 'Space' ? ' ' : 'Enter', code, bubbles: true, cancelable: true });
   target.dispatchEvent(event);
   return event;
 }
@@ -65,5 +66,29 @@ describe('the pedal Space (#4094)', () => {
     const second = pressSpace(getByRole('button', { name: 'Chapter list' }));
     expect(toggle).not.toHaveBeenCalled();
     expect(second.defaultPrevented).toBe(true);
+  });
+
+  it('swallows an Enter and a numpad Enter on the page just after a toast press, as the same tap', () => {
+    for (const code of ['Enter', 'NumpadEnter']) {
+      const toggle = vi.fn();
+      const { getByRole, unmount } = render(<Harness toggle={toggle} />);
+      pressSpace(getByRole('button', { name: 'Retry' }), code);
+      document.body.focus();
+      const second = pressSpace(document.body, code);
+      expect(second.defaultPrevented).toBe(true);
+      expect(toggle).not.toHaveBeenCalled();
+      unmount();
+    }
+  });
+
+  it('leaves a Space just after a toast press to a radio and to the next toast button', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<Harness toggle={toggle} />);
+    pressSpace(getByRole('button', { name: 'Retry' }));
+    const radio = pressSpace(getByRole('radio', { name: 'Main button choice' }));
+    const dismiss = pressSpace(getByRole('button', { name: 'Dismiss message' }));
+    expect(radio.defaultPrevented).toBe(false);
+    expect(dismiss.defaultPrevented).toBe(false);
+    expect(toggle).not.toHaveBeenCalled();
   });
 });

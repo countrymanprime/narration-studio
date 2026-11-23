@@ -484,4 +484,42 @@ test.describe('a toast button keeps its Space (#4094)', () => {
       expect(await dawRecording(page)).toBe(false);
     });
   }
+
+  for (const code of ['Enter', 'NumpadEnter']) {
+    test(`a second ${code} just after one on the toast's Retry starts no take`, async ({ page }) => {
+      await openBooth(page);
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+      const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
+      await expect(retry).toBeVisible();
+      await retry.focus();
+      await page.keyboard.press(code);
+      await page.waitForTimeout(30);
+      await page.keyboard.press(code);
+      await expect(record(page)).toBeVisible();
+      expect(await dawRecording(page)).toBe(false);
+    });
+  }
+
+  for (const name of ['Retry', 'Dismiss message']) {
+    test(`during a cold read, Space on the toast's ${name} stops the cold read`, async ({ page }) => {
+      await openBooth(page);
+      await page.getByRole('button', { name: 'Record options' }).click();
+      await page.getByRole('radio', { name: 'Cold read' }).click();
+      await page.keyboard.press('Escape');
+      await pastStartGuard(page);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press('Space');
+      await expect(page.getByText('Mic on · cold read', { exact: true })).toBeVisible();
+      await pastStartGuard(page);
+      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+      await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+      const button = page.locator('[data-toast-region]').getByRole('button', { name });
+      await expect(button).toBeVisible();
+      await button.focus();
+      await page.keyboard.press('Space');
+      await expect(page.getByText('Mic on · cold read', { exact: true })).toHaveCount(0);
+    });
+  }
 });
