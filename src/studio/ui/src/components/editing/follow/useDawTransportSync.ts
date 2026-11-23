@@ -287,6 +287,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         owns.current = false;
         dawPlaying.current = false;
         range.current = null;
+        // The stretch ended by itself in the DAW: nobody owns its play now.
+        dawPlayOwner.release();
         live.current.onHead(r.docEnd, false);
         return;
       }
@@ -295,6 +297,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       dawPlaying.current = false;
       epoch.current += 1;
+      // The page gave the play up: it owns nothing in the DAW, and a stale answer parked behind it is stopped.
+      dawPlayOwner.release();
       live.current.onLost(leased ? LOST : UNFOLLOWED);
       if (!leased) stopDaw();
     }, 1000);
@@ -354,8 +358,10 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         dawPlayOwner.release(token);
         return why || 'The DAW did not play it.';
       }
-      // Stopped (or given up) while the DAW was being asked: its answer stops the DAW again. A newer play of the page (it owns now) is not this play: it is left running.
-      if (epoch.current !== mineEpoch && !owns.current) {
+      // Stopped (or given up) while the DAW was being asked: its answer stops the DAW again.
+      // A newer play of the page that is still being asked owns the DAW: this answer is stopped if that play fails (nothing then plays in the DAW), and dropped if
+      // it settles (the DAW's one play is then the newer one).
+      if (epoch.current !== mineEpoch) {
         dawPlayOwner.stopOrOrphan(token, stopDaw);
         return null;
       }

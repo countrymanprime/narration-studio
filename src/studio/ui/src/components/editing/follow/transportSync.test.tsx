@@ -710,6 +710,38 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(actions.filter((x) => x === 'stop').length).toBeGreaterThan(stopsBefore);
     if (sentence) expect(notices.at(-1)).toBe(sentence);
   });
+  it('a play answered while a newer play of the page is asked is stopped when that newer play is refused (the older one is not left beside the app)', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    const answers: ((r: { ok: boolean; message: string }) => void)[] = [];
+    const actions: string[] = [];
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      actions.push(action);
+      if (action === 'watch') return new Promise(() => {});
+      if (action === 'play') return new Promise((resolve) => answers.push(resolve as (r: { ok: boolean; message: string }) => void));
+      return (real as (...a: unknown[]) => unknown)(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(answers).toHaveLength(2);
+    await act(async () => answers[0]!({ ok: true, message: '' }));
+    await wait(10);
+    const stopsBefore = actions.filter((x) => x === 'stop').length;
+    await act(async () => answers[1]!({ ok: false, message: 'refused' }));
+    await wait(10);
+    expect(actions.filter((x) => x === 'stop').length).toBeGreaterThan(stopsBefore);
+  });
   it('a stretch played before the watch lease was answered ends where the stretch does: the page does not say the DAW stopped answering', async () => {
     const api = createMockApi({}, { daw: {} });
     const real = api.dawTransportSync.bind(api);
