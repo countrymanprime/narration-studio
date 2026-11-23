@@ -19,7 +19,7 @@ import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
 import { recordedAudioHours, recordedPercent, recordedShare } from '../../recordedThrough';
-import { chapterLengthsOf } from './target/pace.selectors';
+import { chapterLengthsOf } from '../../recordedThrough';
 import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
 import { useVoiceLayout } from '../engine/voiceLayout';
 import { calc, scheduleChapters } from '../schedule/progress';

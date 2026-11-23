@@ -6,7 +6,8 @@ import { hasRecording, recordedLabel } from './components/proof/checkcard/cardSe
 import { bookFigures } from './components/production/overview/overviewFigures';
 import { rankNextUp } from './components/production/pipeline/nextUpRanking';
 import { buildPipelineRows } from './components/production/pipeline/pipelineRows';
-import { chapterLengthsOf, ownRate } from './components/production/target/pace.selectors';
+import { chapterLengthsOf } from './recordedThrough';
+import { ownRate } from './components/production/target/pace.selectors';
 import { audioToCheck, recordedChapters } from './components/recordingcheck/checkSelection';
 import { MIN_OWN_RATE_CHAPTERS } from './components/schedule/estimates';
 import {

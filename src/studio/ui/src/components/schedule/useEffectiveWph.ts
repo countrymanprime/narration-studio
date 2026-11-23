@@ -4,7 +4,8 @@ import type { ProductionRateBasis } from '../../api/contracts/production';
 import type { Measured } from '../../api/schemas/base';
 import { isNarrationChapter } from '../../chapterKinds';
 import { useChapters } from '../../studio/useChapters';
-import { chapterLengthsOf, ownRate, wphOf, type PaceChapter } from '../production/target/pace.selectors';
+import { chapterLengthsOf } from '../../recordedThrough';
+import { ownRate, wphOf, type PaceChapter } from '../production/target/pace.selectors';
 import { MIN_OWN_RATE_CHAPTERS, WPH } from './estimates';
 
 type Basis = ProductionRateBasis | undefined;

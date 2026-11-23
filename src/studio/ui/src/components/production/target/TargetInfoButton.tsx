@@ -7,7 +7,8 @@ import { IconButton } from '../../primitives/IconButton';
 import { Popover, POPOVER_POPUP_SELECTOR } from '../../primitives/Popover';
 import { MIN_OWN_RATE_CHAPTERS, WPH } from '../../schedule/estimates';
 import { announceRateBasis } from '../../schedule/useEffectiveWph';
-import { basisOf, chapterLengthsOf, ownRate, targetHours, type PaceChapter } from './pace.selectors';
+import { chapterLengthsOf } from '../../../recordedThrough';
+import { basisOf, ownRate, targetHours, type PaceChapter } from './pace.selectors';
 import { TargetPopover } from './TargetPopover';
 
 /** How long the pointer may be off both the icon and the popover before a hover-opened popover closes (the mock's 250 ms). */
