@@ -11,6 +11,9 @@ const PROSE =
 
 const TEXT = '[data-toast-region] [data-toast-text]';
 
+/** Stands in for a fallback font wider than the web font: a fixed letter-spacing on the toast text (about 20% wider text, more than the usual difference between two sans-serif fonts), with the same effect on the lines whatever fonts the machine has. */
+const WIDE = `${TEXT} { letter-spacing: 0.12em !important; }`;
+
 /** The web font the toast text is set in (`styles.css`). */
 const FAMILY = '"IBM Plex Sans"';
 
@@ -43,7 +46,14 @@ async function linesTable(page: Page, widths: number[], gutter: number): Promise
       const box = element as HTMLElement;
       const probe = document.createElement('span');
       probe.className = box.className;
-      Object.assign(probe.style, { position: 'absolute', visibility: 'hidden', maxHeight: 'none', overflowY: 'hidden', scrollbarGutter: 'auto' });
+      Object.assign(probe.style, {
+        position: 'absolute',
+        visibility: 'hidden',
+        maxHeight: 'none',
+        overflowY: 'hidden',
+        scrollbarGutter: 'auto',
+        letterSpacing: getComputedStyle(box).letterSpacing,
+      });
       box.parentElement!.append(probe);
       const lineHeight = Number.parseFloat(getComputedStyle(box).lineHeight);
       const lines = (text: string, width: number) => {
@@ -152,7 +162,11 @@ test('a toast raised while the web fonts are held stops scrolling once they have
     expect(gutter, 'this browser draws no scrollbar gutter on the toast, so the test proves nothing').toBeGreaterThan(0);
     // Box widths from its natural width downwards: a squeeze (max-width) sets them in the second page, as a narrower toast would.
     widths = Array.from({ length: 40 }, (_, step) => Math.floor(natural.width) - 3 * step);
+    // The fallback font is made wider than the web font by a fixed letter-spacing while the fonts are held, so the precondition does not depend on which fonts the machine has (CI's fallback and
+    // web fonts have other metrics than a developer's): the toast is laid out wide, then the spacing goes and the real web font loads.
+    const wide = await probe.addStyleTag({ content: WIDE });
     fallback = await linesTable(probe, widths, gutter);
+    await wide.evaluate((element) => element.remove());
     release();
     await probe.evaluate(() => document.fonts.ready);
     web = await linesTable(probe, widths, gutter);
@@ -179,11 +193,14 @@ test('a toast raised while the web fonts are held stops scrolling once they have
   await withPage(browser, async (page) => {
     const release = await openWithFontsHeld(page);
     await page.addStyleTag({ content: `${TEXT} { max-width: ${chosen?.width}px !important; }` });
+    const wide = await page.addStyleTag({ content: WIDE });
     await raiseToast(page, message, 'Retry');
     await raiseToast(page, 'A second message waits behind it.', null);
     await expect(page.locator(TEXT)).toHaveText(message);
     await expect.poll(async () => (await state(page)).tabIndex).toBe(0);
     expect((await state(page)).overflowY).toBe('auto');
+    // The wide spacing goes (the message now fits at that width) and the held fonts load: the real `loadingdone` is what makes the box measure again.
+    await wide.evaluate((element) => element.remove());
     release();
     await page.evaluate(() => document.fonts.ready);
     await expect.poll(async () => (await state(page)).tabIndex).toBe(-1);
