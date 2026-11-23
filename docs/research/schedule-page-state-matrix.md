@@ -9,7 +9,7 @@ A cell is `T:<test>` (a test drives it), `V:<reason>` (a reader can see why no t
 | Port call | Read or write | Used for |
 | --- | --- | --- |
 | `production.productionPlan` | read | due date, payment, contracted amount, milestones |
-| `production.productionOverview` | read | chapters (words, stage, recorded seconds) the estimates are worked out from |
+| shared chapter list (`useReadChapters`, the `chapters` store slot) | read | chapters (words, stage, recorded seconds) the estimates are worked out from; the first read serves the held list, the tick, focus and Retry read it fresh (#4062). The page no longer calls `production.productionOverview` |
 | `deliveryProfiles.deliveryProfiles` | read | which measures the milestone dialog offers |
 | `measurements.takeLog` | read | the chart's recorded line |
 | `production.saveProductionMilestones` | write | add, edit, done toggle, remove, undo |

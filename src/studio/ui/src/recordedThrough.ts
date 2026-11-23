@@ -1,4 +1,5 @@
 import type { RecordedThrough } from './api/contracts/manuscript';
+import type { Measured } from './api/schemas/base';
 import { clamp } from './clamp';
 
 const wordsOf = (text: string): string[] => text.match(/\S+/g) ?? [];
@@ -17,11 +18,28 @@ export type RecordedAt = { through: RecordedThrough; audio: boolean };
 export const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;
 
 /** The hours of audio recorded across chapters, as the plan chart and the Schedule read them: a length under a second adds nothing, as it does everywhere else. */
-export const recordedAudioHours = (chapters: readonly { recordedSeconds: number | null }[]): number =>
+export const recordedAudioHours = (chapters: readonly { recordedSeconds?: number | null }[]): number =>
   chapters.reduce((total, chapter) => total + (audibleSeconds(chapter.recordedSeconds) ?? 0), 0) / 3600;
 
 /** A measured length as every page reads it: audio under a second is nothing recorded (0 s), whatever else is null or not. */
-export const audibleSeconds = (seconds: number | null): number | null => (seconds === null || hasAudio(seconds) ? seconds : 0);
+export const audibleSeconds = (seconds: number | null | undefined): number | null =>
+  seconds === null || seconds === undefined ? null : hasAudio(seconds) ? seconds : 0;
+
+export const NO_LENGTHS = 'No chapter has a measured length yet.';
+
+/**
+ * The finished length of the chapters that have been measured, by chapter id, from the shared chapter list (a chapter's `recordedSeconds`), or the reason there is none.
+ * One rule for audio: a length under a second is no length (0 s), so the pace and every other reader agree with the board. `undefined` is a list not read yet.
+ */
+export function chapterLengthsOf(chapters: readonly { id: string; recordedSeconds?: number | null }[] | undefined): Measured<Record<string, number>> {
+  if (!chapters) return { ok: false, reason: 'Reading the measured lengths…' };
+  const lengths: Record<string, number> = {};
+  for (const chapter of chapters) {
+    const seconds = audibleSeconds(chapter.recordedSeconds);
+    if (seconds !== null) lengths[chapter.id] = seconds;
+  }
+  return Object.keys(lengths).length ? { ok: true, value: lengths } : { ok: false, reason: NO_LENGTHS };
+}
 
 /** The pair of a chapter as one read gave it; undefined when nothing says any of the chapter is recorded. */
 export const recordedAtOf = (chapter: { recordedThrough?: RecordedThrough; recordedSeconds?: number | null }): RecordedAt | undefined =>

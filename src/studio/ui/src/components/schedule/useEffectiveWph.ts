@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import type { ProductionChapter, ProductionRateBasis } from '../../api/contracts/production';
+import { useEffect, useMemo, useState } from 'react';
+import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
+import type { ProductionRateBasis } from '../../api/contracts/production';
 import type { Measured } from '../../api/schemas/base';
 import { isNarrationChapter } from '../../chapterKinds';
-import { usePort } from '../../ports/usePort';
-import { useMeasured } from '../production/measured/useMeasured';
+import { useChapters } from '../../studio/useChapters';
+import { chapterLengthsOf } from '../../recordedThrough';
 import { ownRate, wphOf, type PaceChapter } from '../production/target/pace.selectors';
 import { MIN_OWN_RATE_CHAPTERS, WPH } from './estimates';
 
@@ -24,7 +25,7 @@ export function subscribeRateBasis(listener: (basis: Basis) => void): () => void
 }
 
 /** The chapters the pace is worked out over: the narrated ones, as the target popover lists them. */
-export const paceChapters = (chapters: readonly ProductionChapter[]): PaceChapter[] =>
+export const paceChapters = (chapters: readonly { id: string; title: string; wordCount: number; contentKind?: ManuscriptContentKind | '' }[]): PaceChapter[] =>
   chapters.filter(isNarrationChapter).map((c) => ({ id: c.id, tag: c.title, words: c.wordCount }));
 
 /** The basis the plan chose, from the plan the page already read; one saved from the toggle replaces it at once, until a different plan is read. */
@@ -44,20 +45,9 @@ export function useRateBasis(planBasis: Basis): Basis {
 export const effectiveWph = (basis: Basis, chapters: readonly PaceChapter[], lengths: Lengths | undefined): number =>
   wphOf(basis, ownRate(chapters, lengths ?? { ok: false, reason: 'Reading the measured lengths…' }, MIN_OWN_RATE_CHAPTERS), WPH);
 
-/** `effectiveWph` for a page that reads neither the overview nor the lengths itself (Schedule); the Production page passes its own reads to `effectiveWph`. */
+/** `effectiveWph` for a page that reads neither the overview nor the lengths itself (Schedule): the shared chapter list gives the chapters and their measured lengths. Unread or failed, the hours use the standard rate. */
 export function useEffectiveWph(planBasis: Basis): number {
-  const production = usePort('production');
-  const measured = useMeasured(usePort('measurements'), '', []);
-  const [chapters, setChapters] = useState<PaceChapter[]>([]);
-  useEffect(() => {
-    let live = true;
-    void production.productionOverview().then(
-      (overview) => live && setChapters(paceChapters(overview.chapters)),
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [production]);
-  return effectiveWph(useRateBasis(planBasis), chapters, measured.answers?.chapterLengths);
+  const shared = useChapters().chapters;
+  const chapters = useMemo(() => paceChapters(shared ?? []), [shared]);
+  return effectiveWph(useRateBasis(planBasis), chapters, chapterLengthsOf(shared));
 }

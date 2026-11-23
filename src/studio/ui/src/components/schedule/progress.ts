@@ -14,11 +14,11 @@ export type ScheduleChapter = { words: number; status: ChapterStatus; kind: Manu
 
 /** The chapters that are narrated: a reference chapter is not recorded, so it is no work. */
 export function scheduleChapters(
-  chapters: readonly { id?: string; status: ChapterStatus; wordCount: number; contentKind: ManuscriptContentKind | '' }[],
+  chapters: readonly { id?: string; status: ChapterStatus; wordCount: number; contentKind?: ManuscriptContentKind | '' }[],
 ): ScheduleChapter[] {
   return chapters.filter(isNarrationChapter).map((c) => {
     const credits = c.id === undefined ? undefined : creditsKindOfId(c.id);
-    return { words: c.wordCount, status: c.status, kind: c.contentKind, ...(credits ? { credits } : {}) };
+    return { words: c.wordCount, status: c.status, kind: c.contentKind ?? '', ...(credits ? { credits } : {}) };
   });
 }
 

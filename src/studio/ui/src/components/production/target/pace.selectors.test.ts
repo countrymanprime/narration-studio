@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { createHostMeasurements } from '../../../ports/measurements';
 import { MIN_OWN_RATE_CHAPTERS, WPH } from '../../schedule/estimates';
+import { chapterLengthsOf } from '../../../recordedThrough';
 import { basisOf, ownRate, targetHours, wphOf, type PaceChapter } from './pace.selectors';
 
 const CHAPTERS: PaceChapter[] = [
@@ -60,25 +60,24 @@ describe('target-hours-both-ways', () => {
 });
 
 // #3869 (delta qa N2): a chapter with under a second of audio has no measured length (the board says "None yet"), so it does not count toward the narrator's own rate. The lengths come
-// through the measurements port, which reads audio under a second as 0 s.
+// from `chapterLengthsOf`, which reads audio under a second as 0 s.
 describe('a chapter with under a second of audio has no measured length', () => {
   const chapters: PaceChapter[] = [
     { id: '1', tag: 'Ch 1', words: 2000 },
     { id: '2', tag: 'Ch 2', words: 2000 },
     { id: '3', tag: 'Ch 3', words: 2000 },
   ];
-  const ownFor = async (third: number) => {
+  const ownFor = (third: number) => {
     const rows = [800, 800, third].map((recordedSeconds, index) => ({ id: String(index + 1), recordedSeconds }));
-    const port = createHostMeasurements({ productionOverview: async () => ({ chapters: rows }) } as never);
-    return ownRate(chapters, await port.chapterLengths(), MIN_OWN_RATE_CHAPTERS);
+    return ownRate(chapters, chapterLengthsOf(rows), MIN_OWN_RATE_CHAPTERS);
   };
-  it('needs three chapters with audio, as at 0 s, for 0.001, 0.5 and 0.999999 s', async () => {
-    const atZero = await ownFor(0);
+  it('needs three chapters with audio, as at 0 s, for 0.001, 0.5 and 0.999999 s', () => {
+    const atZero = ownFor(0);
     expect(atZero).toEqual({ ok: false, reason: 'Needs 3 chapters with a measured length; 2 so far.' });
-    for (const seconds of [0.001, 0.5, 0.999999]) expect(await ownFor(seconds), `${seconds} s`).toEqual(atZero);
+    for (const seconds of [0.001, 0.5, 0.999999]) expect(ownFor(seconds), `${seconds} s`).toEqual(atZero);
   });
-  it('counts a chapter from one second', async () => {
-    const own = await ownFor(1);
+  it('counts a chapter from one second', () => {
+    const own = ownFor(1);
     expect(own.ok && own.value.chapters.length).toBe(3);
   });
 });

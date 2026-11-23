@@ -91,6 +91,77 @@ describe('a re-read that fails', () => {
   });
 });
 
+// The chapters the estimates come from are the shared chapter list (#4062), not the Production overview.
+describe('the chapter list the estimates come from', () => {
+  it('is an error with Retry when the first read of the list fails, and recovers', async () => {
+    let fail = true;
+    await mountSchedule({
+      today: null,
+      wrap: (base) => ({
+        manuscriptChapters: async () => {
+          if (fail) throw new Error('the chapter list is unreadable');
+          return base.manuscriptChapters();
+        },
+      }),
+    });
+    expect(await screen.findByText(/could not be read: the chapter list is unreadable/)).toBeTruthy();
+    fail = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await screen.findByText(/Due Oct 31/);
+  });
+
+  it('shows the skeleton while Retry reads a list that is still down, then the error again', async () => {
+    let reads = 0;
+    let release: () => void = () => undefined;
+    await mountSchedule({
+      today: null,
+      wrap: () => ({
+        manuscriptChapters: async () => {
+          reads += 1;
+          if (reads > 1) await new Promise<void>((resolve) => (release = resolve));
+          throw new Error('the chapter list is unreadable');
+        },
+      }),
+    });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    fireEvent.click(retry);
+    // The error does not sit unchanged while the new read runs: the page shows its skeleton (the button that was pressed is gone), as every other page does.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+    release();
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.getByText(/could not be read: the chapter list is unreadable/)).toBeTruthy();
+  });
+
+  it('keeps the reading and says it is old when a re-read of the list fails', async () => {
+    let fail = false;
+    await mountSchedule({
+      today: null,
+      wrap: (base) => ({
+        manuscriptChapters: async () => {
+          if (fail) throw new Error('the chapter list went away');
+          return base.manuscriptChapters();
+        },
+      }),
+    });
+    await screen.findByText(/Due Oct 31/);
+    fail = true;
+    await advance(REREAD_EVERY_MS + 100);
+    expect(await screen.findByText(/Couldn't read the schedule again: .*chapter list went away.*This is what was read/)).toBeTruthy();
+    expect(subtitle()).toMatch(/Due Oct 31/);
+  });
+
+  it('never asks the host for the Production overview', async () => {
+    let overviews = 0;
+    await mountSchedule({
+      today: null,
+      wrap: (base) => ({ productionOverview: async () => (overviews++, base.productionOverview()) }),
+    });
+    await screen.findByText(/Due Oct 31/);
+    await advance(REREAD_EVERY_MS + 100);
+    expect(overviews).toBe(0);
+  });
+});
+
 describe('answers that arrive in the wrong order', () => {
   it('never lets a read that began before a save replace what the save answered', async () => {
     let calls = 0;

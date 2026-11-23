@@ -19,6 +19,7 @@ import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
 import { recordedAudioHours, recordedPercent, recordedShare } from '../../recordedThrough';
+import { chapterLengthsOf } from '../../recordedThrough';
 import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
 import { useVoiceLayout } from '../engine/voiceLayout';
 import { calc, scheduleChapters } from '../schedule/progress';
@@ -191,7 +192,7 @@ export function ProductionPage({
     () => (load.status === 'ready' && shared.chapters ? composeOverview(load.overview, shared.chapters) : undefined),
     [load, shared.chapters],
   );
-  const wph = effectiveWph(rateBasis, paceChapters(composed?.chapters ?? []), measured.answers?.chapterLengths);
+  const wph = effectiveWph(rateBasis, paceChapters(composed?.chapters ?? []), chapterLengthsOf(shared.chapters));
   const pipelineSources = usePipelineSources(found, manuscriptKey);
   const timer = useStageTimer(production, read);
 

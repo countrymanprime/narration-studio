@@ -8,8 +8,6 @@ import { App } from './App';
 import { ApiProvider } from './api/ApiContext';
 import { createMockApi } from './api/mockApi';
 import { CommandRouter } from './input/router';
-import { createMockMeasurements } from './ports/measurements';
-import { PortOverrides } from './ports/usePort';
 import { ThemeProvider } from './theme/ThemeContext';
 
 configure({ asyncUtilTimeout: 12_000 });
@@ -20,17 +18,16 @@ const rail = async (name: RegExp) => within(await screen.findByRole('navigation'
 
 describe('the Schedule basis toggle', () => {
   it('moves the rate the Schedule divides words by, not just the Production popover', async () => {
-    const api = createMockApi();
-    // Three chapters with a measured length, so the narrator's own rate exists and differs from the standard.
-    const lengths = Object.fromEntries((await api.productionOverview()).chapters.slice(0, 3).map((c) => [c.id, 600]));
+    const base = createMockApi();
+    // Three chapters of the shared list with a measured length, so the narrator's own rate exists and differs from the standard.
+    const list = (await base.manuscriptChapters()).map((c, i) => ({ ...c, recordedSeconds: i < 3 ? 600 : undefined }));
+    const api = createMockApi({ manuscriptChapters: async () => list });
     render(
       <ThemeProvider>
         <ApiProvider api={api}>
-          <PortOverrides clients={{ measurements: createMockMeasurements({ lengths }) }}>
-            <CommandRouter>
-              <App />
-            </CommandRouter>
-          </PortOverrides>
+          <CommandRouter>
+            <App />
+          </CommandRouter>
         </ApiProvider>
       </ThemeProvider>,
     );

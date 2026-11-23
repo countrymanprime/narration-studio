@@ -20,6 +20,14 @@ export const scheduleDrivers: Record<string, Driver> = {
     await clickNav(page, 'Schedule');
     await page.getByRole('group', { name: 'Loading the Schedule' }).waitFor();
   },
+  // The shared chapter list cannot be read: the first reading fails, so the page is its error alert with Retry (the same path as a plan failure). Nothing is drawn but the alert.
+  'chapters-load-failed': async (page) => {
+    await page.goto('/?mockChapters=fails');
+    await settlePage(page);
+    await clickNav(page, 'Schedule');
+    await page.getByText(/The schedule could not be read:/).waitFor();
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+  },
   'no-due-date': async (page) => {
     await openSchedule(page);
     await page.getByText('No due date set').first().waitFor();

@@ -377,3 +377,25 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to five), so differences under 10 % between cells are noise.
 - **The Editor, Booth and Production moves (#3658):** real-host timing under the pages' concurrent calls, Windows, 300 chapters on the mock (the mock sizes a book in hours), a cold OS file cache, and the pages' time to usable (the mock's milliseconds are fixtures).
+
+## Schedule, Companion and the pace on the shared list (#4062)
+
+The Schedule, the Companion's "This chapter" and the finished-hour pace no longer read the chapters from `productionOverview`: they take the chapter set, names, kinds, words and recorded seconds from the shared chapter list (the store's `chapters` slot), and the overview's `hoursLogged`, `pfh` and `readiness` stay on the overview, matched by id. The Schedule's first read serves the held list; its minute tick, focus and Retry read it fresh. The measurements port no longer has `chapterLengths`, so the pace is no longer a second overview read on every page that shows it.
+
+Mock host, `scripts/dev/page-bench.mjs`, 1, 5, 17 and 40 h, `--runs 5`, `main` (bf91de08f) against this change, one build after the other. Calls / answer KB, cold then warm:
+
+| Page | 1 h | 5 h | 17 h | 40 h |
+| - | - | - | - | - |
+| Production cold, main | 50 / 119 | 50 / 157 | 50 / 237 | 50 / 388 |
+| Production cold, this change | 46 / 111 | 46 / 136 | 46 / 187 | 46 / 285 |
+| Production warm, main | 32 / 61 | 32 / 88 | 32 / 151 | 32 / 268 |
+| Production warm, this change | 28 / 52 | 28 / 67 | 28 / 101 | 28 / 164 |
+| Schedule cold, main | 26 / 80 | 26 / 94 | 26 / 126 | 26 / 186 |
+| Schedule cold, this change | 24 / 75 | 24 / 81 | 24 / 93 | 24 / 118 |
+| Schedule warm, main | 12 / 32 | 12 / 40 | 12 / 59 | 12 / 95 |
+| Schedule warm, this change | 10 / 27 | 10 / 27 | 10 / 27 | 10 / 27 |
+| Booth cold and warm | unchanged: 60 / 142-186 cold, 49 / 105 warm | | | |
+
+Nodes are unchanged on all three pages. Time to usable moved by less than the run-to-run spread (Production cold at 40 h read 639 ms on main and 780 ms here; the other cells differ by under 10 %), so no time gain is claimed: the mock's milliseconds are fixtures. The saved calls are the overview reads the pace and the Schedule made beside the page's own, and the saved KB are their answers, which carried every chapter's title and numbers. This was done for consistency, not for speed.
+
+Not measured: the real host and Windows, 300 chapters on the mock, the Companion (it is not in the page list of the bench), the Schedule's minute tick (it now reads the chapter list, not the overview).

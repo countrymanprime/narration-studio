@@ -6,10 +6,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { ProductionOverview, ProductionPlan, ProductionRateBasis } from '../../../api/contracts/production';
 import { createMockApi } from '../../../api/mockApi';
-import { createMockMeasurements } from '../../../ports/measurements';
-import { PortOverrides } from '../../../ports/usePort';
 import { TargetInfoButton } from './TargetInfoButton';
 
+// The measured finished lengths (seconds) of chapters 1, 2 and 4, as the shared chapter list carries them.
+const LENGTHS: Record<string, number> = { '1': 685, '2': 670, '4': 868 };
 const WORDS = [2000, 2500, 4000, 2351];
 const overview = (): ProductionOverview => ({
   chapters: WORDS.map((wordCount, i) => ({
@@ -52,17 +52,22 @@ function mount(opts: { measured?: boolean; basis?: ProductionRateBasis } = {}) {
     productionPlan: async () => ({ deadline: null, contractedAmount: null, payment: 'none', rateBasis: opts.basis, milestones: [] }),
     // The chapters (their set and words) are the shared list, as on every other page; the overview no longer supplies them.
     manuscriptChapters: async () =>
-      overview().chapters.map((c, index) => ({ id: c.id, title: c.title, index, wordCount: c.wordCount, status: c.status, contentKind: 'narration' as const })),
+      overview().chapters.map((c, index) => ({
+        id: c.id,
+        title: c.title,
+        index,
+        wordCount: c.wordCount,
+        status: c.status,
+        contentKind: 'narration' as const,
+        ...(opts.measured === false || LENGTHS[c.id] === undefined ? {} : { recordedSeconds: LENGTHS[c.id] }),
+      })),
     setProductionRateBasis: set,
   });
-  const measurements = opts.measured === false ? createMockMeasurements({ none: true }) : createMockMeasurements();
   render(
     <ApiProvider api={api}>
-      <PortOverrides clients={{ measurements }}>
-        <div className="relative" data-testid="kpi">
-          <TargetInfoButton />
-        </div>
-      </PortOverrides>
+      <div className="relative" data-testid="kpi">
+        <TargetInfoButton />
+      </div>
     </ApiProvider>,
   );
   return { set };

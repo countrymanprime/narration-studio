@@ -114,7 +114,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Technical Approach
 
-**Interfaces.** `ProductionApi` (existing) gains plan fields; `MeasurementsPort` (new) with `roomTone(mic)`, `takeLog(chapter)`, `boothMinutes(chapter)`, `chapterLengths()`; all return `Measured<T>`. `platformHas(profileId, capability)` is a pure selector over the delivery-profile binding (no new binding).
+**Interfaces.** `ProductionApi` (existing) gains plan fields; `MeasurementsPort` (new) with `roomTone(mic)`, `takeLog(chapter)`, `boothMinutes(chapter)`, `chapterLengths()` (since #4062 the pace lengths are worked out from the shared chapter list by `chapterLengthsOf`, not read through the port); all return `Measured<T>`. `platformHas(profileId, capability)` is a pure selector over the delivery-profile binding (no new binding).
 
 **Contracts.** Extend `productionPlanSchema` (additive: `payment`, milestone `measure`, `estimate`, `done`, `template`); new `measurementsSchema`; goldens in `tests/fixtures/contracts/`; `wireContracts.test.ts` rows; mocks pass; `hostAPIVersion` bump if a binding is added. Go: `internal/production/plan.go` and the manifest; no new network.
 

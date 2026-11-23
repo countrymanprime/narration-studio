@@ -11,13 +11,10 @@ describe('the Schedule’s recorded hours and audio under one second', () => {
   const todayY = async (recordedSeconds: number) => {
     await mountSchedule({
       wrap: (base) => ({
-        productionOverview: async () => {
-          const overview = await base.productionOverview();
-          return {
-            ...overview,
-            chapters: overview.chapters.map((chapter, index) => (index === 0 ? { ...chapter, recordedSeconds } : { ...chapter, recordedSeconds: null })),
-          };
-        },
+        manuscriptChapters: async () =>
+          (await base.manuscriptChapters()).map((chapter, index) =>
+            index === 0 ? { ...chapter, recordedSeconds } : { ...chapter, recordedSeconds: undefined },
+          ),
       }),
     });
     await screen.findByRole('heading', { level: 1, name: 'Schedule' });

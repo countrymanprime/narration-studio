@@ -305,8 +305,8 @@ describe('CompanionShell', () => {
     expect(within(section).queryByRole('button')).toBeNull();
   });
 
-  it('fills the this-chapter section from the Production board, with no made-up numbers and no buttons', async () => {
-    renderCompanion({ chapterId: 'nope' });
+  it('fills the this-chapter section from the shared chapter list, with no made-up numbers and no buttons', async () => {
+    renderCompanion({ chapterId: 'nope', thisChapter: null });
     const section = screen.getByRole('region', { name: 'This chapter' });
     expect(await within(section).findByText('Nothing measured for this chapter yet.')).toBeTruthy();
     expect(within(section).queryByRole('button')).toBeNull();
