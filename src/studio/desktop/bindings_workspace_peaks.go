@@ -30,7 +30,7 @@ const peaksReadLimit = 10 * time.Minute
 
 // stillReading is the Reason of an item whose recording was still being read when the call's time ran out. The read goes on in the background,
 // so the strip shows what it has and the next ask has the rest.
-const stillReading = "this recording is still being read, so its waveform is not drawn yet"
+const stillReading = "this recording is still being read, so its waveform is not drawn yet."
 
 // WorkspacePeaksItem is one analyzed item's waveform, or why it has none: Index matches
 // WorkspaceAlignment's own AlignmentItem.Index, so the UI zips the two answers together without a second

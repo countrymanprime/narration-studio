@@ -85,7 +85,7 @@ import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useRereadFeedback } from './useRereadFeedback';
 import { canSaveFromApp, useSaveInDaw } from './useSaveInDaw';
-import { noAudioText } from './noAudioText';
+import { checkRecordingsReason, noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
 import { useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
@@ -589,7 +589,7 @@ export function EditingBody(props: EditingBodyProps) {
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
               dawTools
               checkRecording={checkRecording}
-              checkReason={read.audio.kind === 'ready' ? undefined : 'This chapter has no audio to check yet.'}
+              checkReason={checkRecordingsReason(read.audio)}
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
             <NoAudioBanner
