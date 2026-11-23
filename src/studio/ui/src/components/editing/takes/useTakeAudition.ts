@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
 import type { OutputPrefs } from '../../engine/outputPrefs';
 import { useRangePlayer } from '../../engine/useRangePlayer';
-import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { APP, playReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
 import type { LinePassage, LineTake } from './types';
+
+/** The Retry a take that did not play offers is one toast at a time; a newer play or leaving the page withdraws it. */
+const TAKE_TOPIC = 'editing-take-retry';
 
 /** The longest stretch the DAW's preview plays (bridge.MaxPreviewSeconds); a longer take plays its first minute. */
 const MAX_PREVIEW_SECONDS = 60;
@@ -20,7 +24,8 @@ export interface TakeAuditionOptions {
   passageOf: (take: LineTake) => LinePassage | null;
   /** Stops the chapter's playback before a take plays. */
   stopChapter: () => void;
-  notify?: (text: string) => void;
+  /** Says something to the narrator; `retry`, given when the DAW did not play and the app did, plays the take again. */
+  notify?: (text: string, retry?: () => void) => void;
 }
 
 export interface TakeAudition {
@@ -43,7 +48,7 @@ export function useTakeAudition({
   output,
   passageOf,
   stopChapter,
-  notify = (text) => overlay.toast(text),
+  notify = (text, retry) => overlay.toast(text, retry ? { tone: 'error', action: retryAction(retry), topic: TAKE_TOPIC } : undefined),
 }: TakeAuditionOptions): TakeAudition {
   const daw = usePort('daw');
   const player = useRangePlayer(mediaUrl, { pre: 0, post: 0 }, output);
@@ -51,6 +56,10 @@ export function useTakeAudition({
   const [inDaw, setInDaw] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
+  // The newest play asked of this page, so a Retry offered for an older one, or after the page was left, plays nothing.
+  const playsAsked = useRef(0);
+  const mounted = useRef(true);
+  const playAgain = useRef<(take: LineTake) => void>(() => {});
   const live = useRef({ caps, read, notify, passageOf, stopChapter });
   useEffect(() => {
     live.current = { caps, read, notify, passageOf, stopChapter };
@@ -79,12 +88,14 @@ export function useTakeAudition({
     (take: LineTake) => {
       if (playing === take.id && (inDaw || player.isPlaying)) return stop();
       const { caps: now, read: dawRead, notify: say, passageOf: lineOf, stopChapter: quiet } = live.current;
+      const ask = ++playsAsked.current;
+      overlay.dismissTopic(TAKE_TOPIC);
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = now?.daw ?? 'The DAW';
       const preview: PlaybackProvider<LineTake> = {
         name,
         readiness: (t) => {
-          const declared = dawReadiness(now, 'file_preview', !!dawRead?.failed);
+          const declared = playReadiness(now, 'file_preview', !!dawRead?.failed);
           if (!declared.ready) return declared;
           return lineOf(t) ? { ready: true } : { ready: false, why: "This take's line is not on the page any more." };
         },
@@ -128,20 +139,26 @@ export function useTakeAudition({
           return { played: true };
         },
       };
-      // A DAW still answering plays nothing, and the chapter keeps playing.
-      if (now === null && !dawRead?.failed) return say(CHECKING);
       quiet();
       stop();
       const mine = asked.current;
       const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
       void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ notice }) => {
-        if (notice && asked.current === mine) say(notice);
+        if (notice && asked.current === mine) say(notice, () => mounted.current && playsAsked.current === ask && playAgain.current(take));
       });
     },
     [daw, player, playing, inDaw, stop],
   );
+  playAgain.current = play;
 
-  useEffect(() => () => clearTimer(), []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      overlay.dismissTopic(TAKE_TOPIC);
+      clearTimer();
+    };
+  }, []);
 
   return { playingId: inDaw || player.isPlaying ? playing : null, play, stop };
 }

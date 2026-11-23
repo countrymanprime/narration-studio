@@ -42,7 +42,7 @@ What the map returns null for, and the page then does nothing visible: a gap bet
 
 ### Who plays
 
-Every play goes through the playback providers in [`playback/providers.ts`](../../src/studio/ui/src/playback/providers.ts): an ordered list for each kind of play, the linked DAW's first and the app's own player last. Each provider says whether it is ready now and then plays; `playThrough` takes the first that is ready and plays.
+Every play goes through the playback providers in [`playback/providers.ts`](../../src/studio/ui/src/playback/providers.ts): an ordered list for each kind of play, the linked DAW's first and the app's own player last. Each provider says whether it is ready now and then plays; `playThrough` takes the first that is ready and plays. The page's own plays (the script's Play and a take under a line) use `playReadiness`: a DAW that has not yet said what it can do is asked at once, and the app plays when it refuses, so no check stands between a click and the sound.
 
 | Kind of play | DAW provider (capability) | Then |
 | --- | --- | --- |

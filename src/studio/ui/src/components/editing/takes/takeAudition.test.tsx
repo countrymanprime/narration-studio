@@ -9,7 +9,7 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
 import { PortOverrides } from '../../../ports/usePort';
-import { CHECKING, READ_FAILED, type DawRead } from '../../../playback/providers';
+import { READ_FAILED, type DawRead } from '../../../playback/providers';
 import type { LinePassage, LineTake } from './types';
 import { useTakeAudition } from './useTakeAudition';
 
@@ -37,6 +37,7 @@ class FakeAudio extends EventTarget {
 }
 let audio: FakeAudio;
 const notices: string[] = [];
+const retries: ((() => void) | undefined)[] = [];
 const stopChapter = vi.fn();
 
 function mount(caps: DawCapabilities | null, client: Partial<DawClient> = {}, read?: DawRead) {
@@ -54,7 +55,10 @@ function mount(caps: DawCapabilities | null, client: Partial<DawClient> = {}, re
         mediaUrl: (f) => f,
         passageOf: (t) => (LINE.takes.some((x) => x.id === t.id) ? LINE : null),
         stopChapter,
-        notify: (text) => notices.push(text),
+        notify: (text, retry) => {
+          notices.push(text);
+          retries.push(retry);
+        },
       }),
     { wrapper },
   );
@@ -72,6 +76,7 @@ beforeEach(() => {
     return audio;
   });
   notices.length = 0;
+  retries.length = 0;
   stopChapter.mockClear();
 });
 afterEach(() => {
@@ -177,12 +182,48 @@ describe('a-linked-daw-plays-the-take', () => {
 });
 
 describe('before-the-daw-answers', () => {
-  it('plays nothing and says it is checking', async () => {
-    const { result } = mount(null);
+  it("a take plays before the DAW's capabilities answer: the DAW is asked at once and no notice says it is checking", async () => {
+    const previewTake = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result } = mount(null, { previewTake });
     act(() => result.current.play(LINE.takes[0]));
     await flush();
+    expect(previewTake).toHaveBeenCalledTimes(1);
     expect(audio.play).not.toHaveBeenCalled();
-    expect(notices).toEqual([CHECKING]);
+    expect(notices).toEqual([]);
+    expect(result.current.playingId).toBe('take-1');
+  });
+  it('plays the take in the app when the DAW, not yet heard, refuses, says why and offers Retry, which asks the DAW again', async () => {
+    const previewTake = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, changed: false, message: 'Not linked.', undoSteps: 0, refused: 'Not linked.' })
+      .mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result } = mount(null, { previewTake });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    expect(audio.play).toHaveBeenCalled();
+    expect(notices).toEqual([`Not linked. ${FELL_BACK}`]);
+    expect(retries[0]).toBeTypeOf('function');
+    act(() => result.current.stop());
+    act(() => retries[0]!());
+    await flush();
+    expect(previewTake).toHaveBeenCalledTimes(2);
+  });
+  it('a Retry offered for an older take plays nothing once a newer one was asked, and none plays after the page was left', async () => {
+    const previewTake = vi.fn().mockResolvedValue({ ok: false, changed: false, message: 'Not linked.', undoSteps: 0, refused: 'Not linked.' });
+    const { result, unmount } = mount(null, { previewTake });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    act(() => result.current.stop());
+    act(() => result.current.play(LINE.takes[1]));
+    await flush();
+    const calls = previewTake.mock.calls.length;
+    act(() => retries[0]!());
+    await flush();
+    expect(previewTake).toHaveBeenCalledTimes(calls);
+    unmount();
+    act(() => retries[1]!());
+    await flush();
+    expect(previewTake).toHaveBeenCalledTimes(calls);
   });
   it('says a failed read, asks again, and plays the take in the app', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);

@@ -8,7 +8,7 @@ import { firstFrom, leadStart } from '../model';
 import type { SoundAt } from '../ribbon/useChapterSound';
 import type { WordClock } from '../follow/wordClock';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
-import { APP, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { APP, playReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
 import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { usePort } from '../../../ports/usePort';
 import { fadeOutAndPause, STOP_FADE_SECONDS } from './playbackStop';
@@ -233,7 +233,7 @@ export function useScriptPlayback({
           readiness: (at) => {
             // A DAW that has not yet answered what it can do is not waited for: no check stands between the click and the play. With no capabilities
             // there is no word table either, so `refusal` says not placed and the app plays; a read that failed is said and asked again.
-            const declared = now === null && !dawRead?.failed ? { ready: true as const } : dawReadiness(now, 'transport_sync', !!dawRead?.failed);
+            const declared = playReadiness(now, 'transport_sync', !!dawRead?.failed);
             if (!declared.ready) return declared;
             const remote = remoteRef.current;
             const refusal = remote ? remote.refusal(at) : null;
