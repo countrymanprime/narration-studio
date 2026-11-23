@@ -54,7 +54,7 @@ export function EditingHeader({
       <div className="flex items-center gap-2 @max-[36rem]/hd:order-1 @max-[36rem]/hd:ml-auto">
         {status}
         {checkRecording ? (
-          <CheckRecordingsButton variant="icon" size="sm" chapterIds={checkRecording.chapterIds} onClosed={checkRecording.onClosed} reason={checkReason} />
+          <CheckRecordingsButton variant="icon" chapterIds={checkRecording.chapterIds} onClosed={checkRecording.onClosed} reason={checkReason} />
         ) : null}
         {stripFits ? <StripToggle open={strip.open} onToggle={strip.toggle} /> : null}
         <TooltipTarget text="Clean up and effects (Ctrl+Shift+C)">

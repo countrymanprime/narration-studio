@@ -41,6 +41,9 @@ type WorkspacePeaksItem struct {
 	Index  int            `json:"index"`
 	Peaks  *measure.Peaks `json:"peaks,omitempty"`
 	Reason string         `json:"reason,omitempty"`
+	// Pending is set with a Reason when the item's recording is still being read: the host reads on in the background, so asking again finds the
+	// waveform. Any other Reason will not change by asking again.
+	Pending bool `json:"pending,omitempty"`
 }
 
 // WorkspacePeaksView is WorkspacePeaks' answer: chapterID echoed back and one entry per item of the
@@ -90,8 +93,9 @@ func (h *Host) WorkspacePeaks(chapterID string) (string, error) {
 
 // sourcePeaks is one source file's whole peaks, or why it has none.
 type sourcePeaks struct {
-	whole  measure.Peaks
-	reason string
+	whole   measure.Peaks
+	reason  string
+	pending bool // the recording is still being read
 }
 
 // peaksSources identifies each source file and reads its cached peaks once, however many items ask: a chapter cut
@@ -185,7 +189,7 @@ func (s *peaksSources) readSource(file string) sourcePeaks {
 	whole, err := s.flights.read(s.ctx, s.life, s.spawn, s.store, *identity, file)
 	switch {
 	case errors.Is(err, errPeaksPending):
-		return sourcePeaks{reason: stillReading}
+		return sourcePeaks{reason: stillReading, pending: true}
 	case errors.Is(err, measure.ErrNotWAV):
 		return sourcePeaks{reason: "no waveform"}
 	case err != nil:
@@ -224,7 +228,7 @@ func itemPeaks(sources *peaksSources, project tracks.Project, item coverage.Alig
 	}
 	source := sources.whole(take.SourceFile)
 	if source.reason != "" {
-		return WorkspacePeaksItem{Index: item.Index, Reason: source.reason}
+		return WorkspacePeaksItem{Index: item.Index, Reason: source.reason, Pending: source.pending}
 	}
 	peaks, err := measure.SlicePeaks(source.whole, rng)
 	if err != nil {

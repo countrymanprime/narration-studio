@@ -312,8 +312,8 @@ func TestAPeaksCallThatRanOutOfTimeOnAnUnreadRecordingSaysItIsStillBeingRead(t *
 			break
 		}
 	}
-	if got.reason != stillReading {
-		t.Fatalf("got %+v, want the still-being-read reason", got)
+	if got.reason != stillReading || !got.pending {
+		t.Fatalf("got %+v, want the still-being-read reason, pending", got)
 	}
 }
 

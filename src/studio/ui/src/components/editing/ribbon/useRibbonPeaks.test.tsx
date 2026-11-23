@@ -9,7 +9,7 @@ import { forgetPeaks, PEAKS_BUDGET_BYTES, UNANSWERED_RETRY_MS, usePrefetchPeaks,
 
 afterEach(cleanup);
 
-const result = (chapterId: string) => ({ chapterId, items: [{ index: 0, reason: 'No audio.' }] });
+const result = (chapterId: string) => ({ chapterId, items: [{ index: 0, reason: 'No audio.', pending: true }] });
 const drawn = (chapterId: string) => ({
   chapterId,
   items: [{ index: 0, peaks: { startSeconds: 0, bucketsPerSecond: 50, buckets: 1, minMax: 'AAA=', sampleRate: 48000, channels: 1 } }],
@@ -91,7 +91,7 @@ describe('useRibbonPeaks', () => {
   it('reads again after 15 s when only some items have peaks, not only when none has (#4042)', async () => {
     vi.useFakeTimers();
     try {
-      const partial = { chapterId: 'c-1', items: [drawn('c-1').items[0]!, { index: 1, reason: 'still being read' }] };
+      const partial = { chapterId: 'c-1', items: [drawn('c-1').items[0]!, { index: 1, reason: 'still being read', pending: true }] };
       const whole = { chapterId: 'c-1', items: [drawn('c-1').items[0]!, { ...drawn('c-1').items[0]!, index: 1 }] };
       const workspacePeaks = vi.fn().mockResolvedValueOnce(partial).mockResolvedValue(whole);
       const api = { ...createMockApi(), workspacePeaks };
@@ -113,7 +113,7 @@ describe('useRibbonPeaks', () => {
   it('asks the host again by itself while a ribbon stays open on an answer with a gap, keeping the shown answer meanwhile (#4042)', async () => {
     vi.useFakeTimers();
     try {
-      const partial = { chapterId: 'c-1', items: [{ index: 0, reason: 'still being read' }] };
+      const partial = { chapterId: 'c-1', items: [{ index: 0, reason: 'still being read', pending: true }] };
       const workspacePeaks = vi.fn().mockResolvedValueOnce(partial).mockResolvedValue(drawn('c-1'));
       const api = { ...createMockApi(), workspacePeaks };
       const open = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
@@ -129,6 +129,73 @@ describe('useRibbonPeaks', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('does not ask again for an answer whose only gaps are reasons that will not change (#4042)', async () => {
+    vi.useFakeTimers();
+    try {
+      const workspacePeaks = vi.fn(async (chapterId: string) => ({ chapterId, items: [{ index: 0, reason: 'this item’s source audio was not found' }] }));
+      const api = { ...createMockApi(), workspacePeaks };
+      const open = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(open.result.current.status).toBe('ready'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+      });
+      expect(workspacePeaks).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the shown answer and keeps asking when a repeat ask fails (#4042)', async () => {
+    vi.useFakeTimers();
+    try {
+      const partial = { chapterId: 'c-1', items: [drawn('c-1').items[0]!, { index: 1, reason: 'still being read', pending: true }] };
+      const workspacePeaks = vi
+        .fn()
+        .mockResolvedValueOnce(partial)
+        .mockRejectedValueOnce(new Error('The host is busy.'))
+        .mockResolvedValue({ chapterId: 'c-1', items: [drawn('c-1').items[0]!, { ...drawn('c-1').items[0]!, index: 1 }] });
+      const api = { ...createMockApi(), workspacePeaks };
+      const open = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(open.result.current.status).toBe('ready'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(UNANSWERED_RETRY_MS + 500);
+      });
+      await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(2));
+      expect(open.result.current.status).toBe('ready');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(UNANSWERED_RETRY_MS + 500);
+      });
+      await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(3));
+      await vi.waitFor(() => {
+        const state = open.result.current;
+        expect(state.status === 'ready' && state.result.items.every((item) => item.peaks)).toBe(true);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows loading, never the previous chapter, on a step to another chapter (#4042)', async () => {
+    const workspacePeaks = vi.fn(async (chapterId: string) => (chapterId === 'c-1' ? drawn('c-1') : new Promise<never>(() => {})));
+    const api = { ...createMockApi(), workspacePeaks };
+    const view = renderHook(({ id }) => useRibbonPeaks(id), { wrapper: withApi(api), initialProps: { id: 'c-1' } });
+    await vi.waitFor(() => expect(view.result.current.status).toBe('ready'));
+    view.rerender({ id: 'c-2' });
+    expect(view.result.current.status).toBe('loading');
+  });
+
+  it('asks again at once when the chapter’s kept waveform is forgotten while its ribbon is open (#4042)', async () => {
+    const workspacePeaks = vi.fn(async (chapterId: string) => drawn(chapterId));
+    const api = { ...createMockApi(), workspacePeaks };
+    const open = renderHook(() => ({ ribbon: useRibbonPeaks('c-1'), workspace: usePort('workspace') }), { wrapper: withApi(api) });
+    await vi.waitFor(() => expect(open.result.current.ribbon.status).toBe('ready'));
+    act(() => forgetPeaks(open.result.current.workspace, 'c-1'));
+    await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(2));
+    act(() => forgetPeaks(open.result.current.workspace, 'c-2'));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(workspacePeaks).toHaveBeenCalledTimes(2);
   });
 
   it('keeps a chapter read for the whole session, until it is forgotten', async () => {

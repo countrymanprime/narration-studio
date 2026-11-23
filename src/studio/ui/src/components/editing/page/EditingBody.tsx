@@ -488,7 +488,7 @@ export function EditingBody(props: EditingBodyProps) {
     cut,
     fx,
     checkRecording: checkRecording?.open,
-    checkReason: checkGate,
+    checkReason: checkGate ?? checkRecordingsReason(read.audio),
     tabs: offered,
     openTab,
     keymap,

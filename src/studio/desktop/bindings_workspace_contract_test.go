@@ -57,4 +57,11 @@ func TestContractWorkspacePeaksBinding(t *testing.T) {
 		t.Fatal(err)
 	}
 	checkBindingContract(t, "workspace-peaks-no-source", payload)
+
+	// An item whose recording is still being read: a Reason and Pending, so the page asks again (#4042).
+	pending, err := encodeBinding(WorkspacePeaksView{ChapterID: "c-0001", Items: []WorkspacePeaksItem{{Index: 0, Reason: stillReading, Pending: true}}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkBindingContract(t, "workspace-peaks-pending", pending)
 }

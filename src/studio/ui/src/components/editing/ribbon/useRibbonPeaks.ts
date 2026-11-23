@@ -8,10 +8,10 @@ export type RibbonPeaks = { status: 'loading' } | { status: 'ready'; result: Wor
 
 type Shared = { promise: Promise<WorkspacePeaksResult>; result?: WorkspacePeaksResult; bytes: number; at: number };
 
-/** How long an answer with a gap (an item with only a reason: a recording still being read, a file busy) is trusted before it is read again (#4042). */
+/** How long an answer with a gap (an item whose recording the host is still reading: `pending`) is trusted before it is read again (#4042). Any other reason will not change by asking again. */
 export const UNANSWERED_RETRY_MS = 15_000;
 
-const hasGap = (result: WorkspacePeaksResult): boolean => result.items.some((item) => !item.peaks && item.reason);
+const hasGap = (result: WorkspacePeaksResult): boolean => result.items.some((item) => !item.peaks && item.pending);
 type Workspace = { workspacePeaks: (chapterId: string) => Promise<WorkspacePeaksResult> };
 const reads = new WeakMap<object, Map<string, Shared>>();
 /** The page's chapters and the one that is open, per port: what "far" means when a kept waveform has to leave. */
@@ -83,8 +83,11 @@ function sharedRead(workspace: Workspace, chapterId: string): Shared {
   return entry;
 }
 
-/** Drops the kept read of one chapter (or of every chapter), so the next ask reads the audio again. */
+const listeners = new WeakMap<object, Set<(chapterId?: string) => void>>();
+
+/** Drops the kept read of one chapter (or of every chapter), so the next ask reads the audio again; a ribbon showing that chapter asks again at once. */
 export function forgetPeaks(workspace: object, chapterId?: string): void {
+  listeners.get(workspace)?.forEach((listener) => listener(chapterId));
   if (chapterId === undefined) {
     reads.delete(workspace);
     sizes.delete(workspace);
@@ -133,10 +136,21 @@ export function useRibbonPeaks(chapterId: string | undefined): RibbonPeaks {
     const ready = chapterId ? reads.get(workspace)?.get(chapterId) : undefined;
     return ready?.result ? { status: 'ready', result: ready.result } : { status: 'loading' };
   });
-  // An answer with a gap (a recording the host is still reading) is asked for again after a quiet spell while the ribbon stays open: the host
-  // keeps reading in the background, so the next ask finds more of it. The counter re-runs the read; the shown answer stays until the new one lands.
+  // The read runs again, keeping the shown answer until the new one lands, when the host was still reading a recording (a quiet spell later, while the
+  // ribbon stays open) and when the chapter's kept waveform was forgotten (a check re-aligned it). The counter re-runs the effect.
   const [again, setAgain] = useState(0);
-  const lastAgain = useRef(0);
+  const last = useRef<{ again: number; chapterId: string | undefined }>({ again: 0, chapterId });
+  useEffect(() => {
+    const listen = (forgotten?: string): void => {
+      if (forgotten === undefined || forgotten === chapterId) setAgain((n) => n + 1);
+    };
+    const set = listeners.get(workspace) ?? new Set();
+    listeners.set(workspace, set);
+    set.add(listen);
+    return () => {
+      set.delete(listen);
+    };
+  }, [workspace, chapterId]);
   useEffect(() => {
     if (!chapterId) {
       setState({ status: 'loading' });
@@ -144,17 +158,34 @@ export function useRibbonPeaks(chapterId: string | undefined): RibbonPeaks {
     }
     let live = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const retry = again !== lastAgain.current;
-    lastAgain.current = again;
+    // A re-run of the same chapter keeps the shown answer; a step to another chapter never shows the one it left.
+    const retry = again !== last.current.again && last.current.chapterId === chapterId;
+    last.current = { again, chapterId };
+    const later = (): void => {
+      timer = setTimeout(() => setAgain((n) => n + 1), UNANSWERED_RETRY_MS + 100);
+    };
     const read = sharedRead(workspace, chapterId);
     if (!retry) setState(read.result ? { status: 'ready', result: read.result } : { status: 'loading' });
     read.promise.then(
       (result) => {
         if (!live) return;
         setState({ status: 'ready', result });
-        if (hasGap(result)) timer = setTimeout(() => setAgain((n) => n + 1), UNANSWERED_RETRY_MS + 100);
+        if (hasGap(result)) later();
       },
-      (e: unknown) => live && setState({ status: 'failed', reason: e instanceof Error && e.message ? e.message : 'The host did not return the waveform.' }),
+      (e: unknown) => {
+        if (!live) return;
+        // A failed read of the same chapter does not take away what is drawn: the next quiet spell asks again.
+        if (retry) {
+          setState((shown) => {
+            if (shown.status === 'ready') later();
+            return shown.status === 'ready'
+              ? shown
+              : { status: 'failed', reason: e instanceof Error && e.message ? e.message : 'The host did not return the waveform.' };
+          });
+          return;
+        }
+        setState({ status: 'failed', reason: e instanceof Error && e.message ? e.message : 'The host did not return the waveform.' });
+      },
     );
     return () => {
       live = false;
@@ -175,7 +206,7 @@ export function pickEntries(
   t0: number,
   t1: number,
   items?: readonly number[],
-): { peaks: DocPeaks[] } | { reason: string } {
+): { peaks: DocPeaks[] } | { reason: string; reading?: boolean } {
   if (state.status === 'loading') return { reason: 'Reading the waveform.' };
   if (state.status === 'failed') return { reason: state.reason };
   const onClock = (e: { index: number; peaks: WorkspacePeaks }): DocPeaks[] =>
@@ -191,7 +222,8 @@ export function pickEntries(
   const own = items && items.length > 0 ? state.result.items.filter((e) => items.includes(e.index)) : [];
   if (own.length > 0) {
     const drawn = own.filter(hasPeaks);
-    if (drawn.length === 0) return { reason: own.find((e) => e.reason)?.reason ?? 'The host has no audio for this line.' };
+    if (drawn.length === 0)
+      return { reason: own.find((e) => e.reason)?.reason ?? 'The host has no audio for this line.', ...(own.some((e) => e.pending) ? { reading: true } : {}) };
     const hits = drawn.flatMap(onClock).sort(byTime);
     return hits.length ? { peaks: hits } : { reason: 'This line lies outside the audio the host read.' };
   }
@@ -199,5 +231,8 @@ export function pickEntries(
   const hits = withPeaks.flatMap(onClock).sort(byTime);
   if (hits.length) return { peaks: hits };
   if (withPeaks.length) return { reason: 'This line lies outside the audio the host read.' };
-  return { reason: state.result.items.find((e) => e.reason)?.reason ?? 'The host has no audio for this chapter.' };
+  return {
+    reason: state.result.items.find((e) => e.reason)?.reason ?? 'The host has no audio for this chapter.',
+    ...(state.result.items.some((e) => e.pending) ? { reading: true } : {}),
+  };
 }
