@@ -64,3 +64,9 @@ export function noAudioText(
       };
   }
 }
+
+/** Why Check recordings is off in the Editing header while the chapter has no audio: the page's own cause when the tracks could not be read, else that there is nothing to check. */
+export function checkRecordingsReason(audio: ChapterAudio): string | undefined {
+  if (audio.kind === 'ready') return undefined;
+  return audio.kind === 'unreadable' ? audio.reason : 'This chapter has no audio to check yet.';
+}

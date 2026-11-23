@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { noAudioText } from './noAudioText';
+import { checkRecordingsReason, noAudioText } from './noAudioText';
 
 describe('noAudioText', () => {
   it('a plain track with nothing on it says the track is empty', () => {
@@ -31,5 +31,14 @@ describe('noAudioText', () => {
     const text = noAudioText({ kind: 'empty', unsaved: 'unknown' }, 'Chapter 1', 'REAPER');
     expect(text.headline).toBe('Chapter 1 has no saved audio, and REAPER did not say if it has unsaved changes.');
     expect(text.next).toBe('Save the project in REAPER, then read again.');
+  });
+});
+
+describe('checkRecordingsReason (#4042)', () => {
+  it('is nothing with audio, the page’s own cause when the tracks could not be read, and that there is nothing to check otherwise', () => {
+    expect(checkRecordingsReason({ kind: 'ready' })).toBeUndefined();
+    expect(checkRecordingsReason({ kind: 'unreadable', reason: 'The tracks could not be read.' })).toBe('The tracks could not be read.');
+    for (const kind of ['unlinked', 'missing'] as const) expect(checkRecordingsReason({ kind })).toBe('This chapter has no audio to check yet.');
+    expect(checkRecordingsReason({ kind: 'empty' })).toBe('This chapter has no audio to check yet.');
   });
 });
