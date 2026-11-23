@@ -12,6 +12,11 @@ describe('pageBoundaryKey: what remounts the routed page (#4057)', () => {
   it('changes with the project, for the same page', () => {
     expect(pageBoundaryKey('/Alice', '/editing/c1')).not.toBe(pageBoundaryKey('/Voltage', '/editing/c1'));
   });
+  it('is the same for one folder spelled two ways, and differs for another folder or case (#4099)', () => {
+    expect(pageBoundaryKey('C:\\Projects\\X', '/editing')).toBe(pageBoundaryKey('C:/Projects/X/', '/editing'));
+    expect(pageBoundaryKey('C:/Projects/X', '/editing')).not.toBe(pageBoundaryKey('C:/Projects/Y', '/editing'));
+    expect(pageBoundaryKey('C:/Projects/X', '/editing')).not.toBe(pageBoundaryKey('C:/projects/x', '/editing'));
+  });
   it('does not mix a project and a page into the same key', () => {
     expect(pageBoundaryKey('/a|b', '/c')).not.toBe(pageBoundaryKey('/a', '/b|c'));
   });

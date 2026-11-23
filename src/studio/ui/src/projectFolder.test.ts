@@ -90,10 +90,11 @@ describe.each(stores)('$name: kept per project by the folder, not its spelling (
     expect(read('C:/Projects/Y')).toBe('');
     expect(read('C:/projects/x')).toBe('');
   });
-  it('an empty folder reads nothing and never leaks into a project', () => {
-    expect(read('')).toBe('');
+  it('an empty folder keeps nothing, so it never leaks into a project', () => {
     save('', 'c1');
+    expect(read('')).toBe('');
     expect(read(NORM)).toBe('');
+    expect(window.localStorage.length).toBe(0);
   });
   it.each([
     ['very long', 'C:\\' + 'long\\'.repeat(300) + 'x'],

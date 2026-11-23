@@ -628,6 +628,19 @@ describe.each(['read', 'load'] as const)('the store knows which project a held l
     expect(store.project()).toBe('A');
   });
 
+  it('the same folder spelled another way is the same project: nothing held is dropped and a reader on that spelling is served (#4099)', async () => {
+    const { slot, read } = hostOn('C:/P/X');
+    const { store } = make({ a: slot });
+    store.setProject('C:/P/X');
+    await store.ensure('a', { project: 'C:/P/X' });
+    store.setProject('C:\\P\\X\\');
+    expect(store.getState().slots.a).toEqual({ count: 2 });
+    await store.ensure('a', { project: 'C:\\P\\X' });
+    expect(read).toHaveBeenCalledTimes(1);
+    store.setProject('C:/P/Y');
+    expect(store.getState().slots.a).toBeUndefined();
+  });
+
   it('the folder changes before the store resets: the store is told, empties, and reads fresh for the new folder (R10-10)', async () => {
     const { host, read, slot } = hostOn('A');
     const { store } = make({ a: slot });

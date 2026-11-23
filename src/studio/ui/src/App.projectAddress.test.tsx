@@ -462,4 +462,27 @@ describe('the chapter in the address is not carried into another project (#4059)
     await onChapter(/^Chapter: Chapter 7:/);
     expect(address()).toBe('/editing/chapter-7');
   });
+
+  // The page is not remounted either: its node holding the page stays and no loading frame is drawn (the mock's attach still re-reads the chapters under it, so this guards the frame and the notice, not the page's own nodes; pageBoundaryKey.test.ts guards the key). (The host's attach event itself still closes what a page had open and says so: it names no folder.)
+  it.each([
+    ['backslashes', (folder: string) => folder.replace(/\//g, '\\')],
+    ['a trailing separator', (folder: string) => `${folder}/`],
+    ['the very same spelling', (folder: string) => folder],
+  ])('the same folder spelled %s does not remount the page', async (_name, spell) => {
+    const { api, first } = await openAt('/editing/chapter-7');
+    await onChapter(/^Chapter: Chapter 7:/);
+    const node = document.querySelector('main > div');
+    expect(node).toBeTruthy();
+    const watched = watchPage();
+    await api.switchProject(spell(first), 'Alice');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(watched()).toMatchObject({ empty: 0, foreign: false });
+    expect(document.querySelector('main > div')).toBe(node);
+    expect(
+      overlay
+        .getSnapshot()
+        .toasts.map((toast) => toast.text)
+        .join('|'),
+    ).not.toMatch(/project changed/i);
+  });
 });

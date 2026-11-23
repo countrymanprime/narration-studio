@@ -15,6 +15,9 @@ export function folderKey(folder: string): string {
   );
 }
 
+/** Whether two project folders are one folder (see `folderKey`). */
+export const isSameProject = (a: string, b: string): boolean => folderKey(a) === folderKey(b);
+
 const keyFor = (name: string, folder: string): string => `narration.${name}.${folder}`;
 
 /** The browser-storage key of what `name` (for example `booth.lastPlace`) keeps for this project: the normalised folder, so one folder spelled two ways is one place. */
@@ -22,9 +25,10 @@ export const projectStorageKey = (name: string, folder: string): string => keyFo
 
 /**
  * Reads what `name` keeps for this project. A value under the normalised key wins. Failing that, the value an earlier build wrote under the folder exactly as the caller spells it is
- * copied to the normalised key (the old key is left alone) and returned. Null when storage is blocked or holds nothing; never throws.
+ * copied to the normalised key (the old key is left alone) and returned. Null when no project is open (an empty folder), storage is blocked or holds nothing; never throws.
  */
 export function readProjectStorage(name: string, folder: string): string | null {
+  if (!folder) return null;
   try {
     const key = projectStorageKey(name, folder);
     const kept = window.localStorage.getItem(key);
@@ -44,8 +48,9 @@ export function readProjectStorage(name: string, folder: string): string | null 
   }
 }
 
-/** Keeps `value` for this project under the normalised key. False when storage refused it (blocked or full). */
+/** Keeps `value` for this project under the normalised key. False when no project is open (an empty folder) or storage refused it (blocked or full). */
 export function writeProjectStorage(name: string, folder: string, value: string): boolean {
+  if (!folder) return false;
   try {
     window.localStorage.setItem(projectStorageKey(name, folder), value);
     return true;

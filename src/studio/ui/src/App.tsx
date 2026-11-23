@@ -98,6 +98,7 @@ import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
 import { addressWithoutProject, pageOfPath } from './navigation/address';
+import { isSameProject } from './projectFolder';
 import { historyHoldsMove, isOtherProject, pageBoundaryKey, type HistoryEntryState } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
@@ -290,6 +291,13 @@ if (typeof window !== 'undefined') {
   });
 }
 
+/** The project folder as the window already holds it when the host names the same folder in another spelling, so nothing keyed or compared by the folder sees a change (#4099). */
+function keepFolderSpelling(current: Bootstrap | undefined, next: Bootstrap): Bootstrap {
+  return current && current.projectFolder !== next.projectFolder && isSameProject(current.projectFolder, next.projectFolder)
+    ? { ...next, projectFolder: current.projectFolder }
+    : next;
+}
+
 export function App({ journal }: { journal?: Journal } = {}) {
   // Every build serves from the site root (base: '/', vite.config.ts), so this is a no-op basename; the Pages demo of src/web serves under
   // /<repository>/demo/, and without a matching basename react-router compares its routes ('/', '/proof', ...) against the full pathname and
@@ -478,7 +486,7 @@ function AppRoutes() {
       if (mine !== bootstrapSeq.current || studio.generation() !== generation) return;
       studio.setProject(next.projectFolder);
       setDiagnosticId(next.diagnosticId);
-      setData(next);
+      setData((current) => keepFolderSpelling(current, next));
       setDataReadAt(Date.now());
     } catch (error) {
       if (mine !== bootstrapSeq.current) return;
@@ -572,7 +580,7 @@ function AppRoutes() {
         if (active) {
           loaded = true;
           setDiagnosticId(next.diagnosticId);
-          setData(next);
+          setData((current) => keepFolderSpelling(current, next));
           setDataReadAt(Date.now());
         }
       } catch (error) {
@@ -698,7 +706,7 @@ function AppRoutes() {
   const shownProject = useRef(data?.projectFolder);
   useEffect(() => {
     const before = shownProject.current;
-    if (before === data?.projectFolder) return;
+    if (before === data?.projectFolder || (before !== undefined && data?.projectFolder !== undefined && isSameProject(before, data.projectFolder))) return;
     shownProject.current = data?.projectFolder;
     // The first bootstrap names a project; it is not a change from one (a layer the narrator opened while the app was still loading, the jump menu, is still theirs).
     if (before !== undefined) closeProjectDialogs();

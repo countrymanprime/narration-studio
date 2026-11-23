@@ -9,11 +9,11 @@ import { readProjectStorage, writeProjectStorage } from '../../../projectFolder'
 
 export type LastPlace = { chapterId: string; paragraphId: string; word: number };
 
-const LAST_PLACE = 'booth.lastPlace';
+const PROJECT_KEY_LAST_PLACE = 'booth.lastPlace';
 
 export function loadLastPlace(projectFolder: string): LastPlace | null {
   try {
-    const raw = readProjectStorage(LAST_PLACE, projectFolder);
+    const raw = readProjectStorage(PROJECT_KEY_LAST_PLACE, projectFolder);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
@@ -30,7 +30,7 @@ export function loadLastPlace(projectFolder: string): LastPlace | null {
 }
 
 export function saveLastPlace(projectFolder: string, place: LastPlace): void {
-  writeProjectStorage(LAST_PLACE, projectFolder, JSON.stringify(place)); // unavailable storage: the Booth then opens on the DAW's chapter or the first, as it did
+  writeProjectStorage(PROJECT_KEY_LAST_PLACE, projectFolder, JSON.stringify(place)); // unavailable storage: the Booth then opens on the DAW's chapter or the first, as it did
   saveChapterPlace(projectFolder, place);
 }
 
@@ -42,11 +42,11 @@ export const CHAPTER_PLACES_KEPT = 400;
 
 type KeptPlaces = Record<string, ChapterPlace & { at: number }>;
 
-const CHAPTER_PLACES = 'booth.chapterPlaces';
+const PROJECT_KEY_CHAPTER_PLACES = 'booth.chapterPlaces';
 
 function readChapterPlaces(projectFolder: string): KeptPlaces {
   try {
-    const raw = readProjectStorage(CHAPTER_PLACES, projectFolder);
+    const raw = readProjectStorage(PROJECT_KEY_CHAPTER_PLACES, projectFolder);
     const parsed: unknown = raw ? JSON.parse(raw) : null;
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
     const places: KeptPlaces = {};
@@ -74,7 +74,7 @@ function saveChapterPlace(projectFolder: string, place: LastPlace): void {
   const kept = Object.entries(places)
     .sort(([, a], [, b]) => b.at - a.at)
     .slice(0, CHAPTER_PLACES_KEPT);
-  writeProjectStorage(CHAPTER_PLACES, projectFolder, JSON.stringify(Object.fromEntries(kept))); // unavailable storage: a chapter then opens where its recording ends, or at its top
+  writeProjectStorage(PROJECT_KEY_CHAPTER_PLACES, projectFolder, JSON.stringify(Object.fromEntries(kept))); // unavailable storage: a chapter then opens where its recording ends, or at its top
 }
 
 /** Where the narrator last was in `chapterId` of this project, or null when the Booth keeps nothing for it. */

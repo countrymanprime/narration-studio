@@ -3,12 +3,12 @@
 // access is guarded and a failed write only means the choice lasts for this visit.
 import { readProjectStorage, writeProjectStorage } from '../../../projectFolder';
 
-const KEPT = 'proof.lastChapter';
+const PROJECT_KEY = 'proof.lastChapter';
 
 /** The chapter Proof or Master & QC last showed for this project, or '' when none is kept or storage cannot be read. */
-export const loadSharedChapter = (projectFolder: string): string => readProjectStorage(KEPT, projectFolder) ?? '';
+export const loadSharedChapter = (projectFolder: string): string => readProjectStorage(PROJECT_KEY, projectFolder) ?? '';
 
 /** Remembers the chapter Master & QC is on, for Proof (and any page that reads the same key) to open on. */
 export function saveSharedChapter(projectFolder: string, chapterId: string): void {
-  writeProjectStorage(KEPT, projectFolder, chapterId);
+  writeProjectStorage(PROJECT_KEY, projectFolder, chapterId);
 }
