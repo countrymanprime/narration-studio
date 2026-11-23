@@ -8,6 +8,7 @@ import (
 
 	"desktop/internal/credits"
 	"desktop/internal/project"
+	"desktop/internal/settings"
 	"desktop/internal/teleprompter"
 )
 
@@ -134,7 +135,12 @@ func (h *Host) CreditsPreview(body string) (string, error) {
 // [Narrator] when the project has none. A project with no manifest (or none open) renders with no project values.
 func (h *Host) creditTokens() map[string]string {
 	svc := h.services()
-	projectFolder := svc.config.projectFolder
+	return h.creditTokensOf(svc.config.projectFolder, svc.settings)
+}
+
+// creditTokensOf is creditTokens for the project folder and settings store it is given, so a caller that captured them reads
+// one project throughout. It calls nothing that takes a services() snapshot.
+func (h *Host) creditTokensOf(projectFolder string, store *settings.Store) map[string]string {
 	var values credits.Values
 	if projectFolder != "" {
 		if manifest, ok, err := project.Load(h.persist, projectFolder); err == nil && ok && manifest != nil && manifest.Credits != nil {
@@ -142,8 +148,8 @@ func (h *Host) creditTokens() map[string]string {
 		}
 	}
 	narratorGlobal := ""
-	if svc.settings != nil {
-		narratorGlobal, _ = svc.settings.Effective("General", "narrator_name", "")
+	if store != nil {
+		narratorGlobal, _ = store.Effective("General", "narrator_name", "")
 	}
 	return values.Resolve(narratorGlobal)
 }
