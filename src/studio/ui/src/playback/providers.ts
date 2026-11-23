@@ -54,7 +54,9 @@ export interface DawRead {
 export const CHECKING = 'Checking whether the DAW can play this. Try again in a moment.';
 export const READ_FAILED = 'The app could not ask the DAW what it can do; it is asking again.';
 
-const join = (whys: readonly string[]): string => whys.join(' ');
+/** A reason ends in a full stop, so the next sentence ("Played in the app instead.") does not run into it. */
+const ended = (why: string): string => (/[.!?:]$/.test(why.trimEnd()) ? why : `${why}.`);
+const join = (whys: readonly string[]): string => whys.map(ended).join(' ');
 
 /**
  * The selection rule. Providers are tried in order: one that is not ready is passed over, its reason kept; one that fails is passed

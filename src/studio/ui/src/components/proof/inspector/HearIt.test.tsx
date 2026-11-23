@@ -111,7 +111,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       expect(t.mediaUrl).toHaveBeenCalledWith('C:/Book/ch1 take.wav');
       expect(currentTimes.at(-1)).toBe(7);
       // The DAW's reason, and who played instead, is a toast (playback/providers.ts); the row says it is playing. It plays, so no Retry is offered.
-      expect(toasted()[0]).toBe(`refused: ${reason} Played in the app instead.`);
+      expect(toasted()[0]).toBe(`refused: ${reason}. Played in the app instead.`);
       expect(toasted()[1]?.action).toBeUndefined();
       expect(status()).toBe('Playing in the app, 3 s either side.');
     },
@@ -213,6 +213,39 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     unmount();
     answerLoop({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
     await waitFor(() => expect(api.findingsStopLoop).toHaveBeenCalledTimes(1));
+  });
+
+  it('a late loop answer of an older press does not stop the loop a newer press started', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const answers: ((value: FindingNavigation) => void)[] = [];
+      const api: HearItApi = {
+        findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => answers.push(resolve))),
+        findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
+      };
+      render(
+        <ApiProvider api={createMockApi()}>
+          <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+        </ApiProvider>,
+      );
+      fireEvent.click(hear());
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
+      await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+      // The app plays; Stop, then press again: the second press's loop starts.
+      fireEvent.click(await screen.findByRole('button', { name: /^Stop hearing it/ }));
+      await waitFor(() => expect(hear()).toBeTruthy());
+      (api.findingsStopLoop as ReturnType<typeof vi.fn>).mockClear();
+      fireEvent.click(hear());
+      await vi.advanceTimersByTimeAsync(10);
+      answers[1]!({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop hearing it/ })).toBeTruthy());
+      // The first press's DAW answers late: it must not stop the second press's loop.
+      answers[0]!({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+      await vi.advanceTimersByTimeAsync(10);
+      expect(api.findingsStopLoop).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a Retry offered for an older press plays nothing, and none plays once the note was left', async () => {
