@@ -104,7 +104,12 @@ export function ProjectPicker({
   // A successful switch/create emits the native "system:attached" event,
   // which App.tsx's existing subscription already turns into a bootstrap
   // refresh - this component only needs to surface a refusal, if any.
-  const applyResult = (result: ProjectSwitchResult) => setReason(result.switched ? '' : (result.reason ?? ''));
+  // A switch that went through closes the picker over an open project, whatever the folder: choosing the book that is already open (the host may spell its folder another way) changes
+  // nothing the app could close it on. A refusal keeps it open with its reason.
+  const applyResult = (result: ProjectSwitchResult) => {
+    setReason(result.switched ? '' : (result.reason ?? ''));
+    if (result.switched) onBack?.();
+  };
 
   // Every action funnels through here so a failed IPC call (e.g. the dialog
   // rejecting, or the host not being ready) surfaces as visible text instead

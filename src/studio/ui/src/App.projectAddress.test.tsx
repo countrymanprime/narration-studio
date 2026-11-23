@@ -155,8 +155,8 @@ describe('the chapter in the address is not carried into another project (#4059)
     await onChapter(/^Chapter: Chapter 7:/);
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await onChapter(/^Chapter: Chapter 1:/);
-    expect(address()).toBe('/editing');
-    expect(loadEditingChapter(OTHER)).toBe('chapter-1');
+    await waitFor(() => expect(address()).toBe('/editing'));
+    await waitFor(() => expect(loadEditingChapter(OTHER)).toBe('chapter-1'));
   });
 
   it('Back onto an entry written under the other project drops its chapter too: the Booth', async () => {

@@ -70,6 +70,8 @@ async function hostSwitching() {
   };
 }
 
+type Boot = Awaited<ReturnType<ReturnType<typeof createMockApi>['bootstrap']>>;
+
 function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial: Parameters<typeof createMockApi>[1] = {}, journal?: Journal) {
   appMounts += 1;
   appEverMounted = true;
@@ -532,6 +534,46 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(onConfirm).toHaveBeenCalledWith(false);
     // Text typed into a dialog that went is gone: the narrator is told why, once.
     expect(screen.getAllByText('The project changed, so what was open was closed.')).toHaveLength(1);
+  });
+
+  it.each([
+    ['another folder', (first: Boot) => ({ ...first, projectFolder: '/Other', projectName: 'Other' }), false],
+    ['the open folder spelled another way', (first: Boot) => ({ ...first, projectFolder: `${first.projectFolder.replace(/\//g, '\\')}\\` }), true],
+  ])('a question a page opened before an attach cannot be confirmed while the bootstrap is on its way: %s (#4057)', async (_name, named, staysOpen) => {
+    let attach: ((state: { attached: boolean }) => void) | undefined;
+    const first = await createMockApi().bootstrap();
+    let answer: ((value: typeof first) => void) | undefined;
+    let attached = false;
+    renderApp({
+      bootstrap: () => (attached ? new Promise((resolve) => (answer = resolve)) : Promise.resolve(first)),
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const onConfirm = vi.fn();
+    act(() => void overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm));
+    await screen.findByRole('alertdialog', { name: 'Cut these words?' });
+    attached = true;
+    act(() => attach!({ attached: true }));
+    await waitFor(() => expect(answer).toBeDefined());
+    // The host is on a folder the app has not heard of yet: the question may be about the old project's chapter, so pressing Cut does nothing.
+    fireEvent.click(screen.getByRole('button', { name: 'Cut' }));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onConfirm).not.toHaveBeenCalled();
+    act(() => answer!(named(first)));
+    if (staysOpen) {
+      // The same folder: the question is the narrator's still, and works again.
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(screen.queryByRole('alertdialog', { name: 'Cut these words?' })).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Cut' }));
+      await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(true));
+    } else {
+      await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(false));
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+    }
   });
 
   it('a dialog opened after the attach but before the new project loads is closed when the new project arrives (#4057)', async () => {
@@ -1579,6 +1621,30 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy());
     expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
+  });
+
+  // The recent list spells the open book's folder with backslashes, the start-up path with slashes: choosing it changes no folder, and the picker still closes on the switch having gone through (#4099).
+  it.each([
+    ['spelled with backslashes (the recent list)', { projectFolder: 'C:/Projects/Alice-in-Wonderland' }],
+    ['spelled as the app has it', { projectFolder: 'C:\\Projects\\Alice-in-Wonderland' }],
+  ])('choosing the open project from the picker closes the picker, whatever its spelling: %s', async (_name, initial) => {
+    renderApp({}, initial);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
+    fireEvent.click(await screen.findByRole('button', { name: /^Open Alice/ }));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull());
+    expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+  });
+
+  it('a refused switch keeps the picker open and says why', async () => {
+    renderApp({ switchProject: async () => ({ switched: false, reason: 'The DAW is recording.' }) });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
+    fireEvent.click(await screen.findByRole('button', { name: /^Open Voltage/ }));
+    expect(await screen.findByText('The DAW is recording.')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Choose your project' })).toBeTruthy();
   });
 
   // The mock's New project goes to Script (`newProject` in its state/commands/manuscript.ts), where the empty state offers the import.
