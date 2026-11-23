@@ -101,7 +101,7 @@ function focusMainOnceDialogsClose(main: HTMLElement | null): (() => void) | und
   };
 }
 
-/** While a message shows, the shell ends the page above it (`--toast-h`, published by `ToastRegion`), so the message stands in a strip of its own and covers no button of any page. Over a dialog the page is behind the scrim and keeps its size. */
+/** While a message shows, the shell ends the page above it (`--toast-h`, published by `ToastRegion`; the page, not the navigation rail, which keeps every button in reach), so the message stands in a strip of its own and covers no button of any page. Over a dialog the page is behind the scrim and keeps its size. */
 const TOAST_STRIP = 'pb-[var(--toast-h,0px)] [:root[data-modal-open]_&]:pb-0';
 
 export function AppShell({
@@ -273,17 +273,17 @@ export function AppShell({
   // out, and the page keeps its own `<main>` so the landmark stays. With no manuscript the page is the empty state and has no Exit, so it keeps the rail.
   if (isActivePath(pathname, '/booth') && hasManuscript) {
     return (
-      <div className={`h-full overflow-hidden bg-[var(--bg)] ${TOAST_STRIP}`}>
+      <div className="h-full overflow-hidden bg-[var(--bg)]">
         {skipLink}
         {pageStatus}
-        <main id="main-content" ref={mainRef} tabIndex={-1} className="size-full overflow-hidden focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className={`size-full overflow-hidden focus:outline-none ${TOAST_STRIP}`}>
           {children}
         </main>
       </div>
     );
   }
   return (
-    <div className={`flex h-full flex-col overflow-hidden bg-[var(--bg)] ${TOAST_STRIP}`}>
+    <div className="flex h-full flex-col overflow-hidden bg-[var(--bg)]">
       {skipLink}
       {pageStatus}
       <ExtensionBanner />
@@ -301,7 +301,7 @@ export function AppShell({
           {navigation}
         </NavDrawer>
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
-        <main id="main-content" ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className={`flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none ${TOAST_STRIP}`}>
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] text-sm max-md:gap-2">
             {/* 32 px and the jump button's grey field and border, so the bar's two ends match (alignment audit XSL-3); never squeezed by a long name (XSL-10). */}
             <IconButton

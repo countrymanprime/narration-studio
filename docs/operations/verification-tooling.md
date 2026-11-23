@@ -84,7 +84,7 @@ Snapshots live in `tests/aria/snapshots/*.aria.yml`, hand-trimmed and commented.
 
 ## Toast guard
 
-`src/studio/ui/tests/visual/toast-covers-no-button.spec.ts` holds the owner rule that no toast covers a button (#4063). On every page with the sidebar and on Editing's chapter view, at 360x500, 768x1024 and 1440x900 in both themes, it raises the longest Retry error toast the app says plus a second one (the mock build's `window.__raiseToast`, `main.tsx`) and fails when a visible button, link or `[role=button]` of the page overlaps a toast box, or a toast's own button is under 24 px. A page that cannot clear one is listed in `TOAST_COVERS_DEBT` in the spec with a reason and an issue, and the entry fails once the page clears. The project picker and the startup screen draw outside the shell and are not covered.
+`src/studio/ui/tests/visual/toast-covers-no-button.spec.ts` holds the owner rule that no toast covers a button (#4063). On every page with the sidebar and on Editing's chapter view, at 360x500, 768x1024 and 1440x900 in both themes, it raises the longest Retry error toast the app says plus a second one (the mock build's `window.__raiseToast`, `main.tsx`) and fails when a visible button, link or `[role=button]` of the page overlaps a toast box, a button that was in view before the toast is out of reach after it (no scrolling column holds it, as the navigation rail would be if the strip took its height), or a toast's own button is under 24 px. A page that cannot clear one is listed in `TOAST_COVERS_DEBT` in the spec with a reason and an issue, and the entry fails once the page clears. The project picker and the startup screen draw outside the shell and are not covered.
 
 ## Overlay guard
 

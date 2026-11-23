@@ -41,6 +41,37 @@ const CASES: Case[] = [
 /** A page and the widths a toast is known to cover one of its buttons at, with why and where it is tracked. The list may only shrink. */
 const TOAST_COVERS_DEBT: Array<{ page: string; widths: number[]; reason: string; issue: number }> = [];
 
+/** The buttons of the page a person can see right now (not clipped away by a scroller, not under the toast region): named by label and place in the page. */
+const visibleButtons = (): string[] => {
+  const seen = (el: Element): boolean => {
+    const r = el.getBoundingClientRect();
+    let left = Math.max(r.left, 0);
+    let top = Math.max(r.top, 0);
+    let right = Math.min(r.right, window.innerWidth);
+    let bottom = Math.min(r.bottom, window.innerHeight);
+    for (let p = el.parentElement; p; p = p.parentElement) {
+      const st = getComputedStyle(p);
+      if (st.display === 'none' || st.visibility === 'hidden') return false;
+      if (st.overflowX === 'visible' && st.overflowY === 'visible') continue;
+      const b = p.getBoundingClientRect();
+      left = Math.max(left, b.left);
+      top = Math.max(top, b.top);
+      right = Math.min(right, b.right);
+      bottom = Math.min(bottom, b.bottom);
+    }
+    return right - left >= 1 && bottom - top >= 1;
+  };
+  return [...document.querySelectorAll('button, a[href], [role="button"]')]
+    .filter((b) => !b.closest('[data-toast-region], [hidden], [inert], [aria-hidden="true"]') && seen(b))
+    .map((b) => {
+      const name = `${b.getAttribute('aria-label') ?? b.textContent?.trim().slice(0, 30) ?? b.tagName}`;
+      // Reachable once the strip takes its room: a scrolling column holds it, so a narrator scrolls to it. One with none (a fixed rail) would be lost.
+      let scrolls = false;
+      for (let p = b.parentElement; p && !scrolls; p = p.parentElement) scrolls = /auto|scroll/.test(getComputedStyle(p).overflowY);
+      return scrolls ? name : `${name} (no scrolling column holds it)`;
+    });
+};
+
 for (const theme of ['light', 'dark'] as const) {
   for (const size of SIZES) {
     for (const c of CASES) {
@@ -51,6 +82,7 @@ for (const theme of ['light', 'dark'] as const) {
         await settlePage(page);
         await c.open(page);
         await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+        const before = await page.evaluate(visibleButtons);
         for (const text of [LONG, 'The take could not be saved. Try again.']) {
           await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
         }
@@ -58,6 +90,9 @@ for (const theme of ['light', 'dark'] as const) {
         await page.mouse.move(size.width - 2, 2);
         await page.waitForFunction(() => Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-h')) > 0);
         await page.waitForTimeout(250);
+        const after = await page.evaluate(visibleButtons);
+        // A button in view before the toast that is out of view after it must be in a scrolling column, so it is still reachable; the page is shorter by the strip.
+        const lost = before.filter((name) => !after.includes(name) && name.endsWith('(no scrolling column holds it)'));
         const result = await page.evaluate(() => {
           const region = document.querySelector('[data-toast-region]')!;
           const toasts = [...region.querySelectorAll<HTMLElement>('[data-tone]')].filter((t) => t.getBoundingClientRect().width > 0);
@@ -110,6 +145,7 @@ for (const theme of ['light', 'dark'] as const) {
         } else {
           expect(result.covered, `toasts ${JSON.stringify(result.boxes)} cover: ${JSON.stringify(result.covered)}`).toEqual([]);
         }
+        expect(lost, 'no button is shut out of reach by the strip').toEqual([]);
         expect(result.small, 'the toast buttons are at least 24 px each way').toEqual([]);
       });
     }
