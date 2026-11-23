@@ -600,7 +600,7 @@ describe('toast queue', () => {
     expect(undone.getSnapshot().toasts[0]?.text).toBe('Removed.');
   });
 
-  it.each(['\u200B', '\u200D', '\u2800', '\u3164', '\uFEFF', '\u00A0', ' \u200B\u2800 '])(
+  it.each(['\u200B', '\u200D', '\u2800', '\u3164', '\uFEFF', '\u00A0', ' \u200B\u2800 ', '\u034F', '\uFE0F', '\u17B4', '\u0301\u0301'])(
     'a message of only invisible characters (%j) is not a message',
     (raw) => {
       service.toast(raw, { tone: 'error', action: { label: 'Retry', onAction: () => undefined } });
@@ -622,7 +622,8 @@ describe('toast queue', () => {
     expect(toasts.map((t) => t.text)).toEqual(['REAPER is not answering.']);
     service.toast('Something else.');
     service.toast('REAPER is not answering.');
-    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Something else.', 'REAPER is not answering.']);
+    // It keeps its place in the queue: the toast on screen is the one replaced, not skipped.
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['REAPER is not answering.', 'Something else.']);
   });
 
   it('the same words as an error and as information are two messages, and so are the same words with and without an action', () => {
@@ -658,7 +659,7 @@ describe('toast queue', () => {
     service.toast('REAPER is starting. Record turns on here once it connects.', { topic: 'daw-start' });
     service.toast('Unrelated.');
     service.toast('REAPER could not be started: the program did not open.', { tone: 'error', topic: 'daw-start' });
-    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Unrelated.', 'REAPER could not be started: the program did not open.']);
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['REAPER could not be started: the program did not open.', 'Unrelated.']);
     service.dismissTopic('daw-start');
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Unrelated.']);
     service.dismissTopic('daw-start');

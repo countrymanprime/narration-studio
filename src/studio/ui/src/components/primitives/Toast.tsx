@@ -1,11 +1,12 @@
 import { TOAST_ROOM_EVENT } from '../../hooks/useToastClearance';
 import { HIT_AREA } from './hitArea';
-import { Badge } from './StatusBadge';
-import { plural } from '../../plural';
+import { StatusBadge } from './StatusBadge';
+import { TooltipTarget } from './Tooltip';
+import { formatCount, plural } from '../../plural';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export type ToastTone = 'info' | 'error';
@@ -58,23 +59,39 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
 }
 
 // The cue that the text has more above or below, in the toast's own colours, drawn only while the text scrolls (on text that fits it left two grey blocks in the scrollbar gutter).
+// Builds new because (b): Disclosure's `scrollCue` is a mask on its panel driven by that panel's own `data-more-below` bookkeeping and fades the bottom only; reusing it here would turn Disclosure into a
+// both-ends cue for text on an inverted surface, a new purpose for it.
 const TEXT_SCROLL_CUE =
   '[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
-function ToastItem({
-  message,
-  dismiss,
-  waiting = false,
-  more = 0,
-  onHeld,
-}: {
-  message: ToastMessage;
-  dismiss: (id: number) => void;
-  waiting?: boolean;
-  more?: number;
-  /** Tells the region whether a pointer or focus holds this toast, so a newer, higher-ranked message does not take the slot from under a hand. */
-  onHeld?: (id: number, held: boolean) => void;
-}) {
+/**
+ * Where focus goes when a toast hands it on: the control that had it before the toast took it, else the Dismiss of the toast now in the slot, else the page's <main> (the app's `#main-content`, the project picker's
+ * too). Never <body>.
+ */
+function focusTarget(origin: HTMLElement | null): HTMLElement | null {
+  if (origin?.isConnected) return origin;
+  return document.querySelector<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]') ?? document.getElementById('main-content');
+}
+
+/**
+ * A key pressed on a toast's button repeats while it is held, and the press may move focus (an Undo puts it on the control it restored): the repeats must press nothing, so every repeat of any key goes unheard until
+ * a key comes up (#4063).
+ */
+function swallowRepeatsUntilKeyUp(): void {
+  const swallow = (event: KeyboardEvent) => {
+    if (!event.repeat) return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const stop = () => {
+    document.removeEventListener('keydown', swallow, true);
+    document.removeEventListener('keyup', stop, true);
+  };
+  document.addEventListener('keydown', swallow, true);
+  document.addEventListener('keyup', stop, true);
+}
+
+function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dismiss: (id: number) => void; more?: number }) {
   // A message of more than two lines is read by scrolling its text, which then needs the keyboard too: the text takes focus only while it overflows (#2793).
   const text = useRef<HTMLSpanElement>(null);
   const [scrolls, setScrolls] = useState(false);
@@ -96,10 +113,6 @@ function ToastItem({
   const focused = useRef(false);
   const [held, setHeld] = useState(false);
   const hold = () => setHeld(hover.current || focused.current);
-  useEffect(() => {
-    onHeld?.(message.id, held);
-    return () => onHeld?.(message.id, false);
-  }, [held, message.id, onHeld]);
   // The second click of a double click (`detail` 2) is not a press: when the first click dismissed this toast's neighbour, the next toast took its place under the pointer and would take the second click (#4063).
   const tooSoon = (event: { detail: number }) => event.detail >= 2;
   // A key held down on a toast's button repeats: the repeats must not press it again, nor press what focus is handed to (#4063).
@@ -111,7 +124,10 @@ function ToastItem({
   }, []);
   const onButtonKey = (event: { repeat: boolean; preventDefault: () => void }) => {
     if (event.repeat) event.preventDefault();
-    else keyHeld.current = true;
+    else {
+      keyHeld.current = true;
+      swallowRepeatsUntilKeyUp();
+    }
   };
   // A toast under a pointer that is not moving is not hovered, however it came there (it appeared under the button that raised it, another toast above it went, it came back after a
   // dialog): the browser says the pointer entered, but the narrator did not reach for it, and holding it would keep it up for ever. Only a pointer that moves over the toast holds it (#4063).
@@ -119,13 +135,6 @@ function ToastItem({
     hover.current = true;
     hold();
   };
-  // A toast that goes behind a newer one over a dialog (`waiting`) is not drawn, so the pointer or focus that held it has left without saying so: its time runs on.
-  useEffect(() => {
-    if (!waiting) return;
-    hover.current = false;
-    focused.current = false;
-    setHeld(false);
-  }, [waiting]);
   // The time gone, in whole seconds, for the stepped bar drawn under reduced motion (below): it starts again from nothing whenever the hold changes, as the timers do.
   const [elapsedMs, setElapsedMs] = useState(0);
   useEffect(() => {
@@ -137,16 +146,23 @@ function ToastItem({
   }, [held, stays]);
   // The control that had focus before the toast took it: where focus goes back once the toast is gone and no other toast is to take it.
   const origin = useRef<HTMLElement | null>(null);
+  // A press (a click or a key on the toast's own buttons) hands focus on by itself (`settle`); a toast that goes any other way with focus inside it (the same message raised again, replacing it) hands it on here, so focus never falls to <body>.
+  const pressed = useRef(false);
+  useEffect(
+    () => () => {
+      if (pressed.current || !focused.current) return;
+      window.setTimeout(() => {
+        const active = document.activeElement;
+        if (!active || active === document.body) focusTarget(origin.current)?.focus();
+      }, 0);
+    },
+    [],
+  );
   const settle = (always: boolean) => {
     // Where focus goes, looked up when it is handed over: where it was before the toast took it, else the Dismiss of the toast that has taken the slot by then, else <main>
     // (an origin that is gone, a dialog that closed). Never <body>.
-    const resolve = (): HTMLElement | null => {
-      if (origin.current?.isConnected) return origin.current;
-      const next = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')].find(
-        (button) => !button.closest('[hidden]'),
-      );
-      return next ?? document.getElementById('main-content');
-    };
+    const resolve = () => focusTarget(origin.current);
+    pressed.current = true;
     dismiss(id);
     // Only focus that is on nothing is handed back: an action that opened a dialog or moved focus keeps what it did.
     const hand = () => {
@@ -175,7 +191,6 @@ function ToastItem({
   return (
     <div
       data-tone={message.tone}
-      hidden={waiting}
       onPointerMove={pointerOn}
       onPointerLeave={() => ((hover.current = false), hold())}
       onFocus={(event) => {
@@ -192,7 +207,7 @@ function ToastItem({
       // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 56 px tall (room for two lines of text) with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
-      className={`relative ${waiting ? 'hidden' : 'flex'} h-[3.5rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
+      className={`relative flex h-[3.5rem] max-w-full items-center gap-[0.625rem] overflow-hidden rounded-[var(--radius-button)] bg-[var(--toast-bg)] py-1.5 pr-1.5 pl-4 text-[0.85rem] text-[var(--toast-text)] shadow-[var(--shadow)] motion-ok:animate-[toast-in_var(--motion-fast)_var(--ease-enter)] motion-ok:transition-[opacity,transform] motion-ok:duration-(--motion-fast) motion-ok:ease-(--ease-exit) ${leaving ? 'translate-y-1 opacity-0' : 'opacity-100'}`}
     >
       {isError && <span data-toast-edge aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-[var(--danger)]" />}
       {/* The time left (#3667): a 3 px bar along the bottom edge inside the clipped box, so it takes no room and sits under no button (the buttons end 6 px above it). It shrinks over the
@@ -223,27 +238,20 @@ function ToastItem({
         data-toast-text
         dir="auto"
         tabIndex={scrolls ? 0 : undefined}
-        // While it scrolls, the text keeps the keys that scroll it: the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts).
-        data-owns-keys={scrolls ? '' : undefined}
-        className={`max-h-[2.5em] min-w-0 overflow-y-auto leading-tight [overflow-wrap:anywhere] ${scrolls ? TEXT_SCROLL_CUE : ''}`}
+        // The text keeps the keys that scroll it: the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts). It is a scroller (which Chromium makes a tab stop) only
+        // while it overflows: a message that fits, even by a sub-pixel, is plain text and no tab stop.
+        data-owns-keys=""
+        className={`max-h-[2.5em] min-w-0 leading-tight [overflow-wrap:anywhere] ${scrolls ? `overflow-y-auto ${TEXT_SCROLL_CUE}` : 'overflow-hidden'}`}
       >
         {message.text}
       </span>
       {more > 0 && (
-        // The shared badge in the toast's own colours; the count is named for a screen reader (the pill alone reads "plus 2").
-        <span
-          data-toast-more
-          role="img"
-          aria-label={`${plural(more, 'more message')} waiting`}
-          title={`${plural(more, 'more message')} waiting`}
-          className="flex-none"
-        >
-          <Badge
-            label={`+${more}`}
-            colors={{ fill: 'color-mix(in srgb, var(--toast-text) 18%, transparent)', text: 'var(--toast-text)', line: 'var(--toast-text)' }}
-            className="text-[0.75rem] font-semibold tabular-nums"
-          />
-        </span>
+        // The neutral status badge as a tag, named for a screen reader (the pill alone reads "plus 2"); the hint is for the pointer.
+        <TooltipTarget text={`${plural(more, 'more message')} waiting`}>
+          <span data-toast-more role="img" aria-label={`${plural(more, 'more message')} waiting`} className="flex-none">
+            <StatusBadge tone="neutral" shape="tag" label={`+${formatCount(more)}`} />
+          </span>
+        </TooltipTarget>
       )}
       {message.action && (
         <button
@@ -252,6 +260,7 @@ function ToastItem({
           onKeyDown={onButtonKey}
           onClick={(event) => {
             if (tooSoon(event)) return;
+            pressed.current = true;
             const button = event.currentTarget;
             // Focus is handed back only when a key pressed the button (`detail` 0): a mouse press hands it nowhere, so focus the app moved is never a hold on a toast the narrator did not reach for (#4063).
             const had = event.detail === 0 && button.contains(document.activeElement);
@@ -270,6 +279,7 @@ function ToastItem({
         onKeyDown={onButtonKey}
         onClick={(event) => {
           if (tooSoon(event)) return;
+          pressed.current = true;
           // Dismissing the button that has focus must not drop focus on the page: it goes back to where it was before the toast, else to the toast that takes the slot, else to <main>.
           if (event.detail === 0 && document.activeElement === event.currentTarget) settle(true);
           else dismiss(id);
@@ -327,7 +337,7 @@ const SHORT_WINDOW_PX = 520;
 
 /**
  * Keeps a slot for one toast, always, so showing one moves nothing (#4063, owner decision): the shell ends the page above it (`AppShell`), and a toast stands in it at the gutter, covering no
- * button and shifting no layout (`error-shift.spec.ts`). The slot is one toast high and never grows: the region shows one toast, and the others wait their turn (`pickShown`), so a second message moves nothing. Set on the root in px, because the clearance
+ * button and shifting no layout (`error-shift.spec.ts`). The slot is one toast high and never grows: the region shows one toast, and the others wait their turn, so a second message moves nothing. Set on the root in px, because the clearance
  * of what is fixed over the window's bottom edge reads it as a number (`useToastClearance`). Removed with the region.
  */
 function useToastSlot(): void {
@@ -433,36 +443,16 @@ export function routeTabAcrossToasts(event: { key: string; shiftKey: boolean; pr
 /** The dialog a toast's Tab wraps into: the newest one open. */
 const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]')].pop() ?? null;
 
-// The messages the app shows, newest last. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
+// The messages the app shows, in the order they were raised; the first shows. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
-/** An information toast with a button (an Undo, the scan's Show them): what its button can still do is timed from when it was raised, so it outranks everything. */
-const isUndoish = (message: ToastMessage): boolean => message.action !== undefined && message.tone === 'info';
-/** Which queued message shows: an information toast with a button (an Undo) first, then an error with a Retry, then an error, then information; the oldest of a rank first. */
-function rank(message: ToastMessage): number {
-  return isUndoish(message) ? 0 : message.action ? 1 : message.tone === 'error' ? 2 : 3;
-}
-export function pickShown(queued: readonly ToastMessage[], held?: number): ToastMessage | undefined {
-  let best: ToastMessage | undefined;
-  for (const message of queued) if (!best || rank(message) < rank(best)) best = message;
-  // A toast under a hand keeps the slot against a newer one of a higher rank, except an Undo: its time is short and fixed, a held toast gets its full time again once the Undo is gone.
-  const keep = held === undefined ? undefined : queued.find((message) => message.id === held);
-  return keep && best && !(isUndoish(best) && !isUndoish(keep)) ? keep : best;
-}
-
 export function ToastRegion({ messages: queued, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   const region = useRef<HTMLDivElement>(null);
-  const [heldId, setHeldId] = useState<number | undefined>();
-  const onHeld = useCallback((id: number, held: boolean) => setHeldId((now) => (held ? id : now === id ? undefined : now)), []);
-  // One toast shows, in a slot that never changes size (#4063); the others wait their turn, with a count in the toast (`+N`), and nothing is drawn over a button. Which shows: `pickShown`. A waiting
-  // toast is not mounted, so its time starts when it shows and every toast is on screen for its whole time, except an information toast with a button (an Undo): that stays mounted, not drawn, with its clock running,
-  // because what its button can still do is timed from when it was raised (the picker sends a removal 6 s after Remove; an Undo shown afresh answered "already removed", qa on #3745). It outranks every other
-  // toast, so only another Undo can make one wait, and then it shows for the time it has left, or not at all (the picker says so when a late Undo is pressed). A waiting message is read out at once (`data-toast-announce`).
-  // Over a dialog the same one toast shows, a box that fits the 4.75rem every dialog leaves under it (#3605).
-  const shown = pickShown(queued, heldId);
+  // One toast shows, in a slot that never changes size (#4063), and nothing is drawn over a button. They show in the order they were raised, one after another: the first in the queue shows and the rest wait
+  // behind it, counted in the toast (`+N`). A waiting toast is not mounted, so its time starts when it shows and every toast is on screen for its whole time; a waiting message is read out at once
+  // (`data-toast-announce`). Over a dialog the same one toast shows, a box that fits the 4.75rem every dialog leaves under it (#3605).
+  const shown = queued[0];
   const messages = shown ? [shown] : [];
-  const waits = (message: ToastMessage) => message !== shown;
-  const mounted = queued.filter((message) => !waits(message) || isUndoish(message));
   const announce = (message: ToastMessage) => (
     <span key={`announce-${message.id}`} data-toast-announce className="sr-only">
       {message.text}
@@ -487,33 +477,25 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
       className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[var(--toast-bottom,var(--page-gutter))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end [&>div:not(:empty)+div:not(:empty)]:mt-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)] [@media(max-height:520px)]:bottom-[calc(var(--page-gutter)+min(var(--toast-clear,0px),calc(100dvh-2*var(--page-gutter)-8rem)))]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
-        {queued.filter((message) => waits(message) && message.tone === 'error').map(announce)}
-        {mounted
+        {queued
+          .slice(1)
+          .filter((message) => message.tone === 'error')
+          .map(announce)}
+        {messages
           .filter((message) => message.tone === 'error')
           .map((message) => (
-            <ToastItem
-              key={message.id}
-              message={message}
-              dismiss={dismiss}
-              waiting={waits(message)}
-              more={waits(message) ? 0 : queued.length - 1}
-              onHeld={onHeld}
-            />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} more={queued.length - 1} />
           ))}
       </div>
       <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
-        {queued.filter((message) => waits(message) && message.tone === 'info').map(announce)}
-        {mounted
+        {queued
+          .slice(1)
+          .filter((message) => message.tone === 'info')
+          .map(announce)}
+        {messages
           .filter((message) => message.tone === 'info')
           .map((message) => (
-            <ToastItem
-              key={message.id}
-              message={message}
-              dismiss={dismiss}
-              waiting={waits(message)}
-              more={waits(message) ? 0 : queued.length - 1}
-              onHeld={onHeld}
-            />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} more={queued.length - 1} />
           ))}
       </div>
     </div>,

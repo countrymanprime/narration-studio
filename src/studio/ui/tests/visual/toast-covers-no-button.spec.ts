@@ -3,7 +3,7 @@
 // the toast's own buttons are at least 24 px each way (WCAG 2.2 target size). The shell always keeps a slot for one toast under the page (`--toast-slot`; `AppShell`) that never grows: one toast shows, the rest wait behind it; a page that cannot is listed in TOAST_COVERS_DEBT with a reason and an issue, as `layout-debt.ts` does.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
-import { goToPage } from './drivers/shared';
+import { goToPage, openSettings } from './drivers/shared';
 
 // The product's windows: 960 px wide and up (its minimum), and one tablet size. A window 520 px tall or shorter (360x500, 320x300) is far below the minimum and keeps no slot: the toast floats there, so the guard does not hold at those sizes.
 const SIZES = [
@@ -16,7 +16,7 @@ const SIZES = [
 const LONG =
   "This chapter's audio couldn't be played. Check that its source files are still where the project expects them, then press Retry or open Settings to see where they are kept.";
 
-type Case = { name: string; open: (page: Page) => Promise<void> };
+type Case = { name: string; open: (page: Page) => Promise<void>; lightOnly?: boolean };
 const nav = (name: Parameters<typeof goToPage>[1]): Case => ({ name, open: (page) => goToPage(page, name) });
 const CASES: Case[] = [
   nav('Production'),
@@ -30,6 +30,10 @@ const CASES: Case[] = [
   nav('Master & QC'),
   nav('Delivery'),
   nav('Settings'),
+  // The Settings categories end in rows of buttons the issue names (#4063): each opens in light, where the slot is the same as in dark.
+  ...['App & updates', 'Appearance & keys', 'Delivery', 'Models & downloads', 'Project', 'Recording & DAW', 'Speech to text', 'Voice & pronunciation'].map(
+    (category): Case => ({ name: `Settings: ${category}`, lightOnly: true, open: (page) => openSettings(page, category) }),
+  ),
   {
     name: 'Editing chapter',
     open: async (page) => {
@@ -102,7 +106,7 @@ const VARIANTS: Array<{ name: string; texts: string[]; pages?: string[]; themes:
 for (const variant of VARIANTS) {
   for (const theme of variant.themes) {
     for (const size of SIZES) {
-      for (const c of CASES.filter((k) => !variant.pages || variant.pages.includes(k.name))) {
+      for (const c of CASES.filter((k) => (!variant.pages || variant.pages.includes(k.name)) && !(k.lightOnly && theme === 'dark'))) {
         test(`${c.name}: ${variant.name} covers no button (${theme}, ${size.width}x${size.height})`, async ({ page }) => {
           await page.emulateMedia({ colorScheme: theme });
           await page.setViewportSize(size);

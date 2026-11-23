@@ -288,3 +288,35 @@ test('a double click on Dismiss dismisses one toast of a queue', async ({ page }
   await page.waitForTimeout(600);
   await expect(toast).toHaveText('Beta failed');
 });
+
+// An Undo moves focus onto what it restored (the picker's Remove button of the row that came back): the key's repeats must not press that (#4063), both recent projects stay.
+test("holding Enter on a toast's Undo presses no Remove button the Undo focused", async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  const remove = page.getByRole('button', { name: /^Remove .* from recent projects/ });
+  const before = await remove.count();
+  expect(before).toBeGreaterThan(1);
+  await remove.first().click();
+  const undo = page.locator('[data-toast-region]').getByRole('button', { name: 'Undo' });
+  await expect(undo).toBeVisible();
+  await undo.focus();
+  for (let n = 0; n < 15; n += 1) {
+    await page.keyboard.down('Enter');
+    await page.waitForTimeout(40);
+  }
+  await page.keyboard.up('Enter');
+  await page.waitForTimeout(400);
+  expect(await remove.count(), 'a repeat pressed a Remove button').toBe(before);
+});
+
+// The project picker has no navigation shell: a keyboard Dismiss of the last toast with no control to go back to puts focus on the page's <main>, never <body> (#4063).
+test('on the project picker, Dismiss of the last toast by keyboard puts focus on the main area', async ({ page }) => {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+  await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('Only one.'));
+  await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-toast-region] [data-tone]')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe('main-content');
+});

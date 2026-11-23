@@ -7,7 +7,6 @@ import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
 import {
   ACTION_FOCUS_MS,
-  pickShown,
   retryAction,
   TOAST_ACTION_MS,
   TOAST_HEIGHT_PROPERTY,
@@ -304,7 +303,6 @@ describe('a toast is two lines at most (#4063, #2793)', () => {
     render(<ToastRegion messages={[{ ...failure(1, text), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
     const el = document.querySelector('[data-toast-text]') as HTMLElement;
     expect(el.className).toContain('[overflow-wrap:anywhere]');
-    expect(el.className).toContain('overflow-y-auto');
     expect(el.className).toContain('max-h-[2.5em]');
     expect(el.textContent).toBe(text);
     expect(el.closest('[data-tone]')!.className).toContain('h-[3.5rem]');
@@ -331,12 +329,15 @@ describe('a toast is two lines at most (#4063, #2793)', () => {
     const clientHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => sizes.clientHeight);
     render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
     expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
-    expect(textOf('xxxx').hasAttribute('data-owns-keys')).toBe(false);
+    // Plain text, not a scroller (a scroller is a tab stop in Chromium even when it overflows by a sub-pixel), but it keeps the keys that scroll it either way.
+    expect(textOf('xxxx').className).toContain('overflow-hidden');
+    expect(textOf('xxxx').className).not.toContain('overflow-y-auto');
     sizes.scrollHeight = 500;
     act(() => observers.forEach((cb) => cb()));
     expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
     // While it scrolls it keeps the keys that scroll it: a page shortcut (Space starts a recording in the Booth) never fires from it (src/input/targets.ts).
     expect(textOf('xxxx').hasAttribute('data-owns-keys')).toBe(true);
+    expect(textOf('xxxx').className).toContain('overflow-y-auto');
     scrollHeight.mockRestore();
     clientHeight.mockRestore();
     vi.unstubAllGlobals();
@@ -780,38 +781,29 @@ describe('the room the toasts take, published for a dialog in a short window', (
   });
 });
 
-// One toast shows in the slot, with a dialog open or not (#4063, #3605); the others wait their turn, and the one that shows is chosen by `pickShown`.
+// One toast shows in the slot, with a dialog open or not (#4063, #3605); the others wait behind it, in the order they were raised, and show one after another.
+// (The rank and preemption tests of the earlier design, an Undo or a Retry error jumping the queue and a held toast yielding to an Undo, are gone: nothing jumps the queue now.)
 describe('ToastRegion shows one toast and queues the rest', () => {
   const three = [info(1, 'First.'), failure(2, 'Second.'), info(3, 'Third.')];
   const retry = { label: 'Retry', onAction: vi.fn() };
 
-  it.each([false, true])('shows the error before information, then the oldest, as each goes (dialog open: %s)', (modal) => {
+  it.each([false, true])('shows the oldest, then the next as each goes (dialog open: %s)', (modal) => {
     if (modal) document.documentElement.setAttribute('data-modal-open', '');
     try {
       const { rerender } = render(<ToastRegion messages={three} dismiss={vi.fn()} />);
-      expect(screen.getByText('Second.')).toBeTruthy();
-      expect(screen.queryByText('First.', { selector: '[data-toast-text]' })).toBeNull();
+      expect(screen.getByText('First.', { selector: '[data-toast-text]' })).toBeTruthy();
+      expect(screen.queryByText('Second.', { selector: '[data-toast-text]' })).toBeNull();
       expect(screen.queryByText('Third.', { selector: '[data-toast-text]' })).toBeNull();
       expect(screen.getByText('+2')).toBeTruthy();
-      rerender(<ToastRegion messages={[three[0]!, three[2]!]} dismiss={vi.fn()} />);
-      expect(screen.getByText('First.', { selector: '[data-toast-text]' })).toBeTruthy();
+      rerender(<ToastRegion messages={[three[1]!, three[2]!]} dismiss={vi.fn()} />);
+      expect(screen.getByText('Second.', { selector: '[data-toast-text]' })).toBeTruthy();
       expect(screen.getByText('+1')).toBeTruthy();
       rerender(<ToastRegion messages={[three[2]!]} dismiss={vi.fn()} />);
-      expect(screen.getByText('Third.')).toBeTruthy();
+      expect(screen.getByText('Third.', { selector: '[data-toast-text]' })).toBeTruthy();
       expect(screen.queryByText(/^\+\d/)).toBeNull();
     } finally {
       document.documentElement.removeAttribute('data-modal-open');
     }
-  });
-
-  it('puts an action toast (an error with Retry, an Undo) ahead of a plain error and of information, whenever it was raised', () => {
-    const undo = { ...info(4, 'Removed A.'), action: { label: 'Undo', onAction: vi.fn() } };
-    const retryError = { ...failure(5, 'Could not save.'), action: retry };
-    expect(pickShown([info(1), failure(2), undo])).toBe(undo);
-    expect(pickShown([undo, retryError])).toBe(undo);
-    expect(pickShown([retryError, failure(2), info(1)])).toBe(retryError);
-    expect(pickShown([info(1), info(2)])?.id).toBe(1);
-    expect(pickShown([])).toBeUndefined();
   });
 
   it('a queued toast does not run its clock until it shows', () => {
@@ -822,27 +814,19 @@ describe('ToastRegion shows one toast and queues the rest', () => {
     expect(dismiss).toHaveBeenCalledWith(1);
   });
 
-  it('an Undo ranks ahead of newer plain messages, and one that waits behind another action keeps its clock, so it shows for the time it has left and never as a dead Undo', () => {
+  it('an Undo raised behind an error waits its turn and then shows for its whole time', () => {
     const dismiss = vi.fn();
-    const undoA = { ...info(1, 'Removed A.'), action: { label: 'Undo', onAction: vi.fn() } };
-    const undoB = { ...info(3, 'Removed B.'), action: { label: 'Undo', onAction: vi.fn() } };
-    const { rerender } = render(<ToastRegion messages={[undoA, info(2, 'Newest.')]} dismiss={dismiss} />);
-    expect(screen.getByText('Removed A.').closest('[data-tone]')!.hasAttribute('hidden')).toBe(false);
-    expect(screen.queryByText('Newest.', { selector: '[data-toast-text]' })).toBeNull();
-    act(() => void vi.advanceTimersByTime(3_000));
-    rerender(<ToastRegion messages={[undoA, info(2, 'Newest.'), undoB]} dismiss={dismiss} />);
-    // The second Undo waits, mounted, not drawn.
-    expect(screen.getByText('Removed B.', { selector: '[data-toast-text]' }).closest('[data-tone]')!.hasAttribute('hidden')).toBe(true);
-    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS - 3_000));
+    const error = { ...failure(1, 'Could not save.'), action: retry };
+    const undo = { ...info(2, 'Removed A.'), action: { label: 'Undo', onAction: vi.fn() } };
+    const { rerender } = render(<ToastRegion messages={[error, undo]} dismiss={dismiss} />);
+    expect(screen.queryByText('Removed A.', { selector: '[data-toast-text]' })).toBeNull();
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS + 1));
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(1);
-    rerender(<ToastRegion messages={[info(2, 'Newest.'), undoB]} dismiss={dismiss} />);
-    // It shows ahead of the plain message, with the 3 s it has left, not afresh.
-    expect(screen.getByText('Removed B.', { selector: '[data-toast-text]' }).closest('[data-tone]')!.hasAttribute('hidden')).toBe(false);
+    rerender(<ToastRegion messages={[undo]} dismiss={dismiss} />);
     dismiss.mockClear();
-    act(() => void vi.advanceTimersByTime(3_000 - 1));
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS - 1));
     expect(dismiss).not.toHaveBeenCalled();
-    act(() => void vi.advanceTimersByTime(1));
-    expect(dismiss).toHaveBeenCalledExactlyOnceWith(3);
+    expect(screen.getByText('Removed A.', { selector: '[data-toast-text]' })).toBeTruthy();
   });
 
   it('shows an error with its Retry and a count of the information waiting behind it, and no more than one toast', () => {
@@ -857,26 +841,7 @@ describe('ToastRegion shows one toast and queues the rest', () => {
 
 describe('a toast is never lost unseen, never pressed twice, and never takes a key it does not own (#4063)', () => {
   const retry = { label: 'Retry', onAction: vi.fn() };
-  const undo = (id: number, text = 'Removed.') => ({ ...info(id, text), action: { label: 'Undo', onAction: vi.fn() } });
   const drawnText = () => [...document.querySelectorAll('[data-toast-region] [data-tone]:not([hidden]) [data-toast-text]')].map((el) => el.textContent);
-
-  it('an Undo raised while an error with Retry shows takes the slot, and the error comes back after it for its whole time', () => {
-    const dismiss = vi.fn();
-    const error = { ...failure(1, 'Could not save.'), action: retry };
-    const { rerender } = render(<ToastRegion messages={[error]} dismiss={dismiss} />);
-    expect(drawnText()).toEqual(['Could not save.']);
-    act(() => void vi.advanceTimersByTime(10_000));
-    rerender(<ToastRegion messages={[error, undo(2)]} dismiss={dismiss} />);
-    expect(drawnText()).toEqual(['Removed.']);
-    // The error waited unmounted: its clock starts when it shows again, so it is never lost unseen.
-    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1));
-    expect(dismiss).toHaveBeenCalledExactlyOnceWith(2);
-    rerender(<ToastRegion messages={[error]} dismiss={dismiss} />);
-    dismiss.mockClear();
-    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS - 1));
-    expect(dismiss).not.toHaveBeenCalled();
-    expect(drawnText()).toEqual(['Could not save.']);
-  });
 
   it('three errors queued together each show for their whole time, one after the other', () => {
     const dismiss = vi.fn();
@@ -889,16 +854,6 @@ describe('a toast is never lost unseen, never pressed twice, and never takes a k
     act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS - 1));
     expect(dismiss).toHaveBeenCalledTimes(1);
     expect(drawnText()).toEqual(['Error 2']);
-  });
-
-  it('a toast under a hand keeps the slot against a newer error, but not against an Undo', () => {
-    const plain = failure(1, 'Plain error.');
-    const { rerender } = render(<ToastRegion messages={[plain]} dismiss={vi.fn()} />);
-    fireEvent.pointerMove(screen.getByText('Plain error.', { selector: '[data-toast-text]' }).closest('[data-tone]')!);
-    rerender(<ToastRegion messages={[plain, { ...failure(2, 'Retry error.'), action: retry }]} dismiss={vi.fn()} />);
-    expect(drawnText()).toEqual(['Plain error.']);
-    rerender(<ToastRegion messages={[plain, { ...failure(2, 'Retry error.'), action: retry }, undo(3)]} dismiss={vi.fn()} />);
-    expect(drawnText()).toEqual(['Removed.']);
   });
 
   it('a message that waits is read out at once, without being drawn', () => {
@@ -984,5 +939,27 @@ describe('a toast is never lost unseen, never pressed twice, and never takes a k
     } finally {
       document.getElementById('main-content')?.remove();
     }
+  });
+
+  it('every repeat of a key is cancelled, wherever focus has gone, after a key pressed a toast button, until a key comes up', () => {
+    render(
+      <>
+        <button>Page</button>
+        <ToastRegion messages={[{ ...failure(1, 'Held.'), action: retry }]} dismiss={vi.fn()} />
+      </>,
+    );
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Retry' }), { key: 'Enter' });
+    const page = screen.getByText('Page');
+    expect(fireEvent.keyDown(page, { key: 'Enter', repeat: true })).toBe(false);
+    fireEvent.keyUp(page, { key: 'Enter' });
+    expect(fireEvent.keyDown(page, { key: 'Enter', repeat: true })).toBe(true);
+  });
+
+  it('the same message raised again while its toast has focus puts focus on the toast that replaced it, never on <body>', () => {
+    const { rerender } = render(<ToastRegion messages={[failure(1, 'Same.')]} dismiss={vi.fn()} />);
+    screen.getByRole('button', { name: 'Dismiss message' }).focus();
+    rerender(<ToastRegion messages={[failure(2, 'Same.')]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(10));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
   });
 });

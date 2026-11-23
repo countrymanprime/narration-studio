@@ -229,16 +229,17 @@ test('over a dialog the older toast waits for the newest to go', async ({ page }
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'))).toBe('');
 });
 
-// An Undo is good for a fixed time from the change (the picker sends a removal 6 s after Remove). An Undo toast that waited behind a newer one must not come back afresh after that:
-// its Undo answered "already removed" and restored nothing (qa on #3745). It waits with its clock running, so it is gone by the time the first has gone.
-test('an Undo toast that waited behind a newer one over a dialog does not come back with a dead Undo', async ({ page }) => {
+// An Undo is good for a fixed time from the change (the picker sends a removal 6 s after Remove), but toasts show one after another, each for its whole time (#4063): the second Undo
+// shows once the first has gone, which can be after the removal was sent. Its Undo then answers "already removed" and restores nothing, which is said plainly (qa on #3745).
+test('an Undo toast that waited its turn behind another one answers a late press with "already removed"', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   await expect(shown(page)).toHaveCount(1);
-  // Past the 6 s the removals wait for an Undo: both toasts' 5 s ran from when they were raised, so none is left to offer one.
+  // Past the 6 s the removals wait for an Undo: the first Undo's 5 s are over and the second one shows for its own 5 s.
   await page.waitForTimeout(6_500);
-  expect(await shown(page).count(), 'toasts still offering Undo after the removals were sent').toBe(0);
-  await expect(page.getByText(/was already removed from recent projects/)).toHaveCount(0);
+  await expect(shown(page), 'the second Undo shows for its whole time').toHaveCount(1);
+  await shown(page).getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText(/was already removed from recent projects/)).toBeVisible();
 });
 
 // One toast shows at any size, with a dialog open or not (#4063): the slot never grows, so the second waits behind it.

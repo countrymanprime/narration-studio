@@ -290,3 +290,34 @@ test('Space, the arrows and Page Down in a focused, scrolling toast text scroll 
   expect(await page.evaluate(() => (window as unknown as { __starts: number }).__starts), 'a key meant for the toast text started a recording').toBe(1);
   expect(await text.evaluate((el) => el.scrollTop), 'the keys scroll the toast text').toBeGreaterThan(0);
 });
+
+// A message that fits is plain text, not a scroller: Chromium makes any scroller a tab stop, a sub-pixel overflow included (16.984 px of 17), and Space there started a recording (#4063).
+for (const { width, height } of [
+  { width: 1440, height: 900 },
+  { width: 1100, height: 800 },
+]) {
+  test(`${width}x${height}: Tab never stops on the text of a one-line toast in the Booth`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('The take could not be saved. Try again.'));
+    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+    await record(page).focus();
+    const stops: string[] = [];
+    for (let n = 0; n < 25; n += 1) {
+      await page.keyboard.press('Tab');
+      stops.push(
+        await page.evaluate(() =>
+          document.activeElement?.hasAttribute('data-toast-text')
+            ? 'toast text'
+            : (document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.tagName ?? ''),
+        ),
+      );
+    }
+    expect(stops, 'the toast text took a Tab stop').not.toContain('toast text');
+    expect(stops).toContain('Dismiss message');
+  });
+}
