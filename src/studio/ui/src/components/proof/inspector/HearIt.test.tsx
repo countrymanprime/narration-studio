@@ -193,19 +193,32 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     expect(api.findingsLoop).toHaveBeenCalledTimes(1);
   });
 
+  it('a Retry while the app plays the fallback stops the app clip before it asks again', async () => {
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause');
+    const t = setup(placed(), refusedAs('not_running'));
+    await userEvent.click(hear());
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+    pause.mockClear();
+    toasted()[1]!.action!.onAction();
+    await waitFor(() => expect(t.api.findingsLoop).toHaveBeenCalledTimes(2));
+    expect(pause).toHaveBeenCalled();
+  });
+
   it('a read that failed is asked again and plays in the app, saying why', async () => {
+    const readAgain = vi.fn();
     const api: HearItApi = {
       findingsLoop: vi.fn(async () => looping),
       findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
     };
     render(
       <ApiProvider api={createMockApi()}>
-        <Harness finding={placed()} api={api} dawName="the DAW" capabilitiesFailed />
+        <Harness finding={placed()} api={api} dawName="the DAW" capabilitiesFailed onReadAgain={readAgain} />
       </ApiProvider>,
     );
     await userEvent.click(hear());
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     expect(api.findingsLoop).not.toHaveBeenCalled();
+    expect(readAgain).toHaveBeenCalledTimes(1);
     expect(toasted()[0]).toMatch(/could not ask the DAW/);
   });
 

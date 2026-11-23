@@ -65,6 +65,7 @@ let transport: ReturnType<typeof vi.fn<(action: string, seconds: number, until?:
 const refused: string[] = [];
 const notices: string[] = [];
 const retries: (() => void)[] = [];
+let cleared = 0;
 
 function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTracks = false, linked: 'tr' | '{GONE}' | null = 'tr') {
   const api = createMockApi({
@@ -109,6 +110,9 @@ function mount(caps: DawCapabilities, client: Partial<DawClient> = {}, hungTrack
           notices.push(text);
           if (retry) retries.push(retry);
         },
+        () => {
+          cleared += 1;
+        },
       ),
     { wrapper },
   );
@@ -137,6 +141,7 @@ beforeEach(() => {
   refused.length = 0;
   notices.length = 0;
   retries.length = 0;
+  cleared = 0;
 });
 afterEach(() => {
   cleanup();
@@ -202,6 +207,32 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     transport.mockClear();
     await act(async () => last());
     expect(transport).not.toHaveBeenCalled();
+  });
+  // #3366 (qa B2), now that a press does not wait for the capabilities: a list gone while the DAW's play is in flight starts no timer and stops the DAW it started.
+  it('stops the DAW play it started when the list unmounts while the DAW is answering', async () => {
+    let answer: (value: DawResult) => void = () => {};
+    transport = vi.fn((action: string) => (action === 'playRange' ? new Promise<DawResult>((resolve) => (answer = resolve)) : Promise.resolve(ok)));
+    const { result, unmount } = await mountRead(DAW_SETUPS.reaper);
+    let pressed: Promise<void> = Promise.resolve();
+    act(() => {
+      pressed = result.current.play(pickup(15));
+    });
+    unmount();
+    answer(ok);
+    await act(async () => {
+      await pressed;
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(transport).toHaveBeenCalledWith('stop', 0);
+  });
+  it('a press on another line, or Stop, withdraws the Retry offered before it', async () => {
+    transport = vi.fn(async () => ({ ...ok, ok: false, message: 'refused', refused: 'refused' }));
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    await act(() => result.current.play(pickup(15)));
+    await flush();
+    const before = cleared;
+    await act(() => result.current.play({ ...pickup(20), id: 'p2' }));
+    expect(cleared).toBeGreaterThan(before);
   });
   it('a second press stops the DAW', async () => {
     const { result } = await mountRead(DAW_SETUPS.reaper);

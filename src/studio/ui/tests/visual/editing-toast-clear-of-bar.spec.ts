@@ -3,6 +3,7 @@
 // shared toast clearance (`useToastClearance`), as the Booth's footer does.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
+import { coveredByToast } from './helpers/toastCover';
 
 const SIZES = [
   { width: 360, height: 500 },
@@ -30,29 +31,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.setViewportSize(size);
       await raiseRetryToast(page);
       // Every button of the bar and of the waveform dock, at every size, and the buttons above the script (read below).
-      const result = await page.evaluate(() => {
-        const toast = document.querySelector('[data-toast-region] [data-toast-edge]')?.parentElement ?? document.querySelector('[data-toast-region]');
-        const t = toast!.getBoundingClientRect();
-        const buttons = [
-          ...document.querySelectorAll('[role="toolbar"][aria-label="Playback and selection"] button, #wavedock button'),
-          // The buttons above the script (the chapter stepper, the page's tools) must stay clear too: raised too far, the toast covers them.
-          ...[...document.querySelectorAll('button')].filter((b) => {
-            const r = b.getBoundingClientRect();
-            return r.width > 0 && r.top >= 0 && r.bottom <= 130 && !b.closest('[data-toast-region]');
-          }),
-        ].map((b) => {
-          const r = b.getBoundingClientRect();
-          return {
-            name: b.getAttribute('aria-label') ?? b.textContent ?? '',
-            overlap: r.width > 0 && r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top,
-          };
-        });
-        return {
-          toast: { top: t.top, bottom: t.bottom, left: t.left, right: t.right },
-          covered: buttons.filter((b) => b.overlap).map((b) => b.name),
-          count: buttons.length,
-        };
-      });
+      const result = await coveredByToast(page, { selector: '[role="toolbar"][aria-label="Playback and selection"] button, #wavedock button', topBand: 130 });
       expect(result.count, 'the bar has buttons').toBeGreaterThan(0);
       expect(
         result.covered,

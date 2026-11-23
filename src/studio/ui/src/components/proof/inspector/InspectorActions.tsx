@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { overlay } from '../../../overlay/overlayService';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -61,20 +62,29 @@ export function InspectorActions({
   const [capsFailed, setCapsFailed] = useState(false);
   const [result, setResult] = useState<{ message: string; failed: boolean }>();
 
-  useEffect(() => {
-    let current = true;
+  const current = useRef(true);
+  /** Reads what the DAW can do; a read that failed is read again by the next Hear it, which does not wait for it. */
+  const readCapabilities = useCallback(() => {
     daw.capabilities().then(
-      (found) => current && setCapabilities(found),
+      (found) => {
+        if (!current.current) return;
+        setCapabilities(found);
+        setCapsFailed(false);
+      },
       (error) => {
-        if (!current) return;
+        if (!current.current) return;
         setCapsFailed(true);
-        setResult({ message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true });
+        overlay.toast(`The DAW was not asked: ${apiErrorMessage(error)}`, { tone: 'error' });
       },
     );
-    return () => {
-      current = false;
-    };
   }, [daw]);
+  useEffect(() => {
+    current.current = true;
+    readCapabilities();
+    return () => {
+      current.current = false;
+    };
+  }, [readCapabilities]);
 
   // A note with an item but no time would only move to the item's start, which says nothing about the note (#2800).
   const placed = Boolean(finding.source.item_guid || finding.time_range);
@@ -92,7 +102,16 @@ export function InspectorActions({
   return (
     <div className="flex flex-col gap-2">
       <div role="group" aria-label="Actions" className="flex flex-wrap items-center gap-1">
-        <HearIt finding={finding} api={api} dawName={dawName} capabilities={capabilities} capabilitiesFailed={capsFailed} inert={inert} onResult={setResult} />
+        <HearIt
+          finding={finding}
+          api={api}
+          dawName={dawName}
+          capabilities={capabilities}
+          capabilitiesFailed={capsFailed}
+          onReadAgain={readCapabilities}
+          inert={inert}
+          onResult={setResult}
+        />
         <ShowInDawButton
           target={{ kind: 'finding', id: finding.id, reason: noteReason }}
           when={noteTime}

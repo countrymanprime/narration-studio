@@ -53,6 +53,7 @@ export function HearIt({
   dawName,
   capabilities,
   capabilitiesFailed = false,
+  onReadAgain,
   inert = false,
   onResult,
 }: {
@@ -62,6 +63,8 @@ export function HearIt({
   /** What the DAW can do, once read (undefined until then), and whether the read failed. */
   capabilities?: DawCapabilities;
   capabilitiesFailed?: boolean;
+  /** Reads the DAW's capabilities again; asked at a press after a failed read, which does not wait for it. */
+  onReadAgain?: () => void;
   /** The evidence changed: Hear it is off until the narrator takes the new evidence. */
   inert?: boolean;
   /** What happened, for the row's status line; `undefined` clears it. */
@@ -112,7 +115,7 @@ export function HearIt({
         try {
           await api.findingsStopLoop();
         } catch (error) {
-          setResult({ message: `The DAW was not asked to stop: ${apiErrorMessage(error)}`, failed: true });
+          overlay.toast(`The DAW was not asked to stop: ${apiErrorMessage(error)}`, { tone: 'error' });
         }
       }
       setPlaying(null);
@@ -122,7 +125,10 @@ export function HearIt({
   const start = () =>
     action.run('hear', async () => {
       const press = ++pressed.current;
+      // A Retry while the app's fallback plays starts over: the app's clip stops first, so two players never run.
+      player.stop();
       overlay.dismissTopic(HEAR_TOPIC);
+      if (capabilitiesFailed) onReadAgain?.();
       setResult(undefined);
       const loop: PlaybackProvider<Finding> = {
         name: dawName,
@@ -159,7 +165,11 @@ export function HearIt({
       if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
       // What did not play, and why, is a toast with Retry, never a line in the row; a press that was replaced says nothing.
       if (notice && pressed.current === press)
-        overlay.toast(notice, { tone: 'error', action: retryAction(() => mounted.current && pressed.current === press && again.current()), topic: HEAR_TOPIC });
+        overlay.toast(notice, {
+          ...(by === null ? { tone: 'error' as const } : {}),
+          action: retryAction(() => mounted.current && pressed.current === press && again.current()),
+          topic: HEAR_TOPIC,
+        });
       if (by === APP) setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
     });
   again.current = () => void start();

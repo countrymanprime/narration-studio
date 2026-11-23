@@ -73,7 +73,8 @@ export function PickupsPage({
   const overlay = useOverlay();
   const original = usePlayOriginal(
     (sentence, retry) => overlay.toast(sentence, { tone: 'error', ...(retry ? { action: retryAction(retry), topic: ORIGINAL_TOPIC } : {}) }),
-    (sentence, retry) => overlay.toast(sentence, retry ? { tone: 'error', action: retryAction(retry), topic: ORIGINAL_TOPIC } : undefined),
+    (sentence, retry) => overlay.toast(sentence, retry ? { action: retryAction(retry), topic: ORIGINAL_TOPIC } : undefined),
+    () => overlay.dismissTopic(ORIGINAL_TOPIC),
   );
   useEffect(() => () => overlay.dismissTopic(ORIGINAL_TOPIC), [overlay]);
   // The jump menu's Check recordings is off for the same reason the button is (#2833).

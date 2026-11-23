@@ -54,6 +54,8 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
 export function usePlayOriginal(
   onRefused: (sentence: string, retry?: () => void) => void,
   onNotice: (sentence: string, retry?: () => void) => void = onRefused,
+  /** A press or Stop made the Retry offered before it stale: the page withdraws it. */
+  onCleared: () => void = () => {},
 ) {
   // The tracks and links are the shared state's, as the Engine list and the Booth read them: a press never waits on a read of its own, and a
   // track renamed or deleted in REAPER is what the next press plays (#3366).
@@ -74,10 +76,10 @@ export function usePlayOriginal(
   // What the DAW last said it can do: read when the list mounts and again at every press, never waited for.
   const dawCaps = useRef<{ caps: DawCapabilities | null; failed: boolean }>({ caps: null, failed: false });
   const mounted = useRef(true);
-  const live = useRef({ onRefused, onNotice, playingId, inDaw });
+  const live = useRef({ onRefused, onNotice, onCleared, playingId, inDaw });
   const shared = useRef(trackState);
   shared.current = trackState;
-  live.current = { onRefused, onNotice, playingId, inDaw };
+  live.current = { onRefused, onNotice, onCleared, playingId, inDaw };
 
   // Off, with its reason, for a line with no place and for a chapter with no link (#3394). The DAW can play a stretch by its own project second with
   // no link, but the Engine list says "Not linked" and the button must not look usable beside it. Before the links are first read "no link" means
@@ -109,6 +111,7 @@ export function usePlayOriginal(
   }, [sync]);
 
   const stop = useCallback((): void => {
+    live.current.onCleared();
     asked.current += 1;
     owner.current = null;
     if (live.current.inDaw) stopDaw();
