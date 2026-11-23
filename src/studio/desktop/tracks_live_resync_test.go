@@ -311,7 +311,7 @@ func TestAVoiceKeyOnAChapterWhoseTrackWasDeletedSaysTheTrackIsGoneInEitherLayout
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Outcome != "refused" || got.Reason != readAloudTrackMissing || got.Message != "This chapter’s track is no longer in the project, so there is no voice to choose. Link it again." {
+			if got.Outcome != "refused" || got.Reason != readAloudTrackMissing || got.Message != "This chapter’s track is gone from the project, so no voice is listed. Link it in the audio engine panel." {
 				t.Fatalf("voice read = %+v, want refused as track_missing", got)
 			}
 			set, err := host.boothVoiceSetIn(context.Background(), host.services(), nil, ids[0], liveVoice)

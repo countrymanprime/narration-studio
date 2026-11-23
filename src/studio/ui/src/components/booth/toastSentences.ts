@@ -11,11 +11,18 @@ export const LISTENING_STOP_FAILED = 'The Booth could not stop listening, so you
 /** Said when a take that is still recording lost its text-following. */
 export const TAKE_UNFOLLOWED = 'The text could not follow your voice for this take. Press Stop, then record again.';
 
-/** Said when a roll the Booth stopped waiting for lands after all. `recorder` is the recorder as a sentence names it (`recorderName`). */
-export const rollLandedSentence = (recorder: string): string => `A late roll has landed and a take may have been cut. Check ${recorder}.`;
+/** Where the narrator is sent to look: the recorder by name, except the app's own, whose name is too long for two lines and which has no window of its own ("the take"). */
+const lookIn = (daw: DawKind | undefined): string => (recordsInApp(daw) ? 'the take' : recorderName(daw));
 
-/** Said when the recorder did not answer a roll in time. `name` is the recorder for the start of a sentence (`recorderNameCapital`). */
-export const rollTimeoutSentence = (name: string): string => `${name} did not answer the roll. The take may still run; check the take, then roll again.`;
+/** Said when a roll the Booth stopped waiting for lands after all. */
+export const rollLandedSentence = (daw: DawKind | undefined): string =>
+  recordsInApp(daw)
+    ? 'A late roll has landed and a take may have been cut. Check the take.'
+    : `A late roll has landed, so ${recorderName(daw)} may be recording and a take may have been cut. Check ${recorderName(daw)}.`;
+
+/** Said when the recorder did not answer a roll in time. */
+export const rollTimeoutSentence = (daw: DawKind | undefined): string =>
+  `${recorderNameCapital(daw)} did not answer the roll. The take may still run; check ${lookIn(daw)}, then roll again.`;
 
 /** Where a passage was recorded is not known, could not be read, or did not come back in time: nothing was started. */
 export const NOT_KNOWN = 'Where this passage was recorded is not known, so no take was started.';
@@ -38,13 +45,13 @@ export const stoppedInDaw = (daw: DawKind | undefined, why = ''): string =>
 export const backInDaw = (daw: DawKind | undefined, byDaw: boolean): string => {
   const name = recorderNameCapital(daw);
   // A take the DAW started was only followed: the Booth stopped listening, it did not end anything.
-  if (byDaw) return `${name} answers again. The Booth stopped listening; check ${recorderName(daw)} is still recording.`;
-  return `${name} answers again. This window ended its take when it went quiet; check ${recorderName(daw)} kept it.`;
+  if (byDaw) return `${name} answers again. The Booth stopped listening; check in ${recorderName(daw)} that it still records.`;
+  return `${name} answers again. This window ended the take when it went quiet; check that ${recorderName(daw)} kept it.`;
 };
 
 /** What the Booth says when the DAW stopped answering during a take: it did not say the take ended, and may still be recording. */
 export const lostInDaw = (daw: DawKind | undefined): string =>
-  `${recorderNameCapital(daw)} stopped answering, so the Booth can't tell if the take still runs. Check the take.`;
+  `${recorderNameCapital(daw)} stopped answering, so the Booth can't tell if the take still runs. Check ${lookIn(daw)}.`;
 
 /** What the Booth says when Stop (or a roll, or a voice change) is pressed on a take the DAW started: the app never stops a take it did not start (#3666). */
 export const heldInDawSentence = (daw: DawKind | undefined, what: 'stop it' | 'roll again' | 'change the voice' = 'stop it'): string =>
@@ -65,7 +72,7 @@ export const unseenTakeNotStopped = (how: 'late' | 'leaving', why: string, recor
 
 /** Said when Record did not start because the text could not follow the voice: `reason` is the listening's own, `kept` when the take was kept (nothing is then said to be unrecorded). */
 export const listeningFailedSentence = (reason: string, kept: boolean): string =>
-  `Recording did not start: ${reason.replace(/[.\s]+$/, '')}.${kept ? '' : ' Nothing was recorded.'}`;
+  `Recording did not start: ${(reason || 'the text could not follow the voice').replace(/[.\s]+$/, '')}.${kept ? '' : ' Nothing was recorded.'}`;
 
 /** Said once when a restore never got to the host; the host's own sentence for the other case (`soloLeftSentence` in bindings_daw_solo.go, the golden `daw-solo-restore-refused.json`) reads the same. */
 export const soloLeftSentence = (dawName: string): string =>

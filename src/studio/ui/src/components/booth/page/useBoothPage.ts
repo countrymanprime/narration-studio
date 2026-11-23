@@ -12,7 +12,7 @@ import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { Journal } from '../../../studio/journal/createJournal';
 import type { StoppedTake } from '../pickups/usePickupSession';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
-import { noAnswerSentence, recordsInApp, recorderName, recorderNameCapital, unreachedSentence } from '../../../studio/dawNames';
+import { noAnswerSentence, recordsInApp, recorderName, unreachedSentence } from '../../../studio/dawNames';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
 import { useFullscreenKey } from '../useFullscreenKey';
@@ -666,7 +666,7 @@ export function useBoothPage(options: BoothPageOptions) {
           ? kept
             ? 'The text could not follow your voice in time, and the take is still in the DAW.'
             : 'The take was taken back because the text could not follow your voice in time.'
-          : listeningFailedSentence(heard.reason || 'listening failed', kept),
+          : listeningFailedSentence(heard.reason, kept),
         {
           tone: 'error',
           topic: PRESS_TOPIC,
@@ -728,11 +728,10 @@ export function useBoothPage(options: BoothPageOptions) {
         // from before the roll, or already rolling; the sentence says to look. A roll that lands later is checked against the take it was for (#3409).
         const rollsBefore = rollsOk.current;
         const take = takeSeq.current;
-        const name = recorderNameCapital(control.capabilities?.daw);
         /** One short sentence for a roll that lands when its press is no longer current: it replaces the roll's timeout sentence, whose advice is stale. */
         const landed = () => {
           overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
-          overlay.toast(rollLandedSentence(recorderLabel), {
+          overlay.toast(rollLandedSentence(control.capabilities?.daw), {
             tone: 'error',
             topic: ROLL_LANDED_TOPIC,
           });
@@ -763,7 +762,7 @@ export function useBoothPage(options: BoothPageOptions) {
         // The take ended meanwhile (the DAW's own stop was announced): the sentence about a take that may still be recording would contradict it.
         if (!mounted.current || !latest.current.recording) return { ok: false, changed: false, undoSteps: 0, message: '' };
         // Said here as an error, like the other limits; the empty message tells the roll hook there is nothing more to say.
-        overlay.toast(rollTimeoutSentence(name), {
+        overlay.toast(rollTimeoutSentence(control.capabilities?.daw), {
           tone: 'error',
           topic: ROLL_TIMEOUT_TOPIC,
         });

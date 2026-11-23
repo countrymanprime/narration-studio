@@ -399,7 +399,7 @@ test.describe('Booth with a moving mock DAW', () => {
     // The DAW's next heartbeat reports the take running (HEARTBEAT_MS); REAPER goes quiet during the take, not before it was heard.
     await page.waitForTimeout(600);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.restart(3000));
-    await expect(page.getByText(/answers again\. This window ended its take when it went quiet/).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/answers again\. This window ended the take when it went quiet/).first()).toBeVisible({ timeout: 20_000 });
   });
 
   test('a take that ended without Stop is not still announced once the next take runs', async ({ page }) => {

@@ -45,7 +45,7 @@ type BoothVoice struct {
 
 // linkGoneSentence is the one sentence a vanished link gets, in either layout, from the host, the Booth page (destination.ts) and the mock
 // (boothVoiceMock.ts): the three must read the same.
-const linkGoneSentence = "This chapter’s track is no longer in the project, so there is no voice to choose. Link it again."
+const linkGoneSentence = "This chapter’s track is gone from the project, so no voice is listed. Link it in the audio engine panel."
 
 // linkGoneRefusal is the refusal for a voice key or a voice read when the chapter's one link names a track the project no longer holds (as
 // REAPER has it now), in either layout: one sentence, as the Engine panel's "Track missing" says it, not "records on one track" or "not

@@ -4,7 +4,7 @@
 // toasts it only before the project's facts load or during a take, and the DAW tools menu shares it); and, for the app's own recorder, `stoppedInDaw` is 100 of 104 characters before the
 // recorder's own reason (`why`), which opens it and is host-worded, so the real toast for Built-in nearly always scrolls.
 import { DAW_KINDS, type DawCapabilities, type DawKind } from '../../api/contracts/daw';
-import { noAnswerSentence, recorderName, recorderNameCapital } from '../../studio/dawNames';
+import { noAnswerSentence } from '../../studio/dawNames';
 import { createdSentence, destinationFor, LINK_GONE, TRACKS_UNREAD } from '../engine/destination';
 import type { ToastButton } from '../primitives/toastBudget';
 import { NOT_FOLLOWED_WHYS, recordCheck, type NotFollowedWhy } from './record/recordCheck';
@@ -53,8 +53,8 @@ export const BOOTH_TOAST_SENTENCES: readonly BoothToastSentence[] = [
   { button: 'plain', name: 'where the passage was recorded could not be read', text: LOOKUP_FAILED },
   { button: 'plain', name: 'where the passage was recorded did not come back in time', text: LOOKUP_SLOW },
   ...DAW_KINDS.flatMap((daw): BoothToastSentence[] => [
-    { button: 'plain', name: `a late roll landed (${daw})`, text: rollLandedSentence(recorderName(daw)) },
-    { button: 'plain', name: `the roll got no answer (${daw})`, text: rollTimeoutSentence(recorderNameCapital(daw)) },
+    { button: 'plain', name: `a late roll landed (${daw})`, text: rollLandedSentence(daw) },
+    { button: 'plain', name: `the roll got no answer (${daw})`, text: rollTimeoutSentence(daw) },
     { button: 'plain', name: `the take ended in the recorder (${daw})`, text: stoppedInDaw(daw) },
     { button: 'plain', name: `the recorder stopped answering during a take (${daw})`, text: lostInDaw(daw) },
   ]),

@@ -147,8 +147,7 @@ describe('useDawSoloesChapter', () => {
 });
 
 describe('a restore that did not reach the DAW', () => {
-  const hostSentence =
-    "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER if they still are when you leave the Booth.";
+  const hostSentence = "REAPER could not unsolo the chapter's track, so others may stay silent. Unsolo it in REAPER.";
   const failed = { ok: false, changed: false, message: hostSentence, undoSteps: 0, refused: hostSentence };
 
   /** A DAW with a state: the chapter it holds soloed. `restoreAnswers` scripts the next restores ('fail', 'throw', or ok when empty). */

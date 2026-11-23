@@ -317,7 +317,7 @@ test('a roll the DAW never answers ends with a sentence that says to look, and R
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await arm(page);
   await page.keyboard.press('r');
-  await expect(page.getByText(/REAPER did not answer the roll\. The take may still run/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/REAPER did not answer the roll\. The take may still run; check REAPER/).first()).toBeVisible({ timeout: 12_000 });
   // The message holds its two lines (#4095): it does not scroll inside the toast.
   const timeout = await page
     .locator('[data-toast-region] [data-toast-text]')
@@ -376,7 +376,7 @@ test('a roll that answers after Stop says to check the DAW and sends no stop', a
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   expect(await stops()).toBe(1);
-  await expect(page.getByText(/A late roll has landed and a take may have been cut\. Check REAPER\./).first()).toBeVisible({
+  await expect(page.getByText(/A late roll has landed, so REAPER may be recording and a take may have been cut\. Check REAPER\./).first()).toBeVisible({
     timeout: 10_000,
   });
   // The app does nothing to the DAW for a stale answer: the one stop is the narrator's.
@@ -440,7 +440,7 @@ test('the late-roll toast is whole and uncovered at 360x500', async ({ page }) =
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await arm(page);
   await page.keyboard.press('r');
-  const late = page.getByText(/A late roll has landed and a take may have been cut\. Check REAPER\./).first();
+  const late = page.getByText(/A late roll has landed, so REAPER may be recording and a take may have been cut\. Check REAPER\./).first();
   await expect(late).toBeVisible({ timeout: 14_000 });
   // The timeout sentence is replaced, not left beside it.
   await expect(page.getByText(/did not answer the roll\. The take may still run/)).toHaveCount(0);

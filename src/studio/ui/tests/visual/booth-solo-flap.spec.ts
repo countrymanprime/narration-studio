@@ -16,9 +16,7 @@ test('a DAW that goes quiet and answers again leaves the Booth chapter soloed', 
   await expect.poll(() => soloed(page)).not.toBe('');
   const chapter = await soloed(page);
   await page.evaluate(() => {
-    window.__NARRATION_MOCK_DAW__?.refuseNextRestore(
-      'REAPER could not take the solo off the chapter’s track, so the other chapters may stay silent. Unsolo it in REAPER if they still are when you leave the Booth.',
-    );
+    window.__NARRATION_MOCK_DAW__?.refuseNextRestore('REAPER could not unsolo the chapter’s track, so others may stay silent. Unsolo it in REAPER.');
     window.__NARRATION_MOCK_DAW__?.quiet();
   });
   await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.heartbeat());

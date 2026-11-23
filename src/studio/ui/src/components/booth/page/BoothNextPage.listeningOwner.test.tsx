@@ -755,7 +755,7 @@ describe('the roll of a take has a limit', () => {
       await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
       expect(screen.queryByText(/did not answer the roll\./)).toBeNull();
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.roll + 5));
-      await screen.findByText(/REAPER did not answer the roll\. The take may still run; check the take, then roll again\./);
+      await screen.findByText(/REAPER did not answer the roll\. The take may still run; check REAPER, then roll again\./);
       roll.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
       await act(() => vi.advanceTimersByTimeAsync(1_000));
       await r();
@@ -785,7 +785,7 @@ describe('the roll of a take has a limit', () => {
     return { page, roll, lands };
   };
 
-  const LANDED = /A late roll has landed and a take may have been cut\. Check REAPER\./;
+  const LANDED = /A late roll has landed, so REAPER may be recording and a take may have been cut\. Check REAPER\./;
   const CUT = LANDED;
 
   it('a roll that lands while the take still runs says to check the DAW and what to do with the take; nothing is stopped', async () => {
