@@ -57,6 +57,10 @@ Rules for code that touches this:
 
 `readflights_test.go` holds a computation in flight and checks that each of the four bindings joins it, that three calls are one computation, and that a call after a ledger write, a ledger prune, a mapping write, a manuscript clear, a live event or a project switch computes its own answer, and that a project switch alone changes the key.
 
+## A waveform read that outlives its call
+
+`WorkspacePeaks` reads each source file through `peaksFlights` (`bindings_workspace_peaks.go`), not `sharedRead`: `sharedRead` runs the computation in the caller's goroutine and its joiners wait for it, while a long recording's read must go on after the call's 30 s has run out. The call answers the item "still being read", the read finishes in its own goroutine (bounded by ten minutes) and writes the evidence cache, and a later call, or one that arrives while it runs, joins it by source identity. The goroutine reads only its arguments (the cache store, the identity, the path), never a service field. A chapter's several source files are read together, at most one per CPU.
+
 ## Related rules in the host
 
 - `ProjectCreate` checks that a switch would be accepted (`canAttach`, a read-locked pre-check) before it creates the folder, and requires an absolute path. `ProjectSwitch` asks again under the write lock, so a lost race at worst leaves an empty folder. A refused create reports the same `switched: false` result and `system:attached` event as a refused switch.

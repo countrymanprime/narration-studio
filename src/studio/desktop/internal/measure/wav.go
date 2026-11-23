@@ -329,18 +329,3 @@ func (w *WAVReader) sampleFunc() func([]byte) float64 {
 		}
 	}
 }
-
-func (w *WAVReader) sample(b []byte) float64 {
-	switch {
-	case w.format.Float && w.format.BitsPerSample == 32:
-		return float64(math.Float32frombits(binary.LittleEndian.Uint32(b)))
-	case w.format.Float:
-		return math.Float64frombits(binary.LittleEndian.Uint64(b))
-	case w.format.BitsPerSample == 16:
-		return float64(int16(binary.LittleEndian.Uint16(b))) / 32768 //nolint:gosec // G115: reinterprets the PCM bits as two's complement on purpose
-	case w.format.BitsPerSample == 24:
-		return float64(int32(uint32(b[0])<<8|uint32(b[1])<<16|uint32(b[2])<<24)>>8) / 8388608 //nolint:gosec // G115: 24-bit PCM sign extension
-	default:
-		return float64(int32(binary.LittleEndian.Uint32(b))) / 2147483648 //nolint:gosec // G115: reinterprets the PCM bits as two's complement on purpose
-	}
-}

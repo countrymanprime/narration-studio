@@ -325,6 +325,22 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - A hundred and twenty times fewer calls to the host, stopped or playing; the word is lit from the event as the heartbeat moves (every 1.5 s, the same steps the 4 Hz read saw).
 - **Not measured:** the delay between a real play and its transport event in a running app, and what the page costs while REAPER plays for hours.
 
+## The Editing waveform: time to the first peaks ([#4042](https://github.com/countrymanprime/narration-studio/issues/4042))
+
+`node scripts/dev/host-read-bench.mjs seed <folder> --chapters 3 --audio 60` gives each chapter its own recording (48 kHz, mono, 24-bit, a sparse silent file, so the disk reads are not measured), and the `WorkspacePeaks(c-0001)` row of `reads` is the host's whole answer for the chapter. `BenchmarkWaveformTimeToFirst` (`internal/measure/benchmark_test.go`) times the same read below the binding, a first read of a recording against a revisit that finds the cache entry (peaks have a 64 MB cap and no maximum age, so time alone never drops them).
+
+| Recording | First read, before | First read, after | Revisit |
+| --- | --- | --- | --- |
+| 10 min | 0.40 s | 0.20 s | 0.5 ms |
+| 30 min | 1.07 s | 0.71 s | 2 ms |
+| 60 min | 2.07 s | 1.40 s | 6 ms |
+
+Through the binding on the seeded rig, after: 315 ms (10 min) and 1,466 ms (60 min) on the first call, 4 and 7.5 ms on the next. The seeded rig has one source file a chapter, so the parallel read of a chapter's several files is not timed.
+
+- **Target:** under 1 s for an hour of mono audio on a first read; **not met**: 1.4 s here. An independent re-run on a busier container of the same container size measured 3.75, 2.74 and 3.62 s before and 2.23, 2.57 and 2.45 s after for 60 min (about 25 to 30 % less), so the direction is firm and the absolute figure is not. A stereo hour took 3.8 s before the change.
+- **What the change does:** decodes 16 and 24-bit samples in a loop of their own, reads a chapter's separate source files together, and lets a read that outlives the call's 30 s finish in the background and fill the cache, so the item says "still being read" and the next call has it (before, every call timed out the same way and showed nothing).
+- **Not measured:** a real recording on a real disk, a stereo or multi-file chapter on the rig, the time from opening a chapter to a drawn waveform in the page, and the owner's own files.
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.
@@ -332,6 +348,6 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - **The split of a call's wait between the host and the bridge to the page.** The page logs the whole wait; the host's share is the read table's, measured alone and not under the page's concurrent calls.
 - **A real recogniser's result size.** The stand-in hears every word, so each result is the size of a clean read; a real run's result on real speech was not compared.
 - **300 chapters on the mock**, which sizes a book in hours only. The reader table above is the page's calls on the mock; the saved milliseconds on the real host are taken from the read table, not measured under the page's concurrent calls.
-- **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real audio, take evidence and delivery measurements.
+- **A live DAW and audio:** `PickupsCount`, `WorkspacePeaks` on real recordings on a real disk (the sparse-file numbers are above), take evidence and delivery measurements.
 - **The four sections above (#3897, #3958, the cache pass, the folder passes):** Linux only, one cloud container, two or three processes each. Audio length per chapter was not varied: the seeded takes hold no audio and none of these changes decodes audio. What the narrator pays after an entry expires was not measured: an editing scan unused for 24 hours is decoded again the next time its item is scanned (the decode costs of `MeasureRange` and the editing scan are in the sections above). The passes were timed alone, not beside a recording check or editing writes. The cache entries are synthetic (equal 8 KB blobs, one age mix for every kind, no real peaks or words); the added stat of a cache hit was not timed. No real narrator's book. Windows: not measured.
 - **Run counts** are small (one to three), so differences under 10 % between cells are noise.
