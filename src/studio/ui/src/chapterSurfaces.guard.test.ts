@@ -65,7 +65,7 @@ function sources(dir: string): string[] {
 
 describe('every surface that reads the chapter list shows the credits', () => {
   const readers = sources(SRC)
-    .filter((path) => /manuscriptChapters\(\)|studio\/useChapters'/.test(readFileSync(path, 'utf8')))
+    .filter((path) => /manuscriptChapter(s|List)\(\)|studio\/useChapters'/.test(readFileSync(path, 'utf8')))
     .map((path) => relative(SRC, path).split(sep).join('/'))
     .sort();
 
@@ -81,7 +81,7 @@ describe('every surface that reads the chapter list shows the credits', () => {
   // no store. A page that calls the port itself has its own copy of the list, its own refresh rules and no project record.
   it('reads the host list nowhere but the store and the fallbacks of its two hooks', () => {
     const ALLOWED = ['studio/slots.ts', 'studio/useChapters.ts', 'components/script/page/data/sampleScript.ts'];
-    expect(readers.filter((file) => !ALLOWED.includes(file) && readFileSync(join(SRC, file), 'utf8').includes('manuscriptChapters()'))).toEqual([]);
+    expect(readers.filter((file) => !ALLOWED.includes(file) && /manuscriptChapter(s|List)\(\)/.test(readFileSync(join(SRC, file), 'utf8')))).toEqual([]);
   });
 
   it.each(Object.entries(COVERED))('%s: its test names the credits', (_file, tests) => {

@@ -101,6 +101,7 @@ import { diagnosticsJobSchema } from './schemas/diagnostics';
 import {
   chapterKindResultSchema,
   chapterSchema,
+  chapterListSchema,
   chaptersSchema,
   fileSelectionSchema,
   notesSchema,
@@ -564,6 +565,22 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect(chapters.map((chapter) => chapter.recordedFraction)).toEqual([0.75, ...chapters.slice(1).map(() => undefined)]);
     const unmeasured = parseWire(chaptersSchema, readGolden('manuscript-chapters.json'), ctx('chapters'));
     expect(unmeasured.every((chapter) => chapter.recordedFraction === undefined)).toBe(true);
+  });
+
+  it('the chapter list answer names the project it was read from (#4040)', () => {
+    const answer = readGolden('manuscript-chapters-answer.json');
+    expectMatches(chapterListSchema, answer, 'chapter list answer');
+    const list = parseWire(chapterListSchema, answer, ctx('chapters'));
+    expect(list.project).toBe('C:/Projects/Alice');
+    expect(list.chapters.length).toBeGreaterThan(0);
+  });
+
+  it('the mock chapter list names the folder its bootstrap names', async () => {
+    const api = createMockApi();
+    const list = await api.manuscriptChapterList();
+    expectMatches(chapterListSchema, list, 'mock chapter list');
+    expect(list.project).toBe((await api.bootstrap()).projectFolder);
+    expect(list.chapters).toEqual(await api.manuscriptChapters());
   });
 
   it('the credits are chapters of the list: opening first, closing last, marked isCredits, with no paragraphs', () => {
@@ -4771,6 +4788,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'manuscriptImportPreview',
       'manuscriptImportCommit',
       'manuscriptChapters',
+      'manuscriptChapterList',
       'manuscriptParagraphs',
       'manuscriptSearch',
       'manuscriptSetChapterStatus',

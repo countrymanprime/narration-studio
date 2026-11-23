@@ -4,7 +4,7 @@ import { createLiveHealth } from './wire/liveHealth';
 import type { InferOutput, StandardSchemaV1 } from './wire/standardSchema';
 import { voidResult } from './schemas/base';
 import {
-  chaptersSchema,
+  chapterListSchema,
   fileSelectionSchema,
   manuscriptDroppedSchema,
   notesSchema,
@@ -473,7 +473,8 @@ export const wailsClient: NarrationApi = {
   subscribeLiveUpdateHealth: (onDegraded) => liveHealth.subscribe(onDegraded),
   subscribeNotices: (onNotice) => subscribeChecked('system:notice', noticeSchema, (event) => onNotice(event.text)),
   subscribeJobEnded: (onEnded) => subscribeChecked('job:ended', jobEndedSchema, onEnded),
-  manuscriptChapters: () => decode(chaptersSchema, 'ManuscriptChapters', host.ManuscriptChapters()),
+  manuscriptChapterList: () => decode(chapterListSchema, 'ManuscriptChapters', host.ManuscriptChapters()),
+  manuscriptChapters: async () => (await decode(chapterListSchema, 'ManuscriptChapters', host.ManuscriptChapters())).chapters,
   readerState: () => decode(readerStateSchema, 'ManuscriptReaderState', host.ManuscriptReaderState()),
   manuscriptParagraphs: (chapter) => decode(paragraphsSchema, 'ManuscriptParagraphs', host.ManuscriptParagraphs(chapter)),
   manuscriptSearch: (query) => decode(manuscriptSearchResultSchema, 'ManuscriptSearch', host.ManuscriptSearch(query)),

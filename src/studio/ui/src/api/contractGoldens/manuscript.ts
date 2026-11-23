@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import {
   chapterKindResultSchema,
   chapterSchema,
+  chapterListSchema,
   chaptersSchema,
   manuscriptDroppedSchema,
   notesSchema,
@@ -21,6 +22,7 @@ export const manuscriptGoldens: Record<string, z.ZodType> = {
   'manuscript-import-preview-text-subtitle.json': workJobSchema,
   'manuscript-import-success.json': workJobSchema,
   'manuscript-chapters.json': chaptersSchema,
+  'manuscript-chapters-answer.json': chapterListSchema,
   'manuscript-chapter-status.json': chapterSchema,
   'manuscript-chapter-kind-removed.json': chapterKindResultSchema,
   'manuscript-paragraphs.json': paragraphsSchema,

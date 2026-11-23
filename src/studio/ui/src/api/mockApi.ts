@@ -465,6 +465,13 @@ export function createMockApi(
   // Built over the finished api below (it reads the links, tracks and voice setup through it); base forwards to it.
   const late: { boothVoices?: ReturnType<typeof createBoothVoiceMock> } = {};
   const base: NarrationApi = {
+    // The host's answer: the list and the folder it is read from when the call starts. It reads the list through the finished api, so every
+    // override of `manuscriptChapters` (a test's, the invalid-payload state's, the credits mock's) reaches it, and so does one on a copy of
+    // the api (`{ ...api, manuscriptChapters }`, called as a method of that copy).
+    async manuscriptChapterList(this: NarrationApi | undefined) {
+      const folder = project.projectFolder();
+      return { project: folder, chapters: await (this?.manuscriptChapters ? this : final).manuscriptChapters() };
+    },
     boothVoiceSet: (chapterId, trackGuid) => {
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceSet(chapterId, trackGuid);

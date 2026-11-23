@@ -124,6 +124,7 @@ describe('withCoalescedReads', () => {
         'dawCapabilities',
         'dawChoice',
         'findingsSummary',
+        'manuscriptChapterList',
         'manuscriptChapters',
         'measureState',
         'pickupsList',
