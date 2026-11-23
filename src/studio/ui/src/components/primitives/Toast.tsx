@@ -108,6 +108,8 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
       const overflows = el.scrollHeight > el.clientHeight + 1;
       el.style.overflowY = overflowY;
       el.style.scrollbarGutter = scrollbarGutter;
+      // The text is a Tab stop only while it scrolls: if it had focus when it stops, focus goes to the toast's first button (its action, else Dismiss), not to the page (focus is never left on <body>).
+      if (!overflows && document.activeElement === el) el.closest<HTMLElement>('[data-tone]')?.querySelector('button')?.focus();
       setScrolls(overflows);
     };
     measure();

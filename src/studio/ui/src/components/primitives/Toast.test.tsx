@@ -413,6 +413,33 @@ describe('a toast text is measured without its scrollbar, and again when the fon
     expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
   });
 
+  it("hands focus to the toast's first button when the text that had it stops scrolling, and leaves it alone otherwise", () => {
+    render(<ToastRegion messages={[{ ...info(1, HUGE), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
+    const text = textOf('xxxx');
+    expect(text.getAttribute('tabindex')).toBe('0');
+    // Focus elsewhere (the page): the text stopping leaves it there.
+    sizes.scrollHeight = 34;
+    act(() => listeners.forEach((cb) => cb()));
+    expect(document.activeElement).toBe(document.body);
+    // Scrolls again, takes focus, and stops: focus goes to Retry, not to the body.
+    sizes.scrollHeight = 500;
+    act(() => listeners.forEach((cb) => cb()));
+    textOf('xxxx').focus();
+    expect(document.activeElement).toBe(textOf('xxxx'));
+    sizes.scrollHeight = 34;
+    act(() => listeners.forEach((cb) => cb()));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Retry' }));
+  });
+
+  it('hands focus to Dismiss when the toast has no action', () => {
+    render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
+    textOf('xxxx').focus();
+    expect(document.activeElement).toBe(textOf('xxxx'));
+    sizes.scrollHeight = 34;
+    act(() => listeners.forEach((cb) => cb()));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
+  });
+
   it('stops listening for the fonts when the toast goes, and a fonts-ready that comes after it measures nothing', async () => {
     const { unmount } = render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
     const reads = seen.length;
