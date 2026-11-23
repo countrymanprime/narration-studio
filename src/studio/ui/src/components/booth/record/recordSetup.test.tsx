@@ -15,7 +15,8 @@ import { dawClientFor } from './fixtures';
 import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor, type RecordSetupFacts } from './recordSetupModel';
-import { stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
+import { TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
+import { stoppedInDaw } from '../toastSentences';
 import { brand } from '../../../brand.gen';
 
 // A take one test leaves running is not the next test's.

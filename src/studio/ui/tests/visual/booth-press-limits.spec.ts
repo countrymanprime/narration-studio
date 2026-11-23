@@ -132,8 +132,8 @@ test('a lookup of the chosen start that never answers ends the press with one er
   await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
-  expect(await timesSaid(page, /did not come back in time, so no take was started/)).toBe(1);
+  await expect(page.getByText(/did not come back in time\. No start is chosen/).first()).toBeVisible({ timeout: 12_000 });
+  expect(await timesSaid(page, /did not come back in time\. No start is chosen/)).toBe(1);
   // The press's note about the start is gone with it, and the message is an error that stays until dismissed or its 20 s are up.
   await expect(page.getByText(/Starting from/)).toHaveCount(0);
   await expect(page.locator('[data-toast-region] [data-tone="error"]')).toHaveCount(1);
@@ -146,7 +146,7 @@ test('a lookup refusal does not stay beside the take a later press starts', asyn
   await arm(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click();
   await page.keyboard.press('Space'); // marking only marks (#3319): Record starts the take, from the mark
-  await expect(page.getByText(/did not come back in time, so no take was started/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/did not come back in time\. No start is chosen/).first()).toBeVisible({ timeout: 12_000 });
   await expect(record(page)).not.toHaveAttribute('aria-busy', 'true');
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
@@ -317,7 +317,13 @@ test('a roll the DAW never answers ends with a sentence that says to look, and R
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await arm(page);
   await page.keyboard.press('r');
-  await expect(page.getByText(/REAPER did not answer the roll in time\. The take may still be recording from before/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/REAPER did not answer the roll\. The take may still run/).first()).toBeVisible({ timeout: 12_000 });
+  // The message holds its two lines (#4095): it does not scroll inside the toast.
+  const timeout = await page
+    .locator('[data-toast-region] [data-toast-text]')
+    .filter({ hasText: /did not answer the roll/ })
+    .evaluate((el) => ({ clientHeight: el.clientHeight, scrollHeight: el.scrollHeight }));
+  expect(timeout.scrollHeight).toBeLessThanOrEqual(timeout.clientHeight + 1);
   await page.keyboard.press('r');
   await expect(page.getByText(/Rolling again from ¶/).first()).toBeVisible({ timeout: 5000 });
   await expect(stop(page)).toBeVisible();
@@ -366,11 +372,11 @@ test('a roll that answers after Stop says to check the DAW and sends no stop', a
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await arm(page);
   await page.keyboard.press('r');
-  await expect(page.getByText(/did not answer the roll in time/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/did not answer the roll\./).first()).toBeVisible({ timeout: 12_000 });
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   expect(await stops()).toBe(1);
-  await expect(page.getByText(/A late roll has landed, so REAPER may be recording and a take may be cut\. Check REAPER\./).first()).toBeVisible({
+  await expect(page.getByText(/A late roll has landed and a take may have been cut\. Check REAPER\./).first()).toBeVisible({
     timeout: 10_000,
   });
   // The app does nothing to the DAW for a stale answer: the one stop is the narrator's.
@@ -400,12 +406,12 @@ test('a roll that answers while a newer take records does not stop that take', a
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await arm(page);
   await page.keyboard.press('r');
-  await expect(page.getByText(/did not answer the roll in time/).first()).toBeVisible({ timeout: 12_000 });
+  await expect(page.getByText(/did not answer the roll\./).first()).toBeVisible({ timeout: 12_000 });
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
-  await expect(page.getByText(/a take may be cut/).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/a take may have been cut/).first()).toBeVisible({ timeout: 10_000 });
   expect(await stops()).toBe(1);
   expect(await dawRecording(page)).toBe(true);
   await expect(stop(page)).toBeVisible();
@@ -434,10 +440,10 @@ test('the late-roll toast is whole and uncovered at 360x500', async ({ page }) =
   await expect(stop(page)).toBeVisible({ timeout: 8000 });
   await arm(page);
   await page.keyboard.press('r');
-  const late = page.getByText(/A late roll has landed, so REAPER may be recording and a take may be cut\. Check REAPER\./).first();
+  const late = page.getByText(/A late roll has landed and a take may have been cut\. Check REAPER\./).first();
   await expect(late).toBeVisible({ timeout: 14_000 });
   // The timeout sentence is replaced, not left beside it.
-  await expect(page.getByText(/press R to roll again/)).toHaveCount(0);
+  await expect(page.getByText(/did not answer the roll\. The take may still run/)).toHaveCount(0);
   const box = (await late.boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.y).toBeGreaterThanOrEqual(0);

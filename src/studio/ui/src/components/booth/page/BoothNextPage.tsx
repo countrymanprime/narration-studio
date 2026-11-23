@@ -783,7 +783,7 @@ function BoothSession({
     // The folder the DAW just made, or the voices of a folder the narrator linked, are not in the saved project yet: read them again.
     voices.reload();
     overlay.toast(
-      created ? createdSentence(created, recordName, page.dawName) : dest.linkedToast(recordName),
+      created ? createdSentence(created, page.dawName) : dest.linkedToast(recordName),
       // The save the narrator owes REAPER is worth more than the usual five seconds.
       { durationMs: 12_000, topic: LINKED_TOPIC },
     );

@@ -3,16 +3,13 @@ import type { OverlayService } from '../../../overlay/overlayService';
 import { retryAction, TOAST_MAX_MS } from '../../primitives/Toast';
 import type { TeleprompterState } from '../../../types';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
+import { LISTENING_STILL_OPEN, LISTENING_STOP_FAILED } from '../toastSentences';
 
 const STOP_FAILED_TOPIC = 'booth-listening-stop-failed';
 // One topic for both sentences (stopped-failed on this page, still-open after leaving): the later replaces the earlier, never two at once.
 const LEFT_TOPIC = STOP_FAILED_TOPIC;
 /** How long a Retry that is out is said to be, at most: the stop call's own limit and its retry, and a little more. */
 const TRYING_MS = 30_000;
-
-/** The sentences a failed stop says: plain messages, or with Retry, so each fits two lines beside its button (`TOAST_CHAR_BUDGET`). */
-export const LISTENING_STILL_OPEN = 'The Booth could not stop listening, so your microphone may still be open. Quit and reopen the app.';
-export const LISTENING_STOP_FAILED = 'The Booth could not stop listening, so your microphone may still be open. Press Retry.';
 
 type Overlay = Pick<OverlayService, 'toast' | 'dismissTopic'>;
 

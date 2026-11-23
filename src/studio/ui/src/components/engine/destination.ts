@@ -106,11 +106,11 @@ export function childNames(created: CreatedDestination): string | null {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** What the DAW made, named as it was given: a folder with its tracks (the Narrator, and the voices and Extras when it was made with them), or the track; that it is not saved yet; and, when the create was partly done, what is left. */
-export function createdSentence(created: CreatedDestination, chapter: string, dawName: string): string {
-  const named = childNames(created);
-  const what = created.voice
-    ? `Folder “${readable(created.track.name, created.track.index)}” with ${named ? `${named} tracks` : `a ${created.voice.name} track`}`
-    : `Track “${readable(created.track.name, created.track.index)}”`;
-  return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.${created.message ? ` ${created.message}` : ''}`;
+/**
+ * What the DAW made, named as it was given (a folder or a track), that it is linked to the chapter, and that it is not saved yet; and, when the create was partly done, what is left (the host's sentence).
+ * A toast fits two lines (`TOAST_CHAR_BUDGET`) when the name is about 36 characters or fewer; a longer one scrolls inside it, which is the narrator's own name for the track. The tracks the folder holds are named in the engine panel.
+ */
+export function createdSentence(created: CreatedDestination, dawName: string): string {
+  const what = `${created.voice ? 'Folder' : 'Track'} “${readable(created.track.name, created.track.index)}”`;
+  return `${what} is in ${dawName}, linked here. Save the project to keep it.${created.message ? ` ${created.message}` : ''}`;
 }

@@ -753,11 +753,9 @@ describe('the roll of a take has a limit', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
       await r();
       await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
-      expect(screen.queryByText(/did not answer the roll in time/)).toBeNull();
+      expect(screen.queryByText(/did not answer the roll\./)).toBeNull();
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.roll + 5));
-      await screen.findByText(
-        /REAPER did not answer the roll in time\. The take may still be recording from before; check REAPER, then press R to roll again\./,
-      );
+      await screen.findByText(/REAPER did not answer the roll\. The take may still run; check it, then roll again\./);
       roll.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
       await act(() => vi.advanceTimersByTimeAsync(1_000));
       await r();
@@ -781,13 +779,13 @@ describe('the roll of a take has a limit', () => {
     await r();
     await waitFor(() => expect(roll).toHaveBeenCalledTimes(1));
     await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.roll + 5));
-    await screen.findByText(/did not answer the roll in time/);
+    await screen.findByText(/did not answer the roll\./);
     const lands = (ok = true) =>
       act(async () => answer({ ok, changed: ok, message: ok ? '' : 'REAPER is busy.', refused: ok ? undefined : 'REAPER is busy.', undoSteps: 0 }));
     return { page, roll, lands };
   };
 
-  const LANDED = /A late roll has landed, so REAPER may be recording and a take may be cut\. Check REAPER\./;
+  const LANDED = /A late roll has landed and a take may have been cut\. Check REAPER\./;
   const CUT = LANDED;
 
   it('a roll that lands while the take still runs says to check the DAW and what to do with the take; nothing is stopped', async () => {
@@ -956,7 +954,7 @@ describe('the roll of a take has a limit', () => {
       await lands();
       await screen.findByText(LANDED);
       expect(rollToasts()).toHaveLength(1);
-      expect(screen.queryByText(/press R to roll again/)).toBeNull();
+      expect(screen.queryByText(/did not answer the roll\. The take may still run/)).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -979,7 +977,7 @@ describe('the roll of a take has a limit', () => {
           .getSnapshot()
           .toasts.map((toast) => toast.text)
           .join('\n'),
-      ).not.toMatch(/press R to roll again/);
+      ).not.toMatch(/did not answer the roll\. The take may still run/);
     } finally {
       vi.useRealTimers();
     }
@@ -1109,7 +1107,7 @@ describe('the roll of a take has a limit', () => {
           .join('|'),
       );
       await act(() => vi.advanceTimersByTimeAsync(PRESS_LIMITS_MS.roll + 5));
-      expect(screen.queryByText(/did not answer the roll in time/)).toBeNull();
+      expect(screen.queryByText(/did not answer the roll\./)).toBeNull();
     } finally {
       vi.useRealTimers();
     }

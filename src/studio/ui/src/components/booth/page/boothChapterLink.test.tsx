@@ -266,7 +266,7 @@ describe('an unlinked chapter in the Booth', () => {
           .getSnapshot()
           .toasts.map((t) => t.text)
           .join(' '),
-      ).toContain(`Save the REAPER project to keep it. ${message}`),
+      ).toContain(`Save the project to keep it. ${message}`),
     );
   });
 
@@ -395,7 +395,7 @@ describe('an unlinked chapter in the Booth', () => {
           .getSnapshot()
           .toasts.map((t) => t.text)
           .join(' '),
-      ).toBe('Folder “Chapter 1” with a Narrator track added in REAPER and linked to Chapter One. Save the REAPER project to keep it.'),
+      ).toBe('Folder “Chapter 1” is in REAPER, linked here. Save the project to keep it.'),
     );
   });
 
@@ -411,7 +411,7 @@ describe('an unlinked chapter in the Booth', () => {
           .getSnapshot()
           .toasts.map((t) => t.text)
           .join(' '),
-      ).toMatch(/Track “Chapter 1” added in REAPER and linked to Chapter One/),
+      ).toMatch(/Track “Chapter 1” is in REAPER, linked here/),
     );
     await waitFor(() => expect(recordButton().getAttribute('aria-disabled')).toBeNull());
     expect(screen.queryByRole('button', { name: 'Not linked to a track. Show details' })).toBeNull();

@@ -6,6 +6,7 @@ import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/
 import { usePort } from '../../../ports/usePort';
 import type { DawClient, DawRecordStart } from '../../../ports/daw';
 import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
+import { backInDaw, lostInDaw, stoppedInDaw } from '../toastSentences';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
 import { sentenceOr } from './sentenceOr';
@@ -137,29 +138,6 @@ function cantTell(daw: DawKind | undefined, checkedAt: number | null, now: numbe
   const heard = checkedAt === null ? 'not heard yet' : `last heard ${Math.max(0, Math.round((now - checkedAt) / 1000))} s ago`;
   return `Can't tell whether ${recorderName(daw)} is ready (${heard}). Press Check again.`;
 }
-
-/**
- * What the Booth says when the DAW answered that a take this app started has stopped: the narrator's own Stop there. The app's own
- * recorder has no other place to stop a take, so its take ended by itself: `why` is the recorder's own sentence for it, if it has one.
- */
-export const stoppedInDaw = (daw: DawKind | undefined, why = '') =>
-  recordsInApp(daw)
-    ? `${why ? `${why.replace(/[.\s]+$/, '')}. ` : ''}The take ended and the audio before it is kept in the project's Recordings folder; press Record to start the next one.`
-    : `${recorderNameCapital(daw)} stopped recording. The take ended there; press Record to start the next one.`;
-
-/** What the Booth says once a DAW that went quiet during a take answers again: its own take ended when it went quiet, and what the DAW did with the audio is for the narrator to check. */
-const backInDaw = (daw: DawKind | undefined, byDaw: boolean) => {
-  const name = recorderNameCapital(daw);
-  // A take the DAW started was only followed: the Booth stopped listening, it did not end anything.
-  if (byDaw) return `${name} answers again. The Booth stopped listening to its take when ${name} went quiet; check in ${name} whether it is still recording.`;
-  return `${name} answers again. This window ended its take when ${name} went quiet; check in ${name} whether that take was kept.`;
-};
-
-/** What the Booth says when the DAW stopped answering during a take: it did not say the take ended, and may still be recording. */
-const lostInDaw = (daw: DawKind | undefined) => {
-  const name = recorderNameCapital(daw);
-  return `${name} stopped answering, so the Booth can't tell whether the take is still running. Check ${name}; press Record for the next take once it answers.`;
-};
 
 /**
  * The Booth's Record control over the DAW port: the capabilities and the host's read of the chapter's track give `recordCheck`, a press

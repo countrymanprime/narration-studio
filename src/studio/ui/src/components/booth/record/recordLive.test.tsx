@@ -316,9 +316,7 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS + 50));
     await waitFor(() => expect(daw.result.current.recording).toBe(false));
     const said = daw.notify.mock.calls.map(([sentence]) => sentence as string);
-    expect(said).toContain(
-      "REAPER stopped answering, so the Booth can't tell whether the take is still running. Check REAPER; press Record for the next take once it answers.",
-    );
+    expect(said).toContain("REAPER stopped answering, so the Booth can't tell if the take still runs. Check it.");
     expect(said.some((sentence) => /The take ended there/.test(sentence))).toBe(false);
   });
 
@@ -329,7 +327,7 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     transport({ playing: false, recording: false });
     await waitFor(() => expect(daw.result.current.recording).toBe(false));
     const said = daw.notify.mock.calls.map(([sentence]) => sentence as string);
-    expect(said.some((sentence) => /can't tell whether the take is still running/.test(sentence))).toBe(true);
+    expect(said.some((sentence) => /can't tell if the take still runs/.test(sentence))).toBe(true);
     expect(said.some((sentence) => /The take ended there/.test(sentence))).toBe(false);
   });
 
@@ -423,9 +421,7 @@ describe('a DAW that went quiet is not said to have ended the take', () => {
     daw.set(CONNECTED);
     act(() => daw.emit(CONNECTED));
     const said = () => daw.notify.mock.calls.map(([sentence]) => sentence as string).filter((sentence) => /answers again/.test(sentence));
-    await waitFor(() =>
-      expect(said()).toEqual(['REAPER answers again. This window ended its take when REAPER went quiet; check in REAPER whether that take was kept.']),
-    );
+    await waitFor(() => expect(said()).toEqual(['REAPER answers again. This window ended its take when it went quiet; check it was kept.']));
     act(() => daw.emit(CONNECTED));
     expect(said()).toHaveLength(1);
   });

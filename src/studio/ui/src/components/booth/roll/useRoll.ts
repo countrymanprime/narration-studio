@@ -11,6 +11,7 @@ import { rollPlan } from './rollPlan';
 import { HELD_TOPIC, heldInDawSentence } from '../record/useRecordControl';
 import { createTakeHold, type TakeControls } from './takeHold';
 import { clamp } from '../../../clamp';
+import { LOOKUP_FAILED, LOOKUP_SLOW, NOT_KNOWN } from '../toastSentences';
 
 /** The roll itself, typed here until `DawClient.roll` exists (SN-D6x). `confirmed` is true when the narrator answered the question. */
 type RollFn = (phrase: number, options: { confirmed: boolean }) => Promise<DawResult>;
@@ -56,10 +57,6 @@ export type RollActions = TakeControls & {
 
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
 export const LOOKUP_MS = 8000;
-
-export const NOT_KNOWN = 'Where this passage was recorded is not known, so no take was started.';
-export const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no take was started. Choose it again.';
-export const LOOKUP_SLOW = 'Where this passage was recorded did not come back in time, so no take was started. Choose it again.';
 
 /** Said when the DAW refuses a roll and gives no words (or only characters that draw nothing). */
 const ROLL_REFUSED = 'The DAW refused to roll again.';

@@ -96,29 +96,19 @@ describe('destinationFor names where a chapter records from the project layout',
     expect(all.filter((sentence) => /records on one track/.test(sentence))).toEqual([]);
   });
 
-  it('a folder made with voices and Extras names every track, and a partly done create says what is left (#3748)', () => {
+  it('says what the DAW made, that it is linked here and not saved yet, and what is left of a partly done create (#3748, #4095)', () => {
     const made = (name: string, index: number) => ({ guid: `{${index}}`, name, index, notVoice: name === 'Extras' });
     const folder = {
       track: { name: 'Opening' },
       voice: { guid: '{4}', name: 'Narrator', index: 4 },
       children: [made('Narrator', 4), made('Alice', 5), made('Extras', 6)],
     };
-    expect(createdSentence(folder, 'Opening', 'REAPER')).toBe(
-      'Folder “Opening” with Narrator, Alice and Extras tracks added in REAPER and linked to Opening. Save the REAPER project to keep it.',
-    );
+    expect(createdSentence(folder, 'REAPER')).toBe('Folder “Opening” is in REAPER, linked here. Save the project to keep it.');
     const partial = { ...folder, children: [made('Narrator', 4)], message: 'REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.' };
-    expect(createdSentence(partial, 'Opening', 'REAPER')).toBe(
-      'Folder “Opening” with a Narrator track added in REAPER and linked to Opening. Save the REAPER project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
+    expect(createdSentence(partial, 'REAPER')).toBe(
+      'Folder “Opening” is in REAPER, linked here. Save the project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
     );
-  });
-
-  it('what the DAW made is named from its answer: a folder with its Narrator, or a plain track (an engine with no folders makes one in a folders project)', () => {
-    const folder = { track: { name: 'Opening' }, voice: { guid: '{N}', name: 'Narrator', index: 4 } };
-    const plain = { track: { name: 'Opening' } };
-    expect(createdSentence(folder, 'Opening', 'REAPER')).toBe(
-      'Folder “Opening” with a Narrator track added in REAPER and linked to Opening. Save the REAPER project to keep it.',
-    );
-    expect(createdSentence(plain, 'Opening', 'REAPER')).toBe('Track “Opening” added in REAPER and linked to Opening. Save the REAPER project to keep it.');
+    expect(createdSentence({ track: { name: 'Opening' } }, 'REAPER')).toBe('Track “Opening” is in REAPER, linked here. Save the project to keep it.');
   });
 
   it('a folder whose every track is marked as not a voice names the switch in either layout, and in Flat the other fix (#3828)', () => {

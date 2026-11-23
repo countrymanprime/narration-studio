@@ -16,12 +16,18 @@ export type ChapterRecordState = {
 
 /** Why the Booth does not follow a take the DAW holds: another track is armed, several are, none is, or the lane could not be read yet. */
 export type NotFollowedWhy = 'other_track' | 'several_tracks' | 'no_track_armed' | 'no_project' | 'unread';
-/** The reason the Booth is not following the take, after "the DAW is recording", for the footer and the chip's tooltip (the chip words its own opener and the two reasons that are no clause). */
-export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread'>, string> = {
-  other_track: 'on another track, so the Booth is not following it',
-  several_tracks: 'with several tracks armed, so the Booth is not following it',
-  no_track_armed: 'with no track armed, so the Booth is not following it',
-  no_project: 'while no project file is linked here',
+/** The reasons the DAW's take is not followed, as a clause after "the DAW is recording": the refusal's words. `no_project` and `unread` are worded where they are said. */
+const REFUSAL_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread' | 'no_project'>, string> = {
+  other_track: 'on another track',
+  several_tracks: 'with several tracks armed',
+  no_track_armed: 'with no track armed',
+};
+
+/** The same clauses with what the chip's tooltip adds, "so the Booth is not following it" (the chip words `no_project` and `unread` itself). */
+export const NOT_FOLLOWED_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread' | 'no_project'>, string> = {
+  other_track: `${REFUSAL_CLAUSE.other_track}, so the Booth is not following it`,
+  several_tracks: `${REFUSAL_CLAUSE.several_tracks}, so the Booth is not following it`,
+  no_track_armed: `${REFUSAL_CLAUSE.no_track_armed}, so the Booth is not following it`,
 };
 
 /**
@@ -35,21 +41,14 @@ function elsewhereReason(name: string, why: NotFollowedWhy | null | undefined): 
   return `${name} is already recording${clause}. Stop it there first.`;
 }
 
-/** The same reasons in the refusal's words, without the chip's "so the Booth is not following it". `no_project` is worded by `elsewhereReason`. */
-const REFUSAL_CLAUSE: Record<Exclude<NotFollowedWhy, 'unread' | 'no_project'>, string> = {
-  other_track: 'on another track',
-  several_tracks: 'with several tracks armed',
-  no_track_armed: 'with no track armed',
-};
-
 /** Whether the project the DAW has open is the one linked here. `unknown` while nothing is linked or the DAW has not been heard (the host reports no match then). */
 export type OpenProject = 'same' | 'different' | 'unknown';
 
 export type RecordRefusal = { code: 'capability' | 'wrong_project' | 'recording_elsewhere' | 'no_track' | 'several_tracks' | 'track_missing'; reason: string };
 
 /**
- * Why Record cannot start in this chapter, or null. Every sentence is the capability's own or the host's refusal, none is
- * worded here. A chapter has to have exactly one track only when the setup reads tracks (`track_state`); a setup that records
+ * Why Record cannot start in this chapter, or null. Every sentence is the capability's own or the host's refusal, except the one for a take the DAW is
+ * already recording (`elsewhereReason`), which is worded here to fit the toast. A chapter has to have exactly one track only when the setup reads tracks (`track_state`); a setup that records
  * without a project has no track to count. A new refusal is another capability or another host sentence, not a new branch.
  */
 export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecordState, openProject: OpenProject = 'unknown'): RecordRefusal | null {

@@ -12,7 +12,8 @@ import type { NarrationApi } from '../../../types';
 import { apiWithTracks, dawClientFor } from './fixtures';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor } from './recordSetupModel';
-import { POLL_MS, START_GUARD_MS, START_GUARD_SENTENCE, stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake, skipStartGuard } from './useRecordControl';
+import { POLL_MS, START_GUARD_MS, START_GUARD_SENTENCE, TAKE_TOPIC, useRecordControl, forgetAppTake, skipStartGuard } from './useRecordControl';
+import { stoppedInDaw } from '../toastSentences';
 
 // The Booth records with the app's own recorder through the DAW port. These drive the control over a port whose answers the test
 // controls, one cell of the state matrix at a time (definition-of-done, rule 3). The host's side is bindings_booth_record_test.go.
@@ -153,7 +154,7 @@ describe('Record with the built-in recorder', () => {
     const [sentence, topic] = notify.mock.calls[0];
     expect(topic).toBe(TAKE_TOPIC);
     expect(sentence).toBe(stoppedInDaw('Built-in', 'Analogue 1 + 2 (Focusrite USB Audio) stopped delivering audio'));
-    expect(sentence).toMatch(/stopped delivering audio\. The take ended and the audio before it is kept in the project's Recordings folder/);
+    expect(sentence).toMatch(/stopped delivering audio\. The take ended\. Its audio is kept in the project's Recordings folder/);
     expect(result.current.disabled).toBe(false);
   });
 

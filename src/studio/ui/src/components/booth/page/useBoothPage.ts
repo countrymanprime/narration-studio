@@ -58,6 +58,7 @@ import { claimListening, joinListening, type ListeningClaim, ownsListening, rele
 import { useTextChoices } from './useTextChoices';
 import { clock } from '../../../clock';
 import { pageNameFor } from '../../layout/railPages';
+import { rollLandedSentence, rollTimeoutSentence, TAKE_UNFOLLOWED } from '../toastSentences';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const CHECK_OFFER = 'Check this recording against the script?';
@@ -139,13 +140,6 @@ const handListeningToPageOnScreen = (claim: ListeningClaim, recordId: string): b
 /** How long a report waits for the page to show the take it is about (the next chapter's page adopts a take from the DAW's next word). */
 const UNFOLLOWED_WAIT_MS = 10_000;
 const UNFOLLOWED_TOPIC = 'booth-take-unfollowed';
-
-/** Said when a roll the Booth stopped waiting for lands after all: a plain message, so it fits two lines (`TOAST_CHAR_BUDGET`). */
-export const rollLandedSentence = (name: string, recorder: string): string =>
-  `A late roll has landed, so ${name} may be recording and a take may be cut. Check ${recorder}.`;
-
-/** Said when a take that is still recording lost its text-following: a plain message, so it fits two lines (`TOAST_CHAR_BUDGET`). */
-export const TAKE_UNFOLLOWED = 'The text could not follow your voice for this take. Press Stop, then record again.';
 
 /**
  * The Booth page's behaviour over its parts: the reading position (from the voice while listening, else the keys and clicks), one take
@@ -739,7 +733,7 @@ export function useBoothPage(options: BoothPageOptions) {
         /** One short sentence for a roll that lands when its press is no longer current: it replaces the roll's timeout sentence, whose advice is stale. */
         const landed = () => {
           overlay.dismissTopic(ROLL_TIMEOUT_TOPIC);
-          overlay.toast(rollLandedSentence(name, recorderLabel), {
+          overlay.toast(rollLandedSentence(recorderLabel), {
             tone: 'error',
             topic: ROLL_LANDED_TOPIC,
           });
@@ -770,13 +764,10 @@ export function useBoothPage(options: BoothPageOptions) {
         // The take ended meanwhile (the DAW's own stop was announced): the sentence about a take that may still be recording would contradict it.
         if (!mounted.current || !latest.current.recording) return { ok: false, changed: false, undoSteps: 0, message: '' };
         // Said here as an error, like the other limits; the empty message tells the roll hook there is nothing more to say.
-        overlay.toast(
-          `${name} did not answer the roll in time. The take may still be recording from before; check ${recorderLabel}, then press R to roll again.`,
-          {
-            tone: 'error',
-            topic: ROLL_TIMEOUT_TOPIC,
-          },
-        );
+        overlay.toast(rollTimeoutSentence(name), {
+          tone: 'error',
+          topic: ROLL_TIMEOUT_TOPIC,
+        });
         return { ok: false, changed: false, undoSteps: 0, message: '' };
       },
       pause,
