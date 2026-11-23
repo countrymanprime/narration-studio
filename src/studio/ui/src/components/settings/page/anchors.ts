@@ -17,3 +17,18 @@ export const ANCHOR_TARGETS: Record<string, { cat: CategoryId; row: string | nul
   // The jump menu's "Settings: <category>": `/settings#category-<id>` opens the category with no row to light up.
   ...Object.fromEntries(CATEGORIES.map((category) => [categoryAnchorKey(category.id), { cat: category.id, row: null }])),
 };
+
+/**
+ * Every hash `/settings` resolves, by hash: the kept anchors another page opens Settings at (`#cleanup` is Master's Silence cleanup link; `#teleprompter` is an alias of `#booth`, kept for
+ * links from before the Booth replaced the Teleprompter page) and the jump menu's `#category-<id>` for every category. The value is the key in `ANCHOR_TARGETS`. The one table
+ * `App.tsx` reads, and the one that says which hash a project change keeps (`addressWithoutProject`).
+ */
+export const SETTINGS_HASHES: Readonly<Record<string, string>> = {
+  '#recording': 'Recording',
+  '#credits': 'Credits',
+  '#delivery': 'Delivery',
+  '#cleanup': 'Cleanup',
+  '#booth': 'Teleprompter',
+  '#teleprompter': 'Teleprompter',
+  ...Object.fromEntries(CATEGORIES.map((category) => [`#category-${category.id}`, categoryAnchorKey(category.id)])),
+};

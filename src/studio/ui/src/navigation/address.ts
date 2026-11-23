@@ -2,6 +2,7 @@
 // another page calls a builder here; a destination reads its address with `readAddress`, which says what is wrong with a bad one
 // instead of guessing. The Booth's own shape is wrapped, not changed: `boothQuery` and `readBoothQuery` do the work.
 
+import { SETTINGS_HASHES } from '../components/settings/page/anchors';
 import { boothQuery, readBoothQuery, type BoothTarget } from '../components/booth/page/boothQuery';
 
 /** The longest id, name or text an address may carry. Ids are short in practice; this stops an address that is a paste of a book. */
@@ -91,12 +92,12 @@ export function pageOfPath(pathname: string): string {
 export type PageAddress = { pathname: string; search: string; hash: string };
 
 /**
- * The address cut back to the page: no chapter, query or anchor of the project it was written under. Settings' anchors (`/settings#credits`) name a category, not
+ * The address cut back to the page: no chapter, query or anchor of the project it was written under. Settings' anchors (`/settings#credits`, `#category-<id>`) name a category, not
  * project content, so they stay. An address that is already the bare page comes back equal, which is how a caller tells there is nothing to drop (#4059).
  */
 export function addressWithoutProject({ pathname, hash }: PageAddress): PageAddress {
   const page = pageOfPath(pathname);
-  const keepsHash = page === PAGE_PATH.settings && SETTINGS_ANCHORS.includes(hash.slice(1));
+  const keepsHash = page === PAGE_PATH.settings && hash in SETTINGS_HASHES;
   return { pathname: page, search: '', hash: keepsHash ? hash : '' };
 }
 

@@ -74,17 +74,36 @@ const sameTask = async (move: () => Promise<void>) => {
     env.IS_REACT_ACT_ENVIRONMENT = before;
   }
 };
-// Counts the DOM changes that left the page's place empty (the shell's main with nothing drawn in it): the window must never show the other project's page, nor none.
-const watchEmptyPage = () => {
+// Watches the page's place from now on: how many changes left it with no page of its own in it (no heading or button; a loading group does not count, so a page that only
+// shows a loading frame is empty too), whether a loading frame the router or the gate draws for another reason appeared, and whether the page was drawn before the address was
+// cut (when the first `replaceState` that changes the address runs, the page's place already holds an element).
+const FOREIGN_FRAME = '[aria-label="Checking this link"], [aria-label="Opening this project"]';
+const watchPage = () => {
   let empty = 0;
+  let foreign = false;
+  let drawnBeforeCut: boolean | undefined;
   const watch = new MutationObserver(() => {
     const main = document.querySelector('main');
-    if (main && main.querySelector('h1, button, [aria-busy="true"]') === null) empty += 1;
+    if (document.querySelector(FOREIGN_FRAME)) foreign = true;
+    if (main && main.querySelector('h1, button') === null) empty += 1;
   });
   watch.observe(document.body, { childList: true, subtree: true });
+  const replaceState = window.history.replaceState.bind(window.history);
+  window.history.replaceState = (state: unknown, unused: string, url?: string | URL | null) => {
+    if (
+      drawnBeforeCut === undefined &&
+      url !== undefined &&
+      url !== null &&
+      String(url) !== window.location.pathname + window.location.search + window.location.hash
+    ) {
+      drawnBeforeCut = document.querySelector('main')?.firstElementChild != null;
+    }
+    replaceState(state, unused, url);
+  };
   return () => {
     watch.disconnect();
-    return empty;
+    window.history.replaceState = replaceState;
+    return { empty, foreign, drawnBeforeCut };
   };
 };
 // The step can be pressed before the page has its chapters (it then does nothing): press it again until the chapter shows.
@@ -353,7 +372,7 @@ describe('the chapter in the address is not carried into another project (#4059)
       act(() => void overlay.open({ kind: 'dialog', title: 'Open question', dismissOnOutsidePress: false, render: () => <p>A form</p> }));
       // The switch is sent as the Back arrives (a capture listener runs before the guard's), so it renders between the guard stopping the pop and its restore.
       window.addEventListener('popstate', () => void api.switchProject(OTHER, 'Voltage and the Undercroft'), { capture: true, once: true });
-      const empty = watchEmptyPage();
+      const empty = watchPage();
       await sameTask(async () => {
         window.history.back();
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -361,7 +380,7 @@ describe('the chapter in the address is not carried into another project (#4059)
       // The page itself, not the shell around it: B's page is drawn at once on its own first chapter, and the address is cut when the guard restores history.
       await onChapter(/^Chapter: Chapter 1:/);
       await waitFor(() => expect(address()).toBe('/editing'));
-      expect(empty()).toBe(0);
+      expect(empty()).toMatchObject({ empty: 0, foreign: false });
     });
   });
 
@@ -373,11 +392,40 @@ describe('the chapter in the address is not carried into another project (#4059)
     const { api } = await openAt(start);
     await onChapter(chapter);
     window.localStorage.setItem(`${key}.${OTHER}`, key.includes('booth') ? JSON.stringify({ chapterId: kept, paragraphId: '', word: 0 }) : kept);
-    const empty = watchEmptyPage();
+    const empty = watchPage();
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await onChapter(expected);
-    expect(empty()).toBe(0);
+    // Drawn on the first change, before the address is cut: the cut comes after, not before.
+    expect(empty()).toMatchObject({ empty: 0, foreign: false, drawnBeforeCut: true });
     expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
     expect(loadEditingChapter(OTHER)).not.toBe('chapter-7');
+  });
+
+  it('attaching the same project again changes nothing: the address and the chapter stay', async () => {
+    const { api, first } = await openAt('/booth?chapter=chapter-9');
+    await onChapter(/^Chapter: Chapter 9:/);
+    await api.switchProject(first, 'Alice');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await onChapter(/^Chapter: Chapter 9:/);
+    expect(address()).toBe('/booth?chapter=chapter-9');
+  });
+
+  it('Master & QC opens in the new project with no file picked, not on the old address\u2019s #file=', async () => {
+    const { api } = await openAt('/master#file=C%3A%2FRenders%2FChapter%2002.wav');
+    expect((await screen.findByRole('status', { name: 'Link not found' })).textContent).toContain('Chapter 02.wav');
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await waitFor(() => expect(address()).toBe('/master'));
+    await screen.findByRole('heading', { level: 1, name: 'Master & QC' });
+    expect(screen.queryByRole('status', { name: 'Link not found' })).toBeNull();
+    expect(window.location.hash).toBe('');
+  });
+
+  it('a switch while Settings shows a category from the jump menu keeps Settings on that category', async () => {
+    const { api } = await openAt('/settings#category-delivery');
+    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(window.location.hash).toBe('#category-delivery');
   });
 });

@@ -67,8 +67,7 @@ import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
 import { NoProjectSettings } from './components/settings/page/NoProjectSettings';
-import { categoryAnchorKey } from './components/settings/page/anchors';
-import { CATEGORIES } from './components/settings/registry/categories';
+import { SETTINGS_HASHES } from './components/settings/page/anchors';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
 import { type BoothTarget } from './components/booth/page/boothQuery';
 import { addressPagePath, addressPath, type AddressPage } from './navigation/address';
@@ -107,19 +106,6 @@ import { apiErrorMessage, describeApiError } from './api/errorMessage';
 import { useCommand } from './input/useCommand';
 import { useSaveShortcut } from './components/editing/page/useSaveInDaw';
 import { useRecordingEngine } from './components/booth/useRecorder';
-
-// The kept Settings categories another page can open Settings at, by URL anchor (`#cleanup` is Master's Silence cleanup link).
-// `#teleprompter` is kept as an alias of `#booth` so links from before the Booth replaced the Teleprompter page still land;
-// the category's key stays its settings tool's name.
-const SETTINGS_ANCHORS: Record<string, string> = {
-  '#recording': 'Recording',
-  '#credits': 'Credits',
-  '#delivery': 'Delivery',
-  '#cleanup': 'Cleanup',
-  '#booth': 'Teleprompter',
-  '#teleprompter': 'Teleprompter',
-  ...Object.fromEntries(CATEGORIES.map((category) => [`#category-${category.id}`, categoryAnchorKey(category.id)])),
-};
 
 /** Why a command that needs an open project is off while the picker is all there is. */
 const NO_PROJECT_REASON = 'Open a project first';
@@ -1385,7 +1371,7 @@ function AppRoutes() {
     onLinkDawFile: () => void linkDawFile(),
     go: guardedNavigate,
     refreshBootstrap,
-    initialCategory: SETTINGS_ANCHORS[location.hash],
+    initialCategory: SETTINGS_HASHES[routedLocation.location.hash],
   };
   // Leaving with an edit not yet saved asks first, wherever it is held: Settings (drawn in the shell, or in the frame for no project) or an editor's draft.
   // Settings' own fields are a form and may be many, so with edits in them the question keeps Settings' older sentence (the fallback in `body` below). A draft
@@ -1737,7 +1723,7 @@ function AppRoutes() {
                                   onImport={() => guardedNavigate('/')}
                                   onOpenDelivery={() => guardedNavigate('/delivery')}
                                   openSettings={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'cleanup' }))}
-                                  focusFile={parseMasterHash(location.hash)?.file}
+                                  focusFile={parseMasterHash(routedLocation.location.hash)?.file}
                                 />,
                               )}
                             />
@@ -1745,7 +1731,7 @@ function AppRoutes() {
                             <Route
                               path="/delivery"
                               element={
-                                parseMasterHash(location.hash) ? (
+                                parseMasterHash(routedLocation.location.hash) ? (
                                   <RedirectKeepingLocation to="/master" />
                                 ) : (
                                   <DeliveryPage

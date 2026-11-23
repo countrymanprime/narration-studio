@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { SETTINGS_HASHES } from '../components/settings/page/anchors';
+import { CATEGORIES } from '../components/settings/registry/categories';
 import {
   addressPath,
   addressWithoutProject,
@@ -225,6 +227,11 @@ describe('addressWithoutProject: the address cut back to its page (#4059)', () =
   });
   it('keeps Settings\u2019 anchor, which names a category', () => {
     expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#credits' })).toEqual({ pathname: '/settings', search: '', hash: '#credits' });
+  });
+  it('keeps every hash Settings resolves: the old anchors and the #category-<id> of every category', () => {
+    const hashes = Object.keys(SETTINGS_HASHES);
+    expect(hashes).toEqual(expect.arrayContaining(['#credits', ...CATEGORIES.map((category) => `#category-${category.id}`)]));
+    for (const hash of hashes) expect(addressWithoutProject({ pathname: '/settings', search: '', hash }).hash).toBe(hash);
   });
   it('drops a Settings hash that is no anchor', () => {
     expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#nothing' })).toEqual({ pathname: '/settings', search: '', hash: '' });
