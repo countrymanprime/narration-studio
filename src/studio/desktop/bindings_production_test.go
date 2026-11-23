@@ -2,7 +2,6 @@ package main
 
 import (
 	"desktop/internal/brand"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -198,10 +197,7 @@ func chapterStatusOf(t *testing.T, host *Host, id string) any {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var list []map[string]any
-	if err := json.Unmarshal([]byte(raw), &list); err != nil {
-		t.Fatal(err)
-	}
+	_, list := decodeChapterList(t, raw)
 	for _, chapter := range list {
 		if chapter["id"] == id {
 			return chapter["status"]

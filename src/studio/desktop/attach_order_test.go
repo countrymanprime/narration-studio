@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -97,4 +98,102 @@ func TestBootstrapAndSystemAttachedOrderAcrossAProjectSwitch(t *testing.T) {
 		t.Fatalf("a Bootstrap that started after system:attached named the old folder: %v", violations)
 	}
 	t.Logf("%d concurrent Bootstrap answers over %d switches; %d named the new folder before its system:attached was emitted", total, switches, beforeEvent)
+}
+
+// TestTheChapterListNamesTheProjectItWasReadFrom is what the chapter store relies on (#4040): a ManuscriptChapters answer says which project it
+// was read from, and the stamp is truthful whatever the timing of a switch. Each of the five projects holds one chapter titled with its own
+// folder, so the chapter in an answer tells which project's manuscript was read; the stamp must be that folder, on every answer. An answer
+// asked after system:attached is stamped with the folder just switched to (or a later one), never an earlier one. The answers stamped with
+// the new folder before the event are the gap the window cannot see, counted and logged. emitEventSink is a package global: no t.Parallel.
+func TestTheChapterListNamesTheProjectItWasReadFrom(t *testing.T) {
+	host := newStressHost(t)
+	host.ctx = context.Background()
+	projects := make([]string, 5)
+	for i := range projects {
+		projects[i] = t.TempDir()
+		writeManuscriptTitled(t, projects[i], projects[i])
+	}
+
+	var emitted atomic.Int64
+	emitEventSink = func(name string, _ any) {
+		if name == "system:attached" {
+			emitted.Add(1)
+		}
+	}
+	t.Cleanup(func() { host.waitForBackground(); emitEventSink = nil })
+
+	var mu sync.Mutex
+	var violations []string
+	var total, beforeEvent int
+	stop := make(chan struct{})
+	var readers sync.WaitGroup
+	for range 3 {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				eventsBefore := emitted.Load()
+				raw, err := host.ManuscriptChapters()
+				eventsAfter := emitted.Load()
+				mu.Lock()
+				if err != nil {
+					violations = append(violations, "error: "+err.Error())
+					mu.Unlock()
+					continue
+				}
+				stamp, chapters := decodeChapterList(t, raw)
+				total++
+				read := ""
+				for _, chapter := range chapters {
+					if chapter["id"] == "c1" {
+						read, _ = chapter["title"].(string)
+					}
+				}
+				if stamp != read {
+					violations = append(violations, "stamped "+stamp+" but the list is "+read)
+				}
+				if eventsBefore > 0 {
+					e := int(eventsBefore)
+					if stamp == projects[(e-2+5)%5] && eventsAfter <= eventsBefore+1 {
+						violations = append(violations, "asked after switch "+strconv.Itoa(e)+" and stamped the old folder "+stamp)
+					}
+					if stamp == projects[e%5] && eventsAfter == eventsBefore {
+						beforeEvent++
+					}
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+
+	const switches = 40
+	for i := range switches {
+		if _, err := host.ProjectSwitch(projects[i%5], ""); err != nil {
+			t.Fatal(err)
+		}
+		raw, err := host.ManuscriptChapters()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stamp, _ := decodeChapterList(t, raw); stamp != projects[i%5] {
+			t.Fatalf("switch %d: a list asked after system:attached is stamped %q, want %q", i, stamp, projects[i%5])
+		}
+	}
+	close(stop)
+	done := make(chan struct{})
+	go func() { readers.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the chapter list readers did not stop")
+	}
+	if len(violations) > 0 {
+		t.Fatalf("%d answers broke the stamp, first: %s", len(violations), violations[0])
+	}
+	t.Logf("%d concurrent chapter list answers over %d switches; %d were stamped with the new folder before its system:attached was emitted", total, switches, beforeEvent)
 }
