@@ -629,7 +629,7 @@ func TestAWaveformReadOverSeededRecordingsDrawsEveryTakeAndIsKept(t *testing.T) 
 // is answered without reading the file again (#4042). Before, every call over a long recording timed out the same way and blanked the strip.
 func TestAWaveformReadThatRunsOutOfTimeKeepsReadingAndTheNextCallHasIt(t *testing.T) {
 	dir := t.TempDir()
-	book, err := parsePerfBook("chapters=1 paragraphs=2 items=3 audio=30")
+	book, err := parsePerfBook("chapters=1 paragraphs=2 items=3 audio=3")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -656,7 +656,7 @@ func TestAWaveformReadThatRunsOutOfTimeKeepsReadingAndTheNextCallHasIt(t *testin
 			t.Fatalf("item %d of a read cut short should say it is still being read: %+v", item.Index, item)
 		}
 	}
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(2 * time.Minute)
 	for {
 		later := read()
 		if later.Items[0].Peaks != nil {

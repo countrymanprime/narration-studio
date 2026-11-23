@@ -243,7 +243,7 @@ func (f *peaksFlights) read(ctx context.Context, store *evidence.CacheStore, ide
 		flight = &peaksFlight{done: make(chan struct{})}
 		f.running[key] = flight
 		go func() {
-			own, cancel := context.WithTimeout(context.Background(), peaksReadLimit)
+			own, cancel := context.WithTimeout(context.WithoutCancel(ctx), peaksReadLimit) // the read outlives the call on purpose
 			defer cancel()
 			flight.peaks, flight.err = measure.CachedPeaksFile(own, store, identity, file, nil, measure.DefaultPeaksPerSecond)
 			f.mu.Lock()
