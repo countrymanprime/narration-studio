@@ -607,7 +607,7 @@ describe('a read that never answers does not freeze a slot (#3658)', () => {
 });
 
 describe('the store knows which project a held list belongs to (#3998)', () => {
-  /** A slot whose read answers with the project the host is on now and says so, as `manuscriptChapterList` does: the host, not the page, decides (#4040). */
+  /** A slot whose read answers with the project the host is on now and says so, as `manuscriptChapters` does: the host, not the page, decides (#4040). */
   const hostOn = (initial: string) => {
     const host = { project: initial };
     return { host, read: vi.fn(async () => ({ project: host.project, payload: { count: host.project === 'A' ? 1 : 2 } })) };
@@ -837,5 +837,56 @@ describe('the host says which project a list was read from (#4040)', () => {
     await asked;
     expect(served).toBe(true);
     expect(store.projectOf('a')).toBe('B');
+  });
+
+  it('a list stamped B and held while the store is unconfirmed does not survive setProject(A)', async () => {
+    const { store, host, read } = await rig();
+    host.project = 'B';
+    store.reset();
+    await store.ensure('a'); // held, stamped B
+    expect(store.projectOf('a')).toBe('B');
+    store.setProject('A'); // the folder looks unchanged to the store, but what it holds is B's
+    expect(store.getState().slots.a).toBeUndefined();
+    host.project = 'A';
+    await store.ensure('a'); // goes to the host
+    expect(read).toHaveBeenCalledTimes(3);
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    expect(store.projectOf('a')).toBe('A');
+  });
+
+  it('the same holds for a store never told a project', async () => {
+    const { host, read } = stamped('B');
+    const { store } = make({ a: { schema: isCount, read } });
+    await store.ensure('a');
+    expect(store.projectOf('a')).toBe('B');
+    store.setProject('A');
+    expect(store.getState().slots.a).toBeUndefined();
+    host.project = 'A';
+    await store.ensure('a');
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(store.projectOf('a')).toBe('A');
+  });
+
+  it('whatever the order of resets, answers and news, a held list belongs to the project the store is on', async () => {
+    const projects = ['A', 'B', 'C'];
+    let seed = 7;
+    const next = (n: number) => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return (seed >>> 12) % n;
+    };
+    for (let run = 0; run < 40; run += 1) {
+      const { host, read } = stamped('A');
+      const { store } = make({ a: { schema: isCount, read } });
+      for (let step = 0; step < 12; step += 1) {
+        const action = next(4);
+        if (action === 0) store.reset();
+        else if (action === 1) store.setProject(projects[next(3)]!);
+        else if (action === 2) host.project = projects[next(3)]!;
+        else void store.ensure('a').catch(() => undefined); // not awaited: a reader may wait for the news
+        await flush();
+        // After the store hears of a project, nothing it holds is another project's.
+        if (store.project() !== undefined && action === 1 && store.getState().slots.a !== undefined) expect(store.projectOf('a')).toBe(store.project());
+      }
+    }
   });
 });

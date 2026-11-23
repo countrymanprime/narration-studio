@@ -411,7 +411,10 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       onProject = folder;
       confirmed = true;
       ahead = undefined;
-      if (changed) clearHeld();
+      // What is held for a project other than `folder` is not served under it, whatever the store believed before: a list read from B and held while the
+      // store was unconfirmed (or never told a project) stays only when the store turns out to be on B.
+      const foreign = [...owners.values()].some((owner) => owner !== undefined && owner !== folder);
+      if (changed || foreign) clearHeld();
       wake();
     },
     project: () => onProject,
