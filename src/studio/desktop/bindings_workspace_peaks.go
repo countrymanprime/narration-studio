@@ -245,7 +245,8 @@ type peaksFlight struct {
 // it answers errPeaksPending, the read finishes in the background and writes the evidence cache, and the next call finds it done (or joins it
 // while it runs) instead of starting the whole file again and timing out again (#4042).
 type peaksFlights struct {
-	mu      sync.Mutex
+	mu sync.Mutex
+	// +checklocks:mu
 	running map[string]*peaksFlight
 }
 
