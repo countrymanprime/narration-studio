@@ -39,7 +39,7 @@ export type LegacyEntry = { key: string; value: string };
  * What earlier builds kept for this project under `name`, whatever the spelling: every storage key with the prefix `narration.<name>.` whose folder part is this folder by
  * `folderKey`, other than the normalised key itself. The caller's own spelling comes first, then the rest in key order. Empty when storage cannot be read; never throws.
  */
-export function legacyEntries(name: string, folder: string): LegacyEntry[] {
+function legacyEntries(name: string, folder: string): LegacyEntry[] {
   try {
     const prefix = prefixOf(name);
     const wanted = folderKey(folder);
