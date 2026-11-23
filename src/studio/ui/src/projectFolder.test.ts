@@ -69,6 +69,18 @@ describe.each(stores)('$name: kept per project by the folder, not its spelling (
     expect(window.localStorage.getItem(key + NORM)).toBe(legacy);
     expect(window.localStorage.getItem(key + RAW)).toBe(legacy);
   });
+  it.each([
+    ['only the backslash key, read by the forward-slash spelling first', RAW, NORM],
+    ['only the forward-slash key, read by the backslash spelling', NORM, RAW],
+    ['only a trailing-slash key', `${NORM}/`, NORM],
+    ['only a trailing-backslash key', `${RAW}\\`, NORM],
+    ['only a backslash key, read by a trailing-slash spelling', RAW, `${NORM}/`],
+  ])('finds what an earlier build kept: %s', (_name, written, readBy) => {
+    window.localStorage.setItem(key + written, legacy);
+    expect(read(readBy)).toBe('old');
+    expect(window.localStorage.getItem(key + NORM)).toBe(legacy);
+    expect(window.localStorage.getItem(key + written)).toBe(legacy);
+  });
   it('the other spelling of that folder then finds it', () => {
     window.localStorage.setItem(key + RAW, legacy);
     read(RAW);
@@ -78,6 +90,11 @@ describe.each(stores)('$name: kept per project by the folder, not its spelling (
     window.localStorage.setItem(key + RAW, legacy);
     window.localStorage.setItem(key + NORM, fresh);
     expect(read(RAW)).toBe('new');
+    expect(read(NORM)).toBe('new');
+  });
+  it('with the normalised key and an old spelling both present, the normalised one wins, even if the old one is newer (nothing orders them)', () => {
+    window.localStorage.setItem(key + NORM, fresh);
+    window.localStorage.setItem(key + RAW, legacy);
     expect(read(NORM)).toBe('new');
   });
   it('one folder in two spellings shares one place', () => {
