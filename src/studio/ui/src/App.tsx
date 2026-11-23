@@ -724,8 +724,11 @@ function AppRoutes() {
     if (state && !addressStale && project !== undefined) shownUnder.current = { key: location.key, project };
   });
   useEffect(() => {
-    if (addressStale) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
-  }, [addressStale, navigate, bareAddress.pathname, bareAddress.hash]);
+    // History ahead of the location on screen is a move waiting in a transition (the narrator's, or a Back): cutting now would write over it. The page stays held until it commits,
+    // and the address that commits is judged by its own entry.
+    const state = window.history.state as { key?: string } | null;
+    if (addressStale && (state?.key ?? 'default') === location.key) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
+  }, [addressStale, navigate, location.key, bareAddress.pathname, bareAddress.hash]);
 
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then

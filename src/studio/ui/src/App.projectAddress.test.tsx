@@ -63,6 +63,17 @@ const back = () =>
         window.history.back();
       }),
   );
+// Runs `move` outside act, as a click and a host answer arrive in the app: React then renders a router move in a transition, after history has changed.
+const sameTask = async (move: () => Promise<void>) => {
+  const env = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+  const before = env.IS_REACT_ACT_ENVIRONMENT;
+  env.IS_REACT_ACT_ENVIRONMENT = false;
+  try {
+    await move();
+  } finally {
+    env.IS_REACT_ACT_ENVIRONMENT = before;
+  }
+};
 const address = () => window.location.pathname + window.location.search;
 
 describe('the chapter in the address is not carried into another project (#4059)', () => {
@@ -248,5 +259,66 @@ describe('the chapter in the address is not carried into another project (#4059)
     typeAddress('/editing/chapter-2#note');
     await onChapter(/^Chapter: Chapter 2:/);
     expect(window.location.pathname + window.location.hash).toBe('/editing/chapter-2#note');
+  });
+
+  describe('a page move pending when the project changes', () => {
+    const seedOther = (chapterKey: 'editing' | 'booth', chapter: string) =>
+      window.localStorage.setItem(
+        chapterKey === 'editing' ? `narration.editing.lastChapter.${OTHER}` : `narration.booth.lastPlace.${OTHER}`,
+        chapterKey === 'editing' ? chapter : JSON.stringify({ chapterId: chapter, paragraphId: '', word: 0 }),
+      );
+
+    it('is kept, not cut back to the page it left: Editing', async () => {
+      const { api } = await openAt('/editing/chapter-7');
+      await onChapter(/^Chapter: Chapter 7:/);
+      seedOther('editing', 'chapter-4');
+      const script = screen.getAllByRole('button', { name: 'Script' })[0]!;
+      await sameTask(async () => {
+        script.click();
+        await api.switchProject(OTHER, 'Voltage and the Undercroft');
+      });
+      await screen.findByRole('heading', { level: 1, name: 'Script' });
+      expect(window.location.pathname).toBe('/script');
+      expect((window.history.state as { idx?: number }).idx).toBe(1);
+      await back();
+      await onChapter(/^Chapter: Chapter 4:/);
+      expect(address()).toBe('/editing');
+      expect(loadEditingChapter(OTHER)).toBe('chapter-4');
+    });
+
+    it('is kept, not cut back to the page it left: Booth', async () => {
+      const { api } = await openAt('/booth?chapter=chapter-9');
+      await onChapter(/^Chapter: Chapter 9:/);
+      seedOther('booth', 'chapter-3');
+      fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+      fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: '> Go to Script' } });
+      const option = await screen.findByRole('option', { name: /^Go to Script/ });
+      await sameTask(async () => {
+        option.click();
+        await api.switchProject(OTHER, 'Voltage and the Undercroft');
+      });
+      await screen.findByRole('heading', { level: 1, name: 'Script' });
+      expect(window.location.pathname).toBe('/script');
+      await back();
+      await onChapter(/^Chapter: Chapter 3:/);
+      expect(address()).toBe('/booth?chapter=chapter-3');
+      expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
+    });
+
+    it('a Back is cut when it lands, not carrying the old project\u2019s chapter', async () => {
+      const alice = await aliceFolder();
+      const { api } = await openAt('/booth?chapter=chapter-9', seedReloadedHistory('/booth?chapter=chapter-9', alice));
+      await screen.findByRole('heading', { level: 1, name: 'Script' });
+      seedOther('booth', 'chapter-3');
+      await act(async () => {
+        const popped = new Promise<void>((resolve) => window.addEventListener('popstate', () => resolve(), { once: true }));
+        window.history.back();
+        await api.switchProject(OTHER, 'Voltage and the Undercroft');
+        await popped;
+      });
+      await onChapter(/^Chapter: Chapter 3:/);
+      expect(address()).toBe('/booth?chapter=chapter-3');
+      expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
+    });
   });
 });
