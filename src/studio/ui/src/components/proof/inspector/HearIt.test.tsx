@@ -12,7 +12,7 @@ import { inspectorFinding } from './testFinding';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import { createMockDawClient } from '../../../ports/daw';
-import { ASK_DEADLINE_MS } from '../../engine/ShowInDaw';
+import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
 
 afterEach(cleanup);
@@ -191,7 +191,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       fireEvent.click(hear());
       await vi.advanceTimersByTimeAsync(10);
       unmount();
-      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
       expect(play).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
@@ -254,7 +254,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
         </ApiProvider>,
       );
       fireEvent.click(hear());
-      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
       await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
       expect(toasted()[0]).toBe('REAPER did not answer. Played in the app instead.');
       // The DAW answers after all: its loop is stopped, not left beside the app's clip.

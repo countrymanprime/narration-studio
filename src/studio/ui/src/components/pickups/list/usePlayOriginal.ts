@@ -65,6 +65,8 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
   const sync = usePort('dawTransportSync');
   const player = useRangePlayer(tracks.mediaUrl, { pre: ORIGINAL_AROUND, post: ORIGINAL_AROUND });
   const [playingId, setPlayingId] = useState<string | null>(null);
+  // The line whose play is being asked of the DAW and not yet answered (a few seconds at most): its button shows the busy state, never nothing.
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [inDaw, setInDaw] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
@@ -200,10 +202,12 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
       };
       reread();
       const wanted = (): boolean => asked.current === mine;
+      setPendingId(pickup.id);
       const { by, notice } = await playThrough([transport, app], pickup, {
         stillWanted: wanted,
         keepQuiet: quietWhileRecording(() => daw.projectState(), name),
       });
+      setPendingId((id) => (id === pickup.id ? null : id));
       // This press ended in the app (the DAW refused or could not play): it owns no DAW play, and one an earlier press left running is stopped now, or when its
       // late answer comes (qa B1 on #3402).
       if (by !== name && owner.current === mine) {
@@ -244,5 +248,5 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
     },
     [stopDaw],
   );
-  return { playingId: isPlaying || inDaw ? playingId : null, play, unavailable };
+  return { playingId: isPlaying || inDaw ? playingId : null, pendingId, play, unavailable };
 }

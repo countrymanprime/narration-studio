@@ -11,7 +11,7 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
 import { overlay } from '../../../overlay/overlayService';
-import { ASK_DEADLINE_MS } from '../../engine/ShowInDaw';
+import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { PortOverrides } from '../../../ports/usePort';
 import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import { usePlayOriginal } from './usePlayOriginal';
@@ -217,10 +217,14 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     transport = vi.fn(() => new Promise<DawResult>(() => {}));
     const { result } = await mountRead(DAW_SETUPS.reaper);
     act(() => void result.current.play(pickup(15)));
+    // While the DAW is asked the line's button is busy, never nothing.
+    expect(result.current.pendingId).toBe('p1');
+    expect(audio.play).not.toHaveBeenCalled();
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     });
     expect(audio.play).toHaveBeenCalled();
+    expect(result.current.pendingId).toBeNull();
     expect(notices).toEqual(['REAPER did not answer. Played in the app instead.']);
   });
   it('a playRange answered after the deadline is stopped, not left playing beside the app', async () => {
@@ -229,7 +233,7 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     const { result } = await mountRead(DAW_SETUPS.reaper);
     act(() => void result.current.play(pickup(15)));
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     });
     expect(transport).not.toHaveBeenCalledWith('stop', 0);
     await act(async () => {

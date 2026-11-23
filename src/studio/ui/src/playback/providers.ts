@@ -1,5 +1,5 @@
 import type { DawCapabilities } from '../api/contracts/daw';
-import { ASK_DEADLINE_MS } from '../components/engine/ShowInDaw';
+import { PLAY_DEADLINE_MS } from '../components/engine/ShowInDaw';
 
 // The playback port (docs/design/editing-daw-transport-sync.md, Who plays): every place that plays audio asks an ordered list of
 // providers, the linked DAW's first and the app's own player last, and `playThrough` takes the first that is ready and plays. A
@@ -32,7 +32,7 @@ export interface PlayRule {
   stillWanted?: () => boolean;
   /** Asked before a later provider plays: a sentence keeps the room quiet (the DAW is recording) and nothing plays. */
   keepQuiet?: () => Promise<string | null>;
-  /** How long a provider's play, or `keepQuiet`, may take before it counts as not answered: the page's own limit on a DAW call, past the host's wait (`ASK_DEADLINE_MS`). */
+  /** How long a provider's play, or `keepQuiet`, may take before it counts as not answered: a click that plays is never silent for long (`PLAY_DEADLINE_MS`). */
   deadlineMs?: number;
 }
 
@@ -80,14 +80,14 @@ export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], 
     }
     if (index > 0 && rule.keepQuiet) {
       // A read of the DAW's state that never answers does not hold the app back (as one that fails does not).
-      const quiet = await within(rule.keepQuiet(), rule.deadlineMs ?? ASK_DEADLINE_MS, null);
+      const quiet = await within(rule.keepQuiet(), rule.deadlineMs ?? PLAY_DEADLINE_MS, null);
       if (quiet) return { by: null, notice: quiet, passed: whys };
     }
     if (rule.stillWanted && !rule.stillWanted()) return { by: null, notice: null, passed: whys };
     let late = false;
     const attempt = await within<PlayAttempt>(
       provider.play(request, { late: () => late }),
-      rule.deadlineMs ?? ASK_DEADLINE_MS,
+      rule.deadlineMs ?? PLAY_DEADLINE_MS,
       { played: false, why: `${provider.name} did not answer.` },
       () => (late = true),
     );

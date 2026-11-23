@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ASK_DEADLINE_MS } from '../components/engine/ShowInDaw';
+import { PLAY_DEADLINE_MS } from '../components/engine/ShowInDaw';
 import type { DawCapabilities, DawCapabilityLevel } from '../api/contracts/daw';
 import { DAW_SETUPS } from '../fixtures/daw';
 import {
@@ -161,7 +161,7 @@ describe('playReadiness', () => {
   });
 });
 
-// #4076 (owner decision on #4077): a DAW call that never answers is never silent. The deadline is the page's own limit on a DAW call (`ASK_DEADLINE_MS`).
+// #4076 (owner decision on #4077): a DAW call that never answers is never silent. The deadline is the page's own limit on a DAW call (`PLAY_DEADLINE_MS`).
 describe('a-provider-that-never-answers-is-passed-over', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
@@ -169,7 +169,7 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     const hung = { name: 'REAPER', readiness: () => ({ ready: true as const }), play: () => new Promise<never>(() => {}) };
     const app = provider(APP, { ready: true }, { played: true });
     const pending = playThrough([hung, app.p], 0);
-    await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     expect(await pending).toMatchObject({ by: APP, notice: 'REAPER did not answer. Played in the app instead.' });
   });
   it('tells a provider that answers after the deadline that it is late', async () => {
@@ -185,7 +185,7 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     };
     const app = provider(APP, { ready: true }, { played: true });
     const pending = playThrough([slow, app.p], 0);
-    await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     await pending;
     answer({ played: true });
     expect(seen).toEqual({ before: false, after: true });
@@ -194,7 +194,7 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     const fails = provider('REAPER', { ready: true }, { played: false, why: 'Refused.' });
     const app = provider(APP, { ready: true }, { played: true });
     const pending = playThrough([fails.p, app.p], 0, { keepQuiet: () => new Promise<never>(() => {}) });
-    await vi.advanceTimersByTimeAsync(ASK_DEADLINE_MS);
+    await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
     expect(await pending).toMatchObject({ by: APP });
   });
 });
