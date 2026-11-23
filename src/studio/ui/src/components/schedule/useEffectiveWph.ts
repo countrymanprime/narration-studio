@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { ProductionChapter, ProductionRateBasis } from '../../api/contracts/production';
+import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
+import type { ProductionRateBasis } from '../../api/contracts/production';
 import type { Measured } from '../../api/schemas/base';
 import { isNarrationChapter } from '../../chapterKinds';
 import { usePort } from '../../ports/usePort';
@@ -24,7 +25,7 @@ export function subscribeRateBasis(listener: (basis: Basis) => void): () => void
 }
 
 /** The chapters the pace is worked out over: the narrated ones, as the target popover lists them. */
-export const paceChapters = (chapters: readonly ProductionChapter[]): PaceChapter[] =>
+export const paceChapters = (chapters: readonly { id: string; title: string; wordCount: number; contentKind?: ManuscriptContentKind | '' }[]): PaceChapter[] =>
   chapters.filter(isNarrationChapter).map((c) => ({ id: c.id, tag: c.title, words: c.wordCount }));
 
 /** The basis the plan chose, from the plan the page already read; one saved from the toggle replaces it at once, until a different plan is read. */

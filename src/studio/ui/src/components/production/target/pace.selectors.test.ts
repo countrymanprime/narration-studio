@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHostMeasurements } from '../../../ports/measurements';
 import { MIN_OWN_RATE_CHAPTERS, WPH } from '../../schedule/estimates';
-import { basisOf, ownRate, targetHours, wphOf, type PaceChapter } from './pace.selectors';
+import { basisOf, chapterLengthsOf, NO_LENGTHS, ownRate, targetHours, wphOf, type PaceChapter } from './pace.selectors';
 
 const CHAPTERS: PaceChapter[] = [
   { id: '1', tag: 'Ch 1', words: 2000 },
@@ -80,5 +80,31 @@ describe('a chapter with under a second of audio has no measured length', () => 
   it('counts a chapter from one second', async () => {
     const own = await ownFor(1);
     expect(own.ok && own.value.chapters.length).toBe(3);
+  });
+});
+
+describe('chapterLengthsOf: the lengths come from the shared chapter list', () => {
+  it('is the reading reason while the list is not read', () => {
+    expect(chapterLengthsOf(undefined)).toEqual({ ok: false, reason: 'Reading the measured lengths…' });
+  });
+  it('maps measured chapters by id and leaves out a null or missing one', () => {
+    const list = [{ id: 'a', recordedSeconds: 685 }, { id: 'b', recordedSeconds: null }, { id: 'c' }, { id: 'd', recordedSeconds: 1 }];
+    expect(chapterLengthsOf(list)).toEqual({ ok: true, value: { a: 685, d: 1 } });
+  });
+  it('reads audio under a second as 0 s and keeps one second', () => {
+    expect(
+      chapterLengthsOf([
+        { id: 'a', recordedSeconds: 0.5 },
+        { id: 'b', recordedSeconds: 0.99 },
+        { id: 'c', recordedSeconds: 1 },
+      ]),
+    ).toEqual({
+      ok: true,
+      value: { a: 0, b: 0, c: 1 },
+    });
+  });
+  it('answers the reason when nothing is measured, for an empty list too', () => {
+    expect(chapterLengthsOf([{ id: 'a', recordedSeconds: null }])).toEqual({ ok: false, reason: NO_LENGTHS });
+    expect(chapterLengthsOf([])).toEqual({ ok: false, reason: NO_LENGTHS });
   });
 });

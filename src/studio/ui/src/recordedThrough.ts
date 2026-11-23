@@ -17,11 +17,12 @@ export type RecordedAt = { through: RecordedThrough; audio: boolean };
 export const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;
 
 /** The hours of audio recorded across chapters, as the plan chart and the Schedule read them: a length under a second adds nothing, as it does everywhere else. */
-export const recordedAudioHours = (chapters: readonly { recordedSeconds: number | null }[]): number =>
+export const recordedAudioHours = (chapters: readonly { recordedSeconds?: number | null }[]): number =>
   chapters.reduce((total, chapter) => total + (audibleSeconds(chapter.recordedSeconds) ?? 0), 0) / 3600;
 
 /** A measured length as every page reads it: audio under a second is nothing recorded (0 s), whatever else is null or not. */
-export const audibleSeconds = (seconds: number | null): number | null => (seconds === null || hasAudio(seconds) ? seconds : 0);
+export const audibleSeconds = (seconds: number | null | undefined): number | null =>
+  seconds === null || seconds === undefined ? null : hasAudio(seconds) ? seconds : 0;
 
 /** The pair of a chapter as one read gave it; undefined when nothing says any of the chapter is recorded. */
 export const recordedAtOf = (chapter: { recordedThrough?: RecordedThrough; recordedSeconds?: number | null }): RecordedAt | undefined =>
