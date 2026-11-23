@@ -4,7 +4,7 @@ import { appExtension } from './appExtension';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useWindowClose } from './hooks/useWindowClose';
 import { focusPageMain } from './components/primitives/focusReturn';
-import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useNavigationType, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
 import { AppShell, isActivePath, shellPages } from './components/layout/AppShell';
@@ -86,7 +86,7 @@ import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
-import { addressWithoutProject, pageBoundaryKey, pageOfPath } from './pageBoundaryKey';
+import { addressWithoutProject, isOtherProject, pageBoundaryKey, pageOfPath, rememberEntryOwner } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -703,14 +703,25 @@ function AppRoutes() {
   // before the new project's page mounts, so that page opens on its own remembered chapter and never writes the old project's as its own (#4059). Each history entry keeps the
   // project it was first seen under, so a Back onto an entry written under the other project is dropped too. This is judged in render, which `shownProject` above (an effect, after
   // the new page has mounted) cannot do, and the entries' owners are what it cannot carry.
-  const entryOwners = useRef(new Map<string, string | undefined>());
+  const entryOwners = useRef(new Map<string, string | null | undefined>());
+  const navigationType = useNavigationType();
   const project = data?.projectFolder;
-  // The first bootstrap names a project; it is not a change from one.
-  if (project !== undefined && entryOwners.current.get(location.key) === undefined) entryOwners.current.set(location.key, project);
+  // An entry the router gave no key (the first one, a typed fragment) is `default`; the first one is told by its index and is the open project's like any other, while the
+  // others are judged by the project open now (never cut).
+  const historyIndex: unknown = (window.history.state as { idx?: unknown } | null)?.idx;
+  const entry = location.key !== 'default' ? location.key : typeof historyIndex === 'number' && historyIndex === 0 ? 'default#0' : undefined;
+  const owners = entryOwners.current;
+  if (entry !== undefined) {
+    // First seen: written under the project open now, unless the narrator arrived on it by Back or Forward and the app had seen others already: an entry from before this
+    // session (a reload keeps the history but not its owners) may have been written under any project.
+    if (!owners.has(entry)) rememberEntryOwner(owners, entry, navigationType === 'POP' && owners.size > 0 ? null : project);
+    // The first bootstrap names a project; it is not a change from one.
+    else if (owners.get(entry) === undefined && project !== undefined) rememberEntryOwner(owners, entry, project);
+  }
   const bareAddress = addressWithoutProject(location);
   const addressStale =
-    project !== undefined &&
-    entryOwners.current.get(location.key) !== project &&
+    entry !== undefined &&
+    isOtherProject(owners.get(entry), project) &&
     (bareAddress.pathname !== location.pathname || bareAddress.search !== location.search || bareAddress.hash !== location.hash);
   useEffect(() => {
     if (addressStale) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });

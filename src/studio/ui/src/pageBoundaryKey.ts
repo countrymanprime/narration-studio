@@ -26,3 +26,20 @@ export function addressWithoutProject({ pathname, hash }: PageAddress): PageAddr
   const page = pageOfPath(pathname);
   return { pathname: page, search: '', hash: page === '/settings' ? hash : '' };
 }
+
+/**
+ * Whether an address written under `owner` is another project's in `current`. Only a known, different project says so: no owner yet (recorded before the bootstrap answered) or no
+ * project yet is not a difference. `null` is an entry from before this session, whose project nothing records, so it counts as another project's (#4059).
+ */
+export function isOtherProject(owner: string | null | undefined, current: string | undefined): boolean {
+  return current !== undefined && owner !== undefined && owner !== current;
+}
+
+/** How many history entries' owners the app keeps; the oldest are forgotten first, and an entry forgotten is the open project's own again. */
+export const ENTRY_OWNERS_KEPT = 200;
+
+/** Records the owner of a history entry. An entry already kept stays where it is in the order; one past the cap pushes out the oldest. */
+export function rememberEntryOwner(owners: Map<string, string | null | undefined>, entry: string, owner: string | null | undefined): void {
+  owners.set(entry, owner);
+  if (owners.size > ENTRY_OWNERS_KEPT) owners.delete(owners.keys().next().value as string);
+}

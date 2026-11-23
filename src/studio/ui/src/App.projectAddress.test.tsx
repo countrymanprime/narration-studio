@@ -25,8 +25,9 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-async function openAt(address: string) {
+async function openAt(address: string, seed?: () => void) {
   window.history.replaceState(null, '', address);
+  seed?.();
   const api = createMockApi();
   render(
     <ThemeProvider>
@@ -41,11 +42,17 @@ async function openAt(address: string) {
 }
 
 const onChapter = (label: RegExp) => screen.findByRole('button', { name: label });
-// A navigation the router made (its entry carries a key), as a link or the rail makes one; the entry before it stays in history for Back.
-const goTo = (path: string, key: string) =>
+// A move the narrator makes inside the app (a push), through the jump menu: the Booth has no rail.
+const jumpTo = async (page: string) => {
+  fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+  fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: `> Go to ${page}` } });
+  fireEvent.click(await screen.findByRole('option', { name: new RegExp(`^Go to ${page}`) }));
+};
+// An address the narrator typed or pasted (a fragment): the browser entry has no router key, and the router reads it as a POP.
+const typeAddress = (path: string) =>
   act(() => {
-    window.history.pushState({ usr: null, key, idx: 1 }, '', path);
-    window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+    window.history.pushState(null, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
   });
 // The browser's Back, resolved once the router has been told (jsdom traverses history asynchronously).
 const back = () =>
@@ -107,7 +114,7 @@ describe('the chapter in the address is not carried into another project (#4059)
     const { api, first } = await openAt('/booth?chapter=chapter-9');
     await onChapter(/^Chapter: Chapter 9:/);
     await waitFor(() => expect(loadLastPlace(first)?.chapterId).toBe('chapter-9'));
-    goTo('/script', 's1');
+    await jumpTo('Script');
     window.localStorage.setItem(`narration.booth.lastPlace.${OTHER}`, JSON.stringify({ chapterId: 'chapter-3', paragraphId: '', word: 0 }));
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await screen.findByRole('heading', { level: 1, name: 'Script' });
@@ -121,11 +128,11 @@ describe('the chapter in the address is not carried into another project (#4059)
   it('Back onto an entry written under the other project drops its chapter too: Editing', async () => {
     const { api } = await openAt('/editing/chapter-7');
     await onChapter(/^Chapter: Chapter 7:/);
-    goTo('/editing/chapter-2', 'e1');
-    await onChapter(/^Chapter: Chapter 2:/);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]!);
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
     window.localStorage.setItem(`narration.editing.lastChapter.${OTHER}`, 'chapter-4');
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
-    await onChapter(/^Chapter: Chapter 4:/);
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
     await back();
     await waitFor(() => expect(address()).toBe('/editing'));
     await onChapter(/^Chapter: Chapter 4:/);
@@ -138,9 +145,12 @@ describe('the chapter in the address is not carried into another project (#4059)
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await waitFor(() => expect(window.location.hash).toBe(''));
     expect(address()).toBe('/master');
-    goTo('/settings#credits', 'g1');
+  });
+
+  it('a Settings anchor names a category, not project content: it stays across a project change', async () => {
+    const { api } = await openAt('/settings#credits');
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
-    await api.switchProject('C:/Projects/Third', 'Third');
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
     expect(window.location.hash).toBe('#credits');
   });
@@ -148,7 +158,7 @@ describe('the chapter in the address is not carried into another project (#4059)
   it('Settings\u2019 Back to a page goes to the bare page after a project change, not to the old project\u2019s chapter', async () => {
     const { api } = await openAt('/booth?chapter=chapter-9');
     await onChapter(/^Chapter: Chapter 9:/);
-    goTo('/settings#credits', 'g1');
+    fireEvent.keyDown(document.body, { key: ',', code: 'Comma', ctrlKey: true });
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
     window.localStorage.setItem(`narration.booth.lastPlace.${OTHER}`, JSON.stringify({ chapterId: 'chapter-3', paragraphId: '', word: 0 }));
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
@@ -156,5 +166,34 @@ describe('the chapter in the address is not carried into another project (#4059)
     fireEvent.click(await screen.findByRole('button', { name: /^Back to Booth/ }));
     await onChapter(/^Chapter: Chapter 3:/);
     expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
+  });
+
+  it('Back after a reload onto an entry this session never saw is dropped: it may have been written under the other project', async () => {
+    // The history a reload leaves: an older entry with its router key, and the entry the app mounts on.
+    const { api } = await openAt('/booth?chapter=chapter-9', () => {
+      window.history.replaceState({ usr: null, key: 'before-the-reload', idx: 0 }, '', '/booth?chapter=chapter-9');
+      window.history.pushState({ usr: null, key: 'now', idx: 1 }, '', '/script');
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
+    window.localStorage.setItem(`narration.booth.lastPlace.${OTHER}`, JSON.stringify({ chapterId: 'chapter-3', paragraphId: '', word: 0 }));
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await back();
+    await onChapter(/^Chapter: Chapter 3:/);
+    expect(address()).toBe('/booth?chapter=chapter-3');
+    expect(loadLastPlace(OTHER)?.chapterId).toBe('chapter-3');
+    expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
+  });
+
+  it('an entry with no router key (a typed fragment) is the open project\u2019s own, not the first project\u2019s', async () => {
+    const { api } = await openAt('/editing/chapter-7');
+    await onChapter(/^Chapter: Chapter 7:/);
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await waitFor(() => expect(address()).toBe('/editing'));
+    await onChapter(/^Chapter: Chapter 1:/);
+    fireEvent.click(await screen.findByRole('button', { name: 'Next chapter' }));
+    await onChapter(/^Chapter: Chapter 2:/);
+    typeAddress('/editing/chapter-2#note');
+    await onChapter(/^Chapter: Chapter 2:/);
+    expect(window.location.pathname + window.location.hash).toBe('/editing/chapter-2#note');
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { pageOfPath } from '../pageBoundaryKey';
+import { addressWithoutProject, isOtherProject } from '../pageBoundaryKey';
 
 /**
  * Where the narrator was when a link or Ctrl+, brought them to Settings, so the page can offer "Back to <page>". Arriving by the navigation
@@ -12,13 +12,17 @@ export function useSettingsOrigin(project?: string): { origin: string | undefine
   // Read when the address changes, not when the project does: the address in front of a project change is still the old project's until it is cut back.
   const projectNow = useRef(project);
   projectNow.current = project;
-  const lastPage = useRef<Origin>({ to: '/', project });
+  const lastPage = useRef<Origin>({ to: '/', bare: '/', project });
   const linked = useRef(false);
   const [kept, setOrigin] = useState<Origin>();
 
   useEffect(() => {
     if (location.pathname !== '/settings') {
-      lastPage.current = { to: `${location.pathname}${location.search}`, project: projectNow.current };
+      lastPage.current = {
+        to: `${location.pathname}${location.search}`,
+        bare: addressWithoutProject({ pathname: location.pathname, search: location.search, hash: '' }).pathname,
+        project: projectNow.current,
+      };
       setOrigin(undefined);
       return;
     }
@@ -29,8 +33,13 @@ export function useSettingsOrigin(project?: string): { origin: string | undefine
   const markLink = useCallback(() => {
     linked.current = true;
   }, []);
-  const origin = kept && (kept.project === project ? kept.to : pageOfPath(kept.to.split('?')[0] ?? '/'));
+  // The project is learned with the bootstrap, after the first address: an origin recorded before it is the project's that answers.
+  if (project !== undefined) {
+    if (lastPage.current.project === undefined) lastPage.current.project = project;
+    if (kept && kept.project === undefined) kept.project = project;
+  }
+  const origin = kept && (isOtherProject(kept.project, project) ? kept.bare : kept.to);
   return { origin, markLink };
 }
 
-type Origin = { to: string; project: string | undefined };
+type Origin = { to: string; bare: string; project: string | undefined };
