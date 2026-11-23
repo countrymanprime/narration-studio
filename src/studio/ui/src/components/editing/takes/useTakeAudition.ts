@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { dawNameOf } from '../../engine/ShowInDaw';
-import { notAskedSentence } from '../../../studio/dawNames';
+import { dawNameOf, PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
+import { notAskedSentence, stopFailedSentence } from '../../../studio/dawNames';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
@@ -85,6 +86,8 @@ export function useTakeAudition({
   const stop = useCallback(() => {
     asked.current += 1;
     clearTimer();
+    // The DAW's play is nobody's now; a preview of an older take that landed meanwhile is stopped with it.
+    dawPlayOwner.release();
     player.stop();
     // A failed stop leaves at most the rest of one preview playing in the DAW, which ends on its own.
     if (shown.current.playing !== null && shown.current.inDaw) void daw.stopPreview().catch(() => undefined);
@@ -102,6 +105,16 @@ export function useTakeAudition({
       setFailedId(null);
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = dawNameOf(now);
+      const token = dawPlayOwner.begin();
+      // Stops a DAW preview nobody waits for any more (the deadline passed, or Stop or a newer take came); a stop that failed says where to stop it.
+      const dropPreview = (): void => {
+        void daw.stopPreview().then(
+          (result) => {
+            if (!result.ok) live.current.notify(stopFailedSentence(name, { refused: result.message }));
+          },
+          (error: unknown) => live.current.notify(stopFailedSentence(name, { thrown: error })),
+        );
+      };
       const preview: PlaybackProvider<LineTake> = {
         name,
         readiness: (t) => {
@@ -109,19 +122,29 @@ export function useTakeAudition({
           if (!declared.ready) return declared;
           return lineOf(t) ? { ready: true } : { ready: false, why: TAKE_GONE };
         },
-        play: async (t) => {
+        play: async (t, { late }) => {
           const line = lineOf(t)!;
           const mine = asked.current;
           setPlaying(t.id);
           setInDaw(true);
           let why: string;
           try {
+            dawPlayOwner.claim(token);
             const result = await daw.previewTake(line.chapterId, line.firstToken, line.lastToken, t.id);
             if (result.ok) {
+              // The deadline passed while the DAW was answering (the app plays in its place), or Stop or a newer take came: this preview is stopped, not
+              // left beside what plays; a preview a newer take started since is that take's.
+              if (late() || asked.current !== mine) {
+                dawPlayOwner.stopOrOrphan(token, dropPreview);
+                return { played: true };
+              }
+              dawPlayOwner.settle(token);
               // The DAW says nothing when a preview ends, so the take is shown playing for as long as it plays.
               timer.current = window.setTimeout(
                 () => {
                   if (asked.current !== mine) return;
+                  // The preview ended by itself: nobody owns the DAW's play now.
+                  dawPlayOwner.release(token);
                   setPlaying(null);
                   setInDaw(false);
                 },
@@ -155,7 +178,14 @@ export function useTakeAudition({
       setAskingId(take.id);
       // A DAW that has not yet answered may still be recording: the room is kept quiet for it too (a failed capabilities read leaves the check out: the DAW is not known to be there; a failed projectState read does not hold the play back).
       const keepQuiet = now || !dawRead?.failed ? quietWhileRecording(() => daw.projectState(), name) : undefined;
-      void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
+      // A click that plays is never silent for long: a DAW that has not answered the preview passes the take to the app.
+      void playThrough([preview, app], take, {
+        stillWanted: () => asked.current === mine,
+        deadlineMs: PLAY_DEADLINE_MS,
+        ...(keepQuiet ? { keepQuiet } : {}),
+      }).then(({ by, notice }) => {
+        // This press ended in the app or nowhere: it owns no DAW play, and an earlier take's preview that landed meanwhile is stopped now.
+        if (by !== name) dawPlayOwner.release(token);
         if (asked.current === mine) {
           setAskingId(null);
           if (by === null) setFailedId(take.id);

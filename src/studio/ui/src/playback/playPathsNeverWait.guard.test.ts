@@ -27,6 +27,12 @@ function* sources(dir: string): Generator<string> {
 const rel = (path: string) => relative(SRC, path).split(sep).join('/');
 const all = [...sources(SRC)].map((path) => ({ file: rel(path), text: readFileSync(path, 'utf8') }));
 
+/** Callers that give `playThrough` no `deadlineMs`, and why (#4111): a DAW that never answers a play must not hold a click back with no sound and no word. */
+const NO_DEADLINE: Record<string, string> = {
+  'components/editing/bar/useScriptPlayback.ts':
+    "the script's own limits stand in for it (a play answered up to 9 s late still counts; a stalled DAW is said at 10 s with Retry: UNWATCHED_MS in useDawTransportSync); a flat 3 s would hand a slow but working DAW's play to the app",
+};
+
 describe('no-play-path-waits-on-a-readiness-check', () => {
   it('lists every caller of playThrough', () => {
     const found = all.filter((s) => s.file !== 'playback/providers.ts' && /\bplayThrough\(/.test(s.text)).map((s) => s.file);
@@ -46,4 +52,13 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     const users = all.filter((s) => s.file !== 'playback/providers.ts' && /\bdawReadiness\b/.test(s.text)).map((s) => s.file);
     expect(users).toEqual([]);
   });
+
+  it.each(CALLERS)(
+    '%s is never silent for long when the DAW does not answer: it passes deadlineMs, or is listed with the reason it keeps its own limit',
+    (file) => {
+      const text = all.find((s) => s.file === file)!.text;
+      if (file in NO_DEADLINE) expect(text).not.toMatch(/\bdeadlineMs\b/);
+      else expect(text).toMatch(/\bdeadlineMs:\s*PLAY_DEADLINE_MS\b/);
+    },
+  );
 });

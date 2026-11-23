@@ -654,6 +654,41 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     expect(audio.play).not.toHaveBeenCalled();
     expect(state().playing).toBe(false);
   });
+  // #4111: the script keeps its own unwatched limits as its deadline (a play answered up to 9 s late still counts, a stalled DAW is said at 10 s with Retry); what a
+  // play answered after the page gave it up does is the shared rule: the DAW is stopped, and a stop that fails says where to stop it.
+  it.each([
+    ['is stopped', undefined, undefined],
+    ['is stopped, and a refused stop says where to stop it', { ok: false, message: 'REAPER would not stop' }, 'REAPER would not stop. Stop it in REAPER.'],
+  ] as const)('a play the page already reported lost whose answer then comes (ok) %s', async (_name, stopAnswer, sentence) => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    let answerPlay: (r: { ok: boolean; message: string }) => void = () => {};
+    const actions: string[] = [];
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      actions.push(action);
+      if (action === 'watch') return new Promise(() => {});
+      if (action === 'play') return new Promise((resolve) => (answerPlay = resolve as typeof answerPlay));
+      if (action === 'stop' && stopAnswer) return Promise.resolve(stopAnswer);
+      return (real as (...a: unknown[]) => unknown)(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(15_000);
+    expect(notices.join(' ')).toMatch(/could not follow the DAW/);
+    const stopsBefore = actions.filter((x) => x === 'stop').length;
+    await act(async () => answerPlay({ ok: true, message: '' }));
+    await wait(10);
+    expect(actions.filter((x) => x === 'stop').length).toBeGreaterThan(stopsBefore);
+    if (sentence) expect(notices.at(-1)).toBe(sentence);
+  });
   it('a stretch played before the watch lease was answered ends where the stretch does: the page does not say the DAW stopped answering', async () => {
     const api = createMockApi({}, { daw: {} });
     const real = api.dawTransportSync.bind(api);
