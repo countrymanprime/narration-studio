@@ -319,7 +319,7 @@ test.describe('Booth with a moving mock DAW', () => {
     // Close the dialog: what is under test is the mark and the messages that rise above it.
     await dialog(page).getByRole('button', { name: 'Close' }).click();
     await expect(dialog(page)).toHaveCount(0);
-    // The notice is above the toasts: neither covers the other, and the notice is topmost at its own points. Measured as soon as the
+    // The notice is above the toasts' strip: neither covers the other, and the notice is topmost at its own points. Measured as soon as the
     // dialog is gone (while it is open the toasts sit at the window's top), because an information toast leaves after TOAST_INFO_MS
     // and a slow runner spent longer than that on the Space round trip below.
     const box = await notice(page).boundingBox();
@@ -329,7 +329,7 @@ test.describe('Booth with a moving mock DAW', () => {
       .first()
       .boundingBox();
     expect(box && toast).toBeTruthy();
-    expect(toast!.y + toast!.height, 'the toast sits above the notice').toBeLessThanOrEqual(box!.y + 1);
+    expect(toast!.y, 'the toast stands under the notice, in the strip the shell keeps for it (#4063)').toBeGreaterThanOrEqual(box!.y + box!.height - 1);
     const topmost = await page.evaluate(() => {
       const el = document.querySelector('#brec-setup')!;
       const r = el.getBoundingClientRect();
