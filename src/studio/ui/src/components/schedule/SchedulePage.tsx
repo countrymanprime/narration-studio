@@ -76,11 +76,14 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   if (state.phase === 'loading') return <ScheduleSkeleton />;
   if (state.phase === 'error')
     return (
-      <div role="alert" className="flex flex-col items-start gap-3">
-        <p style={{ color: 'var(--danger-text)' }}>{state.message}</p>
-        <Button variant="secondary" onClick={() => void reload()}>
-          Retry
-        </Button>
+      <div className="flex flex-col items-start gap-3">
+        <Heading title="Schedule" />
+        <div role="alert" className="flex flex-col items-start gap-3">
+          <p style={{ color: 'var(--danger-text)' }}>{state.message}</p>
+          <Button variant="secondary" onClick={() => void reload()}>
+            Retry
+          </Button>
+        </div>
       </div>
     );
   const { plan, chapters, profileId, recordedHours, takeLog, readAt } = state;
