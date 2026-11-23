@@ -661,7 +661,6 @@ describe('overlay.open headerless', () => {
 describe('overlay.dismissDialogs (a project attach, #4057)', () => {
   it('answers every open question No, closes every dialog and slide-over without asking, and leaves the toasts alone', async () => {
     mount();
-    const question = ask();
     const asked = vi.fn(async () => false);
     service.open({
       kind: 'dialog',
@@ -670,9 +669,12 @@ describe('overlay.dismissDialogs (a project attach, #4057)', () => {
       beforeClose: asked,
       render: ({ close }) => <button onClick={close}>Close milestone</button>,
     });
+    await screen.findByRole('dialog', { name: 'Milestone' });
     service.open({ kind: 'slideOver', title: 'History', render: () => <p>History body</p> });
     service.toast('Saved');
-    await screen.findByRole('dialog', { name: 'Milestone' });
+    // The question stacks above the others, as a page's own question would.
+    const question = ask();
+    await screen.findByRole('alertdialog', { name: 'Delete the take?' });
     service.dismissDialogs();
     await expect(question).resolves.toBe(false);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Milestone' })).toBeNull());

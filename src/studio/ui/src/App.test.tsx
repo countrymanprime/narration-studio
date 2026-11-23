@@ -500,9 +500,12 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     await waitFor(() => expect(attach).toBeDefined());
     const onConfirm = vi.fn();
-    // The Editor's cut question and a form dialog: both are opened through the overlay service by a page, for that page's project.
-    const question = act(async () => overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm));
-    overlay.open({ kind: 'dialog', title: 'Milestone', dismissOnOutsidePress: false, render: () => <p>A form for the old project</p> });
+    // The Editor's cut question and a form dialog: both are opened through the overlay service by a page, for that page's project; the question stacks above.
+    act(() => void overlay.open({ kind: 'dialog', title: 'Milestone', dismissOnOutsidePress: false, render: () => <p>A form for the old project</p> }));
+    let question: Promise<void> = Promise.resolve();
+    act(() => {
+      question = overlay.confirm({ title: 'Cut these words?', body: 'Chapter 1', confirmLabel: 'Cut' }).then(onConfirm);
+    });
     expect(await screen.findByRole('alertdialog', { name: 'Cut these words?' })).toBeTruthy();
     expect(screen.getByText('A form for the old project')).toBeTruthy();
     act(() => attach!({ attached: true }));
