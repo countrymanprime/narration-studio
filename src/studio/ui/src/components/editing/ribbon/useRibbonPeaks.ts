@@ -200,6 +200,9 @@ export function useRibbonPeaks(chapterId: string | undefined): RibbonPeaks {
  * item's `clocks` (an item no word is heard on has no place there and is left out); earliest first (a line can run across several audio items),
  * else why there is none: the host's reason for an item without peaks, else a plain one. `[t0, t1]` is on the document clock.
  */
+/** What the lane says while the waveform is not there yet: not read, or the host is still reading the recording. */
+const READING = 'Reading the waveform.';
+
 export function pickEntries(
   state: RibbonPeaks,
   clocks: ItemClocks,
@@ -207,7 +210,7 @@ export function pickEntries(
   t1: number,
   items?: readonly number[],
 ): { peaks: DocPeaks[] } | { reason: string; reading?: boolean } {
-  if (state.status === 'loading') return { reason: 'Reading the waveform.' };
+  if (state.status === 'loading') return { reason: READING };
   if (state.status === 'failed') return { reason: state.reason };
   const onClock = (e: { index: number; peaks: WorkspacePeaks }): DocPeaks[] =>
     placePeaks(e.peaks, clocks.get(e.index) ?? []).filter((d) => {
@@ -222,8 +225,10 @@ export function pickEntries(
   const own = items && items.length > 0 ? state.result.items.filter((e) => items.includes(e.index)) : [];
   if (own.length > 0) {
     const drawn = own.filter(hasPeaks);
-    if (drawn.length === 0)
-      return { reason: own.find((e) => e.reason)?.reason ?? 'The host has no audio for this line.', ...(own.some((e) => e.pending) ? { reading: true } : {}) };
+    if (drawn.length === 0) {
+      if (own.some((e) => e.pending)) return { reason: READING, reading: true };
+      return { reason: own.find((e) => e.reason)?.reason ?? 'The host has no audio for this line.' };
+    }
     const hits = drawn.flatMap(onClock).sort(byTime);
     return hits.length ? { peaks: hits } : { reason: 'This line lies outside the audio the host read.' };
   }
@@ -231,8 +236,6 @@ export function pickEntries(
   const hits = withPeaks.flatMap(onClock).sort(byTime);
   if (hits.length) return { peaks: hits };
   if (withPeaks.length) return { reason: 'This line lies outside the audio the host read.' };
-  return {
-    reason: state.result.items.find((e) => e.reason)?.reason ?? 'The host has no audio for this chapter.',
-    ...(state.result.items.some((e) => e.pending) ? { reading: true } : {}),
-  };
+  if (state.result.items.some((e) => e.pending)) return { reason: READING, reading: true };
+  return { reason: state.result.items.find((e) => e.reason)?.reason ?? 'The host has no audio for this chapter.' };
 }

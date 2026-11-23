@@ -280,7 +280,7 @@ export function RibbonView({
     </div>
   ) : empty ? (
     <p className="m-0 flex min-w-0 flex-1 items-center px-3 text-xs text-[var(--text-muted)]" style={{ minHeight: HEIGHT }} data-ribbon-empty>
-      No audio to draw. {why.charAt(0).toUpperCase() + why.slice(1)}
+      No audio to draw. {why}
     </p>
   ) : (
     <div

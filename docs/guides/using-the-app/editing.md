@@ -205,7 +205,7 @@ is a hairline. A chapter recorded quietly draws as tall as one that was normalis
 click or plosive does not make the rest small. Each bar is two layers, as in REAPER: a faint bar for the peak (the highest and lowest sample in each 20 ms) and a solid core inside it for the RMS (the average loudness of that 20 ms), on the same scale. The core is always shorter than the peak, and it shows how loud a word is as against how sharp its loudest sample is.
 While the chapter plays, the bars already played are in the accent colour and the rest grey, and a swell travels with the playhead, like a
 stadium wave: the bars just ahead of it rise, the ones under it stand up to half again their own height and the ones behind settle back, so
-the shape of the audio stays the same under it. A long recording the host is still reading says so in place of its waveform, and the page asks again every 15 seconds until it is there; the same applies to any line with no waveform and a reason (a file that is missing or not a WAV), which the page asks about every 15 seconds while the chapter is open, at the cost of reading the stored peaks again. While the waveform is still being read, a low row of grey bars stands in its place with a
+the shape of the audio stays the same under it. A long recording the host is still reading shows the grey reading row in place of its waveform, and the page asks again every 15 seconds until it is there. While the waveform is still being read, a low row of grey bars stands in its place with a
 swell crossing it from left to right about every second and a half. With **Motion** set to reduce in Settings (or Windows asking for
 it), nothing moves.
 
