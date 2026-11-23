@@ -177,6 +177,36 @@ describe('useRibbonPeaks', () => {
     }
   });
 
+  it('a ribbon that mounts while a repeat ask is out shows the kept answer, not loading, and a failed repeat ask keeps it for the next ribbon (#4042)', async () => {
+    vi.useFakeTimers();
+    try {
+      const partial = { chapterId: 'c-1', items: [drawn('c-1').items[0]!, { index: 1, reason: 'still being read', pending: true }] };
+      let failRepeat: (e: Error) => void = () => {};
+      const workspacePeaks = vi
+        .fn()
+        .mockResolvedValueOnce(partial)
+        .mockImplementationOnce(() => new Promise((_, reject) => (failRepeat = reject)))
+        .mockResolvedValue(partial);
+      const api = { ...createMockApi(), workspacePeaks };
+      const first = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(first.result.current.status).toBe('ready'));
+      first.unmount();
+      vi.setSystemTime(Date.now() + UNANSWERED_RETRY_MS + 1000);
+      const during = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      await vi.waitFor(() => expect(workspacePeaks).toHaveBeenCalledTimes(2));
+      expect(during.result.current.status).toBe('ready'); // the kept answer while the repeat ask is out
+      const second = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      expect(second.result.current.status).toBe('ready');
+      expect(workspacePeaks).toHaveBeenCalledTimes(2); // one ask however many ribbons
+      await act(async () => failRepeat(new Error('The host is busy.')));
+      const third = renderHook(() => useRibbonPeaks('c-1'), { wrapper: withApi(api) });
+      expect(third.result.current.status).toBe('ready'); // not failed: the answer survived the failed ask
+      expect(workspacePeaks).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows loading, never the previous chapter, on a step to another chapter (#4042)', async () => {
     const workspacePeaks = vi.fn(async (chapterId: string) => (chapterId === 'c-1' ? drawn('c-1') : new Promise<never>(() => {})));
     const api = { ...createMockApi(), workspacePeaks };

@@ -64,7 +64,8 @@ function sharedRead(workspace: Workspace, chapterId: string): Shared {
   reads.set(workspace, byChapter);
   const kept = byChapter.get(chapterId);
   if (kept && !(kept.result && hasGap(kept.result) && Date.now() - kept.at > UNANSWERED_RETRY_MS)) return kept;
-  const entry: Shared = { promise: workspace.workspacePeaks(chapterId), bytes: 0, at: Date.now() };
+  // A repeat ask over an answer with a gap keeps that answer while it is out: a ribbon that mounts meanwhile draws it, not the reading row.
+  const entry: Shared = { promise: workspace.workspacePeaks(chapterId), bytes: kept?.bytes ?? 0, at: Date.now(), result: kept?.result };
   byChapter.set(chapterId, entry);
   entry.promise.then(
     (result) => {
@@ -77,7 +78,10 @@ function sharedRead(workspace: Workspace, chapterId: string): Shared {
       trim(workspace, byChapter, chapterId);
     },
     () => {
-      if (byChapter.get(chapterId) === entry) byChapter.delete(chapterId);
+      if (byChapter.get(chapterId) !== entry) return;
+      // A failed repeat ask keeps the answer it was asking over, and the next ask waits a quiet spell; a failed first read is not kept.
+      if (entry.result) entry.at = Date.now();
+      else byChapter.delete(chapterId);
     },
   );
   return entry;
