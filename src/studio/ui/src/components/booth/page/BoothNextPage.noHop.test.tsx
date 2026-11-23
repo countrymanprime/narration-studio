@@ -179,3 +179,78 @@ describe('the Booth never draws a chapter it then leaves (#4087)', () => {
     expect(sees(seen, TITLE_ONE)).toBe(false);
   });
 });
+
+describe('a chapter the Booth has drawn is never left without a narrator action (#4087)', () => {
+  const place = (chapterId: string) => ({ ok: true, message: '', chapterId, selected: 1, cursor: 0 });
+  const refused = { ok: false, message: 'REAPER is not answering.', chapterId: '', selected: 0, cursor: 0 };
+  /** The DAW's reads, in order: each is a reply after `after` ms, or a throw. The last one repeats. */
+  const reads = (...steps: Array<{ after: number; reply?: object; fail?: boolean }>) => {
+    let n = 0;
+    return vi.fn(
+      () =>
+        new Promise((resolve, reject) => {
+          const step = steps[Math.min(n++, steps.length - 1)]!;
+          setTimeout(() => (step.fail ? reject(new Error('boom')) : resolve(step.reply)), step.after);
+        }),
+    );
+  };
+
+  /** Runs 25 s of the page and returns every chapter the picker named, in order, and the address once the first one was drawn. */
+  async function watch() {
+    const labels: string[] = [];
+    const note = () => {
+      const label = document.querySelector("[aria-label^='Chapter:']")?.getAttribute('aria-label');
+      if (label && labels[labels.length - 1] !== label) labels.push(label);
+    };
+    const observer = new MutationObserver(note);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-label'] });
+    let afterFirst = '';
+    for (let spent = 0; spent < 25_000; spent += 100) {
+      await act(async () => void (await vi.advanceTimersByTimeAsync(100)));
+      note();
+      if (labels.length === 1 && afterFirst === '') afterFirst = address;
+    }
+    observer.disconnect();
+    return { labels, afterFirst };
+  }
+
+  beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] }));
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ['(a) answers chapter 2 at 2.0 s', reads({ after: 2000, reply: place('c2') }), 'Chapter Two', 1],
+    ['(b) answers chapter 2 at 2.5 s', reads({ after: 2500, reply: place('c2') }), 'Chapter Two', 1],
+    ['(b) answers chapter 2 at 5 s, past the cap', reads({ after: 5000, reply: place('c2') }), 'Chapter One', 1],
+    [
+      '(c) the read throws, and the DAW answers chapter 2 on a later ask',
+      reads({ after: 900, fail: true }, { after: 0, reply: place('c2') }),
+      'Chapter One',
+      1,
+    ],
+    ['(d) unreachable at open, answers chapter 2 later', reads({ after: 0, reply: refused }, { after: 5000, reply: place('c2') }), 'Chapter One', 1],
+    ['(e) refuses, then is ready and names chapter 2', reads({ after: 0, reply: refused }, { after: 0, reply: place('c2') }), 'Chapter One', 1],
+  ])(
+    '%s: one chapter is drawn, the address does not change after it, and the DAW is asked once',
+    async (_name, dawPlace, shown, asks) => {
+      renderPage({ api: { dawPlace } as never });
+      const { labels, afterFirst } = await watch();
+      expect(labels).toHaveLength(1);
+      expect(labels[0]).toContain(shown);
+      expect(address).toBe(afterFirst);
+      expect(dawPlace).toHaveBeenCalledTimes(asks);
+    },
+    60_000,
+  );
+
+  it('(f) a project switch to a project with nothing kept, the DAW answers at 2.5 s: the DAW chapter only', async () => {
+    window.localStorage.setItem('narration.booth.lastPlace./a', JSON.stringify({ chapterId: 'c1', paragraphId: 'p3', word: 3 }));
+    const first = renderPage({ projectFolder: '/a', api: { dawPlace: reads({ after: 2500, reply: place('c2') }) as never } });
+    await act(async () => void (await vi.advanceTimersByTimeAsync(5000)));
+    first.unmount();
+    renderPage({ projectFolder: '/b', api: { dawPlace: reads({ after: 2500, reply: place('c2') }) as never } });
+    const { labels, afterFirst } = await watch();
+    expect(labels).toHaveLength(1);
+    expect(labels[0]).toContain('Chapter Two');
+    expect(address).toBe(afterFirst);
+  }, 60_000);
+});
