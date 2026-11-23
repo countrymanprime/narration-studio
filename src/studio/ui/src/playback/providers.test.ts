@@ -235,4 +235,14 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     expect(await pending).toMatchObject({ by: null, notice: 'REAPER is recording.' });
     expect(app.play).not.toHaveBeenCalled();
   });
+  it('a keepQuiet that rejects does not hold the app back, nor raise an unhandled rejection when the DAW plays first', async () => {
+    const dawPlays = provider('REAPER', { ready: true }, { played: true });
+    const app = provider(APP, { ready: true }, { played: true });
+    const keepQuiet = () => Promise.reject<string | null>(new Error('state read failed'));
+    expect(await playThrough([dawPlays.p, app.p], 0, { keepQuiet, deadlineMs: PLAY_DEADLINE_MS })).toMatchObject({ by: 'REAPER' });
+    const fails = provider('REAPER', { ready: true }, { played: false, why: 'Refused.' });
+    const pending = playThrough([fails.p, app.p], 0, { keepQuiet, deadlineMs: PLAY_DEADLINE_MS });
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await pending).toMatchObject({ by: APP });
+  });
 });
