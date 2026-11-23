@@ -256,7 +256,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
   only one armed), a press of Record says so as a message with the reason, with **Check again**: "REAPER is already recording on another track, so the Booth is not following it. Stop it in REAPER before recording here." (or "with several tracks armed", "with no track armed", or "while no project file is linked here. Link a project file, then record here."). With another project open the sentence about the project adds "REAPER is recording a take now.", and the dialog says so too. Record is ready again as soon as the
   problem is fixed, without a restart.
 
-  A message is never drawn over the chips: it stands in its own slot under the page, which is always kept, so the page does not move when one shows. The same sentence is one message however often it is asked
+  A message is never drawn over the chips: in a window taller than 520 px it stands in its own slot under the page, which is always kept, so the page does not move when one shows; in a shorter window it rises above the chips. The same sentence is one message however often it is asked
   for, and a message about REAPER starting goes as soon as Record is ready.
 
 ### Recording without a DAW

@@ -249,6 +249,8 @@ function keepFocusInDialog(): void {
 /** Where the toasts stand above the window's bottom edge, in px, and the slot the shell keeps for one toast there (`--toast-bottom`, `--toast-slot`). */
 const TOAST_SLOT_PROPERTY = '--toast-slot';
 const TOAST_BOTTOM_PROPERTY = '--toast-bottom';
+/** How far a toast rises above the window's bottom edge, over the gutter: 0 where the shell keeps a slot; in a short window the bars along the bottom (`--toast-clear`, capped so the toasts keep 8rem), as before the slot. */
+const TOAST_RISE_PROPERTY = '--toast-rise';
 /** A toast's height (`h-[2.8125rem]`) and the air above it, in rem; the gap under it is the page gutter, or half of it in a window 400 px tall or less, where a permanent slot costs more of what is left. */
 const TOAST_HEIGHT_REM = 2.8125;
 const TOAST_AIR_REM = 0.5;
@@ -270,6 +272,7 @@ function useToastSlot(): void {
       const short = window.innerHeight <= SHORT_WINDOW_PX;
       const bottom = window.innerHeight <= 400 ? gutter / 2 : gutter;
       root.style.setProperty(TOAST_BOTTOM_PROPERTY, `${bottom}px`);
+      root.style.setProperty(TOAST_RISE_PROPERTY, short ? 'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - 8rem))' : '0px');
       // In a window this short a permanent slot would take what the Booth's panels and the reading need (`tiny-window-overflow.spec.ts`): there the toast floats at the edge, as it did before.
       root.style.setProperty(TOAST_SLOT_PROPERTY, short ? '0px' : `${Math.ceil(bottom + (TOAST_HEIGHT_REM + TOAST_AIR_REM) * rem)}px`);
       window.dispatchEvent(new Event(TOAST_ROOM_EVENT));
@@ -279,6 +282,7 @@ function useToastSlot(): void {
     return () => {
       window.removeEventListener('resize', set);
       root.style.removeProperty(TOAST_BOTTOM_PROPERTY);
+      root.style.removeProperty(TOAST_RISE_PROPERTY);
       root.style.removeProperty(TOAST_SLOT_PROPERTY);
       window.dispatchEvent(new Event(TOAST_ROOM_EVENT));
     };
@@ -394,7 +398,7 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
         if (document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE) && !(event.target as Element).closest('button, a, input, select, textarea, [tabindex]'))
           event.preventDefault();
       }}
-      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[var(--toast-bottom,var(--page-gutter))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end [&>div:not(:empty)+div:not(:empty)]:mt-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)]"
+      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--toast-bottom,var(--page-gutter))+var(--toast-rise,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end [&>div:not(:empty)+div:not(:empty)]:mt-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
         {mounted
