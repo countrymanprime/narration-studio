@@ -61,7 +61,7 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
         setTypes(nextTypes);
         setNotes(nextNotes);
         const running = host && ACTIVE_PHASES.includes(host.phase) ? narration.find((item) => item.id === host.chapter)?.id : undefined;
-        // The Booth's remembered chapter, when this list still has it (a credits chapter is in the list when the Booth can open it).
+        // The Booth's remembered chapter, used when it is in this list.
         const kept = projectFolder ? loadLastPlace(projectFolder)?.chapterId : undefined;
         const remembered = kept ? narration.find((item) => item.id === kept)?.id : undefined;
         const last = narration.find((item) => item.id === reader?.activeChapter || item.title === reader?.activeChapter);
