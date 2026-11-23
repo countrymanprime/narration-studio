@@ -98,11 +98,28 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
   useEffect(() => {
     const el = text.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const measure = () => setScrolls(el.scrollHeight > el.clientHeight + 1);
+    // Measured with the scrollbar out of the way: a box that scrolls loses the scrollbar's width to it, so its text wraps to one more line than it would without, and a box measured while it scrolls
+    // stays overflowing after the font it was first laid out in (a fallback, wider) has loaded (#4112). The overflow is switched off for the read and put back.
+    const measure = () => {
+      const was = el.style.overflowY;
+      el.style.overflowY = 'hidden';
+      const overflows = el.scrollHeight > el.clientHeight + 1;
+      el.style.overflowY = was;
+      setScrolls(overflows);
+    };
     measure();
     const watch = new ResizeObserver(measure);
     watch.observe(el);
-    return () => watch.disconnect();
+    // A toast raised before the web font arrives is laid out in the fallback font; the text is measured again when the fonts have loaded.
+    const fonts = typeof document === 'undefined' ? undefined : document.fonts;
+    fonts?.addEventListener?.('loadingdone', measure);
+    let live = true;
+    void fonts?.ready?.then(() => live && measure());
+    return () => {
+      live = false;
+      fonts?.removeEventListener?.('loadingdone', measure);
+      watch.disconnect();
+    };
   }, [message.text]);
   const [leaving, setLeaving] = useState(false);
   const isError = message.tone === 'error';

@@ -323,6 +323,49 @@ describe('a toast is two lines at most (#4063, #2793)', () => {
     vi.unstubAllGlobals();
   });
 
+  it('measures the overflow with the scrollbar out of the way, and again when the fonts have loaded (#4112)', () => {
+    const observers: Array<() => void> = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(cb: () => void) {
+          observers.push(cb);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const fontListeners: Array<() => void> = [];
+    const fonts = { addEventListener: (_type: string, cb: () => void) => fontListeners.push(cb), removeEventListener: vi.fn(), ready: Promise.resolve() };
+    Object.defineProperty(document, 'fonts', { value: fonts, configurable: true });
+    // What the box's overflow was while it was measured: the read must see no scrollbar (hidden), whatever the box shows between reads.
+    const seen: string[] = [];
+    const sizes = { scrollHeight: 500, clientHeight: 34 };
+    const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      seen.push(this.style.overflowY);
+      return sizes.scrollHeight;
+    });
+    const clientHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => sizes.clientHeight);
+    render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
+    expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
+    expect(seen.length).toBeGreaterThan(0);
+    expect(seen.every((overflow) => overflow === 'hidden')).toBe(true);
+    // The overflow is put back after the read, so the box still scrolls while it overflows.
+    expect(textOf('xxxx').style.overflowY).toBe('');
+    expect(textOf('xxxx').className).toContain('overflow-y-auto');
+    // The font arrives and the same text now fits in two lines: the box stops scrolling although it was scrolling a moment before.
+    sizes.scrollHeight = 34;
+    act(() => fontListeners.forEach((cb) => cb()));
+    expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
+    expect(textOf('xxxx').className).toContain('overflow-hidden');
+    expect(observers.length).toBeGreaterThan(0);
+    scrollHeight.mockRestore();
+    clientHeight.mockRestore();
+    // @ts-expect-error: remove the stand-in so later tests see jsdom's own document
+    delete document.fonts;
+    vi.unstubAllGlobals();
+  });
+
   it('leaves an ordinary short message out of the tab order', () => {
     render(<ToastRegion messages={[info(1, 'Entry saved.')]} dismiss={vi.fn()} />);
     expect(textOf('Entry saved.').getAttribute('tabindex')).toBeNull();
