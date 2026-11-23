@@ -110,6 +110,28 @@ describe('the chapter list the estimates come from', () => {
     await screen.findByText(/Due Oct 31/);
   });
 
+  it('shows the skeleton while Retry reads a list that is still down, then the error again', async () => {
+    let reads = 0;
+    let release: () => void = () => undefined;
+    await mountSchedule({
+      today: null,
+      wrap: () => ({
+        manuscriptChapters: async () => {
+          reads += 1;
+          if (reads > 1) await new Promise<void>((resolve) => (release = resolve));
+          throw new Error('the chapter list is unreadable');
+        },
+      }),
+    });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
+    fireEvent.click(retry);
+    // The error does not sit unchanged while the new read runs: the page shows its skeleton (the button that was pressed is gone), as every other page does.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+    release();
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.getByText(/could not be read: the chapter list is unreadable/)).toBeTruthy();
+  });
+
   it('keeps the reading and says it is old when a re-read of the list fails', async () => {
     let fail = false;
     await mountSchedule({

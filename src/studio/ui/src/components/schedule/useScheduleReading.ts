@@ -103,7 +103,11 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
     },
     [production, deliveryProfiles, measurements, readChapters],
   );
-  const reload = useCallback(() => read(true), [read]);
+  // Retry from the first read's error swaps the error for the skeleton while it reads again, as on every other page (the error comes back if it fails again).
+  const reload = useCallback(() => {
+    setState((current) => (current.phase === 'error' ? { phase: 'loading' } : current));
+    return read(true);
+  }, [read]);
 
   useEffect(() => {
     live.current = true;

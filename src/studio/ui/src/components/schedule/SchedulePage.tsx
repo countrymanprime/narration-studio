@@ -8,6 +8,7 @@ import type { Command, Journal } from '../../studio/journal/createJournal';
 import { planStart, recordedSeries } from '../production/measured/measured.selectors';
 import { ProgressChart } from '../production/overview/ProgressChart';
 import { Button } from '../primitives/Button';
+import { LoadError } from '../layout/LoadError';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { ScheduleSkeleton } from './ScheduleSkeleton';
 import { SCHEDULE_GRID, SCHEDULE_SIDE } from './layout';
@@ -74,18 +75,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   const pending = useRef(new Set<string>());
 
   if (state.phase === 'loading') return <ScheduleSkeleton />;
-  if (state.phase === 'error')
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <Heading title="Schedule" />
-        <div role="alert" className="flex flex-col items-start gap-3">
-          <p style={{ color: 'var(--danger-text)' }}>{state.message}</p>
-          <Button variant="secondary" onClick={() => void reload()}>
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
+  if (state.phase === 'error') return <LoadError title="Schedule" message={state.message} retry={() => void reload()} />;
   const { plan, chapters, profileId, recordedHours, takeLog, readAt } = state;
 
   if (!hasManuscript || chapters.length === 0) return <NeedManuscript title="Schedule" onImport={onImport} />;
