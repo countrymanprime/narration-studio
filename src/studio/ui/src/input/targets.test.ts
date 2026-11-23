@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
-import { isGuardedTarget, keyContextOf, keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText, watchKeyContext } from './targets';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { isGuardedTarget, keyContextOf, keyLayerOpen, modalLayerOpen, openModalLayer, softLayerOpen, takesTypedText, watchKeyContext } from './targets';
 
 function el(html: string): Element {
   const div = document.createElement('div');
@@ -141,5 +141,82 @@ describe('the live checks and a popup that is closing', () => {
     expect(keyLayerOpen()).toBe(true);
     expect(softLayerOpen()).toBe(true);
     expect(modalLayerOpen()).toBe(true);
+  });
+});
+
+describe('openModalLayer: the one lookup of the topmost modal layer', () => {
+  beforeEach(() => document.body.replaceChildren());
+  const layer = (tag: string, attrs: Record<string, string>, parent: Element = document.body) => {
+    const el = document.createElement(tag);
+    for (const [name, value] of Object.entries(attrs)) el.setAttribute(name, value);
+    parent.append(el);
+    return el;
+  };
+  afterEach(() => document.body.replaceChildren());
+
+  it('finds a role dialog, an alert dialog, a native open dialog and an aria-modal layer; the last in the page is the topmost', () => {
+    expect(openModalLayer()).toBeNull();
+    const first = layer('div', { role: 'dialog' });
+    expect(openModalLayer()).toBe(first);
+    const native = layer('dialog', { open: '' });
+    expect(openModalLayer()).toBe(native);
+    const modal = layer('section', { 'aria-modal': 'true' });
+    expect(openModalLayer()).toBe(modal);
+    const alert = layer('div', { role: 'alertdialog' });
+    expect(openModalLayer()).toBe(alert);
+    expect(modalLayerOpen()).toBe(true);
+  });
+
+  it('a closed native dialog is not a layer', () => {
+    layer('dialog', {});
+    expect(openModalLayer()).toBeNull();
+    expect(modalLayerOpen()).toBe(false);
+  });
+
+  it.each([
+    ['hidden', { hidden: '' }],
+    ['inert', { inert: '' }],
+    ['aria-hidden', { 'aria-hidden': 'true' }],
+    ['closing', { 'data-ending-style': '' }],
+  ])('a dialog that is %s is not a layer, and the one below it is the topmost', (_name, attrs) => {
+    const below = layer('div', { role: 'dialog' });
+    layer('div', { role: 'dialog', ...attrs });
+    expect(openModalLayer()).toBe(below);
+    below.remove();
+    expect(openModalLayer()).toBeNull();
+    expect(modalLayerOpen()).toBe(false);
+  });
+
+  it('a layer inside a hidden or closing ancestor is gone too', () => {
+    const closing = layer('div', { 'data-ending-style': '' });
+    layer('div', { role: 'dialog' }, closing);
+    expect(openModalLayer()).toBeNull();
+  });
+
+  it('a popover popup is not a modal, even though it is a role dialog or aria-modal', () => {
+    layer('div', { role: 'dialog', 'data-popover-popup': '' });
+    layer('div', { 'aria-modal': 'true', 'data-popover-popup': '' });
+    expect(openModalLayer()).toBeNull();
+  });
+
+  it('a menu is not a modal', () => {
+    layer('div', { role: 'menu' });
+    expect(openModalLayer()).toBeNull();
+  });
+});
+
+describe('keyLayerOpen agrees with the modal layer on what a dialog is', () => {
+  afterEach(() => document.body.replaceChildren());
+  it.each([
+    ['dialog', { open: '' }],
+    ['section', { 'aria-modal': 'true' }],
+  ] as const)('a %s that is open owns the keys', (tag, attrs) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    document.body.append(el);
+    expect(keyLayerOpen()).toBe(true);
+    expect(modalLayerOpen()).toBe(true);
+    el.setAttribute('data-ending-style', '');
+    expect(keyLayerOpen()).toBe(false);
   });
 });

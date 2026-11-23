@@ -55,7 +55,7 @@ export function isGuardedTarget(target: EventTarget | null): boolean {
  * A popup that owns the keyboard while it shows: a popover, a menu, a list of choices, a dialog or an alert dialog (a Base UI
  * popover's popup is a `dialog`). A tooltip is not one: it is a read-only note and never takes the keys.
  */
-const KEY_LAYER = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-popover-popup]';
+const KEY_LAYER = '[role="dialog"], [role="alertdialog"], dialog[open], [aria-modal="true"], [role="menu"], [role="listbox"], [data-popover-popup]';
 
 const HIDDEN = '[hidden], [inert], [aria-hidden="true"]';
 // A Base UI popup stays in the page, marked `data-ending-style`, until its exit has run, and the exit waits for a frame (late on a loaded machine). The
@@ -105,18 +105,18 @@ export function softLayerOpen(root: ParentNode = document): boolean {
   return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(GONE));
 }
 
-/** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
-export function modalLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(GONE));
-}
-
-/** The topmost dialog, alert dialog or modal (a native `<dialog open>` or an `aria-modal` layer too) on screen: not hidden, inert, aria-hidden or closing. Null when none is. */
-export function openModalLayer(root: ParentNode = document): Element | null {
+/** The topmost dialog, alert dialog or modal (a native `<dialog open>` or an `aria-modal` layer too) on screen: not hidden, inert, aria-hidden or closing. Null when none is. The one lookup of the modal layer: the pedal, the toast's hand-back and its Tab wrap and scroll all ask it. */
+export function openModalLayer(root: ParentNode = document): HTMLElement | null {
   return (
-    Array.from(root.querySelectorAll(MODAL_LAYER))
+    Array.from(root.querySelectorAll<HTMLElement>(MODAL_LAYER))
       .filter((layer) => !layer.closest(GONE))
       .pop() ?? null
   );
+}
+
+/** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
+export function modalLayerOpen(root: ParentNode = document): boolean {
+  return openModalLayer(root) !== null;
 }
 
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);
