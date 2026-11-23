@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"runtime"
 	"sync"
 	"time"
 
@@ -293,4 +294,61 @@ func (f *peaksFlights) read(ctx, life context.Context, spawn func(func()), store
 	case <-ctx.Done():
 		return measure.Peaks{}, errPeaksPending
 	}
+}
+
+// decodeSlots bounds the whole-file peaks decodes of the whole process to the machine's cores (#4042): every read, and every segment of a long
+// file's read, holds one while it decodes and waits for no other, so a chapter of many recordings, or the page reading its neighbours, queues
+// instead of decoding all at once. A done context never takes a free slot.
+type decodeSlots chan struct{}
+
+var sharedDecodeSlots = make(decodeSlots, max(1, runtime.NumCPU()))
+
+func (s decodeSlots) acquire(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case s <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s decodeSlots) release() { <-s }
+
+func init() { measure.RunSegments = runDecodes }
+
+// runDecodes is measure.RunSegments for the host: the n pieces of work run at once, each holding a decode slot while it works. The first error
+// that is not a cancellation stops the others and is answered (the cancellation it caused is not), or the cancellation when that is all there is.
+func runDecodes(ctx context.Context, n int, work func(ctx context.Context, i int) error) error {
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
+	errs := make([]error, n)
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if errs[i] = sharedDecodeSlots.acquire(ctx); errs[i] != nil {
+				return
+			}
+			defer sharedDecodeSlots.release()
+			if errs[i] = work(ctx, i); errs[i] != nil {
+				stop()
+			}
+		}()
+	}
+	wg.Wait()
+	for _, e := range errs {
+		if e != nil && !errors.Is(e, context.Canceled) {
+			return e
+		}
+	}
+	for _, e := range errs {
+		if e != nil {
+			return e
+		}
+	}
+	return nil
 }
