@@ -12,7 +12,7 @@
 //   long, right-to-left, emoji names     'names are matched as written'
 //   two outputs with one name            'two outputs with the same name use the first'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { listAudioOutputs, outputsSupported, setOutput } from './audioOutputs';
+import { listAudioOutputs, outputChoices, outputsSupported, setOutput } from './audioOutputs';
 
 type Device = { kind: string; deviceId: string; label: string };
 const dev = (deviceId: string, label: string, kind = 'audiooutput'): Device => ({ kind, deviceId, label });
@@ -145,5 +145,33 @@ describe('applying a choice', () => {
     devices = [dev('first', 'Speakers'), dev('second', 'Speakers')];
     await setOutput(audio(), 'Speakers');
     expect(setSinkId).toHaveBeenCalledWith('first');
+  });
+});
+
+// One builder for the options of every output select (the Editing popover, Settings > Editing playback, Settings > Voice sample output).
+describe('the options of an output select', () => {
+  const ok = (...labels: string[]) => ({ status: 'ok' as const, outputs: labels.map((label) => ({ id: label, label })) });
+  const names = (listing: Parameters<typeof outputChoices>[0], saved: string) => outputChoices(listing, saved).options.map((o) => o.label);
+
+  it('lists the system default and the outputs, two with one name as one choice', () => {
+    expect(names(ok('Speakers', 'Speakers', 'Headphones'), '')).toEqual(['System default', 'Speakers', 'Headphones']);
+  });
+
+  it('keeps a saved output that is gone, state first, chosen and clearable', () => {
+    const { options, missing } = outputChoices(ok('Speakers'), 'Studio monitors');
+    expect(missing).toBe(true);
+    expect(options.at(-1)).toEqual({ value: 'Studio monitors', label: 'Not connected: Studio monitors' });
+  });
+
+  it('says it could not check, not that the output is gone, when the list would not come', () => {
+    const { options, missing } = outputChoices({ status: 'unavailable', message: 'x' }, 'Studio monitors');
+    expect(missing).toBe(true);
+    expect(options.at(-1)?.label).toBe('Could not check: Studio monitors');
+  });
+
+  it('adds nothing for a saved output that is listed, for no saved output, or while the list is read', () => {
+    expect(outputChoices(ok('Speakers'), 'Speakers').missing).toBe(false);
+    expect(outputChoices(ok('Speakers'), '').missing).toBe(false);
+    expect(outputChoices(undefined, 'Speakers')).toEqual({ missing: false, options: [{ value: '', label: 'System default' }] });
   });
 });
