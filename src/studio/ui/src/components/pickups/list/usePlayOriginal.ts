@@ -191,6 +191,8 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
                   if (asked.current !== mine) return;
                   // The DAW's play ended by itself: nobody owns it, so a late answer of an older press is stopped, not orphaned.
                   dawPlayOwner.release(token);
+                  // Nothing of this press is left in the DAW: a later press that ends in the app sends no stop to whatever the narrator plays there.
+                  dawStarted.current = false;
                   setInDaw(false);
                   setPlayingId(null);
                 },

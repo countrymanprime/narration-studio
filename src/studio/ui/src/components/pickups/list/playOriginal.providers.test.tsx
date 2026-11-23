@@ -351,6 +351,19 @@ describe('a-daw-that-can-play-plays-the-original', () => {
     });
     expect(transport).toHaveBeenCalledWith('stop', 0);
   });
+  it('a press after a DAW stretch ended by itself sends no stop', async () => {
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    await act(() => result.current.play(pickup(15)));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(result.current.playingId).toBeNull();
+    transport.mockClear();
+    transport.mockImplementation(async (action: string) => (action === 'playRange' ? { ...ok, ok: false, message: 'refused', refused: 'refused' } : ok));
+    await act(() => result.current.play({ ...pickup(20), id: 'p2' }));
+    await flush();
+    expect(transport).not.toHaveBeenCalledWith('stop', 0);
+  });
   it('a second press stops the DAW', async () => {
     const { result } = await mountRead(DAW_SETUPS.reaper);
     await act(() => result.current.play(pickup(15)));
