@@ -276,6 +276,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/masterqc/page/MeasureRun.tsx#3': no(JM),
   'src/components/masterqc/page/useFileActions.ts#1': no(RF),
   'src/components/masterqc/page/useFileActions.ts#2': no(BT),
+  'src/components/proof/inspector/HearIt.tsx#1': yes(
+    "Hear it's clip could not be played in the app: Retry plays the note again (the same toast, with the same Retry, also says why a play that did not happen did not).",
+  ),
+  'src/components/proof/inspector/HearIt.tsx#2': no(BT),
   'src/components/pickups/PickupsPage.tsx#1': na(NA),
   'src/components/pickups/PickupsPage.tsx#2': no(ED),
   'src/components/pickups/list/AddPickup.tsx#1': no(ED),

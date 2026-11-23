@@ -85,6 +85,10 @@ export function HearIt({
   const looped = useRef(false);
   const stopLoop = useRef(api.findingsStopLoop);
   stopLoop.current = api.findingsStopLoop;
+  // Stops a DAW loop nobody is waiting for any more (the note was left, or its answer came after the deadline); a failed stop has nobody to tell.
+  const dropLoop = useRef(() => {
+    void stopLoop.current().catch(() => undefined);
+  });
   // The newest press, so a Retry offered for an older one, or after the note was left, plays nothing.
   const newest = useNewestPlay(HEAR_TOPIC);
   const lastAsk = useRef(0);
@@ -93,7 +97,7 @@ export function HearIt({
   // Leaving the note (the Inspector remounts per note) stops a DAW loop this button started; the app player stops itself on unmount.
   useEffect(
     () => () => {
-      if (looped.current) void stopLoop.current().catch(() => undefined);
+      if (looped.current) dropLoop.current();
     },
     [],
   );
@@ -149,7 +153,7 @@ export function HearIt({
             // A loop a newer press started since is that press's, and is not stopped here.
             // The same when the note was left, or a newer press made, while the DAW was answering inside the deadline.
             if (late() || !newest.current(press)) {
-              if (!looped.current) void api.findingsStopLoop().catch(() => undefined);
+              if (!looped.current) dropLoop.current();
               return { played: true };
             }
             looped.current = true;
