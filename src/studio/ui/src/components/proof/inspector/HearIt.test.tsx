@@ -313,7 +313,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     play.mockImplementation(() => Promise.reject(new DOMException('no', 'NotSupportedError')));
     setup(placed(), () => Promise.reject(new Error('bridge gone')));
     await userEvent.click(hear());
-    await waitFor(() => expect(toast.mock.calls.some((call) => String(call[0]).includes('could not be played'))).toBe(true));
+    await waitFor(() => expect(toast.mock.calls.some((call: unknown[]) => String(call[0]).includes('could not be played'))).toBe(true));
     await new Promise((resolve) => setTimeout(resolve, 30));
     const last = toasted();
     expect(last[0]).toBe('The audio file for this note could not be played.');
