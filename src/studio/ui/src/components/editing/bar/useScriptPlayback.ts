@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
 import type { DawCapabilities } from '../../../api/contracts/daw';
@@ -7,7 +8,7 @@ import { firstFrom, leadStart } from '../model';
 import type { SoundAt } from '../ribbon/useChapterSound';
 import type { WordClock } from '../follow/wordClock';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
-import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { APP, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
 import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { usePort } from '../../../ports/usePort';
 import { fadeOutAndPause, STOP_FADE_SECONDS } from './playbackStop';
@@ -20,6 +21,8 @@ import { playable, playingKey } from '../script/playing';
 import { clamp } from '../../../clamp';
 
 export const AUDIO_FAILED = "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.";
+/** The toast topic of a notice that offers Retry: a newer play withdraws it, so a Retry on screen is always for the newest play. */
+const PLAY_TOPIC = 'editing-play-retry';
 const NOTHING_FROM_HERE = 'Nothing was recorded from here.';
 const NOTHING_FOR_HEADING = 'Nothing was recorded for the heading.';
 const NOTHING_FOR_WORD = 'Nothing was recorded for this word.';
@@ -49,12 +52,13 @@ export interface ScriptPlaybackOptions {
   /** The recorded files in the order of the chapter; its elapsed line is the document's time. */
   playlist: PlaylistSegment[];
   mediaUrl: (sourceFile: string) => string;
-  notify?: (text: string) => void;
+  /** Says something to the narrator; `retry`, given when nothing played, plays again. */
+  notify?: (text: string, retry?: () => void) => void;
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
-   * do. Null `caps` (not answered yet) plays nothing unless the read failed; absent `sync` plays in the app. */
+   * do. Null `caps` (not answered yet) places nothing (no word table without them), so the app plays at once and says the DAW has not answered; a read that failed is said and asked again and the app plays; absent `sync` plays in the app. */
   sync?: {
     clock: WordClock | null;
-    /** The host has not yet said where the words play: Play waits and the page says it is checking, as it does before the watch lease is answered. */
+    /** The host has not yet said where the words play: nothing is placed yet, so a play goes to the app at once and says so. */
     clockPending?: boolean;
     caps: DawCapabilities | null;
     read?: DawRead;
@@ -72,7 +76,14 @@ export interface ScriptPlaybackOptions {
  * the time in the bar follow it. Nothing here throws into the page: a file that will not load stops playback and says why. With a linked DAW
  * whose transport is ready, every play goes to the DAW and the app's audio stays silent; when it cannot play, the app plays with a notice.
  */
-export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overlay.toast(text), sync, sound, output }: ScriptPlaybackOptions): ScriptPlayback {
+export function useScriptPlayback({
+  playlist,
+  mediaUrl,
+  notify = (text, retry) => overlay.toast(text, retry ? { tone: 'error', action: retryAction(retry), topic: PLAY_TOPIC } : undefined),
+  sync,
+  sound,
+  output,
+}: ScriptPlaybackOptions): ScriptPlayback {
   const { doc, state, dispatch } = useEditingPage();
   const daw = usePort('daw');
   const stopReport = usePlayStopReport();
@@ -107,7 +118,10 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
   /** Plays asked for, so an answer that comes after a stop or a newer play is not acted on. */
   const asks = useRef(0);
 
+  /** The app's own audio plays the page's play: an `error` from the audio element ends only such a play. */
+  const appPlays = useRef(false);
   const halt = useCallback(() => {
+    appPlays.current = false;
     fading.current?.();
     fading.current = null;
     stopReport.clear();
@@ -123,9 +137,34 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
   // A voice sample starting takes the audio: two sounds at once would be heard as one muddle (docs/prds/character-voice-samples.prd.md, Playback).
   useEffect(() => onSampleStart(halt), [halt]);
 
+  /** The newest play asked, for the Retry of a failure that comes after `go` returned (the audio could not be played). */
+  const lastAsk = useRef<{ t: number; stopsAt: number | null; asked: number; word: PlayedWord | undefined } | null>(null);
+  /** The word a `playFrom` was asked for, handed to the `go` it starts (for the Retry that plays it again). */
+  const askedWord = useRef<PlayedWord | undefined>(undefined);
+  const goAgain = useRef<(t: number, stopsAt: number | null, word: PlayedWord | undefined) => void>(() => {});
+  /** Counts the plays asked, so a Retry offered for an older one does nothing once a newer one was asked. */
+  const playsAsked = useRef(0);
+  /** False once the page is gone: a Retry pressed after leaving the chapter plays nothing (it would play the old chapter's track). */
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      asks.current += 1;
+      overlay.dismissTopic(PLAY_TOPIC);
+    };
+  }, []);
+
   const fail = useCallback(() => {
+    // A late error from a file still loading when the narrator stopped is not a failure of a play that is over.
+    if (halted.current || !appPlays.current) return;
+    const again = lastAsk.current;
     halt();
-    live.current.notify(AUDIO_FAILED);
+    // Nothing could play: the same play is offered again, as for a DAW that refused.
+    live.current.notify(
+      AUDIO_FAILED,
+      again ? () => mounted.current && playsAsked.current === again.asked && goAgain.current(again.t, again.stopsAt, again.word) : undefined,
+    );
   }, [halt]);
 
   const start = useCallback(() => {
@@ -169,6 +208,7 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
    * Plays from `t` through the first provider that is ready (playback/providers.ts): the linked DAW's transport, then the app's own audio. A DAW
    * that can play always plays; one that cannot now, or that refuses, hands the play to the app with a notice saying why.
    */
+  /** The latest `go`, so a notice's Retry plays again with what the page holds now. */
   const go = useCallback(
     (t: number): void => {
       const { caps: now, read: dawRead, notify: say } = live.current;
@@ -177,6 +217,12 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
       halted.current = false;
       const ask = ++asks.current;
       const wanted = (): boolean => asks.current === ask;
+      const asked = ++playsAsked.current;
+      overlay.dismissTopic(PLAY_TOPIC);
+      const stopsAt = stopAt.current;
+      const word = askedWord.current;
+      askedWord.current = undefined;
+      lastAsk.current = { t, stopsAt, asked, word };
       // A read that failed is asked again, so the DAW plays the next press once it answers.
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = now?.daw ?? 'The DAW';
@@ -185,16 +231,18 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
         providers.push({
           name,
           readiness: (at) => {
-            const declared = dawReadiness(now, 'transport_sync', !!dawRead?.failed);
+            // A DAW that has not yet answered what it can do is not waited for: no check stands between the click and the play. With no capabilities
+            // there is no word table either, so `refusal` says not placed and the app plays; a read that failed is said and asked again.
+            const declared = now === null && !dawRead?.failed ? { ready: true as const } : dawReadiness(now, 'transport_sync', !!dawRead?.failed);
             if (!declared.ready) return declared;
             const remote = remoteRef.current;
-            const refusal = remote ? remote.refusal(at) : 'pending';
-            if (refusal === 'pending') return { ready: false, why: CHECKING, wait: true };
+            const refusal = remote ? remote.refusal(at) : null;
             if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
             if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
           },
           play: async (at) => {
+            appPlays.current = false;
             stopReport.setPath('daw');
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
@@ -207,6 +255,7 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
         name: APP,
         readiness: (at) => (covers(at) ? { ready: true } : { ready: false, why: NOTHING_FROM_HERE }),
         play: (at) => {
+          appPlays.current = true;
           stopReport.setPath('app');
           cue(at);
           live.current.dispatch({ type: 'play', t: at });
@@ -217,7 +266,10 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
       const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
       void playThrough(providers, t, { stillWanted: wanted, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
         if (!wanted()) return;
-        if (notice) say(notice);
+        // Nothing played and a DAW was asked: the notice says why and offers the play again (no DAW means nothing to ask again).
+        // Retry plays the same second to the same end, only while this is still the newest play and the page is still here.
+        if (notice && by === null && now !== undefined) say(notice, () => mounted.current && playsAsked.current === asked && goAgain.current(t, stopsAt, word));
+        else if (notice) say(notice);
         if (by !== null) return;
         stopAt.current = null;
         if (live.current.state.playT === t) halt();
@@ -226,6 +278,14 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     [cue, covers, start, halt, daw, stopReport],
   );
 
+  goAgain.current = (t, stopsAt, word) => {
+    stopAt.current = stopsAt;
+    if (stopsAt !== null && word) stopReport.begin(word, stopsAt);
+    setFollowState(true);
+    askedWord.current = word;
+    go(t);
+  };
+
   const playFrom = useCallback(
     (from: number, to?: number, word?: PlayedWord) => {
       stopAt.current = to ?? null;
@@ -233,6 +293,7 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
       else stopReport.clear();
       playedSel.current = null;
       setFollowState(true);
+      askedWord.current = word;
       go(from);
     },
     [go, stopReport],
@@ -286,11 +347,18 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     // A play of a selection leaves the selection; placing the cursor would drop it.
     if (key && !s.sel) send({ type: 'place', key });
   }, [halt]);
-  const onLost = useCallback((): void => {
+  const onLost = useCallback((message: string): void => {
+    // A play still being asked of the DAW is given up with it: its late answer must not hand the play to the app after the page said it stopped.
+    asks.current += 1;
     audioRef.current?.pause();
     stopAt.current = null;
     window.clearTimeout(stopTimer.current);
     live.current.dispatch({ type: 'play', t: null });
+    const again = lastAsk.current;
+    live.current.notify(
+      message,
+      again ? () => mounted.current && playsAsked.current === again.asked && goAgain.current(again.t, again.stopsAt, again.word) : undefined,
+    );
   }, []);
   const syncing = useDawTransportSync({
     clock: sync?.clock ?? null,
@@ -303,7 +371,7 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     onDawPlay: () => setFollowState(true),
     notify,
   });
-  remoteRef.current = syncing.active ? syncing.remote : undefined;
+  remoteRef.current = syncing.remote;
 
   useEffect(() => {
     const el = audio();

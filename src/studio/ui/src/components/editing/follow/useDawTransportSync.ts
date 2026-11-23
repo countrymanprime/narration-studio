@@ -12,12 +12,18 @@ export const LEASE_RENEW_MS = 3000;
 export const SILENT_MS = 3000;
 /** How often the DAW's play head is carried on between two of its readings, so the lit word advances word by word and does not wait for the next reading. */
 export const EXTRAPOLATE_MS = 50;
+/** How long a play asked before the watch lease was answered may go without a position before the page stops it and the DAW. */
+const UNWATCHED_MS = 10_000;
 /** The most a reading is carried on: a DAW that has gone quiet is not followed past this, the silent timer stops the page's play. */
 const MAX_EXTRAPOLATE_SECONDS = 0.6;
 /** A run of cursor moves in the page is written to the DAW once, this long after the last. */
 const WRITE_DEBOUNCE_MS = 80;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
+/** A play asked before the watch lease was answered that no position ever followed: the page could not follow it, so it stopped it. */
+const UNFOLLOWED = 'The app could not follow the DAW, so the play was stopped.';
+/** Seconds past a stretch's length before a play with no position stream is taken to have ended by itself. */
+const UNWATCHED_GRACE_S = 1.5;
 /** A DAW that stopped within this many seconds before the end of the stretch it was asked to play stopped itself there: its play head is read about four
  * times a second, so the last reading can be a quarter second short of the end. */
 const END_SLACK_SECONDS = 0.4;
@@ -31,7 +37,7 @@ const END_SLACK_SECONDS = 0.4;
  * app started or the DAW's own that the page is showing.
  */
 export interface RemotePlayer {
-  refusal(docT: number): 'pending' | 'not_ready' | 'not_placed' | null;
+  refusal(docT: number): 'not_ready' | 'not_placed' | null;
   refusedWith(): string | null;
   /** The narrator's words for why `refusal` said `not_placed` for this second: which check failed. */
   notPlacedWhy(docT: number, daw: string): string;
@@ -51,8 +57,8 @@ export interface DawTransportSyncOptions {
   onHead(docT: number | null, ended: boolean): void;
   /** The narrator stopped the DAW while the app's play was the DAW's. */
   onStopped(): void;
-  /** The DAW stopped answering during the app's play. */
-  onLost(): void;
+  /** The DAW stopped answering during the app's play; `message` is what to say (the page offers Retry with it). */
+  onLost(message: string): void;
   /** The DAW started playing by itself: the text follows it, as it does the app's own play. */
   onDawPlay(): void;
   notify(text: string): void;
@@ -98,7 +104,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const lastHeard = useRef(0);
   /** The stretch the DAW was asked to play and stop itself at: the document second the page's play ends at and the project second the DAW's does, and the
    * last play head heard while it played. */
-  const range = useRef<{ docEnd: number; projectEnd: number; head: number } | null>(null);
+  const range = useRef<{ docEnd: number; projectEnd: number; head: number; startedAt: number; length: number } | null>(null);
   const epoch = useRef(0);
 
   // The lease: taken now and renewed while the window is visible. A refusal (another project open, a recording, the capability off) is not ready.
@@ -133,8 +139,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     if (owns.current) {
       owns.current = false;
       range.current = null;
-      l.onLost();
-      l.notify(LOST);
+      epoch.current += 1;
+      l.onLost(LOST);
     } else if (mine.current != null && l.state.playT === mine.current) {
       mine.current = null;
       l.dispatch({ type: 'play', t: null });
@@ -266,31 +272,47 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursor]);
 
-  // A play the app started stops being the DAW's if the DAW goes quiet.
+  // A play the app started stops being the DAW's if the DAW goes quiet. A play asked before the watch lease was answered (a click does not wait for it) is
+  // given longer to be heard, and when it is not, the DAW is stopped too: no position will come to follow it.
   useEffect(() => {
-    if (!ready) return;
     const timer = setInterval(() => {
-      if (!owns.current || Date.now() - lastHeard.current <= SILENT_MS) return;
+      if (!owns.current) return;
+      const leased = live.current.lease.state === 'ready';
+      const r = range.current;
+      // A stretch played with no position stream ends by itself in the DAW: the page's play ends where the stretch does, it is not lost.
+      const followed = dawPlaying.current && Date.now() - lastHeard.current < SILENT_MS;
+      if (!leased && r && !followed && Date.now() - r.startedAt > (r.length + UNWATCHED_GRACE_S) * 1000) {
+        owns.current = false;
+        dawPlaying.current = false;
+        range.current = null;
+        live.current.onHead(r.docEnd, false);
+        return;
+      }
+      if (Date.now() - lastHeard.current <= (leased ? SILENT_MS : UNWATCHED_MS)) return;
+      if (!leased && r) return;
       owns.current = false;
       dawPlaying.current = false;
-      live.current.onLost();
-      live.current.notify(LOST);
+      epoch.current += 1;
+      live.current.onLost(leased ? LOST : UNFOLLOWED);
+      if (!leased) stopDaw();
     }, 1000);
     return () => clearInterval(timer);
-  }, [ready]);
+  }, [stopDaw]);
 
   const remote: RemotePlayer = useRef<RemotePlayer>({
     refusal: (docT) => {
       const l = live.current;
-      if (l.lease.state === 'pending') return 'pending';
+      // A watch lease not yet answered does not hold a play back: the play asks the DAW itself and its answer is the truth (a refusal is said then).
       if (l.lease.state === 'refused') return 'not_ready';
-      if (!l.clock && l.clockPending) return 'pending';
+      // A word table not yet read places nothing: the play goes to the app at once and says so (a click never waits for the table).
       return (l.clock?.projectAt(docT) ?? null) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
     notPlacedWhy: (docT, daw) =>
       live.current.clock?.whyNotPlaced(docT, daw) ??
-      `The app could not read where the words sit in ${daw}'s project. Check that ${daw} is open on this book with the chapter's track linked.`,
+      (live.current.clockPending ? `${daw} has not yet said where the words sit in its project.` : null) ??
+      (live.current.caps ? null : `${daw} has not answered yet, so the app cannot tell where the words sit in its project.`) ??
+      `${daw} has not told the app where the words sit in its project; check that it is open on this book with the chapter's track linked.`,
     start: async (docT, endDocT) => {
       const l = live.current;
       const project = l.clock?.projectAt(docT) ?? null;
@@ -298,7 +320,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       // A stretch that ends where nothing is known to play (or before it starts) is played open, and the page stops it as it always did.
       const projectEnd = endDocT === undefined ? null : (l.clock?.projectEndAt(endDocT) ?? null);
       const stretch = endDocT !== undefined && projectEnd !== null && projectEnd > project ? { docEnd: endDocT, projectEnd } : null;
-      range.current = stretch ? { ...stretch, head: project } : null;
+      range.current = stretch ? { ...stretch, head: project, startedAt: Number.POSITIVE_INFINITY, length: stretch.projectEnd - project } : null;
       const mineEpoch = ++epoch.current;
       owns.current = true;
       lastHeard.current = Date.now();
@@ -315,6 +337,11 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         why = 'The DAW could not be asked to play.';
       }
       guard.settled(generation, ok);
+      // The stretch's clock runs from the DAW accepting the play, not from asking: a REAPER busy with another command answers late.
+      if (ok && epoch.current === mineEpoch) {
+        lastHeard.current = Date.now();
+        if (range.current) range.current.startedAt = Date.now();
+      }
       if (!ok) {
         if (epoch.current === mineEpoch) {
           owns.current = false;
@@ -322,7 +349,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         }
         return why || 'The DAW did not play it.';
       }
-      if (epoch.current !== mineEpoch) stopDaw(); // stopped while the DAW was being asked
+      // Stopped (or given up) while the DAW was being asked: its answer stops the DAW again. A newer play of the page (it owns now) is not this play: it is left running.
+      if (epoch.current !== mineEpoch && !owns.current) stopDaw();
       return null;
     },
     stop: () => {

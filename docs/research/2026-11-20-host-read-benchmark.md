@@ -366,6 +366,23 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 - A hundred and twenty times fewer calls to the host, stopped or playing; the word is lit from the event as the heartbeat moves (every 1.5 s, the same steps the 4 Hz read saw).
 - **Not measured:** the delay between a real play and its transport event in a running app, and what the page costs while REAPER plays for hours.
 
+## Editing's click to the DAW's play call: no wait on the watch lease
+
+[#4043](https://github.com/countrymanprime/narration-studio/issues/4043), refs [#3880](https://github.com/countrymanprime/narration-studio/issues/3880). A click on a word and Play asked the DAW to play only once the page's watch lease had been answered (the lease is the page's first `dawTransportSync('watch')`), and, the first time, once the DAW's capabilities and the word table had been read; until then the press said "Checking whether the DAW can play this" and did nothing. The play now goes to the DAW in the same tick; a table or capabilities not yet read send the app's own audio in the same tick instead, with the reason (that case is shown by the tests, `a word table still being read does not stop the click ...`, not by the table below, which times only the DAW's `play` call).
+
+Method (the existing sync harness, `transportSync.test.tsx`; no second rig): the mock DAW's `watch` answers after a set time, the narrator presses Play at 0 ms and again every 100 ms, and the time of the first `play` call that reaches the DAW is read off the test's fake clock, on `main` and on the change (a throwaway test, not committed; the guard for the new behaviour is `plays at once with the link and the word time held, whatever the watch lease says ...`).
+
+| Watch answered after | First `play` call, before | After |
+| --- | --- | --- |
+| 0 ms | 100 ms (the first press was told to wait) | 0 ms |
+| 150 ms | 200 ms | 0 ms |
+| 1 s | 1,000 ms | 0 ms |
+| 5 s | 5,000 ms | 0 ms |
+
+- The "before" is the first press after the lease answered; with a lease that never answers there was no play call at all, one "checking" toast per press (read from the old test and code, not timed: there is no row for it).
+- The chapter's size does not enter the path: the press resolves the word's project time from the word table the page holds (a map lookup) and the DAW's play call is the only host call. **Not measured at several chapter sizes:** the harness chapter is the three-paragraph fixture; the table the real page holds is the read table's `WorkspaceWordTimes`, not timed here.
+- **Not measured:** the time from the DAW receiving `play` to sound (a defer cycle plus the audio device), the lease's real round trip on a live REAPER, and the real host's behaviour when its reads are slow (the owner's hang was not reproduced there).
+
 ## Not measured
 
 - **Windows: pending.** `.github/workflows/host-read-bench-windows.yml` runs the seed and the read table on a Windows runner once it is on `main`; the counts of the budget test run on Windows in CI. Owner: one launch of the real book with debug logging on gives the same `ui.call.ok` lines as the launch table.

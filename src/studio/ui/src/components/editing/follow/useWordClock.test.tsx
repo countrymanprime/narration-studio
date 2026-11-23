@@ -11,7 +11,7 @@ import { ScriptDoc } from '../script/ScriptDoc';
 import { marksDoc } from '../script/scriptFixtures';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { EXTRAPOLATE_MS } from './useDawTransportSync';
-import { useWordClock, WORD_TIMES_READ_LIMIT_MS } from './useWordClock';
+import { useWordClock, WORD_TIMES_ANSWER_LIMIT_MS, WORD_TIMES_READ_LIMIT_MS } from './useWordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
 
 const doc = marksDoc();
@@ -89,6 +89,24 @@ describe('the page asks the host for where its words play', () => {
     await wait(10);
     expect(text('version')).toBe('rec@1');
     expect(Number(text('project'))).toBeCloseTo(100 + (words[0].t0 as number), 6);
+  });
+
+  it('stops saying it is checking when the first read never answers, so a play says it cannot place the words instead of waiting for ever (#4043)', async () => {
+    const api = createMockApi({ workspaceWordTimes: () => new Promise<never>(() => undefined) } as never, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    expect(text('pending')).toBe('true');
+    await wait(WORD_TIMES_ANSWER_LIMIT_MS - 100);
+    expect(text('pending')).toBe('true');
+    await wait(200);
+    expect(text('pending')).toBe('false');
+    expect(text('version')).toBe('none');
   });
 
   it('says it is still asking until the host has answered, then not, whether or not it made a table', async () => {

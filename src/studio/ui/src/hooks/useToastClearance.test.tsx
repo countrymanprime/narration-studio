@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TOAST_CLEAR_RIGHT_VAR, TOAST_CLEAR_VAR, useToastClearance, useToastSideClearance } from './useToastClearance';
 
-function Bar() {
+function Bar({ follows = false }: { follows?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  useToastClearance(ref);
+  useToastClearance(ref, true, follows);
   return <div ref={ref}>bar</div>;
 }
 
@@ -34,6 +34,28 @@ describe('useToastClearance', () => {
   });
 });
 
+describe('useToastClearance in a column that scrolls', () => {
+  it('a bar that does not follow is cleared by its height only, whatever scrolls (the Booth, Proof)', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({ height: 100, top: 300 }) as DOMRect);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    render(<Bar />);
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('100px');
+    document.body.dispatchEvent(new Event('scroll'));
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('100px');
+  });
+
+  it('a bar that follows is cleared by where its top edge stands now, so a part below the column is not counted', () => {
+    let top = 700;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(() => ({ height: 100, top }) as DOMRect);
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    render(<Bar follows />);
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('100px');
+    top = 500;
+    document.body.dispatchEvent(new Event('scroll'));
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('300px');
+  });
+});
+
 describe('useToastClearance with several bars', () => {
   it('raises the toasts by all the bars at the bottom, so a notice above the footer stays uncovered, and lowers them as each goes', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
@@ -57,6 +79,15 @@ describe('useToastClearance with several bars', () => {
     expect(read()).toBe('90px');
     footer.unmount();
     expect(read()).toBe('');
+  });
+
+  it('clears the gap the page keeps under a bar too, from where the bar stands to the window bottom', () => {
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(900);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 99, top: 662 } as DOMRect);
+    const { unmount } = render(<Bar follows />);
+    // 99 px of bar, and 139 px of the page under it (a bar, a gap and a footer): all of it is cleared, not only the bar's own height.
+    expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('238px');
+    unmount();
   });
 
   it("counts a bar's bottom margin, which is part of the space it takes", () => {

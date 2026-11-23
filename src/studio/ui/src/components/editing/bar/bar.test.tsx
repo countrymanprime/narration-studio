@@ -513,8 +513,26 @@ describe('the audio element', () => {
     act(() => playback.toggle());
     audio().play.mockRejectedValueOnce(new DOMException('no', 'NotSupportedError'));
     await act(async () => playback.toggle());
-    expect(notify).toHaveBeenCalledWith(AUDIO_FAILED);
+    expect(notify).toHaveBeenCalledWith(AUDIO_FAILED, expect.any(Function));
     expect(state().playT).toBeNull();
+    // The failure offers the same play again (#4043): Retry plays it.
+    const retry = notify.mock.calls.at(-1)![1] as () => void;
+    audio().play.mockClear();
+    await act(async () => retry());
+    expect(audio().play).toHaveBeenCalled();
+    expect(state().playT).not.toBeNull();
+  });
+
+  it('ignores an error from a file that was still loading when the narrator stopped', async () => {
+    mount();
+    dispatch({ type: 'place', key: 'p-1:1' });
+    await act(async () => playback.toggle());
+    act(() => playback.toggle());
+    notify.mockClear();
+    act(() => {
+      audio().dispatchEvent(new Event('error'));
+    });
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it('stops when a voice sample starts, and leaves the cursor on the word it reached', () => {
@@ -538,14 +556,14 @@ describe('the audio element', () => {
     act(() => {
       audio().dispatchEvent(new Event('error'));
     });
-    expect(notify).toHaveBeenCalledWith(AUDIO_FAILED);
+    expect(notify).toHaveBeenCalledWith(AUDIO_FAILED, expect.any(Function));
     expect(state().playT).toBeNull();
     notify.mockClear();
     audio().play.mockImplementationOnce(() => {
       throw new Error('boom');
     });
     expect(() => act(() => playback.toggle())).not.toThrow();
-    expect(notify).toHaveBeenCalledWith(AUDIO_FAILED);
+    expect(notify).toHaveBeenCalledWith(AUDIO_FAILED, expect.any(Function));
   });
 });
 
