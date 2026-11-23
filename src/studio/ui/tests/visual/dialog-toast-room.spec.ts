@@ -139,17 +139,18 @@ for (const c of CASES) {
         .not.toBe('');
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const count = await shown(page).count();
-      if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not the newest alone`);
-      // A long message scrolls inside two lines (2.5rem, 40 px, at 400 px of height or less) over a dialog, so it never takes the dialog's room.
+      if (count !== 1) problems.push(`${width}x${height}: ${count} toasts show, not one`);
+      // A long message is two lines at most over a dialog, so it never takes the dialog's room.
       const cap = height > 400 ? 41 : 40;
       const text = await page.evaluate(() => Math.round(document.querySelector('[data-toast-region] [data-toast-text]')!.getBoundingClientRect().height));
       if (text > cap + 1) problems.push(`${width}x${height}: the toast's text is ${text} px high, over its ${cap} px`);
       if (c.longText && width <= 400) {
-        const scrolls = await page.evaluate(() => {
-          const el = document.querySelector('[data-toast-region] [data-toast-text]')!;
-          return el.scrollHeight > el.clientHeight + 1;
+        // A long message is two lines at most and scrolls inside the toast (#4063): it takes no more of the dialog's room than a short one, and the keyboard reaches all of it.
+        const cut = await page.evaluate(() => {
+          const el = document.querySelector('[data-toast-region] [data-toast-text]') as HTMLElement;
+          return el.scrollHeight > el.clientHeight + 1 && el.tabIndex === 0;
         });
-        if (!scrolls) problems.push(`${width}x${height}: the long message fits in 2.5rem, so its scroll is not exercised`);
+        if (!cut) problems.push(`${width}x${height}: the long message does not scroll inside a two-line toast, reachable by keyboard`);
       }
       if (
         c.focusField &&
@@ -213,8 +214,8 @@ for (const c of CASES) {
   });
 }
 
-// The older toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
-test('over a dialog the older toast waits for the newest to go', async ({ page }) => {
+// The other toasts are queued, not dropped (three toasts are covered in `Toast.test.tsx`: the mock has two recent projects).
+test('over a dialog the queued toasts wait behind the one showing', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   await page.setViewportSize({ width: 275, height: 280 });
@@ -228,20 +229,21 @@ test('over a dialog the older toast waits for the newest to go', async ({ page }
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--toast-h'))).toBe('');
 });
 
-// An Undo is good for a fixed time from the change (the picker sends a removal 6 s after Remove). An Undo toast that waited behind a newer one must not come back afresh after that:
-// its Undo answered "already removed" and restored nothing (qa on #3745). It waits with its clock running, so it is gone by the time the newest has gone.
-test('an Undo toast that waited behind a newer one over a dialog does not come back with a dead Undo', async ({ page }) => {
+// An Undo is good for a fixed time from the change (the picker sends a removal 6 s after Remove), but toasts show one after another, each for its whole time (#4063): the second Undo
+// shows once the first has gone, which can be after the removal was sent. Its Undo then answers "already removed" and restores nothing, which is said plainly (qa on #3745).
+test('an Undo toast that waited its turn behind another one answers a late press with "already removed"', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   await expect(shown(page)).toHaveCount(1);
-  // Past the 6 s the removals wait for an Undo: both toasts' 5 s ran from when they were raised, so none is left to offer one.
+  // Past the 6 s the removals wait for an Undo: the first Undo's 5 s are over and the second one shows for its own 5 s.
   await page.waitForTimeout(6_500);
-  expect(await shown(page).count(), 'toasts still offering Undo after the removals were sent').toBe(0);
-  await expect(page.getByText(/was already removed from recent projects/)).toHaveCount(0);
+  await expect(shown(page), 'the second Undo shows for its whole time').toHaveCount(1);
+  await shown(page).getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText(/was already removed from recent projects/)).toBeVisible();
 });
 
-// The rule is for a window with a dialog open, where the dialog needs its chrome, at any size: with no dialog open an older error and its Retry are not hidden by a newer message.
-test('the newest toast alone shows over a dialog at any size, and the whole stack when no dialog is open', async ({ page }) => {
+// One toast shows at any size, with a dialog open or not (#4063): the slot never grows, so the second waits behind it.
+test('one toast shows, with a dialog open or not, at any size', async ({ page }) => {
   page.setDefaultTimeout(20_000);
   await undoToasts(2).open(page);
   await page.setViewportSize({ width: 275, height: 280 });
@@ -251,14 +253,14 @@ test('the newest toast alone shows over a dialog at any size, and the whole stac
   await expect(shown(page)).toHaveCount(1);
   await page.setViewportSize({ width: 275, height: 280 });
   await expect(shown(page)).toHaveCount(1);
-  expect(await shown(page).first().innerText(), 'the same newest toast again').toBe(first);
+  expect(await shown(page).first().innerText(), 'the same toast again').toBe(first);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(shown(page)).toHaveCount(2);
+  await expect(shown(page)).toHaveCount(1);
 });
 
 // A toast is inverted (`--toast-bg` is `--text`): a cover or shadow painted in `--surface` on its text box puts a light band under light text (the shared `scroll-y-edges` did, on every toast).
-// In both themes the text box of a toast keeps no `--surface` colour, with a dialog open at any size (the cue is in the toast's own colours) and with none open (no scroll cue at all).
+// In both themes the text box of a toast keeps no `--surface` colour, with a dialog open at any size (the cue, drawn while the text scrolls, is in the toast's own colours) and with none open.
 for (const colorScheme of ['light', 'dark'] as const) {
   test(`a toast's text box never carries the surface colour, ${colorScheme} theme`, async ({ page }) => {
     page.setDefaultTimeout(20_000);
@@ -284,6 +286,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
     }
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    expect(await image(), 'no dialog open draws no scroll cue').toBe('none');
+    expect(await image(), "no dialog open: the cue, drawn only while the text scrolls, is still in the toast's own colours").not.toContain(surface);
   });
 }

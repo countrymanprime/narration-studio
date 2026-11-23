@@ -9,6 +9,7 @@ import { ApiProvider } from './api/ApiContext';
 import { createMockApi } from './api/mockApi';
 import { CommandRouter } from './input/router';
 import { ThemeProvider } from './theme/ThemeContext';
+import { chaptersOf } from './api/chaptersOf';
 
 configure({ asyncUtilTimeout: 12_000 });
 beforeEach(() => window.history.replaceState(null, '', '/production'));
@@ -20,8 +21,8 @@ describe('the Schedule basis toggle', () => {
   it('moves the rate the Schedule divides words by, not just the Production popover', async () => {
     const base = createMockApi();
     // Three chapters of the shared list with a measured length, so the narrator's own rate exists and differs from the standard.
-    const list = (await base.manuscriptChapters()).map((c, i) => ({ ...c, recordedSeconds: i < 3 ? 600 : undefined }));
-    const api = createMockApi({ manuscriptChapters: async () => list });
+    const list = (await base.manuscriptChapters()).chapters.map((c, i) => ({ ...c, recordedSeconds: i < 3 ? 600 : undefined }));
+    const api = createMockApi({ manuscriptChapters: async () => chaptersOf(list) });
     render(
       <ThemeProvider>
         <ApiProvider api={api}>

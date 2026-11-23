@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
+import { hasVisibleText } from '../visibleText';
 import type { DialogSize } from '../components/primitives/Dialog';
-import type { ToastAction, ToastMessage, ToastTone } from '../components/primitives/Toast';
+import { type ToastAction, type ToastMessage, type ToastTone } from '../components/primitives/Toast';
 
 /** What a toast's Undo runs. Structurally the journal's `Result`, so the caller passes `entry.undo` without this folder importing the journal. */
 type UndoResult = { ok: true } | { ok: false; refusal: { reason: string } };
@@ -73,7 +74,10 @@ type OverlaySnapshot = {
 
 const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
 
-/** How many toasts show at once; the oldest plain information toast goes first, then the oldest information toast with an action, then the oldest error. */
+/**
+ * How many toasts are kept: the one showing and three behind it. Past that the oldest plain notice goes first, then information with a button that is not an Undo, then an error, and an Undo last (never the one showing,
+ * never the newest); toasts show in the order they were raised, one at a time, each for its whole time.
+ */
 const OVERLAY_TOAST_LIMIT = 4;
 
 /**
@@ -86,6 +90,9 @@ type UndoToastOptions = {
   /** The toast outlives this many moves: one raised as the narrator leaves ("Take saved" after Stop and leave) is about a change they are leaving, and must be there on the page they land on. */
   survivesMoves?: number;
 };
+
+/** What counts as an open layer on screen: a dialog, a question or a slide-over, whoever holds it. */
+export const OPEN_LAYER_SELECTOR = '[role="dialog"], [role="alertdialog"], [data-slide-over]';
 
 export type OverlayService = {
   /** `until` closes the question unanswered (as a No) when what it asks about stopped being true, so a question never outlives its reason. */
@@ -100,6 +107,11 @@ export type OverlayService = {
   settleUndo: (live: (entry: number) => boolean) => void;
   /** Takes away every Undo toast: what they offered to undo belongs to a page, chapter or project the narrator has left. */
   dismissUndo: () => void;
+  /**
+   * Closes every open question, dialog and slide-over without asking them (a confirm is answered No; `beforeClose` is not asked): what they were opened about belongs to a
+   * project the narrator is no longer in, so confirming one would act on the old project's chapter while the host is on the new one (#4057). Answers how many it closed.
+   */
+  dismissDialogs: () => number;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -124,7 +136,7 @@ export function createOverlayService(): OverlayService {
   const openerNow = (): HTMLElement | null => {
     const active = document.activeElement;
     if (!(active instanceof HTMLElement) || active === document.body) return null;
-    if (active.closest('[role="dialog"], [role="alertdialog"], [data-slide-over]')) {
+    if (active.closest(OPEN_LAYER_SELECTOR)) {
       const top = snapshot.dialogs[snapshot.dialogs.length - 1];
       return top ? (openers.get(top.id) ?? null) : closedOpener;
     }
@@ -146,7 +158,7 @@ export function createOverlayService(): OverlayService {
   const toast = (raw: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     // Bidi controls (an override that reverses the words after it) are not text a narrator reads; a message of nothing else is not a message.
     const text = raw.replace(BIDI_CONTROLS, '');
-    if (text.trim() === '') return;
+    if (!hasVisibleText(text)) return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = {
       id: ++lastId,
@@ -164,13 +176,16 @@ export function createOverlayService(): OverlayService {
     // back the newest change; History still holds the earlier ones.
     const again = (old: ToastMessage) =>
       (options.topic !== undefined && old.topic === options.topic) || (old.action?.label === options.action?.label && old.text === text && old.tone === tone);
-    const queue = [...snapshot.toasts.filter((old) => !again(old)), message];
+    // The same message again takes the place of the old one in the queue (its time starts again when it shows), so a repeated press never stacks the same sentence and the toast on screen is the one replaced, not skipped.
+    const place = snapshot.toasts.findIndex(again);
+    const queue = snapshot.toasts.filter((old, index) => index === place || !again(old)).map((old) => (again(old) ? message : old));
+    if (place < 0) queue.push(message);
     while (queue.length > OVERLAY_TOAST_LIMIT) {
-      // The oldest plain notice goes first: a toast with an action (an Undo) is something to press, so a burst of notices does not take it.
-      const older = queue.slice(0, -1);
-      const plain = older.findIndex((m) => m.tone === 'info' && !m.action && !m.undo);
-      const info = plain >= 0 ? plain : older.findIndex((m) => m.tone === 'info');
-      queue.splice(info >= 0 ? info : 0, 1);
+      // Never the toast showing (the first) and never the newest. The oldest plain notice goes first; then the oldest information toast with a button that is not an Undo, then the oldest error, and an Undo last.
+      const older = queue.slice(1, -1);
+      const cost = (m: ToastMessage) => (m.tone === 'info' && !m.action && !m.undo ? 0 : m.tone === 'info' && !m.undo ? 1 : m.tone === 'error' ? 2 : 3);
+      const evict = older.reduce<ToastMessage | undefined>((best, m) => (!best || cost(m) < cost(best) ? m : best), undefined);
+      queue.splice(queue.indexOf(evict ?? queue[1]!), 1);
     }
     update({ toasts: queue });
   };
@@ -211,6 +226,14 @@ export function createOverlayService(): OverlayService {
     settleUndo: (live) => {
       const gone = (m: ToastMessage) => m.undo?.entry !== undefined && !live(m.undo.entry);
       if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
+    },
+    dismissDialogs: () => {
+      const open = [...snapshot.dialogs];
+      for (const entry of open) {
+        if (entry.kind === 'confirm') entry.answer(false);
+        else entry.close();
+      }
+      return open.length;
     },
     dismissUndo: () => {
       if (!snapshot.toasts.some((m) => m.undo)) return;

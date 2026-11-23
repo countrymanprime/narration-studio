@@ -54,7 +54,7 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
     let live = true;
     manuscript
       .manuscriptChapters()
-      .then((chapters) => live && (setOwn(chapters), setOwnError(undefined)))
+      .then((list) => live && (setOwn(list.chapters), setOwnError(undefined)))
       .catch((e: unknown) => live && setOwnError(e instanceof Error ? e : new Error(String(e))));
     return () => {
       live = false;
@@ -76,7 +76,7 @@ export function useReadChapters(project?: string, settled = true): (fresh?: bool
   const manuscript = usePort('manuscript');
   return useCallback(
     async (fresh = false) => {
-      if (!store) return manuscript.manuscriptChapters();
+      if (!store) return (await manuscript.manuscriptChapters()).chapters;
       await (fresh ? store.load('chapters', { project }) : store.ensure('chapters', { project, settled }));
       const held = store.getState().slots.chapters;
       if (!held) throw store.getState().errors.chapters ?? new Error('The chapter list could not be read just now. Try again.');

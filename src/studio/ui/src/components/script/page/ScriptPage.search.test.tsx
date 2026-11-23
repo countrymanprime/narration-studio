@@ -58,7 +58,7 @@ const current = () => document.querySelector('.a-find-cur');
 
 /** A word of five letters or more found in the book's last chapter and in no other. */
 async function wordOnlyInTheLastChapter(api: NarrationApi): Promise<{ word: string; chapterId: string }> {
-  const chapters = withoutCredits(await api.manuscriptChapters()).filter((chapter) => (chapter.contentKind ?? 'narration') === 'narration');
+  const chapters = withoutCredits((await api.manuscriptChapters()).chapters).filter((chapter) => (chapter.contentKind ?? 'narration') === 'narration');
   const texts = await Promise.all(chapters.map(async (chapter) => (await api.manuscriptParagraphs(chapter.id)).map((row) => row.text.toLowerCase()).join(' ')));
   const last = texts[texts.length - 1]!;
   const word = [...new Set(last.match(/[a-z]{5,}/g) ?? [])].find((candidate) => texts.slice(0, -1).every((text) => !text.includes(candidate)));

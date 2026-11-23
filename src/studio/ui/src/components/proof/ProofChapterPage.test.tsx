@@ -12,8 +12,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { headingName } from '../../chapterHeading';
 import { CommandRouter } from '../../input/router';
-import type { NarrationApi } from '../../types';
+import type { ManuscriptChapterList, NarrationApi } from '../../types';
 import { ProofChapterPage } from './ProofChapterPage';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -221,7 +222,7 @@ describe('ProofChapterPage loading state', () => {
   });
 
   it('says the chapter is not in the manuscript for an id that has none, not a blank page or a skeleton', async () => {
-    renderWorkspace({ manuscriptChapters: async () => [] });
+    renderWorkspace({ manuscriptChapters: async () => chaptersOf([]) });
     expect(await screen.findByText('This chapter is not in the manuscript')).toBeTruthy();
     expect(region()).toBeNull();
   });
@@ -233,7 +234,7 @@ describe('ProofChapterPage loading state', () => {
   });
 
   describe('a failed read offers Retry', () => {
-    const chapters = () => Promise.resolve(WIRE_CHAPTERS);
+    const chapters = () => Promise.resolve(chaptersOf(WIRE_CHAPTERS));
     const failing = (message: string) => () => Promise.reject(new Error(message));
     const retry = () => screen.getByRole('button', { name: 'Retry' });
     const settle = () => act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
@@ -249,8 +250,8 @@ describe('ProofChapterPage loading state', () => {
     });
 
     it('shows the skeleton with no stale error while it reads again, then the chapter', async () => {
-      let release: (value: typeof WIRE_CHAPTERS) => void = () => {};
-      const held = new Promise<typeof WIRE_CHAPTERS>((resolve) => (release = resolve));
+      let release: (value: ManuscriptChapterList) => void = () => {};
+      const held = new Promise<ManuscriptChapterList>((resolve) => (release = resolve));
       const read = sequence([failing('The manuscript could not be read.'), () => held]);
       renderWorkspace({ manuscriptChapters: read });
       await screen.findByText(/The manuscript could not be read\./);
@@ -258,7 +259,7 @@ describe('ProofChapterPage loading state', () => {
       expect(region()?.getAttribute('aria-busy')).toBe('true');
       expect(screen.queryByText(/The manuscript could not be read\./)).toBeNull();
       expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-      await act(async () => release(WIRE_CHAPTERS));
+      await act(async () => release(chaptersOf(WIRE_CHAPTERS)));
       expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
       expect(region()).toBeNull();
     });
@@ -296,14 +297,14 @@ describe('ProofChapterPage loading state', () => {
     });
 
     it('sets nothing when the page is left mid-retry', async () => {
-      let release: (value: typeof WIRE_CHAPTERS) => void = () => {};
-      const held = new Promise<typeof WIRE_CHAPTERS>((resolve) => (release = resolve));
+      let release: (value: ManuscriptChapterList) => void = () => {};
+      const held = new Promise<ManuscriptChapterList>((resolve) => (release = resolve));
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       renderWorkspace({ manuscriptChapters: sequence([failing('The manuscript could not be read.'), () => held]) });
       await screen.findByText(/The manuscript could not be read\./);
       await userEvent.click(retry());
       cleanup();
-      await act(async () => release(WIRE_CHAPTERS));
+      await act(async () => release(chaptersOf(WIRE_CHAPTERS)));
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
     });

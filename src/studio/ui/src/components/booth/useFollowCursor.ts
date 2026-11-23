@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { EDITABLE, KEY_WIDGET_ROLES, SPACE_ACTIVATES } from '../../input/targets';
+import { EDITABLE, KEY_WIDGET_ROLES, OWNS_KEYS, SPACE_ACTIVATES } from '../../input/targets';
 import { reducedMotion } from '../../motion';
 
 /** The part of the viewport the current word may sit in without the reader scrolling: 25% to 70% of its height. */
@@ -39,7 +39,7 @@ export function isScrollKey(event: KeyboardEvent): boolean {
   if (!SCROLL_KEYS.has(event.key)) return false;
   const target = event.target;
   if (!(target instanceof Element)) return true;
-  if (target.closest(EDITABLE)) return false;
+  if (target.closest(EDITABLE) || target.closest(OWNS_KEYS)) return false;
   const role = target.getAttribute('role');
   if (role && KEY_WIDGET_ROLES.has(role)) return false;
   return !(event.key === ' ' && target.closest(SPACE_ACTIVATES));

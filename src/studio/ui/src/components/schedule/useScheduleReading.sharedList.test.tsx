@@ -11,6 +11,7 @@ import { createJournal } from '../../studio/journal/createJournal';
 import { StudioProvider, useStoreHandle } from '../../studio/StudioProvider';
 import { chapterList } from './scheduleKit.test';
 import { useScheduleReading } from './useScheduleReading';
+import { chaptersOf } from '../../api/chaptersOf';
 
 describe('useScheduleReading follows the shared chapter list', () => {
   it('moves the chapters and the recorded hours when the store reads the list again, with no read of its own', async () => {
@@ -19,7 +20,7 @@ describe('useScheduleReading follows the shared chapter list', () => {
     const api = createMockApi({
       manuscriptChapters: async () => {
         listReads += 1;
-        return list;
+        return chaptersOf(list);
       },
     });
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });

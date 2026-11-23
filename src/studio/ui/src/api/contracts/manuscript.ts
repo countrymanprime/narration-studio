@@ -22,6 +22,9 @@ export type RecordedThrough = {
   source: RecordedThroughSource;
   confident: boolean;
 };
+/** What the host answers for the chapter list: the chapters and the project (folder text, as `Bootstrap.projectFolder`) they were read from. */
+export type ManuscriptChapterList = { project: string; chapters: ManuscriptChapter[] };
+
 export type ManuscriptChapter = {
   id: string;
   title: string;
@@ -182,7 +185,8 @@ export interface ManuscriptApi {
   manuscriptImportCommit(jobId: string, options: { confirmedReset: boolean; selection?: ManuscriptImportSelection }): Promise<WorkJob>;
   manuscriptImportCancel(jobId: string): Promise<void>;
   clearProjectData(): Promise<void>;
-  manuscriptChapters(): Promise<ManuscriptChapter[]>;
+  /** The chapter list and the project the host read it from (#4040): the folder text Bootstrap sends as `projectFolder`. */
+  manuscriptChapters(): Promise<ManuscriptChapterList>;
   manuscriptParagraphs(chapter: string): Promise<ManuscriptParagraph[]>;
   /** Searches the whole book, ignoring case; refused for a term over MANUSCRIPT_SEARCH_TERM_MAX characters after trimming. */
   manuscriptSearch(query: string): Promise<ManuscriptSearchResult>;

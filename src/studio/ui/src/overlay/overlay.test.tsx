@@ -581,11 +581,32 @@ describe('toast queue', () => {
     service.toast('boom', { tone: 'error' });
     for (const n of [1, 2, 3]) service.toast(`info ${n}`);
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Saved.', 'boom', 'info 2', 'info 3']);
-    // Nothing plain is left to push out but one: with only actions and errors showing, the oldest information toast goes, never past four.
+    // Nothing plain is left to push out: with only Undo toasts, the oldest that is not on screen goes, never past four. The one on screen (the oldest Undo) is never taken from under a hand (#4063).
     const full = createOverlayService();
     for (const n of [1, 2, 3, 4, 5]) full.toast(`act ${n}`, { action: { label: 'Undo', onAction: () => undefined } });
-    expect(full.getSnapshot().toasts.map((t) => t.text)).toEqual(['act 2', 'act 3', 'act 4', 'act 5']);
+    expect(full.getSnapshot().toasts.map((t) => t.text)).toEqual(['act 1', 'act 3', 'act 4', 'act 5']);
   });
+
+  it('the limit never takes the toast on screen: an error with a Retry shown stays through a burst of errors, and an Undo outlasts them', () => {
+    const retry = { label: 'Retry', onAction: () => undefined };
+    service.toast('first', { tone: 'error', action: retry });
+    for (const n of [1, 2, 3, 4]) service.toast(`error ${n}`, { tone: 'error' });
+    const texts = service.getSnapshot().toasts.map((t) => t.text);
+    expect(texts).toHaveLength(4);
+    expect(texts[0]).toBe('first');
+    const undone = createOverlayService();
+    undone.toastUndo('Removed.', async () => ({ ok: true }), { entry: 1 });
+    for (const n of [1, 2, 3, 4]) undone.toast(`error ${n}`, { tone: 'error' });
+    expect(undone.getSnapshot().toasts[0]?.text).toBe('Removed.');
+  });
+
+  it.each(['\u200B', '\u200D', '\u2800', '\u3164', '\uFEFF', '\u00A0', ' \u200B\u2800 ', '\u034F', '\uFE0F', '\u17B4', '\u0301\u0301'])(
+    'a message of only invisible characters (%j) is not a message',
+    (raw) => {
+      service.toast(raw, { tone: 'error', action: { label: 'Retry', onAction: () => undefined } });
+      expect(service.getSnapshot().toasts).toHaveLength(0);
+    },
+  );
 
   // qa-breaker B1: kept on purpose, the PR body says so. The label is part of what a toast says, so the same sentence with another action is another toast.
   it('the same sentence with a different action label stacks: Saved, Saved + Retry and Saved + Undo are three toasts', () => {
@@ -601,7 +622,8 @@ describe('toast queue', () => {
     expect(toasts.map((t) => t.text)).toEqual(['REAPER is not answering.']);
     service.toast('Something else.');
     service.toast('REAPER is not answering.');
-    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Something else.', 'REAPER is not answering.']);
+    // It keeps its place in the queue: the toast on screen is the one replaced, not skipped.
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['REAPER is not answering.', 'Something else.']);
   });
 
   it('the same words as an error and as information are two messages, and so are the same words with and without an action', () => {
@@ -637,7 +659,7 @@ describe('toast queue', () => {
     service.toast('REAPER is starting. Record turns on here once it connects.', { topic: 'daw-start' });
     service.toast('Unrelated.');
     service.toast('REAPER could not be started: the program did not open.', { tone: 'error', topic: 'daw-start' });
-    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Unrelated.', 'REAPER could not be started: the program did not open.']);
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['REAPER could not be started: the program did not open.', 'Unrelated.']);
     service.dismissTopic('daw-start');
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Unrelated.']);
     service.dismissTopic('daw-start');
@@ -655,5 +677,46 @@ describe('overlay.open headerless', () => {
     mount();
     act(() => void service.open({ kind: 'dialog', dismissOnOutsidePress: false, title: 'Headed', render: () => <p>x</p> }));
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
+  });
+});
+
+describe('overlay.dismissDialogs (a project attach, #4057)', () => {
+  it('answers an open question No, closes the dialog under it without asking, and leaves the toasts alone', async () => {
+    mount();
+    const asked = vi.fn(async () => false);
+    service.open({
+      kind: 'dialog',
+      title: 'Milestone',
+      dismissOnOutsidePress: false,
+      beforeClose: asked,
+      render: ({ close }) => <button onClick={close}>Close milestone</button>,
+    });
+    await screen.findByRole('dialog', { name: 'Milestone' });
+    service.toast('Saved');
+    // The question stacks above the others, as a page's own question would.
+    const question = ask();
+    await screen.findByRole('alertdialog', { name: 'Delete the take?' });
+    service.dismissDialogs();
+    await expect(question).resolves.toBe(false);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Milestone' })).toBeNull());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    // A typed-text dialog's own question is for a way out the narrator chose; the project it was about is gone, so nothing asks.
+    expect(asked).not.toHaveBeenCalled();
+    expect(service.getSnapshot().dialogs).toHaveLength(0);
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Saved']);
+  });
+
+  it('closes a slide-over too', async () => {
+    mount();
+    service.open({ kind: 'slideOver', title: 'History', render: () => <p>History body</p> });
+    await screen.findByText('History body');
+    service.dismissDialogs();
+    await waitFor(() => expect(screen.queryByText('History body')).toBeNull());
+    expect(service.getSnapshot().dialogs).toHaveLength(0);
+  });
+
+  it('does nothing when nothing is open', () => {
+    mount();
+    expect(() => service.dismissDialogs()).not.toThrow();
   });
 });

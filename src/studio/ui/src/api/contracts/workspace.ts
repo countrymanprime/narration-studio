@@ -192,7 +192,12 @@ export type WorkspacePeaks = {
 /** One analyzed item's waveform, or why it has none (WorkspacePeaksItem, src/studio/desktop/bindings_workspace_peaks.go):
  * peaks is absent, and reason set, for an item that is not live, has no source audio, or whose source is not a WAV
  * ("no waveform") - never an error, so one bad item does not blank the rest of the strip. */
-export type WorkspacePeaksEntry = { index: number; peaks?: WorkspacePeaks; reason?: string };
+export type WorkspacePeaksEntry = {
+  index: number;
+  peaks?: WorkspacePeaks;
+  reason?: string;
+  /** The recording is still being read: asking again finds the waveform. */ pending?: boolean;
+};
 
 export type WorkspacePeaksResult = { chapterId: string; items: WorkspacePeaksEntry[] };
 

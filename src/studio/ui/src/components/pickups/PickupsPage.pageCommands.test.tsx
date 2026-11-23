@@ -23,6 +23,7 @@ import { ALL_DONE, CHAPTERS, MIXED } from './list/pickupFixtures';
 import { boothSessionPath, PickupsPage } from './PickupsPage';
 import { pickupToReturnTo } from './pickupReturn';
 import { pickup } from './list/pickupFixtures';
+import { chaptersOf } from '../../api/chaptersOf';
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = () => {};
@@ -36,7 +37,7 @@ const listOf = (pickups: PickupList['pickups']): PickupList => ({ pickups, leftO
 
 function renderPage(api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(listOf(MIXED)) })) {
   vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
-    CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })) as never,
+    chaptersOf(CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })) as never),
   );
   const goTo = vi.fn();
   const view = render(

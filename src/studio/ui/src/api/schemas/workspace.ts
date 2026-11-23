@@ -133,6 +133,7 @@ const peaksEntrySchema = z.object({
   index: z.number(),
   peaks: optionalFromNull(peaksSchema),
   reason: optionalFromNull(z.string()),
+  pending: optionalFromNull(z.boolean()),
 }) satisfies z.ZodType<WorkspacePeaksEntry>;
 
 export const workspacePeaksResultSchema = z.object({

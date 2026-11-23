@@ -82,7 +82,7 @@ const press = (code: string, modifiers: Parameters<typeof gesture>[2] = [], targ
 
 beforeEach(async () => {
   api = createMockApi();
-  const all = await api.manuscriptChapters();
+  const all = (await api.manuscriptChapters()).chapters;
   chapters = withoutCredits(all)
     .slice(0, 2)
     .map((c) => ({ id: c.id, name: c.title }));

@@ -101,6 +101,9 @@ function focusMainOnceDialogsClose(main: HTMLElement | null): (() => void) | und
   };
 }
 
+/** The shell always keeps a slot under the page for one message (`--toast-slot`, set by `ToastRegion`), so a message shows in it and moves nothing and covers nothing, and it never grows: one message shows, the rest wait behind it. Over a dialog the page keeps the slot. */
+const TOAST_STRIP = 'pb-[max(var(--toast-slot,0px),var(--toast-h,0px))] [:root[data-modal-open]_&]:pb-[var(--toast-slot,0px)]';
+
 export function AppShell({
   pathname,
   navigate,
@@ -273,7 +276,7 @@ export function AppShell({
       <div className="h-full overflow-hidden bg-[var(--bg)]">
         {skipLink}
         {pageStatus}
-        <main id="main-content" ref={mainRef} tabIndex={-1} className="size-full overflow-hidden focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className={`size-full overflow-hidden focus:outline-none ${TOAST_STRIP}`}>
           {children}
         </main>
       </div>
@@ -298,7 +301,7 @@ export function AppShell({
           {navigation}
         </NavDrawer>
         {/* tabIndex -1: a dialog that closes with nothing to give focus back to (its opener is gone) sends focus into <main> (its first control, or <main> itself), not to <body>. */}
-        <main id="main-content" ref={mainRef} tabIndex={-1} className="flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className={`flex min-w-0 flex-1 flex-col overflow-hidden focus:outline-none ${TOAST_STRIP}`}>
           <header className="flex h-13 flex-none items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] text-sm max-md:gap-2">
             {/* 32 px and the jump button's grey field and border, so the bar's two ends match (alignment audit XSL-3); never squeezed by a long name (XSL-10). */}
             <IconButton

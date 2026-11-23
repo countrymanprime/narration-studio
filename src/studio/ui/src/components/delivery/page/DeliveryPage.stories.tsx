@@ -7,6 +7,7 @@ import { StudioProvider } from '../../../studio/StudioProvider';
 import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, PackageJob } from '../../../types';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
 import { DeliveryPage } from './DeliveryPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 // The Delivery page body (docs/research/mockups/research-mock/src/pages/Delivery.tsx): the profile card, Output and "Before you build", mounted at
 // `/delivery`.
@@ -43,7 +44,7 @@ const credits = (kind: 'opening' | 'closing'): ManuscriptChapter =>
 // The rows are the chapter list's: a story brings the credits by putting them in it.
 const host = (files: MeasureFileResult[], job: PackageJob = idle, list: ManuscriptChapter[] = chapters) =>
   createMockApi({
-    manuscriptChapters: async () => list,
+    manuscriptChapters: async () => chaptersOf(list),
     measureState: async () => measured(files),
     exportState: async () => encoded,
     packageState: async () => job,
@@ -104,7 +105,7 @@ const numbered = ['Down the Rabbit-Hole', 'The Pool of Tears', 'A Caucus-Race', 
 export const NumberedHeadings: Story = {
   parameters: {
     api: createMockApi({
-      manuscriptChapters: async () => numbered,
+      manuscriptChapters: async () => chaptersOf(numbered),
       measureState: async () => measured([]),
       exportState: async () => encoded,
       packageState: async () => idle,
@@ -177,7 +178,7 @@ export const BuildFailed: Story = {
 export const CannotTell: Story = {
   parameters: {
     api: createMockApi({
-      manuscriptChapters: async () => chapters,
+      manuscriptChapters: async () => chaptersOf(chapters),
       measureState: async () => Promise.reject(new Error('the host did not answer')),
       exportState: async () => encoded,
       packageState: async () => idle,

@@ -44,6 +44,7 @@ import { VoiceLayoutContext } from './voiceLayout';
 import type { LiveTracks } from './useLiveTracks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { chaptersOf } from '../../api/chaptersOf';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireLink } from '../../api/mockFixtures';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 import { headingName } from '../../chapterHeading';
@@ -300,9 +301,11 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const rtl = 'פרק ١ \u{1F30A} البحر';
     const long = `Chapter 2: ${'A very long chapter title that goes on '.repeat(6).trim()}`;
     const chapters = async () => {
-      const list = await base.manuscriptChapters();
-      return list.map((chapter) =>
-        chapter.id === WIRE_CHAPTERS[0].id ? { ...chapter, title: rtl } : chapter.id === WIRE_CHAPTERS[1].id ? { ...chapter, title: long } : chapter,
+      const list = (await base.manuscriptChapters()).chapters;
+      return chaptersOf(
+        list.map((chapter) =>
+          chapter.id === WIRE_CHAPTERS[0].id ? { ...chapter, title: rtl } : chapter.id === WIRE_CHAPTERS[1].id ? { ...chapter, title: long } : chapter,
+        ),
       );
     };
     const create = async (chapterId: string): Promise<ChapterTrackCreateResult> => {

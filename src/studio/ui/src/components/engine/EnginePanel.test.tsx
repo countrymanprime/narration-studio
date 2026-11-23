@@ -13,6 +13,7 @@ import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import type { NarrationApi } from '../../types';
 import type { Track, TracksLive } from '../../api/contracts/tracks';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -107,7 +108,9 @@ describe('EnginePanel', () => {
     let title = 'Chapter 1';
     const base = createMockApi();
     const original = base.manuscriptChapters.bind(base);
-    const api = renderPanel({ manuscriptChapters: async () => (await original()).map((chapter, index) => (index === 0 ? { ...chapter, title } : chapter)) });
+    const api = renderPanel({
+      manuscriptChapters: async () => chaptersOf((await original()).chapters.map((chapter, index) => (index === 0 ? { ...chapter, title } : chapter))),
+    });
     void api;
     const table = await trackTable();
     await within(table).findAllByRole('button', { name: 'Use this track for Chapter 1' });

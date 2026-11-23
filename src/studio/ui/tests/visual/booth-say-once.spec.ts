@@ -61,13 +61,15 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(await timesSaid(page, REFUSAL)).toBe(1);
       // The footer is the size it was before the refusal (it never grew a sentence's rows).
       expect(await footerHeight(page)).toBe(idleFooter);
-      // The message is whole and inside the window: its text does not scroll, its action and Dismiss are on screen, nothing overflows sideways.
+      // The message is whole and inside the window: its text is the whole sentence, and when it is longer than two lines it scrolls inside the toast and takes a Tab stop so every word is
+      // reachable (#2793); its action and Dismiss are on screen, nothing overflows sideways.
       const fits = await page.evaluate(() => {
         const text = document.querySelector<HTMLElement>('[data-toast-region] [data-tone="error"] [data-toast-text]')!;
         const box = document.querySelector('[data-toast-region] [data-tone="error"]')!.getBoundingClientRect();
         const dismiss = document.querySelector('[data-toast-region] [data-tone="error"] [aria-label="Dismiss message"]')!.getBoundingClientRect();
         return {
-          clipped: text.scrollHeight > text.clientHeight + 1,
+          clipped: text.scrollHeight > text.clientHeight + 1 && text.tabIndex !== 0,
+          whole: text.textContent?.includes('Unlock it and try again.') ?? false,
           inside: box.left >= 0 && box.right <= window.innerWidth && box.top >= 0 && box.bottom <= window.innerHeight,
           dismissInside: dismiss.right <= window.innerWidth && dismiss.bottom <= window.innerHeight,
           sideways: document.documentElement.scrollWidth > window.innerWidth,
@@ -76,6 +78,7 @@ for (const scheme of ['light', 'dark'] as const) {
       });
       expect(await toastProblems(page)).toEqual([]);
       expect(fits.clipped).toBe(false);
+      expect(fits.whole).toBe(true);
       expect(fits.inside).toBe(true);
       expect(fits.dismissInside).toBe(true);
       expect(fits.sideways).toBe(false);
@@ -191,14 +194,17 @@ for (const { width, height } of [
     await expect(record(page)).toBeVisible({ timeout: 8000 });
     await pastStartGuard(page);
     await page.keyboard.press('Space');
-    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
     await page.keyboard.press('b');
-    await expect.poll(async () => page.locator('[data-toast-region] [data-tone]').count()).toBeGreaterThanOrEqual(3);
+    // One toast shows in the slot and the rest wait behind it with a count (#4063); each takes the slot in turn, so every one is looked at.
+    const more = page.locator('[data-toast-region] [data-toast-more]');
+    await expect(more).toBeVisible();
+    await expect.poll(async () => Number((await more.textContent())?.replace('+', ''))).toBeGreaterThanOrEqual(2);
     await page.waitForTimeout(400);
+    expect(await page.locator('[data-toast-region] [data-tone]:not([hidden])').count()).toBe(1);
     expect(await toastProblems(page)).toEqual([]);
     // Every button is the topmost element at its own centre: nothing covers it.
     const covered = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')]
+      [...document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone]:not([hidden]) button')]
         .filter((button) => {
           const box = button.getBoundingClientRect();
           const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
@@ -249,5 +255,69 @@ for (const [name, invisible] of [
     await expect(text).toBeVisible();
     await expect(text).toContainText(/did not start recording/);
     expect((await text.boundingBox())!.width).toBeGreaterThan(20);
+  });
+}
+
+// The toast's text takes focus while it scrolls so the keyboard reaches all of it; its keys scroll it and never start a recording or move the reading cursor (#4063).
+test('Space, the arrows and Page Down in a focused, scrolling toast text scroll it and start no recording', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(
+    (sentence) => {
+      const w = window as unknown as { __starts: number; __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+      w.__starts = 0;
+      w.__NARRATION_MOCK_OVERRIDES__ = {
+        readAloudRecordStart: () => {
+          w.__starts += 1;
+          return Promise.resolve({ ok: false, outcome: 'refused', message: sentence, refused: sentence });
+        },
+      };
+    },
+    `${'The armed track is locked, so REAPER would not start recording. '.repeat(40)}Unlock it and try again.`,
+  );
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Booth');
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await page.keyboard.press('Space');
+  const text = page.locator('[data-toast-region] [data-tone="error"] [data-toast-text]');
+  await expect(text).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __starts: number }).__starts)).toBe(1);
+  await text.focus();
+  await expect(text).toBeFocused();
+  for (const key of ['Space', 'ArrowDown', 'PageDown', 'ArrowDown']) await page.keyboard.press(key);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as unknown as { __starts: number }).__starts), 'a key meant for the toast text started a recording').toBe(1);
+  expect(await text.evaluate((el) => el.scrollTop), 'the keys scroll the toast text').toBeGreaterThan(0);
+});
+
+// A message that fits is plain text, not a scroller: Chromium makes any scroller a tab stop, a sub-pixel overflow included (16.984 px of 17), and Space there started a recording (#4063).
+for (const { width, height } of [
+  { width: 1440, height: 900 },
+  { width: 1100, height: 800 },
+]) {
+  test(`${width}x${height}: Tab never stops on the text of a one-line toast in the Booth`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('The take could not be saved. Try again.'));
+    await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
+    await record(page).focus();
+    const stops: string[] = [];
+    for (let n = 0; n < 25; n += 1) {
+      await page.keyboard.press('Tab');
+      stops.push(
+        await page.evaluate(() =>
+          document.activeElement?.hasAttribute('data-toast-text')
+            ? 'toast text'
+            : (document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.tagName ?? ''),
+        ),
+      );
+    }
+    expect(stops, 'the toast text took a Tab stop').not.toContain('toast text');
+    expect(stops).toContain('Dismiss message');
   });
 }

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, within } from 'storybook/test';
 import { MasterPage } from './MasterPage';
 import { ALL_PASS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './testPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 // Master & QC's page body (docs/research/mockups/research-mock/src/pages/Master.tsx): files, consistency and the package checks beside
 // the kept panels. Mounted at `/master`.
@@ -12,7 +13,8 @@ const meta = {
   render: (args, { parameters }) => (
     <PageHost
       api={apiOf(jobOf(parameters.files ?? []), acx, {
-        manuscriptChapters: async () => (parameters.chapters ? CHAPTERS_WITH_CREDITS : CHAPTERS_WITH_CREDITS.filter((chapter) => chapter.isCredits)),
+        manuscriptChapters: async () =>
+          parameters.chapters ? chaptersOf(CHAPTERS_WITH_CREDITS) : chaptersOf(CHAPTERS_WITH_CREDITS.filter((chapter) => chapter.isCredits)),
       })}
     >
       <div className="bg-[var(--bg)] p-4">

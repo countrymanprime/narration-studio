@@ -29,7 +29,7 @@ describe('scenario-seed-reaches-the-mock', () => {
   it('answers the built lists when seeded', async () => {
     const scenario = makeScenario({ shape: 'titleOnly', chapters: 12 });
     const api = createMockApi({}, scenario.seed);
-    expect((await api.manuscriptChapters()).filter((chapter) => !chapter.isCredits).map((chapter) => chapter.id)).toEqual(
+    expect((await api.manuscriptChapters()).chapters.filter((chapter) => !chapter.isCredits).map((chapter) => chapter.id)).toEqual(
       scenario.chapters.map((chapter) => chapter.id),
     );
     const last = scenario.chapters[11];
@@ -37,7 +37,7 @@ describe('scenario-seed-reaches-the-mock', () => {
   });
 
   it('answers the Alice fixture without the seed', async () => {
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = (await createMockApi().manuscriptChapters()).chapters;
     expect(chapters.some((chapter) => chapter.id.startsWith('chapter-1') || chapter.title.length > 0)).toBe(true);
     expect(chapters.length).not.toBe(40);
   });

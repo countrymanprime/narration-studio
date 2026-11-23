@@ -7,11 +7,25 @@ import type { InferOutput, StandardSchemaV1 } from '../../api/wire/standardSchem
 import { windowFocusSource, type FocusSource } from './focusSource';
 import { createKeyedCache, type KeyedCache, type KeyedConfig } from './keyedCache';
 
+/** How a slot is read: exactly one of `load` and `read`, so a slot with neither or both does not type-check. */
+type SlotReader =
+  | {
+      /** Reads the raw payload from the host through a port. The store parses it; a loader returns it unchecked. The value is held under the project the store believes it is on. */
+      load: () => Promise<unknown>;
+      read?: never;
+    }
+  | {
+      /**
+       * A stamped alternative to `load`: the host says which project it read the payload from (#4040), and the store holds the value under that project
+       * instead of its own belief. The payload is parsed with the slot's schema like a `load`'s.
+       */
+      read: () => Promise<{ project: string; payload: unknown }>;
+      load?: never;
+    };
+
 /** One cross-page read model: how to read it, how to check it, and what makes it stale. */
-export type SlotConfig<S extends StandardSchemaV1 = StandardSchemaV1> = {
+export type SlotConfig<S extends StandardSchemaV1 = StandardSchemaV1> = SlotReader & {
   schema: S;
-  /** Reads the raw payload from the host through a port. The store parses it; a loader returns it unchecked. */
-  load: () => Promise<unknown>;
   /** Host event names that make this slot stale. */
   events?: readonly string[];
   /**
@@ -88,12 +102,13 @@ export type StudioStore<R extends SlotRegistry> = {
   /**
    * Says which project the app is on, from the host's bootstrap. A different folder empties the store (what it holds is for the other project); the
    * same folder after a reset confirms the project. The reader of a held value asks for its own project (`ReadOptions`), and the store records the project
-   * each value was read for, so a list is not served under another project's folder once the app has heard of the switch (a read that begins before that is #4040).
+   * each value was read for: the host's stamp for a slot that has one (`SlotConfig.read`), so an answer read from a project the window has not heard of
+   * is never held under the one it is on (#4040).
    */
   setProject(folder: string): void;
   /** The project the store was last told it is on (`setProject`, or the first reader that named one); undefined before. */
   project(): string | undefined;
-  /** The project the held value of `slot` was read for; undefined when nothing is held or the store was never told a project. */
+  /** The project the held value of `slot` was read for: the host's stamp, or for a slot without one the project the store believed it was on; undefined when nothing is held (or, without a stamp, when the store was never told a project). */
   projectOf(slot: keyof R & string): string | undefined;
   /** How many times the store was reset: a read made under an earlier number belongs to the project before the switch. Subscribers hear each reset. */
   generation(): number;
@@ -116,6 +131,10 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   // The project the store holds values for, whether the host's answer to the last attach was heard, and the project each held value was read for.
   let onProject: string | undefined;
   let confirmed = true;
+  // The project a stamped answer named while the store was confirmed on another: the host attached a project the window has not heard of. Every reader waits
+  // until `reset` or `setProject` clears it; `aheadSeq` counts the answers dropped this way so a reader whose read was dropped reads again (#4040).
+  let ahead: string | undefined;
+  let aheadSeq = 0;
   const owners = new Map<string, string | undefined>();
   const waiters = new Set<() => void>();
   // Releases of the readers waiting on a read, called when a reset ends their epoch: a reader waiting on a read that was dropped, and may never answer, reads again.
@@ -169,6 +188,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   async function run(name: keyof R & string): Promise<Error | undefined> {
     const config = Object.hasOwn(registry, name) ? registry[name] : undefined;
     if (!config) return new Error(`studio: no slot named ${name}`);
+    const { load, read } = config;
     const myEpoch = epoch;
     // A value read while the host's answer to an attach is not heard belongs to no known project: named readers read again for theirs.
     const owner = confirmed ? onProject : undefined;
@@ -177,8 +197,15 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     // A reset or a newer load of the same slot makes this answer stale: it writes nothing, not even its failure.
     const current = () => myEpoch === epoch && request > (applied.get(name) ?? 0);
     let value: unknown;
+    let stamp: string | undefined;
     try {
-      value = parseWire(config.schema, await config.load(), { boundary: 'studio store', payload: name });
+      let payload: unknown;
+      if (read) {
+        const answer = await read();
+        stamp = answer.project;
+        payload = answer.payload;
+      } else payload = await load();
+      value = parseWire(config.schema, payload, { boundary: 'studio store', payload: name });
     } catch (e) {
       if (!current()) return undefined;
       applied.set(name, request);
@@ -189,7 +216,14 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     }
     if (current()) {
       applied.set(name, request);
-      owners.set(name, owner);
+      if (stamp !== undefined && confirmed && onProject !== undefined && onProject !== stamp) {
+        // The host answered from a project the window has not heard of (its folder changed before `system:attached`): holding it under the project the
+        // store is on would serve it to that project's readers. The slot keeps what it holds, which is that project's, and every reader waits for the news.
+        ahead = stamp;
+        aheadSeq += 1;
+        return undefined;
+      }
+      owners.set(name, stamp ?? owner);
       setSlot(name, value);
     }
     return undefined;
@@ -199,16 +233,20 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   /**
    * A reader that names its project may read once the store is on that project and the host's answer to the last attach was heard: the host changes its
    * project, unlocks and only then emits `system:attached`, so a bootstrap can name the new folder before the event, or the event can come before the
-   * bootstrap does (desktop/attach_order_test.go), and a read in that gap would give one project's list under the other's folder. The wait ends when
-   * `setProject` answers: the reader's project (go on), another (the project changed), and after the stuck age with no answer the read is refused.
+   * bootstrap does (desktop/attach_order_test.go). Every reader, named or not, also waits while `ahead` is set: a stamped answer showed that the host is on a
+   * project the window has not heard of. The wait ends when `setProject` answers: the reader's project (go on), another (the project changed); a reset
+   * ends the wait of a reader that named none; and after the stuck age with no answer the read is refused.
    */
   function gate(project: string | undefined): Promise<void> | undefined {
-    if (project === undefined) return undefined;
-    if (onProject === undefined) {
-      onProject = project;
-      return undefined;
+    if (project === undefined) {
+      if (ahead === undefined) return undefined;
+    } else {
+      if (onProject === undefined) {
+        onProject = project;
+        return undefined;
+      }
+      if (confirmed && onProject === project && ahead === undefined) return undefined;
     }
-    if (confirmed && onProject === project) return undefined;
     return new Promise<void>((resolve, reject) => {
       const done = (settle: () => void) => {
         clearTimeout(timer);
@@ -216,7 +254,11 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
         settle();
       };
       const check = () => {
-        if (!confirmed) return;
+        if (project === undefined) {
+          if (ahead === undefined) done(resolve);
+          return;
+        }
+        if (!confirmed || ahead !== undefined) return;
         if (onProject === project) done(resolve);
         else done(() => reject(new ProjectChangedError()));
       };
@@ -235,6 +277,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   function readUntilKept(name: keyof R & string, options: ReadOptions, once: () => Promise<void>, round = 0): Promise<void> {
     const start = () => {
       const before = epoch;
+      const aheadBefore = aheadSeq;
       let release = () => {};
       const dropped = new Promise<void>((resolve) => releases.add((release = resolve)));
       // A host that never answers gives way after a while (a skeleton with no way out is no state): the reader fails and its Retry reads again.
@@ -246,7 +289,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
           clearTimeout(timer);
         })
         .then(() => {
-          if (epoch === before || holds(name, options.project) || round >= 2) return;
+          if ((epoch === before && aheadSeq === aheadBefore) || holds(name, options.project) || round >= 2) return;
           return readUntilKept(name, options, once, round + 1);
         });
     };
@@ -366,14 +409,20 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     generation: () => epoch,
     reset() {
       clearHeld();
+      ahead = undefined;
       // The host attached a project and has not said which: readers that name theirs wait for `setProject`.
       if (onProject !== undefined) confirmed = false;
+      wake();
     },
     setProject(folder) {
       const changed = onProject !== undefined && onProject !== folder;
       onProject = folder;
       confirmed = true;
-      if (changed) clearHeld();
+      ahead = undefined;
+      // What is held for a project other than `folder` is not served under it, whatever the store believed before: a list read from B and held while the
+      // store was unconfirmed (or never told a project) stays only when the store turns out to be on B.
+      const foreign = [...owners.values()].some((owner) => owner !== undefined && owner !== folder);
+      if (changed || foreign) clearHeld();
       wake();
     },
     project: () => onProject,

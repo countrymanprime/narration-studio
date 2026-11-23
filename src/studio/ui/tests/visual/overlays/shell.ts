@@ -20,6 +20,21 @@ const atLeastMd = ({ width }: { width: number }) => width >= 860;
 export const shellPageCases: OverlayCase[] = [
   contextMenuCase('context menu on the page'),
   {
+    // The error toast with Retry (the mock build's `window.__raiseToast`): the guard's topmost and on-screen rules hold for it on every page, at every
+    // window and over scrolled content; `tests/visual/toast-covers-no-button.spec.ts` holds the other side, that it covers no button of the page (#4063).
+    name: 'error toast with Retry',
+    kind: 'popover',
+    root: (page) => page.locator('[data-toast-region] [data-tone="error"]').last(),
+    open: async (page) => {
+      await page.evaluate(() =>
+        (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast(
+          "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.",
+        ),
+      );
+      await page.locator('[data-toast-region] [data-tone="error"]').last().waitFor();
+    },
+  },
+  {
     name: 'navigation rail opened over the page',
     kind: 'rail',
     // From 860 to 1359 px the rail is icons that open to labels over the page while the pointer is on them.
