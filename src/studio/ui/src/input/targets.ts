@@ -5,6 +5,8 @@
  * tests keep working unchanged.
  */
 export const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
+/** An element that scrolls its own content and keeps every plain key for that: the toast's text while it overflows (arrows, Page Up/Down, Home/End and Space scroll it; none reaches the page's commands). */
+export const OWNS_KEYS = '[data-owns-keys]';
 export const SPACE_ACTIVATES = 'button, a[href], summary, [role="button"], [role="checkbox"], [role="switch"]';
 export const KEY_WIDGET_ROLES = new Set([
   'combobox',
@@ -45,7 +47,7 @@ export function ownsKeysByRole(element: Element): boolean {
  */
 export function isGuardedTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  if (target.closest(EDITABLE) || target.closest(SPACE_ACTIVATES)) return true;
+  if (target.closest(EDITABLE) || target.closest(SPACE_ACTIVATES) || target.closest(OWNS_KEYS)) return true;
   return ownsKeysByRole(target);
 }
 

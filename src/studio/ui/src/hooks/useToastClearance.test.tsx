@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 describe('useToastClearance', () => {
-  it('raises the toasts by the bar height while it is mounted and puts them back when it goes', () => {
+  it('holds the bar height in the clearance while it is mounted and drops it when it goes', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 96.4 } as DOMRect);
     const { unmount } = render(<Bar />);
     expect(document.documentElement.style.getPropertyValue(TOAST_CLEAR_VAR)).toBe('97px');
@@ -57,7 +57,7 @@ describe('useToastClearance in a column that scrolls', () => {
 });
 
 describe('useToastClearance with several bars', () => {
-  it('raises the toasts by all the bars at the bottom, so a notice above the footer stays uncovered, and lowers them as each goes', () => {
+  it('holds all the bars at the bottom in the clearance, so a notice above the footer stays uncovered, and lowers it as each goes', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       return { height: Number(this.dataset.h) } as DOMRect;
     });
@@ -125,6 +125,23 @@ describe('useToastSideClearance', () => {
     expect(read()).toBe('392px');
     unmount();
     expect(read()).toBe('');
+  });
+
+  it('leaves the toasts at the right gutter when the panel ends above the strip the shell keeps for them (#4063)', () => {
+    vi.stubGlobal('innerWidth', 1440);
+    vi.stubGlobal('innerHeight', 900);
+    document.documentElement.style.setProperty('--toast-slot', '80px');
+    try {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440, bottom: 820 } as DOMRect);
+      render(<Panel />);
+      expect(read()).toBe('');
+      // Reaching into the strip (a panel taller than the page), it still clears the toast.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440, bottom: 900 } as DOMRect);
+      act(() => void window.dispatchEvent(new Event('toast-room')));
+      expect(read()).toBe('392px');
+    } finally {
+      document.documentElement.style.removeProperty('--toast-slot');
+    }
   });
 
   // #3113: Proof draws its page after the data arrives, so the panel is not there when the hook first runs; the toasts then covered its decision buttons.

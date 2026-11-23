@@ -99,7 +99,7 @@ function useBusy(): [boolean, (work: () => Promise<void>) => Promise<void>] {
   return [busy, run];
 }
 
-/** Where a notice's chip stands: above the footer, beside nothing, so a message rises above it (`useToastClearance`) and never covers it. */
+/** Where a notice's chip stands: above the footer, beside nothing, and `useToastClearance` tells what is fixed over the edge where it ends. */
 export function NoticeChip({ id, label, onOpen }: { id: string; label: string; onOpen: () => void }) {
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);

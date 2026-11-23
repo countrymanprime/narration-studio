@@ -70,13 +70,13 @@ for (const c of CASES) {
   });
 }
 
-// A message rises above the notice and never covers it, in the windows where the notice is nearly all there is (walkthrough 4 item 12).
+// A message stands in a strip under the page and never covers the notice, in the windows where the notice is nearly all there is (walkthrough 4 item 12).
 for (const c of [
   { width: 800, height: 600 },
   { width: 400, height: 700 },
   { width: 1440, height: 500 },
 ]) {
-  test(`a toast sits above the notice, not over it: ${c.width}x${c.height}`, async ({ page }) => {
+  test(`a toast sits under the notice, not over it: ${c.width}x${c.height}`, async ({ page }) => {
     await page.setViewportSize(c);
     await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
@@ -93,7 +93,9 @@ for (const c of [
     await expect(toast).toBeVisible();
     const notice = (await page.locator('#brec-setup').boundingBox())!;
     const hit = (await toast.boundingBox())!;
-    expect(hit.y + hit.height, 'the toast ends where the notice begins').toBeLessThanOrEqual(notice.y + 1);
+    // Above 520 px of height the toast stands in the slot under the page, below the notice; in a shorter window there is no slot and it rises above the notice as it did before (#4063).
+    if (c.height > 520) expect(hit.y, 'the toast begins where the notice ends').toBeGreaterThanOrEqual(notice.y + notice.height - 1);
+    else expect(hit.y + hit.height, 'the toast ends where the notice begins').toBeLessThanOrEqual(notice.y + 1);
     const topmost = await page.evaluate(() => {
       const el = document.querySelector('#brec-setup')!;
       const r = el.getBoundingClientRect();
