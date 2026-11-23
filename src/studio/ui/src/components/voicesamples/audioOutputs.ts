@@ -43,6 +43,9 @@ export async function listAudioOutputs(): Promise<OutputListing> {
 /** The one topic of every toast about the outputs, so the open-time sentence, a press of Check again and a second player's identical apply are one message on screen, the newest. */
 export const OUTPUT_TOAST_TOPIC = 'output-device';
 
+/** The option for a saved output the list does not hold: the state first and the name second, so a long name cut off by the select's width never hides that the output is unusable. */
+export const unusableOutputLabel = (name: string, listWouldNotCome: boolean): string => `${listWouldNotCome ? 'Could not check' : 'Not connected'}: ${name}`;
+
 /** What is said of a saved output that is not connected; `plays` is what sounds on the system default meanwhile ("Sound plays", "Voice samples play"). */
 export const missingOutputSentence = (label: string, plays: string): string => `${label} is not connected. ${plays} on the system default until it is back.`;
 

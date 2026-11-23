@@ -148,7 +148,7 @@ describe('Voice sample output: the built-in recorder', () => {
     expect(within(row()).queryByRole('alert')).toBeNull();
     const select = await picker();
     expect(select.value).toBe('Studio monitors (Scarlett)');
-    expect(optionNames(select)).toContain('Studio monitors (Scarlett), not connected');
+    expect(optionNames(select)).toContain('Not connected: Studio monitors (Scarlett)');
     devices = [...devices, out('c3', 'Studio monitors (Scarlett)')];
     fireEvent.click(within(row()).getByRole('button', { name: 'Check again' }));
     await waitFor(() => expect(within(row()).queryByRole('alert')).toBeNull());
@@ -198,7 +198,7 @@ describe('Voice sample output: the built-in recorder', () => {
     const select = await picker();
     await waitFor(() => expect(select.value).toBe('Studio monitors (Scarlett)'));
     expect(select.disabled).toBe(false);
-    expect(optionNames(select)).toEqual(['System default', 'Studio monitors (Scarlett), could not check']);
+    expect(optionNames(select)).toEqual(['System default', 'Could not check: Studio monitors (Scarlett)']);
   });
 
   it('the list is read again when the window gets focus', async () => {
@@ -281,7 +281,7 @@ describe('Voice sample output: device changes', () => {
     expect(within(row()).queryByRole('alert')).toBeNull();
     devices = devices.filter((d) => d.label !== 'USB DAC');
     act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));
-    await waitFor(async () => expect(optionNames(await picker())).toContain('USB DAC, not connected'));
+    await waitFor(async () => expect(optionNames(await picker())).toContain('Not connected: USB DAC'));
     expect(within(row()).queryByRole('alert')).toBeNull();
     devices = [...devices, out('d5', 'USB DAC')];
     act(() => void mediaDevices.dispatchEvent(new Event('devicechange')));

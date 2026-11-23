@@ -7,6 +7,7 @@ import { Popover } from '../../primitives/Popover';
 import { Select } from '../../primitives/Select';
 import { Slider } from '../../primitives/Slider';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
+import { unusableOutputLabel } from '../../voicesamples/audioOutputs';
 import type { DeviceListing } from './useOutputDevices';
 
 /** The DAW's monitor level, offered only with a DAW whose `monitor_level` capability is on. It sets the DAW's own output, not this player's. */
@@ -53,7 +54,7 @@ export function DeviceRow({
   const options = [
     { value: '', label: 'System default' },
     ...listed.map((o) => ({ value: o.label, label: o.label })),
-    ...(missing ? [{ value: prefs.device, label: `${prefs.device} (${devices.status === 'unavailable' ? 'could not check' : 'not connected'})` }] : []),
+    ...(missing ? [{ value: prefs.device, label: unusableOutputLabel(prefs.device, devices.status === 'unavailable') }] : []),
   ];
   // With no list the choice stays on with the system default (and a saved output, so it can be cleared); it is off only while loading, so it is never a dead control.
   const off = devices.phase === 'loading';

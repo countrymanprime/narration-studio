@@ -6,7 +6,7 @@ import { HelpButton } from '../../primitives/HelpButton';
 import { Select } from '../../primitives/Select';
 import { useOutputDevices } from '../../editing/output/useOutputDevices';
 import { CheckedStamp, useCheckedAt } from '../../primitives/CheckedStamp';
-import { missingOutputSentence } from '../../voicesamples/audioOutputs';
+import { missingOutputSentence, unusableOutputLabel } from '../../voicesamples/audioOutputs';
 import { setSampleOutput } from '../../voicesamples/samplePlayerStore';
 import { playTestSound } from '../../voicesamples/testSound';
 import { overlay } from '../../../overlay/overlayService';
@@ -131,7 +131,7 @@ export function SampleOutputBody() {
         options={[
           { value: '', label: 'System default' },
           ...outputs.map((o) => ({ value: o.label, label: o.label })),
-          ...(missing ? [{ value, label: `${value}, ${listing.status === 'unavailable' ? 'could not check' : 'not connected'}` }] : []),
+          ...(missing ? [{ value, label: unusableOutputLabel(value, listing.status === 'unavailable') }] : []),
         ]}
       />
       <div className="flex flex-wrap items-center gap-2">
