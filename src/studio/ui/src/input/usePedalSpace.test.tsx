@@ -91,4 +91,16 @@ describe('the pedal Space (#4094)', () => {
     expect(dismiss.defaultPrevented).toBe(false);
     expect(toggle).not.toHaveBeenCalled();
   });
+
+  it('swallows a Space or an Enter on the Record button just after a toast press, as the same tap', () => {
+    for (const code of ['Space', 'Enter', 'NumpadEnter']) {
+      const toggle = vi.fn();
+      const { getByRole, unmount } = render(<Harness toggle={toggle} />);
+      pressSpace(getByRole('button', { name: 'Retry' }), code);
+      const second = pressSpace(getByRole('button', { name: 'Record' }), code);
+      expect(second.defaultPrevented).toBe(true);
+      expect(toggle).not.toHaveBeenCalled();
+      unmount();
+    }
+  });
 });

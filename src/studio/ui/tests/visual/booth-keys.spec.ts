@@ -522,4 +522,20 @@ test.describe('a toast button keeps its Space (#4094)', () => {
       await expect(page.getByText('Mic on · cold read', { exact: true })).toHaveCount(0);
     });
   }
+
+  test("a second Space just after one on a toast's Dismiss, with Record the control that had focus, starts no take", async ({ page }) => {
+    await openBooth(page);
+    await pastStartGuard(page);
+    await record(page).focus();
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+    const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(30);
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(false);
+  });
 });

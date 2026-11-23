@@ -7,6 +7,10 @@ const AFTER_TOAST_PRESS_MS = 600;
 /** The keys that start or stop a take (`reading.toggle`): Space, Enter and the numpad's Enter. */
 const TAKE_KEYS = new Set(['Space', 'Enter', 'NumpadEnter']);
 
+/** The main button, where focus can be handed back to after a toast's button is pressed: pressing it with no take running starts one. */
+const isMainButton = (target: EventTarget | null): boolean =>
+  target instanceof HTMLButtonElement && /^(Record|Cold read)$/.test(target.textContent?.trim() ?? '');
+
 /**
  * A pedal's Space toggles the take, with these exceptions. Two places would otherwise keep Space from it:
  * - A focused button takes Space for itself (the router leaves it that key; closing a popover returns focus to the button that opened it):
@@ -50,8 +54,8 @@ export function usePedalSpace(toggle: () => unknown, takeRunning: () => boolean 
           !takesTypedText(target) &&
           !modalLayerOpen() &&
           !(target instanceof Element && target.closest('[data-toast-region], [role="radio"], input[type="radio"]')) &&
-          // Only a key that would start a take is taken: the router runs it for a target that is not a control, the pedal for a page button.
-          (!isGuardedTarget(target) || mine(event))
+          // Only a key that would start a take is taken: the router runs it for a target that is not a control, the pedal for a page button, and the main button itself (Record, Cold read) starts one when pressed.
+          (!isGuardedTarget(target) || mine(event) || isMainButton(target))
         ) {
           event.preventDefault();
           event.stopPropagation();
