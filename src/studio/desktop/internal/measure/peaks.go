@@ -134,6 +134,9 @@ const maxPeaksSegments = 4
 // a copy of it, so a file with a huge chunk before its data (someone else's WAV, with a LIST or JUNK chunk of any size) is read whole, not copied.
 const maxSegmentHeader = 4096
 
+// segmentData is the reader of one segment's data bytes: a variable so a test makes a segment come up short, as a file cut during the read does.
+var segmentData = func(file *os.File, offset, length int64) io.Reader { return io.NewSectionReader(file, offset, length) }
+
 // peaksSegmentCount is how many segments a file is split into: a variable so a test runs the split at each count.
 var peaksSegmentCount = func() int { return min(maxPeaksSegments, max(1, runtime.GOMAXPROCS(0))) }
 
@@ -208,7 +211,7 @@ func segmentedPeaks(ctx context.Context, file *os.File, perSecond int) (peaks Pe
 			defer DecodeSlots.Release()
 			offset := head.dataStart + first*int64(head.frameBytes)
 			length := min(segmentFrames, frames-first) * int64(head.frameBytes)
-			parts[i], errs[i] = ComputePeaks(ctx, io.MultiReader(bytes.NewReader(header), io.NewSectionReader(file, offset, length)), nil, perSecond)
+			parts[i], errs[i] = ComputePeaks(ctx, io.MultiReader(bytes.NewReader(header), segmentData(file, offset, length)), nil, perSecond)
 			if errs[i] != nil {
 				stop()
 			}

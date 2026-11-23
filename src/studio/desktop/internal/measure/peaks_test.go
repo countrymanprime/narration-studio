@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -413,5 +415,82 @@ func TestPeaksFileDoesNotCopyAChunkBeforeTheData(t *testing.T) {
 	}
 	if grown := after.TotalAlloc - before.TotalAlloc; grown > 16<<20 {
 		t.Fatalf("reading allocated %d MB: the chunk before the data was copied", grown>>20)
+	}
+}
+
+// One segment, many more segments than seconds, a corrupt sample and a done context each answer what one read answers (#4042).
+func TestPeaksFileInSegmentsAnswersTheSameInTheEdgeCases(t *testing.T) {
+	saved := peaksSegmentCount
+	t.Cleanup(func() { peaksSegmentCount = saved })
+	dir := t.TempDir()
+	clean := filepath.Join(dir, "clean.wav")
+	if err := os.WriteFile(clean, encodeWAV(t, 1, 8000, 16, false, sine(8000, 130, 220, -12, 0)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	one := func(path string) (Peaks, error) {
+		file, err := os.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = file.Close() }()
+		return ComputePeaks(context.Background(), file, nil, DefaultPeaksPerSecond)
+	}
+	want, err := one(clean)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, count := range []int{1, 100} { // one segment is one read; 100 asks for more segments than the file has seconds
+		peaksSegmentCount = func() int { return count }
+		got, err := PeaksFile(context.Background(), clean, nil, DefaultPeaksPerSecond)
+		if err != nil || !reflect.DeepEqual(got, want) {
+			t.Fatalf("%d segments: err %v, equal %v", count, err, reflect.DeepEqual(got, want))
+		}
+	}
+	// A corrupt sample in the middle: the same error as one read, and the other segments stop.
+	peaksSegmentCount = func() int { return 4 }
+	samples := sine(8000, 130, 220, -12, 0)
+	samples[8000*70] = math.NaN()
+	corrupt := filepath.Join(dir, "corrupt.wav")
+	if err := os.WriteFile(corrupt, encodeWAV(t, 1, 8000, 32, true, samples), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, wantErr := one(corrupt)
+	if _, err := PeaksFile(context.Background(), corrupt, nil, DefaultPeaksPerSecond); wantErr == nil || err == nil || err.Error() != wantErr.Error() {
+		t.Fatalf("corrupt sample: err %v, want %v", err, wantErr)
+	}
+	// A context that is done: every segment answers its error.
+	done, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := PeaksFile(done, clean, nil, DefaultPeaksPerSecond); !errors.Is(err, context.Canceled) {
+		t.Fatalf("done context: err %v", err)
+	}
+}
+
+// A segment that comes up short while the file is read (the file was cut) is not joined to the ones after it: the read answers what the file is now.
+func TestPeaksFileReadsAgainWhenASegmentComesUpShort(t *testing.T) {
+	savedCount, savedData := peaksSegmentCount, segmentData
+	t.Cleanup(func() { peaksSegmentCount, segmentData = savedCount, savedData })
+	peaksSegmentCount = func() int { return 4 }
+	path := filepath.Join(t.TempDir(), "cut.wav")
+	if err := os.WriteFile(path, encodeWAV(t, 1, 8000, 16, false, sine(8000, 130, 220, -12, 0)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	segmentData = func(file *os.File, offset, length int64) io.Reader {
+		if offset > 44+int64(8000*2*10) && offset < 44+int64(8000*2*40) { // the second segment loses its last half
+			return io.NewSectionReader(file, offset, length/2)
+		}
+		return io.NewSectionReader(file, offset, length)
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = file.Close() }()
+	if _, ran, err := segmentedPeaks(context.Background(), file, DefaultPeaksPerSecond); err != nil || ran {
+		t.Fatalf("ran %v, err %v: a short middle segment must not be joined", ran, err)
+	}
+	got, err := PeaksFile(context.Background(), path, nil, DefaultPeaksPerSecond)
+	if err != nil || got.Buckets != 130*DefaultPeaksPerSecond {
+		t.Fatalf("the fallback read answered %d buckets (err %v), want %d", got.Buckets, err, 130*DefaultPeaksPerSecond)
 	}
 }
