@@ -10,7 +10,7 @@ import { clock } from '../../clock';
 /** The production stage timer that is running, as the Production page's header shows it: when it started, and on which chapter and stage. */
 export type RunningTimer = { startedAt: string; chapterTitle: string; stage: ChapterStatus };
 
-/** The running timer in a production overview, or null when none runs. */
+/** The running timer on the Production board (the overview composed with the shared chapter list, which names the chapter), or null when none runs. */
 export function runningTimerOf(overview: ProductionOverview): RunningTimer | null {
   const { running } = overview;
   if (!running) return null;
