@@ -1,11 +1,15 @@
 package measure
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"os"
+	"runtime"
+	"sync"
 )
 
 const (
@@ -119,14 +123,137 @@ func ComputePeaks(ctx context.Context, r io.Reader, rng *Range, perSecond int) (
 	return peaks, nil
 }
 
-// PeaksFile computes the peaks of the WAV file at path (see ComputePeaks).
+// parallelPeaksMinSeconds is how long a whole file must be before PeaksFile reads it in segments: below it the one read is as quick as the
+// split and its merge.
+const parallelPeaksMinSeconds = 120
+
+// maxPeaksSegments is how many segments one file is split into; every segment decode holds one of DecodeSlots, so the host's cores stay the bound (#4042).
+const maxPeaksSegments = 4
+
+// maxSegmentHeader is the longest header (every byte before the sample data) a file may have and still be read in segments: each segment is handed
+// a copy of it, so a file with a huge chunk before its data (someone else's WAV, with a LIST or JUNK chunk of any size) is read whole, not copied.
+const maxSegmentHeader = 4096
+
+// segmentData is the reader of one segment's data bytes: a variable so a test makes a segment come up short, as a file cut during the read does.
+var segmentData = func(file *os.File, offset, length int64) io.Reader { return io.NewSectionReader(file, offset, length) }
+
+// peaksSegmentCount is how many segments a file is split into: a variable so a test runs the split at each count.
+var peaksSegmentCount = func() int { return min(maxPeaksSegments, max(1, runtime.GOMAXPROCS(0))) }
+
+// PeaksFile computes the peaks of the WAV file at path (see ComputePeaks). A whole file of two minutes or more is read in segments of whole
+// seconds, one per core up to maxPeaksSegments, and their peaks joined: a bucket never spans two seconds, so the result is the one a single
+// read gives (TestPeaksFileInSegmentsEqualsOneRead).
 func PeaksFile(ctx context.Context, path string, rng *Range, perSecond int) (Peaks, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return Peaks{}, err
 	}
 	defer func() { _ = file.Close() }()
+	if rng == nil && perSecond > 0 && perSecond <= MaxPeaksPerSecond {
+		if peaks, ok, err := segmentedPeaks(ctx, file, perSecond); ok || err != nil {
+			return peaks, err
+		}
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return Peaks{}, err
+	}
+	if err := DecodeSlots.Acquire(ctx); err != nil {
+		return Peaks{}, err
+	}
+	defer DecodeSlots.Release()
 	return ComputePeaks(ctx, file, rng, perSecond)
+}
+
+// segmentedPeaks reads file's data chunk in segments of whole seconds, each through a reader of the file's own header and its slice of the
+// data, and joins the results. ok is false, with no error, when the file is not worth splitting (short, an unfinished header, a header it
+// cannot parse): the caller reads it whole, and answers the error the header gives.
+func segmentedPeaks(ctx context.Context, file *os.File, perSecond int) (peaks Peaks, ok bool, err error) {
+	head, err := NewWAVReader(file)
+	if err != nil {
+		return Peaks{}, false, nil
+	}
+	format := head.Format()
+	if head.dataSize < 0 || head.dataStart > maxSegmentHeader || format.SampleRate <= 0 || head.frameBytes <= 0 {
+		return Peaks{}, false, nil
+	}
+	frames := head.dataSize / int64(head.frameBytes)
+	if frames < int64(parallelPeaksMinSeconds)*int64(format.SampleRate) {
+		return Peaks{}, false, nil
+	}
+	count := peaksSegmentCount()
+	if count < 2 {
+		return Peaks{}, false, nil
+	}
+	seconds := (frames + int64(format.SampleRate) - 1) / int64(format.SampleRate)
+	segmentSeconds := (seconds + int64(count) - 1) / int64(count)
+	segmentFrames := segmentSeconds * int64(format.SampleRate)
+	header := make([]byte, head.dataStart)
+	if _, err := file.ReadAt(header, 0); err != nil {
+		return Peaks{}, false, nil
+	}
+	// The first error stops the other segments: one corrupt sample does not leave three goroutines decoding the rest of the file.
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
+	parts := make([]Peaks, count)
+	errs := make([]error, count)
+	var wg sync.WaitGroup
+	for i := range count {
+		first := int64(i) * segmentFrames
+		if first >= frames {
+			break
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if errs[i] = DecodeSlots.Acquire(ctx); errs[i] != nil {
+				return
+			}
+			defer DecodeSlots.Release()
+			offset := head.dataStart + first*int64(head.frameBytes)
+			length := min(segmentFrames, frames-first) * int64(head.frameBytes)
+			parts[i], errs[i] = ComputePeaks(ctx, io.MultiReader(bytes.NewReader(header), segmentData(file, offset, length)), nil, perSecond)
+			if errs[i] != nil {
+				stop()
+			}
+		}()
+	}
+	wg.Wait()
+	// The first real error is answered, not the cancellation it caused in the others.
+	for _, e := range errs {
+		if e != nil && !errors.Is(e, context.Canceled) {
+			return Peaks{}, true, e
+		}
+	}
+	for _, e := range errs {
+		if e != nil {
+			return Peaks{}, true, e
+		}
+	}
+	if !segmentsComplete(parts, int(segmentSeconds)*perSecond) {
+		return Peaks{}, false, nil // a file that shrank during the read: one read answers what the file is now
+	}
+	joined := Peaks{BucketsPerSecond: perSecond, SampleRate: format.SampleRate, Channels: format.Channels}
+	for _, part := range parts {
+		joined.MinMax = append(joined.MinMax, part.MinMax...)
+		joined.RMS = append(joined.RMS, part.RMS...)
+	}
+	joined.Buckets = len(joined.MinMax) / 2
+	return joined, true, nil
+}
+
+// segmentsComplete says whether every part before the last holds all the buckets of its seconds: a part short of them would draw the audio after it at
+// the wrong time, which is what a file cut short while it is read gives.
+func segmentsComplete(parts []Peaks, perSegment int) bool {
+	last := len(parts) - 1
+	for last > 0 && parts[last].Buckets == 0 {
+		last--
+	}
+	for _, part := range parts[:last] {
+		if part.Buckets != perSegment {
+			return false
+		}
+	}
+	return true
 }
 
 // peakByte stores a scaled sample, clamped to ±127, as a two's complement byte.
