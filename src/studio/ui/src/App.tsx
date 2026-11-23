@@ -86,7 +86,7 @@ import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
-import { pageBoundaryKey, pageOfPath } from './pageBoundaryKey';
+import { addressWithoutProject, pageBoundaryKey, pageOfPath } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -326,10 +326,9 @@ function AppRoutes() {
   useEffect(() => {
     logUi('ui.nav', location.pathname);
     // Only the first path segment (the page): a deeper one can carry a chapter or a name.
-    trace('ui.nav', { page: traceId(location.pathname.split('/')[1] || 'production') });
+    trace('ui.nav', { page: traceId(pageOfPath(location.pathname).slice(1) || 'production') });
   }, [location.pathname]);
   const history = useAppHistory();
-  const settingsOrigin = useSettingsOrigin();
   const zoom = useZoom(api);
   // An owed restore of the chapter solo is sent again whenever the DAW can follow again, whichever page is open (hooks/useDawSoloesChapter.ts).
   useRetryOwedSoloRestore(location.pathname);
@@ -355,6 +354,7 @@ function AppRoutes() {
   // The compare run's phase, read by the pop-recovery effect below without resubscribing it on every transcript event.
   const transcriptPhaseRef = useRef<string>('idle');
   const [data, setData] = useState<Bootstrap>();
+  const settingsOrigin = useSettingsOrigin(data?.projectFolder);
   // When the bootstrap was last read, for the engine panel's "Last checked" beside the DAW facts it carries.
   const [dataReadAt, setDataReadAt] = useState<number | null>(null);
   const hasManuscript = Boolean(data?.manuscript);
@@ -699,18 +699,22 @@ function AppRoutes() {
     if (before !== undefined) closeProjectDialogs();
   }, [data?.projectFolder, closeProjectDialogs]);
 
-  // The address of a page names a chapter of the project it was written under (`?chapter=`, `/editing/:chapterId`). After a project change it is dropped before the
-  // new project's page mounts, so that page opens on its own remembered chapter and never writes the old project's chapter as its own (#4059).
-  const addressOwner = useRef({ key: location.key, project: data?.projectFolder });
+  // The address of a page names a chapter of the project it was written under (`?chapter=`, `/editing/:chapterId`, `#file=`). After a project change it is cut back to the page
+  // before the new project's page mounts, so that page opens on its own remembered chapter and never writes the old project's as its own (#4059). Each history entry keeps the
+  // project it was first seen under, so a Back onto an entry written under the other project is dropped too. This is judged in render, which `shownProject` above (an effect, after
+  // the new page has mounted) cannot do, and the entries' owners are what it cannot carry.
+  const entryOwners = useRef(new Map<string, string | undefined>());
+  const project = data?.projectFolder;
   // The first bootstrap names a project; it is not a change from one.
-  if (addressOwner.current.key !== location.key || addressOwner.current.project === undefined)
-    addressOwner.current = { key: location.key, project: data?.projectFolder };
-  const addressHasMore = location.pathname !== pageOfPath(location.pathname) || location.search !== '';
+  if (project !== undefined && entryOwners.current.get(location.key) === undefined) entryOwners.current.set(location.key, project);
+  const bareAddress = addressWithoutProject(location);
   const addressStale =
-    addressHasMore && data !== undefined && addressOwner.current.project !== undefined && addressOwner.current.project !== data.projectFolder;
+    project !== undefined &&
+    entryOwners.current.get(location.key) !== project &&
+    (bareAddress.pathname !== location.pathname || bareAddress.search !== location.search || bareAddress.hash !== location.hash);
   useEffect(() => {
-    if (addressStale) navigate({ pathname: pageOfPath(location.pathname), hash: location.hash }, { replace: true });
-  }, [addressStale, navigate, location.pathname, location.hash]);
+    if (addressStale) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
+  }, [addressStale, navigate, bareAddress.pathname, bareAddress.hash]);
 
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then

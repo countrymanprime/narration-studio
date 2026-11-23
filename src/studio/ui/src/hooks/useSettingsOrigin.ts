@@ -1,19 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { pageOfPath } from '../pageBoundaryKey';
 
 /**
  * Where the narrator was when a link or Ctrl+, brought them to Settings, so the page can offer "Back to <page>". Arriving by the navigation
  * rail is not a link (the rail has its own Back), so only a deep link (`/settings#credits`) or `markLink()` before the move counts.
+ * The origin names a chapter of the project it was recorded under (`/booth?chapter=chapter-9`); after a project change it is the bare page (#4059).
  */
-export function useSettingsOrigin(): { origin: string | undefined; markLink: () => void } {
+export function useSettingsOrigin(project?: string): { origin: string | undefined; markLink: () => void } {
   const location = useLocation();
-  const lastPage = useRef<string>('/');
+  // Read when the address changes, not when the project does: the address in front of a project change is still the old project's until it is cut back.
+  const projectNow = useRef(project);
+  projectNow.current = project;
+  const lastPage = useRef<Origin>({ to: '/', project });
   const linked = useRef(false);
-  const [origin, setOrigin] = useState<string>();
+  const [kept, setOrigin] = useState<Origin>();
 
   useEffect(() => {
     if (location.pathname !== '/settings') {
-      lastPage.current = `${location.pathname}${location.search}`;
+      lastPage.current = { to: `${location.pathname}${location.search}`, project: projectNow.current };
       setOrigin(undefined);
       return;
     }
@@ -24,5 +29,8 @@ export function useSettingsOrigin(): { origin: string | undefined; markLink: () 
   const markLink = useCallback(() => {
     linked.current = true;
   }, []);
+  const origin = kept && (kept.project === project ? kept.to : pageOfPath(kept.to.split('?')[0] ?? '/'));
   return { origin, markLink };
 }
+
+type Origin = { to: string; project: string | undefined };
