@@ -12,13 +12,13 @@ describe('a milestone draft', () => {
       name: 'A',
       date: '2026-10-05',
       measure: 'chN',
-      chapters: 4,
-      minutes: 15,
+      chapters: '4',
+      minutes: '15',
       note: 'n',
       done: true,
     });
     expect(draftOf({ name: 'A', dueDate: '2026-10-05' }).measure).toBe('custom');
-    expect(draftOf({ name: 'A', dueDate: '2026-10-05', measure: 'min20' })).toMatchObject({ measure: 'minN', minutes: 20 });
+    expect(draftOf({ name: 'A', dueDate: '2026-10-05', measure: 'min20' })).toMatchObject({ measure: 'minN', minutes: '20' });
   });
 
   it('takes a date typed with spaces around it as written without them', () => {
@@ -57,18 +57,23 @@ describe('a milestone draft', () => {
   });
 
   it('stores every detail: name, date, measure with its N, note and done', () => {
-    const draft = { name: ' Everything ', date: '2026-10-09', measure: 'chN', chapters: 4, minutes: 15, note: ' Proofer wants it ', done: true };
+    const draft = { name: ' Everything ', date: '2026-10-09', measure: 'chN', chapters: '4', minutes: '15', note: ' Proofer wants it ', done: true };
     expect(milestoneFromDraft(draft, existing, BOUNDS)).toEqual({
       milestone: { name: 'Everything', dueDate: '2026-10-09', measure: 'ch4', note: 'Proofer wants it', done: true, template: 'acx' },
     });
   });
 
-  it('clamps the N to the book', () => {
+  it('saves the N as typed and refuses one the book cannot have, with the reason', () => {
     const at = (patch: object) => milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', ...patch }, undefined, BOUNDS);
-    expect(at({ measure: 'chN', chapters: 99 })).toMatchObject({ milestone: { measure: 'ch12' } });
-    expect(at({ measure: 'chN', chapters: 0 })).toMatchObject({ milestone: { measure: 'ch6' } });
-    expect(at({ measure: 'minN', minutes: 9999 })).toMatchObject({ milestone: { measure: 'min600' } });
-    expect(at({ measure: 'minN', minutes: 20 })).toMatchObject({ milestone: { measure: 'min20' } });
+    expect(at({ measure: 'chN', chapters: ' 3 ' })).toMatchObject({ milestone: { measure: 'ch3' } });
+    expect(at({ measure: 'chN', chapters: '99' })).toEqual({ refusal: 'The book has 12 chapters. Write a number from 1 to 12.' });
+    for (const bad of ['0', '-1', '2.5', '', 'abc'])
+      expect(at({ measure: 'chN', chapters: bad })).toEqual({ refusal: 'Write a whole number of chapters from 1 to 12.' });
+    expect(at({ measure: 'minN', minutes: '9999' })).toEqual({ refusal: 'Write a whole number of minutes from 1 to 600.' });
+    expect(at({ measure: 'minN', minutes: '20' })).toMatchObject({ milestone: { measure: 'min20' } });
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN' }, undefined, { chapters: 0, minutes: 600 })).toEqual({
+      refusal: 'The book has no chapters yet.',
+    });
   });
 
   it('leaves a custom milestone with no measure and no estimate', () => {

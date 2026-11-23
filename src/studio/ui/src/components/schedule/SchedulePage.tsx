@@ -144,7 +144,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   // A plan edited by hand can hold a date that is not one; the page treats it as no due date and says so.
   const due = plan.deadline && isIsoDate(plan.deadline) ? parseIso(plan.deadline) : null;
   const k = calc(chapters, day, due, openLines?.length ?? 0, wph);
-  const bounds = { chapters: chapters.filter((c) => c.kind === 'narration').length, minutes: maxMinutes(k.words, wph) };
+  const bounds = { chapters: chapters.filter((c) => c.kind === 'narration' && !c.credits).length, minutes: maxMinutes(k.words, wph) };
   const same = (a: ProductionMilestone | undefined, b: ProductionMilestone | undefined) => JSON.stringify(a) === JSON.stringify(b);
   const sameList = (a: readonly ProductionMilestone[], b: readonly ProductionMilestone[]) => a.length === b.length && a.every((m, i) => same(m, b[i]));
   const CHANGED = 'The milestones changed since this was shown. Look at them again and redo it.';

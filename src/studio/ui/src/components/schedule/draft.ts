@@ -2,18 +2,17 @@ import type { ProductionMilestone } from '../../api/contracts/production';
 import { farDateProblem, isIsoDate, MAX_DATE_YEAR } from './dates';
 import { chaptersOf, measOf, minutesOf } from './measures';
 import { plural, formatCount } from '../../plural';
-import { clamp } from '../../clamp';
 
-/** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N". */
-export type MilestoneDraft = { name: string; date: string; measure: string; chapters: number; minutes: number; note: string; done: boolean };
+/** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N" as typed, so a bad one can be refused, not rewritten. */
+export type MilestoneDraft = { name: string; date: string; measure: string; chapters: string; minutes: string; note: string; done: boolean };
 
 /** A draft that shows an existing milestone. */
 export const draftOf = (m: ProductionMilestone): MilestoneDraft => ({
   name: m.name,
   date: m.dueDate,
   measure: measOf(m.measure),
-  chapters: chaptersOf(m.measure),
-  minutes: minutesOf(m.measure),
+  chapters: String(chaptersOf(m.measure)),
+  minutes: String(minutesOf(m.measure)),
   note: m.note ?? '',
   done: Boolean(m.done),
 });
@@ -23,8 +22,8 @@ export const blankDraft = (): MilestoneDraft => ({
   name: '',
   date: '',
   measure: 'custom',
-  chapters: chaptersOf(undefined),
-  minutes: minutesOf(undefined),
+  chapters: String(chaptersOf(undefined)),
+  minutes: String(minutesOf(undefined)),
   note: '',
   done: false,
 });
@@ -47,11 +46,23 @@ const badDate = (text: string): string => {
 /** How far an N may go: the chapters the book has and the finished minutes it runs. */
 export type DraftBounds = { chapters: number; minutes: number };
 
-/** The measure as stored: "first N" takes its N from the draft, kept between 1 and what the book has. */
-function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds): string {
-  if (draft.measure === 'chN') return `ch${clamp(Math.round(draft.chapters) || chaptersOf(undefined), 1, bounds.chapters)}`;
-  if (draft.measure === 'minN') return `min${clamp(Math.round(draft.minutes) || minutesOf(undefined), 1, bounds.minutes)}`;
-  return draft.measure;
+/** The N a narrator typed, or why it cannot be one: whole digits only, from 1 to `max`. */
+function readN(text: string, max: number, noun: 'chapter' | 'minute'): { n: number } | { refusal: string } {
+  const t = text.trim();
+  if (noun === 'chapter' && max < 1) return { refusal: 'The book has no chapters yet.' };
+  const whole = `Write a whole number of ${noun}s from 1 to ${formatCount(max)}.`;
+  if (!/^\d+$/.test(t) || Number(t) < 1) return { refusal: whole };
+  if (Number(t) > max) return { refusal: noun === 'chapter' ? `The book has ${plural(max, 'chapter')}. Write a number from 1 to ${formatCount(max)}.` : whole };
+  return { n: Number(t) };
+}
+
+/** The measure as stored: "first N" takes the N the draft holds, or the refusal saying why it cannot. */
+function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds): { measure: string } | { refusal: string } {
+  if (draft.measure === 'chN' || draft.measure === 'minN') {
+    const read = draft.measure === 'chN' ? readN(draft.chapters, bounds.chapters, 'chapter') : readN(draft.minutes, bounds.minutes, 'minute');
+    return 'refusal' in read ? read : { measure: `${draft.measure === 'chN' ? 'ch' : 'min'}${read.n}` };
+  }
+  return { measure: draft.measure };
 }
 
 /**
@@ -70,7 +81,9 @@ export function milestoneFromDraft(
   if (!isIsoDate(date)) return { refusal: badDate(date) };
   const far = farDateProblem(date);
   if (far) return { refusal: far };
-  const measure = storedMeasure(draft, bounds);
+  const stored = storedMeasure(draft, bounds);
+  if ('refusal' in stored) return stored;
+  const { measure } = stored;
   const keepEstimate = existing?.estimate !== undefined && measOf(measure) !== 'custom' && existing.measure === measure;
   const note = draft.note.trim();
   if ([...note].length > MAX_NOTE) return { refusal: `The note is ${plural([...note].length, 'character')}; the most is ${formatCount(MAX_NOTE)}.` };

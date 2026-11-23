@@ -55,7 +55,7 @@ The table lists your milestones by date, with the **Final delivery** row, the bo
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
 
 **Add milestone**, at the top of the table, opens a dialog for the name, due date (a date field: type the parts or open its calendar), what it measures, a note
-and Done (beside Cancel, on the button row). Ctrl+Enter (Cmd+Enter on a Mac) saves from any box, the note too, where Enter alone is a new line; Escape and Cancel close it and drop what you typed, as in every dialog. A date after Dec 31, 2100 is refused. The 15-minute checkpoint is offered only when the project's delivery profile asks for it. A book can have at most 100
+and Done (beside Cancel, on the button row). Ctrl+Enter (Cmd+Enter on a Mac) saves from any box, the note too, where Enter alone is a new line; Escape and Cancel close it and drop what you typed, as in every dialog. A date after Dec 31, 2100 is refused. The first-N measures (chapters, finished minutes) take the number you type, from 1 to what the book has, and save it as typed: a number outside that range, a decimal or an empty box is refused with the range, and a milestone for one chapter reads **First chapter**. The 15-minute checkpoint is offered only when the project's delivery profile asks for it. A book can have at most 100
 milestones, a name is at most 200 characters and a note 2,000; when a save is refused the dialog says why and nothing changes.
 
 ## The due date

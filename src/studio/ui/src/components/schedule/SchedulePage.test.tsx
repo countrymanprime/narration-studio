@@ -238,13 +238,14 @@ describe('the milestone dialog', () => {
     expect(await entries()).toEqual(['Edit milestone']);
   });
 
-  it('clamps the chapter count to the book, and Cancel changes nothing', async () => {
+  it('refuses a chapter count above the book, and Cancel changes nothing', async () => {
     await mount();
     let d = await open('All chapters recorded');
     await userEvent.selectOptions(d.getByRole('combobox', { name: 'What the milestone measures' }), 'chN');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '99' } });
-    fireEvent.blur(d.getByLabelText('How many chapters'));
-    expect((d.getByLabelText('How many chapters') as HTMLInputElement).value).toBe('2');
+    fireEvent.click(d.getByRole('button', { name: 'Save' }));
+    expect((await d.findByRole('alert')).textContent).toBe('The book has 2 chapters. Write a number from 1 to 2.');
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '2' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect((await stored())[0].measure).toBe('ch2');

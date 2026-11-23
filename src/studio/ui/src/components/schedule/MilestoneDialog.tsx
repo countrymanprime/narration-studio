@@ -7,9 +7,8 @@ import { Field, FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { TextField } from '../primitives/TextField';
 import { blankDraft, draftOf, type DraftBounds, type MilestoneDraft } from './draft';
-import { measureOptions } from './measures';
+import { chaptersOf, measureOptions, minutesOf } from './measures';
 import type { PlatformCapability } from './profiles';
-import { clamp } from '../../clamp';
 
 export type MilestoneDialogProps = {
   /** The milestone being edited; none adds a new one. */
@@ -25,11 +24,9 @@ export type MilestoneDialogProps = {
   onCancel: () => void;
 };
 
-const digits = (text: string): number => Number(text.replace(/\D/g, ''));
-
 /**
  * Add or change every detail of a milestone (the mock's MilestoneDialog): name, due date, what it measures with its N, a note and done.
- * Saving is one undoable command and Cancel changes nothing. The N is kept between 1 and what the book has.
+ * Saving is one undoable command and Cancel changes nothing. The N is saved as typed, or refused with the range the book allows.
  */
 export function MilestoneDialog({ existing, profileId, reportedCapabilities, bounds, focusNote, onSave, onCancel }: MilestoneDialogProps) {
   const [draft, setDraft] = useState<MilestoneDraft>(() => (existing ? draftOf(existing) : blankDraft()));
@@ -37,6 +34,14 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
   const [saving, setSaving] = useState(false);
   const set = (patch: Partial<MilestoneDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const options = measureOptions(profileId, existing?.measure, reportedCapabilities);
+  /** The N a measure starts at when picked: the default, held to what the book has, so the field shows the number it will save. Typed numbers are never touched. */
+  const startingN = (measure: string): Partial<MilestoneDraft> => {
+    if (measure === 'chN' && draft.chapters === String(chaptersOf(undefined)))
+      return { chapters: String(Math.max(1, Math.min(bounds.chapters, chaptersOf(undefined)))) };
+    if (measure === 'minN' && draft.minutes === String(minutesOf(undefined)))
+      return { minutes: String(Math.max(1, Math.min(bounds.minutes, minutesOf(undefined)))) };
+    return {};
+  };
   const save = async () => {
     setSaving(true);
     setProblem(await onSave(draft));
@@ -75,7 +80,7 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
               label="What the milestone measures"
               aria-describedby="milestone-measure-label"
               value={draft.measure}
-              onChange={(measure) => set({ measure })}
+              onChange={(measure) => set({ measure, ...startingN(measure) })}
               options={options}
               className="min-w-0 flex-1"
             />
@@ -84,9 +89,8 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
                 label="How many chapters"
                 mono
                 inputMode="numeric"
-                value={String(draft.chapters)}
-                onChange={(text) => set({ chapters: digits(text) })}
-                onBlur={() => set({ chapters: clamp(draft.chapters, 1, bounds.chapters) })}
+                value={draft.chapters}
+                onChange={(chapters) => set({ chapters })}
                 className="w-20!"
               />
             )}
@@ -95,9 +99,8 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
                 label="How many finished minutes"
                 mono
                 inputMode="numeric"
-                value={String(draft.minutes)}
-                onChange={(text) => set({ minutes: digits(text) })}
-                onBlur={() => set({ minutes: clamp(draft.minutes, 1, bounds.minutes) })}
+                value={draft.minutes}
+                onChange={(minutes) => set({ minutes })}
                 className="w-20!"
               />
             )}
