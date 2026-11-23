@@ -44,7 +44,25 @@ export async function listAudioOutputs(): Promise<OutputListing> {
 export const OUTPUT_TOAST_TOPIC = 'output-device';
 
 /** The option for a saved output the list does not hold: the state first and the name second, so a long name cut off by the select's width never hides that the output is unusable. */
-export const unusableOutputLabel = (name: string, listWouldNotCome: boolean): string => `${listWouldNotCome ? 'Could not check' : 'Not connected'}: ${name}`;
+const unusableOutputLabel = (name: string, listWouldNotCome: boolean): string => `${listWouldNotCome ? 'Could not check' : 'Not connected'}: ${name}`;
+
+/**
+ * The options of an output select, one builder for every page that draws one: the system default, this computer's outputs (two with one name are one
+ * choice: the choice is kept by name), and the saved output when the list does not hold it, kept chosen and clearable. `listing` is undefined while the
+ * list is being read. `missing` says that saved output is unusable (its name is not in a list that came, or the list would not come).
+ */
+export function outputChoices(listing: OutputListing | undefined, saved: string): { options: { value: string; label: string }[]; missing: boolean } {
+  const listed = (listing?.status === 'ok' ? listing.outputs : []).filter((output, at, all) => all.findIndex((other) => other.label === output.label) === at);
+  const missing = saved !== '' && listing !== undefined && !listed.some((o) => o.label === saved);
+  return {
+    missing,
+    options: [
+      { value: '', label: 'System default' },
+      ...listed.map((o) => ({ value: o.label, label: o.label })),
+      ...(missing ? [{ value: saved, label: unusableOutputLabel(saved, listing?.status === 'unavailable') }] : []),
+    ],
+  };
+}
 
 /** What is said of a saved output that is not connected; `plays` is what sounds on the system default meanwhile ("Sound plays", "Voice samples play"). */
 export const missingOutputSentence = (label: string, plays: string): string => `${label} is not connected. ${plays} on the system default until it is back.`;

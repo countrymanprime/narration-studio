@@ -38,6 +38,20 @@ for (const width of WIDTHS) {
       await expectStateFirst(dialog.getByRole('combobox', { name: 'Output device' }), /^Not connected: /);
     });
 
+    test('the Editing Output popover says "Could not check" before the name when the list would not come', async ({ page }) => {
+      await page.addInitScript(
+        ([key, device]) => window.localStorage.setItem(key!, JSON.stringify({ volume: 80, muted: false, rate: 1, device })),
+        [STORAGE_KEY, LONG],
+      );
+      await page.goto('/?mockChapterLink=confirmed&mockAudioOutputs=none');
+      await settlePage(page);
+      await goToPage(page, 'Editing');
+      await page.getByRole('toolbar', { name: 'Playback and selection' }).getByRole('button', { name: 'Show volume and output device' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Output' });
+      await dialog.waitFor();
+      await expectStateFirst(dialog.getByRole('combobox', { name: 'Output device' }), /^Could not check: /);
+    });
+
     test('Settings > Voice sample output says "Not connected" before the name of an output that was unplugged', async ({ page }) => {
       await openSettings(page, undefined, '?mockAudioOutputs=long');
       await page.getByRole('radio', { name: /^Built-in recorder/ }).click();

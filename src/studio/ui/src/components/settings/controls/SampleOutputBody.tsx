@@ -6,7 +6,7 @@ import { HelpButton } from '../../primitives/HelpButton';
 import { Select } from '../../primitives/Select';
 import { useOutputDevices } from '../../editing/output/useOutputDevices';
 import { CheckedStamp, useCheckedAt } from '../../primitives/CheckedStamp';
-import { missingOutputSentence, unusableOutputLabel } from '../../voicesamples/audioOutputs';
+import { missingOutputSentence, outputChoices } from '../../voicesamples/audioOutputs';
 import { setSampleOutput } from '../../voicesamples/samplePlayerStore';
 import { playTestSound } from '../../voicesamples/testSound';
 import { overlay } from '../../../overlay/overlayService';
@@ -77,8 +77,7 @@ export function SampleOutputBody() {
   useEffect(() => {
     if (readAt) markChecked();
   }, [readAt, markChecked]);
-  const outputs = listing.phase === 'ready' && listing.status === 'ok' ? listing.outputs : [];
-  const missing = engine === 'builtin' && listing.phase === 'ready' && value !== '' && !outputs.some((o) => o.label === value);
+  const { options, missing } = outputChoices(listing.phase === 'ready' ? listing : undefined, engine === 'builtin' ? value : '');
   const recheck = useRef(load);
   recheck.current = load;
   useEffect(() => {
@@ -128,11 +127,7 @@ export function SampleOutputBody() {
         value={value}
         onChange={choose}
         disabled={engine === undefined || !hasProject}
-        options={[
-          { value: '', label: 'System default' },
-          ...outputs.map((o) => ({ value: o.label, label: o.label })),
-          ...(missing ? [{ value, label: unusableOutputLabel(value, listing.status === 'unavailable') }] : []),
-        ]}
+        options={options}
       />
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={check}>
