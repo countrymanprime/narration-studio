@@ -75,8 +75,12 @@ describe('a name inside a sentence (#4113)', () => {
     ['line separator', '\u2028'],
     ['paragraph separator', '\u2029'],
   ])('bidiIsolated and isolatedIfRtl turn a %s in a name into a space', (_label, separator) => {
-    expect(bidiIsolated(`واحد${separator}اثنان`)).toBe(`${FSI}واحد اثنان${PDI}`);
-    expect(isolatedIfRtl(`واحد${separator}اثنان`)).toBe(`${FSI}واحد اثنان${PDI}`);
+    expect(bidiIsolated(`\u0648\u0627\u062D\u062F${separator}\u0627\u062B\u0646\u0627\u0646`)).toBe(
+      `${FSI}\u0648\u0627\u062D\u062F \u0627\u062B\u0646\u0627\u0646${PDI}`,
+    );
+    expect(isolatedIfRtl(`\u0648\u0627\u062D\u062F${separator}\u0627\u062B\u0646\u0627\u0646`)).toBe(
+      `${FSI}\u0648\u0627\u062D\u062F \u0627\u062B\u0646\u0627\u0646${PDI}`,
+    );
     expect(isolatedIfRtl(`one${separator}two`)).toBe('one two');
   });
 

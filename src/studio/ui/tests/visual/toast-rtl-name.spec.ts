@@ -62,8 +62,8 @@ test.describe('an English sentence that carries a right-to-left name reads left 
 
   // A paragraph separator inside a name would end its isolate and swap its words: the builder turns it into a space, so the words stay in order (the first drawn at the right of the second).
   test('a name holding a paragraph separator keeps its words in order', async ({ page }) => {
-    const one = 'واحد';
-    const two = 'اثنان';
+    const one = '\u0648\u0627\u062D\u062F';
+    const two = '\u0627\u062B\u0646\u0627\u0646';
     const text = `${isolatedIfRtl(`${one}\u2029${two}`)}: 3 takes were kept.`;
     await show(page, text);
     expect(await leftOf(page, text, text.indexOf(one))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
