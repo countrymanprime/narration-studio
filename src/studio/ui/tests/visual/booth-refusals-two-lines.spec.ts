@@ -4,14 +4,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { BOOTH_TOAST_SENTENCES } from '../../src/components/booth/refusalSentences';
 import { TOAST_BUTTONS, TOAST_CHAR_BUDGET, type ToastButton } from '../../src/components/primitives/toastBudget';
+import { hookReady, raiseToast } from './helpers/raiseToast';
 import { settlePage } from './helpers/settle';
-
-declare global {
-  interface Window {
-    /** Mock build only (`main.tsx`): undefined for a Retry button, null for none, a string for a button with that label. */
-    __raiseToast?: (text: string, actionLabel?: string | null) => void;
-  }
-}
 
 // The two-line guarantee holds from 768 px wide at a 16 px root font: below that, or with a larger root font, the toast is narrower and a sentence scrolls inside it (docs/operations/verification-tooling.md).
 const WIDTHS = [1440, 1100, 960, 768] as const;
@@ -37,10 +31,8 @@ async function openApp(page: Page, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('/?mockNoProject=1');
   await settlePage(page);
-  await page.waitForFunction(() => typeof window.__raiseToast === 'function');
+  await hookReady(page);
 }
-
-const raise = (page: Page, text: string, label: string | null) => page.evaluate((args) => window.__raiseToast?.(args.text, args.label), { text, label });
 
 const shownText = (page: Page) => page.locator('[data-toast-region] [data-toast-text]');
 
@@ -60,7 +52,7 @@ for (const width of WIDTHS) {
       const text = sentenceOf(TOAST_CHAR_BUDGET[button]);
       // The budget is the size of the message, so the sample is within a few characters of it.
       expect(text.length).toBeGreaterThan(TOAST_CHAR_BUDGET[button] - 8);
-      await raise(page, text, LABEL[button]);
+      await raiseToast(page, text, LABEL[button]);
       await expect(shownText(page)).toHaveText(text);
       const box = await measure(page);
       expect(box.scrollHeight, `"${text}" (${text.length} characters) scrolls inside the toast`).toBeLessThanOrEqual(box.clientHeight + 1);
@@ -73,7 +65,7 @@ for (const width of WIDTHS) {
   test(`every Booth sentence stays on two lines at ${width} px wide`, async ({ page }) => {
     await openApp(page, width);
     for (const { button, name, text } of BOOTH_TOAST_SENTENCES) {
-      await raise(page, text, LABEL[button]);
+      await raiseToast(page, text, LABEL[button]);
       await expect(shownText(page)).toHaveText(text);
       const box = await measure(page);
       expect(box.scrollHeight, `${name}: "${text}" (${text.length} characters) scrolls inside the toast`).toBeLessThanOrEqual(box.clientHeight + 1);
@@ -92,8 +84,8 @@ for (const button of TOAST_BUTTONS) {
   }) => {
     await openApp(page, 768);
     const text = sentenceOf(TOAST_CHAR_BUDGET[button]);
-    await raise(page, text, LABEL[button]);
-    await raise(page, 'A second message waits behind the first.', null);
+    await raiseToast(page, text, LABEL[button]);
+    await raiseToast(page, 'A second message waits behind the first.', null);
     await expect(shownText(page)).toHaveText(text);
     await expect(page.locator('[data-toast-region]').getByText('+1')).toBeVisible();
     const box = await measure(page);

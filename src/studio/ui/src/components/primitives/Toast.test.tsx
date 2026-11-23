@@ -323,8 +323,35 @@ describe('a toast is two lines at most (#4063, #2793)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('measures the overflow with the scrollbar out of the way, and again when the fonts have loaded (#4112)', () => {
-    const observers: Array<() => void> = [];
+  it('leaves an ordinary short message out of the tab order', () => {
+    render(<ToastRegion messages={[info(1, 'Entry saved.')]} dismiss={vi.fn()} />);
+    expect(textOf('Entry saved.').getAttribute('tabindex')).toBeNull();
+  });
+});
+
+describe('a toast text is measured without its scrollbar, and again when the fonts load (#4112)', () => {
+  const HUGE = 'x'.repeat(10_000);
+  const textOf = (id: string) => screen.getByText(id, { exact: false }).closest('[data-toast-text]') as HTMLElement;
+  type Fonts = {
+    addEventListener: (type: string, cb: () => void) => void;
+    removeEventListener: (type: string, cb: () => void) => void;
+    ready: Promise<unknown>;
+  };
+  const observers: Array<() => void> = [];
+  const sizes = { scrollHeight: 500, clientHeight: 34 };
+  /** What the box's inline overflow and gutter were at each read of its height: a read must see no scrollbar and no gutter, whatever the box shows between reads. */
+  const seen: Array<{ overflowY: string; scrollbarGutter: string }> = [];
+  const listeners: Array<() => void> = [];
+  const removed: Array<() => void> = [];
+  let resolveReady: () => void = () => {};
+
+  beforeEach(() => {
+    observers.length = 0;
+    seen.length = 0;
+    listeners.length = 0;
+    removed.length = 0;
+    sizes.scrollHeight = 500;
+    sizes.clientHeight = 34;
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -335,40 +362,69 @@ describe('a toast is two lines at most (#4063, #2793)', () => {
         disconnect() {}
       },
     );
-    const fontListeners: Array<() => void> = [];
-    const fonts = { addEventListener: (_type: string, cb: () => void) => fontListeners.push(cb), removeEventListener: vi.fn(), ready: Promise.resolve() };
+    const fonts: Fonts = {
+      addEventListener: (_type, cb) => listeners.push(cb),
+      removeEventListener: (_type, cb) => removed.push(cb),
+      ready: new Promise<void>((resolve) => (resolveReady = resolve)),
+    };
     Object.defineProperty(document, 'fonts', { value: fonts, configurable: true });
-    // What the box's overflow was while it was measured: the read must see no scrollbar (hidden), whatever the box shows between reads.
-    const seen: string[] = [];
-    const sizes = { scrollHeight: 500, clientHeight: 34 };
-    const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
-      seen.push(this.style.overflowY);
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      seen.push({ overflowY: this.style.overflowY, scrollbarGutter: this.style.scrollbarGutter });
       return sizes.scrollHeight;
     });
-    const clientHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => sizes.clientHeight);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => sizes.clientHeight);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(document, 'fonts');
+  });
+
+  it('reads the overflow with the overflow and the scrollbar gutter off, and puts both back', () => {
     render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
     expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
     expect(seen.length).toBeGreaterThan(0);
-    expect(seen.every((overflow) => overflow === 'hidden')).toBe(true);
-    // The overflow is put back after the read, so the box still scrolls while it overflows.
+    expect(seen.every((read) => read.overflowY === 'hidden' && read.scrollbarGutter === 'auto')).toBe(true);
+    // Put back after the read, so the box still scrolls while it overflows and the stylesheet's gutter applies again.
     expect(textOf('xxxx').style.overflowY).toBe('');
+    expect(textOf('xxxx').style.scrollbarGutter).toBe('');
     expect(textOf('xxxx').className).toContain('overflow-y-auto');
-    // The font arrives and the same text now fits in two lines: the box stops scrolling although it was scrolling a moment before.
-    sizes.scrollHeight = 34;
-    act(() => fontListeners.forEach((cb) => cb()));
-    expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
-    expect(textOf('xxxx').className).toContain('overflow-hidden');
-    expect(observers.length).toBeGreaterThan(0);
-    scrollHeight.mockRestore();
-    clientHeight.mockRestore();
-    // @ts-expect-error: remove the stand-in so later tests see jsdom's own document
-    delete document.fonts;
-    vi.unstubAllGlobals();
   });
 
-  it('leaves an ordinary short message out of the tab order', () => {
-    render(<ToastRegion messages={[info(1, 'Entry saved.')]} dismiss={vi.fn()} />);
-    expect(textOf('Entry saved.').getAttribute('tabindex')).toBeNull();
+  it('measures again when the fonts have loaded: a box that scrolled in the fallback font stops scrolling', () => {
+    render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
+    expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
+    sizes.scrollHeight = 34;
+    act(() => listeners.forEach((cb) => cb()));
+    expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
+    expect(textOf('xxxx').className).toContain('overflow-hidden');
+  });
+
+  it('measures again when the fonts are ready', async () => {
+    render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
+    expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
+    sizes.scrollHeight = 34;
+    await act(async () => {
+      resolveReady();
+      await Promise.resolve();
+    });
+    expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
+  });
+
+  it('stops listening for the fonts when the toast goes, and a fonts-ready that comes after it measures nothing', async () => {
+    const { unmount } = render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
+    const reads = seen.length;
+    unmount();
+    // The same function that was added is the one removed.
+    expect(removed.length).toBe(1);
+    expect(listeners).toContain(removed[0]);
+    await act(async () => {
+      resolveReady();
+      await Promise.resolve();
+    });
+    expect(seen.length).toBe(reads);
   });
 });
 

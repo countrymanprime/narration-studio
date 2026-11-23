@@ -99,19 +99,22 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
     const el = text.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     // Measured with the scrollbar out of the way: a box that scrolls loses the scrollbar's width to it, so its text wraps to one more line than it would without, and a box measured while it scrolls
-    // stays overflowing after the font it was first laid out in (a fallback, wider) has loaded (#4112). The overflow is switched off for the read and put back.
+    // stays overflowing after the font it was first laid out in (a fallback, wider) has loaded (#4112). The overflow and the scrollbar's gutter (`styles.css` keeps one on every auto-scrolling
+    // box, and a gutter outlives `overflow: hidden`) are switched off for the read and put back.
     const measure = () => {
-      const was = el.style.overflowY;
+      const { overflowY, scrollbarGutter } = el.style;
       el.style.overflowY = 'hidden';
+      el.style.scrollbarGutter = 'auto';
       const overflows = el.scrollHeight > el.clientHeight + 1;
-      el.style.overflowY = was;
+      el.style.overflowY = overflowY;
+      el.style.scrollbarGutter = scrollbarGutter;
       setScrolls(overflows);
     };
     measure();
     const watch = new ResizeObserver(measure);
     watch.observe(el);
     // A toast raised before the web font arrives is laid out in the fallback font; the text is measured again when the fonts have loaded.
-    const fonts = typeof document === 'undefined' ? undefined : document.fonts;
+    const fonts = document.fonts;
     fonts?.addEventListener?.('loadingdone', measure);
     let live = true;
     void fonts?.ready?.then(() => live && measure());
