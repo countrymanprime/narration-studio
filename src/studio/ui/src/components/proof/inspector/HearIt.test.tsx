@@ -320,6 +320,50 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     expect(last[1]?.action?.label).toBe('Retry');
   });
 
+  it("stops an old note's loop that landed while a newer note was asked, once that press ends without a loop", async () => {
+    const answers: ((value: FindingNavigation) => void)[] = [];
+    const stopLoop = vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 }));
+    const apiFor = (): HearItApi => ({
+      findingsLoop: vi.fn(() => new Promise<FindingNavigation>((resolve) => answers.push(resolve))),
+      findingsStopLoop: stopLoop,
+    });
+    const first = render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    first.unmount();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed({ id: 'f2' })} api={apiFor()} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    // The old note's loop lands while the new note is still being asked: it is not stopped yet (the new press owns the DAW) ...
+    answers[0]!({ outcome: 'looping', loopStart: 1, loopEnd: 2 });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(stopLoop).not.toHaveBeenCalled();
+    // ... but the new note is then refused and the app plays it: nobody owns the DAW, so the old loop is stopped.
+    answers[1]!(refusedAs('not_running'));
+    await waitFor(() => expect(stopLoop).toHaveBeenCalledTimes(1));
+  });
+
+  it('says where to stop a loop the DAW refused to stop', async () => {
+    const api: HearItApi = {
+      findingsLoop: vi.fn(async () => looping),
+      findingsStopLoop: vi.fn(async () => ({ outcome: 'refused' as const, reason: 'not_running' as const, message: 'REAPER is not running' })),
+    };
+    render(
+      <ApiProvider api={createMockApi()}>
+        <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} />
+      </ApiProvider>,
+    );
+    await userEvent.click(hear());
+    await userEvent.click(await screen.findByRole('button', { name: /^Stop hearing it/ }));
+    await waitFor(() => expect(toasted()[0]).toBe('REAPER is not running. Stop it in REAPER.'));
+  });
+
   it('says where to stop a loop it could not stop after the note was left', async () => {
     let answerLoop: (value: FindingNavigation) => void = () => {};
     const api: HearItApi = {

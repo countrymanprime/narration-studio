@@ -116,7 +116,11 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
     dawStarted.current = false;
     // A failed stop leaves the DAW playing; say so, as the Editing page does.
     sync.dawTransportSync('stop', 0).then(
-      (result) => !result.ok && live.current.onRefused(result.message),
+      (result) => {
+        if (result.ok) return;
+        const name = dawNameOf(dawCaps.current.caps);
+        live.current.onRefused(`${reasonSentence(result.message)} Stop it in ${name}.`);
+      },
       (error: unknown) => {
         const name = dawNameOf(dawCaps.current.caps);
         live.current.onRefused(`${reasonSentence(notAskedSentence(name, error, 'stop'))} Stop it in ${name}.`);
@@ -173,13 +177,16 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
               // An older press's late answer stops nothing a newer press started.
               if (late()) {
                 if (dawPlayOwner.mayStop(token)) stopDaw();
+                else dawPlayOwner.orphan(stopDaw);
                 return { played: true };
               }
               if (asked.current !== mine) {
                 // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
                 if (dawPlayOwner.mayStop(token)) stopDaw();
+                else dawPlayOwner.orphan(stopDaw);
                 return { played: true };
               }
+              dawPlayOwner.settle(token);
               setPlayingId(p.id);
               setInDaw(true);
               timer.current = window.setTimeout(

@@ -130,9 +130,10 @@ export function HearIt({
         looped.current = false;
         dawPlayOwner.release();
         try {
-          await api.findingsStopLoop();
+          const answer = await api.findingsStopLoop();
+          if (answer.outcome === 'refused') overlay.toast(`${reasonSentence(answer.message)} Stop it in ${dawName}.`, { tone: 'error' });
         } catch (error) {
-          overlay.toast(reasonSentence(notAskedSentence(dawName, error, 'stop')), { tone: 'error' });
+          overlay.toast(`${reasonSentence(notAskedSentence(dawName, error, 'stop'))} Stop it in ${dawName}.`, { tone: 'error' });
         }
       }
       setPlaying(null);
@@ -167,9 +168,11 @@ export function HearIt({
             // The same when the note was left, or a newer press made, while the DAW was answering inside the deadline.
             if (late() || !newest.current(press)) {
               if (dawPlayOwner.mayStop(token)) dropLoop.current();
+              else dawPlayOwner.orphan(() => dropLoop.current());
               return { played: true };
             }
             looped.current = true;
+            dawPlayOwner.settle(token);
             setPlaying('daw');
             return { played: true };
           }
