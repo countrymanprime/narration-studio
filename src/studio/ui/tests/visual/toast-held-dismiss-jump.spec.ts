@@ -106,3 +106,24 @@ test("held Dismiss, Tab into the next toast, release Enter: the next toast's but
   await page.waitForTimeout(PAST_HAND_BACK_MS);
   await expect(nextButton).toBeFocused();
 });
+
+test('a key still held after the window lost focus presses nothing focus was handed back to (the Jump menu stays shut)', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await page.waitForFunction(() => typeof (window as unknown as Partial<Raise>).__raiseToast === 'function');
+  const opener = page.getByRole('button', { name: /Jump to or run/ }).first();
+  await opener.focus();
+  await page.evaluate(() => (window as unknown as Raise).__raiseToast('The save failed. Try again.'));
+  const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+  await expect(dismiss).toBeVisible();
+  await dismiss.focus();
+  await page.keyboard.down('Enter');
+  // The window loses focus mid-hold (alt-tab): the hand-back runs now, and the narrator keeps holding Enter, whose repeats must not press the Jump button focus went back to.
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(opener).toBeFocused();
+  await page.keyboard.down('Enter');
+  await page.keyboard.down('Enter');
+  await page.waitForTimeout(PAST_HAND_BACK_MS);
+  await expect(jumpField(page)).toHaveCount(0);
+  await page.keyboard.up('Enter');
+});

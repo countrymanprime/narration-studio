@@ -98,7 +98,7 @@ export function keyContextOf(event: Event): KeyContext | undefined {
 }
 
 const SOFT_LAYER = '[role="menu"], [data-popover-popup]';
-const MODAL_LAYER = '[role="alertdialog"], [role="dialog"]:not([data-popover-popup])';
+const MODAL_LAYER = '[role="alertdialog"], [role="dialog"]:not([data-popover-popup]), dialog[open], [aria-modal="true"]:not([data-popover-popup])';
 
 /** Whether a menu or popover (a popup the page behind stays usable under, closed by Escape) is on screen. */
 export function softLayerOpen(root: ParentNode = document): boolean {
@@ -108,6 +108,15 @@ export function softLayerOpen(root: ParentNode = document): boolean {
 /** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
 export function modalLayerOpen(root: ParentNode = document): boolean {
   return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(GONE));
+}
+
+/** The topmost dialog, alert dialog or modal (a native `<dialog open>` or an `aria-modal` layer too) on screen: not hidden, inert, aria-hidden or closing. Null when none is. */
+export function openModalLayer(root: ParentNode = document): Element | null {
+  return (
+    Array.from(root.querySelectorAll(MODAL_LAYER))
+      .filter((layer) => !layer.closest(GONE))
+      .pop() ?? null
+  );
 }
 
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);
