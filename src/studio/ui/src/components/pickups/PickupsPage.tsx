@@ -16,7 +16,8 @@ import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton'
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
-import { ALL_SCOPE, pickupTime, inScope, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, pickupTime, inScope, type ChapterRef } from './list/pickupRows';
+import { reasonSentence } from '../../api/errorMessage';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';

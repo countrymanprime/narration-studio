@@ -141,7 +141,7 @@ export function HearIt({
           try {
             answer = await api.findingsLoop(note.id);
           } catch (error) {
-            return { played: false, why: `The DAW was not asked: ${apiErrorMessage(error)}` };
+            return { played: false, why: `${capitalised(dawName)} was not asked: ${apiErrorMessage(error)}` };
           }
           if (answer.outcome === 'looping') {
             // The deadline passed while the DAW was answering: the app plays in its place, so this loop is stopped, not left beside it.
@@ -185,7 +185,8 @@ export function HearIt({
           notice,
           by === null ? { tone: 'error', action: retryAction(() => newest.current(press) && again.current()), topic: HEAR_TOPIC } : undefined,
         );
-      if (by === APP) setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
+      // The toast already says the app plays when it played in the DAW's place; the row says so only when there was no toast.
+      if (by === APP && !notice) setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side.`, failed: false });
     });
   again.current = () => void start();
 

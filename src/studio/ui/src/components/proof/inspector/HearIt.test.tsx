@@ -54,7 +54,11 @@ function Harness(props: Omit<Parameters<typeof HearIt>[0], 'onResult'>) {
   );
 }
 
-function setup(finding: Finding, loop: FindingNavigation | (() => Promise<FindingNavigation>), props: { inert?: boolean } = {}) {
+function setup(
+  finding: Finding,
+  loop: FindingNavigation | (() => Promise<FindingNavigation>),
+  props: Partial<Omit<Parameters<typeof HearIt>[0], 'onResult'>> = {},
+) {
   const api: HearItApi = {
     findingsLoop: vi.fn(typeof loop === 'function' ? loop : async () => loop),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
@@ -111,9 +115,10 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       expect(t.mediaUrl).toHaveBeenCalledWith('C:/Book/ch1 take.wav');
       expect(currentTimes.at(-1)).toBe(7);
       // The DAW's reason, and who played instead, is a toast (playback/providers.ts); the row says it is playing. It plays, so no Retry is offered.
-      expect(toasted()[0]).toBe(`refused: ${reason}. Played in the app instead.`);
+      expect(toasted()[0]).toBe(`Refused: ${reason}. Played in the app instead.`);
       expect(toasted()[1]?.action).toBeUndefined();
-      expect(status()).toBe('Playing in the app, 3 s either side.');
+      // The toast says the app plays; the row does not say it twice.
+      expect(status()).toBe('');
     },
   );
 
@@ -121,8 +126,8 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     setup(placed(), () => Promise.reject(new Error('bridge gone')));
     await userEvent.click(hear());
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
-    expect(toasted()[0]).toMatch(/^The DAW was not asked: .*bridge gone.* Played in the app instead\.$/);
-    expect(status()).toMatch(/^Playing in the app/);
+    expect(toasted()[0]).toMatch(/^REAPER was not asked: .*bridge gone.*\. Played in the app instead\.$/);
+    expect(status()).toBe('');
   });
 
   it('asks the DAW nothing while it is not running, and plays in the app with its sentence', async () => {
@@ -138,7 +143,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     await userEvent.click(hear());
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     expect(api.findingsLoop).not.toHaveBeenCalled();
-    expect(status()).toMatch(/Playing in the app/);
+    expect(status()).toBe('');
   });
 
   // #4076, owner rule on #4043: the DAW's capabilities not being answered yet is no reason to hold the click back.
@@ -377,7 +382,8 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
   });
 
   it('the app clip ending puts the button back and clears its Playing line', async () => {
-    setup(placed(), refusedAs('standalone'));
+    // A recorder that never declared the loop: the app plays as its normal path, with no toast, so the row says so.
+    setup(placed(), refusedAs('standalone'), { capabilities: DAW_SETUPS.builtin });
     await userEvent.click(hear());
     await waitFor(() => expect(status()).toMatch(/Playing in the app/));
     const audio = play.mock.contexts.at(-1) as HTMLMediaElement;

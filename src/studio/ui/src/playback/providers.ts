@@ -1,5 +1,6 @@
 import type { DawCapabilities } from '../api/contracts/daw';
 import { capitalised, noAnswerSentence } from '../studio/dawNames';
+import { reasonSentence } from '../api/errorMessage';
 import { within } from '../within';
 
 // The playback port (docs/design/editing-daw-transport-sync.md, Who plays): every place that plays audio asks an ordered list of
@@ -54,9 +55,8 @@ export interface DawRead {
 export const CHECKING = 'Checking whether the DAW can play this. Try again in a moment.';
 export const READ_FAILED = 'The app could not ask the DAW what it can do; it is asking again.';
 
-/** A reason ends in a full stop, so the next sentence ("Played in the app instead.") does not run into it. */
-const ended = (why: string): string => (/[.!?:]$/.test(why.trimEnd()) ? why : `${why}.`);
-const join = (whys: readonly string[]): string => whys.map(ended).join(' ');
+/** The reasons as sentences (a capital, a full stop: the shared `reasonSentence`), so "Played in the app instead." does not run into one. */
+const join = (whys: readonly string[]): string => whys.map(reasonSentence).join(' ');
 
 /**
  * The selection rule. Providers are tried in order: one that is not ready is passed over, its reason kept; one that fails is passed

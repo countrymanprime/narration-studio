@@ -210,7 +210,7 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
   it('ends a reason with a full stop before it says who played instead', async () => {
     const fails = provider('REAPER', { ready: true }, { played: false, why: 'bridge down' });
     const app = provider(APP, { ready: true }, { played: true });
-    expect((await playThrough([fails.p, app.p], 0)).notice).toBe('bridge down. Played in the app instead.');
+    expect((await playThrough([fails.p, app.p], 0)).notice).toBe('Bridge down. Played in the app instead.');
   });
   it('a keepQuiet that never answers does not hold the app back', async () => {
     const fails = provider('REAPER', { ready: true }, { played: false, why: 'Refused.' });

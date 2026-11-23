@@ -1,6 +1,5 @@
 // The pure side of the Pickups list: what the columns say, how rows group by chapter, and the pickup script. The wording is the research
 // mock's (`selectors/pickups.ts`: `srcLabel`, `typeLabel`; `state/commands/pickups.ts`: `pickupScript`).
-import { apiErrorMessage } from '../../../api/errorMessage';
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
 import type { KindId } from '../../../kinds/kindMap';
 import { clock } from '../../../clock';
@@ -112,12 +111,6 @@ export function parseClock(text: string): number | null {
   const whole = minutes === undefined ? Number(first) * 60 + Number(seconds) : Number(first) * 3600 + Number(minutes) * 60 + Number(seconds);
   const total = whole + (fraction ? Number(`0.${fraction}`) : 0);
   return Math.round(total) > LONGEST_TIME ? null : total;
-}
-
-/** A host reason as a sentence a narrator can read: no "Error: " prefix, a capital, and a full stop. */
-export function reasonSentence(error: unknown): string {
-  const text = apiErrorMessage(error).trim() || 'The host gave no reason.';
-  return `${text.charAt(0).toUpperCase()}${text.slice(1)}${/[.!?]$/.test(text) ? '' : '.'}`;
 }
 
 export type ScriptPart = { kind: 'text' | 'b' | 'i'; text: string };
