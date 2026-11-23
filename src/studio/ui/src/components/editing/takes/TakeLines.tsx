@@ -21,7 +21,7 @@ export interface TakeLinesProps {
   /** The take playing now, or null. */
   playingId: string | null;
   /** The take that was asked and played nothing, or null (a comparison waits on it for the Retry). */
-  failedId?: string | null;
+  waitingId?: string | null;
   gate: TakesGate;
   onKeep: (take: LineTake) => void;
   /** Plays the take's own source range; called again for the take that plays, it stops. */
@@ -157,7 +157,7 @@ export function TakeLines(props: TakeLinesProps) {
           <TakeRow key={t.id} {...props} take={t} suggestedId={suggestion.take} />
         ))}
       </div>
-      <TakeCompare passage={passage} keptId={keptId} playingId={props.playingId} failedId={props.failedId ?? null} onPlay={props.onPlay} />
+      <TakeCompare passage={passage} keptId={keptId} playingId={props.playingId} waitingId={props.waitingId ?? null} onPlay={props.onPlay} />
       {rows.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2" data-takes-footer>
           {rows.map((r) => (

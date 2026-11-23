@@ -202,6 +202,7 @@ describe('before-the-daw-answers', () => {
     await flush();
     expect(audio.play).toHaveBeenCalled();
     expect(notices).toEqual([`Not linked. ${FELL_BACK}`]);
+    expect(result.current.waitingId).toBeNull();
     expect(retries[0]).toBeUndefined();
     expect(result.current.playingId).toBe('take-1');
   });
@@ -219,6 +220,8 @@ describe('before-the-daw-answers', () => {
     expect(notices).toHaveLength(1);
     expect(notices[0]).toMatch(/recording/i);
     expect(retries[0]).toBeTypeOf('function');
+    // A comparison holds on the take that played nothing until Retry or another play.
+    expect(result.current.waitingId).toBe(LINE.takes[0].id);
     projectState.mockResolvedValue({ playState: 'stopped' });
     act(() => retries[0]!());
     await flush();
@@ -254,7 +257,7 @@ describe('before-the-daw-answers', () => {
     act(() => retries[0]!());
     await flush();
     expect(previewTake).toHaveBeenCalledTimes(calls);
-    expect(notices.at(-1)).toMatch(/not under its line any more/);
+    expect(notices.at(-1)).toMatch(/line is not on the page any more/);
   });
   it('says a failed read, asks again, and plays the take in the app', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);
