@@ -119,9 +119,11 @@ export function HearIt({
     setPlaying(null);
     // The clip ended: its "Playing" line goes with it.
     report.current(undefined);
-    if (loadError) clipFailed.current = lastAsk.current;
-    if (loadError)
-      overlay.toast(APP_FAILED, { tone: 'error', action: retryAction(() => newest.current(lastAsk.current) && again.current()), topic: HEAR_TOPIC });
+    if (!loadError) return;
+    // The press this clip belonged to: a Retry offered for it plays nothing once a newer press was made.
+    const ask = lastAsk.current;
+    clipFailed.current = ask;
+    overlay.toast(APP_FAILED, { tone: 'error', action: retryAction(() => newest.current(ask) && again.current()), topic: HEAR_TOPIC });
   }, [playing, isPlaying, loadError, newest]);
 
   const stop = () =>

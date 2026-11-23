@@ -67,7 +67,9 @@ const join = (whys: readonly string[]): string => whys.map(reasonSentence).join(
 export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], request: R, rule: PlayRule = {}): Promise<PlayOutcome> {
   const tried = rule.dawSpecific ? providers.slice(0, 1) : providers;
   const whys: string[] = [];
-  const startedAt = Date.now();
+  // With a deadline, the DAW-is-recording read starts with the DAW's play and shares its one budget: a DAW that answers neither hands the note to the
+  // app after 3 s in all, and the read still has the whole 3 s to answer, so a DAW that records is heard.
+  const quietRead = rule.keepQuiet && rule.deadlineMs !== undefined && tried.length > 1 ? within(rule.keepQuiet(), rule.deadlineMs) : undefined;
   for (const [index, provider] of tried.entries()) {
     const ready = provider.readiness(request);
     if (!ready.ready) {
@@ -76,12 +78,8 @@ export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], 
       continue;
     }
     if (index > 0 && rule.keepQuiet) {
-      // A read of the DAW's state that never answers does not hold the app back (as one that fails does not). It shares the one budget with the
-      // DAW's play, so a DAW that answers neither waits 3 s in all, not 6.
-      const asked =
-        rule.deadlineMs === undefined
-          ? { value: await rule.keepQuiet() }
-          : await within(rule.keepQuiet(), Math.max(0, rule.deadlineMs - (Date.now() - startedAt)));
+      // A read of the DAW's state that never answers does not hold the app back (as one that fails does not).
+      const asked = quietRead ? await quietRead : { value: await rule.keepQuiet() };
       const quiet = asked?.value ?? null;
       if (quiet) return { by: null, notice: quiet, passed: whys };
     }

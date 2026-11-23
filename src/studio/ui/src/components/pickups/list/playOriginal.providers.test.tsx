@@ -130,7 +130,7 @@ const flush = () =>
   });
 
 beforeEach(() => {
-  dawPlayOwner.release();
+  dawPlayOwner.forget();
   vi.useFakeTimers();
   audio = new FakeAudio();
   vi.stubGlobal('Audio', function () {

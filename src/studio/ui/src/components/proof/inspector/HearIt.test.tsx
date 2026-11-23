@@ -34,7 +34,7 @@ let toast: ReturnType<typeof vi.spyOn>;
 const toasted = () => toast.mock.calls.at(-1) as [string, { tone?: string; action?: { label: string; onAction: () => void } } | undefined];
 let currentTimes: number[];
 beforeEach(() => {
-  dawPlayOwner.release();
+  dawPlayOwner.forget();
   toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
   play = vi.fn(async () => undefined);
   currentTimes = [];

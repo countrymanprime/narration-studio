@@ -226,4 +226,13 @@ describe('a-provider-that-never-answers-is-passed-over', () => {
     await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
     expect(await pending).toMatchObject({ by: APP });
   });
+  it('a DAW that never answers is still asked whether it records, and a recording DAW keeps the app quiet', async () => {
+    const hung: PlaybackProvider<number> = { name: 'REAPER', readiness: () => ({ ready: true }), play: () => new Promise<never>(() => {}) };
+    const app = provider(APP, { ready: true }, { played: true });
+    const keepQuiet = () => new Promise<string>((resolve) => setTimeout(() => resolve('REAPER is recording.'), 500));
+    const pending = playThrough([hung, app.p], 0, { keepQuiet, deadlineMs: PLAY_DEADLINE_MS });
+    await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
+    expect(await pending).toMatchObject({ by: null, notice: 'REAPER is recording.' });
+    expect(app.play).not.toHaveBeenCalled();
+  });
 });

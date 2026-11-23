@@ -1,9 +1,10 @@
 /**
  * Which press owns the DAW's play right now, across notes, lists and page visits (a `useNewestPlay` counter is per mount, so it cannot say). A press
  * `begin`s with a token, `claim`s the DAW when it sends its play, `settle`s once the DAW is really playing it, and `release`s the DAW when it stops or
- * ends in the app. An answer that comes late, or for a note or list that was left, `mayStop` what it started only when no newer press has claimed
- * the DAW since; when it may not, it `orphan`s its stop, which runs when the newer press releases the DAW without playing in it (the old play would
- * otherwise run on), and is dropped when the newer press settles (the DAW's one play is then the newer one).
+ * ends in the app. An answer that comes late, or for a note or list that was left, stops what it started (`stopOrOrphan`) only when no newer press has claimed
+ * the DAW since; when one has, its stop is orphaned, which runs when the newer press releases the DAW without playing in it (the old play would
+ * otherwise run on), and is dropped when the newer press settles (the DAW's one play is then the newer one). One owner is kept for the whole app, so the
+ * untokened `release()` of a Stop assumes one page plays at a time (Proof and Pickups are never on screen together).
  */
 let begun = 0;
 let owner = 0;
@@ -28,8 +29,6 @@ export const dawPlayOwner = {
     orphans = [];
     for (const stop of stops) stop();
   },
-  /** An answer for `token`'s play may stop it: the DAW is nobody's, or still this press's. */
-  mayStop: (token: number): boolean => owner === 0 || owner === token,
   /** `token`'s play came back when its press no longer wants it: stop it now and give the DAW up if nobody newer owns it, else stop it only if that press gives the DAW up without playing in it. */
   stopOrOrphan: (token: number, stop: () => void): void => {
     if (owner !== 0 && owner !== token) {
@@ -39,8 +38,9 @@ export const dawPlayOwner = {
     stop();
     dawPlayOwner.release(token);
   },
-  /** A play that landed while a newer press owned the DAW: stop it if that press gives the DAW up without playing in it. */
-  orphan: (stop: () => void): void => {
-    orphans.push(stop);
+  /** Forgets every owner and orphan without running them: for a test's start, so one test's stops never run in the next. */
+  forget: (): void => {
+    owner = 0;
+    orphans = [];
   },
 };

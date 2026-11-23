@@ -75,10 +75,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
   const [inDaw, setInDaw] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
-  // The press that owns the DAW's play now: null after Stop. A play that comes back after it was replaced stops the DAW only when nobody owns it.
-  const owner = useRef<number | null>(null);
-  // A DAW play was started and not stopped since: an earlier press's, which a later press that ended in the app must not leave running.
-  const dawStarted = useRef(false);
   // What the DAW last said it can do (read at mount and again when its report changes): a press uses it as it stands and never waits for a read.
   const dawState = useDawCapabilities();
   const dawCaps = useRef(dawState);
@@ -112,7 +108,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
   };
   const stopDaw = useCallback((): void => {
     clearTimer();
-    dawStarted.current = false;
     // A failed stop leaves the DAW playing; say so, as the Editing page does.
     sync.dawTransportSync('stop', 0).then(
       (result) => {
@@ -130,7 +125,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
   const stop = useCallback((): void => {
     overlay.dismissTopic(ORIGINAL_TOPIC);
     asked.current += 1;
-    owner.current = null;
     dawPlayOwner.release();
     if (live.current.inDaw) stopDaw();
     player.stop();
@@ -143,7 +137,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
     async (pickup: PickupItem): Promise<void> => {
       stop();
       const mine = asked.current;
-      owner.current = mine;
       const { caps, failed: capsFailed, retry: readCapsAgain } = dawCaps.current;
       // A read that failed is asked again for the next press; this one does not wait for it.
       if (!caps && capsFailed) readCapsAgain();
@@ -171,7 +164,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
             dawPlayOwner.claim(token);
             const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND, p.chapterId);
             if (result.ok) {
-              dawStarted.current = true;
               // The deadline passed while the DAW was answering: the app plays in its place, so this DAW play is stopped, not left beside it.
               // An older press's late answer stops nothing a newer press started.
               if (late()) {
@@ -191,8 +183,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
                   if (asked.current !== mine) return;
                   // The DAW's play ended by itself: nobody owns it, so a late answer of an older press is stopped, not orphaned.
                   dawPlayOwner.release(token);
-                  // Nothing of this press is left in the DAW: a later press that ends in the app sends no stop to whatever the narrator plays there.
-                  dawStarted.current = false;
                   setInDaw(false);
                   setPlayingId(null);
                 },
@@ -233,13 +223,9 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
         deadlineMs: PLAY_DEADLINE_MS,
       });
       setPendingId((id) => (id === pickup.id ? null : id));
-      // This press ended in the app (the DAW refused or could not play): it owns no DAW play, and one an earlier press left running is stopped now, or when its
-      // late answer comes (qa B1 on #3402).
-      if (by !== name && owner.current === mine) {
-        owner.current = null;
-        dawPlayOwner.release(token);
-        if (dawStarted.current) stopDaw();
-      }
+      // This press ended in the app (the DAW refused, could not play or did not answer): it owns no DAW play, and an earlier press's play that landed while
+      // it owned the DAW is stopped now (qa B1 on #3402); or, if its own DAW play is still asked, when that answer comes.
+      if (by !== name) dawPlayOwner.release(token);
       if (!wanted() || !notice) return;
       // Retry only when nothing played: a line that fell back to the app and plays is not offered a Retry, which would stop it.
       if (by === null) live.current.onRefused(notice, retry);
@@ -275,7 +261,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
     () => () => {
       // A press still waiting on the DAW's capabilities must not start anything on a list that is gone.
       asked.current += 1;
-      owner.current = null;
       if (live.current.inDaw) {
         dawPlayOwner.release();
         stopDaw();
