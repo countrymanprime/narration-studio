@@ -1,6 +1,6 @@
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useState } from 'react';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { ToastRegion, type ToastMessage } from './Toast';
 
@@ -200,8 +200,19 @@ export const LongActionLabel: Story = {
   },
 };
 
+/** Stands in for the Booth: in a window 520 px tall or shorter (the tiny-window stories) the toasts rise above its footer and setup notice by `--toast-clear`, which is most of a 300 px window. */
+function WithBoothBars({ children }: { children: ReactNode }) {
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty('--toast-clear', '210px');
+    return () => {
+      document.documentElement.style.removeProperty('--toast-clear');
+    };
+  }, []);
+  return <>{children}</>;
+}
 /** Two long failures with Retry: the stack the shell's strip is held to half the window for (the toasts stand under the page, so no bar is simulated). */
-export const TwoLongToasts: Story = {
+export const TwoToastsAboveTheBoothBars: Story = {
+  decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
   args: {
     messages: [
       { ...failure(1, 'x'.repeat(10_000)), action },
@@ -239,8 +250,9 @@ async function everyButtonOnScreen(toasts: number, buttonCount = toasts * 2) {
   }
   return true;
 }
-// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four): the shell's strip is held to half the window, and each toast keeps its least height.
-export const FourToasts: Story = {
+// The most toasts the app keeps (OVERLAY_TOAST_LIMIT, four) above the Booth's bars: the stack gives the bars less room so each toast keeps its least height (#3322).
+export const FourToastsAboveTheBoothBars: Story = {
+  decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
   args: {
     messages: [
       { ...failure(1, 'REAPER refused to start recording because the armed track is locked, so nothing was recorded. Unlock it and try again.'), action },
@@ -280,8 +292,8 @@ export const LongRefusalWithActionInTinyWindow: Story = {
     await everyButtonOnScreen(1);
   },
 };
-export const FourToastsInTinyWindow: Story = {
-  ...FourToasts,
+export const FourToastsAboveTheBoothBarsInTinyWindow: Story = {
+  ...FourToastsAboveTheBoothBars,
   tags: ['tiny-window'],
   play: async () => {
     // Three buttons carry an action and all four have Dismiss.
@@ -295,8 +307,8 @@ export const LongActionLabelInTinyWindow: Story = {
     await everyButtonOnScreen(1);
   },
 };
-export const TwoLongToastsInTinyWindow: Story = {
-  ...TwoLongToasts,
+export const TwoToastsAboveTheBoothBarsInTinyWindow: Story = {
+  ...TwoToastsAboveTheBoothBars,
   tags: ['tiny-window'],
   play: async () => {
     await everyButtonOnScreen(2);
