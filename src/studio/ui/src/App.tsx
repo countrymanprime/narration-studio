@@ -1446,7 +1446,11 @@ function AppRoutes() {
                     contextMenu={contextMenu}
                     zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
                   >
-                    <ErrorBoundary key={location.pathname.split('/')[1] || 'production'} onError={() => trace('ui.error', { source: 'boundary' })}>
+                    {/* Keyed by project as well as page: a project change remounts the page, so a dialog or draft a page holds in its own state for the old project (a confirm that would apply to its chapter) goes with it (#4057). */}
+                    <ErrorBoundary
+                      key={`${data.projectFolder}|${location.pathname.split('/')[1] || 'production'}`}
+                      onError={() => trace('ui.error', { source: 'boundary' })}
+                    >
                       <Routes>
                         <Route
                           path="/"
