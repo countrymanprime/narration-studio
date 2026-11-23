@@ -20,10 +20,8 @@ beforeEach(() => {
   document.title = '';
   for (const toast of overlay.getSnapshot().toasts) overlay.dismissToast(toast.id);
 });
-afterEach(async () => {
+afterEach(() => {
   cleanup();
-  // jsdom traverses history in a task of its own: let a Back sent by the test finish before the next test starts.
-  await new Promise((resolve) => setTimeout(resolve, 20));
   window.localStorage.clear();
 });
 
@@ -183,7 +181,7 @@ describe('the chapter in the address is not carried into another project (#4059)
 
   // The history a reload leaves: an older entry with its router key and the project it was written under (the app stamps it into the entry), and the entry the app mounts on.
   const seedReloadedHistory = (older: string, project: string | undefined) => () => {
-    window.history.replaceState({ usr: null, key: 'before-the-reload', idx: 0, ...(project ? { project } : {}) }, '', older);
+    window.history.replaceState({ usr: project ? { project } : null, key: 'before-the-reload', idx: 0 }, '', older);
     window.history.pushState({ usr: null, key: 'now', idx: 1 }, '', '/script');
   };
   const aliceFolder = async () => (await createMockApi().bootstrap()).projectFolder;
@@ -235,13 +233,10 @@ describe('the chapter in the address is not carried into another project (#4059)
   it('the project an entry was written under is kept in the entry, across a router replace and the cut', async () => {
     const { api, first } = await openAt('/editing/chapter-7');
     await onChapter(/^Chapter: Chapter 7:/);
-    const stamp = () => (window.history.state as { project?: string } | null)?.project;
+    const stamp = () => (window.history.state as { usr?: { project?: string } } | null)?.usr?.project;
     await waitFor(() => expect(stamp()).toBe(first));
-    // The step can be pressed before the page has its chapters (it then does nothing): press it again until it moves.
-    await waitFor(() => {
-      if (!screen.queryByRole('button', { name: /^Chapter: Chapter 8:/ })) fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
-      expect(screen.getByRole('button', { name: /^Chapter: Chapter 8:/ })).toBeTruthy();
-    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Next chapter' }));
+    await onChapter(/^Chapter: Chapter 8:/);
     await waitFor(() => expect(stamp()).toBe(first));
     const entries = window.history.length;
     await api.switchProject(OTHER, 'Voltage and the Undercroft');

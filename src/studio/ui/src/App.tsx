@@ -701,61 +701,32 @@ function AppRoutes() {
 
   // The address of a page names a chapter of the project it was written under (`?chapter=`, `/editing/:chapterId`, `#file=`). After a project change it is cut back to the page
   // before the new project's page mounts, so that page opens on its own remembered chapter and never writes the old project's as its own (#4059). The project is stamped into
-  // the history entry itself, so it survives a reload and a Back onto any older entry is judged by it. An entry with no stamp (a typed fragment, the first entry before the
-  // bootstrap answered) is the open project's own. Judged in render: `shownProject` above is an effect, after the new page has mounted.
+  // the history entry's own state, which the router commits with the location: a reload or a Back onto an older entry brings it back as `location.state.project`. An entry with
+  // no stamp (a typed fragment, the first entry before the bootstrap answered) is the open project's own. Judged in render: `shownProject` above is an effect, after the new
+  // page has mounted.
   const project = data?.projectFolder;
-  // The entry in history is the shown location's only when their keys agree: a router move in a transition writes history first and shows the location after.
-  const entryState = (): { project?: unknown } | null => {
-    const state = window.history.state as { key?: string; project?: unknown } | null;
-    return (state?.key ?? 'default') === location.key ? state : null;
-  };
-  // While a move waits in a transition the location on screen is behind history, and its entry is no longer readable: the project the last readable one was shown under stands for it.
-  const shownUnder = useRef<string | undefined>(undefined);
-  const entry = entryState();
-  const stamped = entry ? entry.project : shownUnder.current;
+  // The router's `location.state` does not follow a stamp written afterwards, so the entry on screen keeps the project it was first rendered under here.
+  const shownUnder = useRef<{ key: string; project: string } | undefined>(undefined);
+  const owner = shownUnder.current?.key === location.key ? shownUnder.current.project : (location.state as { project?: unknown } | null)?.project;
   const bareAddress = addressWithoutProject(location);
-  const judgedStale =
-    typeof stamped === 'string' &&
-    isOtherProject(stamped, project) &&
+  const addressStale =
+    typeof owner === 'string' &&
+    isOtherProject(owner, project) &&
     (bareAddress.pathname !== location.pathname || bareAddress.search !== location.search || bareAddress.hash !== location.hash);
-  // Once an address is judged stale it stays so while its entry cannot be read: a re-render before its cut commits sees history ahead and has nothing to judge it by.
-  const heldKey = useRef<string | undefined>(undefined);
-  if (entry) heldKey.current = judgedStale ? location.key : undefined;
-  const addressStale = judgedStale || heldKey.current === location.key;
-  // A router push or replace writes a fresh state with no stamp, so each render puts the project on the entry it is showing. A stale entry is cut instead (its replacement is stamped).
   useLayoutEffect(() => {
-    const state = entryState();
-    if (project !== undefined && !addressStale && state && state.project !== project) window.history.replaceState({ ...state, project }, '');
-    if (state && !addressStale && project !== undefined) shownUnder.current = project;
+    if (project === undefined || addressStale) return;
+    if (shownUnder.current?.key !== location.key) shownUnder.current = { key: location.key, project };
+    // Only the entry on screen is stamped: history can be ahead of it while a move waits in a transition.
+    const state = window.history.state as { key?: string; usr?: { project?: unknown } } | null;
+    if ((state?.key ?? 'default') === location.key && state?.usr?.project !== project)
+      window.history.replaceState({ ...state, usr: { ...state?.usr, project } }, '');
   });
-  // A tick that runs the cut again: history can come back to the entry on screen with no router commit (nothing in the deps changes then), so a skipped cut asks for its own re-check.
-  const [cutTick, setCutTick] = useState(0);
-  const cutWaits = useRef(0);
   useEffect(() => {
-    if (!addressStale) {
-      cutWaits.current = 0;
-      return;
-    }
-    const cut = () => {
-      void navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
-    };
-    // History ahead of the location on screen is a move waiting in a transition (the narrator's, or a Back): cutting now would write over it. The page stays held until it
-    // commits, and the address that commits is judged by its own entry.
+    // History ahead of the location on screen is a move waiting in a transition: a replace now would write over it. The page stays held, and the effect runs again with the
+    // location that commits (a new object even when history returns to the same entry).
     const state = window.history.state as { key?: string } | null;
-    if ((state?.key ?? 'default') === location.key) return void cut();
-    // Waits for the move to commit or for history to return (popstate), looking again every 50 ms; after 3 looks the move is given up and the address cut, so the page is never held for good.
-    if (cutWaits.current >= 3) return void cut();
-    const again = () => setCutTick((tick) => tick + 1);
-    const timer = window.setTimeout(() => {
-      cutWaits.current += 1;
-      again();
-    }, 50);
-    window.addEventListener('popstate', again, { once: true });
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('popstate', again);
-    };
-  }, [addressStale, cutTick, navigate, location.key, bareAddress.pathname, bareAddress.hash]);
+    if (addressStale && (state?.key ?? 'default') === location.key) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
+  }, [addressStale, navigate, location, bareAddress.pathname, bareAddress.hash]);
 
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then
