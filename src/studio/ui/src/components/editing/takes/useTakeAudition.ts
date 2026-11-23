@@ -142,9 +142,21 @@ export function useTakeAudition({
       quiet();
       stop();
       const mine = asked.current;
-      const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
-      void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ notice }) => {
-        if (notice && asked.current === mine) say(notice, () => mounted.current && playsAsked.current === ask && playAgain.current(take));
+      // A DAW that has not yet answered may still be recording: the room is kept quiet for it too (a failed projectState read does not hold the play back).
+      const keepQuiet = now || !dawRead?.failed ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
+        // Retry only when nothing played: a take that fell back to the app and plays is not offered a Retry, which would stop it.
+        if (notice && asked.current === mine)
+          say(
+            notice,
+            by === null
+              ? () => {
+                  // The take as it is now: one trimmed or deleted since is not played from its old range.
+                  const current = live.current.passageOf(take)?.takes.find((x) => x.id === take.id);
+                  if (current && mounted.current && playsAsked.current === ask) playAgain.current(current);
+                }
+              : undefined,
+          );
       });
     },
     [daw, player, playing, inDaw, stop],
