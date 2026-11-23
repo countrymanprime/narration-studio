@@ -124,6 +124,15 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     },
   );
 
+  it('falls back to the app player with the reason when the DAW refuses before its capabilities have answered', async () => {
+    const t = setup(placed(), refusedAs('not_running'), { capabilities: undefined });
+    await userEvent.click(hear());
+    expect(t.api.findingsLoop).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+    expect(toasted()[0]).toBe('Refused: not_running. Played in the app instead.');
+    expect(toasted()[1]?.action).toBeUndefined();
+  });
+
   it('falls back to the app player when the host call itself fails', async () => {
     setup(placed(), () => Promise.reject(new Error('bridge gone')));
     await userEvent.click(hear());
