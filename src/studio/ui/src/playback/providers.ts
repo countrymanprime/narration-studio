@@ -87,6 +87,14 @@ export function dawReadiness(caps: DawCapabilities | null, capability: string, r
   return { ready: true };
 }
 
+/**
+ * `dawReadiness` for a click that plays: a DAW that has not yet said what it can do is asked at once, so no check stands between the click and
+ * the sound (owner rule on #4043); it plays, or it refuses and the app plays with the reason. A read that failed is still said and asked again.
+ */
+export function playReadiness(caps: DawCapabilities | null, capability: string, readFailed = false): Readiness {
+  return caps === null && !readFailed ? { ready: true } : dawReadiness(caps, capability, readFailed);
+}
+
 /** `keepQuiet` for a page with a linked DAW: a DAW that is recording keeps the room quiet. A read that fails does not hold the play back. */
 export function quietWhileRecording(projectState: () => Promise<{ playState: string }>, name: string): () => Promise<string | null> {
   return async () => {

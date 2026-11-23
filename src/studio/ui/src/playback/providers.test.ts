@@ -8,6 +8,7 @@ import {
   CHECKING,
   READ_FAILED,
   dawReadiness,
+  playReadiness,
   playThrough,
   quietWhileRecording,
   type PlayAttempt,
@@ -146,5 +147,15 @@ describe('the-port-never-names-a-daw', () => {
       .join('\n');
     expect(source).not.toMatch(/REAPER|Audacity|Built-in/);
     expect(source).not.toMatch(/\.daw\s*[!=]==|\bkind\b/);
+  });
+});
+
+describe('playReadiness', () => {
+  it('asks a DAW that has not yet said what it can do at once, with no check in between', () => {
+    expect(playReadiness(null, 'file_preview')).toEqual({ ready: true });
+  });
+  it('still says a failed read and leaves the rest to what the DAW declared', () => {
+    expect(playReadiness(null, 'file_preview', true)).toEqual({ ready: false, why: READ_FAILED });
+    expect(playReadiness({ daw: 'REAPER', reachable: true, capabilities: {} } as never, 'file_preview')).toEqual({ ready: false, why: null });
   });
 });

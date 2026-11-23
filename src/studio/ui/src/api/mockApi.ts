@@ -643,7 +643,7 @@ export function createMockApi(
     ...createUndoLastMock(daw, undoHistory),
     ...createSaveProjectMock(daw, initial.daw?.neverSaved),
     ...createFilesMock(daw, filePreview),
-    workspacePreviewTake: previewTakeMock(daw, workspaceTakes.workspaceTakes, filePreview),
+    workspacePreviewTake: previewTakeMock(daw, workspaceTakes.workspaceTakes, filePreview, () => dawControl.recording()),
     ...createMasterFilesMock(daw, lastRunFiles, filePreview),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
@@ -799,15 +799,23 @@ function createFilesMock(daw: DawCapabilitiesApi, preview: FilePreviewState): Da
 }
 
 /** WorkspacePreviewTake as bindings_workspace_take_preview.go answers it: a take the passage no longer offers is refused stale, an
- * unusable or empty one with its sentence, then the file_preview capability's sentence; else the take's own first minute plays. */
-function previewTakeMock(daw: DawCapabilitiesApi, takes: WorkspaceApi['workspaceTakes'], playing: FilePreviewState): WorkspaceApi['workspacePreviewTake'] {
+ * unusable or empty one with its sentence, then the file_preview capability's sentence, then a recording DAW's; else the take's own first minute plays. */
+function previewTakeMock(
+  daw: DawCapabilitiesApi,
+  takes: WorkspaceApi['workspaceTakes'],
+  playing: FilePreviewState,
+  recording: () => boolean,
+): WorkspaceApi['workspacePreviewTake'] {
   return async (chapterId, firstToken, lastToken, candidateId) => {
     const take = (await takes(chapterId, firstToken, lastToken)).candidates.find((candidate) => candidate.id === candidateId);
     if (!take) return { ...refusedResult(DAW_ANSWERS.takePreviewNotOffered), code: 'stale' };
     if (!take.usable) return refusedResult(take.reason ?? '');
     if (take.sourceLength <= 0 || !take.sourceFile) return refusedResult(DAW_ANSWERS.takePreviewEmpty);
-    const preview = (await daw.dawCapabilities()).capabilities.file_preview;
+    const setup = await daw.dawCapabilities();
+    const preview = setup.capabilities.file_preview;
     if (!preview?.available) return refusedResult(preview?.message ?? '');
+    // The bridge refuses a preview while the DAW records (narration_media_file.lua, bindings_daw_files.go).
+    if (recording()) return refusedResult(`${setup.daw} is recording. Stop recording first.`);
     const message = filePreviewAnswer(take.sourceFile, take.sourceStart, Math.min(take.sourceLength, MAX_PREVIEW_SECONDS));
     playing.playing = true;
     return { ok: true, changed: false, message, undoSteps: 0 };

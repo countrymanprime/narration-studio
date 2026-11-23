@@ -3470,6 +3470,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const previewGone = await api.workspacePreviewTake(measured.id, 0, 1, 'take:{NOT-OFFERED}:{TAKE}');
     expectMatches(dawResultSchema, previewGone, 'mock preview take, not offered');
     expect(previewGone).toMatchObject({ ok: false, code: 'stale' });
+    // The bridge refuses a preview while the DAW records, so the mock does (a take shown as playing during a recording hid the Retry path).
+    const recordingApi = createMockApi({}, { ...linked, daw: { transport: { playing: false, recording: true } } });
+    const whileRecording = await recordingApi.workspacePreviewTake(measured.id, 0, 1, first.id);
+    expectMatches(dawResultSchema, whileRecording, 'mock preview take, recording');
+    expect(whileRecording).toMatchObject({ ok: false, refused: expect.stringMatching(/is recording\. Stop recording first\.$/) });
     const notOffered = await api.workspaceUseTake(measured.id, 0, 1, 'take:{NOT-OFFERED}:{TAKE}');
     expectMatches(workspaceUseTakeResultSchema, notOffered, 'mock use take, not offered');
     expect(notOffered).toMatchObject({ outcome: 'refused', reason: 'not_offered', changed: false });
