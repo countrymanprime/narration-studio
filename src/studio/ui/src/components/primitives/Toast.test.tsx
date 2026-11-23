@@ -437,6 +437,34 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
     opener.remove();
   });
 
+  it('does not move focus after its region is gone: a press leaves no hand-back timer for the next page to meet (#4103)', () => {
+    const view = render(<ToastRegion messages={[{ ...info(1), action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    // A key press (`detail` 0) on the focused action waits ACTION_FOCUS_MS before handing focus back.
+    fireEvent.click(undo);
+    view.unmount();
+    // The next page raises a toast of its own, with focus on nothing: the old press must not hand focus to it.
+    render(<ToastRegion messages={[info(2)]} dismiss={vi.fn()} />);
+    expect(document.activeElement).toBe(document.body);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('cancels the hand-back of a key that is still held when the region goes', () => {
+    const view = render(<ToastRegion messages={[{ ...info(1), action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Enter' });
+    fireEvent.click(undo);
+    view.unmount();
+    render(<ToastRegion messages={[info(2)]} dismiss={vi.fn()} />);
+    // The key comes up after the region has gone: it schedules nothing.
+    fireEvent.keyUp(window, { key: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('leaves focus where the action put it', () => {
     const elsewhere = document.createElement('input');
     document.body.append(elsewhere);

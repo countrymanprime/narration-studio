@@ -65,6 +65,13 @@ const TEXT_SCROLL_CUE =
   '[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
 /**
+ * The focus hand-backs a press has scheduled and that have not run yet (a toast's `settle` waits `ACTION_FOCUS_MS`, or for a held key to come up, so the action can move focus itself first). The toast has gone by
+ * then, so the timer cannot belong to it: it belongs to the region, which cancels what is left when it unmounts. A timer that outlived its region moved focus to whatever toast the next page raised, as when the
+ * milestone test's focus after Remove went to a toast's Dismiss (#4103).
+ */
+const pendingHandBacks = new Set<() => void>();
+
+/**
  * Where focus goes when a toast hands it on: the control that had it before the toast took it, else the Dismiss of the toast now in the slot, else the page's <main> (the app's `#main-content`, the project picker's
  * too). Never <body>.
  */
@@ -180,7 +187,23 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
       const active = document.activeElement;
       if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
     };
-    const later = () => window.setTimeout(hand, always ? 0 : ACTION_FOCUS_MS);
+    let timer = 0;
+    const later = () => {
+      timer = window.setTimeout(
+        () => {
+          pendingHandBacks.delete(cancel);
+          hand();
+        },
+        always ? 0 : ACTION_FOCUS_MS,
+      );
+    };
+    // The hand-back belongs to the region that scheduled it (see `pendingHandBacks`).
+    const cancel = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('keyup', later, true);
+      pendingHandBacks.delete(cancel);
+    };
+    pendingHandBacks.add(cancel);
     // A key still held down would repeat on whatever gets focus: wait for it to come up.
     if (keyHeld.current) window.addEventListener('keyup', later, { once: true, capture: true });
     else later();
@@ -471,6 +494,12 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
     </span>
   );
   const showing = messages.length > 0;
+  useEffect(
+    () => () => {
+      for (const cancel of [...pendingHandBacks]) cancel();
+    },
+    [],
+  );
   useToastSlot();
   useToastHeightPublished(region, showing);
   // Portalled to <body>: #root is an isolated stacking context (index.html), so a region inside it never beats the dialogs and slide-overs
