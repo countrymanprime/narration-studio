@@ -23,6 +23,14 @@ describe('isOtherProject: only a known, different project drops an address (#405
     ['the same project', 'C:/A', 'C:/A', false],
     ['another project', 'C:/B', 'C:/A', true],
     ['no project known yet', 'C:/B', undefined, false],
+    ['the same folder with backslashes', 'C:/Projects/X', 'C:\\Projects\\X', false],
+    ['the same folder with a trailing separator', 'C:/Projects/X/', 'C:/Projects/X', false],
+    ['the same folder with a trailing backslash', 'C:\\Projects\\X\\', 'C:/Projects/X', false],
+    ['the same folder with a doubled separator', 'C:/Projects//X', 'C:/Projects/X', false],
+    ['the same network share spelled both ways', '\\\\server\\share\\X', '//server/share/X', false],
+    ['a network share and a rooted path are not one folder', '\\\\server\\share\\X', '/server/share/X', true],
+    ['another case is another folder', 'C:/Projects/X', 'C:/projects/x', true],
+    ['another folder with the same name', 'C:/Projects/X', 'C:/Other/X', true],
   ] as const)('%s', (_name, owner, current, expected) => {
     expect(isOtherProject(owner, current)).toBe(expected);
   });

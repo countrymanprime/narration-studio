@@ -449,4 +449,17 @@ describe('the chapter in the address is not carried into another project (#4059)
     await screen.findByRole('button', { name: expected }, { timeout: 1000 });
     await waitFor(() => expect(address()).toBe(cut), { timeout: 1000 });
   });
+
+  // The start-up path and the recent list spell one folder two ways: choosing the open project again is no change of project.
+  it.each([
+    ['backslashes', (folder: string) => folder.replace(/\//g, '\\')],
+    ['a trailing separator', (folder: string) => `${folder}/`],
+  ])('the same folder spelled with %s keeps the address and the chapter', async (_name, spell) => {
+    const { api, first } = await openAt('/editing/chapter-7');
+    await onChapter(/^Chapter: Chapter 7:/);
+    await api.switchProject(spell(first), 'Alice');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await onChapter(/^Chapter: Chapter 7:/);
+    expect(address()).toBe('/editing/chapter-7');
+  });
 });

@@ -9,11 +9,27 @@ export function pageBoundaryKey(projectFolder: string, pathname: string): string
 }
 
 /**
+ * A project folder as one folder: a backslash and a slash are the same separator, repeated and trailing separators are nothing, and a leading double separator (a network share) stays. The case is kept: on
+ * a case-sensitive file system `X` and `x` are two folders. The host may spell the one folder both ways (the start-up path and the recent list do).
+ */
+function folderKey(folder: string): string {
+  const slashed = folder.replace(/\\/g, '/');
+  const lead = slashed.startsWith('//') ? '//' : '';
+  return (
+    lead +
+    slashed
+      .slice(lead.length)
+      .replace(/\/{2,}/g, '/')
+      .replace(/\/+$/, '')
+  );
+}
+
+/**
  * Whether an address written under `owner` is another project's in `current`. Only a known, different project says so: no owner yet (recorded before the bootstrap answered) or no
- * project yet is not a difference.
+ * project yet is not a difference, and one folder spelled two ways is the same project.
  */
 export function isOtherProject(owner: string | undefined, current: string | undefined): boolean {
-  return current !== undefined && owner !== undefined && owner !== current;
+  return current !== undefined && owner !== undefined && folderKey(owner) !== folderKey(current);
 }
 
 /** The part of `history.state` the router writes that these checks read. */
