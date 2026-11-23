@@ -6,7 +6,7 @@ import type { CategoryId } from '../registry/types';
  * which is the settings tool or panel the link meant before the page had categories; the value is the category to open and the row to light up.
  */
 /** The key a category's own anchor has in `ANCHOR_TARGETS`, and the hash that reaches it is `#category-<id>`. */
-export const categoryAnchorKey = (id: string): string => `category:${id}`;
+const categoryAnchorKey = (id: string): string => `category:${id}`;
 
 export const ANCHOR_TARGETS: Record<string, { cat: CategoryId; row: string | null }> = {
   Recording: { cat: 'recording', row: 'daw.engine' },
