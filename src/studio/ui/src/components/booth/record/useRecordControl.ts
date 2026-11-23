@@ -5,7 +5,7 @@ import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../..
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import type { DawClient, DawRecordStart } from '../../../ports/daw';
-import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
+import { noAnswerSentence, recorderName, recorderNameCapital, recordsInApp, stopFailedSentence } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
 import { sentenceOr } from './sentenceOr';
@@ -845,7 +845,7 @@ export function useRecordControl({
       const name = recorderName(capabilitiesRef.current?.daw);
       const unstopped = (why: string) => {
         logUi('ui.record', `The late take was not stopped: ${why}`);
-        overlay.toast(`A take started ${how} and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
+        overlay.toast(`A take started ${how} and could not be stopped: ${stopFailedSentence(name, { refused: why })}`, { tone: 'error' });
       };
       void daw.recordStop().then(
         (stopped) => (stopped.ok ? undefined : unstopped(stopped.refused ?? stopped.message)),

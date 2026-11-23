@@ -155,8 +155,6 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
           return p.at === null ? { ready: false, why: `This line has no place in ${name}'s project.` } : { ready: true };
         },
         play: async (p, { late }) => {
-          // A newer press, or Stop, came while the DAW's capabilities were asked: that press owns the DAW now, and this one sends nothing (qa B4).
-          if (asked.current !== mine) return { played: true };
           const from = Math.max(0, p.at! - ORIGINAL_AROUND);
           let why: string;
           try {

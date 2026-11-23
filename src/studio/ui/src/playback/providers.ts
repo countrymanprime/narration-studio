@@ -69,7 +69,13 @@ export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], 
   const whys: string[] = [];
   // With a deadline, the DAW-is-recording read starts with the DAW's play and shares its one budget: a DAW that answers neither hands the note to the
   // app after 3 s in all, and the read still has the whole 3 s to answer, so a DAW that records is heard.
-  const quietRead = rule.keepQuiet && rule.deadlineMs !== undefined && tried.length > 1 ? within(rule.keepQuiet(), rule.deadlineMs) : undefined;
+  const quietRead =
+    rule.keepQuiet && rule.deadlineMs !== undefined && tried.length > 1
+      ? within(
+          rule.keepQuiet().catch(() => null),
+          rule.deadlineMs,
+        )
+      : undefined;
   for (const [index, provider] of tried.entries()) {
     const ready = provider.readiness(request);
     if (!ready.ready) {

@@ -12,7 +12,7 @@ import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { Journal } from '../../../studio/journal/createJournal';
 import type { StoppedTake } from '../pickups/usePickupSession';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
-import { noAnswerSentence, recordsInApp, recorderName, recorderNameCapital, unreachedSentence } from '../../../studio/dawNames';
+import { noAnswerSentence, recordsInApp, recorderName, recorderNameCapital, stopFailedSentence, unreachedSentence } from '../../../studio/dawNames';
 import type { TeleprompterLocateResult } from '../../../types';
 import { useBoothLeaveGuard } from '../leave/useBoothLeaveGuard';
 import { useFullscreenKey } from '../useFullscreenKey';
@@ -500,7 +500,7 @@ export function useBoothPage(options: BoothPageOptions) {
     markTakeStopped();
     if (!stopped.ok) {
       // Still unheard: the Booth stops holding the take (markTakeStopped), but a take its text could not follow is not mapped or told as saved.
-      overlay.toast(`The take could not be stopped: ${stopped.refused ?? `${stopped.message} Stop it in ${recorderLabel}.`}`, { tone: 'error' });
+      overlay.toast(`The take could not be stopped: ${stopped.refused ?? stopFailedSentence(recorderLabel, { refused: stopped.message })}`, { tone: 'error' });
       return false;
     }
     if (stopped.undoSteps < 1) return true;
