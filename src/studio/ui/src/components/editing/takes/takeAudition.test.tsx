@@ -39,6 +39,8 @@ let audio: FakeAudio;
 const notices: string[] = [];
 const retries: ((() => void) | undefined)[] = [];
 const stopChapter = vi.fn();
+/** The id of a take the passage no longer offers. */
+let hidden: string | null = null;
 
 function mount(caps: DawCapabilities | null, client: Partial<DawClient> = {}, read?: DawRead) {
   const daw: DawClient = { ...createMockDawClient(DAW_SETUPS.reaper), ...client };
@@ -53,7 +55,7 @@ function mount(caps: DawCapabilities | null, client: Partial<DawClient> = {}, re
         caps,
         ...(read ? { read } : {}),
         mediaUrl: (f) => f,
-        passageOf: (t) => (LINE.takes.some((x) => x.id === t.id) ? LINE : null),
+        passageOf: (t) => (LINE.takes.some((x) => x.id === t.id && x.id !== hidden) ? { ...LINE, takes: LINE.takes.filter((x) => x.id !== hidden) } : null),
         stopChapter,
         notify: (text, retry) => {
           notices.push(text);
@@ -70,6 +72,7 @@ const flush = () =>
   });
 
 beforeEach(() => {
+  hidden = null;
   vi.useFakeTimers();
   audio = new FakeAudio();
   vi.stubGlobal('Audio', function () {
@@ -239,6 +242,19 @@ describe('before-the-daw-answers', () => {
     act(() => retries[1]!());
     await flush();
     expect(previewTake).toHaveBeenCalledTimes(calls);
+  });
+  it('a Retry for a take no longer under its line plays nothing and says so', async () => {
+    const previewTake = vi.fn().mockResolvedValue({ ok: false, changed: false, message: 'Recording.', undoSteps: 0, refused: 'Recording.' });
+    const projectState = vi.fn().mockResolvedValue({ playState: 'recording' });
+    const { result } = mount(null, { previewTake, projectState });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    hidden = LINE.takes[0].id;
+    const calls = previewTake.mock.calls.length;
+    act(() => retries[0]!());
+    await flush();
+    expect(previewTake).toHaveBeenCalledTimes(calls);
+    expect(notices.at(-1)).toMatch(/not under its line any more/);
   });
   it('says a failed read, asks again, and plays the take in the app', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);

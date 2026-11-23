@@ -12,6 +12,8 @@ import type { LinePassage, LineTake } from './types';
 /** The Retry a take that did not play offers is one toast at a time; a newer play or leaving the page withdraws it. */
 const TAKE_TOPIC = 'editing-take-retry';
 
+const TAKE_GONE = 'That take is not under its line any more, so there is nothing to play again.';
+
 /** The longest stretch the DAW's preview plays (bridge.MaxPreviewSeconds); a longer take plays its first minute. */
 const MAX_PREVIEW_SECONDS = 60;
 
@@ -151,7 +153,9 @@ export function useTakeAudition({
               ? () => {
                   // The take as it is now: one trimmed or deleted since is not played from its old range.
                   const current = live.current.passageOf(take)?.takes.find((x) => x.id === take.id);
-                  if (current && newest.current(ask)) playAgain.current(current);
+                  if (!newest.current(ask)) return;
+                  if (current) playAgain.current(current);
+                  else live.current.notify(TAKE_GONE);
                 }
               : undefined,
           );
