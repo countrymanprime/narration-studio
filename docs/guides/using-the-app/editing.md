@@ -109,9 +109,9 @@ so the page can read the new track. When the Booth has already read this chapter
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. The editing check's own panel, opened from the audio engine panel for a chapter with no link, offers the same kind of track picker and refuses a track another chapter holds, naming that chapter. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
-that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recordings** icon beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
-check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
+that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note. The
+**Check recordings** icon in the page's header, on every chapter and whether or not it was checked, opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+check every page opens, with this chapter ticked: run it again after a new take or a pickup. When the dialog closes the page reads the chapter again (and draws its waveform again), so
 what the check found shows without a reload. Opening Editing never starts a check.
 
 A chapter you recorded since its last check may be checked in the background, whatever page is open
