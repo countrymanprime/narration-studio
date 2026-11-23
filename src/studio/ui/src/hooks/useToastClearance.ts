@@ -3,8 +3,12 @@ import { useEffect, useRef, type RefObject } from 'react';
 /** The CSS variable the toast region adds to its distance from the bottom edge (`ToastRegion`). */
 export const TOAST_CLEAR_VAR = '--toast-clear';
 
-/** The bars along the bottom of the page right now (the Booth's footer, and its setup notice above it), whose heights add up. */
-const bars = new Set<HTMLElement>();
+/**
+ * The bars along the bottom of the page right now (the Booth's footer, and its setup notice above it), whose heights add up. A bar that
+ * `follows` the window (it sits in a column that scrolls, as Editing's playback bar and waveform dock do) is cleared by where its top edge
+ * stands now, not by its height: part of it may lie below the column's edge, and its top moves as the column scrolls.
+ */
+const bars = new Map<HTMLElement, boolean>();
 
 function apply(): void {
   const root = document.documentElement;
@@ -13,46 +17,48 @@ function apply(): void {
     return;
   }
   let total = 0;
-  // Where the highest bar's top edge stands: what lies under it (the other bars, and any gap the page keeps between them) is all to be cleared.
   let top = Number.POSITIVE_INFINITY;
-  bars.forEach((bar) => {
+  bars.forEach((follows, bar) => {
     const rect = bar.getBoundingClientRect();
-    total += rect.height + (Number.parseFloat(getComputedStyle(bar).marginBottom) || 0);
+    if (!follows) {
+      total += rect.height + (Number.parseFloat(getComputedStyle(bar).marginBottom) || 0);
+      return;
+    }
     if (rect.height > 0 && Number.isFinite(rect.top)) top = Math.min(top, rect.top);
   });
+  // Everything from the highest following bar's top edge down to the window's bottom (the other bars, and the gap the page keeps between them) is cleared.
   const fromTop = top < window.innerHeight ? window.innerHeight - top : 0;
   root.style.setProperty(TOAST_CLEAR_VAR, `${Math.ceil(Math.max(total, fromTop))}px`);
 }
 
 /**
  * Keeps toasts clear of a bar fixed along the bottom of the page (the Booth's footer, and the setup notice above it): while `bar` is
- * mounted, a message rises above it by the bar's height and its bottom margin, or by the distance from the highest bar's top edge to the window's
- * bottom when that is more (the gap a page keeps under its bars), instead of covering its chips or its words. Bars add up, so the notice
- * stays visible above the footer and the toasts above both. Follows each bar as it grows, shrinks or scrolls, and puts the toasts
- * back when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout).
+ * mounted, a message rises above it by the bar's height and its bottom margin instead of covering its chips or its words. Bars add up,
+ * so the notice stays visible above the footer and the toasts above both. Follows each bar as it grows or shrinks, and puts the toasts
+ * back when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout). `follows` is for a
+ * bar inside a column that scrolls: the toasts rise by the distance from its top edge to the window's bottom, read again on every scroll.
  */
-export function useToastClearance(bar: RefObject<HTMLElement | null>, active = true): void {
+export function useToastClearance(bar: RefObject<HTMLElement | null>, active = true, follows = false): void {
   useEffect(() => {
     const element = bar.current;
     if (!element || !active) return;
-    bars.add(element);
+    bars.set(element, follows);
     apply();
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
     observer?.observe(element);
     window.addEventListener('resize', apply);
-    // A bar in a column that scrolls moves under the toast, so its top edge is read again on every scroll (capture: scroll does not bubble) and
-    // once the first layout has settled.
-    window.addEventListener('scroll', apply, true);
-    const settled = requestAnimationFrame(apply);
+    // Scroll does not bubble: capture it, so a column's scrolling is heard. Only a following bar needs it, and the first layout to settle.
+    if (follows) window.addEventListener('scroll', apply, true);
+    const settled = follows ? requestAnimationFrame(apply) : 0;
     return () => {
       observer?.disconnect();
       window.removeEventListener('resize', apply);
-      window.removeEventListener('scroll', apply, true);
+      if (follows) window.removeEventListener('scroll', apply, true);
       cancelAnimationFrame(settled);
       bars.delete(element);
       apply();
     };
-  }, [bar, active]);
+  }, [bar, active, follows]);
 }
 
 /** The CSS variable the toast region adds to its distance from the right edge (`ToastRegion`). */

@@ -31,7 +31,7 @@ export function SelectionBar({
   const { doc, state, selected } = useEditingPage();
   // Messages rise above the bar instead of covering Play and the selection's buttons (the Booth's footer does the same).
   const bar = useRef<HTMLDivElement>(null);
-  useToastClearance(bar);
+  useToastClearance(bar, true, true);
   const actions = useSelectionActions('bar');
   const keys = state.sel ? selected : [];
   const summary = summarize(doc, keys, [], (s) => s);

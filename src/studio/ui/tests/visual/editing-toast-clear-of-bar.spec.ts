@@ -29,8 +29,8 @@ for (const theme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme: theme });
       await page.setViewportSize(size);
       await raiseRetryToast(page);
-      // At 360x500 the bar alone is 158 px of the window and the toast region keeps 8 rem of a short window for itself (`--toast-reserve`, #3322), so the toast
-      // may lie over the waveform's top row there, by design; the bar's own buttons, Play first, are clear at every size.
+      // At 360x500 the waveform's top row is left out: the bar and the dock together are taller than the room the toast region keeps clear
+      // there, so the toast may lie over it (#4063). The bar's own buttons, Play first, are clear at every size, and so are the header's.
       const waveform = size.height > 500;
       const result = await page.evaluate((withWaveform) => {
         const toast = document.querySelector('[data-toast-region] [data-toast-edge]')?.parentElement ?? document.querySelector('[data-toast-region]');
@@ -41,6 +41,11 @@ for (const theme of ['light', 'dark'] as const) {
               ? '[role="toolbar"][aria-label="Playback and selection"] button, #wavedock button'
               : '[role="toolbar"][aria-label="Playback and selection"] button',
           ),
+          // The buttons above the script (the chapter stepper, the page's tools) must stay clear too: raised too far, the toast covers them.
+          ...[...document.querySelectorAll('button')].filter((b) => {
+            const r = b.getBoundingClientRect();
+            return r.width > 0 && r.top >= 0 && r.bottom <= 130 && !b.closest('[data-toast-region]');
+          }),
         ].map((b) => {
           const r = b.getBoundingClientRect();
           return {

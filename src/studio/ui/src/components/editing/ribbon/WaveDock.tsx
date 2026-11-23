@@ -139,7 +139,7 @@ export function WaveDock({ chapterId, clocks, take, playFrom, reason }: WaveDock
   const entry = pickEntries(peaks, clocks, 0, end);
   // Messages rise above the dock and the bar under it, not over the waveform's buttons.
   const dock = useRef<HTMLElement>(null);
-  useToastClearance(dock);
+  useToastClearance(dock, true, true);
   return (
     <section
       ref={dock}
