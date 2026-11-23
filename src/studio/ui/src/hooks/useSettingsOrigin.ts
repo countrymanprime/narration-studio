@@ -30,14 +30,16 @@ export function useSettingsOrigin(project?: string): { origin: string | undefine
     linked.current = false;
   }, [location.key, location.pathname, location.search, location.hash]);
 
+  // The project is learned with the bootstrap, after the first address: an origin recorded before it is the project's that answers.
+  useEffect(() => {
+    if (project === undefined) return;
+    if (lastPage.current.project === undefined) lastPage.current = { ...lastPage.current, project };
+    setOrigin((current) => (current && current.project === undefined ? { ...current, project } : current));
+  }, [project]);
+
   const markLink = useCallback(() => {
     linked.current = true;
   }, []);
-  // The project is learned with the bootstrap, after the first address: an origin recorded before it is the project's that answers.
-  if (project !== undefined) {
-    if (lastPage.current.project === undefined) lastPage.current.project = project;
-    if (kept && kept.project === undefined) kept.project = project;
-  }
   const origin = kept && (isOtherProject(kept.project, project) ? kept.bare : kept.to);
   return { origin, markLink };
 }

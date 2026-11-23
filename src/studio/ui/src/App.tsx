@@ -133,6 +133,9 @@ const hashRouting = (): boolean => appExtension().hashRouting === true;
 const routeKey = (): string => (hashRouting() || window.location.pathname !== '/settings' ? routePath() : `${routePath()}${window.location.hash}`);
 const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
 
+/** Sent when the popstate guard has put history back where the page is (the router heard neither the pop it stopped nor its restore). */
+const HISTORY_RESTORED = 'narration:history-restored';
+
 // A `popstate` the app did not start (the keyboard's or the system's Back, history.back()) that would leave a page holding something is stopped before
 // the router sees it: once the route changed, the page would unmount and its edits be gone (dirty Settings), or its take left recording with no Stop
 // (the Booth's leave guard, #3325), before any prompt. History is put back where it was and the same prompt the nav asks is shown. Two things hold a
@@ -248,7 +251,10 @@ if (typeof window !== 'undefined') {
         popGuard.fixes += 1;
         popGuard.swallow = true;
         window.history.go(popGuard.want - historyIdx());
+        return;
       }
+      // History is back where the page is, and the router never heard either pop: anything held while history was away looks again (#4059).
+      window.dispatchEvent(new Event(HISTORY_RESTORED));
       return;
     }
     // A fragment typed or followed by hand pushes an entry the router never numbered (the router stamps every entry it makes with an `idx`), and `popstate` is how it arrives, whether or not the history grew (a typed hash in the middle of the history truncates what was ahead). Left alone it would count as entry 0 and
@@ -721,12 +727,19 @@ function AppRoutes() {
     if ((state?.key ?? 'default') === location.key && state?.usr?.project !== project)
       window.history.replaceState({ ...state, usr: { ...state?.usr, project } }, '');
   });
+  // History put back by the popstate guard commits nothing in the router, so a cut skipped while it was away asks to run again.
+  const [historyRestores, setHistoryRestores] = useState(0);
+  useEffect(() => {
+    const again = () => setHistoryRestores((count) => count + 1);
+    window.addEventListener(HISTORY_RESTORED, again);
+    return () => window.removeEventListener(HISTORY_RESTORED, again);
+  }, []);
   useEffect(() => {
     // History ahead of the location on screen is a move waiting in a transition: a replace now would write over it. The page stays held, and the effect runs again with the
     // location that commits (a new object even when history returns to the same entry).
     const state = window.history.state as { key?: string } | null;
     if (addressStale && (state?.key ?? 'default') === location.key) navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
-  }, [addressStale, navigate, location, bareAddress.pathname, bareAddress.hash]);
+  }, [addressStale, historyRestores, navigate, location, bareAddress.pathname, bareAddress.hash]);
 
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then

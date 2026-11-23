@@ -235,8 +235,11 @@ describe('the chapter in the address is not carried into another project (#4059)
     await onChapter(/^Chapter: Chapter 7:/);
     const stamp = () => (window.history.state as { usr?: { project?: string } } | null)?.usr?.project;
     await waitFor(() => expect(stamp()).toBe(first));
-    fireEvent.click(await screen.findByRole('button', { name: 'Next chapter' }));
-    await onChapter(/^Chapter: Chapter 8:/);
+    // The step can be pressed before the page has its chapters (it then does nothing): press it again until it moves.
+    await waitFor(() => {
+      if (!screen.queryByRole('button', { name: /^Chapter: Chapter 8:/ })) fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
+      expect(screen.getByRole('button', { name: /^Chapter: Chapter 8:/ })).toBeTruthy();
+    });
     await waitFor(() => expect(stamp()).toBe(first));
     const entries = window.history.length;
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
@@ -322,7 +325,7 @@ describe('the chapter in the address is not carried into another project (#4059)
       expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
     });
 
-    it('a Back the leave guard stops, while the switch renders, does not leave the page blank', async () => {
+    it('a Back the app\u2019s guard stops, with the switch landing before it restores history, leaves the page rendered', async () => {
       const { api } = await openAt('/script');
       await screen.findByRole('heading', { level: 1, name: 'Script' });
       fireEvent.click(screen.getAllByRole('button', { name: 'Editing' })[0]!);
@@ -330,11 +333,14 @@ describe('the chapter in the address is not carried into another project (#4059)
       await onChapter(/^Chapter: Chapter 2:/);
       expect(address()).toBe('/editing/chapter-2');
       act(() => void overlay.open({ kind: 'dialog', title: 'Open question', dismissOnOutsidePress: false, render: () => <p>A form</p> }));
+      // The switch is sent as the Back arrives (a capture listener runs before the guard's), so it renders between the guard stopping the pop and its restore.
+      window.addEventListener('popstate', () => void api.switchProject(OTHER, 'Voltage and the Undercroft'), { capture: true, once: true });
       await sameTask(async () => {
         window.history.back();
-        await api.switchProject(OTHER, 'Voltage and the Undercroft');
+        await new Promise((resolve) => setTimeout(resolve, 300));
       });
-      await waitFor(() => expect(screen.getByRole('main').textContent).not.toBe(''), { timeout: 3000 });
+      // The page itself, not the shell around it: B opens Editing on its own first chapter, on the bare address.
+      await onChapter(/^Chapter: Chapter 1:/);
       expect(address()).toBe('/editing');
     });
   });
