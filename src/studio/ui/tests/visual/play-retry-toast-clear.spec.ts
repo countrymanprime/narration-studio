@@ -1,0 +1,63 @@
+// Proof's Hear it and Pickups' Hear the original ask the DAW at once; when it cannot play, the app's own audio says why in a toast with Retry (#4076).
+// Owner rule: no toast covers a button, at 360x500 included, and the reason is never a line in the row.
+import { expect, test, type Page } from '@playwright/test';
+import { proofDrivers } from './drivers/proof';
+import { settlePage } from './helpers/settle';
+
+const SIZES = [
+  { width: 360, height: 500 },
+  { width: 768, height: 1024 },
+  { width: 1440, height: 900 },
+] as const;
+
+async function coveredButtons(page: Page): Promise<{ covered: string[]; count: number; toast: string }> {
+  return page.evaluate(() => {
+    const region = document.querySelector('[data-toast-region]')!;
+    const toast = (region.querySelector('[data-toast-edge]')?.parentElement ?? region).getBoundingClientRect();
+    const buttons = [...document.querySelectorAll('button')].filter((b) => !b.closest('[data-toast-region]') && b.getBoundingClientRect().width > 0);
+    const covered = buttons
+      .filter((b) => {
+        const r = b.getBoundingClientRect();
+        return r.left < toast.right && r.right > toast.left && r.top < toast.bottom && r.bottom > toast.top;
+      })
+      .map((b) => b.getAttribute('aria-label') ?? b.textContent ?? '');
+    return { covered, count: buttons.length, toast: JSON.stringify(toast) };
+  });
+}
+
+for (const size of SIZES) {
+  test(`Proof: Hear it's Retry toast covers no button (${size.width}x${size.height})`, async ({ page }) => {
+    // The DAW's capabilities never answer and its loop refuses: the click still asks it, and the app plays with the reason and a Retry.
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        dawCapabilities: () => new Promise(() => {}),
+        findingsLoop: async () => ({ outcome: 'refused', reason: 'not_running', message: 'REAPER is not running.' }),
+      };
+    });
+    await page.setViewportSize(size);
+    await page.goto('/');
+    await settlePage(page);
+    await proofDrivers['default'](page);
+    await page
+      .getByRole('button', { name: /^Hear it/ })
+      .first()
+      .click();
+    const toast = page.locator('[data-toast-region]');
+    await toast.getByRole('button', { name: 'Retry' }).waitFor();
+    await expect(
+      page.locator('[role="alert"]:not([data-toast-region] *)').filter({ hasText: /Played in the app instead/ }),
+      'the reason is not a line in the row',
+    ).toHaveCount(0);
+    await page.screenshot({ path: `test-results/play-retry-proof-${size.width}x${size.height}.png` });
+    const result = await coveredButtons(page);
+    expect(result.count).toBeGreaterThan(0);
+    // The button the narrator pressed and the toast's own Retry are never covered, at any size. At 360x500 the Inspector's decision band is taller than
+    // the window's share and is not pinned, so the shared Toast (its clearance is capped to keep 8rem of the window, #2899) lies over buttons of the
+    // scrolling column there, as it does for any Proof toast; the other sizes are clear of every button.
+    expect(
+      result.covered.filter((name) => /^(Stop hearing it|Hear it)/.test(name)),
+      `toast ${result.toast} covers the Hear it button`,
+    ).toEqual([]);
+    if (size.width >= 768) expect(result.covered, `toast ${result.toast} covers ${JSON.stringify(result.covered)}`).toEqual([]);
+  });
+}
