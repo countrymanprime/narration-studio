@@ -81,7 +81,7 @@ describe('every surface that reads the chapter list shows the credits', () => {
   // no store. A page that calls the port itself has its own copy of the list, its own refresh rules and no project record.
   it('reads the host list nowhere but the store and the fallbacks of its two hooks', () => {
     const ALLOWED = ['studio/slots.ts', 'studio/useChapters.ts', 'components/script/page/data/sampleScript.ts'];
-    expect(readers.filter((file) => !ALLOWED.includes(file) && readFileSync(join(SRC, file), 'utf8').includes('manuscriptChapters()'))).toEqual([]);
+    expect(readers.filter((file) => !ALLOWED.includes(file) && /manuscriptChapters\(\)/.test(readFileSync(join(SRC, file), 'utf8')))).toEqual([]);
   });
 
   it.each(Object.entries(COVERED))('%s: its test names the credits', (_file, tests) => {
@@ -91,7 +91,7 @@ describe('every surface that reads the chapter list shows the credits', () => {
   });
 
   it('the mock host answers the list the pages read: opening first, closing last, both narration', async () => {
-    const chapters = await createMockApi().manuscriptChapters();
+    const chapters = (await createMockApi().manuscriptChapters()).chapters;
     expect(chapters[0]?.id).toBe('credits-opening');
     expect(chapters[chapters.length - 1]?.id).toBe('credits-closing');
     expect(chapters.filter(isCreditsChapter)).toHaveLength(2);

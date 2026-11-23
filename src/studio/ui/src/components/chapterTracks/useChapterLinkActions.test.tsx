@@ -6,6 +6,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { TrackMapping } from '../../types';
 import { displacedSentence, keptTitle, useChapterLinkActions } from './useChapterLinkActions';
+import { chaptersOf } from '../../api/chaptersOf';
 
 const mapping = (chapterId: string, chapterTitle: string): TrackMapping => ({ trackGuid: 'T', chapterId, chapterTitle, confirmedAt: '' });
 const setAnswer = (displaced: TrackMapping | null) => ({ documentId: 'd', link: mapping('c1', 'One'), displaced, mappings: [mapping('c1', 'One')] });
@@ -49,7 +50,10 @@ describe('useChapterLinkActions', () => {
   });
   it('names the displaced chapter as the manuscript names it now, and keeps the kept title when the manuscript cannot be read', async () => {
     const chapters = [{ id: 'c2', title: 'Two', subtitle: 'The Pool' }];
-    const named = actionsWith({ chapterTrackSet: async () => setAnswer(mapping('c2', 'Old title')), manuscriptChapters: async () => chapters as never });
+    const named = actionsWith({
+      chapterTrackSet: async () => setAnswer(mapping('c2', 'Old title')),
+      manuscriptChapters: async () => chaptersOf(chapters as never),
+    });
     expect((await named.set('c1', 'T')).displacedNotice).toContain('Two');
     expect((await named.set('c1', 'T')).displacedNotice).not.toContain('Old title');
     const unread = actionsWith({

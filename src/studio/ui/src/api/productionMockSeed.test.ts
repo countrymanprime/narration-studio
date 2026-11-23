@@ -33,7 +33,7 @@ describe('scenarioFromToday', () => {
 describe('the linked scenario', () => {
   it('measures every linked chapter with no stage moved on, and names why the rest have no length', async () => {
     const api = createMockApi({}, { production: PRODUCTION_SCENARIOS.linked });
-    const [chapters, { totals }] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
+    const [{ chapters }, { totals }] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
     const byId = new Map(chapters.map((chapter) => [chapter.id, chapter]));
     expect(chapters.every((chapter) => chapter.status === 'not_started')).toBe(true);
     expect(byId.get('chapter-1')?.recordedSeconds).toBe(790);
@@ -52,7 +52,7 @@ describe('the linked scenario', () => {
 describe('the default mock project', () => {
   it('gives every chapter whose Record stage is ticked a linked track and a measured length (#2634)', async () => {
     const api = createMockApi({}, { chapterTrackMappings: WIRE_TICKED_CHAPTER_LINKS });
-    const chapters = await api.manuscriptChapters();
+    const chapters = (await api.manuscriptChapters()).chapters;
     const ticked = chapters.filter((chapter) => reached(chapter.status, 'editing'));
     expect(ticked.map((chapter) => chapter.id)).toEqual(['chapter-1', 'chapter-2', 'chapter-3', 'chapter-7', 'chapter-8', 'chapter-9', 'chapter-10']);
     for (const chapter of ticked) {

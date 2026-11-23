@@ -43,6 +43,7 @@ import { BoothHost, creditsChapter, dawFor, LOCATED, newJournal, pageApi } from 
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -1010,7 +1011,7 @@ describe('credits-are-readable-and-recordable', () => {
     renderPage({
       search: '',
       api: {
-        manuscriptChapters: async () => [creditsChapter('opening')],
+        manuscriptChapters: async () => chaptersOf([creditsChapter('opening')]),
         creditsTemplates: credits.creditsTemplates,
         creditsPreview: credits.creditsPreview,
       } as Partial<NarrationApi>,
@@ -1698,7 +1699,7 @@ describe('the chapter is named as the manuscript heads it', () => {
     ['numbered', '1.', '2.'],
     ['colon', 'Chapter 1:', 'Chapter 2:'],
   ])('names the chapter in the manuscript style (%s)', async (_style, title, next) => {
-    renderPage({ api: { manuscriptChapters: async () => chapters(title, next) } });
+    renderPage({ api: { manuscriptChapters: async () => chaptersOf(chapters(title, next)) } });
     await ready();
     const picker = screen.getByRole('button', { name: /Chapter: .*Change chapter/ });
     expect(picker.textContent).toContain(`${title} Down the Rabbit-Hole`);

@@ -518,8 +518,26 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	}
 	return encodeBinding(nil, err)
 }
+
+// chapterListAnswer is what ManuscriptChapters answers: the list and the project it was read from (#4040).
+type chapterListAnswer struct {
+	// Project is the folder of the service that read the list, the same text Bootstrap sends as projectFolder: the
+	// window holds the list with this stamp, not with the project it believes it is on, because the host changes
+	// its project before it emits system:attached.
+	Project  string           `json:"project"`
+	Chapters []map[string]any `json:"chapters"`
+}
+
 func (h *Host) ManuscriptChapters() (string, error) {
-	return h.sharedRead("ManuscriptChapters", func() (string, error) { return encodeBinding(h.services().manuscript.Chapters()) })
+	return h.sharedRead("ManuscriptChapters", func() (string, error) {
+		// One snapshot: the folder and the service that reads the list are the same project.
+		svc := h.services()
+		chapters, err := svc.manuscript.Chapters()
+		if err != nil {
+			return encodeBinding(nil, err)
+		}
+		return encodeBinding(chapterListAnswer{Project: svc.config.projectFolder, Chapters: chapters}, nil)
+	})
 }
 func (h *Host) ManuscriptParagraphs(chapter string) (string, error) {
 	return encodeBinding(h.services().manuscript.Paragraphs(chapter))

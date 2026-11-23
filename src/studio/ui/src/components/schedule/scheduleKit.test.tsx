@@ -14,6 +14,7 @@ import type { NarrationApi } from '../../types';
 import { WPH } from './estimates';
 import { PLATFORM_PROFILES } from './profiles';
 import { SchedulePage } from './SchedulePage';
+import { chaptersOf } from '../../api/chaptersOf';
 
 export const TODAY = new Date(2026, 9, 1);
 export const REC: ProductionMilestone = { name: 'All chapters recorded', dueDate: '2026-10-06', measure: 'rec' };
@@ -54,7 +55,7 @@ export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not
   const production: ProductionSeed = { deadline: '2026-10-31', contractedAmount: 250, payment: 'per_finished_hour', milestones: [REC, CUSTOM], ...seed };
   const base = createMockApi(
     {
-      manuscriptChapters: async () => chapterList(statuses),
+      manuscriptChapters: async () => chaptersOf(chapterList(statuses)),
       deliveryProfiles: async () => ({
         profiles: [],
         globalDefault: { id: PLATFORM_PROFILES[0].id },

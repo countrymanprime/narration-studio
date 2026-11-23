@@ -132,12 +132,22 @@ func words(args []string) []string {
 // writeManuscript puts a manuscript with one narrated paragraph in the service's project, where the host searches for a new name.
 func writeManuscript(t *testing.T, project string) {
 	t.Helper()
+	writeManuscriptTitled(t, project, "One")
+}
+
+// writeManuscriptTitled is writeManuscript with the chapter's title chosen: a test that tells projects apart by what their list says.
+func writeManuscriptTitled(t *testing.T, project, title string) {
+	t.Helper()
 	path := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	content := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": "One"}],
-		"paragraphs": [{"id": "p1", "chapterId": "c1", "chapterTitle": "One", "text": "Juno met Zeph. Juno is a friend."}]}`
+	quoted, err := json.Marshal(title)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c1", "title": ` + string(quoted) + `}],
+		"paragraphs": [{"id": "p1", "chapterId": "c1", "chapterTitle": ` + string(quoted) + `, "text": "Juno met Zeph. Juno is a friend."}]}`
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}

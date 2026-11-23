@@ -71,7 +71,7 @@ export function applyMixedManuscriptMock(
 export function createManuscriptMock(
   s: MockState,
   initial: MockApiSeed,
-  { withMeasurement }: { withMeasurement: (chapter: ManuscriptChapter) => ManuscriptChapter },
+  { withMeasurement, projectFolder }: { withMeasurement: (chapter: ManuscriptChapter) => ManuscriptChapter; projectFolder: () => string },
 ) {
   // The kind each reclassified chapter was imported as (the host's `importedKind`), so Restore knows it was removed.
   const importedKinds = new Map<string, ManuscriptContentKind>();
@@ -197,6 +197,8 @@ export function createManuscriptMock(
       importJob = { ...importJob, phase: 'cancelled', message: 'Manuscript import cancelled.' };
     },
     manuscriptChapters: async () => {
+      // The folder is read when the call starts, as the host stamps the project it reads from (#4040).
+      const project = projectFolder();
       if (initial.chaptersRead === 'loading') return new Promise<never>(() => {});
       if (initial.chaptersRead === 'reread-hangs' && typeof window !== 'undefined' && window.location.pathname !== '/') return new Promise<never>(() => {});
       if (initial.chaptersRead === 'fails') throw new Error('The manuscript could not be read from this project.');
@@ -211,7 +213,7 @@ export function createManuscriptMock(
         if (list) list.push(paragraph);
         else paragraphsOf.set(paragraph.chapterId, [paragraph]);
       }
-      return wireClone(
+      const chapters = wireClone(
         s.chapters.map((chapter) => {
           // How far it is recorded: a seeded chapter's own, else the mock book's pattern over the text it really has, counted over the
           // narration chapters only (as WIRE_CHAPTERS are), so front matter before them does not shift which chapter is which.
@@ -225,6 +227,7 @@ export function createManuscriptMock(
           };
         }),
       );
+      return { project, chapters };
     },
     manuscriptParagraphs: async (chapter) => {
       await manuscriptReady;

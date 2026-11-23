@@ -13,6 +13,7 @@ import type { MeasureFileResult, MeasureJob, NarrationApi } from '../../../types
 import { findToast, toastTexts } from '../../../fixtures/toasts';
 import { MasterPage } from './MasterPage';
 import { acx, apiOf, jobOf, passing, withCredits } from './testPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 afterEach(() => {
   cleanup();
@@ -188,7 +189,7 @@ describe('Master & QC: what the narrator can name and how many', () => {
   it('300 files list, with spaces, Unicode, emoji, right-to-left and a 250-character name, each selectable by its own path', async () => {
     const odd = ['my chapter  with spaces.wav', '書籍 📚.wav', 'פרק 1 🎧 كتاب.wav', `${'x'.repeat(246)}.wav`];
     const files = [...odd.map((name) => passing(name)), ...Array.from({ length: 296 }, (_, i) => passing(`Chapter ${String(i + 5).padStart(3, '0')}.wav`))];
-    mount(files, { manuscriptChapters: async () => withCredits([]) });
+    mount(files, { manuscriptChapters: async () => chaptersOf(withCredits([])) });
     const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
     // The 300 files, the opening and closing credits and the retail sample, each with a row of its own.
     expect(grid.querySelectorAll('tbody tr').length).toBe(303);

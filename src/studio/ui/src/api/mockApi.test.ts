@@ -39,7 +39,7 @@ describe('applyMixedManuscriptMock (?mockManuscript=mixed)', () => {
 describe('createMockApi mockManuscript option', () => {
   it('is unchanged by default: no Front Matter row', async () => {
     const api = createMockApi();
-    const chapters = await api.manuscriptChapters();
+    const chapters = (await api.manuscriptChapters()).chapters;
     expect(chapters.find((chapter) => chapter.id === 'front-matter')).toBeUndefined();
   });
 });
@@ -50,7 +50,7 @@ describe('createMockApi chapters and paragraphs seed', () => {
     const paragraphs = [{ id: 'sp-1', chapterId: 'seeded-1', chapter: 'Seeded', index: 0, sourceLine: 1, text: 'Hello.', entityIds: [] }];
     const api = createMockApi({}, { chapters, paragraphs });
     // The credits of the library's templates are chapters around the seeded one.
-    expect((await api.manuscriptChapters()).map((chapter) => chapter.id)).toEqual(['credits-opening', 'seeded-1', 'credits-closing']);
+    expect((await api.manuscriptChapters()).chapters.map((chapter) => chapter.id)).toEqual(['credits-opening', 'seeded-1', 'credits-closing']);
     expect((await api.manuscriptParagraphs('seeded-1')).map((paragraph) => paragraph.id)).toEqual(['sp-1']);
   });
 });
@@ -324,7 +324,7 @@ describe('the mock sends chapter sync state when removing a chapter from recordi
 describe('the mock overview totals agree with the chapter list under every production scenario (#4058)', () => {
   it.each(['on-pace', 'at-risk', 'linked'] as const)('%s', async (log) => {
     const api = createMockApi({}, { production: { log } });
-    const [list, overview] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
+    const [{ chapters: list }, overview] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
     expect(overview.chapters.map((chapter) => chapter.id)).toEqual(list.map((chapter) => chapter.id));
     expect(overview.totals.chapters).toBe(list.length);
     expect(overview.totals.finalizedChapters).toBe(list.filter((chapter) => chapter.status === 'finalized').length);

@@ -10,6 +10,7 @@ import type { ProjectAttachState } from '../api/contracts/system';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './StudioProvider';
 import { createHostEvents, createSlots } from './slots';
 import { createStudioStore } from './store/createStudioStore';
+import { chaptersOf } from '../api/chaptersOf';
 
 afterEach(cleanup);
 
@@ -86,7 +87,7 @@ function projectRig(lists: Record<string, ManuscriptChapter[]>) {
   let folder = 'A';
   let attach: (state: ProjectAttachState) => void = () => undefined;
   const api = createMockApi({
-    manuscriptChapters: async () => lists[folder] ?? [],
+    manuscriptChapters: async () => chaptersOf(lists[folder] ?? [], folder),
     subscribeProjectAttach: (cb) => {
       attach = cb;
       return () => undefined;
@@ -105,7 +106,7 @@ describe('provider-creates-and-starts-the-store', () => {
   it('starts the store on mount and stops it on unmount, using a store a test passes', () => {
     const stop = vi.fn();
     const store = createStudioStore({
-      registry: createSlots({ manuscriptChapters: async () => [] }, { bookmarksList: async () => [] }),
+      registry: createSlots({ manuscriptChapters: async () => ({ project: 'A', chapters: [] }) }, { bookmarksList: async () => [] }),
       subscribe: () => () => undefined,
     });
     const start = vi.spyOn(store, 'start').mockReturnValue(stop);
@@ -165,7 +166,7 @@ describe('project-switch-clears-both', () => {
 describe('createHostEvents wired by the provider', () => {
   it('reloads the chapters slot when a job ends', async () => {
     let ended: () => void = () => undefined;
-    const load = vi.fn().mockResolvedValue([]);
+    const load = vi.fn().mockResolvedValue({ project: 'A', chapters: [] });
     const subscribe = createHostEvents({
       subscribeJobEnded: (cb: () => void) => ((ended = cb), () => undefined),
       subscribeChapterSync: () => () => undefined,

@@ -28,6 +28,7 @@ import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
 import { claimAttachRefusal } from './components/connection/attachRefusal';
 import { outwaitEcho } from './components/primitives/outwaitEcho';
+import { chaptersOf } from './api/chaptersOf';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -829,7 +830,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('opens the engine panel from the engine chip, without a manuscript, with the project and no track list', async () => {
     const source = createMockApi();
     // A project with no manuscript has no chapters: the host's list is empty (the mock answers its sample book whatever the bootstrap says).
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => chaptersOf([]) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     expect(screen.queryAllByRole('button', { name: 'Tracks' })).toHaveLength(0);
 
@@ -1108,7 +1109,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   it('keeps a /manuscript link on the Script page, which asks for the manuscript, when there is none', async () => {
     window.history.replaceState(null, '', '/manuscript#p5');
     const source = createMockApi();
-    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+    renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => chaptersOf([]) });
     await screen.findByText('This project has no manuscript yet. Import one to begin.');
     expect(window.location.pathname).toBe('/script');
   });
@@ -1131,7 +1132,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     try {
       window.history.replaceState(null, '', `${path}?mockNoManuscript=1`);
       const source = createMockApi();
-      renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => [] });
+      renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }), manuscriptChapters: async () => chaptersOf([]) });
       expect((await screen.findAllByRole('heading', { name: title })).length).toBeGreaterThan(0);
       // Schedule's title is drawn while it reads its plan, so the heading is not proof the empty state has arrived: wait for its text.
       expect((await screen.findAllByText(/no manuscript yet/i)).length).toBeGreaterThan(0);
@@ -1446,7 +1447,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       bootstrap,
       manuscriptImportPreview: preview,
       manuscriptImportState: async () => hostJob,
-      manuscriptChapters: async () => (imported ? importedChapters : []),
+      manuscriptChapters: async () => (imported ? chaptersOf(importedChapters) : chaptersOf([])),
       manuscriptImportCommit: async (): Promise<WorkJob> => {
         imported = true;
         return (hostJob = {
@@ -1871,11 +1872,14 @@ describe('App Back and Forward', () => {
         hold: async () => {
           const base = createMockApi();
           const types = await base.marksList();
-          for (const chapter of (await base.manuscriptChapters()).filter((row) => !row.isCredits)) {
+          for (const chapter of (await base.manuscriptChapters()).chapters.filter((row) => !row.isCredits)) {
             const [line] = await base.manuscriptParagraphs(chapter.id);
             if (line) await base.marksAdd(chapter.id, line.id, 0, 5, types.types[0]!.key, 'A note');
           }
-          renderApp({ marksList: () => base.marksList(), manuscriptChapters: async () => withoutCredits(await base.manuscriptChapters()) });
+          renderApp({
+            marksList: () => base.marksList(),
+            manuscriptChapters: async () => chaptersOf(withoutCredits((await base.manuscriptChapters()).chapters)),
+          });
           await screen.findByRole('heading', { level: 1, name: 'Production' });
           fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]!);
           await screen.findByRole('heading', { name: 'Script' });
@@ -2965,7 +2969,7 @@ describe('App shell mounts', () => {
   });
 
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
-    const manuscriptChapters = vi.fn().mockResolvedValue([]);
+    const manuscriptChapters = vi.fn().mockResolvedValue(chaptersOf([]));
     renderApp({ manuscriptChapters, bootstrap: bootstrapWithCandidate({ path: 'a.docx', name: 'a.docx' }) });
     // The shell has mounted; the import step for the candidate can open first and make it inert, so look past that.
     await screen.findByRole('button', { name: /Jump to or run/, hidden: true });
@@ -2975,11 +2979,14 @@ describe('App shell mounts', () => {
   it('refreshes-after-an-import: a job:ended event makes the jump menu list the new chapters', async () => {
     const listeners = new Set<(event: never) => void>();
     const ended = (event: never) => listeners.forEach((l) => l(event));
-    const chapters = withoutCredits(await createMockApi().manuscriptChapters());
+    const chapters = withoutCredits((await createMockApi().manuscriptChapters()).chapters);
     let list = chapters.slice(0, 1);
     const extra = { ...chapters[0]!, id: 'chapter-new', index: 99, title: 'Zzyzx Afterword' };
     onSchedule();
-    renderApp({ manuscriptChapters: async () => list, subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)) });
+    renderApp({
+      manuscriptChapters: async () => chaptersOf(list),
+      subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
+    });
     const button = await openJumpFromHeader('Schedule');
     // The first chapter is listed once the slot has answered; "Zzyzx" is not in the first list.
     await optionsAfterReopening(button, 'Go to Chapter', CHAPTER_OPTION);
@@ -3000,12 +3007,12 @@ describe('App shell mounts', () => {
     const listeners = new Set<(event: never) => void>();
     const ended = (event: never) => listeners.forEach((l) => l(event));
     const base = createMockApi();
-    const chapters = await base.manuscriptChapters();
+    const chapters = (await base.manuscriptChapters()).chapters;
     onSchedule();
     renderApp({
       manuscriptChapters: async () => {
         if (fail) throw new Error('boom');
-        return chapters;
+        return chaptersOf(chapters);
       },
       subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
     });

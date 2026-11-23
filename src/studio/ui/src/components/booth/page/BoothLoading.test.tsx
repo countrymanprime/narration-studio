@@ -4,10 +4,11 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { USER_MESSAGE, WireError } from '../../../api/wire/WireError';
 import { createOverlayService } from '../../../overlay/overlayService';
-import type { ManuscriptChapter, NarrationApi } from '../../../types';
+import type { ManuscriptChapter, ManuscriptChapterList, NarrationApi } from '../../../types';
 import { forgetAppTake } from '../record/useRecordControl';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
+import { chaptersOf } from '../../../api/chaptersOf';
 
 beforeEach(() => forgetAppTake());
 afterEach(() => {
@@ -40,7 +41,7 @@ const settle = () =>
 describe('Booth loading state', () => {
   it('shows the skeleton in the frame, under the page title, while the chapters are read, however long that takes', async () => {
     const pending = hold();
-    renderBooth({ manuscriptChapters: () => pending.promise });
+    renderBooth({ manuscriptChapters: () => pending.promise.then(chaptersOf) });
     await settle();
     expect(screen.getByRole('heading', { level: 1, name: 'Booth' })).toBeTruthy();
     const region = skeleton();
@@ -65,10 +66,10 @@ describe('Booth loading state', () => {
 
   it('is replaced by the page when the chapters arrive', async () => {
     const pending = hold();
-    renderBooth({ manuscriptChapters: () => pending.promise });
+    renderBooth({ manuscriptChapters: () => pending.promise.then(chaptersOf) });
     await settle();
     expect(skeleton()).toBeTruthy();
-    const chapters = await pageApi().manuscriptChapters();
+    const chapters = (await pageApi().manuscriptChapters()).chapters;
     await act(async () => pending.release(chapters));
     await screen.findByText('Nobody', { exact: false });
     expect(skeleton()).toBeNull();
@@ -99,7 +100,7 @@ describe('Booth loading state', () => {
     const retry = () => screen.getByRole('button', { name: 'Retry' });
 
     it("shows the read's sentence as an alert with a Retry button, and no skeleton", async () => {
-      renderBooth({ manuscriptChapters: () => fail() });
+      renderBooth({ manuscriptChapters: () => fail().then(chaptersOf) });
       const alert = await screen.findByText('The manuscript could not be read.');
       expect(alert.getAttribute('role')).toBe('alert');
       expect(retry()).toBeTruthy();
@@ -109,14 +110,14 @@ describe('Booth loading state', () => {
     it('reads again on Retry: the skeleton shows with no stale error, then the page replaces it', async () => {
       const second = hold();
       const reads = [() => fail(), () => second.promise];
-      renderBooth({ manuscriptChapters: () => (reads.shift() ?? reads[0] ?? (() => second.promise))() });
+      renderBooth({ manuscriptChapters: () => (reads.shift() ?? reads[0] ?? (() => second.promise))().then(chaptersOf) });
       await screen.findByText('The manuscript could not be read.');
       await act(async () => retry().click());
       await settle();
       expect(skeleton()).toBeTruthy();
       expect(screen.queryByText('The manuscript could not be read.')).toBeNull();
       expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-      const chapters = await pageApi().manuscriptChapters();
+      const chapters = (await pageApi().manuscriptChapters()).chapters;
       await act(async () => second.release(chapters));
       await screen.findByText('Nobody', { exact: false });
       expect(skeleton()).toBeNull();
@@ -124,7 +125,7 @@ describe('Booth loading state', () => {
 
     it('shows the error again, with Retry, when the second read fails too', async () => {
       const reads = [() => fail('first'), () => fail('second')];
-      renderBooth({ manuscriptChapters: () => (reads.shift() as () => Promise<ManuscriptChapter[]>)() });
+      renderBooth({ manuscriptChapters: () => (reads.shift() as () => Promise<ManuscriptChapter[]>)().then(chaptersOf) });
       await screen.findByText('first');
       await act(async () => retry().click());
       expect(await screen.findByText('second')).toBeTruthy();
@@ -135,7 +136,7 @@ describe('Booth loading state', () => {
 
     it('fires one read for a double press', async () => {
       const read = vi
-        .fn<() => Promise<ManuscriptChapter[]>>()
+        .fn<() => Promise<ManuscriptChapterList>>()
         .mockImplementationOnce(() => fail())
         .mockImplementation(() => new Promise(() => {}));
       renderBooth({ manuscriptChapters: read });
@@ -153,11 +154,11 @@ describe('Booth loading state', () => {
       const second = hold();
       const reads = [() => fail(), () => second.promise];
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const { view } = renderBooth({ manuscriptChapters: () => (reads.shift() as () => Promise<ManuscriptChapter[]>)() });
+      const { view } = renderBooth({ manuscriptChapters: () => (reads.shift() as () => Promise<ManuscriptChapter[]>)().then(chaptersOf) });
       await screen.findByText('The manuscript could not be read.');
       await act(async () => retry().click());
       view.unmount();
-      const chapters = await pageApi().manuscriptChapters();
+      const chapters = (await pageApi().manuscriptChapters()).chapters;
       await act(async () => second.release(chapters));
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
@@ -226,7 +227,7 @@ describe('Booth loading state', () => {
   });
 
   it('shows the empty panel, not the skeleton, for a manuscript with no narration chapters', async () => {
-    renderBooth({ manuscriptChapters: async () => [] });
+    renderBooth({ manuscriptChapters: async () => chaptersOf([]) });
     await screen.findByText('This manuscript has no chapters to read');
     expect(skeleton()).toBeNull();
   });
@@ -240,12 +241,12 @@ describe('Booth loading state', () => {
   it('starts again from the skeleton when the page is reopened mid-load, and leaving mid-load does not throw', async () => {
     const first = hold();
     const reads = [first.promise, new Promise<ManuscriptChapter[]>(() => {})];
-    const { view, host } = renderBooth({ manuscriptChapters: () => reads.shift() ?? first.promise });
+    const { view, host } = renderBooth({ manuscriptChapters: () => (reads.shift() ?? first.promise).then(chaptersOf) });
     await settle();
     expect(skeleton()).toBeTruthy();
     view.unmount();
     // The read that was in flight ends after the page is gone.
-    const chapters = await pageApi().manuscriptChapters();
+    const chapters = (await pageApi().manuscriptChapters()).chapters;
     await act(async () => first.release(chapters));
     const again = render(host);
     await settle();

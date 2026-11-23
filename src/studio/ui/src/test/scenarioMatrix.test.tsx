@@ -21,7 +21,7 @@ afterEach(cleanup);
 function ChaptersFromPort() {
   const api = useApi();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  useEffect(() => void api.manuscriptChapters().then((all) => setChapters(withoutCredits(all))), [api]);
+  useEffect(() => void api.manuscriptChapters().then((all) => setChapters(withoutCredits(all.chapters))), [api]);
   return (
     <StudioProvider>
       <ChapterList chapters={chapters} currentId={null} onJump={() => {}} />

@@ -22,6 +22,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import { resetOpenOnce } from '../connection/useOpenOnce';
 import { addressPath } from '../../navigation/address';
 import { ProductionPage } from './ProductionPage';
+import { chaptersOf } from '../../api/chaptersOf';
 
 afterEach(() => {
   cleanup();
@@ -200,7 +201,7 @@ describe('production loading state', () => {
   it('says "0 chapters" when the log is read and has none', async () => {
     const base = await createMockApi().productionOverview();
     // The chapters are the shared list, so a book with none has an empty list as well as an empty overview.
-    await renderPage({ overrides: { productionOverview: async () => ({ ...base, chapters: [] }), manuscriptChapters: async () => [] } });
+    await renderPage({ overrides: { productionOverview: async () => ({ ...base, chapters: [] }), manuscriptChapters: async () => chaptersOf([]) } });
     expect(await screen.findByText(/0 chapters · 0 words/)).toBeTruthy();
     expect(region()).toBeNull();
   });
@@ -208,9 +209,9 @@ describe('production loading state', () => {
   // #4058 (owner): every page that needs the chapter list reads the one shared list, so a rename or a failed read shows on this page as on the others.
   it('names its rows from the shared chapter list: a chapter renamed there is renamed here', async () => {
     const base = createMockApi();
-    const list = await base.manuscriptChapters();
+    const list = (await base.manuscriptChapters()).chapters;
     const renamed = list.map((chapter) => (/^Chapter 3\b/.test(chapter.title) ? { ...chapter, title: 'Chapter 3 renamed in the list' } : chapter));
-    await renderPage({ overrides: { manuscriptChapters: async () => renamed } });
+    await renderPage({ overrides: { manuscriptChapters: async () => chaptersOf(renamed) } });
     const table = await pipeline();
     expect(table.textContent).toContain('renamed in the list');
   });
@@ -873,13 +874,15 @@ describe('the board follows a link changed elsewhere', () => {
       const overview = await base.productionOverview();
       // The row's names, status and recorded audio come from the shared chapter list; the overview adds its numbers by id.
       const listed: ManuscriptChapter = {
-        ...(await base.manuscriptChapters()).find((c) => /^Chapter 1\b/.test(c.title))!,
+        ...(await base.manuscriptChapters()).chapters.find((c) => /^Chapter 1\b/.test(c.title))!,
         status: 'recording' as const,
         recordedSeconds,
         recordedThrough: host,
       };
       const numbers = overview.chapters.find((c) => c.id === listed.id)!;
-      await renderPage({ overrides: { productionOverview: async () => ({ ...overview, chapters: [numbers] }), manuscriptChapters: async () => [listed] } });
+      await renderPage({
+        overrides: { productionOverview: async () => ({ ...overview, chapters: [numbers] }), manuscriptChapters: async () => chaptersOf([listed]) },
+      });
       const kpis = await screen.findByRole('list', { name: 'Production figures' });
       const table = await pipeline();
       return {

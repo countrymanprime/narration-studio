@@ -26,6 +26,7 @@ import { CHAPTERS_WITH_CREDITS, dawFor, EditingHost, FINDING, newJournal, noAudi
 import { buildDoc } from './model';
 import { finding } from './cleanup/cleanupFixtures';
 import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
+import { chaptersOf } from '../../api/chaptersOf';
 
 class FakeAudio extends EventTarget {
   src = '';
@@ -73,6 +74,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/**
+ * `pageApi` over a host a test can move to another project: the chapter list is stamped with `host.folder` when its read starts, as the host stamps the
+ * project it reads from (#4040). A test sets `host.folder` at the moment its host switches, before the page or the store hears of it.
+ */
+function switchableApi(folder: string, overrides: Partial<NarrationApi> = {}): { api: NarrationApi; host: { folder: string } } {
+  const host = { folder };
+  return { api: pageApi({ projectFolder: () => host.folder, ...overrides }), host };
+}
+
 type Options = Partial<EditingPageProps> & { setup?: DawSetupId; daw?: DawClient; api?: Partial<NarrationApi> & { heard?: boolean } };
 
 /** The DAW dialog waits this long after the app opens before it opens by itself; the page tests that are not about it never see it. */
@@ -81,7 +91,7 @@ const NEVER = 1_000_000_000;
 function mount({ setup = 'reaper', daw, api = {}, footer = null, ...props }: Options & { footer?: HTMLElement | null } = {}) {
   const view = render(
     <PageFooterProvider value={footer}>
-      <EditingHost api={pageApi(api)} daw={daw ?? dawFor(setup)} journal={newJournal()}>
+      <EditingHost api={pageApi({ projectFolder: props.projectFolder, ...api })} daw={daw ?? dawFor(setup)} journal={newJournal()}>
         <EditingPage hasManuscript dawConnectGraceMs={NEVER} {...props} />
       </EditingHost>
     </PageFooterProvider>,
@@ -257,7 +267,7 @@ describe('EditingPage', () => {
   });
 
   it('reads the chapter list once for the page and everything beside it, and again when the project folder changes', async () => {
-    const api = pageApi();
+    const { api, host } = switchableApi('/a');
     const read = vi.spyOn(api, 'manuscriptChapters');
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
@@ -270,6 +280,7 @@ describe('EditingPage', () => {
     const view = render(tree('/a'));
     await screen.findByText('This chapter has no text yet.');
     expect(read).toHaveBeenCalledTimes(1);
+    host.folder = '/b';
     view.rerender(tree('/b'));
     await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
     window.localStorage.clear();
@@ -295,7 +306,7 @@ describe('EditingPage', () => {
 
     it('keeps the chapter on screen, and the saved one, when the store later lists it differently (a re-split)', async () => {
       let list = [chapterOf('c1', 'Chapter One', 0), chapterOf('c2', 'Chapter Two', 1)];
-      const api = pageApi({ manuscriptChapters: async () => list });
+      const api = pageApi({ projectFolder: '/p', manuscriptChapters: async () => chaptersOf(list) });
       render(treeFor(api, '/p', 'c1'));
       await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./p')).toBe('c1'));
       list = [chapterOf('c1a', 'Chapter One (part 1)', 0), chapterOf('c1b', 'Chapter One (part 2)', 1), chapterOf('c2', 'Chapter Two', 2)];
@@ -308,12 +319,13 @@ describe('EditingPage', () => {
 
     it("saves nothing under the old folder when the store resets before the folder prop changes, then reads the new project's list for the new folder (R10-1)", async () => {
       let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
-      const read = vi.fn(async () => list);
-      const api = pageApi({ manuscriptChapters: read });
+      const read = vi.fn(async () => chaptersOf(list));
+      const { api, host } = switchableApi('/a', { manuscriptChapters: read });
       window.localStorage.setItem('narration.editing.lastChapter./a', 'a2');
       const view = render(treeFor(api, '/a'));
       await screen.findByText('This chapter has no text yet.');
       list = [chapterOf('b1', 'Beta One', 0), chapterOf('b2', 'Beta Two', 1)];
+      host.folder = '/b';
       // system:attached first: the store is emptied and waits for the bootstrap; nothing is read for the old folder.
       act(() => storeRef.current!.reset());
       await act(async () => {});
@@ -326,10 +338,11 @@ describe('EditingPage', () => {
 
     it("serves the old project's held list under the new folder never: the folder prop changes before the store resets (R10-10)", async () => {
       let list = [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
-      const api = pageApi({ manuscriptChapters: async () => list });
+      const { api, host } = switchableApi('/a', { manuscriptChapters: async () => chaptersOf(list) });
       const view = render(treeFor(api, '/a'));
       await screen.findByText('This chapter has no text yet.');
       list = [chapterOf('b1', 'Beta One', 0), chapterOf('b2', 'Beta Two', 1)];
+      host.folder = '/b';
       view.rerender(treeFor(api, '/b'));
       await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('b1'));
       expect(window.localStorage.getItem('narration.editing.lastChapter./b')).not.toBe('a1');
@@ -340,15 +353,16 @@ describe('EditingPage', () => {
       let releaseB = () => {};
       const gate = new Promise<void>((resolve) => (releaseB = resolve));
       let project: 'a' | 'b' = 'a';
-      const api = pageApi({
+      const { api, host } = switchableApi('/a', {
         manuscriptChapters: async () => {
           if (project === 'b') await gate;
-          return project === 'a' ? [chapterOf('a1', 'Alpha One', 0)] : [chapterOf('b1', 'Beta One', 0)];
+          return project === 'a' ? chaptersOf([chapterOf('a1', 'Alpha One', 0)]) : chaptersOf([chapterOf('b1', 'Beta One', 0)]);
         },
       });
       const view = render(treeFor(api, '/a'));
       await screen.findByText('This chapter has no text yet.');
       project = 'b';
+      host.folder = '/b';
       act(() => storeRef.current!.reset()); // system:attached first
       view.rerender(treeFor(api, '/b'));
       await act(async () => {});
@@ -363,12 +377,13 @@ describe('EditingPage', () => {
       let release = () => {};
       let first = true;
       const api = pageApi({
+        projectFolder: '/a',
         manuscriptChapters: async () => {
           if (first) {
             first = false;
             await new Promise<void>((resolve) => (release = resolve));
           }
-          return [chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)];
+          return chaptersOf([chapterOf('a1', 'Alpha One', 0), chapterOf('a2', 'Alpha Two', 1)]);
         },
       });
       render(treeFor(api, '/a'));
@@ -385,9 +400,10 @@ describe('EditingPage', () => {
   });
 
   it("does not save the old project's chapter under a new project folder", async () => {
+    const { api, host } = switchableApi('/a');
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
-        <EditingHost api={pageApi()} daw={dawFor('reaper')} journal={newJournal()}>
+        <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
           <AppTellsStore folder={projectFolder} />
           <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} chapterId="c2" />
         </EditingHost>
@@ -396,6 +412,7 @@ describe('EditingPage', () => {
     const view = render(tree('/a'));
     await screen.findByText('This chapter has no text yet.');
     await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('c2'));
+    host.folder = '/b';
     view.rerender(tree('/b'));
     // The chapters are read again for the new project before anything is kept for it.
     expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBeNull();
@@ -406,7 +423,7 @@ describe('EditingPage', () => {
 
   it('two quick Next clicks end on the newest chapter: the DAW is last sent there and that is the one kept', async () => {
     const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-    mount({ projectFolder: '/proj', chapterId: 's1', api: { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) } });
+    mount({ projectFolder: '/proj', chapterId: 's1', api: { dawGoToChapter, manuscriptChapters: async () => chaptersOf(styledChapters('numbered', 5)) } });
     await screen.findByRole('button', { name: /Change chapter/ });
     fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
@@ -420,10 +437,10 @@ describe('EditingPage', () => {
     window.localStorage.setItem('narration.editing.lastChapter./a', 's2');
     window.localStorage.setItem('narration.editing.lastChapter./b', 's4');
     const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-    const api = { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) };
+    const { api, host } = switchableApi('/a', { dawGoToChapter, manuscriptChapters: async () => chaptersOf(styledChapters('numbered', 5)) });
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
-        <EditingHost api={pageApi(api)} daw={dawFor('reaper')} journal={newJournal()}>
+        <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
           <AppTellsStore folder={projectFolder} />
           <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} />
         </EditingHost>
@@ -431,6 +448,7 @@ describe('EditingPage', () => {
     );
     const view = render(tree('/a'));
     await waitFor(() => expect(dawGoToChapter.mock.calls.at(-1)?.[0]).toBe('s2'));
+    host.folder = '/b';
     view.rerender(tree('/b'));
     await waitFor(() => expect(dawGoToChapter.mock.calls.at(-1)?.[0]).toBe('s4'));
     await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./b')).toBe('s4'));
@@ -441,10 +459,10 @@ describe('EditingPage', () => {
   it("a project switch after choosing a chapter opens the other project's remembered chapter and does not overwrite it", async () => {
     window.localStorage.setItem('narration.editing.lastChapter./b', 's4');
     const dawGoToChapter = vi.fn(async (_chapterId: string) => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-    const api = { dawGoToChapter, manuscriptChapters: async () => styledChapters('numbered', 5) };
+    const { api, host } = switchableApi('/a', { dawGoToChapter, manuscriptChapters: async () => chaptersOf(styledChapters('numbered', 5)) });
     const tree = (projectFolder: string) => (
       <PageFooterProvider value={null}>
-        <EditingHost api={pageApi(api)} daw={dawFor('reaper')} journal={newJournal()}>
+        <EditingHost api={api} daw={dawFor('reaper')} journal={newJournal()}>
           <AppTellsStore folder={projectFolder} />
           <EditingPage hasManuscript dawConnectGraceMs={NEVER} projectFolder={projectFolder} />
         </EditingHost>
@@ -454,6 +472,7 @@ describe('EditingPage', () => {
     await screen.findByRole('button', { name: /Change chapter/ });
     fireEvent.click(screen.getByRole('button', { name: 'Next chapter' }));
     await waitFor(() => expect(window.localStorage.getItem('narration.editing.lastChapter./a')).toBe('s2'));
+    host.folder = '/b';
     view.rerender(tree('/b'));
     await waitFor(() => expect(dawGoToChapter.mock.calls.at(-1)?.[0]).toBe('s4'));
     await act(async () => {});
@@ -1009,7 +1028,7 @@ describe('EditingPage', () => {
       for (const count of [12, 40]) {
         for (const n of [1, count]) {
           cleanup();
-          mount({ chapterId: `s${n}`, api: { manuscriptChapters: async () => styledChapters(style, count) } });
+          mount({ chapterId: `s${n}`, api: { manuscriptChapters: async () => chaptersOf(styledChapters(style, count)) } });
           const name = `${HEADING_LABELS[style](n)} Title of ${n}`;
           expect(await screen.findByRole('button', { name: `Chapter: ${name}. Change chapter` }), `${style} ${count}: ${name}`).toBeTruthy();
         }
@@ -1018,13 +1037,13 @@ describe('EditingPage', () => {
   });
 
   it('lists how far each chapter is recorded beside its name, as the Booth does', async () => {
-    const chapters = await pageApi().manuscriptChapters();
+    const chapters = (await pageApi().manuscriptChapters()).chapters;
     const recorded = chapters.map((chapter, index) =>
       index === 0
         ? { ...chapter, recordedThrough: { paragraphId: 'x', word: 0, percent: 100, complete: true, source: 'proof' as const, confident: true } }
         : { ...chapter, recordedThrough: { paragraphId: 'x', word: 0, percent: 40, complete: false, source: 'daw' as const, confident: false } },
     );
-    mount({ api: { manuscriptChapters: async () => recorded } });
+    mount({ api: { manuscriptChapters: async () => chaptersOf(recorded) } });
     await script();
     await userEvent.setup().click(screen.getByRole('button', { name: /Change chapter/ }));
     const items = await screen.findAllByRole('menuitemradio');
@@ -1033,7 +1052,7 @@ describe('EditingPage', () => {
 
   // Owner rule: the credits are chapters, so the picker lists both (opening first, closing last), the stepper walks to them, and each opens.
   describe('the credits are chapters', () => {
-    const withCredits = { manuscriptChapters: async () => CHAPTERS_WITH_CREDITS };
+    const withCredits = { manuscriptChapters: async () => chaptersOf(CHAPTERS_WITH_CREDITS) };
 
     // Credits are not linked to a track, so the link dialog opens by itself over the page: the queries look behind it.
     it('lists the opening credits first and the closing credits last in the chapter picker', async () => {
@@ -1554,7 +1573,7 @@ describe('EditingPage loading state', () => {
   });
 
   it('shows the empty panel, not a skeleton, for a manuscript with no narration chapters', async () => {
-    mount({ api: { manuscriptChapters: async () => [] } });
+    mount({ api: { manuscriptChapters: async () => chaptersOf([]) } });
     expect(await screen.findByText('This manuscript has no chapters to edit')).toBeTruthy();
     expect(region('Loading the editor')).toBeNull();
   });

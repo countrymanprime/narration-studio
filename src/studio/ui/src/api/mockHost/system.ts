@@ -1,6 +1,6 @@
 // The mock host (mockApi.ts): the system bindings.
 import { parseWire } from '../wire/parseWire';
-import { chaptersSchema } from '../schemas/manuscript';
+import { chapterListSchema } from '../schemas/manuscript';
 import { productionOverviewSchema } from '../schemas/production';
 import { guideEntitiesSchema } from '../schemas/storyBible';
 import { bootstrapSchema } from '../schemas/system';
@@ -54,7 +54,12 @@ function invalidPayloadOverrides(which: 'bootstrap' | 'manuscript' | 'storybible
       return { bootstrap: async () => parseWire(bootstrapSchema, { ...(await base.bootstrap()), projectName: null }, wireContext('Bootstrap')) };
     case 'manuscript':
       return {
-        manuscriptChapters: async () => parseWire(chaptersSchema, [{ id: 'c-0001', title: 'Chapter One', index: 'first' }], wireContext('ManuscriptChapters')),
+        manuscriptChapters: async () =>
+          parseWire(
+            chapterListSchema,
+            { project: (await base.bootstrap()).projectFolder, chapters: [{ id: 'c-0001', title: 'Chapter One', index: 'first' }] },
+            wireContext('ManuscriptChapters'),
+          ),
       };
     case 'production':
       return { productionOverview: async () => parseWire(productionOverviewSchema, { chapters: 'none' }, wireContext('ProductionOverview')) };

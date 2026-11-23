@@ -392,11 +392,24 @@ func decodeChaptersAndCredits(t *testing.T, host *Host) []map[string]any {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var chapters []map[string]any
-	if err := json.Unmarshal([]byte(raw), &chapters); err != nil || len(chapters) == 0 {
-		t.Fatalf("chapters = %s, %v", raw, err)
+	_, chapters := decodeChapterList(t, raw)
+	if len(chapters) == 0 {
+		t.Fatalf("chapters = %s", raw)
 	}
 	return chapters
+}
+
+// decodeChapterList is a ManuscriptChapters answer: the project it was read from and the chapters (#4040).
+func decodeChapterList(t *testing.T, raw string) (string, []map[string]any) {
+	t.Helper()
+	var answer struct {
+		Project  string           `json:"project"`
+		Chapters []map[string]any `json:"chapters"`
+	}
+	if err := json.Unmarshal([]byte(raw), &answer); err != nil {
+		t.Fatalf("chapter list = %s, %v", raw, err)
+	}
+	return answer.Project, answer.Chapters
 }
 
 // fixCoverageRun replaces a state's run and record ids (a start answer's nested state too) with fixed ones.
