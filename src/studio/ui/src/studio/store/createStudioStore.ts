@@ -7,16 +7,25 @@ import type { InferOutput, StandardSchemaV1 } from '../../api/wire/standardSchem
 import { windowFocusSource, type FocusSource } from './focusSource';
 import { createKeyedCache, type KeyedCache, type KeyedConfig } from './keyedCache';
 
+/** How a slot is read: exactly one of `load` and `read`, so a slot with neither or both does not type-check. */
+type SlotReader =
+  | {
+      /** Reads the raw payload from the host through a port. The store parses it; a loader returns it unchecked. The value is held under the project the store believes it is on. */
+      load: () => Promise<unknown>;
+      read?: never;
+    }
+  | {
+      /**
+       * A stamped alternative to `load`: the host says which project it read the payload from (#4040), and the store holds the value under that project
+       * instead of its own belief. The payload is parsed with the slot's schema like a `load`'s.
+       */
+      read: () => Promise<{ project: string; payload: unknown }>;
+      load?: never;
+    };
+
 /** One cross-page read model: how to read it, how to check it, and what makes it stale. */
-export type SlotConfig<S extends StandardSchemaV1 = StandardSchemaV1> = {
+export type SlotConfig<S extends StandardSchemaV1 = StandardSchemaV1> = SlotReader & {
   schema: S;
-  /** Reads the raw payload from the host through a port. The store parses it; a loader returns it unchecked. The value is held under the project the store believes it is on. */
-  load?: () => Promise<unknown>;
-  /**
-   * A stamped alternative to `load`: the host says which project it read the payload from (#4040), and the store holds the value under that project
-   * instead of its own belief. The payload is parsed with the slot's schema like a `load`'s.
-   */
-  read?: () => Promise<{ project: string; payload: unknown }>;
   /** Host event names that make this slot stale. */
   events?: readonly string[];
   /**
@@ -180,7 +189,6 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     const config = Object.hasOwn(registry, name) ? registry[name] : undefined;
     if (!config) return new Error(`studio: no slot named ${name}`);
     const { load, read } = config;
-    if (!load && !read) return new Error(`studio: slot ${name} has no read`);
     const myEpoch = epoch;
     // A value read while the host's answer to an attach is not heard belongs to no known project: named readers read again for theirs.
     const owner = confirmed ? onProject : undefined;
@@ -196,7 +204,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
         const answer = await read();
         stamp = answer.project;
         payload = answer.payload;
-      } else payload = await load!();
+      } else payload = await load();
       value = parseWire(config.schema, payload, { boundary: 'studio store', payload: name });
     } catch (e) {
       if (!current()) return undefined;

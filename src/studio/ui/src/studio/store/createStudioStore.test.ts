@@ -606,16 +606,22 @@ describe('a read that never answers does not freeze a slot (#3658)', () => {
   });
 });
 
-describe('the store knows which project a held list belongs to (#3998)', () => {
+// The ownership rules hold for both forms of slot: one that reads with the host's stamp (the chapter list, #4040) and one that does not and is held under the
+// project the store believes it is on (the bookmarks).
+describe.each(['read', 'load'] as const)('the store knows which project a held list belongs to (#3998), over a slot with %s', (form) => {
+  type Stamped = () => Promise<{ project: string; payload: unknown }>;
+  /** The slot's config over a stamped read: `read` keeps the stamp, `load` is the same host answer without it. */
+  const slotOver = (read: Stamped): SlotConfig => (form === 'read' ? { schema: isCount, read } : { schema: isCount, load: async () => (await read()).payload });
   /** A slot whose read answers with the project the host is on now and says so, as `manuscriptChapters` does: the host, not the page, decides (#4040). */
   const hostOn = (initial: string) => {
     const host = { project: initial };
-    return { host, read: vi.fn(async () => ({ project: host.project, payload: { count: host.project === 'A' ? 1 : 2 } })) };
+    const read = vi.fn(async () => ({ project: host.project, payload: { count: host.project === 'A' ? 1 : 2 } }));
+    return { host, read, slot: slotOver(read) };
   };
 
   it('records the project each held value was read for', async () => {
-    const { read } = hostOn('A');
-    const { store } = make({ a: { schema: isCount, read } });
+    const { slot } = hostOn('A');
+    const { store } = make({ a: slot });
     store.setProject('A');
     await store.ensure('a', { project: 'A' });
     expect(store.projectOf('a')).toBe('A');
@@ -623,8 +629,8 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
   });
 
   it('the folder changes before the store resets: the store is told, empties, and reads fresh for the new folder (R10-10)', async () => {
-    const { host, read } = hostOn('A');
-    const { store } = make({ a: { schema: isCount, read } });
+    const { host, read, slot } = hostOn('A');
+    const { store } = make({ a: slot });
     store.setProject('A');
     await store.ensure('a', { project: 'A' });
     host.project = 'B';
@@ -637,8 +643,8 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
   });
 
   it('the store resets before the folder changes: a reader on the old folder reads nothing until the host answers, then is told the project changed (R9-1, R10-1)', async () => {
-    const { host, read } = hostOn('A');
-    const { store } = make({ a: { schema: isCount, read } });
+    const { host, read, slot } = hostOn('A');
+    const { store } = make({ a: slot });
     store.setProject('A');
     await store.ensure('a', { project: 'A' });
     host.project = 'B';
@@ -652,8 +658,8 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
   });
 
   it('a re-attach of the same project resets the store: the reader waits for the answer, then is served, with no error (R10-4)', async () => {
-    const { read } = hostOn('A');
-    const { store } = make({ a: { schema: isCount, read } });
+    const { slot } = hostOn('A');
+    const { store } = make({ a: slot });
     store.setProject('A');
     await store.ensure('a', { project: 'A' });
     store.reset();
@@ -670,7 +676,7 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
       .fn()
       .mockReturnValueOnce(first.promise)
       .mockResolvedValue({ project: 'A', payload: { count: 5 } });
-    const { store } = make({ a: { schema: isCount, read } });
+    const { store } = make({ a: slotOver(read) });
     store.setProject('A');
     const asked = store.ensure('a', { project: 'A' });
     store.reset();
@@ -683,8 +689,8 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
   it('a reader that never hears the host answer is refused after the stuck age, not left waiting', async () => {
     vi.useFakeTimers();
     try {
-      const { read } = hostOn('A');
-      const { store } = make({ a: { schema: isCount, read } });
+      const { read, slot } = hostOn('A');
+      const { store } = make({ a: slot });
       store.setProject('A');
       store.reset();
       const asked = store.ensure('a', { project: 'A' });
@@ -698,14 +704,16 @@ describe('the store knows which project a held list belongs to (#3998)', () => {
   });
 
   it('a reader that names no project reads as before, whatever the store is waiting for', async () => {
-    const { read } = hostOn('A');
-    const { store } = make({ a: { schema: isCount, read } });
+    const { slot } = hostOn('A');
+    const { store } = make({ a: slot });
     store.setProject('A');
     store.reset();
     await store.ensure('a');
     expect(store.getState().slots.a).toEqual({ count: 1 });
   });
+});
 
+describe('the store keeps what a failed or slow read leaves (#3998)', () => {
   it('settled: a held list whose re-read failed is an error for the reader, and the store keeps the list for the pages that show it', async () => {
     const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockRejectedValue(new Error('host down'));
     const { store, events } = make({ a: { schema: isCount, load, events: ['job:ended'] } });
