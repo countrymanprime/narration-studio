@@ -3,8 +3,10 @@
  * The root folder is `/` and a drive's root `C:/` (an empty folder means no project, so no root normalises to it, and `C:` without a separator is not the root). The host may spell the one folder both ways (the start-up path and the recent list do),
  * so everything the app keeps per project (an address's owner, a remembered place) goes through this one function (#4099).
  *
- * The case is folded for a Windows-style path (a drive letter, or a network share) and only for those: the host compares them without case (internal/recents/store.go `samePath`,
- * internal/project/match.go `normalizePath`), while a POSIX path is case-sensitive (`X` and `x` are two folders there).
+ * The case is folded for a Windows-style path (a drive letter, or a network share) and only for those. The host compares
+ * every path without case (internal/recents/store.go `samePath`, internal/project/match.go `normalizePath`), but only a
+ * Windows build ships, where a path is a drive path or a share; a POSIX path is left case-sensitive here (`X` and
+ * `x` are two folders) until a host can send one.
  */
 export function folderKey(folder: string): string {
   const slashed = folder.replace(/\\/g, '/');
