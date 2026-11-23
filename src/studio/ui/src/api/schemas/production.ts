@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { recordedThroughSchema } from './manuscript';
 import type {
-  ProductionChapter,
+  ProductionChapterNumbers,
   ProductionMilestone,
-  ProductionNextUpItem,
   ProductionOverview,
   ProductionPayment,
   ProductionRateBasis,
@@ -67,26 +65,10 @@ const readinessSchema = z.object({
 
 const chapterSchema = z.object({
   id: z.string(),
-  title: z.string(),
-  subtitle: optionalFromNull(z.string()),
-  contentKind: z.enum(['narration', 'opening', 'reference', '']),
-  status: stageSchema,
-  wordCount: z.number(),
-  recordedSeconds: z.number().nullable(),
-  recordedUnavailable: optionalFromNull(z.enum(['unlinked', 'multiple_tracks', 'track_missing', 'no_project'])),
-  recordedThrough: optionalFromNull(recordedThroughSchema),
   hoursLogged: z.number(),
   pfh: z.number().nullable(),
   readiness: readinessSchema.nullable(),
-}) satisfies z.ZodType<ProductionChapter>;
-
-const nextUpSchema = z.object({
-  chapterId: z.string(),
-  title: z.string(),
-  subtitle: optionalFromNull(z.string()),
-  stage: stageSchema,
-  readiness: readinessSchema.nullable(),
-}) satisfies z.ZodType<ProductionNextUpItem>;
+}) satisfies z.ZodType<ProductionChapterNumbers>;
 
 export const productionOverviewSchema = z.object({
   chapters: listFromNull(chapterSchema),
@@ -104,7 +86,6 @@ export const productionOverviewSchema = z.object({
   }),
   deadline: z.object({ date: calendarDate, daysLeft: z.number() }).nullable(),
   running: productionSessionSchema.nullable(),
-  nextUp: listFromNull(nextUpSchema),
 }) satisfies z.ZodType<ProductionOverview>;
 
 export const productionStartResultSchema = z.discriminatedUnion('status', [

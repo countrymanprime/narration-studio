@@ -28,7 +28,7 @@ const contentKindFromWire = z
   .optional()
   .transform((value) => (value === '' ? undefined : value));
 
-export const recordedThroughSchema = z.object({
+const recordedThroughSchema = z.object({
   paragraphId: z.string().min(1),
   paragraph: z.number().int().positive().optional(),
   word: z.number().int().nonnegative(),

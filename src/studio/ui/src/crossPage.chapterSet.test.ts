@@ -2,7 +2,7 @@
 // a reference section and a chapter removed from recording as Front Matter are out), and every "% recorded" figure reads one value
 // (`recordedShare`, which prefers the host's `recordedThrough`, the value the Booth resumes at).
 import { describe, expect, it } from 'vitest';
-import type { ProductionChapter } from './api/contracts/production';
+import type { ProductionChapter } from './components/production/composeOverview';
 import type { ManuscriptChapter } from './api/contracts/manuscript';
 import { isNarrationChapter } from './chapterKinds';
 import { chapterTrackRows } from './components/engine/chapterTrackRows';

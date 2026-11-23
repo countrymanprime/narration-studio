@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
-import type { ProductionChapter, ProductionOverview } from '../../api/contracts/production';
+import type { ProductionOverview } from '../../api/contracts/production';
+import type { ProductionChapter } from '../production/composeOverview';
 import type { NarrationApi } from '../../types';
 import { CompanionThisChapter } from './CompanionThisChapter';
 

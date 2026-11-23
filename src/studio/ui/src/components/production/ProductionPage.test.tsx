@@ -871,15 +871,15 @@ describe('the board follows a link changed elsewhere', () => {
     const boardWith = async (recordedSeconds: number, host: typeof zero | undefined) => {
       const base = createMockApi();
       const overview = await base.productionOverview();
-      const row = {
-        ...overview.chapters.find((c) => /^Chapter 1\b/.test(c.title))!,
+      // The row's names, status and recorded audio come from the shared chapter list; the overview adds its numbers by id.
+      const listed: ManuscriptChapter = {
+        ...(await base.manuscriptChapters()).find((c) => /^Chapter 1\b/.test(c.title))!,
         status: 'recording' as const,
         recordedSeconds,
         recordedThrough: host,
       };
-      // The row's names, status and recorded audio come from the shared chapter list; the overview adds its numbers.
-      const listed = { ...row, index: 0 } as unknown as ManuscriptChapter;
-      await renderPage({ overrides: { productionOverview: async () => ({ ...overview, chapters: [row] }), manuscriptChapters: async () => [listed] } });
+      const numbers = overview.chapters.find((c) => c.id === listed.id)!;
+      await renderPage({ overrides: { productionOverview: async () => ({ ...overview, chapters: [numbers] }), manuscriptChapters: async () => [listed] } });
       const kpis = await screen.findByRole('list', { name: 'Production figures' });
       const table = await pipeline();
       return {

@@ -33,15 +33,17 @@ describe('scenarioFromToday', () => {
 describe('the linked scenario', () => {
   it('measures every linked chapter with no stage moved on, and names why the rest have no length', async () => {
     const api = createMockApi({}, { production: PRODUCTION_SCENARIOS.linked });
-    const { chapters, totals } = await api.productionOverview();
+    const [chapters, { totals }] = await Promise.all([api.manuscriptChapters(), api.productionOverview()]);
     const byId = new Map(chapters.map((chapter) => [chapter.id, chapter]));
     expect(chapters.every((chapter) => chapter.status === 'not_started')).toBe(true);
     expect(byId.get('chapter-1')?.recordedSeconds).toBe(790);
     expect(byId.get('chapter-7')?.recordedSeconds).toBe(0);
-    expect(byId.get('chapter-9')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'unlinked' });
-    expect(byId.get('chapter-10')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'multiple_tracks' });
-    expect(byId.get('chapter-11')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'track_missing' });
-    expect(byId.get('chapter-12')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'no_project' });
+    // The shared list leaves `recordedSeconds` out of a chapter that has no length.
+    for (const id of ['chapter-9', 'chapter-10', 'chapter-11', 'chapter-12']) expect(byId.get(id)?.recordedSeconds, id).toBeUndefined();
+    expect(byId.get('chapter-9')).toMatchObject({ recordedUnavailable: 'unlinked' });
+    expect(byId.get('chapter-10')).toMatchObject({ recordedUnavailable: 'multiple_tracks' });
+    expect(byId.get('chapter-11')).toMatchObject({ recordedUnavailable: 'track_missing' });
+    expect(byId.get('chapter-12')).toMatchObject({ recordedUnavailable: 'no_project' });
     expect(totals.recordedSeconds).toBe(790 + 725 + 640 + 512 + 311 + 45);
     expect(totals.measuredChapters).toBe(8);
   });
@@ -50,7 +52,7 @@ describe('the linked scenario', () => {
 describe('the default mock project', () => {
   it('gives every chapter whose Record stage is ticked a linked track and a measured length (#2634)', async () => {
     const api = createMockApi({}, { chapterTrackMappings: WIRE_TICKED_CHAPTER_LINKS });
-    const { chapters } = await api.productionOverview();
+    const chapters = await api.manuscriptChapters();
     const ticked = chapters.filter((chapter) => reached(chapter.status, 'editing'));
     expect(ticked.map((chapter) => chapter.id)).toEqual(['chapter-1', 'chapter-2', 'chapter-3', 'chapter-7', 'chapter-8', 'chapter-9', 'chapter-10']);
     for (const chapter of ticked) {

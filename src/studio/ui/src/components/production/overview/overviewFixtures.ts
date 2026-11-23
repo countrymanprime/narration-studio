@@ -1,5 +1,5 @@
 import type { ChapterSyncChapter } from '../../../api/contracts/chapterSync';
-import type { ProductionChapter } from '../../../api/contracts/production';
+import type { ProductionChapter } from '../composeOverview';
 import type { Measured } from '../../../api/schemas/base';
 import type { TakeLogEntry } from '../../../fixtures/measurements';
 import { WPH } from '../../schedule/estimates';

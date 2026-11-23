@@ -4,42 +4,13 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
-import type { ProductionOverview, ProductionPlan, ProductionRateBasis } from '../../../api/contracts/production';
+import type { ProductionPlan, ProductionRateBasis } from '../../../api/contracts/production';
 import { createMockApi } from '../../../api/mockApi';
 import { TargetInfoButton } from './TargetInfoButton';
 
 // The measured finished lengths (seconds) of chapters 1, 2 and 4, as the shared chapter list carries them.
 const LENGTHS: Record<string, number> = { '1': 685, '2': 670, '4': 868 };
 const WORDS = [2000, 2500, 4000, 2351];
-const overview = (): ProductionOverview => ({
-  chapters: WORDS.map((wordCount, i) => ({
-    id: String(i + 1),
-    title: `Chapter ${i + 1}`,
-    contentKind: 'narration',
-    status: 'recording',
-    wordCount,
-    recordedSeconds: null,
-    hoursLogged: 0,
-    pfh: null,
-    readiness: null,
-  })),
-  totals: {
-    chapters: 4,
-    finalizedChapters: 0,
-    wordCount: 10851,
-    recordedSeconds: 0,
-    measuredChapters: 0,
-    hoursLogged: 0,
-    hoursByStage: {},
-    bookPfh: null,
-    contractedAmount: null,
-    effectiveRate: null,
-  },
-  deadline: null,
-  running: null,
-  nextUp: [],
-});
-
 function mount(opts: { measured?: boolean; basis?: ProductionRateBasis } = {}) {
   const set = vi.fn(async (basis: ProductionRateBasis): Promise<ProductionPlan> => ({
     deadline: null,
@@ -52,14 +23,14 @@ function mount(opts: { measured?: boolean; basis?: ProductionRateBasis } = {}) {
     productionPlan: async () => ({ deadline: null, contractedAmount: null, payment: 'none', rateBasis: opts.basis, milestones: [] }),
     // The chapters (their set and words) are the shared list, as on every other page; the overview no longer supplies them.
     manuscriptChapters: async () =>
-      overview().chapters.map((c, index) => ({
-        id: c.id,
-        title: c.title,
+      WORDS.map((wordCount, index) => ({
+        id: String(index + 1),
+        title: `Chapter ${index + 1}`,
         index,
-        wordCount: c.wordCount,
-        status: c.status,
+        wordCount,
+        status: 'recording' as const,
         contentKind: 'narration' as const,
-        ...(opts.measured === false || LENGTHS[c.id] === undefined ? {} : { recordedSeconds: LENGTHS[c.id] }),
+        ...(opts.measured === false || LENGTHS[String(index + 1)] === undefined ? {} : { recordedSeconds: LENGTHS[String(index + 1)] }),
       })),
     setProductionRateBasis: set,
   });
