@@ -116,3 +116,46 @@ func TestAServiceReadAfterAProjectSwitchKeepsItsOwnProjectsCredits(t *testing.T)
 		t.Fatalf("project B's title = %q, want B's own", b)
 	}
 }
+
+// The coverage service's credits loader is bound to its project too (#4040): a credits check still running after a switch is judged against
+// the credits text of the project it belongs to (the folder and settings store captured when its service was set up), not the new project's.
+func TestACreditsScriptOfAProjectKeepsItsOwnTextAfterASwitch(t *testing.T) {
+	host := stagesHost(t, 5)
+	if _, err := host.CreditsSaveProjectValues("Alice", "", "Lewis Carroll", "", "", "", "", "", "", "Ada Finch"); err != nil {
+		t.Fatal(err)
+	}
+	svc := host.services()
+	folderA, storeA := svc.config.projectFolder, svc.settings
+	textA, err := host.creditsScriptOf(folderA, storeA, "opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host.mu.Lock()
+	next := host.config
+	next.projectFolder, next.projectName = t.TempDir(), "B"
+	attached, reason := host.attachProjectLocked(next)
+	host.mu.Unlock()
+	if !attached {
+		t.Fatalf("attach B failed: %s", reason)
+	}
+	t.Cleanup(func() { host.waitForBackground(); host.closeRetention() })
+	if _, err := host.CreditsSaveProjectValues("The Hitchhiker's Guide to the Galaxy and Beyond", "", "Douglas Noel Adams", "", "", "", "", "", "", "Someone Else Entirely"); err != nil {
+		t.Fatal(err)
+	}
+
+	again, err := host.creditsScriptOf(folderA, storeA, "opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Text != textA.Text {
+		t.Fatalf("A's credits text after the switch = %q, want A's %q", again.Text, textA.Text)
+	}
+	live, err := host.creditsScript("opening")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if live.Text == textA.Text {
+		t.Fatalf("the live credits text is still A's (%q): the two projects cannot be told apart", live.Text)
+	}
+}

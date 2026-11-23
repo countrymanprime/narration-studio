@@ -830,7 +830,7 @@ func (h *Host) configureLocked(next config) {
 		// render the Home row and the teleprompter show (h.creditsScript), never manuscript
 		// paragraphs.
 		LoadCredits: func(kind string) (string, string, error) {
-			script, err := h.creditsScript(kind)
+			script, err := h.creditsScriptOf(projectFolder, settingsStore, kind)
 			if err != nil {
 				return "", "", err
 			}

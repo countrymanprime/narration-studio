@@ -159,6 +159,14 @@ func (h *Host) creditTokensOf(projectFolder string, store *settings.Store) map[s
 // credits.Render exactly as CreditsPreview renders it. An unresolved token stays visible in the text rather than failing:
 // the UI warns about it and Start stays allowed (owner decision 2026-09-23).
 func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {
+	svc := h.services()
+	return h.creditsScriptOf(svc.config.projectFolder, svc.settings, kind)
+}
+
+// creditsScriptOf is creditsScript for the project folder and settings store it is given: the coverage service's credits loader captures
+// them when the project is set up, so a credits check still running after a switch is judged against its own project's rendered credits.
+// It calls nothing that takes a services() snapshot.
+func (h *Host) creditsScriptOf(projectFolder string, store *settings.Store, kind string) (teleprompter.Script, error) {
 	title := creditsid.Title(kind)
 	if title == "" {
 		return teleprompter.Script{}, fmt.Errorf("the teleprompter reads opening or closing credits, not %q", kind)
@@ -169,7 +177,7 @@ func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {
 	}
 	for _, template := range templates {
 		if template.Kind == kind {
-			rendered := credits.Render(template.Body, h.creditTokens())
+			rendered := credits.Render(template.Body, h.creditTokensOf(projectFolder, store))
 			return teleprompter.Script{ID: creditsid.ID(kind), Title: title, Text: rendered.Text}, nil
 		}
 	}
