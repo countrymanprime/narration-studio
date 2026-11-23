@@ -21,7 +21,7 @@ export function usePedalSpace(toggle: () => unknown): void {
       if (leaving) return isGuardedTarget(event.target);
       if (event.target instanceof Element && event.target.closest('[role="radio"], input[type="radio"]')) return false;
       // A toast's Retry, Undo and Dismiss are answers to a message, not controls the take may borrow Space from: Space presses the focused button (#4094).
-      if (event.target instanceof Element && event.target.closest('[data-toast-region]')) return false;
+      if (event.target instanceof Element && event.target.closest('[data-toast-region] button')) return false;
       if (softLayerOpen()) return true;
       const target = event.target;
       return target instanceof HTMLButtonElement && !/^(Record|Stop)$/.test(target.textContent?.trim() ?? '') && !keyLayerOpen();

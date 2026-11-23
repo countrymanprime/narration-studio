@@ -435,4 +435,21 @@ test.describe('a toast button keeps its Space (#4094)', () => {
       expect(await dawRecording(page)).toBe(false);
     });
   }
+
+  test("Space on the toast's Dismiss with Text settings open presses it and starts no take", async ({ page }) => {
+    await openBooth(page);
+    await pastStartGuard(page);
+    await page.getByRole('button', { name: 'Text settings' }).click();
+    const popup = page.getByRole('dialog', { name: /text settings/i });
+    await focusSettled(page, popup);
+    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
+    await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+    const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByText('The save failed. Try again.')).toHaveCount(0);
+    await expect(record(page)).toBeVisible();
+    expect(await dawRecording(page)).toBe(false);
+  });
 });
