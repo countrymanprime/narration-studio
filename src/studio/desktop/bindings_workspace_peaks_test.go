@@ -349,7 +349,7 @@ func TestABackgroundPeaksReadStopsWhenTheHostStops(t *testing.T) {
 	life, stop := context.WithCancel(context.Background())
 	stop()
 	flights := &peaksFlights{running: map[string]*peaksFlight{}}
-	if _, err := flights.read(context.Background(), life, store, identity, file); err == nil {
+	if _, err := flights.read(context.Background(), life, func(work func()) { go work() }, store, identity, file); err == nil {
 		t.Fatal("a read started after the host stopped should not finish")
 	}
 	_ = filepath.WalkDir(evidence.CacheDir(project), func(path string, d fs.DirEntry, err error) error {

@@ -376,7 +376,7 @@ Not measured: the time a live REAPER takes to answer, and a live bridge round tr
 | 30 min | 1.07 s | 0.71 s | 2 ms |
 | 60 min | 2.07 s | 1.40 s | 6 ms |
 
-Through the binding on the seeded rig, after: 315 ms (10 min) and 1,466 ms (60 min) on the first call, 4 and 7.5 ms on the next. The seeded rig has one source file a chapter, so the parallel read of a chapter's several files is not timed.
+Through the binding on the seeded rig, after: 315 ms (10 min) and 1,466 ms (60 min) on the first call, 4 and 7.5 ms on the next. The seeded rig has one source file a chapter, so the parallel read of a chapter's several files is not on the committed rig. An independent break round timed a chapter of six recordings (240 minutes together) outside it: 2.3 to 2.5 s after, 6.0 to 8.4 s before.
 
 - **Target:** under 1 s for an hour of mono audio on a first read; **not met**: 1.4 s here. An independent re-run on a busier container of the same container size measured 3.75, 2.74 and 3.62 s before and 2.23, 2.57 and 2.45 s after for 60 min (about 25 to 30 % less), so the direction is firm and the absolute figure is not. A stereo hour took 3.8 s before the change.
 - **What the change does:** decodes 16 and 24-bit samples in a loop of their own, reads a chapter's separate source files together, and lets a read that outlives the call's 30 s finish in the background and fill the cache, so the item says "still being read" and the next call has it (before, every call timed out the same way and showed nothing).

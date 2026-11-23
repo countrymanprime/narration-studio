@@ -79,6 +79,7 @@ func (h *Host) WorkspacePeaks(chapterID string) (string, error) {
 		life = context.Background()
 	}
 	sources := newPeaksSources(ctx, life, store, svc.config.projectFolder)
+	sources.spawn = h.goBackground
 	sources.readAhead(project, view.Items)
 	items := make([]WorkspacePeaksItem, 0, len(view.Items))
 	for _, alignmentItem := range view.Items {
@@ -99,7 +100,8 @@ type sourcePeaks struct {
 // then. The two steps are apart because an item's range is checked between them, as it was when each item did both.
 type peaksSources struct {
 	ctx           context.Context
-	life          context.Context // the host's: a read that outlives the call stops with it
+	life          context.Context   // the host's: a read that outlives the call stops with it
+	spawn         func(work func()) // starts a read that outlives the call: the host's goBackground, so a test can wait for it
 	store         *evidence.CacheStore
 	projectFolder string
 	identities    map[string]*evidence.SourceIdentity // nil: the file could not be read
@@ -108,7 +110,7 @@ type peaksSources struct {
 }
 
 func newPeaksSources(ctx, life context.Context, store *evidence.CacheStore, projectFolder string) *peaksSources {
-	return &peaksSources{ctx: ctx, life: life, store: store, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}, flights: sharedPeaksFlights}
+	return &peaksSources{ctx: ctx, life: life, store: store, projectFolder: projectFolder, identities: map[string]*evidence.SourceIdentity{}, peaks: map[string]sourcePeaks{}, flights: sharedPeaksFlights, spawn: func(work func()) { go work() }}
 }
 
 // readAhead starts the reads of every live item's source at once, a few at a time, so a chapter cut from several recordings waits for the longest
@@ -180,7 +182,7 @@ func (s *peaksSources) readSource(file string) sourcePeaks {
 	if identity == nil {
 		return sourcePeaks{reason: "this item's source audio could not be read"}
 	}
-	whole, err := s.flights.read(s.ctx, s.life, s.store, *identity, file)
+	whole, err := s.flights.read(s.ctx, s.life, s.spawn, s.store, *identity, file)
 	switch {
 	case errors.Is(err, errPeaksPending):
 		return sourcePeaks{reason: stillReading}
@@ -282,7 +284,7 @@ func (r readSlots) release() { <-r }
 
 var sharedPeaksFlights = &peaksFlights{running: map[string]*peaksFlight{}}
 
-func (f *peaksFlights) read(ctx, life context.Context, store *evidence.CacheStore, identity evidence.SourceIdentity, file string) (measure.Peaks, error) {
+func (f *peaksFlights) read(ctx, life context.Context, spawn func(func()), store *evidence.CacheStore, identity evidence.SourceIdentity, file string) (measure.Peaks, error) {
 	// A recording the cache already holds is answered at once, even to a call whose time has run out: the probe reads the cache with a context that
 	// is already cancelled, so a miss costs nothing and starts no decode.
 	probe, stop := context.WithCancel(ctx)
@@ -296,7 +298,7 @@ func (f *peaksFlights) read(ctx, life context.Context, store *evidence.CacheStor
 	if !joined {
 		flight = &peaksFlight{done: make(chan struct{})}
 		f.running[key] = flight
-		go func() {
+		spawn(func() {
 			own, cancel := context.WithTimeout(life, peaksReadLimit) // the read outlives the call, not the host
 			defer cancel()
 			if err := peaksReadSlots.acquire(own); err != nil {
@@ -307,7 +309,7 @@ func (f *peaksFlights) read(ctx, life context.Context, store *evidence.CacheStor
 			defer peaksReadSlots.release()
 			flight.peaks, flight.err = measure.CachedPeaksFile(own, store, identity, file, nil, measure.DefaultPeaksPerSecond)
 			f.finish(key, flight)
-		}()
+		})
 	}
 	f.mu.Unlock()
 	select {

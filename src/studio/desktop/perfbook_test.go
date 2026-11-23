@@ -637,6 +637,7 @@ func TestAWaveformReadThatRunsOutOfTimeKeepsReadingAndTheNextCallHasIt(t *testin
 	}
 	seedPerfBook(t, dir, book)
 	host := freshPerfHost(t, dir)
+	t.Cleanup(host.waitForBackground) // the read that outlives its call is the host's background work: the folder goes after it
 	saved := workspacePeaksTimeout
 	workspacePeaksTimeout = 20 * time.Millisecond
 	t.Cleanup(func() { workspacePeaksTimeout = saved })

@@ -59,7 +59,7 @@ Rules for code that touches this:
 
 ## A waveform read that outlives its call
 
-`WorkspacePeaks` reads each source file through `peaksFlights` (`bindings_workspace_peaks.go`), not `sharedRead`: `sharedRead` runs the computation in the caller's goroutine and its joiners wait for it, while a long recording's read must go on after the call's 30 s has run out. The call answers the item "still being read", the read finishes in its own goroutine (bounded by ten minutes) and writes the evidence cache, and a later call, or one that arrives while it runs, joins it by source identity. The goroutine reads only its arguments (the cache store, the identity, the path), never a service field. A chapter's several source files are read together, at most one per CPU.
+`WorkspacePeaks` reads each source file through `peaksFlights` (`bindings_workspace_peaks.go`), not `sharedRead`: `sharedRead` runs the computation in the caller's goroutine and its joiners wait for it, while a long recording's read must go on after the call's 30 s has run out. The call answers the item "still being read", the read finishes in a goroutine the host starts through `goBackground` (so a test can wait for it; bounded by ten minutes and by the host's own context) and writes the evidence cache, and a later call, or one that arrives while it runs, joins it by source identity. The goroutine reads only its arguments (the cache store, the identity, the path), never a service field. A chapter's several source files are read together, at most one per CPU.
 
 ## Related rules in the host
 
