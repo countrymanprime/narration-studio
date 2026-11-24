@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { notAskedSentence } from '../../../../studio/dawNames';
 import type { EditCut } from '../../../../api/contracts/editCuts';
 import type { WordFx } from '../../../../api/contracts/wordFx';
 import { overlay } from '../../../../overlay/overlayService';
@@ -164,7 +165,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
         const { result } = await daw.compareFxRange(target);
         overlay.toast(result.ok ? result.message : (result.refused ?? result.message), result.ok ? undefined : { tone: 'error' });
       } catch (e) {
-        overlay.toast(`The DAW was not asked: ${e instanceof Error ? e.message : String(e)}`, { tone: 'error' });
+        overlay.toast(notAskedSentence('the DAW', e), { tone: 'error' });
       }
     },
     [onTheWords, chapterId, locator, daw],

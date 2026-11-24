@@ -4,6 +4,7 @@ import { usePort } from '../ports/usePort';
 import { useDawCapabilities } from './useDawCapabilities';
 import { useFollowChapterInDaw } from './useDawGoesToChapter';
 import { overlay as appOverlay } from '../overlay/overlayService';
+import { soloLeftSentence } from '../components/booth/toastSentences';
 
 /** The calls to the DAW run one after the other in the order the page made them, so a chapter entered right after the last one was left is never put back by it. */
 let queue: Promise<unknown> = Promise.resolve();
@@ -23,8 +24,7 @@ let told = false;
 let held: string | null = null;
 const TOLD_TOPIC = 'daw-solo-left';
 /** Said once when a restore could not reach the host at all (the host's own sentence is the only copy of the other case). */
-const notReached = () =>
-  `${dawName} could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in ${dawName} if they are still silent.`;
+const notReached = () => soloLeftSentence(dawName);
 
 type Ui = { say: (sentence: string) => void; withdraw: () => void };
 

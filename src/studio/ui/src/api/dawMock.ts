@@ -499,8 +499,7 @@ export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & D
 const HEARTBEAT_MS = 250;
 
 /** The host's sentence for a restore that could not take the solo off (bindings_daw_solo.go, soloLeftSentence; the golden daw-solo-restore-refused.json pins it). */
-export const SOLO_LEFT_SENTENCE =
-  "REAPER could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in REAPER if they are still silent.";
+export const SOLO_LEFT_SENTENCE = "REAPER could not unsolo the chapter's track, so others may stay silent. Unsolo it in REAPER.";
 
 const LAUNCH_MS: Record<DawMockScript, number> = { live: 1200, late: 8000, quiet: 0, different: 1200, refuse: 0, restart: 1200, busy: 0 };
 

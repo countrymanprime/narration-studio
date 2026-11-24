@@ -371,8 +371,11 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     act(() =>
       announce({ id: 'run-1', kind: 'transcript_compare', outcome: 'error', message: 'The comparison could not read the REAPER audio.', durationMs: 900 }),
     );
+    // Toasts show one after another (#4063): the failure is read out at once, and is drawn when the rebuild message has gone.
     const alert = within(appToasts('alert'));
     expect(alert.getByText('The comparison could not read the REAPER audio.')).toBeTruthy();
+    expect(alert.queryByRole('button', { name: 'Dismiss message' })).toBeNull();
+    fireEvent.click(within(appToasts('status')).getByRole('button', { name: 'Dismiss message' }));
     fireEvent.click(alert.getByRole('button', { name: 'Dismiss message' }));
     expect(screen.queryByText('The comparison could not read the REAPER audio.')).toBeNull();
 

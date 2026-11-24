@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawPosition } from '../../../api/contracts/daw';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
+import { stopAndSay } from '../../../playback/stopAndSay';
 import { usePort } from '../../../ports/usePort';
+import { dawNameOf } from '../../engine/ShowInDaw';
 import { useEditingPage } from '../script/EditingPageState';
 import { EchoGuard } from './echoGuard';
 import type { WordClock } from './wordClock';
@@ -148,11 +151,10 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   }, [ready, guard]);
 
   const stopDaw = useCallback((): void => {
-    sync.dawTransportSync('stop', 0).then(
-      (result) => {
-        if (!result.ok) live.current.notify(result.message);
-      },
-      () => live.current.notify('The DAW could not be stopped. Stop it there.'),
+    void stopAndSay(
+      dawNameOf(live.current.caps),
+      (text) => live.current.notify(text),
+      () => sync.dawTransportSync('stop', 0).then((result) => (result.ok ? null : result.message)),
     );
   }, [sync]);
 
@@ -285,6 +287,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         owns.current = false;
         dawPlaying.current = false;
         range.current = null;
+        // The stretch ended by itself in the DAW: nobody owns its play now.
+        dawPlayOwner.release();
         live.current.onHead(r.docEnd, false);
         return;
       }
@@ -293,6 +297,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       dawPlaying.current = false;
       epoch.current += 1;
+      // The page gave the play up: it owns nothing in the DAW, and a stale answer parked behind it is stopped.
+      dawPlayOwner.release();
       live.current.onLost(leased ? LOST : UNFOLLOWED);
       if (!leased) stopDaw();
     }, 1000);
@@ -322,12 +328,14 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       const stretch = endDocT !== undefined && projectEnd !== null && projectEnd > project ? { docEnd: endDocT, projectEnd } : null;
       range.current = stretch ? { ...stretch, head: project, startedAt: Number.POSITIVE_INFINITY, length: stretch.projectEnd - project } : null;
       const mineEpoch = ++epoch.current;
+      const token = dawPlayOwner.begin();
       owns.current = true;
       lastHeard.current = Date.now();
       const generation = guard.write(project);
       let ok = false;
       let why: string;
       try {
+        dawPlayOwner.claim(token);
         const result = stretch
           ? await sync.dawTransportSync('playRange', project, stretch.projectEnd, l.chapterId ?? '')
           : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
@@ -347,16 +355,24 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
           owns.current = false;
           range.current = null;
         }
+        dawPlayOwner.release(token);
         return why || 'The DAW did not play it.';
       }
-      // Stopped (or given up) while the DAW was being asked: its answer stops the DAW again. A newer play of the page (it owns now) is not this play: it is left running.
-      if (epoch.current !== mineEpoch && !owns.current) stopDaw();
+      // Stopped (or given up) while the DAW was being asked: its answer stops the DAW again.
+      // A newer play of the page that is still being asked owns the DAW: this answer is stopped if that play fails (nothing then plays in the DAW), and dropped if
+      // it settles (the DAW's one play is then the newer one).
+      if (epoch.current !== mineEpoch) {
+        dawPlayOwner.stopOrOrphan(token, stopDaw);
+        return null;
+      }
+      if (epoch.current === mineEpoch) dawPlayOwner.settle(token);
       return null;
     },
     stop: () => {
       epoch.current += 1;
       range.current = null;
       const was = owns.current || dawPlaying.current;
+      dawPlayOwner.release();
       owns.current = false;
       dawPlaying.current = false;
       // A play that was started and not yet answered counts: the stop goes after it in the DAW's queue, and its answer stops the DAW again (start()).

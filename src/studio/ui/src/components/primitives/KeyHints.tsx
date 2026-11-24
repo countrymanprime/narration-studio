@@ -33,8 +33,7 @@ const NOT_IN_SHELL: RefObject<HTMLElement | null> = { current: null };
 export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: string; children?: ReactNode }) {
   const footer = useContext(PageFooterContext);
   const ref = useRef<HTMLDivElement>(null);
-  // In the shell's page footer it is a bar fixed along the bottom of the window: toasts rise above it rather than covering its hints
-  // (alignment audit XED-25).
+  // In the shell's page footer it is a bar along the bottom of the window; the registration tells what is fixed over its edge (alignment audit XED-25).
   useToastClearance(footer ? ref : NOT_IN_SHELL);
   const bar = (
     <div

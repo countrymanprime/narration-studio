@@ -35,10 +35,10 @@ import {
   SOURCE_NOTE,
   candidateClass,
   keepUnits,
-  sentenceStart,
   type EditingCandidateClass,
 } from './editingCheckText';
 import { addressPath } from '../../navigation/address';
+import { capitalised } from '../../studio/dawNames';
 import { plural, formatCount } from '../../plural';
 
 /** The host's own refusal sentences (src/studio/desktop/internal/editing/service.go), for a reason the mapping prompt
@@ -350,7 +350,7 @@ export function EditingCheckPanel({
             <p className="font-semibold" style={{ color: 'var(--danger-text)' }}>
               This chapter can&rsquo;t be checked yet
             </p>
-            <p>{sentenceStart(refusal.message)}</p>
+            <p>{capitalised(refusal.message)}</p>
             {refusal.reason === 'multiple_tracks' ? (
               <EnginePanelLink onOpen={close} />
             ) : (

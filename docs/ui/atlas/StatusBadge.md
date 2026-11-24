@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/StatusBadge.tsx`.
 
-![StatusBadge, Neutral, light theme](../images/statusbadge.webp)
-
 ## Stories
 
 - Neutral
@@ -81,6 +79,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/primitives/KindChip.tsx`
 - `src/components/primitives/SpeakerTag.tsx`
 - `src/components/primitives/StageGrid.tsx`
+- `src/components/primitives/Toast.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/production/overview/StageBar.tsx`
 - `src/components/production/pipeline/NextUp.tsx`

@@ -293,7 +293,7 @@ export const boothDrivers: Record<string, Driver> = {
     await dialog.waitFor({ state: 'detached' });
     await page
       .getByRole('status')
-      .getByText(/added in REAPER and linked to/)
+      .getByText(/is in REAPER, linked here/)
       .first()
       .waitFor();
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();

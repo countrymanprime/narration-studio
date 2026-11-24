@@ -7,6 +7,12 @@
  * records with it), or 'none' for a standalone launch (dawport.Kind.String() in Go). */
 export type DawKind = 'REAPER' | 'Audacity' | 'Built-in' | 'none';
 
+/** Every `DawKind`, once: the wire schema's list and the Booth's sentence guard read it. */
+export const DAW_KINDS = ['REAPER', 'Audacity', 'Built-in', 'none'] as const satisfies readonly DawKind[];
+/** A new `DawKind` is a type error here until it is in the list above. */
+const allKindsListed: Exclude<DawKind, (typeof DAW_KINDS)[number]> extends never ? true : never = true;
+void allKindsListed;
+
 /** How far the launch's DAW supports a capability (port.Level.String() in Go). */
 export type DawCapabilityLevel = 'unsupported' | 'not_yet_available' | 'experimental' | 'supported';
 

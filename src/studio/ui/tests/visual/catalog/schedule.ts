@@ -73,6 +73,6 @@ export const scheduleStates: StateEntry[] = [
       'Schedule while the plan is still being read (?mockPlan=loading): the page title, a block for its due-date line and verdict, a chart block, two panel blocks and the milestones block, with one polite "Loading the schedule…" status',
   },
 ];
-scheduleStates.push(wholePage(scheduleStates, 'on-pace', ['desktop']));
+scheduleStates.push(wholePage(scheduleStates, 'on-pace'));
 // The long-text rows seen whole (`fullPage`) at 390, 768, 1024 and 1440 px, so the stacked or scrolling milestone table is in the picture.
 scheduleStates.push({ ...wholePage(scheduleStates, 'long-text'), state: 'long-text-whole-page' });

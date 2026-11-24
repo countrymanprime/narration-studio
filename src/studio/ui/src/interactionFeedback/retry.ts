@@ -35,6 +35,9 @@ const SE = 'Runs inside a dialog that has already closed and moved on to the sca
 
 /** Judged error toasts. `yes` must carry a Retry (or an equal action) in the call; `no` and `n/a` say why in a sentence. */
 export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
+  'src/main.tsx#1': yes("The mock build's test hook (`window.__raiseToast`) raises a Retry toast for the toast guard; the shipped build drops it."),
+  'src/main.tsx#2': no('The same test hook with no button, to measure a message that has none; the shipped build drops it.'),
+  'src/main.tsx#3': yes('The same test hook with another button label ("Check again"), to measure a message that carries it; the shipped build drops it.'),
   'src/App.tsx#1': no(BT),
   'src/App.tsx#2': no(BT),
   'src/App.tsx#3': no(BT),
@@ -275,6 +278,12 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/masterqc/page/MeasureRun.tsx#3': no(JM),
   'src/components/masterqc/page/useFileActions.ts#1': no(RF),
   'src/components/masterqc/page/useFileActions.ts#2': no(BT),
+  'src/components/proof/inspector/HearIt.tsx#1': no(
+    'A Stop the DAW refused or could not be asked, or a loop stopped after the note was left or after its deadline that it refused or could not be asked to stop (one `stopAndSay`): it may still be looping, and the button goes back to Hear it, so a repeat would start a new loop; the sentence says where to stop it, and the narrator does it there.',
+  ),
+  'src/components/proof/inspector/HearIt.tsx#2': yes(
+    "Hear it's clip could not be played in the app: Retry plays the note again (the conditional toast that says why a play did not happen, with the same Retry, is raised by a different call the scanner does not list).",
+  ),
   'src/components/pickups/PickupsPage.tsx#1': na(NA),
   'src/components/pickups/PickupsPage.tsx#2': no(ED),
   'src/components/pickups/list/AddPickup.tsx#1': no(ED),

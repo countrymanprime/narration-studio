@@ -13,6 +13,10 @@ describe('isGuardedTarget', () => {
     expect(isGuardedTarget(null)).toBe(false);
   });
 
+  it('is true for an element that scrolls its own content and keeps the keys for it (a toast text that overflows)', () => {
+    expect(isGuardedTarget(el('<div data-owns-keys tabindex="0">long text</div>'))).toBe(true);
+  });
+
   it('is false for plain text-flow elements', () => {
     expect(isGuardedTarget(el('<div></div>'))).toBe(false);
     expect(isGuardedTarget(document.body)).toBe(false);

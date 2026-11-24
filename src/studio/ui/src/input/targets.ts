@@ -5,6 +5,8 @@
  * tests keep working unchanged.
  */
 export const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
+/** An element that scrolls its own content and keeps every plain key for that: the toast's text while it overflows (arrows, Page Up/Down, Home/End and Space scroll it; none reaches the page's commands). */
+export const OWNS_KEYS = '[data-owns-keys]';
 export const SPACE_ACTIVATES = 'button, a[href], summary, [role="button"], [role="checkbox"], [role="switch"]';
 export const KEY_WIDGET_ROLES = new Set([
   'combobox',
@@ -45,7 +47,7 @@ export function ownsKeysByRole(element: Element): boolean {
  */
 export function isGuardedTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  if (target.closest(EDITABLE) || target.closest(SPACE_ACTIVATES)) return true;
+  if (target.closest(EDITABLE) || target.closest(SPACE_ACTIVATES) || target.closest(OWNS_KEYS)) return true;
   return ownsKeysByRole(target);
 }
 
@@ -103,9 +105,18 @@ export function softLayerOpen(root: ParentNode = document): boolean {
   return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(GONE));
 }
 
+/** The topmost dialog or alert dialog on screen (not hidden, inert, aria-hidden or closing), or null. */
+export function openModalLayer(root: ParentNode = document): HTMLElement | null {
+  return (
+    Array.from(root.querySelectorAll<HTMLElement>(MODAL_LAYER))
+      .filter((layer) => !layer.closest(GONE))
+      .pop() ?? null
+  );
+}
+
 /** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
 export function modalLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(GONE));
+  return openModalLayer(root) !== null;
 }
 
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);
