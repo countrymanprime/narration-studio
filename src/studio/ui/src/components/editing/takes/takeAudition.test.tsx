@@ -9,7 +9,9 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
 import { PortOverrides } from '../../../ports/usePort';
+import { previewPlayOwner } from '../../../playback/dawPlayOwner';
 import { READ_FAILED, type DawRead } from '../../../playback/providers';
+import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import type { LinePassage, LineTake } from './types';
 import { useTakeAudition } from './useTakeAudition';
 
@@ -72,6 +74,7 @@ const flush = () =>
   });
 
 beforeEach(() => {
+  previewPlayOwner.forget();
   hidden = null;
   vi.useFakeTimers();
   audio = new FakeAudio();
@@ -282,5 +285,163 @@ describe('without-a-daw-that-plays-the-app-plays-the-take', () => {
     expect(previewTake).not.toHaveBeenCalled();
     expect(audio.play).toHaveBeenCalled();
     expect(notices).toEqual([]);
+  });
+});
+
+// #4111: a take is never silent for long when the DAW does not answer the preview, and a preview that lands late is stopped, not left beside the app.
+describe('a-daw-that-does-not-answer-the-preview', () => {
+  it('hands the take to the app after the deadline, saying the DAW did not answer, and offers no Retry (the take plays)', async () => {
+    const previewTake = vi.fn(() => new Promise<DawResult>(() => {}));
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(result.current.waitingId).toBe('take-1');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
+    });
+    expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(notices.join(' ')).toContain('did not answer in time');
+    expect(notices.join(' ')).toContain(FELL_BACK);
+    expect(retries.at(-1)).toBeUndefined();
+  });
+  it('stops a preview the DAW answers after the deadline, once, so it does not play beside the app', async () => {
+    let answer: (r: DawResult) => void = () => {};
+    const stopPreview = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => (answer = resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
+    });
+    expect(stopPreview).not.toHaveBeenCalled();
+    answer({ ok: true, changed: false, message: '', undoSteps: 0 });
+    await flush();
+    expect(stopPreview).toHaveBeenCalledTimes(1);
+  });
+  it('says where to stop a late preview when the DAW refuses or cannot be asked to stop it', async () => {
+    let answer: (r: DawResult) => void = () => {};
+    const stopPreview = vi.fn().mockRejectedValue(new Error('bridge gone'));
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => (answer = resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
+    });
+    answer({ ok: true, changed: false, message: '', undoSteps: 0 });
+    await flush();
+    expect(notices.at(-1)).toBe('REAPER was not asked to stop: bridge gone. Stop it in REAPER.');
+  });
+  it('a preview answered after a newer take was pressed does not stop the newer take', async () => {
+    const answers: ((r: DawResult) => void)[] = [];
+    const stopPreview = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => answers.push(resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    act(() => result.current.play(LINE.takes[1]));
+    await flush();
+    await act(async () => {
+      answers[1]!({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const stopsBeforeOlderAnswer = stopPreview.mock.calls.length;
+    await act(async () => {
+      answers[0]!({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    // The newer take's preview is the DAW's one play: the older answer stops nothing, and the newer take is shown playing.
+    expect(result.current.playingId).toBe('take-2');
+    expect(stopPreview).toHaveBeenCalledTimes(stopsBeforeOlderAnswer);
+  });
+  it("an older take's preview that landed while a newer take was asked is stopped when the newer take is refused and the app plays it", async () => {
+    const answers: ((r: DawResult) => void)[] = [];
+    const stopPreview = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => answers.push(resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    act(() => result.current.play(LINE.takes[1]));
+    await flush();
+    await act(async () => {
+      answers[0]!({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const before = stopPreview.mock.calls.length;
+    await act(async () => {
+      answers[1]!({ ok: false, changed: false, message: 'Refused.', undoSteps: 0, refused: 'Refused.' });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(stopPreview.mock.calls.length).toBeGreaterThan(before);
+  });
+  it('a preview answered after the page was left is stopped', async () => {
+    let answer: (r: DawResult) => void = () => {};
+    const stopPreview = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result, unmount } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => (answer = resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    unmount();
+    await act(async () => {
+      answer({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(stopPreview).toHaveBeenCalledTimes(1);
+  });
+  it('a preview that ended by itself leaves no owner: an older take answering late is stopped, not left playing', async () => {
+    const answers: ((r: DawResult) => void)[] = [];
+    const stopPreview = vi.fn().mockResolvedValue({ ok: true, changed: false, message: '', undoSteps: 0 });
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => answers.push(resolve)), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    act(() => result.current.play(LINE.takes[1]));
+    await flush();
+    await act(async () => {
+      answers[1]!({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    // The newer take's preview plays its length (take-2 is 90 s, a minute is played) and ends by itself.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+    expect(result.current.playingId).toBeNull();
+    const before = stopPreview.mock.calls.length;
+    await act(async () => {
+      answers[0]!({ ok: true, changed: false, message: '', undoSteps: 0 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(stopPreview.mock.calls.length).toBeGreaterThan(before);
+  });
+  it('after the deadline hands the take to the app, the take is shown playing in the app and ends with its audio (not stuck in the DAW)', async () => {
+    const previewTake = vi.fn(() => new Promise<DawResult>(() => {}));
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake });
+    act(() => result.current.play(LINE.takes[0]));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
+    });
+    expect(result.current.playingId).toBe('take-1');
+    await act(async () => {
+      // The take's range ends (take-1: 2 s to 6 s of its file): the range player stops at its end.
+      audio.currentTime = 99;
+      audio.dispatchEvent(new Event('timeupdate'));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.playingId).toBeNull();
+  });
+  it('a DAW refusal that comes after the deadline does not clear the take the app is playing', async () => {
+    let answer: (r: DawResult) => void = () => {};
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: () => new Promise<DawResult>((resolve) => (answer = resolve)) });
+    act(() => result.current.play(LINE.takes[0]));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS + 1);
+    });
+    await act(async () => {
+      answer({ ok: false, changed: false, message: 'Late.', undoSteps: 0, refused: 'Late.' });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.playingId).toBe('take-1');
+  });
+  it('the take Stop that the DAW refuses says where to stop it', async () => {
+    const stopPreview = vi
+      .fn()
+      .mockResolvedValue({ ok: false, changed: false, message: 'REAPER would not stop', undoSteps: 0, refused: 'REAPER would not stop' });
+    const { result } = mount(DAW_SETUPS.reaper, { stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    act(() => result.current.stop());
+    await flush();
+    expect(notices.at(-1)).toBe('REAPER would not stop. Stop it in REAPER.');
   });
 });

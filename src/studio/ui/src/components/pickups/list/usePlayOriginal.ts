@@ -9,7 +9,8 @@ import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
-import { notAskedSentence, stopFailedSentence } from '../../../studio/dawNames';
+import { notAskedSentence } from '../../../studio/dawNames';
+import { stopAndSay } from '../../../playback/stopAndSay';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
 import { overlay } from '../../../overlay/overlayService';
 import { dawPlayOwner } from '../../../playback/dawPlayOwner';
@@ -109,16 +110,10 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
   const stopDaw = useCallback((): void => {
     clearTimer();
     // A failed stop leaves the DAW playing; say so, as the Editing page does.
-    sync.dawTransportSync('stop', 0).then(
-      (result) => {
-        if (result.ok) return;
-        const name = dawNameOf(dawCaps.current.caps);
-        live.current.onRefused(stopFailedSentence(name, { refused: result.message }));
-      },
-      (error: unknown) => {
-        const name = dawNameOf(dawCaps.current.caps);
-        live.current.onRefused(stopFailedSentence(name, { thrown: error }));
-      },
+    void stopAndSay(
+      dawNameOf(dawCaps.current.caps),
+      (text) => live.current.onRefused(text),
+      () => sync.dawTransportSync('stop', 0).then((result) => (result.ok ? null : result.message)),
     );
   }, [sync]);
 
