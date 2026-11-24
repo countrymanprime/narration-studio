@@ -437,11 +437,13 @@ describe('a toast text is measured without its scrollbar, and again when the fon
     sizes.scrollHeight = 34;
     act(() => listeners.forEach((cb) => cb()));
     expect(document.activeElement).toBe(document.body);
-    // Scrolls again, takes focus, and stops: focus goes to Dismiss, not to the action and not to the body.
+    // Scrolls again and takes focus; a measure that still finds it scrolling leaves focus where it is.
     sizes.scrollHeight = 500;
     act(() => listeners.forEach((cb) => cb()));
     textOf('xxxx').focus();
+    act(() => listeners.forEach((cb) => cb()));
     expect(document.activeElement).toBe(textOf('xxxx'));
+    // It stops: focus goes to Dismiss, not to the action and not to the body.
     sizes.scrollHeight = 34;
     act(() => listeners.forEach((cb) => cb()));
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));

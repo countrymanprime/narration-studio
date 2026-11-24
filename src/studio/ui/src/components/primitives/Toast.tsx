@@ -144,19 +144,23 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
   useEffect(() => {
     const el = text.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    // Measured with the scrollbar out of the way: a box that scrolls loses the scrollbar's width to it, so its text wraps to one more line than it would without, and a box measured while it scrolls
-    // stays overflowing after the font it was first laid out in (a fallback, wider) has loaded (#4112). The overflow and the scrollbar's gutter (`styles.css` keeps one on every auto-scrolling
-    // box, and a gutter outlives `overflow: hidden`) are switched off for the read and put back.
+    // Measured with the scrollbar's gutter out of the way: a box that scrolls loses the gutter's width to it, so its text wraps to one more line than it would without, and a box measured while it scrolls
+    // stays overflowing after the font it was first laid out in (a fallback, wider) has loaded (#4112). The gutter (`styles.css` keeps one on every auto-scrolling box, and it outlives `overflow: hidden`) is what
+    // matters; the overflow is switched off with it as a precaution (a browser that draws the gutter only for a scrolling box), and both are put back, even if the read throws.
     const measure = () => {
       const { overflowY, scrollbarGutter } = el.style;
       // Toggling the gutter widens the box, which can clamp the scroll position: the narrator's place in the text is put back.
       const top = el.scrollTop;
-      el.style.overflowY = 'hidden';
-      el.style.scrollbarGutter = 'auto';
-      const overflows = el.scrollHeight > el.clientHeight + 1;
-      el.style.overflowY = overflowY;
-      el.style.scrollbarGutter = scrollbarGutter;
-      el.scrollTop = top;
+      let overflows: boolean;
+      try {
+        el.style.overflowY = 'hidden';
+        el.style.scrollbarGutter = 'auto';
+        overflows = el.scrollHeight > el.clientHeight + 1;
+      } finally {
+        el.style.overflowY = overflowY;
+        el.style.scrollbarGutter = scrollbarGutter;
+        if (top !== 0) el.scrollTop = top;
+      }
       // The text is a Tab stop only while it scrolls: if it had focus when it stops, focus goes to the toast's Dismiss, never to its action (the text owned the keys that page it, so the next Space the narrator
       // presses would run an action they never chose), and never to <body> (focus is never left on <body>).
       if (!overflows && document.activeElement === el)
@@ -170,7 +174,11 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
     const fonts = document.fonts;
     fonts?.addEventListener?.('loadingdone', measure);
     let live = true;
-    void fonts?.ready?.then(() => live && measure());
+    // A rejected `ready` (it does not reject in a browser) leaves the listener and the observer to do the work.
+    fonts?.ready?.then(
+      () => live && measure(),
+      () => undefined,
+    );
     return () => {
       live = false;
       fonts?.removeEventListener?.('loadingdone', measure);

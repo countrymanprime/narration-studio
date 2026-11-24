@@ -214,10 +214,13 @@ test('a toast raised while the web fonts are held stops scrolling once they have
     await expect.poll(async () => (await state(page)).tabIndex).toBe(0);
     expect((await state(page)).overflowY).toBe('auto');
     // The wide spacing goes (the message now fits at that width) and the held fonts load: the real `loadingdone` is what makes the box measure again.
+    const widthWhileWide = (await boxAndGutter(page)).width;
     await wide.evaluate((element) => element.remove());
     release();
     await page.evaluate(() => document.fonts.ready);
     await expect.poll(async () => (await state(page)).tabIndex).toBe(-1);
     expect((await state(page)).overflowY).toBe('hidden');
+    // The box did not change width on the way (a resize would make the ResizeObserver measure again without the fonts path being what did it).
+    expect((await boxAndGutter(page)).width).toBeCloseTo(widthWhileWide, 0);
   });
 });
