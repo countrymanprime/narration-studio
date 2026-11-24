@@ -44,7 +44,7 @@ describe('dawPlayOwner.stopOrOrphan', () => {
   });
   it('drops an orphaned play when the newer press settles in the DAW (its play replaced the old one)', () => {
     const { b, stop } = olderAnswerWhileNewerOwns();
-    dawPlayOwner.settle(b);
+    dawPlayOwner.settle(b, vi.fn());
     dawPlayOwner.release(b);
     expect(stop).not.toHaveBeenCalled();
   });
@@ -76,5 +76,36 @@ describe('createPlayOwner', () => {
     const late = vi.fn();
     other.stopOrOrphan(other.begin(), late);
     expect(late).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('dawPlayOwner: a newer press that is refused stops the older settled play (#4127)', () => {
+  it('runs the older press stop when the newer press releases the DAW without playing in it', () => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
+    const b = dawPlayOwner.begin();
+    dawPlayOwner.claim(b);
+    expect(stop).not.toHaveBeenCalled();
+    dawPlayOwner.release(b);
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+  it('does not run it when the newer press settles, or when the press itself releases or the narrator stops', () => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
+    dawPlayOwner.release(a);
+    dawPlayOwner.release();
+    const b = dawPlayOwner.begin();
+    dawPlayOwner.claim(b);
+    const stopB = vi.fn();
+    dawPlayOwner.settle(b, stopB);
+    const c = dawPlayOwner.begin();
+    dawPlayOwner.claim(c);
+    dawPlayOwner.release();
+    expect(stop).not.toHaveBeenCalled();
+    expect(stopB).not.toHaveBeenCalled();
   });
 });

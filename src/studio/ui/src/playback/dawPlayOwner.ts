@@ -12,6 +12,8 @@ export function createPlayOwner() {
   let begun = 0;
   let owner = 0;
   let orphans: Array<() => void> = [];
+  /** The press whose play is playing in the DAW now and how to stop it, so a newer press the DAW refuses stops it before the app plays. */
+  let playing: { token: number; stop: () => void } | null = null;
 
   const self = {
     /** A new press's token. */
@@ -20,14 +22,21 @@ export function createPlayOwner() {
     claim: (token: number): void => {
       owner = token;
     },
-    /** The press's own play is the DAW's play now: older plays that landed meanwhile were replaced by it. */
-    settle: (token: number): void => {
-      if (owner === token) orphans = [];
+    /** The press's own play is the DAW's play now: older plays that landed meanwhile were replaced by it. `stop` stops it, for a newer press that is refused. */
+    settle: (token: number, stop: () => void): void => {
+      if (owner !== token) return;
+      orphans = [];
+      playing = { token, stop };
     },
     /** The DAW's play is nobody's (stopped, refused or ended in the app); with a token, only if that press still owns it. Stops the plays orphaned meanwhile. */
     release: (token?: number): void => {
       if (token !== undefined && owner !== token) return;
       owner = 0;
+      // A newer press that ends without playing in the DAW (refused, or played in the app) leaves the older settled play running beside it: stop it.
+      // A Stop (no token) stops what it stops itself.
+      const older = playing;
+      playing = null;
+      if (token !== undefined && older && older.token !== token) older.stop();
       const stops = orphans;
       orphans = [];
       for (const stop of stops) stop();
@@ -45,6 +54,7 @@ export function createPlayOwner() {
     forget: (): void => {
       owner = 0;
       orphans = [];
+      playing = null;
     },
   };
   return self;

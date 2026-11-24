@@ -113,8 +113,6 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const epoch = useRef(0);
   /** Plays asked of the DAW whose answer has not come: a "stopped" reading heard meanwhile is the page's own earlier stop, not the narrator's. */
   const asking = useRef(0);
-  /** The page's own play is playing in the DAW (its answer came and nothing has stopped it since): a newer play the DAW refuses stops it before the app plays. */
-  const settled = useRef(false);
   /** Until this time, a "playing" reading with no play of the page's is the late play the page just stopped, not a play the narrator started in the DAW. */
   const staleUntil = useRef(0);
 
@@ -220,7 +218,6 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       if (range.current && owns.current && pos.playPosition > range.current.head) range.current.head = pos.playPosition;
       if (dawPlaying.current) {
         dawPlaying.current = false;
-        settled.current = false;
         // A play of the page is still being asked: this stop is the one the page sent before it, which that play follows.
         if (owns.current && asking.current > 0) return;
         if (owns.current) {
@@ -372,11 +369,6 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
           range.current = null;
         }
         dawPlayOwner.release(token);
-        // The page falls back to the app: what the DAW was playing for the page is stopped first, or both would be heard.
-        if (settled.current && epoch.current === mineEpoch) {
-          settled.current = false;
-          stopDaw();
-        }
         return why || 'The DAW did not play it.';
       }
       // Stopped (or given up) while the DAW was being asked: its answer stops the DAW again.
@@ -389,15 +381,13 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         });
         return null;
       }
-      settled.current = true;
-      dawPlayOwner.settle(token);
+      dawPlayOwner.settle(token, stopDaw);
       return null;
     },
     stop: () => {
       epoch.current += 1;
       range.current = null;
       const was = owns.current || dawPlaying.current;
-      settled.current = false;
       dawPlayOwner.release();
       owns.current = false;
       dawPlaying.current = false;

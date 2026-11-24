@@ -519,11 +519,17 @@ describe('script-transport-races (#4127)', () => {
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
     expect(state().playing).toBe(true);
+    let stopsWhenAppPlayed = -1;
+    audio.play.mockImplementation(() => {
+      stopsWhenAppPlayed = calls('stop').length;
+      return Promise.resolve();
+    });
     act(() => daw.refuseNextSync('REAPER would not play it'));
     act(() => playback.playFrom(t0('p-2:3'), t0('p-2:5')));
     await wait(10);
     expect(audio.play).toHaveBeenCalled();
     expect(calls('stop')).toHaveLength(1);
+    expect(stopsWhenAppPlayed).toBe(1);
   });
   it('a stop reading from the pages own earlier stop does not end a newer play still being asked', async () => {
     await wait(0);
