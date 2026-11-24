@@ -14,6 +14,7 @@ import { ReplaceDialog, replaceTitle } from './ReplaceDialog';
 import { replaceCommand } from './replaceCommand';
 import type { ReplacementMarks } from './replacementMarks';
 import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
+import { isolatedIfRtl } from '../../../../visibleText';
 
 export interface ReplaceAudioOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -175,7 +176,11 @@ export function useReplaceAudio({ journal, chapterId, locator }: ReplaceAudioOpt
           const replaced = replacementOf(keys);
           if (replaced)
             return [
-              { key: 'replace-restore', label: `Put my audio back (now ${replaced.narratorName}'s)`, onSelect: () => void latest.current.restore(replaced) },
+              {
+                key: 'replace-restore',
+                label: `Put my audio back (now ${isolatedIfRtl(replaced.narratorName)}'s)`,
+                onSelect: () => void latest.current.restore(replaced),
+              },
             ];
           const reason = refusalOf(summary);
           return [

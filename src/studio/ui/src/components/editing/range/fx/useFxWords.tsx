@@ -291,7 +291,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
         items: ({ summary }) => {
           const id = summary.items.map((i) => i.fx[0]).find((x) => x !== undefined);
           const on = id === undefined ? undefined : latest.current.effects.find((f) => f.id === id);
-          return on ? [{ key: 'fx-remove', label: `Remove ${on.chainName}`, onSelect: () => void latest.current.remove(on) }] : [];
+          return on ? [{ key: 'fx-remove', label: `Remove ${isolatedIfRtl(on.chainName)}`, onSelect: () => void latest.current.remove(on) }] : [];
         },
       }),
     ];

@@ -24,6 +24,7 @@ import { DefinitionBlock } from './DefinitionBlock';
 import { ExternalLinks } from './ExternalLinks';
 import { statusLabel, statusTone } from './wordStatus';
 import type { WordsHost } from './wordsHost';
+import { isolatedIfRtl } from '../../../../../visibleText';
 
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
 
@@ -134,7 +135,7 @@ function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: stri
   // A pronunciation typed and not yet saved is held text: leaving the page asks first (#3400).
   useUnsavedDraft(`script-word-say-${word}`, {
     dirty: say.trim() !== '',
-    label: `your “${shortName(word, 13)}” pronunciation`,
+    label: `your “${isolatedIfRtl(shortName(word, 13))}” pronunciation`,
     brief: 'your pronunciation',
     kind: 'script-word-say',
     many: (n) => `${plural(n, 'pronunciation')} you typed`,

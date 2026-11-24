@@ -393,7 +393,7 @@ export function GuideDetail({
   // A name typed in "Add a name" and not added is held text, and nothing can add it from the question: it offers to keep editing or discard it (#3457).
   useUnsavedDraft('story-bible-alias-query', {
     dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && hasVisibleText(aliasQuery)),
-    label: `the name “${shortName(aliasQuery, 18)}” you are adding`,
+    label: `the name “${isolatedIfRtl(shortName(aliasQuery, 18))}” you are adding`,
     brief: 'a name you are adding',
     needs: 'you to press Add name',
     discard: () => {
@@ -409,7 +409,7 @@ export function GuideDetail({
   const saveEntryShared = useSharedSave(() => saveEntryRef.current?.() ?? Promise.resolve(true));
   useUnsavedDraft('story-bible-entry', {
     dirty: Boolean(entity && editing && !entity.locked && !isNewDraft && JSON.stringify(draft) !== JSON.stringify(draftOf(entity, speaks))),
-    label: `your changes to ${shortName(entity?.canonical_name ?? 'this entry', 16)}`,
+    label: `your changes to ${isolatedIfRtl(shortName(entity?.canonical_name ?? 'this entry', 16))}`,
     brief: 'your entry edit',
     save: saveEntryShared,
     discard: () => setEditing(false),
@@ -418,7 +418,7 @@ export function GuideDetail({
   // A new entry has no record until a category is chosen, so its typed name has nothing to save: the question offers to keep editing or discard it.
   useUnsavedDraft('story-bible-new-entry', {
     dirty: Boolean(entity && isNewDraft && hasVisibleText(draft.name) && draft.name !== entity.canonical_name),
-    label: `the new entry “${shortName(draft.name, 18)}”`,
+    label: `the new entry “${isolatedIfRtl(shortName(draft.name, 18))}”`,
     brief: 'a new entry',
     needs: 'a category chosen',
     discard: () => onDiscardNewDraft?.(),

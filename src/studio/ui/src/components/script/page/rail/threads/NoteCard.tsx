@@ -15,6 +15,7 @@ import { markMessages } from '../../data/script.selectors';
 import { markSwatch } from './markSwatch';
 import { MessageEditor } from './MessageEditor';
 import { NoteTextarea } from './NoteTextarea';
+import { isolatedIfRtl } from '../../../../../visibleText';
 
 /** What a card does to its mark. Each call names the mark; the ones that write answer whether the host took the change. */
 export type NoteActions = {
@@ -141,7 +142,7 @@ export function NoteCard({
   // A reply typed and not yet added is held text: leaving the page asks first (#3400).
   useUnsavedDraft(`script-note-reply-${mark.id}`, {
     dirty: reply.trim() !== '',
-    label: `your reply on “${shortName(quote || line, 18)}”`,
+    label: `your reply on “${isolatedIfRtl(shortName(quote || line, 18))}”`,
     brief: 'your reply',
     kind: 'script-note-reply',
     many: (n) => `${plural(n, 'reply', 'replies')} you are writing`,

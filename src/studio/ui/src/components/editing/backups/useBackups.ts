@@ -7,6 +7,7 @@ import { usePort } from '../../../ports/usePort';
 import type { Command, Journal } from '../../../studio/journal/createJournal';
 import { restoredText } from './backupsText';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
+import { isolatedIfRtl } from '../../../visibleText';
 
 /** Whether the DAW can back up and restore now, and its own sentence when it cannot. */
 export type BackupsGate = { ok: true } | { ok: false; reason: string };
@@ -26,7 +27,7 @@ const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message:
  */
 function restoreCommand(daw: Pick<DawClient, 'restoreBackup'>, backup: DawBackup, dawName: string): Command<DawResult> {
   return {
-    label: `Put back ${backup.label ?? 'a backup'}`,
+    label: `Put back ${isolatedIfRtl(backup.label ?? 'a backup')}`,
     touches: [`daw/backups/${backup.id}`],
     daw: true,
     async run() {
