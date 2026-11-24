@@ -16,6 +16,7 @@ import { useDawPlayPosition } from './useDawPlayPosition';
 import { buildWordClock, type WordClock } from './wordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
 import { ECHO_WINDOW_MS } from './echoGuard';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { LEASE_RENEW_MS, SILENT_MS } from './useDawTransportSync';
 import { READ_FAILED, type DawRead } from '../../../playback/providers';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
@@ -123,6 +124,7 @@ beforeEach(() => {
   });
   notices.length = 0;
   retries.length = 0;
+  dawPlayOwner.forget();
 });
 afterEach(() => {
   cleanup();
@@ -529,6 +531,34 @@ describe('script-transport-races (#4127)', () => {
     await wait(10);
     expect(audio.play).toHaveBeenCalled();
     expect(calls('stop')).toHaveLength(1);
+    expect(stopsWhenAppPlayed).toBe(1);
+  });
+  it('a newer play that goes to the app because its word has no place in the DAW stops the DAWs older play first', async () => {
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const tree = (clock: WordClock) => (
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} clock={clock} />
+        </EditingPageProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(CLOCK));
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(state().playing).toBe(true);
+    let stopsWhenAppPlayed = -1;
+    audio.play.mockImplementation(() => {
+      stopsWhenAppPlayed = calls('stop').length;
+      return Promise.resolve();
+    });
+    // The word is no longer placed in the DAW's project: the DAW is never asked, and the app plays.
+    view.rerender(tree(NO_CLOCK));
+    act(() => playback.playFrom(t0('p-2:3')));
+    await wait(10);
+    expect(calls('play')).toHaveLength(1);
+    expect(audio.play).toHaveBeenCalled();
     expect(stopsWhenAppPlayed).toBe(1);
   });
   it('a stop reading from the pages own earlier stop does not end a newer play still being asked', async () => {

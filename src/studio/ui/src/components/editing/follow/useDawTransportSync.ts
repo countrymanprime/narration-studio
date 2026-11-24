@@ -149,6 +149,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       range.current = null;
       epoch.current += 1;
+      // The page's play is over: a later press that is refused must not run a stop for it.
+      dawPlayOwner.release();
       l.onLost(LOST);
     } else if (mine.current != null && l.state.playT === mine.current) {
       mine.current = null;

@@ -243,10 +243,22 @@ export function useScriptPlayback({
           },
         });
       }
+      // The DAW was never asked (not ready, not placed) while the page still owns a DAW play: it is stopped before the app plays, or both would be heard.
+      let notAsked = false;
+      const dawProvider = now !== undefined ? providers[0] : undefined;
+      if (dawProvider) {
+        const check = dawProvider.readiness;
+        dawProvider.readiness = (at) => {
+          const verdict = check(at);
+          if (!verdict.ready) notAsked = true;
+          return verdict;
+        };
+      }
       providers.push({
         name: APP,
         readiness: (at) => (covers(at) ? { ready: true } : { ready: false, why: NOTHING_FROM_HERE }),
         play: (at) => {
+          if (notAsked) remoteRef.current?.stop();
           appPlays.current = true;
           stopReport.setPath('app');
           cue(at);

@@ -91,21 +91,36 @@ describe('dawPlayOwner: a newer press that is refused stops the older settled pl
     dawPlayOwner.release(b);
     expect(stop).toHaveBeenCalledTimes(1);
   });
-  it('does not run it when the newer press settles, or when the press itself releases or the narrator stops', () => {
+  it.each([
+    ['the press itself releases', (a: number) => dawPlayOwner.release(a)],
+    ['the narrator stops (no token)', () => dawPlayOwner.release()],
+  ])('does not run it when %s', (_name, end) => {
     const a = dawPlayOwner.begin();
     dawPlayOwner.claim(a);
     const stop = vi.fn();
     dawPlayOwner.settle(a, stop);
-    dawPlayOwner.release(a);
-    dawPlayOwner.release();
+    end(a);
+    expect(stop).not.toHaveBeenCalled();
+  });
+  it('does not run it when the newer press settles in the DAW', () => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
     const b = dawPlayOwner.begin();
     dawPlayOwner.claim(b);
-    const stopB = vi.fn();
-    dawPlayOwner.settle(b, stopB);
-    const c = dawPlayOwner.begin();
-    dawPlayOwner.claim(c);
-    dawPlayOwner.release();
+    dawPlayOwner.settle(b, vi.fn());
+    dawPlayOwner.release(b);
     expect(stop).not.toHaveBeenCalled();
-    expect(stopB).not.toHaveBeenCalled();
+  });
+  it('runs it when a late answer of the newest press is stopped (stopOrOrphan)', () => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
+    const b = dawPlayOwner.begin();
+    dawPlayOwner.claim(b);
+    dawPlayOwner.stopOrOrphan(b, vi.fn());
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 });

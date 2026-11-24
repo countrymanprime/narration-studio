@@ -3,7 +3,8 @@
  * `begin`s with a token, `claim`s the DAW when it sends its play, `settle`s once the DAW is really playing it, and `release`s the DAW when it stops or
  * ends in the app. An answer that comes late, or for a note or list that was left, stops what it started (`stopOrOrphan`) only when no newer press has claimed
  * the DAW since; when one has, its stop is orphaned, which runs when the newer press releases the DAW without playing in it (the old play would
- * otherwise run on), and is dropped when the newer press settles (the DAW's one play is then the newer one). One owner is kept for the whole app for each kind of
+ * otherwise run on), and is dropped when the newer press settles (the DAW's one play is then the newer one). A press that settles hands over the stop of its play
+ * (`settle(token, stop)`): a newer press that is refused, or ends in the app, runs it, so the older play does not sound beside the app. One owner is kept for the whole app for each kind of
  * play (`createPlayOwner`), so the untokened `release()` of a Stop assumes one page plays at a time (Proof and Pickups are never on screen together).
  */
 
