@@ -477,6 +477,92 @@ describe('play-from-the-app-plays-through-the-daw', () => {
   });
 });
 
+/** A DAW whose bridge answers in order and can be held: the held calls run, one after the other, when `release` is called (#4127). */
+function heldBridge() {
+  const api = createMockApi({}, { daw: {} });
+  const real = api.dawTransportSync.bind(api) as (...a: unknown[]) => Promise<never>;
+  const queue: Array<() => void> = [];
+  let tail: Promise<unknown> = Promise.resolve();
+  let holding = true;
+  const held = new Set(['play', 'playRange', 'stop']);
+  api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+    if (!holding || !held.has(action)) return real(action, ...rest);
+    return new Promise((resolve, reject) => {
+      queue.push(() => {
+        tail = tail.then(() => real(action, ...rest)).then(resolve, reject);
+      });
+    });
+  }) as typeof api.dawTransportSync;
+  daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+  render(
+    <ApiProvider api={api}>
+      <EditingPageProvider doc={doc}>
+        <Harness caps={DAW_SETUPS.reaper} />
+      </EditingPageProvider>
+    </ApiProvider>,
+  );
+  return {
+    /** Answers every held call, in the order asked, and the ones asked after. */
+    release: async () => {
+      holding = false;
+      for (const run of queue.splice(0)) run();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+    },
+  };
+}
+
+describe('script-transport-races (#4127)', () => {
+  it('a newer play the DAW refuses stops the DAWs older play before the app plays', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(state().playing).toBe(true);
+    act(() => daw.refuseNextSync('REAPER would not play it'));
+    act(() => playback.playFrom(t0('p-2:3'), t0('p-2:5')));
+    await wait(10);
+    expect(audio.play).toHaveBeenCalled();
+    expect(calls('stop')).toHaveLength(1);
+  });
+  it('a stop reading from the pages own earlier stop does not end a newer play still being asked', async () => {
+    await wait(0);
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    act(() => playback.playFrom(t0('p-2:3')));
+    await bridge.release();
+    await wait(10);
+    expect(state().playing).toBe(true);
+    expect(notices).toEqual([]);
+    expect(calls('stop')).toHaveLength(1);
+  });
+  it('a play stopped because it was answered after the page stopped leaves the bar on Play', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    await bridge.release();
+    await wait(10);
+    expect(state().playT).toBeNull();
+    expect(state().playing).toBe(false);
+  });
+  it('a play stopped because it was answered after the page gave it up leaves the bar on Play', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => daw.dropEvents(true));
+    await wait(15_000);
+    expect(notices.join(' ')).toMatch(/stopped answering/);
+    act(() => daw.dropEvents(false));
+    await bridge.release();
+    await wait(10);
+    expect(state().playT).toBeNull();
+    expect(state().playing).toBe(false);
+  });
+});
+
 describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
   // Changed by the owner's decision on #2251 item 32: a DAW that cannot play now no longer means silence; the app plays with a notice.
   it.each([

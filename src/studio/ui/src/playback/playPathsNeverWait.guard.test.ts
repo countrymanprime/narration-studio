@@ -61,4 +61,17 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
       else expect(text).toMatch(/\bdeadlineMs:\s*PLAY_DEADLINE_MS\b/);
     },
   );
+
+  // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it.
+  it.each(CALLERS)('%s stops what the DAW was playing for the page before it falls back to the app (stopAndSay)', (file) => {
+    const own = all.find((s) => s.file === file)!.text;
+    const reaches =
+      file === 'components/editing/bar/useScriptPlayback.ts' ? all.find((s) => s.file === 'components/editing/follow/useDawTransportSync.ts')!.text : own;
+    expect(reaches).toMatch(/\bstopAndSay\(/);
+  });
+
+  it("the script's refused play stops the older settled play (useDawTransportSync's refusal path calls stopDaw)", () => {
+    const text = all.find((s) => s.file === 'components/editing/follow/useDawTransportSync.ts')!.text;
+    expect(text).toMatch(/if \(settled\.current && epoch\.current === mineEpoch\) \{[^}]*stopDaw\(\)/);
+  });
 });
