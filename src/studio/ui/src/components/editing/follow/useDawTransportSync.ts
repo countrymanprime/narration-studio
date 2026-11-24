@@ -21,7 +21,7 @@ const UNWATCHED_MS = 10_000;
 const MAX_EXTRAPOLATE_SECONDS = 0.6;
 /** A run of cursor moves in the page is written to the DAW once, this long after the last. */
 const WRITE_DEBOUNCE_MS = 80;
-/** How long after the page stops a play it gave up (answered late) the DAW's "playing" readings are not taken as a play the narrator started in the DAW. */
+/** How long after the page stops a play it gave up (the late answer is stopped) the DAW's "playing" readings are not taken as a play the narrator started in the DAW. */
 const STALE_PLAY_MS = 2000;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
@@ -149,8 +149,6 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       range.current = null;
       epoch.current += 1;
-      // The page's play is over: a later press that is refused must not run a stop for it.
-      dawPlayOwner.release();
       l.onLost(LOST);
     } else if (mine.current != null && l.state.playT === mine.current) {
       mine.current = null;

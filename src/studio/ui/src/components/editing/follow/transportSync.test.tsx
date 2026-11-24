@@ -561,6 +561,43 @@ describe('script-transport-races (#4127)', () => {
     expect(audio.play).toHaveBeenCalled();
     expect(stopsWhenAppPlayed).toBe(1);
   });
+  it('a newer play that neither the DAW nor the app can play stops the DAWs older play', async () => {
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const tree = (clock: WordClock) => (
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} clock={clock} />
+        </EditingPageProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(CLOCK));
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    view.rerender(tree(NO_CLOCK));
+    // A second past the recorded files: no DAW place, no recording.
+    act(() => playback.playFrom(60));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(calls('stop')).toHaveLength(1);
+    expect(state().playing).toBe(false);
+  });
+  it('a play the DAW ended by itself leaves nothing for a later refused play to stop', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:3')));
+    await wait(10);
+    // The DAW stops itself at the end of the stretch.
+    act(() => daw.moveInDaw({ head: at(t0('p-2:3')) + 1 }));
+    await wait(600);
+    expect(state().playing).toBe(false);
+    const stops = calls('stop').length;
+    act(() => daw.refuseNextSync('REAPER would not play it'));
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).toHaveBeenCalled();
+    expect(calls('stop')).toHaveLength(stops);
+  });
   it('a stop reading from the pages own earlier stop does not end a newer play still being asked', async () => {
     await wait(0);
     const bridge = heldBridge();
