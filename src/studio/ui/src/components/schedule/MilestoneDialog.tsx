@@ -7,6 +7,7 @@ import { Field, FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { TextField } from '../primitives/TextField';
 import { blankDraft, draftOf, type DraftBounds, type MilestoneDraft } from './draft';
+import { clamp } from '../../clamp';
 import { chaptersOf, measureOptions, minutesOf } from './measures';
 import type { PlatformCapability } from './profiles';
 
@@ -36,10 +37,8 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
   const options = measureOptions(profileId, existing?.measure, reportedCapabilities);
   /** The N a measure starts at when picked: the default, held to what the book has, so the field shows the number it will save. Typed numbers are never touched. */
   const startingN = (measure: string): Partial<MilestoneDraft> => {
-    if (measure === 'chN' && draft.chapters === String(chaptersOf(undefined)))
-      return { chapters: String(Math.max(1, Math.min(bounds.chapters, chaptersOf(undefined)))) };
-    if (measure === 'minN' && draft.minutes === String(minutesOf(undefined)))
-      return { minutes: String(Math.max(1, Math.min(bounds.minutes, minutesOf(undefined)))) };
+    if (measure === 'chN' && draft.chapters === String(chaptersOf(undefined))) return { chapters: String(clamp(chaptersOf(undefined), 1, bounds.chapters)) };
+    if (measure === 'minN' && draft.minutes === String(minutesOf(undefined))) return { minutes: String(clamp(minutesOf(undefined), 1, bounds.minutes)) };
     return {};
   };
   const save = async () => {
