@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { notAskedSentence } from '../../../studio/dawNames';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import { shownFindingNoteType, type Finding } from '../../../api/contracts/findings';
 import { apiErrorMessage } from '../../../api/errorMessage';
@@ -77,7 +78,7 @@ export function TrimGap({ finding, inert, onTrimmed }: { finding: Finding; inert
         setResult({ message: `${outcomeSentence('gaps', done.value, PARAMS)} Undo it with Edit > Undo in ${dawName}.`, failed: Boolean(done.value.refused) });
         if (done.value.applied.length) onTrimmed();
       } catch (error) {
-        setResult({ message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true });
+        setResult({ message: notAskedSentence('the DAW', error), failed: true });
       }
     });
 

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { capitalised } from '../../../studio/dawNames';
+import { within } from '../../../within';
+import { dawNameOf, PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
@@ -213,7 +216,7 @@ export function useScriptPlayback({
       lastAsk.current = { t, stopsAt, asked, word };
       // A read that failed is asked again, so the DAW plays the next press once it answers.
       if (now === null && dawRead?.failed) void dawRead.retry();
-      const name = now?.daw ?? 'The DAW';
+      const name = dawNameOf(now);
       const providers: PlaybackProvider<number>[] = [];
       if (now !== undefined) {
         providers.push({
@@ -225,7 +228,8 @@ export function useScriptPlayback({
             if (!declared.ready) return declared;
             const remote = remoteRef.current;
             const refusal = remote ? remote.refusal(at) : null;
-            if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
+            if (refusal === 'not_ready')
+              return { ready: false, why: remote?.refusedWith() ?? `${capitalised(name)} has not answered, or has another project open.` };
             if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
           },
@@ -235,7 +239,7 @@ export function useScriptPlayback({
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
             const why = await remoteRef.current?.start(at, stopAt.current ?? undefined);
-            return why === null ? { played: true } : { played: false, why: `${name} could not play it: ${why ?? 'it is not answering.'}` };
+            return why === null ? { played: true } : { played: false, why: `${capitalised(name)} could not play it: ${why ?? 'it is not answering.'}` };
           },
         });
       }
@@ -251,7 +255,10 @@ export function useScriptPlayback({
           return { played: true };
         },
       });
-      const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      // The "is the DAW recording" read is bounded: one that never answers does not hold the app's play back with no sound and no word (the DAW's own play keeps the
+      // script's limits, `UNWATCHED_MS`).
+      const quiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      const keepQuiet = quiet ? async () => (await within(quiet(), PLAY_DEADLINE_MS))?.value ?? null : undefined;
       void playThrough(providers, t, { stillWanted: wanted, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
         if (!wanted()) return;
         // Nothing played and a DAW was asked: the notice says why and offers the play again (no DAW means nothing to ask again).

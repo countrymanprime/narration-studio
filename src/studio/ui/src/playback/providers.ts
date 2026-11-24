@@ -1,4 +1,7 @@
 import type { DawCapabilities } from '../api/contracts/daw';
+import { capitalised, noAnswerSentence } from '../studio/dawNames';
+import { reasonSentence } from '../api/errorMessage';
+import { within } from '../within';
 
 // The playback port (docs/design/editing-daw-transport-sync.md, Who plays): every place that plays audio asks an ordered list of
 // providers, the linked DAW's first and the app's own player last, and `playThrough` takes the first that is ready and plays. A
@@ -11,11 +14,17 @@ export type Readiness = { ready: true } | { ready: false; why: string | null; wa
 /** What one provider's play did. `final`: nothing else may play either (the DAW is recording), and `why` says so. */
 export type PlayAttempt = { played: true } | { played: false; why: string; final?: boolean };
 
+/** Told to a provider's play: `late()` turns true once `playThrough` stopped waiting for it (the deadline passed), so an answer that comes after that
+ * must undo what it started in the DAW instead of playing beside the provider that took its place. */
+export interface PlayContext {
+  late: () => boolean;
+}
+
 export interface PlaybackProvider<R> {
   /** Who plays, as a notice names it: the DAW's name, or `APP`. */
   readonly name: string;
   readiness(request: R): Readiness;
-  play(request: R): PlayAttempt | Promise<PlayAttempt>;
+  play(request: R, context: PlayContext): PlayAttempt | Promise<PlayAttempt>;
 }
 
 export interface PlayRule {
@@ -25,12 +34,17 @@ export interface PlayRule {
   stillWanted?: () => boolean;
   /** Asked before a later provider plays: a sentence keeps the room quiet (the DAW is recording) and nothing plays. */
   keepQuiet?: () => Promise<string | null>;
+  /** How long a provider's play, or `keepQuiet`, may take before it counts as not answered: a click that plays is never silent for long (`PLAY_DEADLINE_MS`). Absent: no limit. */
+  deadlineMs?: number;
 }
 
 /** Who played (null: nothing did), what to tell the narrator, if anything, and the reasons of the providers passed over before it. */
 export type PlayOutcome = { by: string | null; notice: string | null; passed: readonly string[] };
 
 export const APP = 'the app';
+
+/** What a DAW that is recording says in place of a play: the one sentence every page shows for it. */
+export const recordingSentence = (name: string): string => `${capitalised(name)} is recording, so nothing plays. Stop recording first.`;
 
 /** A page's read of the DAW's capabilities: whether the last one failed, and a read again. */
 export interface DawRead {
@@ -41,7 +55,8 @@ export interface DawRead {
 export const CHECKING = 'Checking whether the DAW can play this. Try again in a moment.';
 export const READ_FAILED = 'The app could not ask the DAW what it can do; it is asking again.';
 
-const join = (whys: readonly string[]): string => whys.join(' ');
+/** The reasons as sentences (a capital, a full stop: the shared `reasonSentence`), so "Played in the app instead." does not run into one. */
+const join = (whys: readonly string[]): string => whys.map(reasonSentence).join(' ');
 
 /**
  * The selection rule. Providers are tried in order: one that is not ready is passed over, its reason kept; one that fails is passed
@@ -52,6 +67,15 @@ const join = (whys: readonly string[]): string => whys.join(' ');
 export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], request: R, rule: PlayRule = {}): Promise<PlayOutcome> {
   const tried = rule.dawSpecific ? providers.slice(0, 1) : providers;
   const whys: string[] = [];
+  // With a deadline, the DAW-is-recording read starts with the DAW's play and shares its one budget: a DAW that answers neither hands the note to the
+  // app after 3 s in all, and the read still has the whole 3 s to answer, so a DAW that records is heard.
+  const quietRead =
+    rule.keepQuiet && rule.deadlineMs !== undefined && tried.length > 1
+      ? within(
+          rule.keepQuiet().catch(() => null),
+          rule.deadlineMs,
+        )
+      : undefined;
   for (const [index, provider] of tried.entries()) {
     const ready = provider.readiness(request);
     if (!ready.ready) {
@@ -60,11 +84,17 @@ export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], 
       continue;
     }
     if (index > 0 && rule.keepQuiet) {
-      const quiet = await rule.keepQuiet();
+      // A read of the DAW's state that never answers does not hold the app back (as one that fails does not).
+      const asked = quietRead ? await quietRead : { value: await rule.keepQuiet() };
+      const quiet = asked?.value ?? null;
       if (quiet) return { by: null, notice: quiet, passed: whys };
     }
     if (rule.stillWanted && !rule.stillWanted()) return { by: null, notice: null, passed: whys };
-    const attempt = await provider.play(request);
+    let late = false;
+    const playing = Promise.resolve(provider.play(request, { late: () => late }));
+    const answered = rule.deadlineMs === undefined ? { value: await playing } : await within(playing, rule.deadlineMs);
+    if (!answered) late = true;
+    const attempt: PlayAttempt = answered ? answered.value : { played: false, why: noAnswerSentence(provider.name) };
     if (attempt.played) return { by: provider.name, notice: whys.length ? `${join(whys)} Played in ${provider.name} instead.` : null, passed: whys };
     if (attempt.final) return { by: null, notice: attempt.why, passed: whys };
     whys.push(attempt.why);
@@ -99,7 +129,7 @@ export function playReadiness(caps: DawCapabilities | null, capability: string, 
 export function quietWhileRecording(projectState: () => Promise<{ playState: string }>, name: string): () => Promise<string | null> {
   return async () => {
     try {
-      return (await projectState()).playState === 'recording' ? `${name} is recording, so nothing plays. Stop recording first.` : null;
+      return (await projectState()).playState === 'recording' ? recordingSentence(name) : null;
     } catch {
       return null;
     }

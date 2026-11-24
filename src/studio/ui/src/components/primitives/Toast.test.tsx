@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
@@ -26,6 +27,8 @@ function hoverOn(toast: Element): void {
 }
 afterEach(() => {
   cleanup();
+  // Nodes a test added to the page go here, so one failure cannot leave them to the next test.
+  document.body.replaceChildren();
   vi.useRealTimers();
 });
 
@@ -586,6 +589,222 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
     act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     expect(document.activeElement).toBe(elsewhere);
     elsewhere.remove();
+  });
+});
+
+describe('a press leaves no hand-back behind once its region is gone, and leaves focus that moved (#4103)', () => {
+  const withUndo = (id: number): ToastMessage => ({ ...info(id), action: { label: 'Undo', onAction: vi.fn() } });
+  /** Presses a toast button from the keyboard (`detail` 0) with `origin` the control that had focus before it. */
+  const press = (button: HTMLElement, origin: HTMLElement, held: string | null = null) => {
+    origin.focus();
+    fireEvent.focus(button, { relatedTarget: origin });
+    button.focus();
+    if (held) fireEvent.keyDown(button, { key: held, code: held });
+    fireEvent.click(button, { detail: 0 });
+  };
+
+  it('does not move focus after its region is gone: a press leaves no timer for the next page to meet', () => {
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    fireEvent.click(undo, { detail: 0 });
+    view.unmount();
+    render(<ToastRegion messages={[info(99)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a hand-back already waiting out ACTION_FOCUS_MS is cancelled when the region goes', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Undo' }), origin);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS - 10));
+    view.unmount();
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(document.body);
+    origin.remove();
+  });
+
+  it('a hand-back waiting for a held key is cancelled when the region goes: that key coming up later schedules nothing', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Undo' }), origin, 'Enter');
+    view.unmount();
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+    origin.remove();
+  });
+
+  it('the fallback for a toast removed with focus inside it goes with the region', () => {
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    screen.getByRole('button', { name: 'Undo' }).focus();
+    view.unmount();
+    render(<ToastRegion messages={[info(99)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a toast replaced inside its own region still hands focus on', () => {
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    screen.getByRole('button', { name: 'Undo' }).focus();
+    view.rerender(<ToastRegion messages={[withUndo(2)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Undo' }));
+  });
+
+  it("another region going does not cancel this one's hand-back", () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const other = render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Undo' }), origin);
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    other.unmount();
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+    origin.remove();
+  });
+
+  it('under StrictMode (a development remount) the hand-back still runs', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(
+      <StrictMode>
+        <ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />
+      </StrictMode>,
+    );
+    press(screen.getByRole('button', { name: 'Undo' }), origin);
+    view.rerender(
+      <StrictMode>
+        <ToastRegion messages={[]} dismiss={vi.fn()} />
+      </StrictMode>,
+    );
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+    origin.remove();
+  });
+
+  const pressers: { name: string; messages: () => ToastMessage[]; button: string }[] = [
+    { name: 'Dismiss', messages: () => [info(1)], button: 'Dismiss message' },
+    { name: 'Undo', messages: () => [withUndo(1)], button: 'Undo' },
+  ];
+  for (const presser of pressers) {
+    it(`${presser.name}: focus that went to a field after the press, even if let go again, is theirs: nothing is handed back`, () => {
+      const origin = document.createElement('button');
+      const field = document.createElement('input');
+      document.body.append(origin, field);
+      const view = render(<ToastRegion messages={presser.messages()} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: presser.button }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      field.focus();
+      field.blur();
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+      expect(document.activeElement).toBe(document.body);
+      origin.remove();
+      field.remove();
+    });
+
+    it(`${presser.name}: with nothing else touched, focus is handed back to the origin`, () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={presser.messages()} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: presser.button }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+      expect(document.activeElement).toBe(origin);
+      origin.remove();
+    });
+  }
+
+  it('a held Dismiss: a dialog opened before the key comes up keeps focus', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin, 'Enter');
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    const input = document.createElement('input');
+    dialog.append(input);
+    document.body.append(dialog);
+    input.focus();
+    fireEvent.keyUp(input, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(input);
+    dialog.remove();
+    origin.remove();
+  });
+
+  it('origin gone while a dialog is open: the hand-back stays out of <main> behind the dialog', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    // The control that had focus before the toast is gone (its page changed) while a dialog is open: <main> is behind the dialog.
+    origin.remove();
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a dialog that is closing does not block the hand-back: focus goes to <main>', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('data-ending-style', '');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    origin.remove();
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(main);
+  });
+
+  it('origin disabled: falls back to <main>, not <body>', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    document.body.append(origin, main);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    origin.disabled = true;
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(main);
+  });
+
+  it('the focusin watch is removed once the hand-back has run, and when the region goes first', () => {
+    const added = vi.spyOn(document, 'addEventListener');
+    const removed = vi.spyOn(document, 'removeEventListener');
+    const count = (spy: typeof added) => spy.mock.calls.filter(([type]) => type === 'focusin').length;
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(count(added)).toBeGreaterThan(0);
+    expect(count(removed)).toBe(count(added));
+    view.unmount();
+    const second = render(<ToastRegion messages={[info(2)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    second.unmount();
+    expect(count(removed)).toBe(count(added));
+    added.mockRestore();
+    removed.mockRestore();
+    origin.remove();
   });
 });
 

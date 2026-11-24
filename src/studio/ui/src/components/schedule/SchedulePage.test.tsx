@@ -30,6 +30,8 @@ afterEach(() => {
   cleanup();
   // Layers the overlay singleton still holds belong to the test that opened them.
   act(() => overlay.getSnapshot().dialogs.forEach((entry) => ('close' in entry ? entry.close() : entry.answer(false))));
+  // So do the toasts: one left up would be on screen, with its Undo, in the next test (#4103).
+  act(() => overlay.getSnapshot().toasts.forEach((message) => overlay.dismissToast(message.id)));
 });
 
 type Setup = { seed?: ProductionSeed; statuses?: ChapterStatus[]; profile?: string; credits?: boolean };

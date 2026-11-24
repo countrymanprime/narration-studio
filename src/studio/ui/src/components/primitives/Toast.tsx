@@ -1,4 +1,5 @@
 import { TOAST_ROOM_EVENT } from '../../hooks/useToastClearance';
+import { openModalLayer } from '../../input/targets';
 import { HIT_AREA } from './hitArea';
 import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
@@ -65,12 +66,57 @@ const TEXT_SCROLL_CUE =
   '[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
 /**
- * Where focus goes when a toast hands it on: the control that had it before the toast took it, else the Dismiss of the toast now in the slot, else the page's <main> (the app's `#main-content`, the project picker's
- * too). Never <body>.
+ * What a press or a focused toast leaves waiting (a hand-back's timer and its wait for a key, the fallback for a toast removed with focus inside it) belongs to the region, not the module: it goes with the region (#4103).
+ * A test's `cleanup()` unmounts the region but not a timer, and a timer left over moved focus in whatever ran next. A closed owner cancels what it is handed at once; React's development remount closes and reopens it
+ * before anything is held.
  */
-function focusTarget(origin: HTMLElement | null): HTMLElement | null {
-  if (origin?.isConnected) return origin;
-  return document.querySelector<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]') ?? document.getElementById('main-content');
+class HandBacks {
+  private cancels = new Set<() => void>();
+  private open = true;
+  hold(cancel: () => void): void {
+    if (this.open) this.cancels.add(cancel);
+    else cancel();
+  }
+  release(cancel: () => void): void {
+    this.cancels.delete(cancel);
+  }
+  close(): void {
+    this.open = false;
+    const all = [...this.cancels];
+    this.cancels.clear();
+    for (const cancel of all) cancel();
+  }
+  reopen(): void {
+    this.open = true;
+  }
+}
+
+/** Whether focus has moved since now, to anywhere (a dialog or menu that opened, a field): then it is theirs, and a hand-back leaves it. */
+function watchFocusTaken(): { taken: () => boolean; stop: () => void } {
+  let taken = false;
+  const watch = () => {
+    taken = true;
+  };
+  document.addEventListener('focusin', watch, true);
+  return { taken: () => taken, stop: () => document.removeEventListener('focusin', watch, true) };
+}
+
+/**
+ * Where focus goes when a toast hands it on: the control that had it before the toast took it, else the Dismiss of the toast now in the slot, else the page's <main> (the app's `#main-content`, the project picker's
+ * too), the first of them that takes focus. When none does, or a dialog is open that they all lie behind, nothing is handed on and focus stays where it is, possibly <body> (see `settle`).
+ */
+function focusCandidates(origin: HTMLElement | null): HTMLElement[] {
+  const found = [origin, document.querySelector<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]'), document.getElementById('main-content')];
+  return found.filter((el): el is HTMLElement => el !== null && el.isConnected);
+}
+
+/** Focuses the first candidate that takes it (a disabled or hidden one does not); false when none did. */
+function focusFirst(candidates: HTMLElement[]): boolean {
+  for (const candidate of candidates) {
+    candidate.focus();
+    if (document.activeElement === candidate) return true;
+  }
+  return false;
 }
 
 /**
@@ -91,7 +137,7 @@ function swallowRepeatsUntilKeyUp(): void {
   document.addEventListener('keyup', stop, true);
 }
 
-function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dismiss: (id: number) => void; more?: number }) {
+function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessage; dismiss: (id: number) => void; owner: HandBacks; more?: number }) {
   // A message of more than two lines is read by scrolling its text, which then needs the keyboard too: the text takes focus only while it overflows (#2793).
   const text = useRef<HTMLSpanElement>(null);
   const [scrolls, setScrolls] = useState(false);
@@ -179,7 +225,8 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
     () => () => {
       if (pressed.current || !focused.current) return;
       const name = focusedButton.current;
-      window.setTimeout(() => {
+      const timer = window.setTimeout(() => {
+        owner.release(cancel);
         const active = document.activeElement;
         if (active && active !== document.body) return;
         const same =
@@ -188,27 +235,48 @@ function ToastItem({ message, dismiss, more = 0 }: { message: ToastMessage; dism
             : [...document.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')].find(
                 (b) => (b.getAttribute('aria-label') ?? b.textContent) === name,
               );
-        (same ?? focusTarget(origin.current))?.focus();
+        if (same) same.focus();
+        else focusFirst(focusCandidates(origin.current));
       }, 0);
+      const cancel = () => window.clearTimeout(timer);
+      owner.hold(cancel);
     },
-    [],
+    [owner],
   );
   const settle = (always: boolean) => {
     // Where focus goes, looked up when it is handed over: where it was before the toast took it, else the Dismiss of the toast that has taken the slot by then, else <main>
-    // (an origin that is gone, a dialog that closed). Never <body>.
-    const resolve = () => focusTarget(origin.current);
+    // (an origin that is gone, a dialog that closed). Not into the page behind an open dialog: <main> there is left alone.
+    const resolve = () => focusCandidates(origin.current);
     pressed.current = true;
     dismiss(id);
+    // Focus that something took since the press (a dialog or menu opened, a field was reached, even if it has closed since) is theirs: nothing is handed back (#4103).
+    const focus = watchFocusTaken();
+    let timer: number | undefined;
+    const cancel = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('keyup', start, true);
+      focus.stop();
+      owner.release(cancel);
+    };
     // Only focus that is on nothing is handed back: an action that opened a dialog or moved focus keeps what it did.
     const hand = () => {
-      const target = resolve();
       const active = document.activeElement;
-      if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
+      const taken = focus.taken();
+      cancel();
+      if (taken) return;
+      // A dialog is open: a target outside it (the page's <main>, once the origin is gone) lies behind it. Only something inside the dialog or among the toasts takes focus.
+      const layer = openModalLayer();
+      const candidates = resolve().filter((target) => !layer || layer.contains(target) || target.closest('[data-toast-region]'));
+      if (always || !active || active === document.body || !active.isConnected) focusFirst(candidates);
     };
-    const later = () => window.setTimeout(hand, always ? 0 : ACTION_FOCUS_MS);
-    // A key still held down would repeat on whatever gets focus: wait for it to come up.
-    if (keyHeld.current) window.addEventListener('keyup', later, { once: true, capture: true });
-    else later();
+    function start() {
+      window.removeEventListener('keyup', start, true);
+      timer = window.setTimeout(hand, always ? 0 : ACTION_FOCUS_MS);
+    }
+    // A key still held down would repeat on whatever gets focus: wait for it to come up (main's behaviour, unchanged: a keyup that never comes is #4125).
+    if (keyHeld.current) window.addEventListener('keyup', start, true);
+    else start();
+    owner.hold(cancel);
   };
   useEffect(() => {
     // A hold that starts in the fade brings the toast back: it was not taken away, and it gets its full time again on release.
@@ -485,6 +553,11 @@ const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLEle
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
 export function ToastRegion({ messages: queued, dismiss }: { messages: readonly ToastMessage[]; dismiss: (id: number) => void }) {
   const region = useRef<HTMLDivElement>(null);
+  const [owner] = useState(() => new HandBacks());
+  useEffect(() => {
+    owner.reopen();
+    return () => owner.close();
+  }, [owner]);
   // One toast shows, in a slot that never changes size (#4063), and nothing is drawn over a button. They show in the order they were raised, one after another: the first in the queue shows and the rest wait
   // behind it, counted in the toast (`+N`). A waiting toast is not mounted, so its time starts when it shows and every toast is on screen for its whole time; a waiting message is read out at once
   // (`data-toast-announce`). Over a dialog the same one toast shows, a box that fits the 4.75rem every dialog leaves under it (#3605).
@@ -521,7 +594,7 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
         {messages
           .filter((message) => message.tone === 'error')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} more={queued.length - 1} />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} owner={owner} more={queued.length - 1} />
           ))}
       </div>
       <div role="status" aria-live="polite" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">
@@ -532,7 +605,7 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
         {messages
           .filter((message) => message.tone === 'info')
           .map((message) => (
-            <ToastItem key={message.id} message={message} dismiss={dismiss} more={queued.length - 1} />
+            <ToastItem key={message.id} message={message} dismiss={dismiss} owner={owner} more={queued.length - 1} />
           ))}
       </div>
     </div>,
