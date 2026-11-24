@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
 import {
   ACTION_FOCUS_MS,
+  retryAction,
   TOAST_ACTION_MS,
   TOAST_HEIGHT_PROPERTY,
   useToastsClearOfModal,
@@ -19,47 +21,19 @@ import {
 } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
+/** The pointer moves over a toast: a move on it, which is what holds it (the browser's enter, sent when a toast appears under a resting pointer, does not). */
+function hoverOn(toast: Element): void {
+  fireEvent.pointerMove(toast, { clientX: 5, clientY: 5 });
+}
 afterEach(() => {
   cleanup();
+  // Nodes a test added to the page go here, so one failure cannot leave them to the next test.
+  document.body.replaceChildren();
   vi.useRealTimers();
 });
 
 const info = (id: number, text = `Message ${id}`): ToastMessage => ({ id, text, tone: 'info' });
 const failure = (id: number, text = `Failure ${id}`): ToastMessage => ({ id, text, tone: 'error' });
-
-describe('a toast with an action in a window of 24 rem or less (#3322)', () => {
-  it('puts the action row under the text, and takes that row from the text cap so the toast stays inside a short window', () => {
-    const action = { label: 'Check again', onAction: vi.fn() };
-    render(<ToastRegion messages={[{ ...failure(1, 'Long refusal'), action }]} dismiss={vi.fn()} />);
-    const withAction = screen.getByText('Long refusal').closest('[data-tone]') as HTMLElement;
-    expect(withAction.className).toContain('max-[24rem]:flex-wrap');
-    expect(withAction.className).toContain('max-[24rem]:[--toast-action-row:2.75rem]');
-    // The cap subtracts the row (zero where the action sits beside the text).
-    expect(screen.getByText('Long refusal').className).toContain('var(--toast-action-row,0rem)');
-    // The text is capped at what the glyph leaves of the row, not forced to it: a short text stays beside the buttons, a long one fills the row and sends them under it.
-    expect(screen.getByText('Long refusal').className).toContain('max-[24rem]:max-w-[calc(100%-1.75rem)]');
-    expect(screen.getByText('Long refusal').className).not.toContain('basis');
-  });
-});
-
-describe('a stack of toasts keeps every action beside its text (#3322)', () => {
-  it('only a toast that is alone puts its action row under the text: rows under each of several would not fit a short window', () => {
-    const action = { label: 'Retry', onAction: vi.fn() };
-    render(
-      <ToastRegion
-        messages={[
-          { ...failure(1, 'First'), action },
-          { ...failure(2, 'Second'), action },
-        ]}
-        dismiss={vi.fn()}
-      />,
-    );
-    for (const word of ['First', 'Second']) {
-      expect(screen.getByText(word).closest('[data-tone]')!.className).not.toContain('flex-wrap');
-      expect(screen.getByText(word).className).not.toContain('max-[24rem]:max-w');
-    }
-  });
-});
 
 describe('ToastRegion', () => {
   it('is drawn in <body>, outside the isolated #root, so it stacks above a dialog or slide-over raised from the page', () => {
@@ -107,10 +81,12 @@ describe('ToastRegion', () => {
   });
 
   it('puts an error in the alert region and everything else in the status region', () => {
-    render(<ToastRegion messages={[info(1, 'Saved.'), failure(2, 'Could not save.')]} dismiss={vi.fn()} />);
+    const { rerender } = render(<ToastRegion messages={[failure(2, 'Could not save.')]} dismiss={vi.fn()} />);
     expect(within(screen.getByRole('alert')).getByText('Could not save.')).toBeTruthy();
-    expect(within(screen.getByRole('status')).getByText('Saved.')).toBeTruthy();
     expect(within(screen.getByRole('status')).queryByText('Could not save.')).toBeNull();
+    rerender(<ToastRegion messages={[info(1, 'Saved.')]} dismiss={vi.fn()} />);
+    expect(within(screen.getByRole('status')).getByText('Saved.')).toBeTruthy();
+    expect(within(screen.getByRole('alert')).queryByText('Saved.')).toBeNull();
   });
 
   it('dismisses an information message by itself after its time, and fades it first', () => {
@@ -159,7 +135,7 @@ describe('ToastRegion', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(4)]} dismiss={dismiss} />);
     const toast = screen.getByText('Failure 4').closest('[data-tone]') as HTMLElement;
-    fireEvent.pointerEnter(toast);
+    hoverOn(toast);
     act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 3));
     expect(dismiss).not.toHaveBeenCalled();
     fireEvent.pointerLeave(toast);
@@ -169,11 +145,55 @@ describe('ToastRegion', () => {
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(4);
   });
 
+  // A toast under a pointer that rests on the control that raised it, or that shifts under it in a stack, is not held: the browser says the pointer entered, the narrator did not reach for it (#4063).
+  it('does not hold an error the browser says the pointer entered, and holds it once the pointer moves on it', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[failure(7)]} dismiss={dismiss} />);
+    const toast = screen.getByText('Failure 7').closest('[data-tone]') as HTMLElement;
+    fireEvent.pointerEnter(toast, { clientX: 40, clientY: 50 });
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(7);
+    dismiss.mockClear();
+    render(<ToastRegion messages={[failure(8)]} dismiss={dismiss} />);
+    const second = screen.getByText('Failure 8').closest('[data-tone]') as HTMLElement;
+    fireEvent.pointerEnter(second, { clientX: 44, clientY: 50 });
+    hoverOn(second);
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS * 2));
+    expect(dismiss).not.toHaveBeenCalled();
+  });
+
+  it('draws Retry at least 24 px each way (target size)', () => {
+    render(<ToastRegion messages={[{ ...failure(9), action: retryAction(vi.fn()) }]} dismiss={vi.fn()} />);
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    expect(retry.className).toContain('min-h-6');
+    expect(retry.className).toContain('min-w-6');
+  });
+
+  // A press of the mouse on a stack's Dismiss or Retry must not put focus on the next toast: focus there holds it (the timer waits on focus) with no ring, and it never expires (#4063, qa-breaker B1).
+  it.each(['Dismiss message', 'Retry'])("a mouse press on %s with another toast waiting leaves the next toast's timer running", (name) => {
+    const dismiss = vi.fn();
+    const action = { label: 'Retry', onAction: vi.fn() };
+    const older = { ...failure(1, 'Older'), action };
+    const newer = { ...failure(2, 'Newer'), action };
+    const { rerender } = render(<ToastRegion messages={[older, newer]} dismiss={dismiss} />);
+    const button = within(screen.getByText('Older').closest('[data-tone]') as HTMLElement).getByRole('button', { name });
+    button.focus();
+    fireEvent.click(button, { detail: 1 });
+    act(() => void vi.advanceTimersByTime(500));
+    expect(dismiss).toHaveBeenCalledWith(1);
+    // The next toast takes the slot with no focus on it, so nothing holds its clock.
+    rerender(<ToastRegion messages={[newer]} dismiss={dismiss} />);
+    expect(screen.getByText('Newer').closest('[data-tone]')!.contains(document.activeElement)).toBe(false);
+    dismiss.mockClear();
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS));
+    expect(dismiss).toHaveBeenCalledWith(2);
+  });
+
   it('dismisses the message whose button was pressed', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[failure(1), failure(2)]} dismiss={dismiss} />);
-    fireEvent.click(within(screen.getByText('Failure 2').closest('[data-tone]') as HTMLElement).getByRole('button', { name: 'Dismiss message' }));
-    expect(dismiss).toHaveBeenCalledExactlyOnceWith(2);
+    fireEvent.click(within(screen.getByText('Failure 1').closest('[data-tone]') as HTMLElement).getByRole('button', { name: 'Dismiss message' }));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(1);
   });
 
   it('shows an action button before the dismiss button, and pressing it runs the action and dismisses the toast', () => {
@@ -190,27 +210,23 @@ describe('ToastRegion', () => {
     expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
   });
 
-  it('starts a message over when it is replaced by one with a new id, and shows the whole queue at once', () => {
+  it('starts a message over when it is replaced by one with a new id, and shows one at a time with a count of the rest', () => {
     const dismiss = vi.fn();
     const { rerender } = render(<ToastRegion messages={[info(1, 'Same'), info(2, 'Other')]} dismiss={dismiss} />);
+    expect(screen.getAllByRole('button', { name: 'Dismiss message' })).toHaveLength(1);
+    expect(screen.getByText('+1')).toBeTruthy();
     act(() => void vi.advanceTimersByTime(TOAST_INFO_MS - 500));
     rerender(<ToastRegion messages={[info(2, 'Other'), info(3, 'Same')]} dismiss={dismiss} />);
     act(() => void vi.advanceTimersByTime(600));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS));
     expect(dismiss).toHaveBeenCalledExactlyOnceWith(2);
-    expect(screen.getAllByRole('button', { name: 'Dismiss message' })).toHaveLength(2);
   });
 
   it('leads an information message with its icon, and an error with its warning glyph only', () => {
-    render(
-      <ToastRegion
-        messages={[
-          { ...info(1, 'Linked.'), icon: faLayerGroup },
-          { ...failure(2), icon: faLayerGroup },
-        ]}
-        dismiss={vi.fn()}
-      />,
-    );
+    const { rerender } = render(<ToastRegion messages={[{ ...info(1, 'Linked.'), icon: faLayerGroup }]} dismiss={vi.fn()} />);
     expect(within(screen.getByRole('status')).getByText('Linked.').parentElement!.querySelector('svg[data-icon="layer-group"]')).not.toBeNull();
+    rerender(<ToastRegion messages={[{ ...failure(2), icon: faLayerGroup }]} dismiss={vi.fn()} />);
     const error = within(screen.getByRole('alert')).getByText('Failure 2').parentElement!;
     expect(error.querySelector('svg[data-icon="circle-exclamation"]')).not.toBeNull();
     expect(error.querySelector('svg[data-icon="layer-group"]')).toBeNull();
@@ -219,15 +235,17 @@ describe('ToastRegion', () => {
   // Alignment audit cause P: a toast at the bottom right covered an open dialog's Cancel and Download buttons. The behaviour changed: it moved to the
   // top of the window, where it covered the top bar's buttons (R4BO2-4); now the dialog hangs from the top and stops 4.75rem short of the bottom, and
   // the toast keeps to the bottom-right corner at the gutter, ignoring the bottom bars behind the scrim.
-  it('keeps to the bottom-right corner at the gutter while a dialog is open, and follows the bars again when the last one closes', () => {
+  it('keeps to the bottom-right corner at the gutter while a dialog is open', () => {
     render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
     const region = screen.getByText('Message 1').closest('[data-toast-region]') as HTMLElement;
-    expect(region.className).toContain('[:root[data-modal-open]_&]:bottom-[var(--page-gutter)]');
     expect(region.className).toContain('[:root[data-modal-open]_&]:right-[var(--page-gutter)]');
     expect(region.className).not.toContain('top-4');
-    // The bottom offset follows the bars through `--toast-reserve`, which is `--toast-clear` capped so the toasts keep 8rem of the window (#2899).
-    expect(region.className).toContain('bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))]');
-    expect(region.style.getPropertyValue('--toast-reserve')).toContain('var(--toast-clear, 0px)');
+    // The region always stands at the gutter: the shell ends the page above it (`--toast-h`), so it rises over no bar and is raised by none (#4063).
+    expect(region.className).toContain('bottom-[var(--toast-bottom,var(--page-gutter))]');
+    // In a window 520 px tall or shorter there is no slot: the toasts rise above the bars (`--toast-clear`) (#3322), and over a dialog keep to the gutter.
+    expect(region.className).toContain('[@media(max-height:520px)]:bottom-[calc(var(--page-gutter)+min(var(--toast-clear,0px)');
+    expect(region.className).toContain('[:root[data-modal-open]_&]:bottom-[var(--page-gutter)]');
+    expect(region.className).not.toContain('--toast-reserve');
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
     const first = render(
       <Dialog dismissOnOutsidePress={false} title="Download model" actions={null}>
@@ -255,44 +273,26 @@ describe('ToastRegion', () => {
     expect(toast.className).toContain('overflow-hidden');
     expect(toast.querySelector('[data-toast-edge]')!.className).toContain('bg-[var(--danger)]');
   });
-
-  it('lets a long unbroken message wrap inside the toast and keeps the toast within the window (#2793)', () => {
-    render(<ToastRegion messages={[info(1, `C:\\${'LongFolder\\'.repeat(40)}`)]} dismiss={vi.fn()} />);
-    const text = screen.getByText(/^C:/);
-    expect(text.className).toContain('[overflow-wrap:anywhere]');
-    expect(text.closest('[data-tone]')?.className).toContain('max-w-full');
-  });
 });
 
-describe('ToastRegion sharing a small window between toasts (issue 2899)', () => {
-  it.each([1, 2, 5])('tells its CSS how many toasts share the window: %i', (n) => {
-    render(<ToastRegion messages={Array.from({ length: n }, (_, i) => failure(i + 1))} dismiss={vi.fn()} />);
-    expect((document.querySelector('[data-toast-region]') as HTMLElement).style.getPropertyValue('--toast-n')).toBe(String(n));
-  });
-  it('counts one toast when there are none, so the cap never divides by zero', () => {
-    render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
-    expect((document.querySelector('[data-toast-region]') as HTMLElement).style.getPropertyValue('--toast-n')).toBe('1');
-  });
-});
-
-describe('ToastRegion with a message far taller than the window (issue 2899)', () => {
+describe('a toast is two lines at most (#4063, #2793)', () => {
   const HUGE = 'x'.repeat(10_000);
   const textOf = (id: string) => screen.getByText(id, { exact: false }).closest('[data-toast-text]') as HTMLElement;
 
   it.each([
     ['one 10,000-letter word', HUGE],
     ['emoji and right-to-left text', 'שלום \u{1F3A4} '.repeat(2_000)],
-  ])('wraps %s anywhere and caps the text to the window, scrolling inside the toast', (_name, text) => {
+  ])('wraps %s anywhere inside a toast of a fixed height, and leaves the buttons their room', (_name, text) => {
     render(<ToastRegion messages={[{ ...failure(1, text), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
     const el = document.querySelector('[data-toast-text]') as HTMLElement;
     expect(el.className).toContain('[overflow-wrap:anywhere]');
-    expect(el.className).toContain('overflow-y-auto');
-    expect(el.className).toContain('--toast-n');
-    expect(el.className).toContain('max-h-[max(1.5rem,calc(');
+    expect(el.className).toContain('max-h-[2.5em]');
+    expect(el.textContent).toBe(text);
+    expect(el.closest('[data-tone]')!.className).toContain('h-[3.5rem]');
     // The action and Dismiss are siblings of the scrolling text, so they never scroll away with it.
+    expect(el.contains(screen.getByRole('button', { name: 'Retry' }))).toBe(false);
     expect(within(el.parentElement!).getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(within(el.parentElement!).getByRole('button', { name: 'Dismiss message' })).toBeTruthy();
-    expect(el.contains(screen.getByRole('button', { name: 'Retry' }))).toBe(false);
   });
 
   it('puts the text in the tab order only while it overflows, so a short message adds no Tab stop', () => {
@@ -312,9 +312,15 @@ describe('ToastRegion with a message far taller than the window (issue 2899)', (
     const clientHeight = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => sizes.clientHeight);
     render(<ToastRegion messages={[info(1, HUGE)]} dismiss={vi.fn()} />);
     expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
+    // Plain text, not a scroller (a scroller is a tab stop in Chromium even when it overflows by a sub-pixel), but it keeps the keys that scroll it either way.
+    expect(textOf('xxxx').className).toContain('overflow-hidden');
+    expect(textOf('xxxx').className).not.toContain('overflow-y-auto');
     sizes.scrollHeight = 500;
     act(() => observers.forEach((cb) => cb()));
     expect(textOf('xxxx').getAttribute('tabindex')).toBe('0');
+    // While it scrolls it keeps the keys that scroll it: a page shortcut (Space starts a recording in the Booth) never fires from it (src/input/targets.ts).
+    expect(textOf('xxxx').hasAttribute('data-owns-keys')).toBe(true);
+    expect(textOf('xxxx').className).toContain('overflow-y-auto');
     scrollHeight.mockRestore();
     clientHeight.mockRestore();
     vi.unstubAllGlobals();
@@ -326,8 +332,28 @@ describe('ToastRegion with a message far taller than the window (issue 2899)', (
   });
 });
 
+describe('the slot the shell keeps for one toast (#4063)', () => {
+  const slot = () => document.documentElement.style.getPropertyValue('--toast-slot');
+  afterEach(() => cleanup());
+
+  it('is set while the region is mounted, even with no toast, in px, and goes with the region', () => {
+    const { unmount } = render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    expect(slot()).toMatch(/^\d+px$/);
+    expect(document.documentElement.style.getPropertyValue('--toast-bottom')).toMatch(/^\d+px$/);
+    unmount();
+    expect(slot()).toBe('');
+  });
+
+  it('is one toast high plus the gap under it and the air above it, so showing one toast moves nothing', () => {
+    render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    const bottom = Number.parseFloat(document.documentElement.style.getPropertyValue('--toast-bottom'));
+    // 56 px of toast (two lines) and 8 px of air at a 16 px root font: 16 + 56 + 8 = 80 px.
+    expect(Number.parseFloat(slot())).toBe(Math.ceil(bottom + 56 + 8));
+  });
+});
+
 describe('ToastRegion, action labels and focus (issue 2899)', () => {
-  it('caps a long action label at a share of the toast and wraps it, so Dismiss and the message keep their room', () => {
+  it('cuts a long action label to one line at a share of the toast, so Dismiss and the message keep their room', () => {
     render(
       <ToastRegion
         messages={[{ ...failure(1, 'Failed'), action: { label: `Retry ${'the whole export again '.repeat(10)}`, onAction: vi.fn() } }]}
@@ -335,32 +361,33 @@ describe('ToastRegion, action labels and focus (issue 2899)', () => {
       />,
     );
     const action = screen.getByRole('button', { name: /^Retry the whole/ });
-    // Natural width for a short label (flex-none: it never shrinks to a sliver and wraps letter by letter), a cap at 40% of the toast for a long one, which then wraps.
     expect(action.className).toContain('max-w-[40%]');
     expect(action.className).toContain('flex-none');
-    expect(action.className).toContain('[overflow-wrap:anywhere]');
-    // Never more than three lines, whatever the label: the whole label is the button's title.
-    expect(action.className).toContain('line-clamp-3');
+    expect(action.className).toContain('truncate');
+    // The whole label is the button's title.
     expect(action.getAttribute('title')).toMatch(/^Retry the whole export again/);
     expect(screen.getByRole('button', { name: 'Dismiss message' }).className).toContain('flex-none');
   });
 
-  it('moves focus to the next toast’s Dismiss when the focused one is dismissed, else the one before, and leaves it alone when a pointer dismissed a toast that had no focus', () => {
+  it('hands focus back to where it was when the focused toast is dismissed with the keyboard, and leaves it alone when a pointer dismissed a toast that had no focus', () => {
     const dismiss = vi.fn();
-    render(<ToastRegion messages={[failure(1), failure(2), failure(3)]} dismiss={dismiss} />);
-    const buttons = screen.getAllByRole('button', { name: 'Dismiss message' });
-    buttons[1]!.focus();
-    fireEvent.click(buttons[1]!);
+    render(
+      <>
+        <button>Origin</button>
+        <ToastRegion messages={[failure(1)]} dismiss={dismiss} />
+      </>,
+    );
+    const origin = screen.getByRole('button', { name: 'Origin' });
+    const dismissButton = screen.getByRole('button', { name: 'Dismiss message' });
+    origin.focus();
+    act(() => dismissButton.focus());
+    fireEvent.click(dismissButton);
     act(() => void vi.advanceTimersByTime(1));
-    expect(dismiss).toHaveBeenLastCalledWith(2);
-    expect(document.activeElement).toBe(buttons[2]);
-    buttons[2]!.focus();
-    fireEvent.click(buttons[2]!);
-    act(() => void vi.advanceTimersByTime(1));
-    expect(document.activeElement).toBe(buttons[1]);
+    expect(dismiss).toHaveBeenLastCalledWith(1);
+    expect(document.activeElement).toBe(origin);
     // A click that did not have focus moves nothing.
     (document.activeElement as HTMLElement).blur();
-    fireEvent.click(buttons[0]!);
+    fireEvent.click(dismissButton);
     act(() => void vi.advanceTimersByTime(1));
     expect(document.activeElement).toBe(document.body);
   });
@@ -371,7 +398,7 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
     const dismiss = vi.fn();
     render(<ToastRegion messages={[info(1)]} dismiss={dismiss} />);
     const toast = screen.getByText('Message 1').closest('[data-tone]')!;
-    fireEvent.pointerEnter(toast);
+    hoverOn(toast);
     act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 3));
     expect(dismiss).not.toHaveBeenCalled();
     fireEvent.pointerLeave(toast);
@@ -426,28 +453,235 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
   });
 });
 
+describe('a press leaves no hand-back behind once its region is gone, and leaves focus that moved (#4103)', () => {
+  const withUndo = (id: number): ToastMessage => ({ ...info(id), action: { label: 'Undo', onAction: vi.fn() } });
+  /** Presses a toast button from the keyboard (`detail` 0) with `origin` the control that had focus before it. */
+  const press = (button: HTMLElement, origin: HTMLElement, held: string | null = null) => {
+    origin.focus();
+    fireEvent.focus(button, { relatedTarget: origin });
+    button.focus();
+    if (held) fireEvent.keyDown(button, { key: held, code: held });
+    fireEvent.click(button, { detail: 0 });
+  };
+
+  it('does not move focus after its region is gone: a press leaves no timer for the next page to meet', () => {
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    fireEvent.click(undo, { detail: 0 });
+    view.unmount();
+    render(<ToastRegion messages={[info(99)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a hand-back already waiting out ACTION_FOCUS_MS is cancelled when the region goes', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Undo' }), origin);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS - 10));
+    view.unmount();
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(document.body);
+    origin.remove();
+  });
+
+  it('a hand-back waiting for a held key is cancelled when the region goes: that key coming up later schedules nothing', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Undo' }), origin, 'Enter');
+    view.unmount();
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+    origin.remove();
+  });
+
+  it('the fallback for a toast removed with focus inside it goes with the region', () => {
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    screen.getByRole('button', { name: 'Undo' }).focus();
+    view.unmount();
+    render(<ToastRegion messages={[info(99)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a toast replaced inside its own region still hands focus on', () => {
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    screen.getByRole('button', { name: 'Undo' }).focus();
+    view.rerender(<ToastRegion messages={[withUndo(2)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Undo' }));
+  });
+
+  it("another region going does not cancel this one's hand-back", () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const other = render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Undo' }), origin);
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    other.unmount();
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+    origin.remove();
+  });
+
+  it('under StrictMode (a development remount) the hand-back still runs', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(
+      <StrictMode>
+        <ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />
+      </StrictMode>,
+    );
+    press(screen.getByRole('button', { name: 'Undo' }), origin);
+    view.rerender(
+      <StrictMode>
+        <ToastRegion messages={[]} dismiss={vi.fn()} />
+      </StrictMode>,
+    );
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+    origin.remove();
+  });
+
+  const pressers: { name: string; messages: () => ToastMessage[]; button: string }[] = [
+    { name: 'Dismiss', messages: () => [info(1)], button: 'Dismiss message' },
+    { name: 'Undo', messages: () => [withUndo(1)], button: 'Undo' },
+  ];
+  for (const presser of pressers) {
+    it(`${presser.name}: focus that went to a field after the press, even if let go again, is theirs: nothing is handed back`, () => {
+      const origin = document.createElement('button');
+      const field = document.createElement('input');
+      document.body.append(origin, field);
+      const view = render(<ToastRegion messages={presser.messages()} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: presser.button }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      field.focus();
+      field.blur();
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+      expect(document.activeElement).toBe(document.body);
+      origin.remove();
+      field.remove();
+    });
+
+    it(`${presser.name}: with nothing else touched, focus is handed back to the origin`, () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={presser.messages()} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: presser.button }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+      expect(document.activeElement).toBe(origin);
+      origin.remove();
+    });
+  }
+
+  it('a held Dismiss: a dialog opened before the key comes up keeps focus', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin, 'Enter');
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    const input = document.createElement('input');
+    dialog.append(input);
+    document.body.append(dialog);
+    input.focus();
+    fireEvent.keyUp(input, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(input);
+    dialog.remove();
+    origin.remove();
+  });
+
+  it('origin gone while a dialog is open: the hand-back stays out of <main> behind the dialog', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    // The control that had focus before the toast is gone (its page changed) while a dialog is open: <main> is behind the dialog.
+    origin.remove();
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a dialog that is closing does not block the hand-back: focus goes to <main>', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('data-ending-style', '');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    origin.remove();
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(main);
+  });
+
+  it('origin disabled: falls back to <main>, not <body>', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    document.body.append(origin, main);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    origin.disabled = true;
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(main);
+  });
+
+  it('the focusin watch is removed once the hand-back has run, and when the region goes first', () => {
+    const added = vi.spyOn(document, 'addEventListener');
+    const removed = vi.spyOn(document, 'removeEventListener');
+    const count = (spy: typeof added) => spy.mock.calls.filter(([type]) => type === 'focusin').length;
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(count(added)).toBeGreaterThan(0);
+    expect(count(removed)).toBe(count(added));
+    view.unmount();
+    const second = render(<ToastRegion messages={[info(2)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    second.unmount();
+    expect(count(removed)).toBe(count(added));
+    added.mockRestore();
+    removed.mockRestore();
+    origin.remove();
+  });
+});
+
 describe('ToastRegion time left (#3667)', () => {
   const bar = (text: string) => screen.getByText(text).closest('[data-tone]')!.querySelector<HTMLElement>('[data-toast-countdown]')!;
   const runs = (el: HTMLElement) => el.className.includes('motion-ok:animate-[toast-countdown_linear_forwards]');
 
   it("draws a bar that lasts as long as the toast does: its tone's time, an action's, and its own durationMs", () => {
-    render(
-      <ToastRegion
-        messages={[
-          info(1),
-          failure(2),
-          { ...info(3), action: { label: 'Show them', onAction: vi.fn() }, durationMs: TOAST_ACTION_MS },
-          { ...info(4), durationMs: 10_000 },
-        ]}
-        dismiss={vi.fn()}
-      />,
-    );
-    for (const [text, ms] of [
-      ['Message 1', TOAST_INFO_MS],
-      ['Failure 2', TOAST_ERROR_MS],
-      ['Message 3', TOAST_ACTION_MS],
-      ['Message 4', 10_000],
+    const { rerender } = render(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    for (const [message, text, ms] of [
+      [info(1), 'Message 1', TOAST_INFO_MS],
+      [failure(2), 'Failure 2', TOAST_ERROR_MS],
+      [{ ...info(3), action: { label: 'Show them', onAction: vi.fn() }, durationMs: TOAST_ACTION_MS }, 'Message 3', TOAST_ACTION_MS],
+      [{ ...info(4), durationMs: 10_000 }, 'Message 4', 10_000],
     ] as const) {
+      rerender(<ToastRegion messages={[message]} dismiss={vi.fn()} />);
       expect(bar(text).style.animationDuration, text).toBe(`${ms}ms`);
       expect(runs(bar(text)), text).toBe(true);
     }
@@ -466,7 +700,7 @@ describe('ToastRegion time left (#3667)', () => {
     render(<ToastRegion messages={[{ ...info(1), action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
     const toast = screen.getByText('Message 1').closest('[data-tone]')!;
     expect(runs(bar('Message 1'))).toBe(true);
-    fireEvent.pointerEnter(toast);
+    hoverOn(toast);
     expect(runs(bar('Message 1'))).toBe(false);
     expect(bar('Message 1').style.animationDuration).toBe('');
     fireEvent.pointerLeave(toast);
@@ -492,7 +726,7 @@ describe('ToastRegion time left (#3667)', () => {
     });
 
     it("steps once a second over the toast's own time, with no animation, and is empty when the toast goes", () => {
-      render(<ToastRegion messages={[info(1), failure(2)]} dismiss={vi.fn()} />);
+      const { rerender } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
       expect(scale(stepped('Message 1'))).toBe(1);
       act(() => void vi.advanceTimersByTime(999));
       expect(scale(stepped('Message 1')), 'not before a whole second').toBe(1);
@@ -500,9 +734,11 @@ describe('ToastRegion time left (#3667)', () => {
       expect(scale(stepped('Message 1'))).toBeCloseTo(1 - 1000 / TOAST_INFO_MS);
       act(() => void vi.advanceTimersByTime(1500));
       expect(scale(stepped('Message 1')), 'the whole second it has reached').toBeCloseTo(1 - 2000 / TOAST_INFO_MS);
-      expect(scale(stepped('Failure 2')), 'an error lasts longer, so its bar is longer').toBeCloseTo(1 - 2000 / TOAST_ERROR_MS);
       expect(stepped('Message 1').className).not.toContain('animate-');
       expect(stepped('Message 1').style.animationDuration).toBe('');
+      rerender(<ToastRegion messages={[failure(2)]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(2000));
+      expect(scale(stepped('Failure 2')), 'an error lasts longer, so its bar is longer').toBeCloseTo(1 - 2000 / TOAST_ERROR_MS);
     });
 
     it('holds whole and still while the pointer or focus holds the toast, and starts again from full on leaving', () => {
@@ -510,7 +746,7 @@ describe('ToastRegion time left (#3667)', () => {
       const toast = screen.getByText('Message 1').closest('[data-tone]')!;
       act(() => void vi.advanceTimersByTime(3000));
       expect(scale(stepped('Message 1'))).toBeCloseTo(1 - 3000 / TOAST_INFO_MS);
-      fireEvent.pointerEnter(toast);
+      hoverOn(toast);
       expect(scale(stepped('Message 1'))).toBe(1);
       act(() => void vi.advanceTimersByTime(20_000));
       expect(scale(stepped('Message 1')), 'still whole while held').toBe(1);
@@ -528,8 +764,9 @@ describe('ToastRegion time left (#3667)', () => {
   });
 
   it("starts after an error's edge strip, so the strip keeps its whole height, and takes the full width on an information toast", () => {
-    render(<ToastRegion messages={[info(1), failure(2)]} dismiss={vi.fn()} />);
+    const { rerender } = render(<ToastRegion messages={[failure(2)]} dismiss={vi.fn()} />);
     expect(bar('Failure 2').className).toContain(' left-1 ');
+    rerender(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
     expect(bar('Message 1').className).toContain(' left-0 ');
   });
 });
@@ -630,16 +867,14 @@ describe('Escape and a toast', () => {
         <ToastRegion messages={[failure(8), info(9)]} dismiss={dismiss} />
       </div>,
     );
-    for (const name of ['Dismiss message']) {
-      for (const button of screen.getAllByRole('button', { name })) {
-        act(() => button.focus());
-        const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-        button.dispatchEvent(event);
-        expect(event.defaultPrevented).toBe(false);
-      }
+    for (const button of screen.getAllByRole('button', { name: 'Dismiss message' })) {
+      act(() => button.focus());
+      const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      button.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
     }
     expect(dismiss).not.toHaveBeenCalled();
-    expect(page).toHaveBeenCalledTimes(2);
+    expect(page).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Failure 8')).toBeTruthy();
   });
 
@@ -665,7 +900,7 @@ describe('a hold that starts while the toast fades', () => {
           render(<ToastRegion messages={[{ id: 1, text: 'Held', tone }]} dismiss={dismiss} />);
           const toast = screen.getByText('Held').closest('[data-tone]') as HTMLElement;
           act(() => void vi.advanceTimersByTime(stays - Math.max(offset, 1)));
-          if (how === 'pointer') fireEvent.pointerEnter(toast);
+          if (how === 'pointer') hoverOn(toast);
           else act(() => within(toast).getByRole('button', { name: 'Dismiss message' }).focus());
           act(() => void vi.advanceTimersByTime(1000));
           expect(toast.className).not.toContain('opacity-0');
@@ -723,13 +958,16 @@ describe('the room the toasts take, published for a dialog in a short window', (
     await act(async () => {
       await Promise.resolve();
     });
-    expect(published()).toBe('');
+    // The dialog closed, the toast stays: the shell's strip still holds the room it takes (#4063).
+    expect(published()).toMatch(/^\d+px$/);
   });
 
-  it('is not set for a toast with no dialog open, and not left behind when the region unmounts', () => {
+  it('is set for a toast with no dialog open, held to 60% of the window, and not left behind when the region unmounts', () => {
     const { unmount } = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
-    expect(published()).toBe('');
+    expect(published()).toMatch(/^\d+px$/);
+    expect(Number.parseInt(published(), 10)).toBeLessThanOrEqual(window.innerHeight * 0.6);
     unmount();
+    expect(published()).toBe('');
     const modal = render(
       <>
         <Modal open />
@@ -742,63 +980,211 @@ describe('the room the toasts take, published for a dialog in a short window', (
   });
 });
 
-// A stack of toasts has no bound and a dialog gives up the room the toasts take (#3605): over a dialog the region shows the newest only, at any window size, and the older ones wait, unmounted, for it to go.
-describe('ToastRegion with a dialog open', () => {
-  beforeEach(() => document.documentElement.setAttribute('data-modal-open', ''));
-  afterEach(() => document.documentElement.removeAttribute('data-modal-open'));
+// One toast shows in the slot, with a dialog open or not (#4063, #3605); the others wait behind it, in the order they were raised, and show one after another.
+// (The rank and preemption tests of the earlier design, an Undo or a Retry error jumping the queue and a held toast yielding to an Undo, are gone: nothing jumps the queue now.)
+describe('ToastRegion shows one toast and queues the rest', () => {
   const three = [info(1, 'First.'), failure(2, 'Second.'), info(3, 'Third.')];
+  const retry = { label: 'Retry', onAction: vi.fn() };
 
-  it('shows only the newest of three toasts, and the older ones come back as it goes', () => {
-    const { rerender } = render(<ToastRegion messages={three} dismiss={vi.fn()} />);
-    expect(screen.queryByText('First.')).toBeNull();
-    expect(screen.queryByText('Second.')).toBeNull();
-    expect(screen.getByText('Third.')).toBeTruthy();
-    rerender(<ToastRegion messages={three.slice(0, 2)} dismiss={vi.fn()} />);
-    expect(screen.getByText('Second.')).toBeTruthy();
-    expect(screen.queryByText('First.')).toBeNull();
-    rerender(<ToastRegion messages={three.slice(0, 1)} dismiss={vi.fn()} />);
-    expect(screen.getByText('First.')).toBeTruthy();
+  it.each([false, true])('shows the oldest, then the next as each goes (dialog open: %s)', (modal) => {
+    if (modal) document.documentElement.setAttribute('data-modal-open', '');
+    try {
+      const { rerender } = render(<ToastRegion messages={three} dismiss={vi.fn()} />);
+      expect(screen.getByText('First.', { selector: '[data-toast-text]' })).toBeTruthy();
+      expect(screen.queryByText('Second.', { selector: '[data-toast-text]' })).toBeNull();
+      expect(screen.queryByText('Third.', { selector: '[data-toast-text]' })).toBeNull();
+      expect(screen.getByText('+2')).toBeTruthy();
+      rerender(<ToastRegion messages={[three[1]!, three[2]!]} dismiss={vi.fn()} />);
+      expect(screen.getByText('Second.', { selector: '[data-toast-text]' })).toBeTruthy();
+      expect(screen.getByText('+1')).toBeTruthy();
+      rerender(<ToastRegion messages={[three[2]!]} dismiss={vi.fn()} />);
+      expect(screen.getByText('Third.', { selector: '[data-toast-text]' })).toBeTruthy();
+      expect(screen.queryByText(/^\+\d/)).toBeNull();
+    } finally {
+      document.documentElement.removeAttribute('data-modal-open');
+    }
   });
 
   it('a queued toast does not run its clock until it shows', () => {
-    vi.useFakeTimers();
-    try {
-      const dismiss = vi.fn();
-      render(<ToastRegion messages={[info(1, 'Older.'), info(2, 'Newest.')]} dismiss={dismiss} />);
-      act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1));
-      expect(dismiss).toHaveBeenCalledTimes(1);
-      expect(dismiss).toHaveBeenCalledWith(2);
-    } finally {
-      vi.useRealTimers();
-    }
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[info(1, 'Older.'), info(2, 'Newest.')]} dismiss={dismiss} />);
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1));
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(dismiss).toHaveBeenCalledWith(1);
   });
 
-  it('an older toast with an action keeps its clock while it waits, and goes when its time is up without being shown', () => {
-    vi.useFakeTimers();
-    try {
-      const dismiss = vi.fn();
-      const undo = { ...info(1, 'Removed A.'), action: { label: 'Undo', onAction: vi.fn() } };
-      render(<ToastRegion messages={[undo, info(2, 'Newest.')]} dismiss={dismiss} />);
-      // Mounted for its clock, not drawn, and no tab stop.
-      expect(screen.getByText('Removed A.').closest('[data-tone]')!.hasAttribute('hidden')).toBe(true);
-      expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
-      act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1));
-      expect(dismiss).toHaveBeenCalledWith(1);
-    } finally {
-      vi.useRealTimers();
-    }
+  it('an Undo raised behind an error waits its turn and then shows for its whole time', () => {
+    const dismiss = vi.fn();
+    const error = { ...failure(1, 'Could not save.'), action: retry };
+    const undo = { ...info(2, 'Removed A.'), action: { label: 'Undo', onAction: vi.fn() } };
+    const { rerender } = render(<ToastRegion messages={[error, undo]} dismiss={dismiss} />);
+    expect(screen.queryByText('Removed A.', { selector: '[data-toast-text]' })).toBeNull();
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS + 1));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(1);
+    rerender(<ToastRegion messages={[undo]} dismiss={dismiss} />);
+    dismiss.mockClear();
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS - 1));
+    expect(dismiss).not.toHaveBeenCalled();
+    expect(screen.getByText('Removed A.', { selector: '[data-toast-text]' })).toBeTruthy();
   });
 
-  it('shows the whole stack when no dialog is open, so a newer message never hides an older error and its Retry', () => {
-    document.documentElement.removeAttribute('data-modal-open');
-    render(
-      <ToastRegion
-        messages={[{ ...failure(1, 'Could not save.'), action: { label: 'Retry', onAction: vi.fn() } }, info(2, 'Saved elsewhere.')]}
-        dismiss={vi.fn()}
-      />,
-    );
+  it('shows an error with its Retry and a count of the information waiting behind it, and no more than one toast', () => {
+    render(<ToastRegion messages={[{ ...failure(1, 'Could not save.'), action: retry }, info(2, 'Saved elsewhere.')]} dismiss={vi.fn()} />);
     expect(screen.getByText('Could not save.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
-    expect(screen.getByText('Saved elsewhere.')).toBeTruthy();
+    expect(screen.queryByText('Saved elsewhere.', { selector: '[data-toast-text]' })).toBeNull();
+    expect(screen.getByText('+1').closest('[data-toast-more]')!.getAttribute('aria-label')).toBe('1 more message waiting');
+    expect(screen.getAllByRole('button', { name: 'Dismiss message' })).toHaveLength(1);
   });
+});
+
+describe('a toast is never lost unseen, never pressed twice, and never takes a key it does not own (#4063)', () => {
+  const retry = { label: 'Retry', onAction: vi.fn() };
+  const drawnText = () => [...document.querySelectorAll('[data-toast-region] [data-tone]:not([hidden]) [data-toast-text]')].map((el) => el.textContent);
+
+  it('three errors queued together each show for their whole time, one after the other', () => {
+    const dismiss = vi.fn();
+    const errors = [1, 2, 3].map((id) => ({ ...failure(id, `Error ${id}`), action: retry }));
+    const { rerender } = render(<ToastRegion messages={errors} dismiss={dismiss} />);
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS + 1));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(1);
+    rerender(<ToastRegion messages={errors.slice(1)} dismiss={dismiss} />);
+    expect(drawnText()).toEqual(['Error 2']);
+    act(() => void vi.advanceTimersByTime(TOAST_ERROR_MS - 1));
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(drawnText()).toEqual(['Error 2']);
+  });
+
+  it('a message that waits is read out at once, without being drawn', () => {
+    render(<ToastRegion messages={[{ ...failure(1, 'First error.'), action: retry }, failure(2, 'Second error.'), info(3, 'A note.')]} dismiss={vi.fn()} />);
+    const alert = document.querySelector('[role="alert"]')!;
+    const status = document.querySelector('[role="status"]')!;
+    expect(alert.querySelector('[data-toast-announce]')!.textContent).toBe('Second error.');
+    expect(status.querySelector('[data-toast-announce]')!.textContent).toBe('A note.');
+    expect(drawnText()).toEqual(['First error.']);
+  });
+
+  it('names the count for a screen reader, with the plural of the shared helper', () => {
+    render(<ToastRegion messages={[failure(1), failure(2), failure(3)]} dismiss={vi.fn()} />);
+    expect(document.querySelector('[data-toast-more]')!.getAttribute('aria-label')).toBe('2 more messages waiting');
+  });
+
+  it.each(['Dismiss message', 'Retry'])('a key held down on %s presses it once: the repeats are cancelled', (name) => {
+    const action = vi.fn();
+    render(<ToastRegion messages={[{ ...failure(1, 'Held.'), action: { label: 'Retry', onAction: action } }]} dismiss={vi.fn()} />);
+    const button = screen.getByRole('button', { name });
+    expect(fireEvent.keyDown(button, { key: 'Enter' })).toBe(true);
+    expect(fireEvent.keyDown(button, { key: 'Enter', repeat: true })).toBe(false);
+  });
+
+  it('focus is handed back only after a held key comes up', () => {
+    render(
+      <>
+        <button>Page</button>
+        <ToastRegion messages={[{ ...failure(1, 'Held.'), action: retry }]} dismiss={vi.fn()} />
+      </>,
+    );
+    const page = screen.getByText('Page');
+    page.focus();
+    const dismissButton = screen.getByRole('button', { name: 'Dismiss message' });
+    dismissButton.focus();
+    fireEvent.keyDown(dismissButton, { key: 'Enter' });
+    fireEvent.click(dismissButton, { detail: 0 });
+    act(() => void vi.advanceTimersByTime(1_000));
+    expect(document.activeElement).toBe(dismissButton);
+    fireEvent.keyUp(dismissButton, { key: 'Enter' });
+    act(() => void vi.advanceTimersByTime(10));
+    expect(document.activeElement).toBe(page);
+  });
+
+  it('the second click of a double click does nothing: the next toast took the slot under the pointer', () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const a = { ...failure(1, 'Alpha'), action: { label: 'Retry', onAction: first } };
+    const b = { ...failure(2, 'Beta'), action: { label: 'Retry', onAction: second } };
+    const dismiss = vi.fn();
+    const { rerender } = render(<ToastRegion messages={[a, b]} dismiss={dismiss} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }), { detail: 1 });
+    expect(first).toHaveBeenCalledTimes(1);
+    rerender(<ToastRegion messages={[b]} dismiss={dismiss} />);
+    // Beta took the slot under the pointer: the second click of the double click lands on it.
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }), { detail: 2 });
+    expect(second).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }), { detail: 1 });
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('a keyboard action whose origin is gone puts focus on the toast that took the slot, else on <main>', () => {
+    document.body.insertAdjacentHTML('beforeend', '<main id="main-content" tabindex="-1"></main>');
+    try {
+      const gone = document.createElement('button');
+      document.body.append(gone);
+      gone.focus();
+      const a = failure(1, 'Alpha');
+      const { rerender } = render(<ToastRegion messages={[a, failure(2, 'Beta')]} dismiss={vi.fn()} />);
+      const dismissButton = screen.getByRole('button', { name: 'Dismiss message' });
+      dismissButton.focus();
+      gone.remove();
+      fireEvent.click(dismissButton, { detail: 0 });
+      rerender(<ToastRegion messages={[failure(2, 'Beta')]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(10));
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
+      const only = screen.getByRole('button', { name: 'Dismiss message' });
+      only.focus();
+      fireEvent.click(only, { detail: 0 });
+      rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(10));
+      expect(document.activeElement).toBe(document.getElementById('main-content'));
+    } finally {
+      document.getElementById('main-content')?.remove();
+    }
+  });
+
+  it('every repeat of a key is cancelled, wherever focus has gone, after a key pressed a toast button, until a key comes up', () => {
+    render(
+      <>
+        <button>Page</button>
+        <ToastRegion messages={[{ ...failure(1, 'Held.'), action: retry }]} dismiss={vi.fn()} />
+      </>,
+    );
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Retry' }), { key: 'Enter' });
+    const page = screen.getByText('Page');
+    expect(fireEvent.keyDown(page, { key: 'Enter', repeat: true })).toBe(false);
+    fireEvent.keyUp(page, { key: 'Enter' });
+    expect(fireEvent.keyDown(page, { key: 'Enter', repeat: true })).toBe(true);
+  });
+
+  it('the same message raised again while its toast has focus puts focus on the toast that replaced it, never on <body>', () => {
+    const { rerender } = render(<ToastRegion messages={[failure(1, 'Same.')]} dismiss={vi.fn()} />);
+    screen.getByRole('button', { name: 'Dismiss message' }).focus();
+    rerender(<ToastRegion messages={[failure(2, 'Same.')]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(10));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
+  });
+
+  it.each(['Retry', 'Dismiss message'])(
+    'the same message raised again while its %s has focus keeps focus on that control of the replacing toast, not on the control focus came from',
+    (name) => {
+      const retry = retryAction(vi.fn());
+      const { rerender } = render(
+        <>
+          <button>Page</button>
+          <ToastRegion messages={[{ ...failure(1, 'Same.'), action: retry }]} dismiss={vi.fn()} />
+        </>,
+      );
+      const page = screen.getByText('Page');
+      page.focus();
+      const target = screen.getByRole('button', { name });
+      fireEvent.focus(target, { relatedTarget: page });
+      target.focus();
+      rerender(
+        <>
+          <button>Page</button>
+          <ToastRegion messages={[{ ...failure(2, 'Same.'), action: retry }]} dismiss={vi.fn()} />
+        </>,
+      );
+      act(() => void vi.advanceTimersByTime(10));
+      expect(document.activeElement).toBe(screen.getByRole('button', { name }));
+    },
+  );
 });

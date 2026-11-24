@@ -5,7 +5,7 @@ import type { GestureEvent, InputSource } from './InputSource';
 import { createKeyboardSource } from './KeyboardSource';
 import { defaultKeymap, type Keymap } from './keymap';
 import { SCOPE_PRIORITY, type Scope } from './scopes';
-import { EDITABLE, isGuardedTarget, keyLayerOpen, ownsKeysByRole } from './targets';
+import { EDITABLE, isGuardedTarget, keyLayerOpen, OWNS_KEYS, ownsKeysByRole } from './targets';
 
 const KEY_ROLE_TARGET = ownsKeysByRole;
 
@@ -130,6 +130,7 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
       const onlyButton =
         event.target instanceof Element &&
         !event.target.closest(EDITABLE) &&
+        !event.target.closest(OWNS_KEYS) &&
         !KEY_ROLE_TARGET(event.target) &&
         !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code);
       // A control left in a popup that has begun to close keeps Space and Enter (they would press it) but no other key: it is going, and the key is the page's (#3906, #3931).

@@ -31,6 +31,9 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/primitives/dialogClosed.ts': {
     note: 'stops an Escape auto-repeat so a held Escape closes one layer, not the one under it too (#3549), and the repeats of an Enter or Space that answered a dialog, so they do not press the control focus returns to (#3555): guards on the layers, not commands',
   },
+  'src/components/primitives/Toast.tsx': {
+    note: "after a press on a toast's Retry, Dismiss or Undo, cancels the repeats of the held key until it comes up, so they press nothing the press moved focus to (#4063): a guard on the toast's buttons like dialogClosed.ts's, not a command",
+  },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
 };
 

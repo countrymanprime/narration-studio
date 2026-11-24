@@ -1,4 +1,4 @@
-// A toast whose message is one long unbroken word (a Windows path is the realistic case) wraps inside the window instead of running off both edges (#2793).
+// A toast whose message is one long unbroken word (a Windows path is the realistic case) wraps inside the window, two lines at most, instead of running off both edges (#2793).
 import { expect, test } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
@@ -28,6 +28,8 @@ for (const theme of ['light', 'dark'] as const) {
       const dismiss = (await toast.getByRole('button', { name: 'Dismiss message' }).boundingBox())!;
       expect(dismiss.x + dismiss.width).toBeLessThanOrEqual(width);
       expect(await toast.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+      // Two lines at most, and all of it reachable: the text scrolls inside the toast and takes focus while it does.
+      expect(await toast.locator('[data-toast-text]').evaluate((el) => el.scrollHeight > el.clientHeight && (el as HTMLElement).tabIndex === 0)).toBe(true);
     });
   }
 }

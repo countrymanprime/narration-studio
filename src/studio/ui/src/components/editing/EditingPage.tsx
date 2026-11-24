@@ -6,6 +6,7 @@ import { chapterRecordedDetail } from '../../recordedThrough';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { useReadChapters } from '../../studio/useChapters';
+import { folderKey } from '../../projectFolder';
 import { ProjectChangedError } from '../../studio/store/createStudioStore';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
@@ -108,13 +109,14 @@ function EditingLoaded({
   const [read, setChapters] = useState<ManuscriptChapter[] | null>(null);
   // The project the chapters in `read` were read for; the page draws them only under that folder, so a project switch shows the skeleton, never the old project's chapter.
   const [chaptersOf, setChaptersOf] = useState('');
-  const chapters = chaptersOf === projectFolder ? read : null;
+  const folderId = folderKey(projectFolder);
+  const chapters = chaptersOf === folderId ? read : null;
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   const [chosen, setChosen] = useState<string | undefined>(asked);
   // A chapter the narrator chose in one project is not the choice in another: the project changing under the page starts from the address again.
-  useEffect(() => setChosen(asked), [asked, projectFolder]);
+  useEffect(() => setChosen(asked), [asked, folderId]);
   // Once the narrator moves to another chapter the link has been used: coming back does not open it again. A new link applies afresh.
   const [moved, setMoved] = useState(false);
   useEffect(() => setMoved(false), [passageId, findingId, t]);
@@ -126,7 +128,7 @@ function EditingLoaded({
       (all) => {
         if (!live) return;
         setChapters(all.filter(isNarrationChapter));
-        setChaptersOf(projectFolder);
+        setChaptersOf(folderId);
         setError(null);
         setErrorDetails(undefined);
       },
@@ -140,7 +142,7 @@ function EditingLoaded({
     return () => {
       live = false;
     };
-  }, [readChapters, attempt, projectFolder]);
+  }, [readChapters, attempt, folderId]);
   // Retry: forgets the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
   const retry = useCallback(() => {
     setError(null);
@@ -167,8 +169,8 @@ function EditingLoaded({
   const shownId = chapter?.id;
   // Saved only for the project the chapters were read for: a project that changed under the page has not read its own chapters yet.
   useEffect(() => {
-    if (projectFolder && shownId && chaptersOf === projectFolder) saveEditingChapter(projectFolder, shownId);
-  }, [projectFolder, shownId, chaptersOf]);
+    if (projectFolder && shownId && chaptersOf === folderId) saveEditingChapter(projectFolder, shownId);
+  }, [projectFolder, folderId, shownId, chaptersOf]);
   // The other chapters' waveforms are read in the background, the nearest first, so a step or a jump is drawn at once.
   usePrefetchPeaks(
     list.map((c) => c.id),

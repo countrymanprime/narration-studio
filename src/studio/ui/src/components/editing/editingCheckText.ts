@@ -48,8 +48,3 @@ export const SOURCE_NOTE: Record<'items' | 'render', string> = {
 export function keepUnits(text: string): string {
   return text.replace(/(\d) (s|ms|dB|dBFS|LUFS|%)(?=$|[\s.,;:)])/g, '$1\u00a0$2');
 }
-
-/** A host sentence shown on its own line, starting with a capital ("link this chapter…" reads as a continuation otherwise). */
-export function sentenceStart(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}

@@ -104,7 +104,7 @@ test('a take the Booth took back (its listening failed): going back to the phras
   await showChapterTop(page);
   const opened = await reading(page);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/text cannot follow your voice/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Recording did not start:/).first()).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => dawRecording(page)).toBe(false);
   await arrowDown(page, 2);
   for (let i = 0; i < 10 && (await reading(page)) !== opened; i++) await page.keyboard.press('ArrowUp');
@@ -124,7 +124,7 @@ test('a chosen start survives a take the Booth took back: Record looks it up aga
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(5).click();
   await page.keyboard.press('Space');
-  await expect(page.getByText(/text cannot follow your voice/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Recording did not start:/).first()).toBeVisible({ timeout: 30_000 });
   await expect.poll(() => dawRecording(page)).toBe(false);
   const before = await lookups(page);
   await page.keyboard.press('Space');

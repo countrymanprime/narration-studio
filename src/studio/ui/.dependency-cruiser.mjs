@@ -114,10 +114,11 @@ export default {
       // docs/architecture/studio-shell-and-registries.md#overlay-service. The overlay service opens dialogs, confirms, toasts and announcements imperatively and renders them in the
       // existing primitives; it is a leaf above them, so it takes the primitives and nothing else of the app.
       name: 'overlay-imports-primitives-only',
-      comment: 'src/overlay/ imports components/primitives/ and nothing else in the app.',
+      comment:
+        'src/overlay/ imports components/primitives/ and nothing else in the app, except src/visibleText.ts, a leaf with no imports (the one test for "this text draws something", #4063).',
       severity: 'error',
       from: { path: '^src/overlay/' },
-      to: { path: '^src/', pathNot: '^src/(overlay|components/primitives)/' },
+      to: { path: '^src/', pathNot: '^src/(overlay|components/primitives)/|^src/visibleText\\.ts$' },
     },
     {
       // docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to. A registry is a table features add to (search sources, later contexts), so it sits below them: it takes

@@ -36,6 +36,7 @@ export function ProjectPicker({
   notify,
   onCreated,
   onBack,
+  onSwitched,
   currentName,
   onOpenSettings,
   focusSettings,
@@ -43,6 +44,8 @@ export function ProjectPicker({
   notify: Notify;
   onCreated: () => void;
   onBack?: () => void;
+  /** A switch went through: the folder the narrator chose. */
+  onSwitched?: (path: string) => void;
   currentName?: string;
   onOpenSettings?: () => void;
   /** Focus the Settings button when the picker appears: the narrator is coming back from Settings. */
@@ -104,7 +107,12 @@ export function ProjectPicker({
   // A successful switch/create emits the native "system:attached" event,
   // which App.tsx's existing subscription already turns into a bootstrap
   // refresh - this component only needs to surface a refusal, if any.
-  const applyResult = (result: ProjectSwitchResult) => setReason(result.switched ? '' : (result.reason ?? ''));
+  // A refusal keeps the picker open with its reason. A switch that went through is told to the app with the folder chosen: the app closes the picker at once only when that is the project
+  // already open (the host may spell its folder another way, so no folder changes for it to close on); another book closes it when the new project arrives.
+  const applyResult = (result: ProjectSwitchResult, path: string) => {
+    setReason(result.switched ? '' : (result.reason ?? ''));
+    if (result.switched) onSwitched?.(path);
+  };
 
   // Every action funnels through here so a failed IPC call (e.g. the dialog
   // rejecting, or the host not being ready) surfaces as visible text instead
@@ -121,7 +129,7 @@ export function ProjectPicker({
     }
   };
 
-  const openRecent = (entry: RecentProject) => runAction(async () => applyResult(await api.switchProject(entry.path, entry.name)));
+  const openRecent = (entry: RecentProject) => runAction(async () => applyResult(await api.switchProject(entry.path, entry.name), entry.path));
 
   // Pinned projects first, each group in the host's most-recent-first order.
   const visible = [...recents.filter((entry) => entry.pinned), ...recents.filter((entry) => !entry.pinned)].filter((entry) => !hidden.includes(entry.path));
@@ -210,12 +218,12 @@ export function ProjectPicker({
     runAction(async () => {
       const selection = await api.selectProjectFolder();
       if (!selection.selected || !selection.path) return;
-      applyResult(await api.switchProject(selection.path));
+      applyResult(await api.switchProject(selection.path), selection.path);
     });
 
   const projectCreated = (result: ProjectSwitchResult) => {
     setNewProjectOpen(false);
-    applyResult(result);
+    applyResult(result, '');
     onCreated();
   };
 
@@ -225,7 +233,7 @@ export function ProjectPicker({
     <CommandScope kind="page">
       <div className="flex h-full flex-col overflow-hidden">
         <ExtensionBanner />
-        <main ref={mainRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-6 focus:outline-none">
           {/* min-w-0: the column otherwise grows to its longest nowrap child (a project path) and overflows narrow screens. */}
           {/* Top-aligned: centred, the mark landed at a different height for every list length and banner (alignment audit XPJ-1, R3PJ-1). */}
           <div className="mx-auto flex w-full max-w-[47.5rem] min-w-0 flex-col gap-5 pt-[min(6vh,3rem)]">

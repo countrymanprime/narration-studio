@@ -99,7 +99,7 @@ async function stopAndLeave(page: Page): Promise<void> {
   if (await leave.isVisible({ timeout: 1500 }).catch(() => false)) await leave.click();
   await page.getByRole('heading', { level: 1, name: 'Script' }).waitFor({ timeout: 8000 });
 }
-const STILL_OPEN = /Quit and reopen the app to be sure/;
+const STILL_OPEN = /Quit and reopen the app/;
 
 test('leaving with "Stop and leave" while every stop is refused says on the next page that the microphone may be open', async ({ page }) => {
   await openBooth(page, 99);

@@ -2,6 +2,7 @@
 // and refreshed when the host says it changed or the window regains focus. It is a cache that can be thrown
 // away: `reset()` empties it for a project switch. It never holds the book and exposes no `act` (the journal is separate).
 
+import { folderKey } from '../../projectFolder';
 import { parseWire } from '../../api/wire/parseWire';
 import type { InferOutput, StandardSchemaV1 } from '../../api/wire/standardSchema';
 import { windowFocusSource, type FocusSource } from './focusSource';
@@ -129,6 +130,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   let state = empty;
   let epoch = 0;
   // The project the store holds values for, whether the host's answer to the last attach was heard, and the project each held value was read for.
+  // Projects are held as `folderKey`: one folder spelled two ways is one project, so a switch to its other spelling empties nothing.
+  const norm = (project: string | undefined): string | undefined => (project === undefined ? undefined : folderKey(project));
   let onProject: string | undefined;
   let confirmed = true;
   // The project a stamped answer named while the store was confirmed on another: the host attached a project the window has not heard of. Every reader waits
@@ -202,7 +205,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       let payload: unknown;
       if (read) {
         const answer = await read();
-        stamp = answer.project;
+        stamp = norm(answer.project);
         payload = answer.payload;
       } else payload = await load();
       value = parseWire(config.schema, payload, { boundary: 'studio store', payload: name });
@@ -289,12 +292,12 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
           clearTimeout(timer);
         })
         .then(() => {
-          if ((epoch === before && aheadSeq === aheadBefore) || holds(name, options.project) || round >= 2) return;
+          if ((epoch === before && aheadSeq === aheadBefore) || holds(name, norm(options.project)) || round >= 2) return;
           return readUntilKept(name, options, once, round + 1);
         });
     };
     // A reader that waits for nothing starts its read in the same turn, as every reader did before the gate.
-    const waiting = gate(options.project);
+    const waiting = gate(norm(options.project));
     return waiting ? waiting.then(start) : start();
   }
 
@@ -336,7 +339,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   // A load an `ensure` started or joined: the one read in flight for the slot, so callers that mount together share it.
   const ensuring = new Map<string, { promise: Promise<void>; at: number }>();
   function ensureOnce(name: keyof R & string, options: ReadOptions & { settled?: boolean }): Promise<void> {
-    if (holds(name, options.project)) return options.settled ? waitForReads(name) : Promise.resolve();
+    if (holds(name, norm(options.project))) return options.settled ? waitForReads(name) : Promise.resolve();
     const running = ensuring.get(name);
     if (running && young(running.at)) return running.promise;
     // A read already in flight (a load, an event, a refresh) is joined, not repeated.
@@ -414,7 +417,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       if (onProject !== undefined) confirmed = false;
       wake();
     },
-    setProject(folder) {
+    setProject(raw) {
+      const folder = folderKey(raw);
       const changed = onProject !== undefined && onProject !== folder;
       onProject = folder;
       confirmed = true;

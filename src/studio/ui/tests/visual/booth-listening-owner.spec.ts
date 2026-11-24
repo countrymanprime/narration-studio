@@ -294,7 +294,13 @@ test('a session stop the host never finishes: the next Record says the text cann
   await expect(record(page)).toBeVisible({ timeout: 8000 });
   await page.waitForTimeout(500);
   await page.keyboard.press('Space');
-  await expect(page.getByText(/Recording did not start: the text cannot follow your voice/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Recording did not start:/).first()).toBeVisible({ timeout: 30_000 });
+  // The sentence holds its two lines beside Retry (#4095): it does not scroll inside the toast.
+  const failed = await page
+    .locator('[data-toast-region] [data-toast-text]')
+    .filter({ hasText: /Recording did not start:/ })
+    .evaluate((el) => ({ clientHeight: el.clientHeight, scrollHeight: el.scrollHeight }));
+  expect(failed.scrollHeight).toBeLessThanOrEqual(failed.clientHeight + 1);
   await expect(record(page)).toBeVisible();
   expect((await calls(page)).listeningStarts).toBe(2);
 });
@@ -419,7 +425,7 @@ for (const ending of ['fails', 'comes up and is let go'] as const) {
       (ok) => (window as unknown as { __refuseListening: Array<(ok: boolean) => void> }).__refuseListening[0](ok),
       ending === 'comes up and is let go',
     );
-    const sentence = page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.');
+    const sentence = page.getByText('The text could not follow your voice for this take. Press Stop, then record again.');
     await expect(sentence).toBeVisible({ timeout: 8000 });
     await expect(page.getByText(/Recording did not start/)).toHaveCount(0);
     // Nothing stopped the take behind the narrator; Stop is theirs and works.
@@ -484,7 +490,7 @@ test('a report that waits for adoption says nothing when the page then starts it
   await expect(stop).toBeVisible({ timeout: 8000 });
   await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBeGreaterThanOrEqual(2);
   await page.waitForTimeout(1500);
-  await expect(page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.')).toHaveCount(0);
+  await expect(page.getByText('The text could not follow your voice for this take. Press Stop, then record again.')).toHaveCount(0);
 });
 
 // att16 K1: the report waits on a page with no take; the narrator starts a cold read there; the DAW then reports the take, the page ends the cold read and
@@ -524,7 +530,7 @@ test('a report that waits for adoption says nothing when the adopting page ends 
   });
   // The cold read ends and the page asks for the take's own listening.
   await expect.poll(async () => (await calls(page)).listeningStarts, { timeout: 8000 }).toBe(3);
-  const sentence = page.getByText('The text could not follow your voice for the take that is still recording. Press Stop, then record again.');
+  const sentence = page.getByText('The text could not follow your voice for this take. Press Stop, then record again.');
   await page.waitForTimeout(1000);
   await expect(sentence).toHaveCount(0);
   // It follows the take.

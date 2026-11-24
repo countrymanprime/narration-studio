@@ -1,3 +1,5 @@
+import { folderKey } from '../../projectFolder';
+
 /**
  * What Proof keeps while the narrator is on another page: the note selected in each scope (a chapter, or All chapters) and the decision note typed
  * for a finding and not yet saved. Back from Booth, Script or Editing opens the page again, and without this it would start on the first note with an
@@ -6,7 +8,7 @@
 const selected = new Map<string, string>();
 const drafts = new Map<string, string>();
 
-const scopeKey = (projectFolder: string, scope: string): string => `${projectFolder}\u0000${scope}`;
+const scopeKey = (projectFolder: string, scope: string): string => `${folderKey(projectFolder)}\u0000${scope}`;
 
 export const recallSelection = (projectFolder: string, scope: string): string | null => selected.get(scopeKey(projectFolder, scope)) ?? null;
 export const rememberSelection = (projectFolder: string, scope: string, id: string): void => void selected.set(scopeKey(projectFolder, scope), id);

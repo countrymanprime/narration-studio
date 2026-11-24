@@ -51,6 +51,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/editing/cleanup/registerLevelsSection.tsx`
 - `src/components/editing/page/EditingBody.tsx`
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
+- `src/components/editing/takes/useTakeAudition.ts`
 - `src/components/engine/AudacityLinkCard.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
@@ -58,6 +59,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/engine/useChapterFolders.ts`
 - `src/components/engine/useLiveTracks.ts`
 - `src/components/engine/useVoiceTracks.ts`
+- `src/components/pickups/PickupsPage.tsx`
 - `src/components/primitives/Dialog.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`
 - `src/components/production/ManuscriptImport.tsx`
@@ -74,6 +76,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/proof/ProofPage.tsx`
 - `src/components/proof/ProofingStagePanel.tsx`
 - `src/components/proof/RenderAssociationSection.tsx`
+- `src/components/proof/inspector/HearIt.tsx`
 - `src/components/proof/inspector/equivalence.ts`
 - `src/components/proof/useProofingRender.ts`
 - `src/components/script/page/ScriptPage.tsx`
@@ -108,5 +111,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/hooks/useErrorToast.ts`
 - `src/hooks/useToasts.ts`
 - `src/jobEnded.ts`
+- `src/main.tsx`
 - `src/overlay/OverlayHost.tsx`
 - `src/overlay/overlayService.ts`

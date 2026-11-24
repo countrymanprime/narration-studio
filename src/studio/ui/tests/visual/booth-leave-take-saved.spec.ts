@@ -11,7 +11,8 @@ test.setTimeout(60_000);
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const question = (page: Page) => page.getByRole('alertdialog', { name: /^Stop recording\?$/ });
-const saved = (page: Page) => page.getByText('Take saved', { exact: true });
+// The drawn toast's text: a toast that waits behind another is also read out from a screen-reader-only line (`data-toast-announce`).
+const saved = (page: Page) => page.locator('[data-toast-text]', { hasText: /^Take saved$/ });
 
 async function recording(page: Page): Promise<void> {
   await page.goto('/?mockCallLog=1');

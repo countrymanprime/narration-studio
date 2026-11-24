@@ -3,6 +3,7 @@ import type { OverlayService } from '../../../overlay/overlayService';
 import { retryAction, TOAST_MAX_MS } from '../../primitives/Toast';
 import type { TeleprompterState } from '../../../types';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
+import { LISTENING_STILL_OPEN, LISTENING_STOP_FAILED } from '../toastSentences';
 
 const STOP_FAILED_TOPIC = 'booth-listening-stop-failed';
 // One topic for both sentences (stopped-failed on this page, still-open after leaving): the later replaces the earlier, never two at once.
@@ -18,7 +19,7 @@ type Overlay = Pick<OverlayService, 'toast' | 'dismissTopic'>;
  * start), with the next step. It goes when the host reports the session ended, and after the longest a toast stays.
  */
 export function sayListeningStillOpen(overlay: Overlay, subscribeState: (listener: (state: TeleprompterState) => void) => () => void): void {
-  overlay.toast('The Booth could not stop listening, so your microphone may still be open. Quit and reopen the app to be sure.', {
+  overlay.toast(LISTENING_STILL_OPEN, {
     tone: 'error',
     topic: LEFT_TOPIC,
     durationMs: TOAST_MAX_MS,
@@ -82,7 +83,7 @@ export function useStopFailedSentence(overlay: Overlay, session: Session): void 
   useEffect(() => {
     if (stopFailed) {
       said.current = true;
-      overlay.toast('The Booth could not stop listening, so your microphone may still be open. Press Retry.', {
+      overlay.toast(LISTENING_STOP_FAILED, {
         tone: 'error',
         topic: STOP_FAILED_TOPIC,
         durationMs: TOAST_MAX_MS,

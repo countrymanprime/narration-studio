@@ -17,7 +17,7 @@ const soloNotQuietedSentence = "%s could not quiet the other chapters: %s."
 // soloLeftSentence is what the narrator is told, once, when a solo that may be on could not be taken off (the page shows it as a toast): what may stay
 // silent and what to do. It is said only when something may be soloed, and it does not say when the narrator left: the DAW may have gone away mid-visit.
 // The page sends the restore again when the DAW can follow again, and the DAW's own ledger puts it back the next time its bridge starts.
-const soloLeftSentence = "%s could not take the solo off the chapter's track, so the other chapters may stay silent. Unsolo it in %s if they are still silent."
+const soloLeftSentence = "%s could not unsolo the chapter's track, so others may stay silent. Unsolo it in %s."
 
 // soloDebt is what the host knows of the solo it asked the DAW for, under one mutex. pending holds the solos that may be on, by the number each was
 // asked under: false while the DAW has not answered yet (a solo that is in flight when a restore is answered may still land, so that restore does not cover

@@ -102,8 +102,8 @@ export function Popover({
   if (opened.open !== isOpen) setOpened({ open: isOpen, by: isOpen ? document.activeElement : opened.by });
   const backToOpener = () => (opened.by instanceof HTMLElement && opened.by.isConnected ? opened.by : true);
   // The bars fixed along the bottom of the page (the Booth's footer and its setup notice) count as the window's edge: a popup opened above them
-  // stops short of them and scrolls inside itself rather than covering Record and the timer (alignment audit XBO-8). Their height is the one the
-  // toasts keep clear of, `--toast-clear` on <html> (useToastClearance).
+  // stops short of them and scrolls inside itself rather than covering Record and the timer (alignment audit XBO-8). Their height, and the slot kept for a message under the page, is
+  // `--toast-clear` on <html> (useToastClearance).
   // In a window so short that the bars would leave the popup a strip of a few lines (320x300: 210 px of bars, 58 px left), the reserve is cut so the
   // popup keeps `MIN_POPUP_ROOM` to read in, and it may then lie over the top of the bars while it is open.
   const bars = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--toast-clear')) || 0;

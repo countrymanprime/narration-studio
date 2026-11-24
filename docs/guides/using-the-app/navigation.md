@@ -47,6 +47,8 @@ When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left`
 
 ## The header and the footer
 
+Every page keeps a strip along the bottom of its area, one message high, for the messages that come and go (the toast with **Undo** or **Retry**). A message stands in that strip, so nothing on the page moves or is covered when one comes, and the strip is empty when there is none; a second message waits behind the first, with a small **+1** in it, and takes its place when the first goes, so the strip never changes size. A long message shows two lines and scrolls inside the message (Tab reaches it). A window 520 px tall or shorter has no strip: there a message floats at the bottom edge, above the bars along it.
+
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, a zoom chip when you are zoomed,
 **Jump to or run…** (`Ctrl+K`), and the engine chip. The zoom chip appears on the left of the jump button, in the header's empty middle, so the jump button and the engine chip do not move when it comes or goes. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it (Escape does the same), and opening a
@@ -59,6 +61,11 @@ On [Proof](proof.md), a note typed on a finding and not yet added, or an edit of
 In the [Story Bible](story-bible.md), an entry being edited, a relationship, a name typed in **Add a name**, a note beside **Approve**, a suggestion's edit and a name typed in **New type** (Settings) are held this way; a new entry before a category is chosen and the ones that cannot be saved from the question say so ("... still needs a category chosen." or "... can't be saved yet.").
 
 On the [Script](script.md), a reply or an edit of a note message typed and not yet saved, and a pronunciation typed under **Save to my dictionary**, are held this way, and so is a note being written in the Mark dialog.
+
+Switching project reopens the Booth, Editing and the [Companion](booth.md#companion-mode) on the new project's own remembered
+chapter, or its first chapter when it has none. The Booth follows the chapter the DAW is on when none is remembered, and the Companion
+takes the chapter of a running reading session first, then the Booth's remembered one. Proof and Pickups open on All chapters, and
+Master & QC opens with no chapter picked.
 
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 

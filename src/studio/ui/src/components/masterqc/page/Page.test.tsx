@@ -10,6 +10,7 @@ import type { DeliveryProfile, MeasureFileResult, NarrationApi } from '../../../
 import { findToast, pressToastAction, toastTexts } from '../../../fixtures/toasts';
 import { chapterStates } from '../../delivery/page/chapterStates';
 import { MasterPage } from './MasterPage';
+import { loadSharedChapter } from './sharedChapter';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { ALL_PASS, CHAPTERS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing, withCredits } from './testPage';
 import { chaptersOf } from '../../../api/chaptersOf';
@@ -78,10 +79,10 @@ describe('Master & QC page body', () => {
     withChapters(TWO_FAIL);
     // Opens on the first failing file, and the bar says so.
     await waitFor(() => expect(bar().getAttribute('aria-label')).toContain('Chapter 4: The Rabbit Sends in a Little Bill'));
-    expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-4');
+    expect(loadSharedChapter('/p')).toBe('chapter-4');
     await user.click(screen.getByRole('row', { name: /Chapter 2 — The Pool of Tears/ }));
     expect(bar().getAttribute('aria-label')).toContain('Chapter 2: The Pool of Tears');
-    expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-2');
+    expect(loadSharedChapter('/p')).toBe('chapter-2');
     // The arrow keys move between files, and the bar goes with them.
     screen.getByRole('row', { name: /Chapter 2 — The Pool of Tears/ }).focus();
     await user.keyboard('{ArrowDown}');
@@ -110,7 +111,7 @@ describe('Master & QC page body', () => {
     await user.click(screen.getByRole('row', { name: /Chapter 4 — / }));
     await user.click(screen.getByRole('button', { name: 'Next chapter' }));
     expect(bar().getAttribute('aria-label')).toContain('Closing credits');
-    expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('credits-closing');
+    expect(loadSharedChapter('/p')).toBe('credits-closing');
   });
 
   it('a chapter with no file yet says no file was measured for it', async () => {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { notAskedSentence } from '../../../../studio/dawNames';
 import { DAW_CHOSEN_CHAIN, type DawFxRangeChoice } from '../../../../api/contracts/daw';
 import type { EditWordFxApi, WordFx } from '../../../../api/contracts/wordFx';
 import { overlay } from '../../../../overlay/overlayService';
@@ -114,7 +115,7 @@ export function useChooseInDaw({ journal, daw, log, chapterId, locator, plan, pl
         })
         .catch((e: unknown) => {
           setState({ phase: 'idle' });
-          overlay.toast(`The DAW was not asked: ${why(e)}`, { tone: 'error' });
+          overlay.toast(notAskedSentence('the DAW', e), { tone: 'error' });
         });
     },
     [state.phase, acting, refusalOf, locator, daw, chapterId],
@@ -152,7 +153,7 @@ export function useChooseInDaw({ journal, daw, log, chapterId, locator, plan, pl
         finish();
         overlay.toast(res.message);
       })
-      .catch((e: unknown) => setState((s) => (s.phase === 'choosing' ? { ...s, busy: false, problem: `The DAW was not asked: ${why(e)}` } : s)));
+      .catch((e: unknown) => setState((s) => (s.phase === 'choosing' ? { ...s, busy: false, problem: notAskedSentence('the DAW', e) } : s)));
   }, [state, daw, chapterId, finish]);
 
   // Follow the DAW while its window is open: on a timer, and when this window gets focus back from the DAW's.

@@ -3,6 +3,7 @@ import { tracksUnreadable } from '../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
+import { loadSharedChapter, saveSharedChapter } from '../masterqc/page/sharedChapter';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { useGuardedAction } from '../../studio/drafts/unsavedDrafts';
@@ -67,26 +68,6 @@ const pinColour = (type: FindingNoteType): string => {
   const kind = NOTE_KIND[type];
   return kind ? `var(${kindColour(kind).line})` : 'var(--text-muted)';
 };
-
-// The last chapter the narrator looked at on Proof, per project: stepping out of All chapters opens it. A per-viewer
-// convenience in browser storage, never a host field; storage can be missing, full or blocked, so every access is guarded.
-const lastChapterKey = (projectFolder: string): string => `narration.proof.lastChapter.${projectFolder}`;
-
-function loadLastChapter(projectFolder: string): string {
-  try {
-    return window.localStorage.getItem(lastChapterKey(projectFolder)) ?? '';
-  } catch {
-    return '';
-  }
-}
-
-function saveLastChapter(projectFolder: string, chapterId: string): void {
-  try {
-    window.localStorage.setItem(lastChapterKey(projectFolder), chapterId);
-  } catch {
-    /* storage unavailable: the choice lasts for this visit only */
-  }
-}
 
 const isNarration = (chapter: ManuscriptChapter) => isCreditsChapter(chapter) || isNarrationChapter(chapter);
 const chapterOf = (finding: Finding) => finding.manuscript?.chapter_id ?? '';
@@ -153,7 +134,7 @@ export function ProofPage({
   // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('finding') ?? recallSelection(projectFolder, params.get('chapter') ?? ALL_CHAPTERS));
-  const [current, setCurrent] = useState(() => loadLastChapter(projectFolder));
+  const [current, setCurrent] = useState(() => loadSharedChapter(projectFolder));
   const [win, setWin] = useState<TimeWindow>({ start: 0, len: FIRST_WINDOW });
   // The latest selection, set as it happens: the right-click menu reads it in the same event that selected the row.
   const selectedRef = useRef(selectedId);
@@ -247,7 +228,7 @@ export function ProofPage({
     (next: string) => {
       if (next !== ALL_CHAPTERS) {
         setCurrent(next);
-        saveLastChapter(projectFolder, next);
+        saveSharedChapter(projectFolder, next);
       }
       setParams(next === ALL_CHAPTERS ? {} : { chapter: next });
     },
