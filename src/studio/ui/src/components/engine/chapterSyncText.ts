@@ -16,9 +16,9 @@ import type {
 export function chapterSyncReasonText(item: ChapterSyncNeedsYou): string {
   switch (item.reason) {
     case 'ambiguous': {
-      const names = item.candidates.map((candidate) => `“${readable(candidate.trackName, candidate.trackIndex)}”`);
+      const names = item.candidates.map((candidate) => `“${isolatedIfRtl(readable(candidate.trackName, candidate.trackIndex))}”`);
       if (names.length === 0) return 'More than one track looks like it.';
-      if (names.length === 1) return `${isolatedIfRtl(names[0])} looks like it.`;
+      if (names.length === 1) return `${names[0]} looks like it.`;
       return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} both look like it.`;
     }
     case 'uncertain':
@@ -42,7 +42,7 @@ export function chapterSyncNotChaptersText(unmatched: ChapterSyncTrackRef[], pic
   const names = [...unmatched.map((track) => readable(track.name, track.index)), ...pickupTracks.map((pickup) => readable(pickup.trackName))];
   if (names.length === 0) return { names: 'None.', note: '' };
   const subject = pickupTracks.length === 1 ? 'The last one is' : `The last ${pickupTracks.length} are`;
-  const object = pickupTracks.length === 1 ? `${pickupTracks[0].chapterTitle}'s pickup track` : 'their chapters’ pickup tracks';
+  const object = pickupTracks.length === 1 ? `${isolatedIfRtl(pickupTracks[0].chapterTitle)}'s pickup track` : 'their chapters’ pickup tracks';
   const note = pickupTracks.length > 0 ? `${subject} kept as ${object}.` : '';
   return { names: names.join(', '), note };
 }
@@ -50,7 +50,7 @@ export function chapterSyncNotChaptersText(unmatched: ChapterSyncTrackRef[], pic
 const COUNT_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
 
 function quotedList(names: string[]): string {
-  const quoted = names.map((name) => `“${name}”`);
+  const quoted = names.map((name) => `“${isolatedIfRtl(name)}”`);
   return quoted.length < 2 ? (quoted[0] ?? '') : `${quoted.slice(0, -1).join(', ')} and ${quoted[quoted.length - 1]}`;
 }
 
@@ -58,7 +58,7 @@ function quotedList(names: string[]): string {
 export function chapterSyncPanelReasonText(item: ChapterSyncNeedsYou): string {
   if (item.reason === 'ambiguous' && item.candidates.length >= 2) {
     const count = COUNT_WORDS[item.candidates.length] ?? String(item.candidates.length);
-    return `${count} tracks match: ${isolatedIfRtl(quotedList(item.candidates.map((candidate) => readable(candidate.trackName, candidate.trackIndex))))}. A chapter is checked from one track.`;
+    return `${count} tracks match: ${quotedList(item.candidates.map((candidate) => readable(candidate.trackName, candidate.trackIndex)))}. A chapter is checked from one track.`;
   }
   if (item.reason === 'uncertain' && item.best)
     return `Closest track “${isolatedIfRtl(readable(item.best.trackName, item.best.trackIndex))}” is not a confident match, so it was not linked on its own.`;

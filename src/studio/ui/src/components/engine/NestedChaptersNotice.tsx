@@ -11,7 +11,7 @@ import { isolatedIfRtl } from '../../visibleText';
 // A name in the title and the summary is cut to this many characters: a REAPER track name can be any length (qa-breaker B4).
 const NAME_MAX = 60;
 const short = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NAME_MAX - 1)}…` : name);
-const folderOf = (name: string) => (name.trim() ? `${short(name.trim())}’s folder` : 'the top level');
+const folderOf = (name: string) => (name.trim() ? `${isolatedIfRtl(short(name.trim()))}’s folder` : 'the top level');
 
 /** The sentence that says which chapters sit inside which folders. */
 function nestingSentence(check: ChapterFolders): string {
@@ -64,7 +64,7 @@ export function NestedChaptersNotice({
 
   const shown = opened ?? check;
   const shownChapters = shown.moves.filter((move) => move.chapterId);
-  const shownFolders = [...new Set(shownChapters.map((move) => short(move.fromName)))];
+  const shownFolders = [...new Set(shownChapters.map((move) => isolatedIfRtl(short(move.fromName))))];
   return (
     <span className="flex flex-wrap items-center justify-end gap-2">
       <StatusBadge tone="warning" label={`${plural(chapters.length, 'chapter')} nested`} />

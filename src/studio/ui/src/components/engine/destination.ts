@@ -101,7 +101,7 @@ export function destinationFor(layout: VoiceTracksLayout) {
 
 /** The names of the tracks a new folder was made with, "Narrator, Alice and Extras", when it has more than the Narrator; null for a plain track or a folder with only its Narrator. */
 export function childNames(created: CreatedDestination): string | null {
-  const names = (created.children ?? []).map((child) => child.name);
+  const names = (created.children ?? []).map((child) => isolatedIfRtl(child.name));
   if (names.length < 2) return null;
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }

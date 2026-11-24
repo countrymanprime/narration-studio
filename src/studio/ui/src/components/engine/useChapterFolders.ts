@@ -4,6 +4,7 @@ import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import type { Notify } from '../primitives/Toast';
 import { plural } from '../../plural';
+import { isolatedIfRtl } from '../../visibleText';
 
 /**
  * Whether a linked chapter's track sits inside another linked chapter's folder in the DAW (#2838), and the repair that moves it out.
@@ -50,7 +51,7 @@ export function useChapterFolders({ revision, notify }: { revision: unknown; not
     (opened: ChapterFolders) => {
       if (repairing || opened.outcome !== 'nested') return;
       setRepairing(true);
-      const folders = [...new Set(opened.moves.map((move) => move.fromName))].join(', ');
+      const folders = [...new Set(opened.moves.map((move) => isolatedIfRtl(move.fromName)))].join(', ');
       trackMap
         .chapterFoldersRepair(opened.expected)
         .then((answer) => {

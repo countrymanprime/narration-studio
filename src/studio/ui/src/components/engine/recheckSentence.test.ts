@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { recheckSentence } from './ChapterLinksTable';
+import { createdSentence, recheckSentence } from './ChapterLinksTable';
 import { textDirection } from '../../visibleText';
 import type { Track } from '../../types';
 
@@ -29,7 +29,7 @@ describe('recheckSentence', () => {
     const found = recheckSentence(AR, AR, [track('a', AR)], 'a');
     expect(found.startsWith(ISO)).toBe(true);
     expect(found).toContain(AR);
-    expect(found).toMatch(/\u2068“.*”\u2069/);
+    expect(found).toMatch(/“\u2068.*\u2069”/);
     expect(textDirection(found)).toBe('ltr');
     const gone = recheckSentence(AR, AR, [], 'x');
     expect(gone.startsWith(ISO)).toBe(true);
@@ -37,6 +37,14 @@ describe('recheckSentence', () => {
     const renamed = recheckSentence(AR, 'Old', [track('a', AR)], 'a');
     expect(renamed).toContain('for ' + ISO + ' was renamed');
     expect(textDirection(renamed)).toBe('ltr');
+  });
+
+  it('isolates the track, the chapter and a single voice in the created toast, quotes outside (#4113)', () => {
+    const AR = '\u0627\u0644\u0641';
+    const made = { outcome: 'created', track: { name: AR, index: 0 }, voice: { name: AR, index: 1 } } as never;
+    const text = createdSentence(made, AR);
+    expect(text).toBe(`Created the folder “\u2068${AR}\u2069” with a \u2068${AR}\u2069 track and linked \u2068${AR}\u2069 to it. Save the project to keep it.`);
+    expect(textDirection(text)).toBe('ltr');
   });
 
   it('says the track was renamed', () => {

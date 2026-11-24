@@ -7,7 +7,6 @@
 // an inverse is a closure the caller passes. The store composition (SNS-7) wires it to the project switch and the toasts.
 
 import { createLeaveGuard, type LeaveGuardStore } from './leaveGuard';
-import { isolatedIfRtl } from '../../visibleText';
 
 /** Structural on purpose: the shared `Refusal` schema belongs to the contract kit, and the compositions unify the two. */
 type Refusal = { code: string; reason: string };
@@ -123,14 +122,14 @@ export function createJournal(options: JournalOptions): Journal {
     if (!entry.inverse) return { code: 'not-undoable', reason: entry.notUndoableReason };
     const later = entries.slice(entries.findIndex((e) => e.id === entry.id) + 1);
     const newest = later[later.length - 1];
-    if (entry.daw && newest) return { code: 'daw-came-after', reason: `Undo '${isolatedIfRtl(newest.label)}' first. It came after this.` };
+    if (entry.daw && newest) return { code: 'daw-came-after', reason: `Undo '${newest.label}' first. It came after this.` };
     return null;
   }
 
   const sameThing = (entry: Entry): Refusal | null => {
     const later = entries.slice(entries.findIndex((e) => e.id === entry.id) + 1);
     const blocker = later.filter((e) => entriesOverlap(e, entry)).pop();
-    return blocker ? { code: 'same-thing', reason: `Undo '${isolatedIfRtl(blocker.label)}' first. It changed the same thing.` } : null;
+    return blocker ? { code: 'same-thing', reason: `Undo '${blocker.label}' first. It changed the same thing.` } : null;
   };
 
   async function dawRefusal(entry: Entry): Promise<Refusal | null> {

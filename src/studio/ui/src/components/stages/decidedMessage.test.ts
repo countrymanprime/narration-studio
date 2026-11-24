@@ -4,9 +4,10 @@ import { textDirection } from '../../visibleText';
 import { decidedMessage } from './useStageRecommendations';
 
 // "Chapter four: the long road home and the valley below the old mill", in Arabic: more right-to-left letters than the English words around it.
-const ARABIC_TITLE = 'الفصل الرابع الطريق الطويل إلى البيت';
-const FSI = '⁨';
-const PDI = '⁩';
+const ARABIC_TITLE =
+  '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0631\u0627\u0628\u0639 \u0627\u0644\u0637\u0631\u064A\u0642 \u0627\u0644\u0637\u0648\u064A\u0644 \u0625\u0644\u0649 \u0627\u0644\u0628\u064A\u062A';
+const FSI = '\u2068';
+const PDI = '\u2069';
 const chapter = (title: string) => ({ title, from: 'editing', target: 'proofing' }) as unknown as StageChapterRecommendation;
 
 describe('the sentence a stage decision toasts (#4113)', () => {

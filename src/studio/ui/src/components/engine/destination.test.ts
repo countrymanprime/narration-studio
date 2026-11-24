@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createdSentence, destinationFor } from './destination';
+import { childNames, createdSentence, destinationFor } from './destination';
 
 // #3271: the project's layout (flat, or Voice folders) is one setting, so every sentence that names where a chapter records follows it. Each layout is
 // pinned over every message the function builds, so a flat sentence cannot show on a folders project or the other way round.
@@ -108,6 +108,15 @@ describe('destinationFor names where a chapter records from the project layout',
     expect(createdSentence(partial, 'REAPER')).toBe(
       'Folder “Opening” is in REAPER, linked here. Save the REAPER project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
     );
+    // Each voice name is isolated before the list is joined, so two right-to-left names keep their order (#4113).
+    const arabic = (name: string, index: number) => ({ guid: `{${index}}`, name, index, notVoice: false });
+    expect(
+      childNames({
+        track: { name: 'Opening' },
+        voice: { guid: '{4}', name: 'Narrator', index: 4 },
+        children: [arabic('\u0627\u0644\u0641', 4), arabic('\u0628\u0627\u0628', 5), arabic('Extras', 6)],
+      }),
+    ).toBe('\u2068' + '\u0627\u0644\u0641' + '\u2069, \u2068' + '\u0628\u0627\u0628' + '\u2069 and Extras');
     expect(createdSentence({ track: { name: 'Opening' } }, 'REAPER')).toBe('Track “Opening” is in REAPER, linked here. Save the REAPER project to keep it.');
   });
 

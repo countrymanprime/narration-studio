@@ -119,7 +119,7 @@ function DawMic() {
       <CheckedStamp at={checkedAt} reads={reads} />
     </span>
   );
-  const records = resolved.dawInput ? <span className={NOTE_CLASS}>{`${dawName} records from ${resolved.dawInput}.`}</span> : null;
+  const records = resolved.dawInput ? <span className={NOTE_CLASS}>{`${dawName} records from ${isolatedIfRtl(resolved.dawInput)}.`}</span> : null;
   if (resolved.origin === 'daw' || resolved.origin === 'uncertain')
     return (
       <div className="flex w-full min-w-0 flex-col items-start gap-1.5">

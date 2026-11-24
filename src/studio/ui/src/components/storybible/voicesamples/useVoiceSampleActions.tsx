@@ -128,7 +128,7 @@ export function useVoiceSampleActions({
       <ConfirmDialog
         title="Delete voice sample"
         // The subject is quoted in full (its length and chapter), since the row may be hidden under the dialog (R4SB-5).
-        body={`Delete “${isolatedIfRtl(name)}” (${isolatedIfRtl([sampleLength(sample.durationMs), sample.source.chapterTitle].filter(Boolean).join(', '))})? Its audio is removed from this project. The recording it was copied from is not touched.`}
+        body={`Delete “${isolatedIfRtl(name)}” (${[sampleLength(sample.durationMs), isolatedIfRtl(sample.source.chapterTitle)].filter(Boolean).join(', ')})? Its audio is removed from this project. The recording it was copied from is not touched.`}
         confirmLabel="Delete"
         confirmVariant="danger"
         pending={mutation.isPending(`delete:${sample.id}`)}

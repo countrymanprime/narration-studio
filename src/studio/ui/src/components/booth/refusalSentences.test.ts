@@ -26,8 +26,8 @@ describe('the Booth sentences that are read in a toast fit two lines (#4095)', (
 
   it.each(BOOTH_TOAST_SENTENCES.map((entry) => [entry.name, entry] as const))('%s', (_name, { button, text }) => {
     expect(text, 'a sentence that is not there').not.toBe('');
-    // The isolates round a right-to-left name (U+2068, U+2069, #4113) draw nothing: they are not counted.
-    const shown = text.replace(/[\u2068\u2069]/g, '').length;
+    // The isolates round a right-to-left name (U+2066 to U+2069, #4113) draw nothing: they are not counted.
+    const shown = text.replace(/[\u2066-\u2069]/g, '').length;
     expect(shown, `"${text}" is ${shown} characters; a toast with ${button} holds ${TOAST_CHAR_BUDGET[button]}`).toBeLessThanOrEqual(TOAST_CHAR_BUDGET[button]);
   });
 
@@ -61,7 +61,7 @@ describe('the Booth sentences that are read in a toast fit two lines (#4095)', (
     expect(asksForLink.length).toBeGreaterThan(0);
     for (const { text } of asksForLink) {
       expect(text, text).toMatch(/in (the audio engine panel|REAPER)\b/);
-      expect(text.replace(/[\u2068\u2069]/g, '').length).toBeLessThanOrEqual(TOAST_CHAR_BUDGET.plain);
+      expect(text.replace(/[\u2066-\u2069]/g, '').length).toBeLessThanOrEqual(TOAST_CHAR_BUDGET.plain);
     }
   });
 });

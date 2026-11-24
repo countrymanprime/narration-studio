@@ -1,5 +1,4 @@
 import { EDITABLE } from './input/targets';
-import { isolatedIfRtl } from './visibleText';
 import { logUi } from './api/uiLog';
 import { appExtension } from './appExtension';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
@@ -853,7 +852,7 @@ function AppRoutes() {
   const undoLast = async () => {
     const [newest] = await journal.entries();
     const result = await journal.undoLast();
-    overlay.toast(result.ok ? `Undid ${isolatedIfRtl(newest?.label ?? 'the last change')}` : result.refusal.reason);
+    overlay.toast(result.ok ? `Undid ${newest?.label ?? 'the last change'}` : result.refusal.reason);
   };
   // What the jump menu's catalogue rows run: the same actions as the keys and the header's buttons. A page's own command stays its own.
   const shellCommands = useRef<Record<string, () => void>>({});

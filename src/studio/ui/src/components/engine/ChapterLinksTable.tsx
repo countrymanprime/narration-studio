@@ -195,7 +195,7 @@ const kindInWords = (track: Track, tracks: Track[], voiceFolders: boolean, notVo
 /** How a track is named in a message: quoted, cut at a sensible length, and named as every page names a track with no name (`trackName`). */
 function quoted(name: string, index?: number): string {
   const text = trackName(name, index);
-  return `“${text.length > 60 ? `${text.slice(0, 59)}…` : text}”`;
+  return `“${isolatedIfRtl(text.length > 60 ? `${text.slice(0, 59)}…` : text)}”`;
 }
 
 /** What the check on an unchanged link found: the track as it is now, what a folder holds, and whether its name moved. `how` says what was
@@ -217,14 +217,14 @@ export function recheckSentence(
   const what = kindInWords(found, tracks, voiceFolders, notVoiceGuids);
   const place = tracks.indexOf(found);
   if (was !== undefined && was !== found.name)
-    return `The ${noun} for ${who} was renamed from ${isolatedIfRtl(quoted(was, place))} to ${isolatedIfRtl(quoted(found.name, place))} (${what}).`;
-  const linked = `${who} is linked to ${isolatedIfRtl(quoted(found.name, place))} (${what})`;
+    return `The ${noun} for ${who} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
+  const linked = `${who} is linked to ${quoted(found.name, place)} (${what})`;
   if (how === 'live') return `${linked}. Nothing changed.`;
   return how === 'saved' ? `${linked}, as the saved project has it.` : `${linked}.`;
 }
 
 /** The done toast: what the DAW made, named as it was given (a folder with the Narrator, and the voices and Extras it was made with), that it is not saved yet, and what is left when the create was partly done. */
-function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
+export function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
   const named = childNames(result);
   const rest = result.message ? ` ${result.message}` : '';
   const who = isolatedIfRtl(short);

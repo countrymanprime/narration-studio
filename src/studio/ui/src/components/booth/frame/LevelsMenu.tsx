@@ -135,7 +135,7 @@ function Devices({
   const options = [
     ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
     ...devices.filter((d) => d.name.trim() !== '').map((d) => ({ value: d.name, label: d.name })),
-    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
+    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${isolatedIfRtl(device)} (not found)` }] : []),
   ];
   return <Select label="Microphone" fullWidth value={device} options={options} onChange={onDevice} />;
 }
@@ -155,7 +155,7 @@ function MicSelect({ device, devices, onChange }: { device: string; devices: rea
   const options = [
     ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
     ...devices.map((d) => ({ value: d.name, label: d.name })),
-    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
+    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${isolatedIfRtl(device)} (not found)` }] : []),
   ];
   return <Select label="Microphone" fullWidth value={device} options={options} onChange={onChange} />;
 }
@@ -171,7 +171,7 @@ function Listening({ dawName, device, listen }: { dawName: string; device: strin
   const { mic, devices } = listen;
   const [choosing, setChoosing] = useState(false);
   const plays = mic.outputDevice ? <p className={MUTED}>{`${dawName} plays on ${isolatedIfRtl(mic.outputDevice)}.`}</p> : null;
-  const records = mic.dawInput ? <p className={MUTED}>{`${dawName} records from ${mic.dawInput}.`}</p> : null;
+  const records = mic.dawInput ? <p className={MUTED}>{`${dawName} records from ${isolatedIfRtl(mic.dawInput)}.`}</p> : null;
   if (devices.length === 0)
     return (
       <>
@@ -252,7 +252,7 @@ function Listening({ dawName, device, listen }: { dawName: string; device: strin
           {mic.note ?? `${dawName}'s input could be any of these microphones. Pick the one it uses.`}
         </p>
         {picks}
-        <p className={MUTED}>{`Listening to ${device} until you pick.`}</p>
+        <p className={MUTED}>{`Listening to ${isolatedIfRtl(device)} until you pick.`}</p>
         {plays}
         {different}
       </>

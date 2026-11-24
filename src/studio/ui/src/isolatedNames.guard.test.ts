@@ -100,12 +100,12 @@ function lex(source: string): { templates: Template[]; isCode: boolean[] } {
 const CALL = /(?:(?:\?\.|\.)(?:toast|toastUndo)|(?<![\w$.])(?:toast|toastUndo)|\bnotify|\bsay)\(/g;
 const SENTENCE_STATEMENT = /\b(?:message|reason|done|success|undoText|sentence|why|notice)\b/;
 const NAMEISH =
-  /\b\w*(?:[Nn]ame|[Tt]itle|[Ll]abel|[Pp]ath|[Qq]uote|[Tt]erm|[Qq]uery|[Cc]hapter|[Tt]rack|[Vv]oice|[Pp]roject|[Pp]rofile|[Ee]ntry|[Ss]peaker|[Cc]haracter|[Hh]eading|[Ff]older|[Ff]ile|[Ww]ho|[Mm]ilestone|[Ss]hort|[Dd]evice|[Ss]ource|[Oo]wner)\b/;
+  /\b\w*(?:[Nn]ame|[Tt]itle|[Ll]abel|[Pp]ath|[Qq]uote|[Tt]erm|[Qq]uery|[Cc]hapter|[Tt]rack|[Vv]oice|[Pp]roject|[Pp]rofile|[Ee]ntry|[Ss]peaker|[Cc]haracter|[Hh]eading|[Ff]older|[Ff]ile|[Ww]ho|[Mm]ilestone|[Ss]hort|[Dd]evice|[Ss]ource|[Oo]wner|[Ii]nput)s?\b/;
 /** Whether an expression reads like a name; the words inside its quotes (`plural(n, 'track')`) are text, not names. */
 const nameish = (expression: string): boolean => NAMEISH.test(expression.replace(/(['"])(?:\\.|(?!\1).)*\1/g, "''"));
 
 /** A template that ends its words with a full stop, a question mark or an exclamation mark is a sentence, and a label, a tooltip or a path is not. */
-const SENTENCE_END = /[.!?]$/;
+const SENTENCE_END = /[.!?]\s*$/;
 /** A plain identifier or member access (`short`, `names[0]`, `row.chapter`). */
 const PLAIN = /^[A-Za-z_$][\w$]*(?:\??\.[A-Za-z_$][\w$]*|\[[^\]]*\])*$/;
 /** Plain identifiers that hold a count or a number, never a name. */
@@ -182,26 +182,36 @@ export function scanSource(file: string, source: string): Found {
   return found;
 }
 
+/** The reasons an expression is allowed without a wrapper. One text each; an entry names its category, never its history. */
+const HOST_MESSAGE = 'a sentence or part of one that the host or the app words itself, with no name the narrator or an author chose in it';
+const APP_CONSTANT = 'a fixed string in the source';
+const COUNT = 'a number or a count, not a name';
+const DAW_NAME = 'the name of a DAW product (REAPER, Audacity) or the built-in recorder';
+const MODEL_LABEL = 'the name of a model the app ships';
+const APP_WORDING = 'a label, step, setting, rule or sentence the app defines';
+/** Entries with this reason must have a proof below: the text that isolates the name where it is bound, which the test finds in the file. */
+const ALREADY_ISOLATED_AT_BINDING = 'the name is isolated where it is bound or built, not at this use';
+
 /** A name the app itself defines, not a narrator's or an author's: allowed, with why. The key is `<file>: <expression>`. */
 const APP_DEFINED: Record<string, string> = {
-  'components/editing/page/useRereadFeedback.ts: name.slice(0, MAX_NAME - 1)': 'cut to length here, isolated by the caller (isolatedIfRtl(nameIn(...)))',
+  'components/editing/page/useRereadFeedback.ts: name.slice(0, MAX_NAME - 1)': ALREADY_ISOLATED_AT_BINDING,
   'components/settings/row/SettingRowView.tsx: row.label': "the label of a setting, the app's own English wording",
   'components/proof/ProofPage.tsx: noteRow(next).resolution.label': 'the label of a resolution kind the app defines ("Fine as read")',
-  'components/proof/CompareRun.tsx: modelLabel(value)': 'the name of a model the app ships',
-  'components/proof/CompareRun.tsx: dawName': 'the name of a DAW product (REAPER, Audacity)',
-  'components/booth/leave/useBoothLeaveGuard.ts: now.daw.name': 'the name of a DAW product (REAPER, Audacity)',
-  'components/booth/record/useRecordControl.ts: recorderName(capabilitiesRef.current?.daw)': 'the name of a DAW product (REAPER, Audacity)',
-  'components/booth/page/useBoothPage.ts: recorderLabel': 'the name of a DAW product (REAPER, Audacity)',
-  'components/booth/record/RecordSetup.tsx: Name': 'the name of a DAW product (REAPER, Audacity)',
-  'components/booth/toastSentences.ts: recorderName(daw)': 'the name of a DAW product (REAPER, Audacity)',
-  'components/booth/toastSentences.ts: name': 'the name of a DAW product, given by the caller',
-  'components/booth/toastSentences.ts: dawName': 'the name of a DAW product (REAPER, Audacity)',
+  'components/proof/CompareRun.tsx: modelLabel(value)': MODEL_LABEL,
+  'components/proof/CompareRun.tsx: dawName': DAW_NAME,
+  'components/booth/leave/useBoothLeaveGuard.ts: now.daw.name': DAW_NAME,
+  'components/booth/record/useRecordControl.ts: recorderName(capabilitiesRef.current?.daw)': DAW_NAME,
+  'components/booth/page/useBoothPage.ts: recorderLabel': DAW_NAME,
+  'components/booth/record/RecordSetup.tsx: Name': DAW_NAME,
+  'components/booth/toastSentences.ts: recorderName(daw)': DAW_NAME,
+  'components/booth/toastSentences.ts: name': DAW_NAME,
+  'components/booth/toastSentences.ts: dawName': DAW_NAME,
   'components/connection/useReaperLaunch.ts: name': 'the name of the DAW product the launch started',
   'components/editing/bar/SelectionActionButton.tsx: hint ?? label': "the label of a button, the app's own wording, in a tooltip",
   'components/master/MasteringChain.tsx: row.label': 'the label of a mastering step the app defines',
   'components/primitives/ChapterStepper.tsx: name': 'the name of a step of the stepper in a tooltip, not a toast',
   'components/storybible/usePreviewAudio.ts: error.name': 'the name of a browser error kind (AbortError)',
-  'components/settings/models/AssetsStore.tsx: name': 'the name of a model the app ships',
+  'components/settings/models/AssetsStore.tsx: name': MODEL_LABEL,
   'components/storybible/GuideDetail.tsx: capitalize(stuck.label)': "the label of a field of the Story Bible form, the app's own wording",
 };
 
@@ -210,229 +220,201 @@ const APP_DEFINED: Record<string, string> = {
  * shown in a sentence. The key is `<file>: <expression>`; each has the reason.
  */
 const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
-  'App.tsx: short':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  "App.tsx: /[.!?…]$/.test(short) ? '' : '.'":
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/range/fx/fxMenu.ts: source':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'App.tsx: message':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/frame/LevelsMenu.tsx: device':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/leave/stopRecordingSpec.ts: subject':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/page/useBoothPage.ts: stopped.message':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/page/useBoothPage.ts: undone.message':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/record/takeWords.ts: TAKE_ENDED':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/record/useRecordControl.ts: what':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/roll/rollConfirm.ts: subject':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/roll/useRoll.ts: plan.reason':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/booth/voices/useBoothVoices.ts: COLD_READ_NO_VOICE_REASON':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/delivery/page/Preflight.tsx: run.job.message':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/delivery/page/Preflight.tsx: ROW':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/backups/backupsText.ts: message':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/cleanup/cleanupApply.ts: stale.length':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/effects/EffectSettings.tsx: notKept':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/follow/useDawTransportSync.ts: daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/follow/wordClock.ts: daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/range/fx/fxText.ts: FX_FADE_MS':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/range/replace/useReplaceAudio.tsx: dawCaps.daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/stack/stackPlan.ts: caps.daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/editing/takes/prep/usePrepSteps.tsx: caps.daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/engine/AddMarkers.tsx: skipped':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/engine/ChapterLinksTable.tsx: who':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/engine/ChapterLinksTable.tsx: linked':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/engine/VoicesCard.tsx: lead':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/engine/chapterSyncText.ts: subject':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/layout/AddressGate.tsx: reason':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/master/DiagnosticsSection.tsx: job.message':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/master/fileVerdict.ts: describeMiss(rule, result, owner)':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/masterqc/page/MeasureRun.tsx: run.job.message':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/pickups/list/usePickupsContextMenu.ts: NO_NOTE':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/production/ChapterTrackPanel.tsx: Noun':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/proof/ProoferSheet.tsx: first':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/recordingcheck/CheckRecordingsButton.tsx: caps.daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/recordingcheck/activityView.ts: model':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/recordingcheck/background/BackgroundChecksNotice.tsx: chapters':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/recordingcheck/runChoices.ts: first':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/recordingcheck/runChoices.ts: how':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/recordingcheck/workerPlan.ts: lead':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/schedule/ContractPanel.tsx: text':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/schedule/dates.ts: t':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/schedule/draft.ts: t':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/settings/controls/EngineBody.tsx: daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/settings/controls/EngineBody.tsx: option.daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/settings/controls/EngineBody.tsx: foundFiles.length':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'components/settings/row/OpenLogFolderButton.tsx: FAILED':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'daw/dawSession.ts: daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'interactionFeedback/daw.ts: what':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'playback/providers.ts: caps.daw':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
-  'studio/drafts/draftSentence.ts: why':
-    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  "App.tsx: newest?.label ?? 'the last change'": ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/ChapterLinksTable.tsx: quoted(found.name, place)': ALREADY_ISOLATED_AT_BINDING,
+  "components/engine/chapterSyncText.ts: names.slice(0, -1).join(', ')": ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/chapterSyncText.ts: names[0]': ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/chapterSyncText.ts: names[names.length - 1]': ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/chapterSyncText.ts: quotedList(item.candidates.map((candidate) => readable(candidate.trackName, candidate.trackIndex)))':
+    ALREADY_ISOLATED_AT_BINDING,
+  "components/storybible/voicesamples/useVoiceSampleActions.tsx: [sampleLength(sample.durationMs), isolatedIfRtl(sample.source.chapterTitle)].filter(Boolean).join(', ')":
+    ALREADY_ISOLATED_AT_BINDING,
+  'studio/journal/createJournal.ts: blocker.label': ALREADY_ISOLATED_AT_BINDING,
+  'studio/journal/createJournal.ts: newest.label': ALREADY_ISOLATED_AT_BINDING,
+  "components/engine/NestedChaptersNotice.tsx: folders.length === 1 ? 'its voices' : 'their voices'": APP_WORDING,
+  "components/engine/NestedChaptersNotice.tsx: folders.map(folderOf).join(' and ')": ALREADY_ISOLATED_AT_BINDING,
+  "components/engine/NestedChaptersNotice.tsx: shownChapters.length === 1 ? 'a chapter' : plural(shownChapters.length, 'chapter')": COUNT,
+  "components/engine/NestedChaptersNotice.tsx: shownFolders.join(' and ')": ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/useChapterFolders.ts: folders': ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/voices.ts: holdsWords(children, voiceFolders)': APP_WORDING,
+  'components/production/target/pace.selectors.ts: minChapters': COUNT,
+  'components/recordingcheck/runChoices.ts: choices.chapters': COUNT,
+  "components/storybible/suggested/row/selectors.ts: plural(context.chapters, 'chapter')": COUNT,
+  'App.tsx: short': APP_WORDING,
+  "App.tsx: /[.!?…]$/.test(short) ? '' : '.'": APP_WORDING,
+  'components/editing/range/fx/fxMenu.ts: source': APP_WORDING,
+  'App.tsx: message': HOST_MESSAGE,
+  'components/booth/leave/stopRecordingSpec.ts: subject': APP_WORDING,
+  'components/booth/page/useBoothPage.ts: stopped.message': HOST_MESSAGE,
+  'components/booth/page/useBoothPage.ts: undone.message': HOST_MESSAGE,
+  'components/booth/record/takeWords.ts: TAKE_ENDED': APP_CONSTANT,
+  'components/booth/record/useRecordControl.ts: what': HOST_MESSAGE,
+  'components/booth/roll/rollConfirm.ts: subject': APP_WORDING,
+  'components/booth/roll/useRoll.ts: plan.reason': HOST_MESSAGE,
+  'components/booth/voices/useBoothVoices.ts: COLD_READ_NO_VOICE_REASON': APP_CONSTANT,
+  'components/delivery/page/Preflight.tsx: run.job.message': HOST_MESSAGE,
+  'components/delivery/page/Preflight.tsx: ROW': APP_CONSTANT,
+  'components/editing/backups/backupsText.ts: message': HOST_MESSAGE,
+  'components/editing/cleanup/cleanupApply.ts: stale.length': COUNT,
+  'components/editing/effects/EffectSettings.tsx: notKept': APP_WORDING,
+  'components/editing/follow/useDawTransportSync.ts: daw': DAW_NAME,
+  'components/editing/follow/wordClock.ts: daw': DAW_NAME,
+  'components/editing/range/fx/fxText.ts: FX_FADE_MS': APP_CONSTANT,
+  'components/editing/range/replace/useReplaceAudio.tsx: dawCaps.daw': DAW_NAME,
+  'components/editing/stack/stackPlan.ts: caps.daw': DAW_NAME,
+  'components/editing/takes/prep/usePrepSteps.tsx: caps.daw': DAW_NAME,
+  'components/engine/AddMarkers.tsx: skipped': APP_WORDING,
+  'components/engine/ChapterLinksTable.tsx: who': ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/ChapterLinksTable.tsx: linked': ALREADY_ISOLATED_AT_BINDING,
+  'components/engine/VoicesCard.tsx: lead': HOST_MESSAGE,
+  'components/engine/chapterSyncText.ts: subject': APP_WORDING,
+  'components/layout/AddressGate.tsx: reason': HOST_MESSAGE,
+  'components/master/DiagnosticsSection.tsx: job.message': HOST_MESSAGE,
+  'components/master/fileVerdict.ts: describeMiss(rule, result, owner)': APP_WORDING,
+  'components/masterqc/page/MeasureRun.tsx: run.job.message': HOST_MESSAGE,
+  'components/pickups/list/usePickupsContextMenu.ts: NO_NOTE': APP_CONSTANT,
+  'components/production/ChapterTrackPanel.tsx: Noun': APP_WORDING,
+  'components/proof/ProoferSheet.tsx: first': HOST_MESSAGE,
+  'components/recordingcheck/CheckRecordingsButton.tsx: caps.daw': DAW_NAME,
+  'components/recordingcheck/activityView.ts: model': MODEL_LABEL,
+  'components/recordingcheck/background/BackgroundChecksNotice.tsx: chapters': APP_WORDING,
+  'components/recordingcheck/runChoices.ts: first': HOST_MESSAGE,
+  'components/recordingcheck/runChoices.ts: how': HOST_MESSAGE,
+  'components/recordingcheck/workerPlan.ts: lead': HOST_MESSAGE,
+  'components/schedule/ContractPanel.tsx: text': HOST_MESSAGE,
+  'components/schedule/dates.ts: t': COUNT,
+  'components/settings/controls/EngineBody.tsx: daw': DAW_NAME,
+  'components/settings/controls/EngineBody.tsx: option.daw': DAW_NAME,
+  'components/settings/controls/EngineBody.tsx: foundFiles.length': COUNT,
+  'components/settings/row/OpenLogFolderButton.tsx: FAILED': APP_CONSTANT,
+  'daw/dawSession.ts: daw': DAW_NAME,
+  'interactionFeedback/daw.ts: what': HOST_MESSAGE,
+  'playback/providers.ts: caps.daw': DAW_NAME,
+  'studio/drafts/draftSentence.ts: why': HOST_MESSAGE,
   "components/engine/LinkChaptersDialog.tsx: sharing.map(({ chapter }) => isolatedIfRtl(chapterName(chapter, 'short'))).join(', ')":
     'each name is isolated before the join',
-  'components/booth/record/RecordSetup.tsx: guide.installFile': "a label the app itself defines, a count or a number: not a narrator's name",
-  "components/booth/voices/WhoIsInDialog.tsx: keyName(String(ask.kind === 'key' ? ask.key : ''))":
-    "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/delivery/page/chapterStates.ts: notReadyWhy(file)': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/editing/cleanup/cleanupApply.ts: appliedLabel(kind, outcome.applied.length, params)':
-    "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/editing/effects/ChooseInDaw.tsx: choice?.label': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/editing/ribbon/useRangeInteraction.ts: rangeLabel(span, wordsCovered(words, span).keys.length)':
-    "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/master/DeliveryProfilePanel.tsx: title': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/master/DeliveryProfilePanel.tsx: profile.revision': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/master/MasteringChain.tsx: label': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/master/fileVerdict.ts: rule.label': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/recordingcheck/runChoices.ts: chunkLabel(choices.chunkSeconds)': "a label the app itself defines, a count or a number: not a narrator's name",
-  "components/schedule/draft.ts: plural([...name].length, 'character')": "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/settings/KeyboardPanel.tsx: gestureLabel(captured)': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/settings/KeyboardPanel.tsx: conflictCommand.label': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/settings/analysis/AnalysisToolsSection.tsx: removing.displayName': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/settings/page/ModelsPane.tsx: removing.item.displayName': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/stages/useStageRecommendations.ts: stageLabel(chapter.from)': "a label the app itself defines, a count or a number: not a narrator's name",
-  'input/commandProviders.ts: command.label': "a label the app itself defines, a count or a number: not a narrator's name",
-  'input/commandProviders.ts: clash.label': "a label the app itself defines, a count or a number: not a narrator's name",
-  'playback/providers.ts: providers[0].name': "a label the app itself defines, a count or a number: not a narrator's name",
-  'studio/journal/createJournal.ts: dawName()': "a label the app itself defines, a count or a number: not a narrator's name",
-  'components/booth/ReadAlongView.tsx: t.prompt.model.displayName': 'the name of a model the app ships',
-  'components/booth/WhisperModelPrompt.tsx: prompt.model.displayName': 'the name of a model the app ships',
-  'components/booth/listening/ListeningModelPrompt.tsx: prompt.model.displayName': 'the name of a model the app ships',
-  'components/booth/resume/resumeOfferModel.ts: result.model.displayName': 'the name of a model the app ships',
-  'components/proof/CompareRun.tsx: whisperPrompt.model.displayName': 'the name of a model the app ships',
-  'components/recordingcheck/CheckRecordingsDialog.tsx: ask.model.displayName': 'the name of a model the app ships',
-  'components/recordingcheck/CheckRecordingsDialog.tsx: firstLabel': 'the name of a model the app ships',
-  'components/recordingcheck/checkRun.ts: answer.model.displayName': 'the name of a model the app ships',
-  'components/recordingcheck/workerPlan.ts: plan.modelLabel': 'the name of a model the app ships',
-  'components/booth/record/recordCheck.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/booth/record/useRecordControl.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/editing/EditingPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/editing/bar/useScriptPlayback.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/masterqc/page/MasterPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/pickups/PickupsPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/pickups/list/usePlayOriginal.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/production/ProductionPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/proof/ProofPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'playback/providers.ts: provider.name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'playback/providers.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'studio/dawNames.ts: name.charAt(0).toUpperCase()': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'studio/dawNames.ts: name.slice(1)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  "components/booth/record/useRecordControl.ts: otherProject ? 'has another project open' : 'is recording another track'":
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/editing/drawer/drawerSections.ts: section.label':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/editing/range/common/locate.ts: name':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/editing/takes/prep/usePrepSteps.tsx: STEP_TEXT[step].entry':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/editing/takes/split/splitFixtures.ts: chapter':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/master/ReportExportPanel.tsx: brand.identity.projectFolder':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  "components/masterqc/files/rows.ts: file.error ?? 'the file could not be read.'":
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  "components/proof/inspector/FindingThread.tsx: message.who === 'you' ? 'your' : 'the proofer’s'":
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/script/page/rail/threads/NoteCard.tsx: message.who':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/script/page/rail/threads/noteKeys.ts: message.who':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/settings/DeliveryProfileEditor.tsx: profile.revision + 1':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/settings/DeliveryProfilesPanel.tsx: profile.revision':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/settings/ScopedSetting.tsx: field.label.toLowerCase()':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/settings/UpdatesPanel.tsx: brand.name':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/settings/page/ModelsPane.tsx: list(plan.blocked.map((row) => row.label))':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/settings/page/ModelsPane.tsx: list(removingUses.map(settingLabel))':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/storybible/propertyDraft.ts: field.label':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/storybible/source/NamePronunciation.tsx: candidate.label':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  'components/storybible/source/NamePronunciation.tsx: source.label':
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
-  "components/stages/useStageRecommendations.ts: previous.target ? stageLabel(previous.target) : 'the next stage'":
-    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/booth/record/RecordSetup.tsx: guide.installFile': APP_WORDING,
+  "components/booth/voices/WhoIsInDialog.tsx: keyName(String(ask.kind === 'key' ? ask.key : ''))": APP_WORDING,
+  'components/delivery/page/chapterStates.ts: notReadyWhy(file)': APP_WORDING,
+  'components/editing/cleanup/cleanupApply.ts: appliedLabel(kind, outcome.applied.length, params)': COUNT,
+  'components/editing/effects/ChooseInDaw.tsx: choice?.label': APP_WORDING,
+  'components/editing/ribbon/useRangeInteraction.ts: rangeLabel(span, wordsCovered(words, span).keys.length)': COUNT,
+  'components/master/DeliveryProfilePanel.tsx: title': APP_WORDING,
+  'components/master/DeliveryProfilePanel.tsx: profile.revision': COUNT,
+  'components/master/MasteringChain.tsx: label': APP_WORDING,
+  'components/master/fileVerdict.ts: rule.label': APP_WORDING,
+  'components/recordingcheck/runChoices.ts: chunkLabel(choices.chunkSeconds)': APP_WORDING,
+  "components/schedule/draft.ts: plural([...name].length, 'character')": COUNT,
+  'components/settings/KeyboardPanel.tsx: gestureLabel(captured)': APP_WORDING,
+  'components/settings/KeyboardPanel.tsx: conflictCommand.label': APP_WORDING,
+  'components/settings/analysis/AnalysisToolsSection.tsx: removing.displayName': MODEL_LABEL,
+  'components/settings/page/ModelsPane.tsx: removing.item.displayName': MODEL_LABEL,
+  'components/stages/useStageRecommendations.ts: stageLabel(chapter.from)': APP_WORDING,
+  'input/commandProviders.ts: command.label': APP_WORDING,
+  'input/commandProviders.ts: clash.label': APP_WORDING,
+  'playback/providers.ts: providers[0].name': DAW_NAME,
+  'studio/journal/createJournal.ts: dawName()': DAW_NAME,
+  'components/booth/ReadAlongView.tsx: t.prompt.model.displayName': MODEL_LABEL,
+  'components/booth/WhisperModelPrompt.tsx: prompt.model.displayName': MODEL_LABEL,
+  'components/booth/listening/ListeningModelPrompt.tsx: prompt.model.displayName': MODEL_LABEL,
+  'components/booth/resume/resumeOfferModel.ts: result.model.displayName': MODEL_LABEL,
+  'components/proof/CompareRun.tsx: whisperPrompt.model.displayName': MODEL_LABEL,
+  'components/recordingcheck/CheckRecordingsDialog.tsx: ask.model.displayName': MODEL_LABEL,
+  'components/recordingcheck/CheckRecordingsDialog.tsx: firstLabel': MODEL_LABEL,
+  'components/recordingcheck/checkRun.ts: answer.model.displayName': MODEL_LABEL,
+  'components/recordingcheck/workerPlan.ts: plan.modelLabel': MODEL_LABEL,
+  'components/booth/record/recordCheck.ts: name': DAW_NAME,
+  'components/booth/record/useRecordControl.ts: name': DAW_NAME,
+  'components/editing/EditingPage.tsx: name': DAW_NAME,
+  'components/editing/bar/useScriptPlayback.ts: name': DAW_NAME,
+  'components/masterqc/page/MasterPage.tsx: name': DAW_NAME,
+  'components/pickups/PickupsPage.tsx: name': DAW_NAME,
+  'components/pickups/list/usePlayOriginal.ts: name': DAW_NAME,
+  'components/production/ProductionPage.tsx: name': DAW_NAME,
+  'components/proof/ProofPage.tsx: name': DAW_NAME,
+  'playback/providers.ts: provider.name': DAW_NAME,
+  'playback/providers.ts: capitalised(name)': DAW_NAME,
+  'studio/dawNames.ts: name.charAt(0).toUpperCase()': DAW_NAME,
+  'studio/dawNames.ts: name.slice(1)': DAW_NAME,
+  "components/booth/record/useRecordControl.ts: otherProject ? 'has another project open' : 'is recording another track'": APP_WORDING,
+  'components/editing/drawer/drawerSections.ts: section.label': APP_WORDING,
+  'components/editing/range/common/locate.ts: name': APP_WORDING,
+  'components/editing/takes/prep/usePrepSteps.tsx: STEP_TEXT[step].entry': APP_WORDING,
+  'components/editing/takes/split/splitFixtures.ts: chapter': APP_WORDING,
+  'components/master/ReportExportPanel.tsx: brand.identity.projectFolder': APP_WORDING,
+  "components/masterqc/files/rows.ts: file.error ?? 'the file could not be read.'": APP_WORDING,
+  "components/proof/inspector/FindingThread.tsx: message.who === 'you' ? 'your' : 'the proofer’s'": APP_WORDING,
+  'components/script/page/rail/threads/NoteCard.tsx: message.who': APP_WORDING,
+  'components/script/page/rail/threads/noteKeys.ts: message.who': APP_WORDING,
+  'components/settings/DeliveryProfileEditor.tsx: profile.revision + 1': APP_WORDING,
+  'components/settings/DeliveryProfilesPanel.tsx: profile.revision': APP_WORDING,
+  'components/settings/ScopedSetting.tsx: field.label.toLowerCase()': APP_WORDING,
+  'components/settings/UpdatesPanel.tsx: brand.name': APP_WORDING,
+  'components/settings/page/ModelsPane.tsx: list(plan.blocked.map((row) => row.label))': APP_WORDING,
+  'components/settings/page/ModelsPane.tsx: list(removingUses.map(settingLabel))': APP_WORDING,
+  'components/storybible/propertyDraft.ts: field.label': APP_WORDING,
+  'components/storybible/source/NamePronunciation.tsx: candidate.label': APP_WORDING,
+  'components/storybible/source/NamePronunciation.tsx: source.label': APP_WORDING,
+  "components/stages/useStageRecommendations.ts: previous.target ? stageLabel(previous.target) : 'the next stage'": APP_WORDING,
   'components/editing/page/noAudioText.ts: chapter': 'page or dialog text the app words, not a toast; the element it sits in sets its own direction',
   'components/engine/destination.ts: chapter': 'page or dialog text the app words, not a toast; the element it sits in sets its own direction',
-  'components/stages/useStageRecommendations.ts: name': 'isolated where it is bound (isolatedIfRtl(chapterName(...)))',
-  'components/script/page/tools/find/useBookFind.ts: quoteTerm(term)': 'isolated inside quoteTerm',
+  'components/stages/useStageRecommendations.ts: name': ALREADY_ISOLATED_AT_BINDING,
+  'components/script/page/tools/find/useBookFind.ts: quoteTerm(term)': ALREADY_ISOLATED_AT_BINDING,
   "components/settings/UpdatesPanel.tsx: hasProject ? \" with the same project, and REAPER's launcher keeps working\" : ', at the project picker'":
     "the app's own words",
   "studio/drafts/draftSentence.ts: held.length === 1 ? (/^\\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)": "the app's own words",
   'visibleText.ts: plainName(name)': "the helper's own result",
-  'components/editing/bar/useScriptPlayback.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/booth/record/RecordSetup.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/booth/record/takeWords.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/connection/ReaperOffDialog.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/connection/useDawStatus.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/engine/AddMarkers.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/engine/ShowInDaw.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'studio/dawNames.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'studio/dawNames.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/engine/VoicesCard.tsx: name': 'isolated where it is bound (isolatedIfRtl(shortName(...)))',
+  'components/editing/bar/useScriptPlayback.ts: capitalised(name)': DAW_NAME,
+  'components/booth/record/RecordSetup.tsx: name': DAW_NAME,
+  'components/booth/record/takeWords.ts: name': DAW_NAME,
+  'components/connection/ReaperOffDialog.tsx: name': DAW_NAME,
+  'components/connection/useDawStatus.ts: name': DAW_NAME,
+  'components/engine/AddMarkers.tsx: name': DAW_NAME,
+  'components/engine/ShowInDaw.tsx: name': DAW_NAME,
+  'studio/dawNames.ts: capitalised(name)': DAW_NAME,
+  'studio/dawNames.ts: name': DAW_NAME,
+  'components/engine/VoicesCard.tsx: name': ALREADY_ISOLATED_AT_BINDING,
   'components/connection/ChapterLinkDialog.tsx: createLabel': 'the label of the button the app draws (Create tracks)',
-  'components/delivery/profile/ProfileCard.tsx: rule.label': 'a label the app itself defines (a setting, a rule, an engine, a model it ships)',
+  'components/delivery/profile/ProfileCard.tsx: rule.label': APP_WORDING,
   'components/layout/EngineChip.tsx: audacityTitle(forAudacity)': "the app's own tooltip title for the engine chip",
-  'components/master/MasteringApprovalDialog.tsx: plan.label': 'a label the app itself defines (a setting, a rule, an engine, a model it ships)',
-  'components/recordingcheck/runChoices.ts: engine.label': 'a label the app itself defines (a setting, a rule, an engine, a model it ships)',
-  'components/settings/ScopedSetting.tsx: choiceLabel(rowOfField(tool, field.key), value)':
-    'a label the app itself defines (a setting, a rule, an engine, a model it ships)',
-  'components/settings/data/SettingsStore.tsx: row.label': 'a label the app itself defines (a setting, a rule, an engine, a model it ships)',
-  'components/settings/models/AssetsStore.tsx: item.displayName': "the name of a model the app ships, in the page's live region",
-  'components/settings/page/ModelsPane.tsx: name': "the name of a model the app ships, in the page's notice",
-  'components/settings/page/ScopedFieldsPanel.tsx: field.label': 'a label the app itself defines (a setting, a rule, an engine, a model it ships)',
+  'components/master/MasteringApprovalDialog.tsx: plan.label': APP_WORDING,
+  'components/recordingcheck/runChoices.ts: engine.label': APP_WORDING,
+  'components/settings/ScopedSetting.tsx: choiceLabel(rowOfField(tool, field.key), value)': APP_WORDING,
+  'components/settings/data/SettingsStore.tsx: row.label': APP_WORDING,
+  'components/settings/models/AssetsStore.tsx: item.displayName': MODEL_LABEL,
+  'components/settings/page/ModelsPane.tsx: name': MODEL_LABEL,
+  'components/settings/page/ScopedFieldsPanel.tsx: field.label': APP_WORDING,
+};
+
+/**
+ * The proof for each ALREADY_ISOLATED_AT_BINDING entry: the text, in the file named (the key's own file by default), that isolates the name where it is bound. The test fails when an
+ * entry has none, or when the file no longer holds it, so removing the wrapper at the binding turns the guard red instead of leaving the entry to cover a bare name.
+ */
+const ISOLATED_AT: Record<string, { pattern: RegExp; file?: string }> = {
+  'components/editing/page/useRereadFeedback.ts: name.slice(0, MAX_NAME - 1)': { pattern: /isolatedIfRtl\(nameIn\(/ },
+  "App.tsx: newest?.label ?? 'the last change'": { file: 'components/schedule/SchedulePage.tsx', pattern: /isolatedIfRtl\(m\.name\)/ },
+  'components/engine/ChapterLinksTable.tsx: quoted(found.name, place)': { pattern: /isolatedIfRtl\(text\.length/ },
+  'components/engine/ChapterLinksTable.tsx: who': { pattern: /const who = isolatedIfRtl\(short\)/ },
+  'components/engine/ChapterLinksTable.tsx: linked': { pattern: /const who = isolatedIfRtl\(short\)/ },
+  "components/engine/chapterSyncText.ts: names.slice(0, -1).join(', ')": { pattern: /isolatedIfRtl\(readable\(candidate\.trackName/ },
+  'components/engine/chapterSyncText.ts: names[0]': { pattern: /isolatedIfRtl\(readable\(candidate\.trackName/ },
+  'components/engine/chapterSyncText.ts: names[names.length - 1]': { pattern: /isolatedIfRtl\(readable\(candidate\.trackName/ },
+  'components/engine/chapterSyncText.ts: quotedList(item.candidates.map((candidate) => readable(candidate.trackName, candidate.trackIndex)))': {
+    pattern: /`“\$\{isolatedIfRtl\(name\)\}”`/,
+  },
+  "components/storybible/voicesamples/useVoiceSampleActions.tsx: [sampleLength(sample.durationMs), isolatedIfRtl(sample.source.chapterTitle)].filter(Boolean).join(', ')":
+    { pattern: /isolatedIfRtl\(sample\.source\.chapterTitle\)/ },
+  'studio/journal/createJournal.ts: blocker.label': { file: 'components/schedule/SchedulePage.tsx', pattern: /isolatedIfRtl\(m\.name\)/ },
+  'studio/journal/createJournal.ts: newest.label': { file: 'components/schedule/SchedulePage.tsx', pattern: /isolatedIfRtl\(m\.name\)/ },
+  "components/engine/NestedChaptersNotice.tsx: folders.map(folderOf).join(' and ')": { pattern: /isolatedIfRtl\(short\(name\.trim\(\)\)\)/ },
+  "components/engine/NestedChaptersNotice.tsx: shownFolders.join(' and ')": { pattern: /isolatedIfRtl\(short\(move\.fromName\)\)/ },
+  'components/engine/useChapterFolders.ts: folders': { pattern: /isolatedIfRtl\(move\.fromName\)/ },
+  'components/stages/useStageRecommendations.ts: name': { pattern: /const name = isolatedIfRtl\(/ },
+  'components/script/page/tools/find/useBookFind.ts: quoteTerm(term)': {
+    file: 'components/script/page/tools/find/findState.ts',
+    pattern: /isolatedIfRtl\(term/,
+  },
+  'components/engine/VoicesCard.tsx: name': { pattern: /const name = isolatedIfRtl\(/ },
 };
 
 /** A product name the app defines, whichever file it is in: the DAW's name (REAPER, Audacity), never a narrator's or an author's. */
@@ -495,6 +477,17 @@ describe('every name in a toast sentence is isolated (#4113)', () => {
     ).toEqual([]);
   });
 
+  it('keeps a proof of the wrapper for every entry that is isolated where it is bound, and the proof is still in the file', () => {
+    const bound = Object.entries({ ...APP_DEFINED, ...LEADS_NOT_A_NARRATOR_NAME })
+      .filter(([, reason]) => reason === ALREADY_ISOLATED_AT_BINDING)
+      .map(([key]) => key);
+    expect(bound.filter((key) => !(key in ISOLATED_AT)).map((key) => `${key} has no proof in ISOLATED_AT`)).toEqual([]);
+    const missing = Object.entries(ISOLATED_AT)
+      .filter(([key, proof]) => !proof.pattern.test(readFileSync(join(SRC, proof.file ?? key.slice(0, key.indexOf(': '))), 'utf8')))
+      .map(([key]) => `${key}: the wrapper it relies on is gone`);
+    expect(missing).toEqual([]);
+  });
+
   it('keeps no allowed name or file that nothing reads any more', () => {
     expect([...Object.keys(APP_DEFINED), ...Object.keys(LEADS_NOT_A_NARRATOR_NAME)].filter((key) => !tree.everything.has(key))).toEqual([]);
     expect([...DAW_NAME_FILES].filter((file) => !tree.everything.has(`${file}: name`))).toEqual([]);
@@ -547,6 +540,12 @@ describe('the scan that checks the isolates (#4113)', () => {
     expect(hits('const { toast } = o; toast(`${item.name} done.`);')).toHaveLength(1);
     expect(hits('const text = "notify("; const other = `${item.name} done`;')).toEqual([]);
     expect(hits('/* notify( */ const other = `${item.name} done`;')).toEqual([]);
+  });
+
+  it('reads a plural name, an input name and a sentence that ends in a space', () => {
+    expect(scanSource('x.ts', "const s = `Joined ${names.join(', ')} and more. `;").leading).toEqual(["x.ts: names.join(', ')"]);
+    expect(scanSource('x.ts', 'const s = `${dawName} records from ${mic.dawInput}.`;').leading).toContain('x.ts: mic.dawInput');
+    expect(scanSource('x.ts', 'const s = `Linked to ${linkedFile}. `;').leading).toEqual(['x.ts: linkedFile']);
   });
 
   it('flags any plain identifier that opens a sentence, whatever it is called, and not a count', () => {
