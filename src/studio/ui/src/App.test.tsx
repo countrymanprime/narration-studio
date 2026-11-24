@@ -1563,6 +1563,73 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull();
   });
 
+  // The recent list spells the open book's folder with backslashes, the start-up path with slashes: choosing it changes no folder, and the picker still closes on the switch having gone through (#4099).
+  it.each([
+    ['spelled with backslashes (the recent list)', { projectFolder: 'C:/Projects/Alice-in-Wonderland' }],
+    ['spelled as the app has it', { projectFolder: 'C:\\Projects\\Alice-in-Wonderland' }],
+  ])('choosing the open project from the picker closes the picker, whatever its spelling: %s', async (_name, initial) => {
+    renderApp({}, initial);
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
+    fireEvent.click(await screen.findByRole('button', { name: /^Open Alice/ }));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull());
+    expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+  });
+
+  it('a refused switch keeps the picker open and says why', async () => {
+    renderApp({ switchProject: async () => ({ switched: false, reason: 'The DAW is recording.' }) });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
+    fireEvent.click(await screen.findByRole('button', { name: /^Open Voltage/ }));
+    expect(await screen.findByText('The DAW is recording.')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Choose your project' })).toBeTruthy();
+  });
+
+  describe('choosing another book from the picker', () => {
+    const openPicker = async (overrides: Parameters<typeof renderApp>[0]) => {
+      renderApp(overrides, { projectFolder: 'C:/Projects/Alice-in-Wonderland' });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(within(screen.getAllByRole('banner')[0]!).getByRole('button', { name: /, switch project$/ }));
+      await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
+    };
+    const held = async () => {
+      const first = await createMockApi({}, { projectFolder: 'C:/Projects/Alice-in-Wonderland' }).bootstrap();
+      return { first, other: { ...first, projectFolder: 'C:/Projects/Voltage-and-the-Undercroft', projectName: 'Voltage and the Undercroft' } };
+    };
+
+    it('keeps the picker until the bootstrap names the new project', async () => {
+      const { first, other } = await held();
+      let attached = false;
+      let answer: ((value: typeof first) => void) | undefined;
+      await openPicker({ bootstrap: () => (attached ? new Promise((resolve) => (answer = resolve)) : Promise.resolve(first)) });
+      attached = true;
+      fireEvent.click(await screen.findByRole('button', { name: /^Open Voltage/ }));
+      await waitFor(() => expect(answer).toBeDefined());
+      expect(screen.getByRole('heading', { level: 1, name: 'Choose your project' })).toBeTruthy();
+      act(() => answer!(other));
+      await waitFor(() => expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull());
+    });
+
+    it('keeps the picker open with the error when the bootstrap fails', async () => {
+      const { first } = await held();
+      let attached = false;
+      await openPicker({ bootstrap: () => (attached ? Promise.reject(new Error('The host did not answer.')) : Promise.resolve(first)) });
+      attached = true;
+      fireEvent.click(await screen.findByRole('button', { name: /^Open Voltage/ }));
+      expect(await screen.findByText(/The host did not answer/)).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 1, name: 'Choose your project' })).toBeTruthy();
+    });
+
+    it('ends with focus on the page', async () => {
+      await openPicker({});
+      fireEvent.click(await screen.findByRole('button', { name: /^Open Voltage/ }));
+      await waitFor(() => expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull());
+      await waitFor(() => expect(document.activeElement?.id).toBe('main-content'));
+    });
+  });
+
   // The mock's New project goes to Script (`newProject` in its state/commands/manuscript.ts), where the empty state offers the import.
   // Opening a project that is already there leaves the page alone. (The Script page's own no-manuscript state is covered in ScriptPage.test.tsx.)
   it('opens a project created from the picker on the Script page', async () => {

@@ -2,6 +2,7 @@
 // another page calls a builder here; a destination reads its address with `readAddress`, which says what is wrong with a bad one
 // instead of guessing. The Booth's own shape is wrapped, not changed: `boothQuery` and `readBoothQuery` do the work.
 
+import { SETTINGS_HASHES } from '../components/settings/page/anchors';
 import { boothQuery, readBoothQuery, type BoothTarget } from '../components/booth/page/boothQuery';
 
 /** The longest id, name or text an address may carry. Ids are short in practice; this stops an address that is a paste of a book. */
@@ -76,6 +77,28 @@ const PAGE_PATH: Record<AddressPage, string> = {
 /** Where "go to the page" leads from a message about a bad address on it. */
 export function addressPagePath(page: AddressPage): string {
   return PAGE_PATH[page];
+}
+
+/**
+ * The page's own address: its first path segment, with nothing a project filled in. `/editing/chapter-9` is `/editing`; the query goes with it (the caller
+ * drops it). A chapter or a name in an address belongs to the project it was written under, so a project change returns to this (#4059).
+ */
+export function pageOfPath(pathname: string): string {
+  const page = pathname.split('/')[1];
+  return page ? `/${page}` : '/';
+}
+
+/** An address as the router holds it. */
+export type PageAddress = { pathname: string; search: string; hash: string };
+
+/**
+ * The address cut back to the page: no chapter, query or anchor of the project it was written under. Settings' anchors (`/settings#credits`, `#category-<id>`) name a category, not
+ * project content, so they stay. An address that is already the bare page comes back equal, which is how a caller tells there is nothing to drop (#4059).
+ */
+export function addressWithoutProject({ pathname, hash }: PageAddress): PageAddress {
+  const page = pageOfPath(pathname);
+  const keepsHash = page === PAGE_PATH.settings && hash in SETTINGS_HASHES;
+  return { pathname: page, search: '', hash: keepsHash ? hash : '' };
 }
 
 /** What a page says when it will not act on an address, in words the narrator can use. */

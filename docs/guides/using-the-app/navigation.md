@@ -62,6 +62,11 @@ In the [Story Bible](story-bible.md), an entry being edited, a relationship, a n
 
 On the [Script](script.md), a reply or an edit of a note message typed and not yet saved, and a pronunciation typed under **Save to my dictionary**, are held this way, and so is a note being written in the Mark dialog.
 
+Switching project reopens the Booth, Editing and the [Companion](booth.md#companion-mode) on the new project's own remembered
+chapter, or its first chapter when it has none. The Booth follows the chapter the DAW is on when none is remembered, and the Companion
+takes the chapter of a running reading session first, then the Booth's remembered one. Proof and Pickups open on All chapters, and
+Master & QC opens with no chapter picked.
+
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
 
 ![Proof: the key reminders in the footer, the full width of the page under the notes and the Inspector](../../images/ui/nav-page-footer.webp)
