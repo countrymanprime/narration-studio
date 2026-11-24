@@ -23,8 +23,8 @@ describe('recheckSentence', () => {
     expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f')).toContain('(a folder of 1 track). Nothing changed.');
   });
   it('says the track was renamed', () => {
-    expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New ‮evil')], 'a')).toBe(
-      'The track for Chapter 1 was renamed from “Old” to “New ‮evil” (a single track).',
+    expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New \u202eevil')], 'a')).toBe(
+      'The track for Chapter 1 was renamed from “Old” to “New evil” (a single track).',
     );
   });
   it('only says Nothing changed when a read of REAPER answered', () => {

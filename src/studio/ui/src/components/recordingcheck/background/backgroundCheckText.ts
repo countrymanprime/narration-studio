@@ -1,6 +1,7 @@
 import type { ChapterSyncBackground } from '../../../api/contracts/chapterSync';
 import type { CoverageState } from '../../../api/contracts/coverage';
 import { plural } from '../../../plural';
+import { isolatedIfRtl } from '../../../visibleText';
 
 /** Why queued chapters are not being checked yet, in a few words, or '' when there is nothing to say. */
 const WAITING: Partial<Record<ChapterSyncBackground['wait'], string>> = {
@@ -18,7 +19,7 @@ export function modelPairText(background: Pick<ChapterSyncBackground, 'firstPass
 
 /** The pill's line while a background check runs. */
 export function runningText(title: string, state: CoverageState): string {
-  return `Checking ${title} in the background · ${Math.round(state.percent)}%`;
+  return `Checking ${isolatedIfRtl(title)} in the background · ${Math.round(state.percent)}%`;
 }
 
 /** The models a running check names, or the background pair when the state does not say. */
@@ -53,7 +54,7 @@ export function queuedText(background: ChapterSyncBackground): string {
 /** The toast when the host starts a background check. */
 export function startedToast(title: string, state: CoverageState, background: ChapterSyncBackground | undefined): string {
   const models = modelsOf(state, background) || 'Whisper';
-  return `Checking ${title} in the background with ${models}. Only audio not checked before is listened to.`;
+  return `Checking ${isolatedIfRtl(title)} in the background with ${models}. Only audio not checked before is listened to.`;
 }
 
 /** Whether the first-time notice should be shown. */

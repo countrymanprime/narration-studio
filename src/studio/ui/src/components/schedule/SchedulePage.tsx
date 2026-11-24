@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ProductionMilestone, ProductionPayment, ProductionPlan } from '../../api/contracts/production';
 import { overlay } from '../../overlay/overlayService';
+import { isolatedIfRtl } from '../../visibleText';
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Command, Journal } from '../../studio/journal/createJournal';
@@ -184,7 +185,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     const next: ProductionMilestone = { ...m, done: !m.done };
     if (!next.done) delete next.done;
     void saveList(
-      m.done ? `Mark ${m.name} open again` : `Mark ${m.name} done`,
+      m.done ? `Mark ${isolatedIfRtl(m.name)} open again` : `Mark ${isolatedIfRtl(m.name)} done`,
       (list) => list.map((x, i) => (i === index ? next : x)),
       undefined,
       rowMoved(index, m),
@@ -194,9 +195,9 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     const m = plan.milestones[index];
     once(`remove:${index}`, () =>
       saveList(
-        `Remove ${m.name}`,
+        `Remove ${isolatedIfRtl(m.name)}`,
         (list) => list.filter((_, i) => i !== index),
-        `Removed ${m.name}.`,
+        `Removed ${isolatedIfRtl(m.name)}.`,
         rowMoved(index, m),
         // Undo takes its own button away, which drops focus on the page: the milestone that came back takes it, on its Edit button.
         () => focusSoon(`[data-edit="${index}"]`),

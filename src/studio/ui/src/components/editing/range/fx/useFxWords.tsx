@@ -153,7 +153,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       if (!plan || plan.kind === 'refused') return plan?.kind === 'refused' ? plan.reason : 'Checking what the DAW can do.';
       return onTheWords(summary, chain.id)
         ? ''
-        : `The DAW compares an effect that is on the words. Add ${chain.name} first, then compare it in the Effects tab.`;
+        : `The DAW compares an effect that is on the words. Add ${isolatedIfRtl(chain.name)} first, then compare it in the Effects tab.`;
     },
     [plan, onTheWords],
   );

@@ -3,6 +3,7 @@
 
 import type { ClaimKind, ExtractionSuggestion, SuggestionPayload } from '../../../../api/contracts/extraction';
 import { plural } from '../../../../plural';
+import { isolatedIfRtl } from '../../../../visibleText';
 
 /** The 75% rule's line (the rebuilt extraction PRD): a suggestion at or above it is accepted for the narrator, under it or with no score they check it. The host applies the rule and sets the status; this is only the number the chip's explanation quotes. */
 export const VERIFY_BELOW = 0.75;
@@ -106,7 +107,7 @@ export function confidenceWhy(suggestion: ExtractionSuggestion, context: Confide
   else if (suggestion.unverifiedQuote) parts.push('The quote was not found in the text.');
   else if (NEEDS_QUOTE.has(suggestion.kind)) parts.push('It has no quote.');
   if (context.entryName !== undefined && context.chapters !== undefined) {
-    parts.push(`“${context.entryName}” is mentioned in ${plural(context.chapters, 'chapter')}.`);
+    parts.push(`“${isolatedIfRtl(context.entryName)}” is mentioned in ${plural(context.chapters, 'chapter')}.`);
   }
   return parts.join(' ');
 }

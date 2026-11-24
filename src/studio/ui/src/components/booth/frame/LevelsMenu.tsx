@@ -25,6 +25,7 @@ import { useRecorderMeter } from './useRecorderMeter';
 import type { RecorderMeterView } from './recorderMeter';
 import type { ListeningMic } from '../listening/useListeningMic';
 import { plural } from '../../../plural';
+import { isolatedIfRtl } from '../../../visibleText';
 
 export type ListenProps = {
   devices: readonly TeleprompterDevice[];
@@ -384,7 +385,7 @@ function meterFor(state: DawMetersState, side: 'input' | 'output', dawName: stri
   if (state.kind === 'off' || state.kind === 'quiet') return { db: null, why: side === 'input' ? state.message : undefined };
   if (side === 'output') return { db: state.meters.output };
   if (state.meters.input === null) return { db: null, why: `No track is armed in ${dawName}: its input level shows once one is.` };
-  return { db: state.meters.input, why: `Heard on “${state.meters.inputTrack}” in ${dawName}.` };
+  return { db: state.meters.input, why: `Heard on “${isolatedIfRtl(state.meters.inputTrack)}” in ${dawName}.` };
 }
 
 /** The monitor level while the DAW can set it: read when the menu opens, sent when the drag rests, refused in the DAW's own sentence. */

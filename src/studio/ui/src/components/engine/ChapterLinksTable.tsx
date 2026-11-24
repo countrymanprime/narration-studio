@@ -31,6 +31,7 @@ import { folderChildren, folderLinkLabel, kindInWords as kindWords, wordsCount }
 import { trackName } from '../tracks/trackName';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
+import { isolatedIfRtl } from '../../visibleText';
 
 /** The warning on a linked track whose audio cannot play (the removed Tracks card's per-track flag, kept where the link is made). */
 export const UNPLAYABLE = "This track has an item that can't be played";
@@ -215,8 +216,8 @@ export function recheckSentence(
   const what = kindInWords(found, tracks, voiceFolders, notVoiceGuids);
   const place = tracks.indexOf(found);
   if (was !== undefined && was !== found.name)
-    return `The ${noun} for ${short} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
-  const linked = `${short} is linked to ${quoted(found.name, place)} (${what})`;
+    return `The ${noun} for ${short} was renamed from ${quoted(was, place)} to ${isolatedIfRtl(quoted(found.name, place))} (${what}).`;
+  const linked = `${short} is linked to ${isolatedIfRtl(quoted(found.name, place))} (${what})`;
   if (how === 'live') return `${linked}. Nothing changed.`;
   return how === 'saved' ? `${linked}, as the saved project has it.` : `${linked}.`;
 }

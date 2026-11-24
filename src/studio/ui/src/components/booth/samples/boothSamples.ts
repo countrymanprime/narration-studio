@@ -1,3 +1,4 @@
+import { isolatedIfRtl } from '../../../visibleText';
 /**
  * How long the Booth waits between asking a listening session to pause or resume and the sound starting or the listening coming back: one capture chunk of
  * the speech recognizer (0.32 s, `CHUNK_SECONDS` in the teleprompter sidecar), which is how often it reads the control file, and a little more. The
@@ -15,4 +16,4 @@ export function cantTellSentence(checkedAt: number | null, now: number): string 
 export const NARRATION_SPEAKER = 'Narration';
 
 /** What the Booth says when a speaker has no voice sample to play. */
-export const noSampleSentence = (speaker: string): string => `No voice sample for ${speaker} yet. Mark one in Editing.`;
+export const noSampleSentence = (speaker: string): string => `No voice sample for ${isolatedIfRtl(speaker)} yet. Mark one in Editing.`;

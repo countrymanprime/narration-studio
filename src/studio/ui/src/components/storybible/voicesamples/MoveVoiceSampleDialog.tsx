@@ -59,7 +59,7 @@ export function MoveVoiceSampleDialog({
       title="Move voice sample"
       onClose={onCancel}
       dismissOnOutsidePress={false}
-      description={sample.label.trim() === '' ? undefined : `Move “${sample.label}” to another character.`}
+      description={sample.label.trim() === '' ? undefined : `Move “${isolatedIfRtl(sample.label)}” to another character.`}
       actions={
         <>
           <Button type="button" variant="secondary" onClick={onCancel}>

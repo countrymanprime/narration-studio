@@ -58,7 +58,7 @@ function quotedList(names: string[]): string {
 export function chapterSyncPanelReasonText(item: ChapterSyncNeedsYou): string {
   if (item.reason === 'ambiguous' && item.candidates.length >= 2) {
     const count = COUNT_WORDS[item.candidates.length] ?? String(item.candidates.length);
-    return `${count} tracks match: ${quotedList(item.candidates.map((candidate) => readable(candidate.trackName, candidate.trackIndex)))}. A chapter is checked from one track.`;
+    return `${count} tracks match: ${isolatedIfRtl(quotedList(item.candidates.map((candidate) => readable(candidate.trackName, candidate.trackIndex))))}. A chapter is checked from one track.`;
   }
   if (item.reason === 'uncertain' && item.best)
     return `Closest track “${isolatedIfRtl(readable(item.best.trackName, item.best.trackIndex))}” is not a confident match, so it was not linked on its own.`;

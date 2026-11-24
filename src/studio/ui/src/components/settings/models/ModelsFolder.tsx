@@ -11,9 +11,6 @@ import { useAssetsStore } from './AssetsStore';
 import { bidiIsolated } from '../../../visibleText';
 import { MoveEndedDialog } from './MoveEndedDialog';
 
-/** A path in a sentence or a title: isolated left to right, so a path with right-to-left letters does not reorder the words around it. */
-const isolate = (value: string): string => bidiIsolated(value, 'ltr');
-
 const path = (value: string) => (
   <code dir="ltr" className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">
     {value}
@@ -173,7 +170,7 @@ export function OldCopyOffer() {
       return;
     }
     // The offer is gone for good once it is answered, so the toast says where the folder is and that deleting it is the narrator's to do.
-    overlay.toast(`The old copy stays in ${isolate(folder)}. Delete that folder yourself when you no longer need it.`);
+    overlay.toast(`The old copy stays in ${bidiIsolated(folder, 'ltr')}. Delete that folder yourself when you no longer need it.`);
   };
   return (
     <div data-old-copy className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]">
@@ -188,7 +185,7 @@ export function OldCopyOffer() {
       </span>
       {asking && (
         <ConfirmDialog
-          title={`Delete the old copy in ${isolate(previous)}?`}
+          title={`Delete the old copy in ${bidiIsolated(previous, 'ltr')}?`}
           body={
             <>
               This deletes the downloaded models, voices and tools in {path(previous)}. Anything else in that folder stays. The copy in{' '}

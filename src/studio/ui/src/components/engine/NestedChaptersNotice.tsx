@@ -6,6 +6,7 @@ import { StatusBadge } from '../primitives/StatusBadge';
 import type { ChapterFolders } from '../../api/contracts/chapterTrackMap';
 import { plural } from '../../plural';
 import { trackName } from '../tracks/trackName';
+import { isolatedIfRtl } from '../../visibleText';
 
 // A name in the title and the summary is cut to this many characters: a REAPER track name can be any length (qa-breaker B4).
 const NAME_MAX = 60;
@@ -18,7 +19,7 @@ function nestingSentence(check: ChapterFolders): string {
   const folders = [...new Set(chapters.map((move) => move.fromName))];
   const named = chapters.map((move) => short(trackName(move.trackName)));
   const who = named.length <= 2 ? named.join(' and ') : `${named.slice(0, 2).join(', ')} and ${named.length - 2} more`;
-  return `In REAPER, ${who} ${named.length === 1 ? 'sits' : 'sit'} inside ${folders.map(folderOf).join(' and ')}, so ${
+  return `In REAPER, ${isolatedIfRtl(who)} ${named.length === 1 ? 'sits' : 'sit'} inside ${folders.map(folderOf).join(' and ')}, so ${
     named.length === 1 ? 'it is' : 'they are'
   } read as ${folders.length === 1 ? 'its voices' : 'their voices'}.`;
 }

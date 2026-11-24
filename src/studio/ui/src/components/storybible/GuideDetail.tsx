@@ -488,7 +488,7 @@ export function GuideDetail({
   const nameProblem = (name: string) => {
     if (!hasVisibleText(name)) return 'Give this entry a name.';
     const owner = nameOwner(entities, name, entity.id);
-    return owner ? `“${name.trim()}” is already a name of ${owner.canonical_name}.` : undefined;
+    return owner ? `“${isolatedIfRtl(name.trim())}” is already a name of ${isolatedIfRtl(owner.canonical_name)}.` : undefined;
   };
 
   const save = async (key: string, values: Record<string, string>, message: string): Promise<boolean> =>
@@ -830,7 +830,7 @@ export function GuideDetail({
                 leading: <Dot color={dotOf(label)} />,
                 onSelect: () => {
                   if (isNewDraft) void createNewEntity(label);
-                  else void save('category', { category: label }, `Category changed to ${label}.`);
+                  else void save('category', { category: label }, `Category changed to ${isolatedIfRtl(label)}.`);
                 },
               }))}
             >
@@ -1089,7 +1089,7 @@ export function GuideDetail({
                     {nameNote.blank
                       ? ADD_NAME_FIRST
                       : nameNote.ownerId
-                        ? `“${nameNote.text}” is already a name of the entry ${entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry'}.`
+                        ? `“${nameNote.text}” is already a name of the entry ${isolatedIfRtl(entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry')}.`
                         : `“${nameNote.text}” is already a name of this entry.`}
                   </span>
                   {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
@@ -1220,7 +1220,7 @@ export function GuideDetail({
           <AssetInstallPrompt
             ask={{
               title: 'Download local preview voice?',
-              body: `This local voice is needed to play “${ttsPrompt.aliasIndex === undefined ? entity.canonical_name : (entity.aliases[ttsPrompt.aliasIndex]?.text ?? 'this alias')}”. It is not bundled with the app and will be stored in your per-user asset cache.`,
+              body: `This local voice is needed to play “${isolatedIfRtl(ttsPrompt.aliasIndex === undefined ? entity.canonical_name : (entity.aliases[ttsPrompt.aliasIndex]?.text ?? 'this alias'))}”. It is not bundled with the app and will be stored in your per-user asset cache.`,
               confirmLabel: 'Download voice',
             }}
             workTitle="Downloading preview voice"
@@ -1245,7 +1245,7 @@ export function GuideDetail({
         {confirmation === 'delete' && (
           <ConfirmDialog
             title="Delete entry"
-            body={`Delete “${entity.canonical_name}” and its aliases, evidence, and relationships? This cannot be undone.`}
+            body={`Delete “${isolatedIfRtl(entity.canonical_name)}” and its aliases, evidence, and relationships? This cannot be undone.`}
             confirmLabel="Delete entry"
             confirmVariant="danger"
             pending={mutation.isPending('delete')}

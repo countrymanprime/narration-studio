@@ -402,7 +402,9 @@ export function useScriptCommands() {
         const done = said(await commands.addMark(env, range, type, text));
         if (!done) return null;
         const kind = data.getState().marks?.value?.types.find((row) => row.key === type);
-        overlay.toast(kind?.asks ? 'Note saved. Track the reply in the Notes tab.' : `Marked “${isolatedIfRtl(range.quote)}” as ${kind?.name ?? type}.`);
+        overlay.toast(
+          kind?.asks ? 'Note saved. Track the reply in the Notes tab.' : `Marked “${isolatedIfRtl(range.quote)}” as ${isolatedIfRtl(kind?.name ?? type)}.`,
+        );
         return done.value;
       },
       removeMark: async (id: string) => said(await commands.removeMark(env, id)) !== null,

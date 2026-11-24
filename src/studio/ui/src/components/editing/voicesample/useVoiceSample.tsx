@@ -154,8 +154,8 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                       return refuse(
                         'duplicate',
                         extended
-                          ? `That stretch’s voice sample for ${name} is now kept in the project folder and the DAW.`
-                          : `That stretch is already a voice sample for ${name}.`,
+                          ? `That stretch’s voice sample for ${isolatedIfRtl(name)} is now kept in the project folder and the DAW.`
+                          : `That stretch is already a voice sample for ${isolatedIfRtl(name)}.`,
                       );
                     }
                     return { ok: true as const, value: id };

@@ -15,6 +15,8 @@ import { describe, expect, it } from 'vitest';
 // (`ok ? isolatedIfRtl(a.title) : b.title`) does not count. A name the app itself defines (a setting's label, a product's name) is allowed with the reason in `APP_DEFINED`.
 // A template that opens with a name-like expression and ends in a full stop, a question mark or an exclamation mark is checked wherever it is, because helpers build sentences that are
 // passed to a toast as values. One that opens with a name and ends otherwise (a tooltip, a label, a path) is not a sentence and is not read.
+// Not read: an alias of a toast function (`const t = overlay.toast`), a backtick inside a regular expression literal, a name reached through a function or `names.join(', ')` that is not
+// name-like, a second template in a ternary after a `}`, and a `message:` more than 160 characters before its template.
 // Not read: a sentence that reaches a toast some other way (built in another file and passed in as a value, joined with `+`, or from the host: the Go host words some, which get the
 // direction rule of `textDirection` only), `overlay.announce` (read out, never drawn), and the builders in `engine/destination.ts` (their unit tests, `destination.test.ts`).
 const SRC = __dirname;
@@ -95,11 +97,15 @@ function lex(source: string): { templates: Template[]; isCode: boolean[] } {
   return { templates, isCode };
 }
 
-const CALL = /(?:\b[\w$]+\.toast|\b[\w$]+\.toastUndo|\bnotify|\bsay)\(/g;
-const SENTENCE_STATEMENT = /\b(?:message|reason)\b/;
-const NAMEISH = /\b\w*(?:[Nn]ame|[Tt]itle|[Ll]abel|[Pp]ath|[Qq]uote)\b/;
+const CALL = /(?:(?:\?\.|\.)(?:toast|toastUndo)|(?<![\w$.])(?:toast|toastUndo)|\bnotify|\bsay)\(/g;
+const SENTENCE_STATEMENT = /\b(?:message|reason|done|success|undoText|sentence|why|notice)\b/;
+const NAMEISH =
+  /\b\w*(?:[Nn]ame|[Tt]itle|[Ll]abel|[Pp]ath|[Qq]uote|[Tt]erm|[Qq]uery|[Cc]hapter|[Tt]rack|[Vv]oice|[Pp]roject|[Pp]rofile|[Ee]ntry|[Ss]peaker|[Cc]haracter|[Hh]eading|[Ff]older|[Ff]ile|[Ww]ho|[Mm]ilestone)\b/;
+/** Whether an expression reads like a name; the words inside its quotes (`plural(n, 'track')`) are text, not names. */
+const nameish = (expression: string): boolean => NAMEISH.test(expression.replace(/(['"])(?:\\.|(?!\1).)*\1/g, "''"));
+
 /** A template that ends its words with a full stop, a question mark or an exclamation mark is a sentence, and a label, a tooltip or a path is not. */
-const SENTENCE_END = /^.* .*[.!?]$/s;
+const SENTENCE_END = /[.!?]$/;
 const WRAPPERS = /^(?:isolatedIfRtl|bidiIsolated)\(/;
 
 /** The index just past the parenthesis that closes the one at `open`, counting only code characters. */
@@ -138,18 +144,14 @@ export function scanSource(file: string, source: string): Found {
   }
   for (const entry of templates) {
     // A template that opens with a name (`${title} restored.`) is a sentence led by it, wherever it goes: helper-built sentences are passed to a toast as values, which the scan cannot follow.
-    const first = entry.exprs[0];
     const last = entry.exprs[entry.exprs.length - 1];
     const tail = last ? source.slice(last.start + last.text.length + 1, entry.end) : '';
-    if (
-      first &&
-      SENTENCE_END.test(tail) &&
-      first.start === entry.start + 3 &&
-      !first.text.includes('`') &&
-      NAMEISH.test(first.text) &&
-      !wrappedWhole(first.text)
-    ) {
-      found.leading.push(`${file}: ${first.text.trim()}`);
+    // Any sentence, wherever it is built, with a name-like expression in it: helpers build sentences that are passed to a toast as values, which the scan cannot follow.
+    if (last && SENTENCE_END.test(tail) && /\s/.test(source.slice(entry.start, entry.end))) {
+      for (const expression of entry.exprs) {
+        const text = expression.text.trim();
+        if (!text.includes('`') && nameish(text) && !wrappedWhole(text)) found.leading.push(`${file}: ${text}`);
+      }
     }
     const inToastCall = inCall.some(([from, to]) => entry.start > from && entry.start < to);
     // The statement the template sits in: back to the last `;`, `{` or `}` (a `{ reason: …` keeps its key).
@@ -161,7 +163,7 @@ export function scanSource(file: string, source: string): Found {
       const text = expression.text.trim();
       // An expression that holds a template of its own: that template is read on its own.
       if (text.includes('`')) continue;
-      if (!NAMEISH.test(text)) continue;
+      if (!nameish(text)) continue;
       found.inspected++;
       const key = `${file}: ${text}`;
       found.seen.push(key);
@@ -173,6 +175,7 @@ export function scanSource(file: string, source: string): Found {
 
 /** A name the app itself defines, not a narrator's or an author's: allowed, with why. The key is `<file>: <expression>`. */
 const APP_DEFINED: Record<string, string> = {
+  'components/editing/page/useRereadFeedback.ts: name.slice(0, MAX_NAME - 1)': 'cut to length here, isolated by the caller (isolatedIfRtl(nameIn(...)))',
   'components/settings/row/SettingRowView.tsx: row.label': "the label of a setting, the app's own English wording",
   'components/proof/ProofPage.tsx: noteRow(next).resolution.label': 'the label of a resolution kind the app defines ("Fine as read")',
   'components/proof/CompareRun.tsx: modelLabel(value)': 'the name of a model the app ships',
@@ -185,7 +188,6 @@ const APP_DEFINED: Record<string, string> = {
   'components/booth/toastSentences.ts: name': 'the name of a DAW product, given by the caller',
   'components/booth/toastSentences.ts: dawName': 'the name of a DAW product (REAPER, Audacity)',
   'components/connection/useReaperLaunch.ts: name': 'the name of the DAW product the launch started',
-  'components/script/page/data/useScriptData.ts: kind?.name ?? type': 'the name of a note kind the app defines',
   'components/editing/bar/SelectionActionButton.tsx: hint ?? label': "the label of a button, the app's own wording, in a tooltip",
   'components/master/MasteringChain.tsx: row.label': 'the label of a mastering step the app defines',
   'components/primitives/ChapterStepper.tsx: name': 'the name of a step of the stepper in a tooltip, not a toast',
@@ -199,18 +201,109 @@ const APP_DEFINED: Record<string, string> = {
  * shown in a sentence. The key is `<file>: <expression>`; each has the reason.
  */
 const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
-  'components/editing/bar/useScriptPlayback.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'playback/providers.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/booth/record/RecordSetup.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  "components/engine/LinkChaptersDialog.tsx: sharing.map(({ chapter }) => isolatedIfRtl(chapterName(chapter, 'short'))).join(', ')":
+    'each name is isolated before the join',
+  'components/booth/record/RecordSetup.tsx: guide.installFile': "a label the app itself defines, a count or a number: not a narrator's name",
+  "components/booth/voices/WhoIsInDialog.tsx: keyName(String(ask.kind === 'key' ? ask.key : ''))":
+    "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/delivery/page/chapterStates.ts: notReadyWhy(file)': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/editing/cleanup/cleanupApply.ts: appliedLabel(kind, outcome.applied.length, params)':
+    "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/editing/effects/ChooseInDaw.tsx: choice?.label': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/editing/ribbon/useRangeInteraction.ts: rangeLabel(span, wordsCovered(words, span).keys.length)':
+    "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/master/DeliveryProfilePanel.tsx: title': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/master/DeliveryProfilePanel.tsx: profile.revision': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/master/MasteringChain.tsx: label': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/master/fileVerdict.ts: rule.label': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/recordingcheck/runChoices.ts: chunkLabel(choices.chunkSeconds)': "a label the app itself defines, a count or a number: not a narrator's name",
+  "components/schedule/draft.ts: plural([...name].length, 'character')": "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/settings/KeyboardPanel.tsx: gestureLabel(captured)': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/settings/KeyboardPanel.tsx: conflictCommand.label': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/settings/analysis/AnalysisToolsSection.tsx: removing.displayName': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/settings/page/ModelsPane.tsx: removing.item.displayName': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/stages/useStageRecommendations.ts: stageLabel(chapter.from)': "a label the app itself defines, a count or a number: not a narrator's name",
+  'input/commandProviders.ts: command.label': "a label the app itself defines, a count or a number: not a narrator's name",
+  'input/commandProviders.ts: clash.label': "a label the app itself defines, a count or a number: not a narrator's name",
+  'playback/providers.ts: providers[0].name': "a label the app itself defines, a count or a number: not a narrator's name",
+  'studio/journal/createJournal.ts: dawName()': "a label the app itself defines, a count or a number: not a narrator's name",
+  'components/booth/ReadAlongView.tsx: t.prompt.model.displayName': 'the name of a model the app ships',
+  'components/booth/WhisperModelPrompt.tsx: prompt.model.displayName': 'the name of a model the app ships',
+  'components/booth/listening/ListeningModelPrompt.tsx: prompt.model.displayName': 'the name of a model the app ships',
+  'components/booth/resume/resumeOfferModel.ts: result.model.displayName': 'the name of a model the app ships',
+  'components/proof/CompareRun.tsx: whisperPrompt.model.displayName': 'the name of a model the app ships',
+  'components/recordingcheck/CheckRecordingsDialog.tsx: ask.model.displayName': 'the name of a model the app ships',
+  'components/recordingcheck/CheckRecordingsDialog.tsx: firstLabel': 'the name of a model the app ships',
+  'components/recordingcheck/checkRun.ts: answer.model.displayName': 'the name of a model the app ships',
+  'components/recordingcheck/workerPlan.ts: plan.modelLabel': 'the name of a model the app ships',
   'components/booth/record/recordCheck.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/booth/record/takeWords.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/booth/record/useRecordControl.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/editing/EditingPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/editing/bar/useScriptPlayback.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/masterqc/page/MasterPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/pickups/PickupsPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/pickups/list/usePlayOriginal.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/production/ProductionPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/proof/ProofPage.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'playback/providers.ts: provider.name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'playback/providers.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'studio/dawNames.ts: name.charAt(0).toUpperCase()': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'studio/dawNames.ts: name.slice(1)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  "components/booth/record/useRecordControl.ts: otherProject ? 'has another project open' : 'is recording another track'":
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/editing/drawer/drawerSections.ts: section.label':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/editing/range/common/locate.ts: name':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/editing/takes/prep/usePrepSteps.tsx: STEP_TEXT[step].entry':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/editing/takes/split/splitFixtures.ts: chapter':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/master/ReportExportPanel.tsx: brand.identity.projectFolder':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  "components/masterqc/files/rows.ts: file.error ?? 'the file could not be read.'":
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  "components/proof/inspector/FindingThread.tsx: message.who === 'you' ? 'your' : 'the proofer’s'":
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/script/page/rail/threads/NoteCard.tsx: message.who':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/script/page/rail/threads/noteKeys.ts: message.who':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/settings/DeliveryProfileEditor.tsx: profile.revision + 1':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/settings/DeliveryProfilesPanel.tsx: profile.revision':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/settings/ScopedSetting.tsx: field.label.toLowerCase()':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/settings/UpdatesPanel.tsx: brand.name':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/settings/page/ModelsPane.tsx: list(plan.blocked.map((row) => row.label))':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/settings/page/ModelsPane.tsx: list(removingUses.map(settingLabel))':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/storybible/propertyDraft.ts: field.label':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/storybible/source/NamePronunciation.tsx: candidate.label':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/storybible/source/NamePronunciation.tsx: source.label':
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  "components/stages/useStageRecommendations.ts: previous.target ? stageLabel(previous.target) : 'the next stage'":
+    'a label the app itself defines (a setting, a rule, a step, a source, a key, a number), or text that is not shown to a narrator as a sentence',
+  'components/editing/page/noAudioText.ts: chapter': 'page or dialog text the app words, not a toast; the element it sits in sets its own direction',
+  'components/engine/destination.ts: chapter': 'page or dialog text the app words, not a toast; the element it sits in sets its own direction',
+  'components/stages/useStageRecommendations.ts: name': 'isolated where it is bound (isolatedIfRtl(chapterName(...)))',
+  'components/script/page/tools/find/useBookFind.ts: quoteTerm(term)': 'isolated inside quoteTerm',
+  "components/settings/UpdatesPanel.tsx: hasProject ? \" with the same project, and REAPER's launcher keeps working\" : ', at the project picker'":
+    "the app's own words",
+  "studio/drafts/draftSentence.ts: held.length === 1 ? (/^\\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)": "the app's own words",
+  'visibleText.ts: plainName(name)': "the helper's own result",
+  'components/editing/bar/useScriptPlayback.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/booth/record/RecordSetup.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
+  'components/booth/record/takeWords.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/connection/ReaperOffDialog.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/connection/useDawStatus.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'components/editing/bar/useScriptPlayback.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/engine/AddMarkers.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/engine/ShowInDaw.tsx: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
-  'playback/providers.ts: name': 'the name of a DAW product (REAPER, Audacity)',
   'studio/dawNames.ts: capitalised(name)': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'studio/dawNames.ts: name': 'the name of a DAW product (REAPER, Audacity) in a sentence about it',
   'components/engine/VoicesCard.tsx: name': 'isolated where it is bound (isolatedIfRtl(shortName(...)))',
@@ -242,8 +335,14 @@ const DAW_NAME_FILES = new Set([
 /** Files that are toast builders: every template literal in them is a toast sentence, however it reaches the toast. */
 const BUILDERS = new Set(['components/production/chapterSyncToastText.ts', 'components/booth/toastSentences.ts']);
 
-function scanTree(): Found {
-  const all: Found = { hits: [], seen: [], inspected: 0, leading: [] };
+type Tree = Found & { everything: Set<string> };
+
+const expressionOf = (key: string): string => key.slice(key.indexOf(': ') + 2);
+
+function scanTree(): Tree {
+  const all: Tree = { hits: [], seen: [], inspected: 0, leading: [], everything: new Set() };
+  const allowed = (file: string, key: string): boolean =>
+    key in APP_DEFINED || key in LEADS_NOT_A_NARRATOR_NAME || DAW_NAMES.test(expressionOf(key)) || (DAW_NAME_FILES.has(file) && expressionOf(key) === 'name');
   for (const path of sources(SRC)) {
     const file = relative(SRC, path).split(sep).join('/');
     if (NOT_READ.test(file)) continue;
@@ -251,16 +350,11 @@ function scanTree(): Found {
     const result = BUILDERS.has(file)
       ? scanSource(file, `overlay.toast(${source.replace(/\b(?:export )?(?:const|function)\b/g, ' ')})`)
       : scanSource(file, source);
-    all.hits.push(
-      ...result.hits.filter(
-        (key) => !(key in APP_DEFINED) && !DAW_NAMES.test(key.slice(key.indexOf(': ') + 2)) && !(DAW_NAME_FILES.has(file) && key.endsWith(': name')),
-      ),
-    );
+    for (const key of [...result.seen, ...result.leading]) all.everything.add(key);
+    all.hits.push(...result.hits.filter((key) => !allowed(file, key)));
+    all.leading.push(...result.leading.filter((key) => !allowed(file, key)));
     all.seen.push(...result.seen);
     all.inspected += result.inspected;
-    all.leading.push(
-      ...result.leading.filter((key) => !(key in LEADS_NOT_A_NARRATOR_NAME) && !(key in APP_DEFINED) && !DAW_NAMES.test(key.slice(key.indexOf(': ') + 2))),
-    );
   }
   return all;
 }
@@ -277,13 +371,18 @@ describe('every name in a toast sentence is isolated (#4113)', () => {
     ).toEqual([]);
   });
 
-  it('wraps a name that opens a sentence, wherever the sentence goes (a helper builds it, a toast shows it)', () => {
-    expect(tree.leading.map((key) => `${key} opens a template without isolatedIfRtl: a right-to-left name leading a sentence turns it round`)).toEqual([]);
+  it('wraps a name in any sentence, wherever the sentence is built (a helper builds it, a toast shows it)', () => {
+    expect(
+      tree.leading.map(
+        (key) =>
+          `${key} is in a sentence without isolatedIfRtl: a right-to-left name in it can turn it round; wrap it, or add it to LEADS_NOT_A_NARRATOR_NAME with why`,
+      ),
+    ).toEqual([]);
   });
 
-  it('keeps no allowed name that is no longer in a toast sentence', () => {
-    const seen = new Set(tree.seen);
-    expect(Object.keys(APP_DEFINED).filter((key) => !seen.has(key))).toEqual([]);
+  it('keeps no allowed name or file that nothing reads any more', () => {
+    expect([...Object.keys(APP_DEFINED), ...Object.keys(LEADS_NOT_A_NARRATOR_NAME)].filter((key) => !tree.everything.has(key))).toEqual([]);
+    expect([...DAW_NAME_FILES].filter((file) => !tree.everything.has(`${file}: name`))).toEqual([]);
   });
 
   it('reads the sentences it is meant to read: some wrapped names, some allowed ones, and not few', () => {
@@ -322,9 +421,22 @@ describe('the scan that checks the isolates (#4113)', () => {
 
   it('is not blinded by a backtick in a comment, a string or a regular expression-free line', () => {
     expect(hits('// a stray ` in a comment\noverlay.toast(`${chapter.title} gone.`);')).toHaveLength(1);
-    expect(hits('/* a ` and another ` */ overlay.toast(`${chapter.title} gone.`);')).toHaveLength(1);
+    expect(hits('/* a ` in a block comment */ overlay.toast(`${chapter.title} gone.`);')).toHaveLength(1);
     expect(hits('const a = "a ` b"; overlay.toast(`${chapter.title} gone.`);')).toHaveLength(1);
     expect(hits("const a = 'it`s'; overlay.toast(`${chapter.title} gone.`);")).toHaveLength(1);
+  });
+
+  it('reads a call made through ?., a call result, or a bare toast, and not a call named in a string or a comment', () => {
+    expect(hits('overlay?.toast(`${item.name} done.`);')).toHaveLength(1);
+    expect(hits('useOverlay().toast(`${item.name} done.`);')).toHaveLength(1);
+    expect(hits('const { toast } = o; toast(`${item.name} done.`);')).toHaveLength(1);
+    expect(hits('const text = "notify("; const other = `${item.name} done`;')).toEqual([]);
+    expect(hits('/* notify( */ const other = `${item.name} done`;')).toEqual([]);
+  });
+
+  it('flags a name that opens a sentence with another expression after it', () => {
+    expect(scanSource('x.ts', 'const text = `${chapter.title} moved to ${stage}.`;').leading).toEqual(['x.ts: chapter.title']);
+    expect(scanSource('x.ts', 'const text = `${chapterName(chapter)}: ${why}.`;').leading).toEqual(['x.ts: chapterName(chapter)']);
   });
 
   it('reads a template nested in an expression, and ignores a call named in a comment', () => {
@@ -332,12 +444,18 @@ describe('the scan that checks the isolates (#4113)', () => {
     expect(hits('// notify(`${chapter.title} gone.`)\nconst x = 1;')).toEqual([]);
   });
 
-  it('flags a sentence that opens with a name wherever it is built, and not a label or a wrapped name', () => {
+  it('flags a name in a sentence wherever it is built, and not a label, a count or a wrapped name', () => {
     const leading = (source: string) => scanSource('x.ts', source).leading;
     expect(leading('const text = `${chapter.title} moved to Editing.`;')).toEqual(['x.ts: chapter.title']);
     expect(leading('const text = `${isolatedIfRtl(chapter.title)} moved to Editing.`;')).toEqual([]);
     expect(leading('const tip = `${chapter.title} (draft)`;')).toEqual([]);
-    expect(leading('const text = `Moved ${chapter.title} to Editing.`;')).toEqual([]);
+    // Not led by the name, quoted, built into a variable that is not `message` or `reason`: all are sentences with a name in them.
+    expect(leading('const text = `Moved ${chapter.title} to Editing.`;')).toEqual(['x.ts: chapter.title']);
+    expect(leading('const text = `“${chapter.title}” moved.`;')).toEqual(['x.ts: chapter.title']);
+    expect(leading('const undoText = `Removed ${speaker}.`;')).toEqual(['x.ts: speaker']);
+    expect(leading("const text = `${plural(n, 'track')} linked.`;")).toEqual([]);
+    expect(scanSource('x.ts', 'toast(`${who} was removed.`);').hits).toEqual(['x.ts: who']);
+    expect(scanSource('x.ts', 'let undoText = `Removed ${voice}.`;').hits).toEqual(['x.ts: voice']);
   });
 
   it('leaves text that is not a toast sentence alone', () => {

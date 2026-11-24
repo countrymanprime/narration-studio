@@ -263,7 +263,7 @@ function ProfileDialogs({ ctl }: { ctl: DeliveryProfilesController }) {
       )}
       {deleting && (
         <ConfirmDialog
-          title={`Delete "${deleting.name}"?`}
+          title={`Delete "${isolatedIfRtl(deleting.name)}"?`}
           body="A project that chose it is judged against the Global default from then on. This cannot be undone."
           confirmLabel="Delete profile"
           confirmVariant="danger"

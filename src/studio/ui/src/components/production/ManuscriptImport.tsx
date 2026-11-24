@@ -20,6 +20,7 @@ import { Dialog } from '../primitives/Dialog';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
+import { isolatedIfRtl } from '../../visibleText';
 
 // Import runs as a host-side job; the UI only ever displays the percent and log
 // lines the host reports while polling - it never invents progress.
@@ -237,7 +238,7 @@ export function useManuscriptImport({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, step1Open]);
   const dropFile = (file: DroppedManuscript): string | undefined => {
-    if (!file.path) return `This window cannot read where "${file.name}" is. Use Choose a file… instead.`;
+    if (!file.path) return `This window cannot read where "${isolatedIfRtl(file.name)}" is. Use Choose a file… instead.`;
     setStep1Open(false);
     void api
       .manuscriptBeginImport(file.path)
@@ -277,7 +278,7 @@ export function useManuscriptImport({
       {offerCandidate && (
         <ConfirmDialog
           title="Import manuscript?"
-          body={`Found ${candidate.name} in this project folder. Import it now? You can also choose a different file with the import button.`}
+          body={`Found ${isolatedIfRtl(candidate.name)} in this project folder. Import it now? You can also choose a different file with the import button.`}
           confirmLabel="Import"
           confirm={() =>
             void api

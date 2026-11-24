@@ -7,6 +7,7 @@ import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../.
 import { fileOf } from '../../master/chapterFile';
 import { fileVerdict, missesWithLimit } from '../../master/fileVerdict';
 import { plural, pluralWord, formatCount } from '../../../plural';
+import { isolatedIfRtl } from '../../../visibleText';
 
 export type ChapterState = { id: string; name: string; kind: 'ok' | 'bad' | 'wait'; text: string };
 
@@ -30,7 +31,7 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
     if (!file || fileVerdict(file) !== 'fail') continue;
     const [first, ...rest] = missesWithLimit(file, profile);
     if (first === undefined) continue;
-    return `${chapterName(chapter)}: ${first}${rest.length > 0 ? `, and ${formatCount(rest.length)} more ${pluralWord(rest.length, 'rule')}` : ''}.`;
+    return `${isolatedIfRtl(chapterName(chapter))}: ${first}${rest.length > 0 ? `, and ${formatCount(rest.length)} more ${pluralWord(rest.length, 'rule')}` : ''}.`;
   }
   return undefined;
 }
@@ -49,7 +50,7 @@ export function firstNotReady(chapters: readonly Listed[], files: readonly Measu
   for (const chapter of chapters) {
     const file = fileOf(chapter, files, chapters);
     if (file && fileVerdict(file) !== 'none') continue;
-    return `${chapterName(chapter)}: ${notReadyWhy(file)}.`;
+    return `${isolatedIfRtl(chapterName(chapter))}: ${notReadyWhy(file)}.`;
   }
   return undefined;
 }

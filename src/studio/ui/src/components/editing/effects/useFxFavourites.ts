@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import { useQuietWindow } from '../../../quietWindow';
 import { joinFavourites, parseFavourites, toggledFavourites } from './favourites';
+import { isolatedIfRtl } from '../../../visibleText';
 
 const TOOL = 'DAW';
 const KEY = 'fx_favourites';
@@ -55,7 +56,7 @@ export function useFxFavourites(): FxFavourites & { ready: boolean } {
     (name: string) => {
       if (pressed.quiet()) return;
       pressed.start();
-      if (name.includes(',')) return setError(`“${name}” has a comma in its name, which the favourites list cannot keep.`);
+      if (name.includes(',')) return setError(`“${isolatedIfRtl(name)}” has a comma in its name, which the favourites list cannot keep.`);
       system.saveSettings(TOOL, 'global', { [KEY]: joinFavourites(toggledFavourites(names, name)) }).then(
         () => setVersion((v) => v + 1),
         (e) => setError(why(e)),
