@@ -15,6 +15,7 @@ import { ValueControl } from '../row/ValueControl';
 import { onEngineChanged } from '../data/engineSignal';
 import { useProjectDaw } from '../data/useProjectDaw';
 import { resolveListeningMic } from '../../booth/listening/listeningMic';
+import { isolatedIfRtl } from '../../../visibleText';
 
 /** The settings' one width for a select or a text box (row/ValueControl.tsx), so this row's select lines up with the rest of the category. */
 export const FIELD_WIDTH = 'w-80 max-w-full';
@@ -151,7 +152,7 @@ function DawMic() {
             })}
           </div>
         ) : null}
-        {told?.outputDevice ? <span className={NOTE_CLASS}>{`${dawName} plays on ${told.outputDevice}.`}</span> : null}
+        {told?.outputDevice ? <span className={NOTE_CLASS}>{`${dawName} plays on ${isolatedIfRtl(told.outputDevice)}.`}</span> : null}
         {/* Below `sm` the first button keeps its width and the last one takes the rest of the row, so the pair ends at the row's edge, flush with the
             connection card above (alignment audit A4 at 390 px); the long label never has to wrap to fit a half column (W1). */}
         <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:items-center max-sm:[&>span]:flex-auto max-sm:[&>span_button]:w-full [&>span:last-child]:flex-auto sm:[&>span:last-child]:flex-none [&>span:last-child_button]:w-full sm:[&>span:last-child_button]:w-auto">

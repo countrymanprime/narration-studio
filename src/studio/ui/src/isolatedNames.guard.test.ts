@@ -100,12 +100,17 @@ function lex(source: string): { templates: Template[]; isCode: boolean[] } {
 const CALL = /(?:(?:\?\.|\.)(?:toast|toastUndo)|(?<![\w$.])(?:toast|toastUndo)|\bnotify|\bsay)\(/g;
 const SENTENCE_STATEMENT = /\b(?:message|reason|done|success|undoText|sentence|why|notice)\b/;
 const NAMEISH =
-  /\b\w*(?:[Nn]ame|[Tt]itle|[Ll]abel|[Pp]ath|[Qq]uote|[Tt]erm|[Qq]uery|[Cc]hapter|[Tt]rack|[Vv]oice|[Pp]roject|[Pp]rofile|[Ee]ntry|[Ss]peaker|[Cc]haracter|[Hh]eading|[Ff]older|[Ff]ile|[Ww]ho|[Mm]ilestone)\b/;
+  /\b\w*(?:[Nn]ame|[Tt]itle|[Ll]abel|[Pp]ath|[Qq]uote|[Tt]erm|[Qq]uery|[Cc]hapter|[Tt]rack|[Vv]oice|[Pp]roject|[Pp]rofile|[Ee]ntry|[Ss]peaker|[Cc]haracter|[Hh]eading|[Ff]older|[Ff]ile|[Ww]ho|[Mm]ilestone|[Ss]hort|[Dd]evice|[Ss]ource|[Oo]wner)\b/;
 /** Whether an expression reads like a name; the words inside its quotes (`plural(n, 'track')`) are text, not names. */
 const nameish = (expression: string): boolean => NAMEISH.test(expression.replace(/(['"])(?:\\.|(?!\1).)*\1/g, "''"));
 
 /** A template that ends its words with a full stop, a question mark or an exclamation mark is a sentence, and a label, a tooltip or a path is not. */
 const SENTENCE_END = /[.!?]$/;
+/** A plain identifier or member access (`short`, `names[0]`, `row.chapter`). */
+const PLAIN = /^[A-Za-z_$][\w$]*(?:\??\.[A-Za-z_$][\w$]*|\[[^\]]*\])*$/;
+/** Plain identifiers that hold a count or a number, never a name. */
+const COUNTISH =
+  /^(?:\w*(?:[Cc]ount|[Nn]umber|[Tt]otal|[Ll]ength|[Ss]ize|[Ii]ndex|[Ss]econds|[Mm]s|[Mm]b|[Vv]ersion|[Rr]evision)|n|i|k|size|done|kept|queued|found|steps|total|at)$/;
 const WRAPPERS = /^(?:isolatedIfRtl|bidiIsolated)\(/;
 
 /** The index just past the parenthesis that closes the one at `open`, counting only code characters. */
@@ -152,6 +157,10 @@ export function scanSource(file: string, source: string): Found {
         const text = expression.text.trim();
         if (!text.includes('`') && nameish(text) && !wrappedWhole(text)) found.leading.push(`${file}: ${text}`);
       }
+      // The first thing in a sentence matters most: any plain identifier or member that opens it (`${chapter} is linked…`) is read as a name, whatever it is called.
+      const first = entry.exprs[0];
+      if (first && first.start - entry.start <= 4 && PLAIN.test(first.text.trim()) && !nameish(first.text) && !COUNTISH.test(first.text.trim()))
+        found.leading.push(`${file}: ${first.text.trim()}`);
     }
     const inToastCall = inCall.some(([from, to]) => entry.start > from && entry.start < to);
     // The statement the template sits in: back to the last `;`, `{` or `}` (a `{ reason: …` keeps its key).
@@ -201,6 +210,112 @@ const APP_DEFINED: Record<string, string> = {
  * shown in a sentence. The key is `<file>: <expression>`; each has the reason.
  */
 const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
+  'App.tsx: short':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  "App.tsx: /[.!?…]$/.test(short) ? '' : '.'":
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/range/fx/fxMenu.ts: source':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'App.tsx: message':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/frame/LevelsMenu.tsx: device':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/leave/stopRecordingSpec.ts: subject':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/page/useBoothPage.ts: stopped.message':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/page/useBoothPage.ts: undone.message':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/record/takeWords.ts: TAKE_ENDED':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/record/useRecordControl.ts: what':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/roll/rollConfirm.ts: subject':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/roll/useRoll.ts: plan.reason':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/booth/voices/useBoothVoices.ts: COLD_READ_NO_VOICE_REASON':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/delivery/page/Preflight.tsx: run.job.message':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/delivery/page/Preflight.tsx: ROW':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/backups/backupsText.ts: message':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/cleanup/cleanupApply.ts: stale.length':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/effects/EffectSettings.tsx: notKept':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/follow/useDawTransportSync.ts: daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/follow/wordClock.ts: daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/range/fx/fxText.ts: FX_FADE_MS':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/range/replace/useReplaceAudio.tsx: dawCaps.daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/stack/stackPlan.ts: caps.daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/editing/takes/prep/usePrepSteps.tsx: caps.daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/engine/AddMarkers.tsx: skipped':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/engine/ChapterLinksTable.tsx: who':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/engine/ChapterLinksTable.tsx: linked':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/engine/VoicesCard.tsx: lead':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/engine/chapterSyncText.ts: subject':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/layout/AddressGate.tsx: reason':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/master/DiagnosticsSection.tsx: job.message':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/master/fileVerdict.ts: describeMiss(rule, result, owner)':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/masterqc/page/MeasureRun.tsx: run.job.message':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/pickups/list/usePickupsContextMenu.ts: NO_NOTE':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/production/ChapterTrackPanel.tsx: Noun':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/proof/ProoferSheet.tsx: first':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/recordingcheck/CheckRecordingsButton.tsx: caps.daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/recordingcheck/activityView.ts: model':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/recordingcheck/background/BackgroundChecksNotice.tsx: chapters':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/recordingcheck/runChoices.ts: first':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/recordingcheck/runChoices.ts: how':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/recordingcheck/workerPlan.ts: lead':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/schedule/ContractPanel.tsx: text':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/schedule/dates.ts: t':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/schedule/draft.ts: t':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/settings/controls/EngineBody.tsx: daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/settings/controls/EngineBody.tsx: option.daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/settings/controls/EngineBody.tsx: foundFiles.length':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'components/settings/row/OpenLogFolderButton.tsx: FAILED':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'daw/dawSession.ts: daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'interactionFeedback/daw.ts: what':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'playback/providers.ts: caps.daw':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
+  'studio/drafts/draftSentence.ts: why':
+    'reviewed in round 5: a message from the host or a constant, a count, a DAW or model name, or text the app words; not a name the narrator or an author chose',
   "components/engine/LinkChaptersDialog.tsx: sharing.map(({ chapter }) => isolatedIfRtl(chapterName(chapter, 'short'))).join(', ')":
     'each name is isolated before the join',
   'components/booth/record/RecordSetup.tsx: guide.installFile': "a label the app itself defines, a count or a number: not a narrator's name",
@@ -432,6 +547,13 @@ describe('the scan that checks the isolates (#4113)', () => {
     expect(hits('const { toast } = o; toast(`${item.name} done.`);')).toHaveLength(1);
     expect(hits('const text = "notify("; const other = `${item.name} done`;')).toEqual([]);
     expect(hits('/* notify( */ const other = `${item.name} done`;')).toEqual([]);
+  });
+
+  it('flags any plain identifier that opens a sentence, whatever it is called, and not a count', () => {
+    expect(scanSource('x.ts', 'const s = `${short} is linked to x.`;').leading).toEqual(['x.ts: short']);
+    expect(scanSource('x.ts', 'const s = `${names[0]} looks like it.`;').leading).toEqual(['x.ts: names[0]']);
+    expect(scanSource('x.ts', 'const s = `${listening.device} was not found.`;').leading).toEqual(['x.ts: listening.device']);
+    expect(scanSource('x.ts', 'const s = `${count} tracks are linked.`;').leading).toEqual([]);
   });
 
   it('flags a name that opens a sentence with another expression after it', () => {

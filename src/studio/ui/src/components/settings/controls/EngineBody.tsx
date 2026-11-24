@@ -100,7 +100,7 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean; startedFo
       title: `${daw} not linked`,
       detail:
         foundFiles.length === 1
-          ? `${foundFiles[0]} is in the project folder.`
+          ? `${isolatedIfRtl(foundFiles[0])} is in the project folder.`
           : foundFiles.length > 1
             ? `${foundFiles.length} ${daw} project files are in the project folder. Choose the one this project records into.`
             : `No ${daw} project file is in the project folder yet. Save one there from ${daw}, then link it.`,

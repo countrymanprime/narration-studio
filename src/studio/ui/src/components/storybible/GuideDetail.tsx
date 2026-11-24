@@ -1089,8 +1089,8 @@ export function GuideDetail({
                     {nameNote.blank
                       ? ADD_NAME_FIRST
                       : nameNote.ownerId
-                        ? `“${nameNote.text}” is already a name of the entry ${isolatedIfRtl(entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry')}.`
-                        : `“${nameNote.text}” is already a name of this entry.`}
+                        ? `“${isolatedIfRtl(nameNote.text)}” is already a name of the entry ${isolatedIfRtl(entities.find((row) => row.id === nameNote.ownerId)?.canonical_name ?? 'another entry')}.`
+                        : `“${isolatedIfRtl(nameNote.text)}” is already a name of this entry.`}
                   </span>
                   {nameNote.ownerId && mergeButton(entities.find((row) => row.id === nameNote.ownerId))}
                 </>

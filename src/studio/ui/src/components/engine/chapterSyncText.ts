@@ -18,7 +18,7 @@ export function chapterSyncReasonText(item: ChapterSyncNeedsYou): string {
     case 'ambiguous': {
       const names = item.candidates.map((candidate) => `“${readable(candidate.trackName, candidate.trackIndex)}”`);
       if (names.length === 0) return 'More than one track looks like it.';
-      if (names.length === 1) return `${names[0]} looks like it.`;
+      if (names.length === 1) return `${isolatedIfRtl(names[0])} looks like it.`;
       return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} both look like it.`;
     }
     case 'uncertain':

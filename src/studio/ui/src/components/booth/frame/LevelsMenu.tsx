@@ -170,7 +170,7 @@ const MUTED = 'text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]';
 function Listening({ dawName, device, listen }: { dawName: string; device: string; listen: ListenProps }) {
   const { mic, devices } = listen;
   const [choosing, setChoosing] = useState(false);
-  const plays = mic.outputDevice ? <p className={MUTED}>{`${dawName} plays on ${mic.outputDevice}.`}</p> : null;
+  const plays = mic.outputDevice ? <p className={MUTED}>{`${dawName} plays on ${isolatedIfRtl(mic.outputDevice)}.`}</p> : null;
   const records = mic.dawInput ? <p className={MUTED}>{`${dawName} records from ${mic.dawInput}.`}</p> : null;
   if (devices.length === 0)
     return (

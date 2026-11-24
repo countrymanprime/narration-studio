@@ -212,12 +212,13 @@ export function recheckSentence(
 ): string {
   const found = tracks.find((candidate) => candidate.guid === guid);
   const noun = voiceFolders ? 'folder' : 'track';
-  if (!found) return `${short} is linked to a ${noun} that is no longer in the project. Choose another ${noun} or clear the link.`;
+  const who = isolatedIfRtl(short);
+  if (!found) return `${who} is linked to a ${noun} that is no longer in the project. Choose another ${noun} or clear the link.`;
   const what = kindInWords(found, tracks, voiceFolders, notVoiceGuids);
   const place = tracks.indexOf(found);
   if (was !== undefined && was !== found.name)
-    return `The ${noun} for ${short} was renamed from ${quoted(was, place)} to ${isolatedIfRtl(quoted(found.name, place))} (${what}).`;
-  const linked = `${short} is linked to ${isolatedIfRtl(quoted(found.name, place))} (${what})`;
+    return `The ${noun} for ${who} was renamed from ${isolatedIfRtl(quoted(was, place))} to ${isolatedIfRtl(quoted(found.name, place))} (${what}).`;
+  const linked = `${who} is linked to ${isolatedIfRtl(quoted(found.name, place))} (${what})`;
   if (how === 'live') return `${linked}. Nothing changed.`;
   return how === 'saved' ? `${linked}, as the saved project has it.` : `${linked}.`;
 }
@@ -226,9 +227,11 @@ export function recheckSentence(
 function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
   const named = childNames(result);
   const rest = result.message ? ` ${result.message}` : '';
+  const who = isolatedIfRtl(short);
+  const made = isolatedIfRtl(trackName(result.track.name, result.track.index));
   return result.voice
-    ? `Created the folder “${trackName(result.track.name, result.track.index)}” with ${named ? `${named} tracks` : `a ${result.voice.name} track`} and linked ${short} to it. Save the project to keep it.${rest}`
-    : `Created the track “${trackName(result.track.name, result.track.index)}” and linked ${short} to it. Save the project to keep it.${rest}`;
+    ? `Created the folder “${made}” with ${named ? `${named} tracks` : `a ${isolatedIfRtl(result.voice.name)} track`} and linked ${who} to it. Save the project to keep it.${rest}`
+    : `Created the track “${made}” and linked ${who} to it. Save the project to keep it.${rest}`;
 }
 
 /** How long a Cancel or Clear keeps its note of where focus goes: a Clear waits for the host to answer, and a slow answer is no reason to leave focus on the page. */
