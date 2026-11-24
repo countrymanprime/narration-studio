@@ -13,7 +13,7 @@ import { clock } from '../../../../clock';
 import { DialogFooter } from '../common/DialogFooter';
 import type { ReplaceAsk } from './replaceCommand';
 import { plural } from '../../../../plural';
-import { hasVisibleText, isolatedIfRtl } from '../../../../visibleText';
+import { hasVisibleText } from '../../../../visibleText';
 import { clamp } from '../../../../clamp';
 
 /** The fades at each seam the dialog offers, in milliseconds (the host takes 0 to 500); 10 ms is the cut's default seam. */
@@ -302,8 +302,8 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
         {file && file.state !== 'ok' ? (
           <p className="m-0 rounded-lg bg-[var(--warn-soft)] px-3 py-2.5 text-sm" data-replace-file-state>
             {file.state === 'missing'
-              ? `${isolatedIfRtl(file.name, 'ltr')} is no longer where it was added. ${dawName} plays it from there: put it back, or add it again from where it is now.`
-              : `${isolatedIfRtl(file.name, 'ltr')} changed since it was added. Add it again so the app measures what ${dawName} plays.`}
+              ? `${file.name} is no longer where it was added. ${dawName} plays it from there: put it back, or add it again from where it is now.`
+              : `${file.name} changed since it was added. Add it again so the app measures what ${dawName} plays.`}
           </p>
         ) : null}
         {note ? (

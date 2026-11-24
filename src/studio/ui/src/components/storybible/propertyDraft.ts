@@ -1,5 +1,4 @@
 import type { GuideProperty } from '../../types';
-import { isolatedIfRtl } from '../../visibleText';
 
 // The rows of the properties table while an entry is being edited. A row has an id of its own, because its name is the thing the
 // narrator is typing into: keying a row by its name would remount its field on every keystroke and drop the caret.
@@ -73,8 +72,8 @@ export function propertyProblem(rows: DraftProperty[], reserved = false): string
     const key = row.key.trim();
     if (key === '') return `Give property ${index + 1} a name, or clear its value.`;
     const field = reserved ? TALK_FIELDS.find((talk) => talk.key === key.toLowerCase()) : undefined;
-    if (field) return `“${isolatedIfRtl(key)}” is the ${field.label} field above. Write it there.`;
-    if (seen.has(key.toLowerCase())) return `Two properties are named “${isolatedIfRtl(key)}”. Give each a different name.`;
+    if (field) return `“${key}” is the ${field.label} field above. Write it there.`;
+    if (seen.has(key.toLowerCase())) return `Two properties are named “${key}”. Give each a different name.`;
     seen.add(key.toLowerCase());
   }
   return undefined;

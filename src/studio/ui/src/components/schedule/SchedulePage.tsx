@@ -185,7 +185,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     const next: ProductionMilestone = { ...m, done: !m.done };
     if (!next.done) delete next.done;
     void saveList(
-      m.done ? `Mark ${isolatedIfRtl(m.name)} open again` : `Mark ${isolatedIfRtl(m.name)} done`,
+      m.done ? `Mark ${m.name} open again` : `Mark ${m.name} done`,
       (list) => list.map((x, i) => (i === index ? next : x)),
       undefined,
       rowMoved(index, m),
@@ -195,7 +195,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
     const m = plan.milestones[index];
     once(`remove:${index}`, () =>
       saveList(
-        `Remove ${isolatedIfRtl(m.name)}`,
+        `Remove ${m.name}`,
         (list) => list.filter((_, i) => i !== index),
         `Removed ${isolatedIfRtl(m.name)}.`,
         rowMoved(index, m),

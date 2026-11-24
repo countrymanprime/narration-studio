@@ -25,7 +25,6 @@ import { useRecorderMeter } from './useRecorderMeter';
 import type { RecorderMeterView } from './recorderMeter';
 import type { ListeningMic } from '../listening/useListeningMic';
 import { plural } from '../../../plural';
-import { isolatedIfRtl } from '../../../visibleText';
 
 export type ListenProps = {
   devices: readonly TeleprompterDevice[];
@@ -135,7 +134,7 @@ function Devices({
   const options = [
     ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
     ...devices.filter((d) => d.name.trim() !== '').map((d) => ({ value: d.name, label: d.name })),
-    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${isolatedIfRtl(device)} (not found)` }] : []),
+    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
   ];
   return <Select label="Microphone" fullWidth value={device} options={options} onChange={onDevice} />;
 }
@@ -155,7 +154,7 @@ function MicSelect({ device, devices, onChange }: { device: string; devices: rea
   const options = [
     ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
     ...devices.map((d) => ({ value: d.name, label: d.name })),
-    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${isolatedIfRtl(device)} (not found)` }] : []),
+    ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
   ];
   return <Select label="Microphone" fullWidth value={device} options={options} onChange={onChange} />;
 }
@@ -170,8 +169,8 @@ const MUTED = 'text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]';
 function Listening({ dawName, device, listen }: { dawName: string; device: string; listen: ListenProps }) {
   const { mic, devices } = listen;
   const [choosing, setChoosing] = useState(false);
-  const plays = mic.outputDevice ? <p className={MUTED}>{`${dawName} plays on ${isolatedIfRtl(mic.outputDevice)}.`}</p> : null;
-  const records = mic.dawInput ? <p className={MUTED}>{`${dawName} records from ${isolatedIfRtl(mic.dawInput)}.`}</p> : null;
+  const plays = mic.outputDevice ? <p className={MUTED}>{`${dawName} plays on ${mic.outputDevice}.`}</p> : null;
+  const records = mic.dawInput ? <p className={MUTED}>{`${dawName} records from ${mic.dawInput}.`}</p> : null;
   if (devices.length === 0)
     return (
       <>
@@ -252,7 +251,7 @@ function Listening({ dawName, device, listen }: { dawName: string; device: strin
           {mic.note ?? `${dawName}'s input could be any of these microphones. Pick the one it uses.`}
         </p>
         {picks}
-        <p className={MUTED}>{`Listening to ${isolatedIfRtl(device)} until you pick.`}</p>
+        <p className={MUTED}>{`Listening to ${device} until you pick.`}</p>
         {plays}
         {different}
       </>
@@ -385,7 +384,7 @@ function meterFor(state: DawMetersState, side: 'input' | 'output', dawName: stri
   if (state.kind === 'off' || state.kind === 'quiet') return { db: null, why: side === 'input' ? state.message : undefined };
   if (side === 'output') return { db: state.meters.output };
   if (state.meters.input === null) return { db: null, why: `No track is armed in ${dawName}: its input level shows once one is.` };
-  return { db: state.meters.input, why: `Heard on “${isolatedIfRtl(state.meters.inputTrack)}” in ${dawName}.` };
+  return { db: state.meters.input, why: `Heard on “${state.meters.inputTrack}” in ${dawName}.` };
 }
 
 /** The monitor level while the DAW can set it: read when the menu opens, sent when the drag rests, refused in the DAW's own sentence. */

@@ -15,7 +15,6 @@ import type { RangeLocator } from '../range/common/locate';
 import { fxSpan } from '../range/fx/fxCommand';
 import { fmtPct, impactOf } from './effectsMath';
 import { useFxCap } from './useFxCap';
-import { isolatedIfRtl } from '../../../visibleText';
 
 /** What the page lends the inspector to change an effect and hear it: the chapter, where its words are for the DAW, the history, the other effects and the page's playback. */
 export interface EffectHost {
@@ -114,7 +113,7 @@ const actionOf = (kind: DawActionKind, { undoSteps }: DawResult) =>
 function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxSetting, value: number, previous: number): Command<DawResult> {
   const change = (to: number) => daw.setFxRangeParam({ ...target, fx: setting.fx, index: setting.index, value: to }).catch(failed);
   return {
-    label: `Set ${setting.name} of ${isolatedIfRtl(fx.chainName)} to ${value}`,
+    label: `Set ${setting.name} of ${fx.chainName} to ${value}`,
     touches: [`editing/${target.chapterId}/wordfx`],
     daw: true,
     dawAction: (res) => actionOf('set_fx_param', res),
@@ -140,7 +139,7 @@ function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], t
     return notKept ? refusal('record_failed', `${notKept} The DAW ${b ? 'bypassed' : 'turned on'} the effect: undo it there (Edit > Undo).`) : res;
   };
   return {
-    label: `${bypass ? 'Bypassed' : 'Turned on'} ${isolatedIfRtl(fx.chainName)}`,
+    label: `${bypass ? 'Bypassed' : 'Turned on'} ${fx.chainName}`,
     touches: [`editing/${target.chapterId}/wordfx`],
     daw: true,
     dawAction: (res) => actionOf(bypass ? 'bypass_fx' : 'enable_fx', res),
@@ -155,7 +154,7 @@ function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], t
  */
 function compareCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], target: FxRangeTarget, fx: WordFx, was: boolean): Command<DawFxRangeCompare> {
   return {
-    label: `Compared ${isolatedIfRtl(fx.chainName)} with and without`,
+    label: `Compared ${fx.chainName} with and without`,
     touches: [`editing/${target.chapterId}/wordfx`],
     // The DAW adds no undo point for a Compare, so it has no last action to be asked about; Undo stops the play and puts the effect back as it was.
     daw: false,

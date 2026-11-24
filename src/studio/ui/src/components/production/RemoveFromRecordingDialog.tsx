@@ -1,6 +1,5 @@
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
-import { isolatedIfRtl } from '../../visibleText';
 
 /**
  * "Remove <chapter> from recording?" a reclassification, not
@@ -23,7 +22,7 @@ export function RemoveFromRecordingDialog({
 }) {
   return (
     <ConfirmDialog
-      title={`Remove ${isolatedIfRtl(chapterTitle)} from recording?`}
+      title={`Remove ${chapterTitle} from recording?`}
       body={
         <p>
           It leaves the chapter table, totals, the reader and the teleprompter. Its text stays in the manuscript, and its track link is cleared. You can restore

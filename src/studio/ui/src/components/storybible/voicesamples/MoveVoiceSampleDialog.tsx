@@ -5,7 +5,6 @@ import { Dialog } from '../../primitives/Dialog';
 import { FIELD_LABEL_CLASSES } from '../../primitives/Field';
 import { Select } from '../../primitives/Select';
 import type { SaveAnswer } from './EditVoiceSampleDialog';
-import { isolatedIfRtl } from '../../../visibleText';
 
 export type MoveChoice = { id: string; name: string };
 
@@ -59,7 +58,7 @@ export function MoveVoiceSampleDialog({
       title="Move voice sample"
       onClose={onCancel}
       dismissOnOutsidePress={false}
-      description={sample.label.trim() === '' ? undefined : `Move “${isolatedIfRtl(sample.label)}” to another character.`}
+      description={sample.label.trim() === '' ? undefined : `Move “${sample.label}” to another character.`}
       actions={
         <>
           <Button type="button" variant="secondary" onClick={onCancel}>
@@ -89,8 +88,8 @@ export function MoveVoiceSampleDialog({
           />
           <span className="text-sm text-[var(--text-muted)]">
             {full
-              ? `${isolatedIfRtl(chosen?.name ?? 'This character')} has ${limit} samples. Delete one first.`
-              : `${isolatedIfRtl(chosen?.name ?? 'This character')} has ${count} of ${limit} samples.`}
+              ? `${chosen?.name ?? 'This character'} has ${limit} samples. Delete one first.`
+              : `${chosen?.name ?? 'This character'} has ${count} of ${limit} samples.`}
           </span>
         </div>
         {failure ? (

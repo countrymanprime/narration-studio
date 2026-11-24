@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { TextField } from '../primitives/TextField';
 import { deliveryProfileTitle, formatBound } from '../master/deliveryProfile';
 import { Mark } from '../master/RuleBadges';
-import { hasVisibleText, isolatedIfRtl } from '../../visibleText';
+import { hasVisibleText } from '../../visibleText';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -124,7 +124,7 @@ export function DeliveryProfileEditor({
       title="Edit profile"
       size="wide"
       onClose={() => void leave()}
-      description={`${base ? `Based on ${isolatedIfRtl(deliveryProfileTitle(base))}. ` : ''}Saving makes revision ${profile.revision + 1}; projects using it are judged again without measuring.`}
+      description={`${base ? `Based on ${deliveryProfileTitle(base)}. ` : ''}Saving makes revision ${profile.revision + 1}; projects using it are judged again without measuring.`}
       actions={
         <>
           {/* A button that drops typed text says so; with nothing changed it only closes (#3400). */}

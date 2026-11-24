@@ -11,7 +11,7 @@ import { Select } from '../../primitives/Select';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import { CharacterBadge } from './CharacterBadge';
 import { chordForNewTrack, chordText, defaultTrackName, keyName, voiceChord, voiceName, type Cast, type WhoCharacter } from './whoIsIn';
-import { hasVisibleText, isolatedIfRtl } from '../../../visibleText';
+import { hasVisibleText } from '../../../visibleText';
 
 /** What opened the dialog: a number key with no track behind it, or a character with no track (the voice list's row, the side list's +). */
 export type WhoAsk =
@@ -110,13 +110,13 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
     : [...name.trim()].length > TRACK_NAME_MAX
       ? `A track name is at most ${TRACK_NAME_MAX} characters.`
       : voices.some((voice) => same(voice.name, name))
-        ? `This chapter already has a track named “${isolatedIfRtl(name.trim())}”.`
+        ? `This chapter already has a track named “${name.trim()}”.`
         : undefined;
   const newChord = chordForNewTrack(voices, name);
   const target = others.find((voice) => voice.guid === existing);
   const blocked = choice === 'new' ? Boolean(nameProblem) : choice === 'existing' ? !target : !narrator;
   const title = asked
-    ? `Who records ${isolatedIfRtl(asked.name)}?`
+    ? `Who records ${asked.name}?`
     : ask.kind === 'key' && ask.key > 9
       ? 'Who is in the new track?'
       : `Who is in ${keyName(String(ask.kind === 'key' ? ask.key : ''))}?`;
@@ -202,7 +202,7 @@ export function WhoIsInDialog({ ask, voices, cast, onAdd, onUse, onNarrator, onC
           void press();
         }}
       >
-        <RadioGroup label={asked ? `How to record ${isolatedIfRtl(asked.name)}` : 'How to record them'} value={choice} onChange={setChoice} options={options} />
+        <RadioGroup label={asked ? `How to record ${asked.name}` : 'How to record them'} value={choice} onChange={setChoice} options={options} />
         {/* Under the choice it names, so the field that has focus when the dialog opens is in view at every height (ux review). */}
         {choice === 'new' ? <Field label="Track name" value={name} onChange={setTyped} error={nameProblem} autoFocus /> : null}
         {choice === 'existing' && others.length > 0 ? (

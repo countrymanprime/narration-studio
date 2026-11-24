@@ -2,7 +2,6 @@ import type { DawCapabilities, DawChoice, DawMeters, DawTransport } from '../api
 import type { WorkspaceProjectFxResult } from '../api/contracts/workspace';
 import { apiErrorMessage, describeApiError } from '../api/errorMessage';
 import type { NarrationApi } from '../types';
-import { isolatedIfRtl } from '../visibleText';
 
 /** How often the DAW's meters are read while any screen holds a lease: often enough to follow a voice, one read at a time. */
 export const DAW_METERS_EVERY_MS = 250;
@@ -137,7 +136,7 @@ export function startingDetail(daw: string): string {
 
 /** The message after a press of Start: the app opened the DAW and the Booth turns on Record once it answers. */
 export function startedToast(daw: string, path: string): string {
-  return `${daw} is starting (${isolatedIfRtl(path, 'ltr')}). Record turns on here once it connects.`;
+  return `${daw} is starting (${path}). Record turns on here once it connects.`;
 }
 
 /** The word the top-bar engine chip shows, and its tooltip, while the host starts the DAW. */

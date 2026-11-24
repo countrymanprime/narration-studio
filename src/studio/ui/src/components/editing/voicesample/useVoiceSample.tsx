@@ -118,7 +118,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                 const refuse = (code: string, reason: string) => ({ ok: false as const, refusal: { code, reason } });
                 // The save is one journal entry, so Ctrl+Z and History remove the sample as the toast's Undo does.
                 const done = await journal.act<string>({
-                  label: `Saved a voice sample for ${isolatedIfRtl(name)}`,
+                  label: `Saved a voice sample for ${name}`,
                   touches: [`voiceSamples/${values.characterId}`],
                   run: async () => {
                     let answer;

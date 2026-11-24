@@ -43,7 +43,7 @@ async function choose(daw: DawClient, passage: LinePassage, take: LineTake): Pro
 function keepTakeCommand(daw: DawClient, passage: LinePassage, take: LineTake): Command<DawResult> {
   const before = passage.takes.find((t) => t.active);
   return {
-    label: `Kept ${isolatedIfRtl(take.label)}`,
+    label: `Kept ${take.label}`,
     touches: [`takes/${passage.id}`],
     daw: true,
     // One undo point in the DAW's history (narration_workspace.lua's set_active_take, or a lane pick); a keep that changed nothing left none and names no action.

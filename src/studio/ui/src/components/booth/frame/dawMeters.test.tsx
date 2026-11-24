@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { isolatedIfRtl } from '../../../visibleText';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -159,7 +158,7 @@ describe("the DAW's meters in the Levels menu", () => {
     const name = `Ch 1 “Alice” 🎙 فصل ${'x'.repeat(200)}`;
     const { open } = menu(() => ({ ...ARMED, inputTrack: name }));
     await open();
-    const line = await within(popup()).findByText(`Heard on “${isolatedIfRtl(name)}” in REAPER.`);
+    const line = await within(popup()).findByText(`Heard on “${name}” in REAPER.`);
     expect(line.className).toContain('[overflow-wrap:anywhere]');
   });
 });

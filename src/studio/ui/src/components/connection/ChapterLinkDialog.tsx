@@ -16,7 +16,6 @@ import { TrackSelect } from '../mapping/TrackSelect';
 import { ResolveShell } from './ResolveShell';
 import { destinationFor } from '../engine/destination';
 import { useVoiceLayout } from '../engine/voiceLayout';
-import { isolatedIfRtl } from '../../visibleText';
 
 /** How long the track match may take: a host that never answers ends in the failed state, where adding a track is offered, not in reading for good. */
 const MATCH_LIMIT_MS = 8000;
@@ -311,7 +310,7 @@ export function ChapterLinkDialog({
                   ? `Reading the ${dawName} tracks…`
                   : creating
                     ? `Adding the ${dest.noun}…`
-                    : `Choose a ${dest.noun} to link ${isolatedIfRtl(chapterName)} to.`,
+                    : `Choose a ${dest.noun} to link ${chapterName} to.`,
             }
       }
       secondary={{ label: 'Check again', onPress: checkAgain, pending: read.status === 'loading' }}
@@ -375,8 +374,8 @@ export function ChapterLinkDialog({
           {read.status === 'failed'
             ? `Can't tell which tracks ${dawName} has.`
             : missing
-              ? `Waiting for ${isolatedIfRtl(chapterName)} to be linked to a ${dest.noun} that is in the project.`
-              : `Waiting for ${isolatedIfRtl(chapterName)} to be linked.`}
+              ? `Waiting for ${chapterName} to be linked to a ${dest.noun} that is in the project.`
+              : `Waiting for ${chapterName} to be linked.`}
         </span>{' '}
         {readSeconds === null ? 'Not checked yet.' : `Last checked ${readSeconds} s ago.`}
       </p>

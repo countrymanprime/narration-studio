@@ -2,7 +2,6 @@ import type { ProductionMilestone } from '../../api/contracts/production';
 import { farDateProblem, isIsoDate, MAX_DATE_YEAR } from './dates';
 import { chaptersOf, measOf, minutesOf } from './measures';
 import { plural, formatCount } from '../../plural';
-import { isolatedIfRtl } from '../../visibleText';
 import { clamp } from '../../clamp';
 
 /** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N". */
@@ -41,9 +40,8 @@ const badDate = (text: string): string => {
   const t = text.trim();
   if (t === '') return MISSING_DATE;
   // A real day in a year the plan cannot use is told its range, not that it is not a date.
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t) && Number(t.slice(0, 4)) < 1000)
-    return `${isolatedIfRtl(t)} is too early. Write a date from the year 1000 to ${MAX_DATE_YEAR}.`;
-  return `${isolatedIfRtl(t)} is not a real date. Write it YYYY-MM-DD.`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t) && Number(t.slice(0, 4)) < 1000) return `${t} is too early. Write a date from the year 1000 to ${MAX_DATE_YEAR}.`;
+  return `${t} is not a real date. Write it YYYY-MM-DD.`;
 };
 
 /** How far an N may go: the chapters the book has and the finished minutes it runs. */

@@ -19,7 +19,7 @@ export function modelPairText(background: Pick<ChapterSyncBackground, 'firstPass
 
 /** The pill's line while a background check runs. */
 export function runningText(title: string, state: CoverageState): string {
-  return `Checking ${isolatedIfRtl(title)} in the background · ${Math.round(state.percent)}%`;
+  return `Checking ${title} in the background · ${Math.round(state.percent)}%`;
 }
 
 /** The models a running check names, or the background pair when the state does not say. */

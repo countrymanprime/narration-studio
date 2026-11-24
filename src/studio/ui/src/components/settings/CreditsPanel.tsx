@@ -571,7 +571,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
               )}
             </p>
             <p style={{ color: 'var(--text-muted)' }}>
-              {previewScope && `Shown for ${isolatedIfRtl(previewScope.chapter)}, one of ${plural(previewScope.count, 'chapter')}. `}
+              {previewScope && `Shown for ${previewScope.chapter}, one of ${plural(previewScope.count, 'chapter')}. `}
               {plural(preview.words, 'word')}
               {preview.unresolved.length > 0 &&
                 ` — ${formatCount(preview.unresolved.length)} unresolved ${pluralWord(preview.unresolved.length, 'token')}: ${preview.unresolved.join(', ')}`}

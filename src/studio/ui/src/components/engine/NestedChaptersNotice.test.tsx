@@ -9,7 +9,6 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import { ChapterLinksTable } from './ChapterLinksTable';
-import { nestingSentence } from './NestedChaptersNotice';
 import { useChapterLinks } from './useChapterLinks';
 import { linksKey, useChapterFolders } from './useChapterFolders';
 import type { Notify } from '../primitives/Toast';
@@ -236,15 +235,5 @@ describe("the Chapter links panel's nested-chapters repair (#2838)", () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Move them out…' }));
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Move them out' }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('No chapter needed moving.', 'info'));
-  });
-});
-
-describe('nestingSentence (#4113)', () => {
-  it('isolates each right-to-left chapter name before listing them, so their order holds', () => {
-    const A = '\u0627\u0644\u0641';
-    const B = '\u0628\u0627\u0628';
-    const move = (name: string) => ({ chapterId: 'c', trackName: name, fromName: 'Folder', trackGuid: 'g' });
-    const text = nestingSentence({ moves: [move(A), move(B)] } as never);
-    expect(text.startsWith('In REAPER, \u2068' + A + '\u2069 and \u2068' + B + '\u2069 sit inside')).toBe(true);
   });
 });

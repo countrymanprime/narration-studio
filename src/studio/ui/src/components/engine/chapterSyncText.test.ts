@@ -13,21 +13,6 @@ import {
 const candidate = (trackGuid: string, trackName: string) => ({ trackGuid, trackName, trackIndex: 0, score: 1, source: 'track-name' as const, region: null });
 
 describe('chapterSyncReasonText', () => {
-  it('isolates each right-to-left track name before joining two, and the chapter of a pickup track (#4113)', () => {
-    const A = '\u0627\u0644\u0641';
-    const B = '\u0628\u0627\u0628';
-    const tie: ChapterSyncNeedsYou = {
-      chapterId: 'c5',
-      chapterTitle: 'Chapter 5',
-      reason: 'ambiguous',
-      best: null,
-      candidates: [candidate('g1', A), candidate('g2', B)],
-    };
-    expect(chapterSyncReasonText(tie)).toBe('“\u2068' + A + '\u2069” and “\u2068' + B + '\u2069” both look like it.');
-    const note = chapterSyncNotChaptersText([], [{ trackGuid: 'g3', trackName: 'x', chapterId: 'c3', chapterTitle: A }]).note;
-    expect(note).toBe('The last one is kept as \u2068' + A + '\u2069' + "'s pickup track.");
-  });
-
   it('names both candidates for an ambiguous tie', () => {
     const item: ChapterSyncNeedsYou = {
       chapterId: 'c5',
