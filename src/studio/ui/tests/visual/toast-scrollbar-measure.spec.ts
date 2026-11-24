@@ -151,8 +151,12 @@ test('a toast text that scrolled stops scrolling once it fits again, although it
   await squeeze.evaluate((element) => element.remove());
   await expect.poll(async () => (await state(page)).tabIndex).toBe(-1);
   expect((await state(page)).overflowY).toBe('hidden');
-  // The text that had focus stopped being a Tab stop: focus went to the toast's own Retry, not to the page.
-  await expect(page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' })).toBeFocused();
+  // The text that had focus stopped being a Tab stop: focus went to the toast's Dismiss, not to the page and not to Retry (the narrator's next Space must not run an action they never chose).
+  const region = page.locator('[data-toast-region]');
+  await expect(region.getByRole('button', { name: 'Dismiss message' })).toBeFocused();
+  // The mock's Retry does nothing the page can see, so what is asserted is where the next Space would land: on Dismiss, which only dismisses.
+  await page.keyboard.press('Space');
+  await expect(region.getByRole('button', { name: 'Retry' })).toHaveCount(0);
 });
 
 test('a toast raised while the web fonts are held stops scrolling once they have loaded', async ({ browser }) => {

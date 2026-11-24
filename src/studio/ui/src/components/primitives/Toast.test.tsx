@@ -429,7 +429,7 @@ describe('a toast text is measured without its scrollbar, and again when the fon
     expect(textOf('xxxx').getAttribute('tabindex')).toBeNull();
   });
 
-  it("hands focus to the toast's first button when the text that had it stops scrolling, and leaves it alone otherwise", () => {
+  it("hands focus to the toast's Dismiss when the text that had it stops scrolling, and leaves it alone otherwise", () => {
     render(<ToastRegion messages={[{ ...info(1, HUGE), action: { label: 'Retry', onAction: vi.fn() } }]} dismiss={vi.fn()} />);
     const text = textOf('xxxx');
     expect(text.getAttribute('tabindex')).toBe('0');
@@ -437,14 +437,28 @@ describe('a toast text is measured without its scrollbar, and again when the fon
     sizes.scrollHeight = 34;
     act(() => listeners.forEach((cb) => cb()));
     expect(document.activeElement).toBe(document.body);
-    // Scrolls again, takes focus, and stops: focus goes to Retry, not to the body.
+    // Scrolls again, takes focus, and stops: focus goes to Dismiss, not to the action and not to the body.
     sizes.scrollHeight = 500;
     act(() => listeners.forEach((cb) => cb()));
     textOf('xxxx').focus();
     expect(document.activeElement).toBe(textOf('xxxx'));
     sizes.scrollHeight = 34;
     act(() => listeners.forEach((cb) => cb()));
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Retry' }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
+  });
+
+  it('a focused text that stops scrolling hands no key to the action', async () => {
+    const onAction = vi.fn();
+    render(<ToastRegion messages={[{ ...info(1, HUGE), action: { label: 'Retry', onAction } }]} dismiss={vi.fn()} />);
+    textOf('xxxx').focus();
+    expect(document.activeElement).toBe(textOf('xxxx'));
+    sizes.scrollHeight = 34;
+    act(() => observers.forEach((cb) => cb()));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
+    // The narrator's next fresh Space does not run the action they never chose.
+    vi.useRealTimers();
+    await userEvent.setup().keyboard(' ');
+    expect(onAction).not.toHaveBeenCalled();
   });
 
   it('hands focus to Dismiss when the toast has no action', () => {

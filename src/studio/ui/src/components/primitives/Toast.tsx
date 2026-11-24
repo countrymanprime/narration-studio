@@ -157,8 +157,10 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       el.style.overflowY = overflowY;
       el.style.scrollbarGutter = scrollbarGutter;
       el.scrollTop = top;
-      // The text is a Tab stop only while it scrolls: if it had focus when it stops, focus goes to the toast's first button (its action, else Dismiss), not to the page (focus is never left on <body>).
-      if (!overflows && document.activeElement === el) el.closest<HTMLElement>('[data-tone]')?.querySelector('button')?.focus();
+      // The text is a Tab stop only while it scrolls: if it had focus when it stops, focus goes to the toast's Dismiss, never to its action (the text owned the keys that page it, so the next Space the narrator
+      // presses would run an action they never chose), and never to <body> (focus is never left on <body>).
+      if (!overflows && document.activeElement === el)
+        el.closest<HTMLElement>('[data-tone]')?.querySelector<HTMLElement>('[aria-label="Dismiss message"]')?.focus();
       setScrolls(overflows);
     };
     measure();
