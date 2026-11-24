@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { dawPlayOwner } from './dawPlayOwner';
+import { createPlayOwner, dawPlayOwner, previewPlayOwner } from './dawPlayOwner';
 
 // The DAW's play is one thing: an old answer never stops a newer press's play, but a play that landed while a newer press owned the DAW is stopped when
 // that press gives the DAW up without playing in it (#4076, qa).
@@ -57,5 +57,24 @@ describe('dawPlayOwner.stopOrOrphan', () => {
     const { stop } = olderAnswerWhileNewerOwns();
     dawPlayOwner.release();
     expect(stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('createPlayOwner', () => {
+  it('keeps one owner for each kind of play: the transport and the file preview do not share one', () => {
+    previewPlayOwner.forget();
+    const t = dawPlayOwner.begin();
+    dawPlayOwner.claim(t);
+    const preview = previewPlayOwner.begin();
+    previewPlayOwner.claim(preview);
+    const stop = vi.fn();
+    // A transport play answered late while the transport's own owner is still it: stopped at once, whatever the preview's owner is.
+    dawPlayOwner.stopOrOrphan(t, stop);
+    expect(stop).toHaveBeenCalledTimes(1);
+    // A fresh instance owns nothing.
+    const other = createPlayOwner();
+    const late = vi.fn();
+    other.stopOrOrphan(other.begin(), late);
+    expect(late).toHaveBeenCalledTimes(1);
   });
 });
