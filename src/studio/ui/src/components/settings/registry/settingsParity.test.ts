@@ -98,7 +98,11 @@ const BINDINGS: Parity = {
 
 // ---- Keys the window keeps in localStorage.
 const KEY = /['"`](narration(?:\.[A-Za-z.]+|-ui-[A-Za-z-]+))(?:['"`]|\$\{)/g;
-const storageKeys = [...new Set(ALL.flatMap((path) => [...text(path).matchAll(KEY)].map((m) => m[1]!)))].sort();
+// A per-project key is built by `projectStorageKey(name, folder)` (projectFolder.ts) from a `PROJECT_KEY… = 'page.what'` constant, so the scan reads those
+// as the prefix `narration.<name>.` the helper puts the folder after.
+const PROJECT_KEY = /\bPROJECT_KEY\w*\s*=\s*'([A-Za-z.]+)'/g;
+const projectKeys = ALL.flatMap((path) => [...text(path).matchAll(PROJECT_KEY)].map((m) => `narration.${m[1]!}.`));
+const storageKeys = [...new Set([...ALL.flatMap((path) => [...text(path).matchAll(KEY)].map((m) => m[1]!)), ...projectKeys])].sort();
 
 const STORAGE: Parity = {
   covered: {

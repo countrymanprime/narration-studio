@@ -95,18 +95,16 @@ export const SILENT_CATCHES: Record<string, string> = {
     "The DAW's move to the chapter the page opened (Booth.follow_chapter_in_daw, Editing and Pickups): a failed call leaves the DAW where it was, which is where the narrator put it, and the page's own DAW notices say whether the DAW answers. A refusal (a chapter with no linked track) is the same: nothing moved, nothing lost.",
   'src/hooks/useDawSoloesChapter.ts#1':
     "The DAW's quiet around the chapter the Booth is on (dawSoloChapter and dawSoloRestore, Booth.follow_chapter_in_daw): a call that fails leaves the DAW as it was or leaves the chapter soloed, never anything else, and the DAW's own ledger puts a solo it could not be told to put back at the bridge's next start. The one rejection is swallowed so the next call in the order still runs; the page's own DAW notices say whether the DAW answers, and a narrator's action never waits on it.",
-  'src/components/editing/lastChapter.ts#1':
-    'Reads the chapter Editing last showed from browser storage: storage that is missing or blocked is the same as nothing kept, and Editing opens on its first chapter as it did before the app remembered one.',
+  'src/components/booth/page/lastPlace.ts#1':
+    'Reading the chapter places kept beside a last place, to tell two old spellings of the folder apart by when each chapter was left; with storage unreadable that one counts as having none, and the first spelling is taken.',
+  'src/projectFolder.ts#1':
+    "Copying a place an earlier build kept under the raw folder to the normalised key, in localStorage, per project (the Booth's last place and chapter places, Editing's, Proof's and Master & QC's last chapter); with storage full or blocked the copy is skipped, the value is still read and used for this visit, and the next read tries the copy again.",
   'src/hooks/useDawPullBack.ts#1':
     "The pull-back to the page's chapter when the app window regains focus (Booth.follow_chapter_in_daw): a read or a move that failed leaves the DAW where the narrator put it, nothing is lost, and the page's own DAW notices say whether the DAW answers. The next focus asks again.",
   'src/components/chapterTracks/ChapterTrackState.tsx#1':
     "The quiet re-read of the links detail after a change made on a screen that already has its answer (`applyMappings`): the change itself is shown, and a failed re-read marks the state stale and is retried by the next poll or the screen's own refresh, which reports a failure.",
   'src/components/chapterTracks/ChapterTrackState.tsx#2':
     'The first read of the links detail for a screen that asked for it after the links were already read: a failure marks the state stale, the screen keeps showing the saved links, and the next poll or its own refresh reads it again and reports a failure.',
-  'src/components/editing/takes/useTakeAudition.ts#1':
-    "Stopping the DAW's preview of a take failed, as the narrator pressed Stop or left the page: at most the rest of one take plays on in the DAW, which ends by itself, and Play on any take stops it again.",
-  'src/components/proof/inspector/HearIt.tsx#1':
-    'Leaving a note stops the DAW loop its Hear it started, after the Inspector has moved on: there is no row left to say it on, and the loop the DAW is still playing is in plain sight there, where Stop works as always.',
   'src/components/voicesamples/audioOutputs.ts#1':
     'Putting the sample player back on the system default failed after the chosen output could not be used: the element stays where it was, the caller already says the sample is not on the chosen output, and the sample still plays.',
   'src/components/editing/voicesample/sampleMarksContext.tsx#1':
@@ -206,10 +204,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/useTeleprompterSession.ts#2': 'Hydrates a session that was already running; the state event follows anyway.',
   'src/components/booth/useTeleprompterSession.ts#3':
     'The one-time browser-storage-to-settings migration write; a failure leaves the device in local state for this visit and the migration is retried next load since the settings value never got marked set.',
-  'src/components/masterqc/page/sharedChapter.ts#1':
-    'Remembering the chapter Master & QC is on, under the key Proof reads, in localStorage; with storage unavailable the choice lasts for this visit only.',
-  'src/components/proof/ProofPage.tsx#1':
-    'Reading the last chapter looked at on Proof per project from localStorage; with storage unavailable a step from All chapters opens the first chapter.',
   'src/components/proof/useChapterTimeline.ts#1':
     "The chapter's alignment only names which peaks belong to which item; a chapter not aligned yet draws flat lines in the waveform window.",
   'src/components/script/scriptPageHost.ts#1':
@@ -221,10 +215,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Reading Script.definition_source for the Words tab's source menu (or moving the old localStorage choice into it); a failed read keeps the source the menu shows, and the next window focus reads again. A choice the narrator makes has its own toast on failure.",
   'src/components/script/page/reader/readerPosition.ts#1':
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
-  'src/components/booth/page/lastPlace.ts#1':
-    "Remembering the Booth's last chapter and place in localStorage, per project; with storage blocked or full the next visit opens on the DAW's chapter or the first, as it did before the place was kept.",
-  'src/components/booth/page/lastPlace.ts#2':
-    'Remembering the place in each chapter of the project in localStorage; with storage blocked or full a chapter the narrator comes back to opens where its recording ends, or at its top.',
   'src/components/booth/page/boothSize.ts#1':
     "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':

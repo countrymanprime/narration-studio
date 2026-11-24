@@ -447,9 +447,7 @@ test.describe('with a take running', () => {
     const errors = watch(page);
     await openBooth(page, '?mockReaperState=other_armed');
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.startInDaw());
-    await expect(
-      page.getByText(/REAPER is already recording on another track, so the Booth is not following it\. Stop it in REAPER before recording here\./).first(),
-    ).toBeVisible();
+    await expect(page.getByText(/REAPER is already recording on another track\. Stop it there first\./).first()).toBeVisible();
     await expect(record(page)).toBeDisabled();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
     await expect(record(page)).toBeEnabled({ timeout: 10_000 });
@@ -462,9 +460,7 @@ test.describe('with a take running', () => {
   }) => {
     const errors = watch(page);
     await openBooth(page, `?mockDawRecording=1&mockReaperState=other_armed`, false);
-    await expect(
-      page.getByText(/REAPER is already recording on another track, so the Booth is not following it\. Stop it in REAPER before recording here\./).first(),
-    ).toBeVisible();
+    await expect(page.getByText(/REAPER is already recording on another track\. Stop it there first\./).first()).toBeVisible();
     await expect(record(page)).toBeDisabled();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.stopInDaw());
     await expect(record(page)).toBeEnabled({ timeout: 10_000 });

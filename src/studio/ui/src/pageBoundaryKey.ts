@@ -1,27 +1,12 @@
 import { pageOfPath } from './navigation/address';
+import { folderKey, isSameProject } from './projectFolder';
 
 /**
  * The key of the boundary around the routed page. It changes with the page and with the project, so React remounts the page when either changes: what a page holds in its
  * own state for the project that was open (a dialog whose confirm would act on that project's chapter, a draft) does not carry into the next project (#4057).
  */
 export function pageBoundaryKey(projectFolder: string, pathname: string): string {
-  return JSON.stringify([projectFolder, pageOfPath(pathname).slice(1) || 'production']);
-}
-
-/**
- * A project folder as one folder: a backslash and a slash are the same separator, repeated and trailing separators are nothing, and a leading double separator (a network share) stays. The case is kept: on
- * a case-sensitive file system `X` and `x` are two folders. The host may spell the one folder both ways (the start-up path and the recent list do).
- */
-function folderKey(folder: string): string {
-  const slashed = folder.replace(/\\/g, '/');
-  const lead = slashed.startsWith('//') ? '//' : '';
-  return (
-    lead +
-    slashed
-      .slice(lead.length)
-      .replace(/\/{2,}/g, '/')
-      .replace(/\/+$/, '')
-  );
+  return JSON.stringify([folderKey(projectFolder), pageOfPath(pathname).slice(1) || 'production']);
 }
 
 /**
@@ -29,7 +14,7 @@ function folderKey(folder: string): string {
  * project yet is not a difference, and one folder spelled two ways is the same project.
  */
 export function isOtherProject(owner: string | undefined, current: string | undefined): boolean {
-  return current !== undefined && owner !== undefined && folderKey(owner) !== folderKey(current);
+  return current !== undefined && owner !== undefined && !isSameProject(owner, current);
 }
 
 /** The part of `history.state` the router writes that these checks read. */
@@ -43,4 +28,13 @@ export function historyHoldsMove(state: HistoryEntryState, locationKey: string, 
   const sameIndex = shown?.key === locationKey && shown.idx !== undefined && shown.idx === state?.idx;
   if (state?.key === undefined) return state?.idx !== undefined && shown?.key === locationKey && shown.idx !== undefined && !sameIndex;
   return state.key !== locationKey && !sameIndex;
+}
+
+/**
+ * Whether the address may be cut now (replaced with the page's bare address). Never while history holds a move, and never against an entry whose key is not the location's the cut was computed from, even
+ * on the same index: a page replaced the entry (the Booth writing its chapter) and the cut would overwrite that write; the router commits the new location and the cut is worked out again from it (#4099).
+ */
+export function historyAllowsCut(state: HistoryEntryState, locationKey: string, shown: { key: string; idx: unknown } | undefined): boolean {
+  if (historyHoldsMove(state, locationKey, shown)) return false;
+  return state?.key === undefined || state.key === locationKey;
 }

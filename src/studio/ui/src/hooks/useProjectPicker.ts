@@ -1,3 +1,4 @@
+import { isSameProject } from '../projectFolder';
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -9,7 +10,12 @@ export function useProjectPicker(projectFolder: string | undefined) {
   const [open, setOpen] = useState(false);
   const previous = useRef(projectFolder);
   useEffect(() => {
-    if (previous.current !== undefined && previous.current !== projectFolder) setOpen(false);
+    if (
+      previous.current !== undefined &&
+      !(projectFolder !== undefined && isSameProject(previous.current, projectFolder)) &&
+      previous.current !== projectFolder
+    )
+      setOpen(false);
     previous.current = projectFolder;
   }, [projectFolder]);
   return [open, setOpen] as const;

@@ -1,3 +1,4 @@
+import { folderKey } from '../../projectFolder';
 import { useEffect, useReducer } from 'react';
 import type { ChapterTrackMatch } from '../../api/contracts/chapterTrackMap';
 
@@ -27,7 +28,7 @@ const settled = new Set<string>();
 const listeners = new Set<() => void>();
 const tell = () => listeners.forEach((listener) => listener());
 
-const keyOf = (project: string | null, chapterId: string) => (project ? `${project}\u0000${chapterId}` : null);
+const keyOf = (project: string | null, chapterId: string) => (project ? `${folderKey(project)}\u0000${chapterId}` : null);
 
 export function cachedMatch(project: string | null, chapterId: string): CachedMatch | undefined {
   const key = keyOf(project, chapterId);

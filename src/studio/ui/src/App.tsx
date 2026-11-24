@@ -98,7 +98,8 @@ import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
 import { addressWithoutProject, pageOfPath } from './navigation/address';
-import { historyHoldsMove, isOtherProject, pageBoundaryKey, type HistoryEntryState } from './pageBoundaryKey';
+import { isSameProject } from './projectFolder';
+import { historyAllowsCut, historyHoldsMove, isOtherProject, pageBoundaryKey, type HistoryEntryState } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
@@ -290,6 +291,13 @@ if (typeof window !== 'undefined') {
   });
 }
 
+/** The project folder as the window already holds it when the host names the same folder in another spelling, so nothing keyed or compared by the folder sees a change (#4099). */
+function keepFolderSpelling(current: Bootstrap | undefined, next: Bootstrap): Bootstrap {
+  return current && current.projectFolder !== next.projectFolder && isSameProject(current.projectFolder, next.projectFolder)
+    ? { ...next, projectFolder: current.projectFolder }
+    : next;
+}
+
 export function App({ journal }: { journal?: Journal } = {}) {
   // Every build serves from the site root (base: '/', vite.config.ts), so this is a no-op basename; the Pages demo of src/web serves under
   // /<repository>/demo/, and without a matching basename react-router compares its routes ('/', '/proof', ...) against the full pathname and
@@ -470,6 +478,7 @@ function AppRoutes() {
   // bootstrap the attach asks for follows it). The store is told in the same turn as the check, so a reset cannot slip in between the check and the telling.
   const studio = useStoreHandle();
   const bootstrapSeq = useRef(0);
+  const bootstrapNow = useRef<Bootstrap | undefined>(undefined);
   const refreshBootstrap = useCallback(async () => {
     const mine = ++bootstrapSeq.current;
     const generation = studio.generation();
@@ -478,7 +487,7 @@ function AppRoutes() {
       if (mine !== bootstrapSeq.current || studio.generation() !== generation) return;
       studio.setProject(next.projectFolder);
       setDiagnosticId(next.diagnosticId);
-      setData(next);
+      setData((current) => keepFolderSpelling(current, next));
       setDataReadAt(Date.now());
     } catch (error) {
       if (mine !== bootstrapSeq.current) return;
@@ -572,7 +581,7 @@ function AppRoutes() {
         if (active) {
           loaded = true;
           setDiagnosticId(next.diagnosticId);
-          setData(next);
+          setData((current) => keepFolderSpelling(current, next));
           setDataReadAt(Date.now());
         }
       } catch (error) {
@@ -698,7 +707,7 @@ function AppRoutes() {
   const shownProject = useRef(data?.projectFolder);
   useEffect(() => {
     const before = shownProject.current;
-    if (before === data?.projectFolder) return;
+    if (before === data?.projectFolder || (before !== undefined && data?.projectFolder !== undefined && isSameProject(before, data.projectFolder))) return;
     shownProject.current = data?.projectFolder;
     // The first bootstrap names a project; it is not a change from one (a layer the narrator opened while the app was still loading, the jump menu, is still theirs).
     if (before !== undefined) closeProjectDialogs();
@@ -712,6 +721,7 @@ function AppRoutes() {
   const project = data?.projectFolder;
   // The router's `location.state` does not follow a stamp written afterwards, so the entry on screen keeps the project it was first rendered under here.
   const shownUnder = useRef<{ key: string; project: string; idx: unknown } | undefined>(undefined);
+  const navigationType = useNavigationType();
   const owner = shownUnder.current?.key === location.key ? shownUnder.current.project : (location.state as { project?: unknown } | null)?.project;
   const bareAddress = addressWithoutProject(location);
   const addressStale =
@@ -720,7 +730,6 @@ function AppRoutes() {
     (bareAddress.pathname !== location.pathname || bareAddress.search !== location.search || bareAddress.hash !== location.hash);
   // While the address is the other project's, the page is drawn at once on its own page with no chapter in the address (it opens on its own remembered one), whatever the router
   // still holds; the cut then makes the real address the same. Always the provider, so the page does not remount when the address is cut.
-  const navigationType = useNavigationType();
   // History ahead of the location on screen is a move waiting in a transition: a page drawn now would write over it (the Booth sets its chapter in the address), so it waits for
   // the move. A page's own replace is ahead too, but on the same entry (same index), and is no reason to wait.
   const historyMoved = historyHoldsMove(window.history.state as HistoryEntryState, location.key, shownUnder.current);
@@ -739,6 +748,27 @@ function AppRoutes() {
     if (shownUnder.current?.key !== location.key) shownUnder.current = { key: location.key, project, idx: onScreen ? state?.idx : undefined };
     if (onScreen && state?.usr?.project !== project) window.history.replaceState({ ...state, usr: { ...state?.usr, project } }, '');
   });
+  // Every entry the router writes is stamped with the project open at that moment, by the call that writes it. A page of the project that was open can write its address (the Booth's
+  // chapter) after the window has moved on to another one, and the router commits that entry late: stamped afterwards it would be taken for the new project's (a fast A, B, A switch).
+  useLayoutEffect(() => {
+    bootstrapNow.current = data;
+  });
+  useEffect(() => {
+    const own = { push: window.history.pushState, replace: window.history.replaceState };
+    const stamped = (write: typeof window.history.pushState) =>
+      function (this: History, state: unknown, unused: string, url?: string | URL | null) {
+        const router = state as { key?: unknown; usr?: { project?: unknown } } | null;
+        const open = bootstrapNow.current?.projectFolder;
+        const marked = router !== null && typeof router === 'object' && 'key' in router && open !== undefined && typeof router.usr?.project !== 'string';
+        return write.call(this, marked ? { ...router, usr: { ...router.usr, project: open } } : state, unused, url);
+      };
+    window.history.pushState = stamped(own.push);
+    window.history.replaceState = stamped(own.replace);
+    return () => {
+      window.history.pushState = own.push;
+      window.history.replaceState = own.replace;
+    };
+  }, []);
   // History put back by the popstate guard commits nothing in the router, so a cut skipped while it was away asks to run again.
   const [historyRestores, setHistoryRestores] = useState(0);
   useEffect(() => {
@@ -750,9 +780,9 @@ function AppRoutes() {
     // History ahead of the location on screen is a move waiting in a transition: a replace now would write over it. The page stays held, and the effect runs again with the
     // location that commits (a new object even when history returns to the same entry).
     const state = window.history.state as { key?: string } | null;
-    if (addressStale && !historyHoldsMove(state, location.key, shownUnder.current))
-      navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true });
-  }, [addressStale, historyRestores, navigate, location, bareAddress.pathname, bareAddress.hash]);
+    if (addressStale && historyAllowsCut(state, location.key, shownUnder.current))
+      navigate({ pathname: bareAddress.pathname, hash: bareAddress.hash }, { replace: true, state: { project } });
+  }, [addressStale, historyRestores, navigate, location, bareAddress.pathname, bareAddress.hash, project]);
 
   // Wails forwards a second REAPER launch to the existing native window. The
   // host replaces project-scoped services only after proving it is idle, then
@@ -1494,6 +1524,7 @@ function AppRoutes() {
           notify={setNotice}
           onCreated={() => navigate('/script')}
           onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
+          onSwitched={(path) => data.projectFolder && isSameProject(path, data.projectFolder) && setProjectPickerOpen(false)}
           currentName={data.projectFolder ? data.projectName : undefined}
           onOpenSettings={data.projectFolder ? undefined : openSettings}
           focusSettings={cameFromSettings.current}

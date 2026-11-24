@@ -780,8 +780,13 @@ createRoot(document.getElementById('root')!).render(
 // Builds new because: no existing mock hook or seed raises a toast on any page (`__NARRATION_MOCK_DAW__`, `__NARRATION_MOCK_BASE__` and the mock-state seeds set app state), and the real flows that do (a failed
 // save, a Booth take) each need a project, a DAW or a recording first, so the guard could not reach every page with the same toast.
 if (import.meta.env.VITE_USE_MOCK_API === '1') {
-  (window as unknown as { __raiseToast?: (text: string) => void }).__raiseToast = (text) =>
-    overlay.toast(text, { tone: 'error', action: retryAction(() => undefined) });
+  // `actionLabel`: undefined is a Retry button; null is no button; a string is a button with that label (`tests/visual/booth-refusals-two-lines.spec.ts` passes "Check again",
+  // the longest label a Booth message carries).
+  (window as unknown as { __raiseToast?: (text: string, actionLabel?: string | null) => void }).__raiseToast = (text, actionLabel) => {
+    if (actionLabel === undefined) overlay.toast(text, { tone: 'error', action: retryAction(() => undefined) });
+    else if (actionLabel === null) overlay.toast(text, { tone: 'error' });
+    else overlay.toast(text, { tone: 'error', action: { label: actionLabel, onAction: () => undefined } });
+  };
 }
 
 // `?mockPanel=1` opens the dev-only Mock states panel beside the app. Only the mock build reaches the dynamic import, so the

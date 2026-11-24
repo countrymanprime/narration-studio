@@ -1,24 +1,34 @@
 import { chapterTrackOf } from '../../../api/chapterTrackItems';
+import { PLAY_DEADLINE_MS, dawNameOf } from '../../engine/ShowInDaw';
 import type { VoiceTracksLayout } from '../../../api/contracts/voiceTracks';
 import { destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
-import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
+import { notAskedSentence } from '../../../studio/dawNames';
+import { stopAndSay } from '../../../playback/stopAndSay';
+import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
+import { overlay } from '../../../overlay/overlayService';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
+import { useNewestPlay } from '../../../playback/useNewestPlay';
+import { APP, playReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 import { chapterLink, linkStateOf, tracksUnreadable, type ChapterLinkState } from '../../chapterTracks/chapterLink';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 
+/** The Retry a line that played nothing offers is one toast at a time; a newer press, Stop or leaving the page withdraws it. */
+export const ORIGINAL_TOPIC = 'pickups-original-retry';
 /** Seconds of the recording heard before and after the line's place. */
 const ORIGINAL_AROUND = 3;
 /** Milliseconds past the stretch's end before the button goes back to Hear: the DAW stops itself at the end, this only resets the list. */
 const RESET_MARGIN_MS = 300;
 /** Why a line cannot be heard: the host gave it no place in the recording. */
 const NO_PLACE = 'This line has no place in the recording yet.';
+/** The recording is in the project but the app's player could not play it. */
+const CLIP_FAILED = 'The recording for this line could not be played.';
 const NO_AUDIO = 'The recording of this chapter is not in the project, so the original cannot be played.';
 
 /** Why a pickup of a chapter in this link state has no recording to play. */
@@ -47,9 +57,11 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
  * the linked DAW's transport (`transport_sync`) from the pickup's project second, stopped after the stretch, then the range player the Proof
  * takes use on the source file (no project change either way). A DAW that cannot play now or refuses hands the line to the app with a notice;
  * a DAW that is recording keeps the room quiet. One line plays at a time; pressing the playing line again stops it. A refusal comes back as
- * a sentence through `onRefused`, a fallback's notice through `onNotice`.
+ * a sentence through `onRefused` with a `retry` (only when nothing played) that plays the line again while it is still the newest press and the list is
+ * here, a fallback's notice through `onNotice`. The press asks the DAW at once, on what the list last heard of its capabilities (nothing, until the first read
+ * answers): no read and no check stands between the click and the play call (owner rule on #4043, #4076).
  */
-export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice: (sentence: string) => void = onRefused) {
+export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void) => void, onNotice: (sentence: string) => void = onRefused) {
   // The tracks and links are the shared state's, as the Engine list and the Booth read them: a press never waits on a read of its own, and a
   // track renamed or deleted in REAPER is what the next press plays (#3366).
   const trackState = useChapterTrackState();
@@ -59,13 +71,18 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   const sync = usePort('dawTransportSync');
   const player = useRangePlayer(tracks.mediaUrl, { pre: ORIGINAL_AROUND, post: ORIGINAL_AROUND });
   const [playingId, setPlayingId] = useState<string | null>(null);
+  // The line whose play is being asked of the DAW and not yet answered (a few seconds at most): its button shows the busy state, never nothing.
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [inDaw, setInDaw] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
-  // The press that owns the DAW's play now: null after Stop. A play that comes back after it was replaced stops the DAW only when nobody owns it.
-  const owner = useRef<number | null>(null);
-  // A DAW play was started and not stopped since: an earlier press's, which a later press that ended in the app must not leave running.
-  const dawStarted = useRef(false);
+  // What the DAW last said it can do (read at mount and again when its report changes): a press uses it as it stands and never waits for a read.
+  const dawState = useDawCapabilities();
+  const dawCaps = useRef(dawState);
+  dawCaps.current = dawState;
+  const newest = useNewestPlay(ORIGINAL_TOPIC);
+  // The press that is playing (or last played) and its place in the newest-press count, for a Retry after the app's clip failed.
+  const lastPlay = useRef<{ pickup: PickupItem; ask: number } | null>(null);
   const live = useRef({ onRefused, onNotice, playingId, inDaw });
   const shared = useRef(trackState);
   shared.current = trackState;
@@ -92,64 +109,73 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
   };
   const stopDaw = useCallback((): void => {
     clearTimer();
-    dawStarted.current = false;
     // A failed stop leaves the DAW playing; say so, as the Editing page does.
-    sync.dawTransportSync('stop', 0).then(
-      (result) => !result.ok && live.current.onRefused(result.message),
-      () => live.current.onRefused('The DAW could not be stopped. Stop it there.'),
+    void stopAndSay(
+      dawNameOf(dawCaps.current.caps),
+      (text) => live.current.onRefused(text),
+      () => sync.dawTransportSync('stop', 0).then((result) => (result.ok ? null : result.message)),
     );
   }, [sync]);
 
   const stop = useCallback((): void => {
+    overlay.dismissTopic(ORIGINAL_TOPIC);
     asked.current += 1;
-    owner.current = null;
+    dawPlayOwner.release();
     if (live.current.inDaw) stopDaw();
     player.stop();
     setInDaw(false);
     setPlayingId(null);
   }, [player, stopDaw]);
 
-  const play = useCallback(
+  // Plays the line; a press on the playing line stops it (`play`), a Retry plays it again (`begin`).
+  const begin = useCallback(
     async (pickup: PickupItem): Promise<void> => {
-      if (live.current.playingId === pickup.id) return stop();
       stop();
       const mine = asked.current;
-      owner.current = mine;
-      let caps: DawCapabilities | null = null;
-      let capsFailed = false;
-      try {
-        caps = await daw.capabilities();
-      } catch {
-        capsFailed = true;
-      }
-      const name = caps?.daw ?? 'The DAW';
+      const { caps, failed: capsFailed, retry: readCapsAgain } = dawCaps.current;
+      // A read that failed is asked again for the next press; this one does not wait for it.
+      if (!caps && capsFailed) readCapsAgain();
+      const ask = newest.begin();
+      const token = dawPlayOwner.begin();
+      lastPlay.current = { pickup, ask };
+      const retry = (): void => {
+        if (newest.current(ask) && asked.current === mine) void begin(pickup);
+      };
+      const name = dawNameOf(caps);
       const transport: PlaybackProvider<PickupItem> = {
         name,
         readiness: (p) => {
-          const declared = dawReadiness(caps, 'transport_sync', capsFailed);
-          if (!declared.ready) return declared.wait ? { ready: false, why: null } : declared;
+          const declared = playReadiness(caps, 'transport_sync', capsFailed);
+          if (!declared.ready) return declared;
           return p.at === null ? { ready: false, why: `This line has no place in ${name}'s project.` } : { ready: true };
         },
-        play: async (p) => {
-          // A newer press, or Stop, came while the DAW's capabilities were asked: that press owns the DAW now, and this one sends nothing (qa B4).
-          if (asked.current !== mine) return { played: true };
+        play: async (p, { late }) => {
           const from = Math.max(0, p.at! - ORIGINAL_AROUND);
           let why: string;
           try {
             // The DAW plays the stretch and stops itself at its end (play_range), so the end is the DAW's and the timer below only puts the button back.
+            dawPlayOwner.claim(token);
             const result = await sync.dawTransportSync('playRange', from, p.at! + ORIGINAL_AROUND, p.chapterId);
             if (result.ok) {
-              dawStarted.current = true;
-              if (asked.current !== mine) {
-                // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
-                if (owner.current === null) stopDaw();
+              // The deadline passed while the DAW was answering: the app plays in its place, so this DAW play is stopped, not left beside it.
+              // An older press's late answer stops nothing a newer press started.
+              if (late()) {
+                dawPlayOwner.stopOrOrphan(token, stopDaw);
                 return { played: true };
               }
+              if (asked.current !== mine) {
+                // Stop came while the DAW was starting: stop it. A newer press came instead: its own playRange is the one that counts, and a stop here would undo it (qa B4).
+                dawPlayOwner.stopOrOrphan(token, stopDaw);
+                return { played: true };
+              }
+              dawPlayOwner.settle(token);
               setPlayingId(p.id);
               setInDaw(true);
               timer.current = window.setTimeout(
                 () => {
                   if (asked.current !== mine) return;
+                  // The DAW's play ended by itself: nobody owns it, so a late answer of an older press is stopped, not orphaned.
+                  dawPlayOwner.release(token);
                   setInDaw(false);
                   setPlayingId(null);
                 },
@@ -159,7 +185,7 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
             }
             why = result.message;
           } catch (error) {
-            why = `${name} was not asked: ${error instanceof Error ? error.message : String(error)}`;
+            why = notAskedSentence(name, error);
           }
           return { played: false, why };
         },
@@ -182,41 +208,59 @@ export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice:
       };
       reread();
       const wanted = (): boolean => asked.current === mine;
+      setPendingId(pickup.id);
       const { by, notice } = await playThrough([transport, app], pickup, {
         stillWanted: wanted,
         keepQuiet: quietWhileRecording(() => daw.projectState(), name),
+        // A click that plays is never silent for long: a DAW that has not answered passes the line to the app.
+        deadlineMs: PLAY_DEADLINE_MS,
       });
-      // This press ended in the app (the DAW refused or could not play): it owns no DAW play, and one an earlier press left running is stopped now, or when its
-      // late answer comes (qa B1 on #3402).
-      if (by !== name && owner.current === mine) {
-        owner.current = null;
-        if (dawStarted.current) stopDaw();
-      }
+      setPendingId((id) => (id === pickup.id ? null : id));
+      // This press ended in the app (the DAW refused, could not play or did not answer): it owns no DAW play, and an earlier press's play that landed while
+      // it owned the DAW is stopped now (qa B1 on #3402); or, if its own DAW play is still asked, when that answer comes.
+      if (by !== name) dawPlayOwner.release(token);
       if (!wanted() || !notice) return;
-      if (by === null) live.current.onRefused(notice);
+      // Retry only when nothing played: a line that fell back to the app and plays is not offered a Retry, which would stop it.
+      if (by === null) live.current.onRefused(notice, retry);
       else live.current.onNotice(notice);
     },
-    [daw, player, stop, stopDaw, sync, layout],
+    [daw, player, stop, stopDaw, sync, layout, newest],
+  );
+  const play = useCallback(
+    async (pickup: PickupItem): Promise<void> => {
+      if (live.current.playingId === pickup.id) return stop();
+      return begin(pickup);
+    },
+    [begin, stop],
   );
 
   /* The app's range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */
   const { isPlaying, loadError } = player;
+  // `begin` is rebuilt every render (the range player is a new object each time): the effect reads it through a ref, so it runs on a change of
+  // the clip's state only and a failed clip is said once.
+  const beginRef = useRef(begin);
+  beginRef.current = begin;
   useEffect(() => {
     if (isPlaying || live.current.inDaw) return;
     setPlayingId(null);
-    if (loadError) live.current.onRefused(NO_AUDIO);
-  }, [isPlaying, loadError]);
+    if (loadError) {
+      const last = lastPlay.current;
+      live.current.onRefused(CLIP_FAILED, last ? () => (newest.current(last.ask) ? void beginRef.current(last.pickup) : undefined) : undefined);
+    }
+  }, [isPlaying, loadError, newest]);
 
   // Leaving the page stops a DAW play this list started.
   useEffect(
     () => () => {
       // A press still waiting on the DAW's capabilities must not start anything on a list that is gone.
       asked.current += 1;
-      owner.current = null;
-      if (live.current.inDaw) stopDaw();
+      if (live.current.inDaw) {
+        dawPlayOwner.release();
+        stopDaw();
+      }
       clearTimer();
     },
     [stopDaw],
   );
-  return { playingId: isPlaying || inDaw ? playingId : null, play, unavailable };
+  return { playingId: isPlaying || inDaw ? playingId : null, pendingId, play, unavailable };
 }

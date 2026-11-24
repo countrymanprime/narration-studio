@@ -155,8 +155,8 @@ describe('the chapter in the address is not carried into another project (#4059)
     await onChapter(/^Chapter: Chapter 7:/);
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await onChapter(/^Chapter: Chapter 1:/);
-    expect(address()).toBe('/editing');
-    expect(loadEditingChapter(OTHER)).toBe('chapter-1');
+    await waitFor(() => expect(address()).toBe('/editing'));
+    await waitFor(() => expect(loadEditingChapter(OTHER)).toBe('chapter-1'));
   });
 
   it('Back onto an entry written under the other project drops its chapter too: the Booth', async () => {
@@ -362,6 +362,37 @@ describe('the chapter in the address is not carried into another project (#4059)
       expect(loadChapterPlace(OTHER, 'chapter-9')).toBeNull();
     });
 
+    it('a Back held by the shortcut sheet with the switch in the same tick leaves the Booth on the new project\u2019s remembered chapter', async () => {
+      const { api } = await openAt('/script');
+      await screen.findByRole('heading', { level: 1, name: 'Script' });
+      window.localStorage.setItem(`narration.booth.lastPlace.${await aliceFolder()}`, JSON.stringify({ chapterId: 'chapter-2', paragraphId: '', word: 0 }));
+      await jumpTo('Booth');
+      await onChapter(/^Chapter: Chapter 2:/);
+      await waitFor(() => expect(address()).toBe('/booth?chapter=chapter-2'));
+      seedOther('booth', 'chapter-3');
+      fireEvent.keyDown(document, { key: '?', code: 'Slash', shiftKey: true });
+      await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+      const replaces: string[] = [];
+      const replaceState = window.history.replaceState;
+      window.history.replaceState = function (this: History, state: unknown, unused: string, url?: string | URL | null) {
+        replaces.push(String(url));
+        return replaceState.call(this, state, unused, url);
+      };
+      try {
+        await sameTask(async () => {
+          window.history.back();
+          await api.switchProject(OTHER, 'Voltage and the Undercroft');
+        });
+        await onChapter(/^Chapter: Chapter 3:/);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      } finally {
+        window.history.replaceState = replaceState;
+      }
+      expect(address()).toBe('/booth?chapter=chapter-3');
+      // Nothing wrote the bare address over the Booth's own chapter after it.
+      expect(replaces.lastIndexOf('/booth')).toBeLessThan(replaces.lastIndexOf('/booth?chapter=chapter-3'));
+    });
+
     it('a Back the app\u2019s guard stops, with the switch landing before it restores history, leaves the page rendered', async () => {
       const { api } = await openAt('/script');
       await screen.findByRole('heading', { level: 1, name: 'Script' });
@@ -461,5 +492,56 @@ describe('the chapter in the address is not carried into another project (#4059)
     await new Promise((resolve) => setTimeout(resolve, 300));
     await onChapter(/^Chapter: Chapter 7:/);
     expect(address()).toBe('/editing/chapter-7');
+  });
+
+  // The page is not remounted either: its node holding the page stays and no loading frame is drawn (the mock's attach still re-reads the chapters under it, so this guards the frame and the notice, not the page's own nodes; pageBoundaryKey.test.ts guards the key). (The host's attach event itself still closes what a page had open and says so: it names no folder.)
+  it.each([
+    ['backslashes', (folder: string) => folder.replace(/\//g, '\\')],
+    ['a trailing separator', (folder: string) => `${folder}/`],
+    ['the very same spelling', (folder: string) => folder],
+  ])('the same folder spelled %s does not remount the page', async (_name, spell) => {
+    const { api, first } = await openAt('/editing/chapter-7');
+    await onChapter(/^Chapter: Chapter 7:/);
+    const node = document.querySelector('main > div');
+    expect(node).toBeTruthy();
+    const watched = watchPage();
+    await api.switchProject(spell(first), 'Alice');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(watched()).toMatchObject({ empty: 0, foreign: false });
+    expect(document.querySelector('main > div')).toBe(node);
+    expect(
+      overlay
+        .getSnapshot()
+        .toasts.map((toast) => toast.text)
+        .join('|'),
+    ).not.toMatch(/project changed/i);
+  });
+
+  it('a project at the root folder opens after no project, and closing it shows the picker', async () => {
+    const { api } = await openAt('/booth');
+    await onChapter(/^Chapter: /);
+    await api.switchProject('', '');
+    await screen.findByText('Choose your project');
+    await api.switchProject('/', 'Root');
+    await onChapter(/^Chapter: /);
+    await api.switchProject('', '');
+    await screen.findByText('Choose your project');
+  });
+
+  it('rapid A, B, A, B, A switches: the last project\u2019s Booth opens on its own kept chapter, and nothing of B is written under A', async () => {
+    const { api, first } = await openAt('/booth?chapter=chapter-3');
+    await onChapter(/^Chapter: Chapter 3:/);
+    await waitFor(() => expect(loadLastPlace(first)?.chapterId).toBe('chapter-3'));
+    // As the host sends them (jsdom shows the break only some of the time without the fix; the browser run showed it on both tries): each switch is asked without waiting for the one before to be drawn.
+    const switches = [OTHER, first.replace(/\//g, '\\') + '\\', OTHER, `${first}/`];
+    for (const [i, folder] of switches.entries()) {
+      void api.switchProject(folder, 'x');
+      if (i < switches.length - 1) await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    await onChapter(/^Chapter: Chapter 3:/);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await onChapter(/^Chapter: Chapter 3:/);
+    expect(loadLastPlace(first)?.chapterId).toBe('chapter-3');
+    expect(address()).toBe('/booth?chapter=chapter-3');
   });
 });

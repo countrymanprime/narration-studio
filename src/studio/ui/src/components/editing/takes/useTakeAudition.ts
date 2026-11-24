@@ -1,11 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { dawNameOf, PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
+import { notAskedSentence } from '../../../studio/dawNames';
+import { previewPlayOwner } from '../../../playback/dawPlayOwner';
+import { stopAndSay } from '../../../playback/stopAndSay';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
+import { useNewestPlay } from '../../../playback/useNewestPlay';
+import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
 import type { OutputPrefs } from '../../engine/outputPrefs';
 import { useRangePlayer } from '../../engine/useRangePlayer';
-import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { APP, playReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
 import type { LinePassage, LineTake } from './types';
+
+/** The Retry a take that did not play offers is one toast at a time; a newer play or leaving the page withdraws it. */
+const TAKE_TOPIC = 'editing-take-retry';
+
+/** Said when a take is no longer under its line: at once for its play, and for a Retry pressed after it left. */
+const TAKE_GONE = "This take's line is not on the page any more.";
 
 /** The longest stretch the DAW's preview plays (bridge.MaxPreviewSeconds); a longer take plays its first minute. */
 const MAX_PREVIEW_SECONDS = 60;
@@ -20,12 +32,15 @@ export interface TakeAuditionOptions {
   passageOf: (take: LineTake) => LinePassage | null;
   /** Stops the chapter's playback before a take plays. */
   stopChapter: () => void;
-  notify?: (text: string) => void;
+  /** Says something to the narrator; `retry`, given only when nothing played, plays the take again. */
+  notify?: (text: string, retry?: () => void) => void;
 }
 
 export interface TakeAudition {
   /** The take playing now, or null. */
   playingId: string | null;
+  /** The take whose play is being asked, or that was asked and played nothing (the notice offers Retry), or null; a comparison holds on it. */
+  waitingId: string | null;
   /** Plays the take, or stops it when it is the one playing. */
   play: (take: LineTake) => void;
   stop: () => void;
@@ -43,14 +58,18 @@ export function useTakeAudition({
   output,
   passageOf,
   stopChapter,
-  notify = (text) => overlay.toast(text),
+  notify = (text, retry) => overlay.toast(text, retry ? { tone: 'error', action: retryAction(retry), topic: TAKE_TOPIC } : undefined),
 }: TakeAuditionOptions): TakeAudition {
   const daw = usePort('daw');
   const player = useRangePlayer(mediaUrl, { pre: 0, post: 0 }, output);
   const [playing, setPlaying] = useState<string | null>(null);
   const [inDaw, setInDaw] = useState(false);
+  const [failedId, setFailedId] = useState<string | null>(null);
+  const [askingId, setAskingId] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const asked = useRef(0);
+  const newest = useNewestPlay(TAKE_TOPIC);
+  const playAgain = useRef<(take: LineTake) => void>(() => {});
   const live = useRef({ caps, read, notify, passageOf, stopChapter });
   useEffect(() => {
     live.current = { caps, read, notify, passageOf, stopChapter };
@@ -61,6 +80,18 @@ export function useTakeAudition({
     timer.current = undefined;
   };
 
+  /** Stops the DAW's preview; a stop that fails says where to stop it (the one stop-and-say, `playback/stopAndSay.ts`). */
+  const stopPreview = useCallback(
+    (name: string): void => {
+      void stopAndSay(
+        name,
+        (text) => live.current.notify(text),
+        () => daw.stopPreview().then((result) => (result.ok ? null : result.message)),
+      );
+    },
+    [daw],
+  );
+
   // What the last render showed, so stop knows whether the DAW holds a preview of the app's.
   const shown = useRef({ playing, inDaw });
   shown.current = { playing, inDaw };
@@ -68,39 +99,58 @@ export function useTakeAudition({
   const stop = useCallback(() => {
     asked.current += 1;
     clearTimer();
+    // The preview is nobody's now; an older take's preview that landed meanwhile is stopped with it.
+    previewPlayOwner.release();
     player.stop();
     // A failed stop leaves at most the rest of one preview playing in the DAW, which ends on its own.
-    if (shown.current.playing !== null && shown.current.inDaw) void daw.stopPreview().catch(() => undefined);
+    if (shown.current.playing !== null && shown.current.inDaw) stopPreview(dawNameOf(live.current.caps));
     setPlaying(null);
     setInDaw(false);
-  }, [daw, player]);
+    setFailedId(null);
+    setAskingId(null);
+  }, [player, stopPreview]);
 
   const play = useCallback(
     (take: LineTake) => {
       if (playing === take.id && (inDaw || player.isPlaying)) return stop();
       const { caps: now, read: dawRead, notify: say, passageOf: lineOf, stopChapter: quiet } = live.current;
+      const ask = newest.begin();
+      setFailedId(null);
       if (now === null && dawRead?.failed) void dawRead.retry();
-      const name = now?.daw ?? 'The DAW';
+      const name = dawNameOf(now);
+      // Stops a DAW preview nobody waits for any more (the deadline passed, or Stop or a newer take came); a stop that failed says where to stop it.
+      const token = previewPlayOwner.begin();
+      const dropPreview = (): void => stopPreview(name);
       const preview: PlaybackProvider<LineTake> = {
         name,
         readiness: (t) => {
-          const declared = dawReadiness(now, 'file_preview', !!dawRead?.failed);
+          const declared = playReadiness(now, 'file_preview', !!dawRead?.failed);
           if (!declared.ready) return declared;
-          return lineOf(t) ? { ready: true } : { ready: false, why: "This take's line is not on the page any more." };
+          return lineOf(t) ? { ready: true } : { ready: false, why: TAKE_GONE };
         },
-        play: async (t) => {
+        play: async (t, { late }) => {
           const line = lineOf(t)!;
           const mine = asked.current;
           setPlaying(t.id);
           setInDaw(true);
           let why: string;
           try {
+            previewPlayOwner.claim(token);
             const result = await daw.previewTake(line.chapterId, line.firstToken, line.lastToken, t.id);
             if (result.ok) {
+              // The deadline passed while the DAW was answering (the app plays in its place), or Stop or a newer take came: this preview is stopped, not
+              // left beside what plays; a preview a newer take started since is that take's.
+              if (late() || asked.current !== mine) {
+                previewPlayOwner.stopOrOrphan(token, dropPreview);
+                return { played: true };
+              }
+              previewPlayOwner.settle(token);
               // The DAW says nothing when a preview ends, so the take is shown playing for as long as it plays.
               timer.current = window.setTimeout(
                 () => {
                   if (asked.current !== mine) return;
+                  // The preview ended by itself: nobody owns it now.
+                  previewPlayOwner.release(token);
                   setPlaying(null);
                   setInDaw(false);
                 },
@@ -110,9 +160,11 @@ export function useTakeAudition({
             }
             why = result.message;
           } catch (error) {
-            why = `${name} was not asked: ${error instanceof Error ? error.message : String(error)}`;
+            why = notAskedSentence(name, error);
           }
-          if (asked.current === mine) {
+          // A refusal that comes after the deadline is the DAW's late word: the app plays by then, and its state is not cleared under it.
+          previewPlayOwner.release(token);
+          if (asked.current === mine && !late()) {
             setPlaying(null);
             setInDaw(false);
           }
@@ -123,25 +175,61 @@ export function useTakeAudition({
         name: APP,
         readiness: () => ({ ready: true }),
         play: (t) => {
+          // The DAW did not play it (or answered too late): the take is shown playing in the app, not in the DAW.
+          clearTimer();
+          setInDaw(false);
           player.play({ sourceFile: t.sourceFile, rangeStart: t.sourceStart, rangeEnd: t.sourceStart + t.sourceLength });
           setPlaying(t.id);
           return { played: true };
         },
       };
-      // A DAW still answering plays nothing, and the chapter keeps playing.
-      if (now === null && !dawRead?.failed) return say(CHECKING);
       quiet();
       stop();
       const mine = asked.current;
-      const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
-      void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ notice }) => {
-        if (notice && asked.current === mine) say(notice);
+      setAskingId(take.id);
+      // A DAW that has not yet answered may still be recording: the room is kept quiet for it too (a failed capabilities read leaves the check out: the DAW is not known to be there; a failed projectState read does not hold the play back).
+      const keepQuiet = now || !dawRead?.failed ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      // A click that plays is never silent for long: a DAW that has not answered the preview passes the take to the app.
+      void playThrough([preview, app], take, {
+        stillWanted: () => asked.current === mine,
+        deadlineMs: PLAY_DEADLINE_MS,
+        ...(keepQuiet ? { keepQuiet } : {}),
+      }).then(({ by, notice }) => {
+        // This press ended in the app or nowhere: it owns no preview, and an earlier take's preview that landed meanwhile is stopped now.
+        if (by !== name) previewPlayOwner.release(token);
+        if (asked.current === mine) {
+          setAskingId(null);
+          if (by === null) setFailedId(take.id);
+        }
+        // Retry only when nothing played: a take that fell back to the app and plays is not offered a Retry, which would stop it.
+        if (notice && asked.current === mine)
+          say(
+            notice,
+            by === null
+              ? () => {
+                  // The take as it is now: one trimmed or deleted since is not played from its old range.
+                  const current = live.current.passageOf(take)?.takes.find((x) => x.id === take.id);
+                  if (!newest.current(ask)) return;
+                  if (current) playAgain.current(current);
+                  else live.current.notify(TAKE_GONE);
+                }
+              : undefined,
+          );
       });
     },
-    [daw, player, playing, inDaw, stop],
+    [daw, player, playing, inDaw, stop, newest, stopPreview],
+  );
+  playAgain.current = play;
+
+  useEffect(
+    () => () => {
+      clearTimer();
+      // A preview answered after the page was left is stopped, not left playing.
+      asked.current += 1;
+      previewPlayOwner.release();
+    },
+    [],
   );
 
-  useEffect(() => () => clearTimer(), []);
-
-  return { playingId: inDaw || player.isPlaying ? playing : null, play, stop };
+  return { playingId: inDaw || player.isPlaying ? playing : null, waitingId: askingId ?? failedId, play, stop };
 }

@@ -5,13 +5,62 @@
 // position and Proof's last chapter). Storage can be missing, full or blocked, so every access is guarded and the Booth then opens as it
 // would have without it.
 
+import { readProjectStorage, writeProjectStorage, type LegacyEntry } from '../../../projectFolder';
+
 export type LastPlace = { chapterId: string; paragraphId: string; word: number };
 
-const lastPlaceKey = (projectFolder: string): string => `narration.booth.lastPlace.${projectFolder}`;
+const PROJECT_KEY_LAST_PLACE = 'booth.lastPlace';
+const PROJECT_KEY_CHAPTER_PLACES = 'booth.chapterPlaces';
+
+const parseObject = (raw: string | null): Record<string, unknown> | null => {
+  try {
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+const atOf = (value: unknown): number => {
+  const at = (value as { at?: unknown } | null)?.at;
+  return typeof at === 'number' && Number.isFinite(at) ? at : 0;
+};
+
+/** Two old spellings both hold a last place: the one whose chapter was left most recently wins, by the `at` its own chapter places carry; no `at` to tell them apart, the first. */
+function newestLastPlace(entries: LegacyEntry[]): string {
+  let best = entries[0]!;
+  let bestAt = -1;
+  for (const entry of entries) {
+    const chapterId = parseObject(entry.value)?.chapterId;
+    if (typeof chapterId !== 'string') continue;
+    const sibling = entry.key.replace(`narration.${PROJECT_KEY_LAST_PLACE}.`, `narration.${PROJECT_KEY_CHAPTER_PLACES}.`);
+    let at = -1;
+    try {
+      at = atOf(parseObject(window.localStorage.getItem(sibling))?.[chapterId]);
+    } catch {
+      /* storage unreadable: this one has no `at` */
+    }
+    if (at > bestAt) {
+      best = entry;
+      bestAt = at;
+    }
+  }
+  return best.value;
+}
+
+/** Two old spellings both hold chapter places: merged chapter by chapter, the place left most recently (the larger `at`) winning, the first spelling on a tie. */
+function mergedChapterPlaces(entries: LegacyEntry[]): string {
+  const merged: Record<string, unknown> = {};
+  for (const entry of entries) {
+    for (const [chapterId, value] of Object.entries(parseObject(entry.value) ?? {})) {
+      if (!(chapterId in merged) || atOf(value) > atOf(merged[chapterId])) merged[chapterId] = value;
+    }
+  }
+  return Object.keys(merged).length > 0 ? JSON.stringify(merged) : entries[0]!.value;
+}
 
 export function loadLastPlace(projectFolder: string): LastPlace | null {
   try {
-    const raw = window.localStorage.getItem(lastPlaceKey(projectFolder));
+    const raw = readProjectStorage(PROJECT_KEY_LAST_PLACE, projectFolder, newestLastPlace);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
@@ -28,11 +77,7 @@ export function loadLastPlace(projectFolder: string): LastPlace | null {
 }
 
 export function saveLastPlace(projectFolder: string, place: LastPlace): void {
-  try {
-    window.localStorage.setItem(lastPlaceKey(projectFolder), JSON.stringify(place));
-  } catch {
-    // Storage can be unavailable; the Booth then opens on the DAW's chapter or the first, as it did.
-  }
+  writeProjectStorage(PROJECT_KEY_LAST_PLACE, projectFolder, JSON.stringify(place)); // unavailable storage: the Booth then opens on the DAW's chapter or the first, as it did
   saveChapterPlace(projectFolder, place);
 }
 
@@ -44,11 +89,9 @@ export const CHAPTER_PLACES_KEPT = 400;
 
 type KeptPlaces = Record<string, ChapterPlace & { at: number }>;
 
-const chapterPlacesKey = (projectFolder: string): string => `narration.booth.chapterPlaces.${projectFolder}`;
-
 function readChapterPlaces(projectFolder: string): KeptPlaces {
   try {
-    const raw = window.localStorage.getItem(chapterPlacesKey(projectFolder));
+    const raw = readProjectStorage(PROJECT_KEY_CHAPTER_PLACES, projectFolder, mergedChapterPlaces);
     const parsed: unknown = raw ? JSON.parse(raw) : null;
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
     const places: KeptPlaces = {};
@@ -76,11 +119,7 @@ function saveChapterPlace(projectFolder: string, place: LastPlace): void {
   const kept = Object.entries(places)
     .sort(([, a], [, b]) => b.at - a.at)
     .slice(0, CHAPTER_PLACES_KEPT);
-  try {
-    window.localStorage.setItem(chapterPlacesKey(projectFolder), JSON.stringify(Object.fromEntries(kept)));
-  } catch {
-    // Storage can be unavailable; a chapter then opens where its recording ends, or at its top.
-  }
+  writeProjectStorage(PROJECT_KEY_CHAPTER_PLACES, projectFolder, JSON.stringify(Object.fromEntries(kept))); // unavailable storage: a chapter then opens where its recording ends, or at its top
 }
 
 /** Where the narrator last was in `chapterId` of this project, or null when the Booth keeps nothing for it. */

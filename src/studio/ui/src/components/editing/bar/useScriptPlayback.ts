@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { capitalised } from '../../../studio/dawNames';
+import { within } from '../../../within';
+import { dawNameOf, PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
@@ -8,7 +11,8 @@ import { firstFrom, leadStart } from '../model';
 import type { SoundAt } from '../ribbon/useChapterSound';
 import type { WordClock } from '../follow/wordClock';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
-import { APP, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { APP, playReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
+import { useNewestPlay } from '../../../playback/useNewestPlay';
 import { HEADING_PARAGRAPH } from '../../../ports/alignment';
 import { usePort } from '../../../ports/usePort';
 import { fadeOutAndPause, STOP_FADE_SECONDS } from './playbackStop';
@@ -142,18 +146,9 @@ export function useScriptPlayback({
   /** The word a `playFrom` was asked for, handed to the `go` it starts (for the Retry that plays it again). */
   const askedWord = useRef<PlayedWord | undefined>(undefined);
   const goAgain = useRef<(t: number, stopsAt: number | null, word: PlayedWord | undefined) => void>(() => {});
-  /** Counts the plays asked, so a Retry offered for an older one does nothing once a newer one was asked. */
-  const playsAsked = useRef(0);
-  /** False once the page is gone: a Retry pressed after leaving the chapter plays nothing (it would play the old chapter's track). */
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      asks.current += 1;
-      overlay.dismissTopic(PLAY_TOPIC);
-    };
-  }, []);
+  /** A Retry for an older play, or one pressed after leaving the chapter (it would play the old chapter's track), plays nothing. */
+  const newest = useNewestPlay(PLAY_TOPIC);
+  useEffect(() => () => void (asks.current += 1), []);
 
   const fail = useCallback(() => {
     // A late error from a file still loading when the narrator stopped is not a failure of a play that is over.
@@ -161,11 +156,8 @@ export function useScriptPlayback({
     const again = lastAsk.current;
     halt();
     // Nothing could play: the same play is offered again, as for a DAW that refused.
-    live.current.notify(
-      AUDIO_FAILED,
-      again ? () => mounted.current && playsAsked.current === again.asked && goAgain.current(again.t, again.stopsAt, again.word) : undefined,
-    );
-  }, [halt]);
+    live.current.notify(AUDIO_FAILED, again ? () => newest.current(again.asked) && goAgain.current(again.t, again.stopsAt, again.word) : undefined);
+  }, [halt, newest]);
 
   const start = useCallback(() => {
     try {
@@ -217,15 +209,14 @@ export function useScriptPlayback({
       halted.current = false;
       const ask = ++asks.current;
       const wanted = (): boolean => asks.current === ask;
-      const asked = ++playsAsked.current;
-      overlay.dismissTopic(PLAY_TOPIC);
+      const asked = newest.begin();
       const stopsAt = stopAt.current;
       const word = askedWord.current;
       askedWord.current = undefined;
       lastAsk.current = { t, stopsAt, asked, word };
       // A read that failed is asked again, so the DAW plays the next press once it answers.
       if (now === null && dawRead?.failed) void dawRead.retry();
-      const name = now?.daw ?? 'The DAW';
+      const name = dawNameOf(now);
       const providers: PlaybackProvider<number>[] = [];
       if (now !== undefined) {
         providers.push({
@@ -233,11 +224,12 @@ export function useScriptPlayback({
           readiness: (at) => {
             // A DAW that has not yet answered what it can do is not waited for: no check stands between the click and the play. With no capabilities
             // there is no word table either, so `refusal` says not placed and the app plays; a read that failed is said and asked again.
-            const declared = now === null && !dawRead?.failed ? { ready: true as const } : dawReadiness(now, 'transport_sync', !!dawRead?.failed);
+            const declared = playReadiness(now, 'transport_sync', !!dawRead?.failed);
             if (!declared.ready) return declared;
             const remote = remoteRef.current;
             const refusal = remote ? remote.refusal(at) : null;
-            if (refusal === 'not_ready') return { ready: false, why: remote?.refusedWith() ?? `${name} has not answered, or has another project open.` };
+            if (refusal === 'not_ready')
+              return { ready: false, why: remote?.refusedWith() ?? `${capitalised(name)} has not answered, or has another project open.` };
             if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
             return { ready: true };
           },
@@ -247,7 +239,7 @@ export function useScriptPlayback({
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
             const why = await remoteRef.current?.start(at, stopAt.current ?? undefined);
-            return why === null ? { played: true } : { played: false, why: `${name} could not play it: ${why ?? 'it is not answering.'}` };
+            return why === null ? { played: true } : { played: false, why: `${capitalised(name)} could not play it: ${why ?? 'it is not answering.'}` };
           },
         });
       }
@@ -263,19 +255,22 @@ export function useScriptPlayback({
           return { played: true };
         },
       });
-      const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      // The "is the DAW recording" read is bounded: one that never answers does not hold the app's play back with no sound and no word (the DAW's own play keeps the
+      // script's limits, `UNWATCHED_MS`).
+      const quiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      const keepQuiet = quiet ? async () => (await within(quiet(), PLAY_DEADLINE_MS))?.value ?? null : undefined;
       void playThrough(providers, t, { stillWanted: wanted, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ by, notice }) => {
         if (!wanted()) return;
         // Nothing played and a DAW was asked: the notice says why and offers the play again (no DAW means nothing to ask again).
         // Retry plays the same second to the same end, only while this is still the newest play and the page is still here.
-        if (notice && by === null && now !== undefined) say(notice, () => mounted.current && playsAsked.current === asked && goAgain.current(t, stopsAt, word));
+        if (notice && by === null && now !== undefined) say(notice, () => newest.current(asked) && goAgain.current(t, stopsAt, word));
         else if (notice) say(notice);
         if (by !== null) return;
         stopAt.current = null;
         if (live.current.state.playT === t) halt();
       });
     },
-    [cue, covers, start, halt, daw, stopReport],
+    [cue, covers, start, halt, daw, stopReport, newest],
   );
 
   goAgain.current = (t, stopsAt, word) => {
@@ -347,19 +342,19 @@ export function useScriptPlayback({
     // A play of a selection leaves the selection; placing the cursor would drop it.
     if (key && !s.sel) send({ type: 'place', key });
   }, [halt]);
-  const onLost = useCallback((message: string): void => {
-    // A play still being asked of the DAW is given up with it: its late answer must not hand the play to the app after the page said it stopped.
-    asks.current += 1;
-    audioRef.current?.pause();
-    stopAt.current = null;
-    window.clearTimeout(stopTimer.current);
-    live.current.dispatch({ type: 'play', t: null });
-    const again = lastAsk.current;
-    live.current.notify(
-      message,
-      again ? () => mounted.current && playsAsked.current === again.asked && goAgain.current(again.t, again.stopsAt, again.word) : undefined,
-    );
-  }, []);
+  const onLost = useCallback(
+    (message: string): void => {
+      // A play still being asked of the DAW is given up with it: its late answer must not hand the play to the app after the page said it stopped.
+      asks.current += 1;
+      audioRef.current?.pause();
+      stopAt.current = null;
+      window.clearTimeout(stopTimer.current);
+      live.current.dispatch({ type: 'play', t: null });
+      const again = lastAsk.current;
+      live.current.notify(message, again ? () => newest.current(again.asked) && goAgain.current(again.t, again.stopsAt, again.word) : undefined);
+    },
+    [newest],
+  );
   const syncing = useDawTransportSync({
     clock: sync?.clock ?? null,
     clockPending: sync?.clockPending ?? false,

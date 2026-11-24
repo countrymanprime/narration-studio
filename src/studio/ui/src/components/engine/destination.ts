@@ -10,11 +10,10 @@ export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcom
 
 /** What a chapter's link points at, as far as the project's tracks say: nothing, a plain track, a folder with no voices, or a track they do not hold yet. */
 /** The one sentence for a link to a track the project does not hold; the host (linkGoneSentence in bindings_booth_voice.go) and the Booth mock say the same. */
-export const LINK_GONE =
-  'The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel.';
+export const LINK_GONE = 'This chapter’s track is gone from the project, so no voice is listed. Link it in the audio engine panel.';
 
 /** The sentence while the project's tracks have not been read (the first read has not answered or failed): the chapter's link is not known to be missing. */
-const TRACKS_UNREAD = 'The tracks are still being read, so there is no voice to choose yet. Try again in a moment.';
+export const TRACKS_UNREAD = 'The tracks are still being read, so there is no voice to choose yet. Try again in a moment.';
 
 export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'marked' | 'unknown' | 'unread';
 
@@ -82,16 +81,16 @@ export function destinationFor(layout: VoiceTracksLayout) {
       // Every track of the linked folder turned off as not a voice: refused in either layout, naming the switch (#3828).
       if (link === 'marked')
         return folders
-          ? 'Every track in this chapter’s folder is turned off as not a voice, so there is no voice to choose. Turn one back on in the Voices card.'
-          : 'Every track in this chapter’s folder is turned off as not a voice, so there is nothing to record on. Turn one back on in the Voices card, or link the chapter to a track of its own.';
-      if (!folders) return 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
+          ? 'Every track in this chapter’s folder is turned off as not a voice. Turn one on in the Voices card.'
+          : 'Every track is off as not a voice. Turn one on in the Voices card or link one in the audio engine panel.';
+      if (!folders) return 'This chapter records on one track, so voice keys do nothing. Link a folder in the audio engine panel.';
       switch (link) {
         case 'none':
-          return 'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.';
+          return 'This chapter is not linked to a folder of voices. Link or create one in the audio engine panel.';
         case 'track':
-          return 'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.';
+          return 'This chapter has one track, not a folder of voices. Link a folder in the audio engine panel.';
         case 'empty':
-          return 'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.';
+          return 'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add one in REAPER.';
       }
     },
     /** The Editing note for a chapter with no link. */
@@ -106,11 +105,12 @@ export function childNames(created: CreatedDestination): string | null {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** What the DAW made, named as it was given: a folder with its tracks (the Narrator, and the voices and Extras when it was made with them), or the track; that it is not saved yet; and, when the create was partly done, what is left. */
-export function createdSentence(created: CreatedDestination, chapter: string, dawName: string): string {
-  const named = childNames(created);
-  const what = created.voice
-    ? `Folder “${readable(created.track.name, created.track.index)}” with ${named ? `${named} tracks` : `a ${created.voice.name} track`}`
-    : `Track “${readable(created.track.name, created.track.index)}”`;
-  return `${what} added in ${dawName} and linked to ${chapter}. Save the ${dawName} project to keep it.${created.message ? ` ${created.message}` : ''}`;
+/**
+ * What the DAW made, named as it was given (a folder or a track), that it is linked to the chapter, and that it is not saved yet; and, when the create was partly done, what is left (the host's sentence).
+ * Shorter than it was (#4095): it named the track and the chapter twice, the DAW and the tracks inside a folder, and ran to 138 characters, past the toast's two lines (`TOAST_CHAR_BUDGET`) with the mock's own chapter name; the chapter and the folder's tracks are on screen in the dialog and the engine panel the narrator just used.
+ * A toast fits two lines when the name is about 26 characters or fewer; a longer one scrolls inside it, which is the narrator's own name for the track. The tracks the folder holds are named in the engine panel.
+ */
+export function createdSentence(created: CreatedDestination, dawName: string): string {
+  const what = `${created.voice ? 'Folder' : 'Track'} “${readable(created.track.name, created.track.index)}”`;
+  return `${what} is in ${dawName}, linked here. Save the ${dawName} project to keep it.${created.message ? ` ${created.message}` : ''}`;
 }
