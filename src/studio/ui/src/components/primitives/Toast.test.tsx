@@ -598,6 +598,54 @@ describe('a press leaves no hand-back behind once its region is gone, and leaves
     origin.remove();
   });
 
+  it('origin gone while a dialog is open: the hand-back stays out of <main> behind the dialog', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    // The control that had focus before the toast is gone (its page changed) while a dialog is open: <main> is behind the dialog.
+    origin.remove();
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('a dialog that is closing does not block the hand-back: focus goes to <main>', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('data-ending-style', '');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    origin.remove();
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(main);
+  });
+
+  it('origin disabled: falls back to <main>, not <body>', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    document.body.append(origin, main);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    origin.disabled = true;
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(main);
+  });
+
   it('the focusin watch is removed once the hand-back has run, and when the region goes first', () => {
     const added = vi.spyOn(document, 'addEventListener');
     const removed = vi.spyOn(document, 'removeEventListener');
