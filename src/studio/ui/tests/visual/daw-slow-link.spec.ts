@@ -27,7 +27,6 @@ const AT_ONCE_MS = 1_500;
 /** The cells that fail today, with what the narrator gets (measured on the mock, 2026-11-20, after the host's track list is served stale while it is re-read and the Booth's arm waits as a lane command). Each is an expected failure until its fix lands. */
 const KNOWN: Record<string, Partial<Record<Profile, string>>> = {
   'the Booth opens with its voice at once': {
-    '3 s': 'the voice shows after 2.5 s',
     '10 s': 'the voice shows after 6.5 s',
     'stall then recover': 'the voice shows after 6 s',
   },
