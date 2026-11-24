@@ -105,9 +105,18 @@ export function softLayerOpen(root: ParentNode = document): boolean {
   return Array.from(root.querySelectorAll(SOFT_LAYER)).some((layer) => !layer.closest(GONE));
 }
 
+/** The topmost dialog or alert dialog on screen (not hidden, inert, aria-hidden or closing), or null. */
+export function openModalLayer(root: ParentNode = document): HTMLElement | null {
+  return (
+    Array.from(root.querySelectorAll<HTMLElement>(MODAL_LAYER))
+      .filter((layer) => !layer.closest(GONE))
+      .pop() ?? null
+  );
+}
+
 /** Whether a dialog or an alert dialog, a question the narrator has to answer, is on screen. */
 export function modalLayerOpen(root: ParentNode = document): boolean {
-  return Array.from(root.querySelectorAll(MODAL_LAYER)).some((layer) => !layer.closest(GONE));
+  return openModalLayer(root) !== null;
 }
 
 const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password']);
