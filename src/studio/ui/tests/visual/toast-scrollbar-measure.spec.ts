@@ -1,10 +1,20 @@
 // A toast whose text box scrolls loses the scrollbar's gutter (styles.css keeps one, `scrollbar-gutter: stable`, on every auto-scrolling box, and a gutter outlives `overflow: hidden`),
 // so its text wraps to one more line than it would without. A box measured while it scrolled kept overflowing after what made it overflow was gone, such as a wider fallback font before the
-// web font arrived, or a squeeze that was lifted (#4112). Both tests use the browser's real gutter, with no stand-in: they find in the page a message that fits two lines without the gutter and not
+// web font arrived, or a squeeze that was lifted (#4112). Both tests use the browser's real gutter (the font test also stands in for a wider fallback font with a fixed letter-spacing): they find in the page a message that fits two lines without the gutter and not
 // with it, raise it while the box overflows, and expect the box to stop scrolling and drop out of the tab order once the cause is gone. The window is narrow (about the gutter's width), so the
 // message is searched for in the real layout, and the font test searches across box widths too; neither skips: a browser with no such message fails them.
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { hookReady, raiseToast } from './helpers/raiseToast';
+
+declare global {
+  interface Window {
+    /** Mock build only (`main.tsx`): undefined for a Retry button, null for none, a string for a button with that label. */
+    __raiseToast?: (text: string, actionLabel?: string | null) => void;
+  }
+}
+
+// A local copy of the hook's declaration and calls, the minimum this spec needs: it moves to the shared helper of #4118 once that lands.
+const hookReady = (page: Page) => page.waitForFunction(() => typeof window.__raiseToast === 'function');
+const raiseToast = (page: Page, text: string, label?: string | null) => page.evaluate((args) => window.__raiseToast?.(args.text, args.label), { text, label });
 
 const PROSE =
   'The Booth could not stop listening, so your microphone may still be open. Quit and reopen the app to be sure it stopped, then record the take again from the top of the chapter, and check the take.';
