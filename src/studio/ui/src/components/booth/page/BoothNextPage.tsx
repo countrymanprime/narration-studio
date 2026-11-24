@@ -163,7 +163,10 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const [pickAt, setPickAt] = useState<string | null>(null);
   // What the page shows; it follows the address unless a take runs, when the session asks first (`BoothSession`).
   const [shown, setShown] = useState(asked);
-  const data = useBoothData(shown);
+  // True from the first commit of a session: until then the page reads what the address says, so a chapter chosen at open (the kept one, the DAW's) is the first one
+  // read, never the first chapter of the book drawn for a moment before `shown` catches up with the address.
+  const sessionUp = useRef(false);
+  const data = useBoothData(sessionUp.current ? shown : asked);
   // The Booth opens on the chapter the DAW is on when the address names none, and moves the DAW to the chapter the address names.
   const openedByAddress = useRef(asked !== null);
   // The chapters the Booth opened on by itself (the one it opened on with no address, the one it followed the DAW to): the DAW is already there, so
@@ -203,7 +206,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
     setParams(new URLSearchParams(boothQuery({ chapter: planned.chapterId }, pickupIds).slice(1)), { replace: true });
   }, [planned, pickupIds, setParams]);
   const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
-  useFollowDawOnOpen({
+  const followingDaw = useFollowDawOnOpen({
     // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
     enabled: asked === null && planned === null,
     chapterIds,
@@ -216,8 +219,12 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   // With nothing to read there is no session, so no take to protect: the page follows the address (the panel's way back changes it).
   const nothingToRead = !data.source;
   useEffect(() => {
-    if (nothingToRead) setShown(asked);
+    if (nothingToRead || !sessionUp.current) setShown(asked);
   }, [nothingToRead, asked]);
+  const holding = followingDaw || (asked === null && planned !== null);
+  useEffect(() => {
+    if (data.source && !holding) sessionUp.current = true;
+  }, [data.source, holding]);
   const measurements = usePort('measurements');
   // A chapter is changed in the address (replacing it, so Back leaves the Booth rather than stepping through chapters).
   const choose = useCallback(
@@ -242,6 +249,13 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
       <BoothMessage title="This manuscript has no chapters to read">
         The Booth reads narration chapters. Import a manuscript with at least one narration chapter first.
       </BoothMessage>
+    );
+  // Nothing asked, nothing kept and the DAW's first answer not in: no chapter is drawn yet, so the narrator never sees one the Booth then leaves.
+  if (holding)
+    return (
+      <BoothExit onExit={leave}>
+        <BoothSkeleton status="Opening your chapter…" />
+      </BoothExit>
     );
   if (!source) {
     // Still reading the chapters (or the credits): the page's frame, drawn as blocks. A failed read is the alert above, never this.
