@@ -604,7 +604,7 @@ export function GuideDetail({
       });
       // Marking reviewed is one journal entry, so Ctrl+Z and History flag the entry back as the toast's Undo does.
       const done = await journal.act<null>({
-        label: `Reviewed “${named ?? entity.canonical_name}”`,
+        label: `Reviewed “${isolatedIfRtl(named ?? entity.canonical_name)}”`,
         touches: [`storyBible/entities/${id}`],
         run: async () => {
           try {
@@ -705,7 +705,7 @@ export function GuideDetail({
       });
       // The merge is one journal entry, so Ctrl+Z and History unmerge it as the toast's Undo does.
       const done = await journal.act<string>({
-        label: `Merged “${source.canonical_name}” into “${target.canonical_name}”`,
+        label: `Merged “${isolatedIfRtl(source.canonical_name)}” into “${isolatedIfRtl(target.canonical_name)}”`,
         touches: [`storyBible/entities/${source.id}`, `storyBible/entities/${target.id}`],
         run: async () => {
           try {

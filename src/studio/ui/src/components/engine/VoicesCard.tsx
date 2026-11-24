@@ -329,9 +329,9 @@ function CharacterPicker({
 }) {
   if (voice.notVoice) {
     const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
-    const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
+    const buttonLabel = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
     // IconButton shows its disabledReason as a tooltip itself.
-    return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
+    return <IconButton label={buttonLabel} action="edit" size="sm" disabledReason={reason} />;
   }
   const label = voice.narrator
     ? 'Choose the character the Narrator track also voices'

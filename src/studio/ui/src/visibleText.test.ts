@@ -133,6 +133,13 @@ describe('a name inside a sentence (#4113)', () => {
     expect(withBalancedIsolates(isolatedIfRtl('C:\\\u05e1\\book', 'ltr'))).toBe(`${LRI}` + 'C:\\\u05e1\\book' + `${PDI}`);
   });
 
+  it('isolates an Arabic file name left to right, so its extension stays last (#4113)', () => {
+    const file = '\u0623\u0644\u064a\u0633.rpp';
+    expect(isolatedIfRtl(file, 'ltr')).toBe(`\u2066${file}\u2069`);
+    expect(withBalancedIsolates(isolatedIfRtl(file, 'ltr'))).toBe(`\u2066${file}\u2069`);
+    expect(isolatedIfRtl(file)).toBe(`\u2068${file}\u2069`);
+  });
+
   it('turns a line or paragraph break inside a kept isolate into a space, so the isolate holds', () => {
     for (const sep of ['\u0085', '\u2029', '\u001c', '\n', '\r']) {
       expect(withBalancedIsolates(`${FSI}a${sep}b${PDI}: 3`)).toBe(`${FSI}a b${PDI}: 3`);

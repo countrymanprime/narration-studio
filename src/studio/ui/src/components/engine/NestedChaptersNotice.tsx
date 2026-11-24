@@ -14,12 +14,12 @@ const short = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NAME_
 const folderOf = (name: string) => (name.trim() ? `${isolatedIfRtl(short(name.trim()))}’s folder` : 'the top level');
 
 /** The sentence that says which chapters sit inside which folders. */
-function nestingSentence(check: ChapterFolders): string {
+export function nestingSentence(check: ChapterFolders): string {
   const chapters = check.moves.filter((move) => move.chapterId);
   const folders = [...new Set(chapters.map((move) => move.fromName))];
-  const named = chapters.map((move) => short(trackName(move.trackName)));
+  const named = chapters.map((move) => isolatedIfRtl(short(trackName(move.trackName))));
   const who = named.length <= 2 ? named.join(' and ') : `${named.slice(0, 2).join(', ')} and ${named.length - 2} more`;
-  return `In REAPER, ${isolatedIfRtl(who)} ${named.length === 1 ? 'sits' : 'sit'} inside ${folders.map(folderOf).join(' and ')}, so ${
+  return `In REAPER, ${who} ${named.length === 1 ? 'sits' : 'sit'} inside ${folders.map(folderOf).join(' and ')}, so ${
     named.length === 1 ? 'it is' : 'they are'
   } read as ${folders.length === 1 ? 'its voices' : 'their voices'}.`;
 }

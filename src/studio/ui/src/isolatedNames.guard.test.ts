@@ -111,6 +111,8 @@ const PLAIN = /^[A-Za-z_$][\w$]*(?:\??\.[A-Za-z_$][\w$]*|\[[^\]]*\])*$/;
 /** Plain identifiers that hold a count or a number, never a name. */
 const COUNTISH =
   /^(?:\w*(?:[Cc]ount|[Nn]umber|[Tt]otal|[Ll]ength|[Ss]ize|[Ii]ndex|[Ss]econds|[Mm]s|[Mm]b|[Vv]ersion|[Rr]evision)|n|i|k|size|done|kept|queued|found|steps|total|at)$/;
+/** An identifier that holds a file name or a path. */
+const FILEISH = /\b\w*(?:(?<![Pp]ro)[Ff]ile|[Pp]ath|[Ff]older|[Dd]ir)\w*\b|\bcandidate\.name\b/;
 const WRAPPERS = /^(?:isolatedIfRtl|bidiIsolated)\(/;
 
 /** The index just past the parenthesis that closes the one at `open`, counting only code characters. */
@@ -130,15 +132,17 @@ function wrappedWhole(expression: string): boolean {
   const match = WRAPPERS.exec(text);
   if (!match) return false;
   const { isCode } = lex(text);
-  return closeOf(text, isCode, match[0].length - 1) === text.length;
+  if (closeOf(text, isCode, match[0].length - 1) !== text.length) return false;
+  // A joined list isolated as one unit keeps the order of its names wrong: each name is isolated before the join.
+  return !/\.join\(/.test(text.slice(match[0].length));
 }
 
-type Found = { hits: string[]; seen: string[]; inspected: number; leading: string[] };
+type Found = { hits: string[]; seen: string[]; inspected: number; leading: string[]; auto: string[] };
 
 /** The name-like expressions that go into toast sentences in one source, and which of them are not wrapped. A key is `<file>: <expression>`. */
 export function scanSource(file: string, source: string): Found {
   const { templates, isCode } = lex(source);
-  const found: Found = { hits: [], seen: [], inspected: 0, leading: [] };
+  const found: Found = { hits: [], seen: [], inspected: 0, leading: [], auto: [] };
   const inCall: [number, number][] = [];
   for (const match of source.matchAll(CALL)) {
     if (!isCode[match.index]) continue;
@@ -146,6 +150,10 @@ export function scanSource(file: string, source: string): Found {
     if (/(?:const|let|function)\s+$/.test(source.slice(Math.max(0, match.index - 10), match.index))) continue;
     const open = match.index + match[0].length - 1;
     inCall.push([open, closeOf(source, isCode, open)]);
+  }
+  // A file name or a path reads left to right whatever its letters are: isolated first-strong, an Arabic `name.rpp` is drawn `rpp.name`. So one that holds a file or a path takes 'ltr'.
+  for (const call of source.matchAll(/(?<![\w$])isolatedIfRtl\(([^(),]*(?:\([^()]*\))?[^(),]*)\)/g)) {
+    if (isCode[call.index] && FILEISH.test(call[1]!.replace(/(['"])(?:\\.|(?!\1).)*\1/g, "''"))) found.auto.push(`${file}: ${call[1]!.trim()}`);
   }
   for (const entry of templates) {
     // A template that opens with a name (`${title} restored.`) is a sentence led by it, wherever it goes: helper-built sentences are passed to a toast as values, which the scan cannot follow.
@@ -188,6 +196,8 @@ const APP_CONSTANT = 'a fixed string in the source';
 const COUNT = 'a number or a count, not a name';
 const DAW_NAME = 'the name of a DAW product (REAPER, Audacity) or the built-in recorder';
 const MODEL_LABEL = 'the name of a model the app ships';
+const PAGE_TEXT_NOT_A_TOAST = 'page or dialog text, not a toast: the element it sits in sets its own direction (joined lists on pages are tracked in #4129)';
+const THE_HELPER_ITSELF = 'the helper that does the isolating';
 const APP_WORDING = 'a label, step, setting, rule or sentence the app defines';
 /** Entries with this reason must have a proof below: the text that isolates the name where it is bound, which the test finds in the file. */
 const ALREADY_ISOLATED_AT_BINDING = 'the name is isolated where it is bound or built, not at this use';
@@ -195,8 +205,8 @@ const ALREADY_ISOLATED_AT_BINDING = 'the name is isolated where it is bound or b
 /** A name the app itself defines, not a narrator's or an author's: allowed, with why. The key is `<file>: <expression>`. */
 const APP_DEFINED: Record<string, string> = {
   'components/editing/page/useRereadFeedback.ts: name.slice(0, MAX_NAME - 1)': ALREADY_ISOLATED_AT_BINDING,
-  'components/settings/row/SettingRowView.tsx: row.label': "the label of a setting, the app's own English wording",
-  'components/proof/ProofPage.tsx: noteRow(next).resolution.label': 'the label of a resolution kind the app defines ("Fine as read")',
+  'components/settings/row/SettingRowView.tsx: row.label': APP_WORDING,
+  'components/proof/ProofPage.tsx: noteRow(next).resolution.label': APP_WORDING,
   'components/proof/CompareRun.tsx: modelLabel(value)': MODEL_LABEL,
   'components/proof/CompareRun.tsx: dawName': DAW_NAME,
   'components/booth/leave/useBoothLeaveGuard.ts: now.daw.name': DAW_NAME,
@@ -206,13 +216,13 @@ const APP_DEFINED: Record<string, string> = {
   'components/booth/toastSentences.ts: recorderName(daw)': DAW_NAME,
   'components/booth/toastSentences.ts: name': DAW_NAME,
   'components/booth/toastSentences.ts: dawName': DAW_NAME,
-  'components/connection/useReaperLaunch.ts: name': 'the name of the DAW product the launch started',
-  'components/editing/bar/SelectionActionButton.tsx: hint ?? label': "the label of a button, the app's own wording, in a tooltip",
-  'components/master/MasteringChain.tsx: row.label': 'the label of a mastering step the app defines',
-  'components/primitives/ChapterStepper.tsx: name': 'the name of a step of the stepper in a tooltip, not a toast',
-  'components/storybible/usePreviewAudio.ts: error.name': 'the name of a browser error kind (AbortError)',
+  'components/connection/useReaperLaunch.ts: name': DAW_NAME,
+  'components/editing/bar/SelectionActionButton.tsx: hint ?? label': APP_WORDING,
+  'components/master/MasteringChain.tsx: row.label': APP_WORDING,
+  'components/primitives/ChapterStepper.tsx: name': PAGE_TEXT_NOT_A_TOAST,
+  'components/storybible/usePreviewAudio.ts: error.name': APP_CONSTANT,
   'components/settings/models/AssetsStore.tsx: name': MODEL_LABEL,
-  'components/storybible/GuideDetail.tsx: capitalize(stuck.label)': "the label of a field of the Story Bible form, the app's own wording",
+  'components/storybible/GuideDetail.tsx: capitalize(stuck.label)': APP_WORDING,
 };
 
 /**
@@ -220,6 +230,7 @@ const APP_DEFINED: Record<string, string> = {
  * shown in a sentence. The key is `<file>: <expression>`; each has the reason.
  */
 const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
+  'components/engine/NestedChaptersNotice.tsx: who': ALREADY_ISOLATED_AT_BINDING,
   "App.tsx: newest?.label ?? 'the last change'": ALREADY_ISOLATED_AT_BINDING,
   'components/engine/ChapterLinksTable.tsx: quoted(found.name, place)': ALREADY_ISOLATED_AT_BINDING,
   "components/engine/chapterSyncText.ts: names.slice(0, -1).join(', ')": ALREADY_ISOLATED_AT_BINDING,
@@ -240,7 +251,7 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
   'components/production/target/pace.selectors.ts: minChapters': COUNT,
   'components/recordingcheck/runChoices.ts: choices.chapters': COUNT,
   "components/storybible/suggested/row/selectors.ts: plural(context.chapters, 'chapter')": COUNT,
-  'App.tsx: short': APP_WORDING,
+  'App.tsx: short': HOST_MESSAGE,
   "App.tsx: /[.!?…]$/.test(short) ? '' : '.'": APP_WORDING,
   'components/editing/range/fx/fxMenu.ts: source': APP_WORDING,
   'App.tsx: message': HOST_MESSAGE,
@@ -248,8 +259,8 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
   'components/booth/page/useBoothPage.ts: stopped.message': HOST_MESSAGE,
   'components/booth/page/useBoothPage.ts: undone.message': HOST_MESSAGE,
   'components/booth/record/takeWords.ts: TAKE_ENDED': APP_CONSTANT,
-  'components/booth/record/useRecordControl.ts: what': HOST_MESSAGE,
-  'components/booth/roll/rollConfirm.ts: subject': APP_WORDING,
+  'components/booth/record/useRecordControl.ts: what': APP_WORDING,
+  'components/booth/roll/rollConfirm.ts: subject': DAW_NAME,
   'components/booth/roll/useRoll.ts: plan.reason': HOST_MESSAGE,
   'components/booth/voices/useBoothVoices.ts: COLD_READ_NO_VOICE_REASON': APP_CONSTANT,
   'components/delivery/page/Preflight.tsx: run.job.message': HOST_MESSAGE,
@@ -263,10 +274,10 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
   'components/editing/range/replace/useReplaceAudio.tsx: dawCaps.daw': DAW_NAME,
   'components/editing/stack/stackPlan.ts: caps.daw': DAW_NAME,
   'components/editing/takes/prep/usePrepSteps.tsx: caps.daw': DAW_NAME,
-  'components/engine/AddMarkers.tsx: skipped': APP_WORDING,
+  'components/engine/AddMarkers.tsx: skipped': COUNT,
   'components/engine/ChapterLinksTable.tsx: who': ALREADY_ISOLATED_AT_BINDING,
   'components/engine/ChapterLinksTable.tsx: linked': ALREADY_ISOLATED_AT_BINDING,
-  'components/engine/VoicesCard.tsx: lead': HOST_MESSAGE,
+  'components/engine/VoicesCard.tsx: lead': ALREADY_ISOLATED_AT_BINDING,
   'components/engine/chapterSyncText.ts: subject': APP_WORDING,
   'components/layout/AddressGate.tsx: reason': HOST_MESSAGE,
   'components/master/DiagnosticsSection.tsx: job.message': HOST_MESSAGE,
@@ -274,14 +285,14 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
   'components/masterqc/page/MeasureRun.tsx: run.job.message': HOST_MESSAGE,
   'components/pickups/list/usePickupsContextMenu.ts: NO_NOTE': APP_CONSTANT,
   'components/production/ChapterTrackPanel.tsx: Noun': APP_WORDING,
-  'components/proof/ProoferSheet.tsx: first': HOST_MESSAGE,
+  'components/proof/ProoferSheet.tsx: first': APP_WORDING,
   'components/recordingcheck/CheckRecordingsButton.tsx: caps.daw': DAW_NAME,
   'components/recordingcheck/activityView.ts: model': MODEL_LABEL,
-  'components/recordingcheck/background/BackgroundChecksNotice.tsx: chapters': APP_WORDING,
-  'components/recordingcheck/runChoices.ts: first': HOST_MESSAGE,
+  'components/recordingcheck/background/BackgroundChecksNotice.tsx: chapters': COUNT,
+  'components/recordingcheck/runChoices.ts: first': MODEL_LABEL,
   'components/recordingcheck/runChoices.ts: how': HOST_MESSAGE,
   'components/recordingcheck/workerPlan.ts: lead': HOST_MESSAGE,
-  'components/schedule/ContractPanel.tsx: text': HOST_MESSAGE,
+  'components/schedule/ContractPanel.tsx: text': COUNT,
   'components/schedule/dates.ts: t': COUNT,
   'components/settings/controls/EngineBody.tsx: daw': DAW_NAME,
   'components/settings/controls/EngineBody.tsx: option.daw': DAW_NAME,
@@ -292,12 +303,11 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
   'playback/providers.ts: caps.daw': DAW_NAME,
   'studio/drafts/draftSentence.ts: why': HOST_MESSAGE,
   "components/engine/LinkChaptersDialog.tsx: sharing.map(({ chapter }) => isolatedIfRtl(chapterName(chapter, 'short'))).join(', ')":
-    'each name is isolated before the join',
+    ALREADY_ISOLATED_AT_BINDING,
   'components/booth/record/RecordSetup.tsx: guide.installFile': APP_WORDING,
   "components/booth/voices/WhoIsInDialog.tsx: keyName(String(ask.kind === 'key' ? ask.key : ''))": APP_WORDING,
   'components/delivery/page/chapterStates.ts: notReadyWhy(file)': APP_WORDING,
   'components/editing/cleanup/cleanupApply.ts: appliedLabel(kind, outcome.applied.length, params)': COUNT,
-  'components/editing/effects/ChooseInDaw.tsx: choice?.label': APP_WORDING,
   'components/editing/ribbon/useRangeInteraction.ts: rangeLabel(span, wordsCovered(words, span).keys.length)': COUNT,
   'components/master/DeliveryProfilePanel.tsx: title': APP_WORDING,
   'components/master/DeliveryProfilePanel.tsx: profile.revision': COUNT,
@@ -356,14 +366,13 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
   'components/storybible/source/NamePronunciation.tsx: candidate.label': APP_WORDING,
   'components/storybible/source/NamePronunciation.tsx: source.label': APP_WORDING,
   "components/stages/useStageRecommendations.ts: previous.target ? stageLabel(previous.target) : 'the next stage'": APP_WORDING,
-  'components/editing/page/noAudioText.ts: chapter': 'page or dialog text the app words, not a toast; the element it sits in sets its own direction',
-  'components/engine/destination.ts: chapter': 'page or dialog text the app words, not a toast; the element it sits in sets its own direction',
+  'components/editing/page/noAudioText.ts: chapter': PAGE_TEXT_NOT_A_TOAST,
+  'components/engine/destination.ts: chapter': PAGE_TEXT_NOT_A_TOAST,
   'components/stages/useStageRecommendations.ts: name': ALREADY_ISOLATED_AT_BINDING,
   'components/script/page/tools/find/useBookFind.ts: quoteTerm(term)': ALREADY_ISOLATED_AT_BINDING,
-  "components/settings/UpdatesPanel.tsx: hasProject ? \" with the same project, and REAPER's launcher keeps working\" : ', at the project picker'":
-    "the app's own words",
-  "studio/drafts/draftSentence.ts: held.length === 1 ? (/^\\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)": "the app's own words",
-  'visibleText.ts: plainName(name)': "the helper's own result",
+  "components/settings/UpdatesPanel.tsx: hasProject ? \" with the same project, and REAPER's launcher keeps working\" : ', at the project picker'": APP_WORDING,
+  "studio/drafts/draftSentence.ts: held.length === 1 ? (/^\\d/.test(first.label) ? 'them' : 'it') : describeHeld(held)": APP_WORDING,
+  'visibleText.ts: plainName(name)': THE_HELPER_ITSELF,
   'components/editing/bar/useScriptPlayback.ts: capitalised(name)': DAW_NAME,
   'components/booth/record/RecordSetup.tsx: name': DAW_NAME,
   'components/booth/record/takeWords.ts: name': DAW_NAME,
@@ -374,9 +383,9 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
   'studio/dawNames.ts: capitalised(name)': DAW_NAME,
   'studio/dawNames.ts: name': DAW_NAME,
   'components/engine/VoicesCard.tsx: name': ALREADY_ISOLATED_AT_BINDING,
-  'components/connection/ChapterLinkDialog.tsx: createLabel': 'the label of the button the app draws (Create tracks)',
+  'components/connection/ChapterLinkDialog.tsx: createLabel': APP_WORDING,
   'components/delivery/profile/ProfileCard.tsx: rule.label': APP_WORDING,
-  'components/layout/EngineChip.tsx: audacityTitle(forAudacity)': "the app's own tooltip title for the engine chip",
+  'components/layout/EngineChip.tsx: audacityTitle(forAudacity)': APP_WORDING,
   'components/master/MasteringApprovalDialog.tsx: plan.label': APP_WORDING,
   'components/recordingcheck/runChoices.ts: engine.label': APP_WORDING,
   'components/settings/ScopedSetting.tsx: choiceLabel(rowOfField(tool, field.key), value)': APP_WORDING,
@@ -390,11 +399,38 @@ const LEADS_NOT_A_NARRATOR_NAME: Record<string, string> = {
  * The proof for each ALREADY_ISOLATED_AT_BINDING entry: the text, in the file named (the key's own file by default), that isolates the name where it is bound. The test fails when an
  * entry has none, or when the file no longer holds it, so removing the wrapper at the binding turns the guard red instead of leaving the entry to cover a bare name.
  */
-const ISOLATED_AT: Record<string, { pattern: RegExp; file?: string }> = {
+/**
+ * `pattern` is the wrapper and must be in the file; `forbid` is the bare form of the same name and must not be; `bind` is a variable that holds the isolated name, and every `const`/`let` of it in the
+ * file must be an isolatedIfRtl(...) call, so one unwrapped site, or a new `const name = ...` beside the wrapped one, turns the guard red.
+ */
+type Proof = { pattern: RegExp; file?: string; forbid?: RegExp; bind?: string };
+/** Every place that builds a journal label with a name in it: the label reaches a toast bare (the Undo toasts), so each producer isolates its name. */
+const JOURNAL_LABELS: Proof[] = [
+  { file: 'components/schedule/SchedulePage.tsx', pattern: /isolatedIfRtl\(m\.name\)/, forbid: /\$\{m\.name\}/ },
+  { file: 'components/booth/record/takeCommand.ts', pattern: /Recorded a take of \$\{isolatedIfRtl\(title\)\}/, forbid: /\$\{title\}/ },
+  {
+    file: 'components/editing/voicesample/useVoiceSample.tsx',
+    pattern: /Saved a voice sample for \$\{isolatedIfRtl\(name\)\}/,
+    forbid: /voice sample for \$\{name\}/,
+  },
+  { file: 'components/editing/effects/EffectSettings.tsx', pattern: /\$\{isolatedIfRtl\(fx\.chainName\)\} with and without/, forbid: /\$\{fx\.chainName\}/ },
+  { file: 'components/editing/range/fx/fxCommand.ts', pattern: /Took \$\{isolatedIfRtl\(fx\.chainName\)\} off/, forbid: /\$\{fx\.chainName\}/ },
+  {
+    file: 'components/storybible/GuideDetail.tsx',
+    pattern: /Merged “\$\{isolatedIfRtl\(source\.canonical_name\)\}”/,
+    forbid: /(?:Reviewed|Merged) “\$\{(?!isolatedIfRtl)/,
+  },
+  { file: 'components/storybible/GuideDetail.tsx', pattern: /Reviewed “\$\{isolatedIfRtl\(/ },
+  { file: 'components/editing/takes/keepTake.ts', pattern: /Kept \$\{isolatedIfRtl\(take\.label\)\}/, forbid: /\$\{take\.label\}/ },
+];
+/** A call that isolates a file-like identifier first-strong, and why that is right. The key is `<file>: <argument>`. */
+const FILE_NAMES_THAT_ARE_NOT: Record<string, string> = {};
+
+const ISOLATED_AT: Record<string, Proof | Proof[]> = {
   'components/editing/page/useRereadFeedback.ts: name.slice(0, MAX_NAME - 1)': { pattern: /isolatedIfRtl\(nameIn\(/ },
-  "App.tsx: newest?.label ?? 'the last change'": { file: 'components/schedule/SchedulePage.tsx', pattern: /isolatedIfRtl\(m\.name\)/ },
+  "App.tsx: newest?.label ?? 'the last change'": JOURNAL_LABELS,
   'components/engine/ChapterLinksTable.tsx: quoted(found.name, place)': { pattern: /isolatedIfRtl\(text\.length/ },
-  'components/engine/ChapterLinksTable.tsx: who': { pattern: /const who = isolatedIfRtl\(short\)/ },
+  'components/engine/ChapterLinksTable.tsx: who': { pattern: /const who = isolatedIfRtl\(short\)/, bind: 'who' },
   'components/engine/ChapterLinksTable.tsx: linked': { pattern: /const who = isolatedIfRtl\(short\)/ },
   "components/engine/chapterSyncText.ts: names.slice(0, -1).join(', ')": { pattern: /isolatedIfRtl\(readable\(candidate\.trackName/ },
   'components/engine/chapterSyncText.ts: names[0]': { pattern: /isolatedIfRtl\(readable\(candidate\.trackName/ },
@@ -404,17 +440,22 @@ const ISOLATED_AT: Record<string, { pattern: RegExp; file?: string }> = {
   },
   "components/storybible/voicesamples/useVoiceSampleActions.tsx: [sampleLength(sample.durationMs), isolatedIfRtl(sample.source.chapterTitle)].filter(Boolean).join(', ')":
     { pattern: /isolatedIfRtl\(sample\.source\.chapterTitle\)/ },
-  'studio/journal/createJournal.ts: blocker.label': { file: 'components/schedule/SchedulePage.tsx', pattern: /isolatedIfRtl\(m\.name\)/ },
-  'studio/journal/createJournal.ts: newest.label': { file: 'components/schedule/SchedulePage.tsx', pattern: /isolatedIfRtl\(m\.name\)/ },
+  'studio/journal/createJournal.ts: blocker.label': JOURNAL_LABELS,
+  'studio/journal/createJournal.ts: newest.label': JOURNAL_LABELS,
   "components/engine/NestedChaptersNotice.tsx: folders.map(folderOf).join(' and ')": { pattern: /isolatedIfRtl\(short\(name\.trim\(\)\)\)/ },
   "components/engine/NestedChaptersNotice.tsx: shownFolders.join(' and ')": { pattern: /isolatedIfRtl\(short\(move\.fromName\)\)/ },
   'components/engine/useChapterFolders.ts: folders': { pattern: /isolatedIfRtl\(move\.fromName\)/ },
-  'components/stages/useStageRecommendations.ts: name': { pattern: /const name = isolatedIfRtl\(/ },
+  'components/stages/useStageRecommendations.ts: name': { pattern: /const name = isolatedIfRtl\(/, bind: 'name' },
   'components/script/page/tools/find/useBookFind.ts: quoteTerm(term)': {
     file: 'components/script/page/tools/find/findState.ts',
     pattern: /isolatedIfRtl\(term/,
   },
-  'components/engine/VoicesCard.tsx: name': { pattern: /const name = isolatedIfRtl\(/ },
+  'components/engine/VoicesCard.tsx: name': { pattern: /const name = isolatedIfRtl\(/, bind: 'name' },
+  'components/engine/VoicesCard.tsx: lead': { pattern: /const name = isolatedIfRtl\(/ },
+  "components/engine/LinkChaptersDialog.tsx: sharing.map(({ chapter }) => isolatedIfRtl(chapterName(chapter, 'short'))).join(', ')": {
+    pattern: /isolatedIfRtl\(chapterName\(chapter, 'short'\)\)/,
+  },
+  'components/engine/NestedChaptersNotice.tsx: who': { pattern: /isolatedIfRtl\(short\(trackName\(move\.trackName\)\)\)/ },
 };
 
 /** A product name the app defines, whichever file it is in: the DAW's name (REAPER, Audacity), never a narrator's or an author's. */
@@ -437,7 +478,7 @@ type Tree = Found & { everything: Set<string> };
 const expressionOf = (key: string): string => key.slice(key.indexOf(': ') + 2);
 
 function scanTree(): Tree {
-  const all: Tree = { hits: [], seen: [], inspected: 0, leading: [], everything: new Set() };
+  const all: Tree = { hits: [], seen: [], inspected: 0, leading: [], auto: [], everything: new Set() };
   const allowed = (file: string, key: string): boolean =>
     key in APP_DEFINED || key in LEADS_NOT_A_NARRATOR_NAME || DAW_NAMES.test(expressionOf(key)) || (DAW_NAME_FILES.has(file) && expressionOf(key) === 'name');
   for (const path of sources(SRC)) {
@@ -452,6 +493,7 @@ function scanTree(): Tree {
     all.leading.push(...result.leading.filter((key) => !allowed(file, key)));
     all.seen.push(...result.seen);
     all.inspected += result.inspected;
+    all.auto.push(...result.auto.filter((key) => !(key in FILE_NAMES_THAT_ARE_NOT)));
   }
   return all;
 }
@@ -482,10 +524,29 @@ describe('every name in a toast sentence is isolated (#4113)', () => {
       .filter(([, reason]) => reason === ALREADY_ISOLATED_AT_BINDING)
       .map(([key]) => key);
     expect(bound.filter((key) => !(key in ISOLATED_AT)).map((key) => `${key} has no proof in ISOLATED_AT`)).toEqual([]);
+    expect(
+      Object.keys(ISOLATED_AT)
+        .filter((key) => !bound.includes(key))
+        .map((key) => `${key} has a proof but is not allowed as ALREADY_ISOLATED_AT_BINDING`),
+    ).toEqual([]);
+    const read = (key: string, proof: Proof) => readFileSync(join(SRC, proof.file ?? key.slice(0, key.indexOf(': '))), 'utf8');
+    const unbound = (source: string, name: string) =>
+      source.split('\n').filter((line) => new RegExp(`\\b(?:const|let) ${name}\\b`).test(line) && !line.includes('isolatedIfRtl('));
     const missing = Object.entries(ISOLATED_AT)
-      .filter(([key, proof]) => !proof.pattern.test(readFileSync(join(SRC, proof.file ?? key.slice(0, key.indexOf(': '))), 'utf8')))
-      .map(([key]) => `${key}: the wrapper it relies on is gone`);
+      .flatMap(([key, proofs]) => [proofs].flat().map((proof) => ({ key, proof })))
+      .flatMap(({ key, proof }) => {
+        const source = read(key, proof);
+        return [
+          ...(proof.pattern.test(source) ? [] : [`${key}: the wrapper it relies on is gone (${proof.pattern})`]),
+          ...(proof.forbid?.test(source) ? [`${key}: a bare name came back (${proof.forbid})`] : []),
+          ...(proof.bind ? unbound(source, proof.bind).map((line) => `${key}: \`${proof.bind}\` is bound without isolatedIfRtl: ${line.trim()}`) : []),
+        ];
+      });
     expect(missing).toEqual([]);
+  });
+
+  it('isolates a file name or a path left to right, so an Arabic name.rpp keeps its extension last', () => {
+    expect(tree.auto.map((key) => `${key} is isolated first-strong: pass 'ltr'`)).toEqual([]);
   });
 
   it('keeps no allowed name or file that nothing reads any more', () => {
@@ -546,6 +607,18 @@ describe('the scan that checks the isolates (#4113)', () => {
     expect(scanSource('x.ts', "const s = `Joined ${names.join(', ')} and more. `;").leading).toEqual(["x.ts: names.join(', ')"]);
     expect(scanSource('x.ts', 'const s = `${dawName} records from ${mic.dawInput}.`;').leading).toContain('x.ts: mic.dawInput');
     expect(scanSource('x.ts', 'const s = `Linked to ${linkedFile}. `;').leading).toEqual(['x.ts: linkedFile']);
+  });
+
+  it('does not take a joined list wrapped as one unit for isolated names', () => {
+    expect(hits("notify(`${isolatedIfRtl(names.join(', '))} removed.`);")).toHaveLength(1);
+  });
+
+  it('flags a file name or a path isolated first-strong, and not one isolated ltr or a name that is not a file', () => {
+    const auto = (source: string) => scanSource('x.ts', source).auto;
+    expect(auto('const s = `${isolatedIfRtl(linkedFile)} is linked.`;')).toEqual(['x.ts: linkedFile']);
+    expect(auto('const s = `${isolatedIfRtl(foundFiles[0])} is here.`;')).toEqual(['x.ts: foundFiles[0]']);
+    expect(auto("const s = `${isolatedIfRtl(linkedFile, 'ltr')} is linked.`;")).toEqual([]);
+    expect(auto('const s = `${isolatedIfRtl(chapter.title)} is linked.`;')).toEqual([]);
   });
 
   it('flags any plain identifier that opens a sentence, whatever it is called, and not a count', () => {

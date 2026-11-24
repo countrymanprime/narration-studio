@@ -322,7 +322,7 @@ export function removeFxCommand(deps: FxDeps, plan: Acting, ask: RemoveFxAsk): C
   const viaDaw = plan.kind !== 'recorder';
   let dawSteps = 0;
   return {
-    label: `Took ${fx.chainName} off ${fx.text}`,
+    label: `Took ${isolatedIfRtl(fx.chainName)} off ${isolatedIfRtl(fx.text)}`,
     touches: [`editing/${chapterId}/wordfx`],
     daw: viaDaw,
     dawAction: () => (viaDaw ? dawActionOf('remove_range_fx', dawSteps) : undefined),

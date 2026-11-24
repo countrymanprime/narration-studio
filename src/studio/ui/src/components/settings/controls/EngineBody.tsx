@@ -91,7 +91,7 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean; startedFo
     return {
       tone: 'success',
       title: `${daw} linked`,
-      detail: `${linkedFile ? `Linked to ${isolatedIfRtl(linkedFile)}. ` : ''}${daw} is open and answering. Record goes through ${daw}.${mismatch}`,
+      detail: `${linkedFile ? `Linked to ${isolatedIfRtl(linkedFile, 'ltr')}. ` : ''}${daw} is open and answering. Record goes through ${daw}.${mismatch}`,
     };
   }
   if (state === 'not_linked') {
@@ -100,13 +100,13 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean; startedFo
       title: `${daw} not linked`,
       detail:
         foundFiles.length === 1
-          ? `${isolatedIfRtl(foundFiles[0])} is in the project folder.`
+          ? `${isolatedIfRtl(foundFiles[0], 'ltr')} is in the project folder.`
           : foundFiles.length > 1
             ? `${foundFiles.length} ${daw} project files are in the project folder. Choose the one this project records into.`
             : `No ${daw} project file is in the project folder yet. Save one there from ${daw}, then link it.`,
     };
   }
-  const linked = linkedFile ? `Linked to ${isolatedIfRtl(linkedFile)}. ` : '';
+  const linked = linkedFile ? `Linked to ${isolatedIfRtl(linkedFile, 'ltr')}. ` : '';
   if (state === 'starting') {
     const since = opts.startedFor === undefined ? '' : ` Opened ${opts.startedFor} s ago.`;
     return {
@@ -323,7 +323,7 @@ export function EngineBody() {
             <>
               <p>
                 New takes would be recorded by this app and kept in the project’s own folder, not in {daw}
-                {linkedFile ? ` (${isolatedIfRtl(linkedFile)})` : ''}.
+                {linkedFile ? ` (${isolatedIfRtl(linkedFile, 'ltr')})` : ''}.
               </p>
               <p className="mt-2">
                 Takes already recorded in {daw} stay in {daw}, but the Booth, Editing and Proof stop reading them, and nothing from {daw} reaches the app while

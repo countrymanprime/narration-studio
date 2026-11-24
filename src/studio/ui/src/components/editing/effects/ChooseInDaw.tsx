@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ChooseState } from '../range/fx/useChooseInDaw';
 import { Button } from '../../primitives/Button';
 import { HelpButton } from '../../primitives/HelpButton';
+import { isolatedIfRtl } from '../../../visibleText';
 
 /** How long without an answer before the panel says it cannot tell what is chosen, in milliseconds. */
 export const CHOOSE_QUIET_MS = 6000;
@@ -53,7 +54,7 @@ export function ChooseInDaw({
           : quiet
             ? `Can't tell what is chosen: ${dawName} last answered ${secondsAgo(now, heardAt)} s ago.`
             : chosen.length
-              ? `${dawName} has ${choice?.label}${choice?.chainOpen ? ', its window still open' : ''}.`
+              ? `${dawName} has ${isolatedIfRtl(choice?.label ?? '')}${choice?.chainOpen ? ', its window still open' : ''}.`
               : `Nothing chosen in ${dawName} yet.`}
       </p>
       {chosen.length > 1 ? (
