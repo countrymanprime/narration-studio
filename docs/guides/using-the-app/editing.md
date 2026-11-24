@@ -7,7 +7,9 @@ shows how it was heard, each line has its takes under it, and what you select is
 effect on. Open it from **Editing** in the sidebar's Edit group, from a linked chapter's **Open in Editing** in the
 [audio engine panel](navigation.md#linking-chapters-to-tracks), from a recording check finding's **Open in Editing** on
 [Proof](proof.md#one-chapter), or from **Manage takes in Editing** on a note in
-[Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the chapter you were last on, or the first chapter with text when none is remembered.
+[Proof](proof.md#a-note-and-your-decision). Its address is `/editing/<chapter>`; `/editing` opens the chapter you were last on in
+this project ([switching project](navigation.md#the-header-and-the-footer) opens it on that project's own remembered chapter), or
+the first chapter with text when none is remembered.
 
 With no manuscript imported yet, the page says so and offers **Import manuscript**, which goes to
 [Production](production.md#importing-the-manuscript).

@@ -23,6 +23,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
+import { loadSharedChapter, saveSharedChapter } from '../masterqc/page/sharedChapter';
 import { ProjectTrackProviders } from '../chapterTracks/ChapterTrackState';
 import { PageFooterProvider } from '../primitives/KeyHints';
 import { chaptersOf } from '../../api/chaptersOf';
@@ -70,7 +71,7 @@ function renderPage({
   // button was gone when the click landed. These tests are about what Undo does, not how long it stays: keep the toast for the whole test.
   const toastUndo = overlay.toastUndo;
   vi.spyOn(overlay, 'toastUndo').mockImplementation((text, undo, options) => toastUndo(text, undo, { ...options, durationMs: UNDO_TOAST_FOR_TEST_MS }));
-  window.localStorage.setItem('narration.proof.lastChapter./p', 'chapter-2');
+  saveSharedChapter('/p', 'chapter-2');
   render(
     <MemoryRouter initialEntries={[...before, at]} initialIndex={before.length}>
       <ApiProvider api={api}>
@@ -254,7 +255,7 @@ describe('proof-route-draws-the-mock-page', () => {
     await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
     press('ArrowLeft', 'ArrowLeft');
     await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
-    expect(window.localStorage.getItem('narration.proof.lastChapter./p')).toBe('chapter-1');
+    expect(loadSharedChapter('/p')).toBe('chapter-1'); // the key Master & QC shares, so Proof cannot keep one of its own
   });
 
   it('a chapter change is a step in the history, so Back goes to the page before it, not out of the page', async () => {

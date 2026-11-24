@@ -31,4 +31,11 @@ describe('useProjectPicker', () => {
     rerender({ folder: 'C:/Projects/Alice' });
     expect(result.current[0]).toBe(true);
   });
+
+  it('stays open when the host names the open project in another spelling (#4099)', () => {
+    const { result, rerender } = renderHook(({ folder }) => useProjectPicker(folder), { initialProps: { folder: 'C:/Projects/Alice' as string | undefined } });
+    act(() => result.current[1](true));
+    rerender({ folder: 'C:\\Projects\\Alice\\' });
+    expect(result.current[0]).toBe(true);
+  });
 });

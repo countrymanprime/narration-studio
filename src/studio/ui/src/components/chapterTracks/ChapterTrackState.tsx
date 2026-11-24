@@ -7,6 +7,7 @@ import { usePort } from '../../ports/usePort';
 import { LIVE_TRACKS_TIMEOUT_MS, useLiveTracks, type LiveTracks } from '../engine/useLiveTracks';
 import { useVoiceSetup, VoiceSetupProvider } from '../engine/voiceLayout';
 import { retryAction, type Notify } from '../primitives/Toast';
+import { folderKey } from '../../projectFolder';
 import { describeApiError } from '../../api/errorMessage';
 
 /**
@@ -132,7 +133,7 @@ export function ChapterTrackStateProvider({
   const wantDetailRef = useRef(false);
   wantDetailRef.current = wantDetail;
   const retryRef = useRef<() => void>(() => {});
-  const live = useLiveTracks({ enabled: reading, readKey: projectFolder, notify, onRetry: () => retryRef.current() });
+  const live = useLiveTracks({ enabled: reading, readKey: folderKey(projectFolder), notify, onRetry: () => retryRef.current() });
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [mappingsAt, setMappingsAt] = useState<number | null>(null);
   const [details, setDetails] = useState<ChapterTrackLinks>();
@@ -372,7 +373,7 @@ export function ProjectTrackProviders({ children, ...state }: { projectFolder: s
   return (
     <VoiceSetupProvider projectFolder={state.projectFolder}>
       {/* Keyed by the project: another project starts with none of the last one's tracks or links. */}
-      <ChapterTrackStateProvider key={state.projectFolder} {...state}>
+      <ChapterTrackStateProvider key={folderKey(state.projectFolder)} {...state}>
         {children}
       </ChapterTrackStateProvider>
     </VoiceSetupProvider>

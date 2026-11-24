@@ -8,9 +8,12 @@ import { useSettingsOrigin } from './useSettingsOrigin';
 afterEach(cleanup);
 
 /** The hook and the router's `navigate` side by side, so a test can move the narrator the way a link or the rail does. */
-function mount(at: string) {
+function mount(at: string, project?: string) {
   const wrapper = ({ children }: { children: ReactNode }) => <MemoryRouter initialEntries={[at]}>{children}</MemoryRouter>;
-  return renderHook(() => ({ origin: useSettingsOrigin(), navigate: useNavigate() }), { wrapper });
+  return renderHook(({ project }: { project?: string }) => ({ origin: useSettingsOrigin(project), navigate: useNavigate() }), {
+    wrapper,
+    initialProps: { project },
+  });
 }
 
 describe('useSettingsOrigin', () => {
@@ -55,5 +58,20 @@ describe('useSettingsOrigin', () => {
     expect(view.result.current.origin.origin).toBe('/script');
     act(() => view.result.current.navigate('/pickups'));
     expect(view.result.current.origin.origin).toBeUndefined();
+  });
+
+  it('keeps the page\u2019s chapter when the project is only learned after the first address (the bootstrap answers late) (#4059)', () => {
+    const view = mount('/proof/chapter-6', undefined);
+    view.rerender({ project: 'C:/A' });
+    act(() => view.result.current.navigate('/settings#credits'));
+    expect(view.result.current.origin.origin).toBe('/proof/chapter-6');
+  });
+
+  it('goes back to the bare page once the project is another one than the origin was recorded under (#4059)', () => {
+    const view = mount('/proof/chapter-6?x=1', undefined);
+    view.rerender({ project: 'C:/A' });
+    act(() => view.result.current.navigate('/settings#credits'));
+    view.rerender({ project: 'C:/B' });
+    expect(view.result.current.origin.origin).toBe('/proof');
   });
 });

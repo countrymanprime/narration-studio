@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { addressPath, MAX_ADDRESS_NUMBER, MAX_ADDRESS_TEXT, MAX_PICKUPS, readAddress, type Address, type AddressPage, type AddressRead } from './address';
+import { SETTINGS_HASHES } from '../components/settings/page/anchors';
+import { CATEGORIES } from '../components/settings/registry/categories';
+import {
+  addressPath,
+  addressWithoutProject,
+  pageOfPath,
+  MAX_ADDRESS_NUMBER,
+  MAX_ADDRESS_TEXT,
+  MAX_PICKUPS,
+  readAddress,
+  type Address,
+  type AddressPage,
+  type AddressRead,
+} from './address';
 
 /** Reads a built path the way the router hands it to the destination: path param decoded, search and hash as written. */
 function readPath(path: string): AddressRead {
@@ -193,5 +206,37 @@ describe('readAddress on bad addresses', () => {
       kind: 'address',
       address: { page: 'booth', target: { chapter: name } },
     });
+  });
+});
+
+describe('pageOfPath: the page without what a project filled in (#4059)', () => {
+  it('keeps the first segment only', () => {
+    expect(pageOfPath('/editing/chapter-9')).toBe('/editing');
+    expect(pageOfPath('/booth')).toBe('/booth');
+  });
+  it('is the home page for the root or nothing', () => {
+    expect(pageOfPath('/')).toBe('/');
+    expect(pageOfPath('')).toBe('/');
+  });
+});
+
+describe('addressWithoutProject: the address cut back to its page (#4059)', () => {
+  it('drops the chapter, the query and the anchor', () => {
+    expect(addressWithoutProject({ pathname: '/editing/chapter-9', search: '?x=1', hash: '#a' })).toEqual({ pathname: '/editing', search: '', hash: '' });
+    expect(addressWithoutProject({ pathname: '/master', search: '', hash: '#file=a.wav' })).toEqual({ pathname: '/master', search: '', hash: '' });
+  });
+  it('keeps Settings\u2019 anchor, which names a category', () => {
+    expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#credits' })).toEqual({ pathname: '/settings', search: '', hash: '#credits' });
+  });
+  it('keeps every hash Settings resolves: the old anchors and the #category-<id> of every category', () => {
+    const hashes = Object.keys(SETTINGS_HASHES);
+    expect(hashes).toEqual(expect.arrayContaining(['#credits', ...CATEGORIES.map((category) => `#category-${category.id}`)]));
+    for (const hash of hashes) expect(addressWithoutProject({ pathname: '/settings', search: '', hash }).hash).toBe(hash);
+  });
+  it('drops a Settings hash that is no anchor', () => {
+    expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#nothing' })).toEqual({ pathname: '/settings', search: '', hash: '' });
+  });
+  it('returns a bare page unchanged', () => {
+    expect(addressWithoutProject({ pathname: '/booth', search: '', hash: '' })).toEqual({ pathname: '/booth', search: '', hash: '' });
   });
 });

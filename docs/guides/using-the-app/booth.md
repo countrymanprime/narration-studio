@@ -465,7 +465,8 @@ Each chapter opens where you left off in it, in this order:
    opens at the next step instead.
 3. **The word you last read to in that chapter**, per project, on this computer: switching chapters, leaving the Booth and
    restarting the app keep it for every chapter, not only the last one. Open the Booth from the sidebar and it returns to the
-   chapter you last left.
+   chapter you last left in this project ([switching project](navigation.md#the-header-and-the-footer) opens it on that
+   project's own remembered chapter, or the chapter the DAW is on when none is kept).
 4. **The top of the chapter**, for a chapter with nothing recorded that you have not opened before.
 
 A chapter edited since it was recorded loses the places that named its old words: the Booth then uses the track's length, or the
