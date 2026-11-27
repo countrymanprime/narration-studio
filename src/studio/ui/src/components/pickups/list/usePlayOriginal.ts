@@ -150,6 +150,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
         play: async (p, { late }) => {
           const from = Math.max(0, p.at! - ORIGINAL_AROUND);
           let why: string;
+          let final = false;
           try {
             // The DAW plays the stretch and stops itself at its end (play_range), so the end is the DAW's and the timer below only puts the button back.
             dawPlayOwner.claim(token);
@@ -182,10 +183,12 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
               return { played: true };
             }
             why = result.message;
+            // A DAW that is recording keeps the room quiet: the app does not play over it, whatever its project-state read says.
+            final = result.code === 'recording';
           } catch (error) {
             why = notAskedSentence(name, error);
           }
-          return { played: false, why };
+          return { played: false, why, ...(final ? { final } : {}) };
         },
       };
       const { project, mappings, reread } = shared.current;

@@ -132,6 +132,18 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     expect(found).toEqual([]);
   });
 
+  // #4117: a DAW that refuses a play because it records is final: the app stays quiet too, whatever the project-state read says. Each caller sets `final` from the
+  // refusal's code (`final = result.code === 'recording'`; Hear it reads its findings reason; the script's hook keeps the code and the playback hook reads it).
+  it.each([
+    ['components/editing/bar/useScriptPlayback.ts', /final = remoteRef\.current\?\.refusedForRecording\(\) === true/],
+    ['components/editing/follow/useDawTransportSync.ts', /recordingRefusal\.current = !result\.ok && result\.code === 'recording'/],
+    ['components/editing/takes/useTakeAudition.ts', /final = result\.code === 'recording'/],
+    ['components/pickups/list/usePlayOriginal.ts', /final = result\.code === 'recording'/],
+    ['components/proof/inspector/HearIt.tsx', /answer\.reason === 'recording'\) return \{ played: false, why: [^}]*final: true/],
+  ])('%s sets final from the recording refusal', (file, sets) => {
+    expect(all.find((s) => s.file === file)!.text).toMatch(sets);
+  });
+
   // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it. The shared
   // owner stops the older settled play when a newer press is refused (`dawPlayOwner.test.ts`), so every path must hand it that stop when it settles.
   it.each(CALLERS)('%s settles its play with the stop that ends it (so a refused newer play stops it before the app plays)', (file) => {

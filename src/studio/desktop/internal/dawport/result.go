@@ -9,9 +9,13 @@ import (
 // MaxUndoSteps is the most undo points one result reports, the wire schema's bound (src/studio/ui/src/api/schemas/daw.ts).
 const MaxUndoSteps = 12
 
-// CodeStale is the one refusal code: the call named an id the DAW no longer has where the app read it, so the
+// CodeStale is the refusal code for a call that named an id the DAW no longer has where the app read it, so the
 // page reads the project again rather than matching the sentence.
 const CodeStale = "stale"
+
+// CodeRecording is the refusal code for a call the DAW turned away because it is recording: a play is final, so the app does not play over
+// the recording either (a page that cannot read the DAW's project state must not guess).
+const CodeRecording = "recording"
 
 // Result is what one call to the DAW answered, the shape every role that changes the project returns on the wire.
 // A refused call changed nothing: Refused holds the reason and Message repeats it, so the UI shows Message either way.
@@ -22,7 +26,7 @@ type Result struct {
 	// UndoSteps is how many undo points the DAW added: 0 for a cursor move, 1 for one command. 0 to MaxUndoSteps.
 	UndoSteps int    `json:"undoSteps"`
 	Refused   string `json:"refused,omitempty"`
-	// Code is set only on a refusal the page branches on: CodeStale, or empty. Refused stays the narrator's sentence.
+	// Code is set only on a refusal the page branches on: CodeStale, CodeRecording, or empty. Refused stays the narrator's sentence.
 	Code string `json:"code,omitempty"`
 	// Steps are the edits a multi-step change performed, in order (a DAW with no native way to make it, ModeSteps).
 	Steps []string `json:"steps,omitempty"`
@@ -62,6 +66,13 @@ func Refused(reason string) Result {
 func RefusedStale(sentence string) Result {
 	r := Refused(sentence)
 	r.Code = CodeStale
+	return r
+}
+
+// RefusedRecording is Refused with CodeRecording: the DAW is recording, so nothing plays in it and the app stays quiet.
+func RefusedRecording(sentence string) Result {
+	r := Refused(sentence)
+	r.Code = CodeRecording
 	return r
 }
 

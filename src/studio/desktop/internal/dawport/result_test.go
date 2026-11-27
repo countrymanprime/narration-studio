@@ -140,6 +140,7 @@ func TestDawResultGoldenIsCurrent(t *testing.T) {
 		"daw-result-ok": OK("Marker added.", true),
 		"daw-result-refused-stale": RefusedStale(
 			"The project changed in REAPER since this was read. Read it again, then try again."),
+		"daw-result-refused-recording": RefusedRecording("REAPER is recording. Stop recording first."),
 		"daw-result-multi-step": OK("Pickup rolled in.", true).
 			WithSteps([]string{"Split the item at the pickup", "Delete the old take", "Paste the pickup"}).
 			WithUndoSteps(3),

@@ -84,6 +84,9 @@ func Do(ctx context.Context, name string, support dawport.Support, syncer dawpor
 	case ActionWatch:
 		_, err = syncer.Watch(ctx, Lease)
 	}
+	if errors.Is(err, bridge.ErrRecording) {
+		return dawport.RefusedRecording(refusal(name, err))
+	}
 	if err != nil {
 		return dawport.Refused(refusal(name, err))
 	}
