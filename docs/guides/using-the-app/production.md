@@ -57,10 +57,10 @@ This page is a reference to everything Production shows. To do one thing, start 
 The six figures are one card; each opens the page it counts. Every amount of time on this page that counts hours is written with its units, hours and minutes ("3h 30m", "0h 10m"), floored to the whole minute like every other time in the app (under a minute reads "<0h 01m"), so it cannot be read as minutes and seconds and is never ahead of the time it stands for; a length of audio in minutes and seconds, as in the chapter's track panel, is written "10:12".
 
 - **Recorded audio**: the finished hours recorded, out of
-  the book's finished length: a chapter counts for how far it is recorded, and whole once it is at Editing or later or delivered estimated from its words. It is the same count as the stage bar's
+  the book's finished length estimated from its words. A chapter counts for how far it is recorded, and whole once it is at Editing or later or delivered (mastered in Master & QC with its checks passing). It is the same count as the stage bar's
   segments above **Not recorded yet**, and the finished length is the one every figure on the page is out of.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
-  words still to do. Under **Recording** is its multiple of the finished audio not yet recorded (**est. 3.0× not recorded**: a chapter recorded half-way counts for its other half, as the stage bar's **Not recorded yet** does); under **Editing + proof** is the multiple of the whole book (**est. 3.04× the book**), and **Recorded audio** is out of the book's finished length. The info icon on **Recording** opens the target pace: the standard rate or
+  words still to do. Under **Recording** is its multiple of the finished audio not yet recorded (**est. 3.0× not recorded**: a chapter recorded half-way counts for its other half, as the stage bar's **Not recorded yet** does); under **Editing + proof** are its two multiples (**est. 2.1× edit + 0.94× proof**: 2.1× the finished audio not yet edited plus 0.94× the finished audio not yet proofed). A delivered chapter has none of the three left, and **Next up** never offers it as a chapter to finish recording. The info icon on **Recording** opens the target pace: the standard rate or
   your own, once enough chapters are measured. The basis you choose there sets the hours on this page and on
   [Schedule](schedule.md).
 - **Open pickups**: the open lines of the [Pickups](pickups.md) list, and the booth time to redo

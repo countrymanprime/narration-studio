@@ -107,7 +107,7 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       value: hm(book.recordedHours),
       unit: `/ ${hm(finished)}`,
       hint: 'recorded or further on',
-      tip: 'The finished hours of the chapters recorded, edited, proofed or delivered, as Where the book stands counts them, out of the book’s finished length estimated from its words',
+      tip: 'The finished hours recorded, as Where the book stands counts them (a chapter counts for how far it is recorded, whole once it is edited, proofed or delivered), out of the book’s finished length estimated from its words',
       tone: 'neutral',
     },
     {
@@ -126,8 +126,8 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       label: 'Editing + proof',
       value: hm(k.editLeft + k.proofLeft),
       unit: 'left',
-      hint: `est. ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book`,
-      tip: `Hours of work, estimated ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book’s ${hm(finished)} of finished audio`,
+      hint: `est. ${RATIO.edit}× edit + ${RATIO.proof}× proof`,
+      tip: `Hours of work, estimated ${RATIO.edit}× the finished audio not yet edited plus ${RATIO.proof}× the finished audio not yet proofed`,
       tone: 'neutral',
     },
     {

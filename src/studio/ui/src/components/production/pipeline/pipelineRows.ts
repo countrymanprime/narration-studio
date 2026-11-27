@@ -1,5 +1,5 @@
 import { aboutHours } from '../productionFormat';
-import { audibleSeconds, hasAudio, recordedAtOf, recordedPercent, throughPercent } from '../../../recordedThrough';
+import { audibleSeconds, hasAudio, isDelivered, recordedAtOf, recordedPercent, throughPercent } from '../../../recordedThrough';
 import type { ChapterStatus, RecordedThrough, RecordedUnavailable } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../composeOverview';
 import { chapterName, chapterParts } from '../../../chapterName';
@@ -180,7 +180,13 @@ function measuredFigure(name: string, chapter: ProductionChapter, estimate: stri
   return { kind: 'none', text: state.text, label: `${name}: recorded ${state.text.toLowerCase()}`, tip: state.tip };
 }
 
-function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | undefined, wph: number, layout: VoiceTracksLayout): PipelineCell {
+function recordCell(
+  chapter: ProductionChapter,
+  check: ChapterCheckStatus | undefined,
+  wph: number,
+  layout: VoiceTracksLayout,
+  delivered: boolean,
+): PipelineCell {
   const status = check ? chapterCheckStatusText(chapterName(chapter), check, undefined, layout) : undefined;
   const checkLine = status ? `Recording check: ${status.label}${status.detail ? ` · ${status.detail}` : ''}` : '';
   const withCheck = (tip: string): string => (checkLine ? `${tip} · ${checkLine}` : tip);
@@ -188,6 +194,9 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
   const length = seconds !== null ? `${clockOf(seconds)} recorded` : '';
   // The tick is the chapter's stage. With no track linked (a stage set by hand, or kept after the link was removed) nothing measures it.
   const noTrack = chapter.recordedUnavailable === 'unlinked' && seconds === null;
+  // A delivered chapter (mastered, checks passing) is recorded whatever its stage says, as the stage bar and Recording left count it.
+  if (delivered && !past(chapter.status, 'editing'))
+    return done('record', 'booth', withCheck(`Recorded · delivered: mastered with its checks passing${length ? ` · ${length}` : ''}`));
   if (past(chapter.status, 'editing')) {
     return done(
       'record',
@@ -294,7 +303,7 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
     const review = sources.master?.[chapter.id];
     const cells: Record<PipelineColumn, PipelineCell> = {
       prep: prepCell(sources.prep?.[chapter.id]),
-      record: recordCell(chapter, sources.checks?.[chapter.id], wph, layout),
+      record: recordCell(chapter, sources.checks?.[chapter.id], wph, layout, isDelivered(review)),
       edit: editCell(chapter),
       proof: proofCell(chapter, sources.proof?.[chapter.id]),
       pickups: pickupsCell(chapter, open),

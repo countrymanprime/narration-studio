@@ -5,6 +5,15 @@ import { chapter, creditsChapter, MID_BOOK, MID_BOOK_SOURCES, MID_BOOK_WITH_CRED
 
 const rowsOf = (...args: Parameters<typeof buildPipelineRows>) => buildPipelineRows(...args);
 
+describe('a delivered chapter is recorded in the Record cell', () => {
+  it('ticks Record for a chapter mastered with its checks passing though its stage says Recording, as Recording left counts it', () => {
+    const rows = [chapter('c1', { status: 'recording', wordCount: WPH, recordedSeconds: 1800 })];
+    expect(rowsOf(rows)[0]!.cells.record).toMatchObject({ kind: 'progress', text: '50%' });
+    expect(rowsOf(rows, { master: { c1: { mastered: true, qc: 'PASS' } } })[0]!.cells.record).toMatchObject({ kind: 'done', text: '✓' });
+    expect(rowsOf(rows, { master: { c1: { mastered: true, qc: 'FAIL' } } })[0]!.cells.record).toMatchObject({ kind: 'progress' });
+  });
+});
+
 describe('one-row-per-chapter-with-stage-cells', () => {
   it('makes a row for every chapter, in order', () => {
     expect(rowsOf(MID_BOOK).map((r) => r.id)).toEqual(['c1', 'c2', 'c3', 'c4', 'c5']);

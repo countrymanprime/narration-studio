@@ -46,6 +46,7 @@ import { useDawConnection } from '../connection/useDawConnection';
 import { useDawStatus } from '../connection/useDawStatus';
 import { DAW_CONNECT_GRACE_MS } from '../connection/useDawConnecting';
 import { NextUp } from './pipeline/NextUp';
+import { recordingChapterOf } from './pipeline/nextUpRanking';
 import { NoManuscript } from './pipeline/NoManuscript';
 import { pickupChapters } from './pipeline/nextUpSources';
 import { PageHeader } from './pipeline/PageHeader';
@@ -318,7 +319,7 @@ export function ProductionPage({
   const counts = checkCounts(sync?.chapters ?? [], narrationIds);
   const toCheck = [...counts.stale, ...counts.never];
 
-  const recordingChapter = narrated.find((c) => c.status === 'recording');
+  const recordingChapter = recordingChapterOf(narrated, pipelineSources.master);
 
   // The jump menu's Check recordings is off for the same reason the buttons are (#2833).
   const checkGate = useCheckRecordingsGate();

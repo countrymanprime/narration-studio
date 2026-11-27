@@ -139,7 +139,7 @@ export function ProgressChart({
   // Gridlines up to the top of the scale (at most five), so the plot's top is a labelled line, not an empty band over the last one (XSH-16).
   const rowStep = Math.max(1, Math.ceil(yMax / 4));
   const rows = Array.from({ length: Math.floor(yMax / rowStep) + 1 }, (_, i) => i * rowStep);
-  const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${spokenMarked(hm(recordedHours))} of ${spokenMarked(hm(finishedHours))} of finished audio recorded. Estimated finish ${fmtD(k.finish)}.`;
+  const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}. ${spokenMarked(hm(recordedHours))} of the book’s ${spokenMarked(hm(finishedHours))} of finished audio are recorded. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
     <Panel

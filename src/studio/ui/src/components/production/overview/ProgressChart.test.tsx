@@ -25,7 +25,7 @@ describe('ProgressChart', () => {
   it('says the recorded hours with hours and minutes, spelled out, so recorded and Recording left read from one figure', () => {
     const { container } = draw(overviewFor(MID_BOOK).kpi.due);
     const sentence = container.querySelector('.sr-only')!.textContent ?? '';
-    expect(sentence).toContain('3 hours 30 minutes of 5 hours of finished audio recorded');
+    expect(sentence).toContain('3 hours 30 minutes of the book’s 5 hours of finished audio are recorded');
     expect(sentence).not.toMatch(/\d\.\d of \d\.\d finished hours/);
   });
 
