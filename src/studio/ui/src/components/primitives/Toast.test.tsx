@@ -4,6 +4,7 @@ import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
+import { usePedalSpace } from '../../input/usePedalSpace';
 import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
 import {
@@ -824,6 +825,55 @@ describe('a press leaves no hand-back behind once its region is gone, and leaves
   });
 });
 
+/** The Booth's page: `usePedalSpace` mounted (its document-capture listener is added at mount, before any toast key is pressed) beside the toast region. */
+function BoothPage({ toggle, messages }: { toggle: () => unknown; messages: ToastMessage[] }) {
+  usePedalSpace(toggle);
+  return (
+    <>
+      <button type="button">Chapter list</button>
+      <ToastRegion messages={messages} dismiss={vi.fn()} />
+    </>
+  );
+}
+
+describe("the Booth's pedal Space does not see a key the grace consumes (#4125)", () => {
+  /** Holds `key` on the toast's Dismiss for `heldMs` with repeats, lets it come up, and returns the page button focus went back to. */
+  const dismissedAfterHolding = (toggle: () => unknown, key: string, code: string, heldMs: number) => {
+    const view = render(<BoothPage toggle={toggle} messages={[info(1)]} />);
+    const origin = screen.getByRole('button', { name: 'Chapter list' });
+    const dismiss = screen.getByRole('button', { name: 'Dismiss message' });
+    origin.focus();
+    fireEvent.focus(dismiss, { relatedTarget: origin });
+    dismiss.focus();
+    fireEvent.keyDown(dismiss, { key, code });
+    for (let held = 0; held < heldMs; held += 50) {
+      act(() => void vi.advanceTimersByTime(50));
+      fireEvent.keyDown(dismiss, { key, code, repeat: true });
+    }
+    fireEvent.click(dismiss, { detail: 0 });
+    view.rerender(<BoothPage toggle={toggle} messages={[]} />);
+    fireEvent.keyUp(document.body, { key, code });
+    act(() => void vi.advanceTimersByTime(1));
+    return origin;
+  };
+
+  it.each([
+    [' ', 'Space', 30],
+    [' ', 'Space', 200],
+    ['Enter', 'Enter', 30],
+    ['Enter', 'Enter', 200],
+  ])('a %s (%s) held 450 ms on Dismiss, then pressed %i ms after focus went back to a page button, starts no take', (key, code, later) => {
+    const toggle = vi.fn();
+    const origin = dismissedAfterHolding(toggle, key, code, 450);
+    expect(document.activeElement).toBe(origin);
+    act(() => void vi.advanceTimersByTime(later));
+    const event = createEvent.keyDown(origin, { key, code });
+    fireEvent(origin, event);
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(true);
+  });
+});
+
 describe('a key held on a toast button: its own repeats, and only its, press nothing until it comes up (#4125)', () => {
   const withUndo = (id: number): ToastMessage => ({ ...info(id), action: { label: 'Undo', onAction: vi.fn() } });
   /** Presses a toast button from the keyboard: `held` goes down (a real key event always carries its `code`), then the click it makes (`detail` 0), with `origin` the control that had focus before the toast. */
@@ -887,8 +937,8 @@ describe('a key held on a toast button: its own repeats, and only its, press not
       expect(reaches(origin, key, code)).toBe(false);
     });
 
-    // What this pins: a React handler above the control (the router's own `onKeyDown`s are the same kind) is not called. `stopPropagation` on the document in the capture phase stops nothing else on the document (only
-    // `stopImmediatePropagation` would): a document-capture listener registered at mount runs first, as the Booth's `usePedalSpace` does, and has a guard of its own for a key after a toast press (#4094).
+    // What this pins: a React handler above the control (the router's own `onKeyDown`s are the same kind) is not called. The listener is on the window's capture phase, which runs before every document listener whenever
+    // it was added, so a document-capture listener registered at mount, as the Booth's `usePedalSpace` is, never sees the key either (the Booth's pedal Space block below pins that).
     it('an Enter or Space pressed during the grace is not seen by a React handler above the control', () => {
       const handler = vi.fn();
       const view = render(
@@ -1034,7 +1084,7 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     });
 
     it('the keydown listener is removed once the grace is over, and not before', () => {
-      const removed = vi.spyOn(document, 'removeEventListener');
+      const removed = vi.spyOn(window, 'removeEventListener');
       const keydownRemovals = () => removed.mock.calls.filter(([type]) => type === 'keydown').length;
       dismissed();
       fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
@@ -1266,7 +1316,7 @@ describe('a key held on a toast button: its own repeats, and only its, press not
   });
 
   it('a hold that has ended leaves nothing for the region to cancel again: after three holds and an unmount the keydown listener is removed three times, not more', () => {
-    const removed = vi.spyOn(document, 'removeEventListener');
+    const removed = vi.spyOn(window, 'removeEventListener');
     const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
     const undo = screen.getByRole('button', { name: 'Undo' });
     undo.focus();
@@ -1931,8 +1981,8 @@ describe('a key held on a toast button: its own repeats, and only its, press not
   });
 
   it('the listeners that swallow repeats are removed when the last held key comes up', () => {
-    const added = vi.spyOn(document, 'addEventListener');
-    const removed = vi.spyOn(document, 'removeEventListener');
+    const added = vi.spyOn(window, 'addEventListener');
+    const removed = vi.spyOn(window, 'removeEventListener');
     const count = (spy: typeof added) => spy.mock.calls.filter(([type]) => type === 'keydown').length;
     render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
     const undo = screen.getByRole('button', { name: 'Undo' });

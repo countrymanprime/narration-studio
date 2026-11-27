@@ -176,14 +176,15 @@ class HandBacks {
       if (document.visibilityState === 'hidden') this.endWaits();
     };
     const cancel = () => {
-      document.removeEventListener('keydown', swallow, true);
-      document.removeEventListener('keyup', up, true);
+      window.removeEventListener('keydown', swallow, true);
+      window.removeEventListener('keyup', up, true);
       window.removeEventListener('blur', lost);
       document.removeEventListener('visibilitychange', hidden);
       this.keysCancel = null;
     };
-    document.addEventListener('keydown', swallow, true);
-    document.addEventListener('keyup', up, true);
+    // The window's capture phase runs before every document listener, whenever it was added (the Booth's pedal Space adds its own at mount): a key consumed here reaches none of them.
+    window.addEventListener('keydown', swallow, true);
+    window.addEventListener('keyup', up, true);
     window.addEventListener('blur', lost);
     document.addEventListener('visibilitychange', hidden);
     this.keysCancel = cancel;
