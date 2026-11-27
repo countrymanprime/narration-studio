@@ -108,6 +108,22 @@ describe('Master & QC, Diagnostics remembers the kind of file per project (#4099
     expect(pressed('Rendered chapters')).toBe('true');
   });
 
+  it('while a check runs, the switch shows the kind being checked, and the kept choice returns after it ends', async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem('narration.master.diagnosticsSource./p', 'raw_recording');
+    const running = contract('diagnostics-running.json');
+    const done = { ...contract('diagnostics-success.json'), sourceKind: 'processed_render' as const };
+    const diagnosticsState = vi.fn<NarrationApi['diagnosticsState']>().mockResolvedValueOnce(running).mockResolvedValue(done);
+    render(
+      <PageHost api={createMockApi({ diagnosticsState }, {})}>
+        <MasterPage onOpenDelivery={vi.fn()} openSettings={vi.fn()} projectFolder="/p" />
+      </PageHost>,
+    );
+    await screen.findByRole('region', { name: 'Thresholds' });
+    await waitFor(() => expect(pressed('Rendered chapters')).toBe('true'));
+    await waitFor(() => expect(pressed('Raw recordings')).toBe('true'));
+  });
+
   it('ignores a kept value that is no kind', async () => {
     window.localStorage.clear();
     window.localStorage.setItem('narration.master.diagnosticsSource./p', 'nonsense');

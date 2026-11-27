@@ -146,6 +146,8 @@ const NAVIGATE_EXEMPT: Record<string, string> = {
   'layout/NotFoundPage.tsx': 'a replace from a page that does not exist; it holds nothing',
   'script/page/ScriptPage.tsx':
     "replaces the address inside the Script page (a find or a deep link cleared) and the empty state's import link; the guarded links use useGuardedNavigate",
+  'settings/page/SettingsPage.tsx':
+    "replaces the address's category hash inside Settings when the narrator picks a category (the pick itself asks through useGuardedAction); it leaves no page",
   'script/page/layout/useDeepLink.ts': 'replaces the address inside the Script page once a deep link is read',
   '../hooks/useAppHistory.ts': "the shell's own Back and Forward, which App.tsx guards before it calls them",
   '../studio/drafts/unsavedDrafts.tsx': 'the guarded navigate itself, the fallback when no shell is mounted',

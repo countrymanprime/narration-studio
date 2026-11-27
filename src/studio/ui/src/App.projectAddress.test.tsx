@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // A page's address names a chapter of the project it was written under (`?chapter=` on the Booth, `/editing/:chapterId`). Changing project drops it, so the
 // other project opens on its own remembered chapter and the first project's chapter is not written down as the other's (#4059).
-import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { projectStorageKey } from './projectFolder';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { App } from './App';
 import { ApiProvider } from './api/ApiContext';
@@ -202,6 +203,39 @@ describe('the chapter in the address is not carried into another project (#4059)
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
     await waitFor(() => expect(window.location.hash).toBe(''));
+  });
+
+  it('Settings: a jump-menu category the narrator moved off neither opens in another project nor overwrites its kept category', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('settings.lastCategory', OTHER), 'delivery');
+    const { api } = await openAt('/settings#category-speech');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Appearance & keys/ }));
+    await screen.findByRole('heading', { level: 2, name: 'Appearance & keys' });
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', OTHER))).toBe('delivery');
+    await api.switchProject(alice, 'Alice in Wonderland');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Appearance & keys' })).toBeTruthy();
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', alice))).toBe('appearance');
+  });
+
+  it('Proof: rapid A, V, A, V switches never forget either project’s kept chapter', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', alice), 'chapter-4');
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', OTHER), 'chapter-5');
+    const { api } = await openAt('/proof');
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-4'));
+    await sameTask(async () => {
+      for (const [at, folder] of [OTHER, alice, OTHER, alice, OTHER, alice].map((folder, index) => [index * 15, folder] as const)) {
+        await new Promise((resolve) => setTimeout(resolve, at === 0 ? 0 : 15));
+        void api.switchProject(folder, folder === alice ? 'Alice in Wonderland' : 'Voltage and the Undercroft');
+      }
+    });
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-4'));
+    expect(window.localStorage.getItem(projectStorageKey('proof.lastChapter', alice))).toBe('chapter-4');
+    expect(window.localStorage.getItem(projectStorageKey('proof.lastChapter', OTHER))).toBe('chapter-5');
   });
 
   it('Settings opens a project on its own last category, not the other project’s spot (#4099)', async () => {

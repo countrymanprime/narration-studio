@@ -19,6 +19,7 @@ import { isAnyChanged, isBrowserChanged, overrideValue } from '../data/values';
 import { isResettable, useRowResets, type RowReset } from '../data/rowResets';
 import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { loadSettingsCategory, saveSettingsCategory } from './lastCategory';
 import { DiagnosticsSection } from '../controls/DiagnosticsSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
@@ -174,6 +175,10 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
 
   // Another category replaces the panel that holds a draft (the credits template), so it asks first like a move to another page.
   const guarded = useGuardedAction();
+  // A hash that named a category (the jump menu's `#category-<id>`) says nothing once the narrator picks another one: it is cleared, so the address is not a second, stale
+  // answer that a reload or a project switch would open (#4099).
+  const navigate = useNavigate();
+  const hash = useLocation().hash;
   const showCategory = useCallback(
     (id: CategoryId) =>
       guarded(() => {
@@ -182,8 +187,9 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
         setPending(null);
         setFilter('all');
         setNavOpen(false);
+        if (hash !== '') navigate({ hash: '' }, { replace: true });
       }),
-    [guarded],
+    [guarded, hash, navigate],
   );
 
   // A search, or a filter other than All, replaces the category's panel with the results, and the panel's editor (the credits template, the key being pasted)

@@ -46,8 +46,7 @@ import { kindColour } from '../../kinds/kindMap';
 import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
-import { recallSelection, rememberSelection } from './proofMemory';
-import { loadProofScope, saveProofScope } from './lastScope';
+import { chosenAll, chooseAll, recallSelection, rememberSelection } from './proofMemory';
 import { SurroundingText } from './around/SurroundingText';
 import { useParagraphsAround } from './around/useParagraphsAround';
 import { SpotTakes } from './spot/SpotTakes';
@@ -155,27 +154,31 @@ export function ProofPage({
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
   const all = scope === ALL_CHAPTERS;
-  // With no chapter and no note in the address, Proof opens on the scope the narrator last had in this project (#4099): once the chapters are read, a kept chapter the book
-  // still has is written into the address (replacing the entry, as the Booth does), and until then, or when that chapter is gone, it is All chapters. `restored` holds
-  // the scope from then on, so the kept scope is not overwritten by the first All chapters the page draws before the restore.
+  // With no chapter and no note in the address, Proof opens on the chapter it last showed in this project (#4099): the shared chapter Master & QC also writes, unless the narrator
+  // chose All chapters this session (`proofMemory`). Once the chapters are read, a kept chapter the book still has is written into the address (replacing the entry, as the
+  // Booth does); one the book no longer has opens All chapters and is forgotten. An address that names a chapter is kept as the last one.
   const [restored, setRestored] = useState(false);
-  const restoring = useRef<string | null>(null);
+  // The chapter the restore is moving to, held until the address shows it so All chapters is never drawn first (the skeleton stays up).
+  const [landing, setLanding] = useState<string | null>(null);
   useEffect(() => {
     if (restored || !firstRead.chapters) return;
     setRestored(true);
-    if (params.has('chapter') || params.has('finding')) return;
-    const kept = loadProofScope(projectFolder);
-    if (kept && kept !== ALL_CHAPTERS && chapters.some((c) => c.id === kept)) {
-      restoring.current = kept;
+    if (params.has('chapter') || params.has('finding') || chosenAll(projectFolder)) return;
+    const kept = loadSharedChapter(projectFolder);
+    if (!kept) return;
+    if (chapters.some((c) => c.id === kept)) {
       setSelectedId(recallSelection(projectFolder, kept));
+      setLanding(kept);
       setParams({ chapter: kept }, { replace: true });
-    }
+    } else saveSharedChapter(projectFolder, '');
   }, [restored, firstRead.chapters, params, chapters, projectFolder, setParams]);
+  const asked = params.get('chapter');
   useEffect(() => {
-    if (restoring.current !== null && scope !== restoring.current) return; // the restore's address is not committed yet
-    restoring.current = null;
-    if (restored && hasManuscript) saveProofScope(projectFolder, scope);
-  }, [restored, hasManuscript, projectFolder, scope]);
+    if (landing !== null && scope === landing) setLanding(null);
+  }, [landing, scope]);
+  useEffect(() => {
+    if (restored && asked && chapters.some((c) => c.id === asked)) saveSharedChapter(projectFolder, asked);
+  }, [restored, asked, chapters, projectFolder]);
   // The host sorts by a chapter-relative time, so All chapters is put in book order here; the table groups by chapter and J/K must follow it.
   const findings = useMemo(
     () =>
@@ -248,6 +251,7 @@ export function ProofPage({
 
   const choose = useCallback(
     (next: string) => {
+      chooseAll(projectFolder, next === ALL_CHAPTERS);
       if (next !== ALL_CHAPTERS) {
         setCurrent(next);
         saveSharedChapter(projectFolder, next);
@@ -471,7 +475,7 @@ export function ProofPage({
 
   if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
   if (loadProblem !== undefined) return <LoadError title="Proof" message={loadProblem} retry={() => setAttempt((n) => n + 1)} />;
-  if (!firstRead.chapters || !firstRead.notes) return <ProofSkeleton />;
+  if (!firstRead.chapters || !firstRead.notes || !restored || (landing !== null && scope !== landing)) return <ProofSkeleton />;
 
   const stepper = (
     <ChapterStepper

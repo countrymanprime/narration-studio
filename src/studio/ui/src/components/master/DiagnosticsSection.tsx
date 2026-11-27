@@ -268,7 +268,7 @@ export function DiagnosticsSection({
           <ToggleGroup
             label="The files are"
             look="segmented"
-            value={sourceKind}
+            value={running && job?.sourceKind ? job.sourceKind : sourceKind}
             onChange={(value) => chooseSource(value as DiagnosticsSourceKind)}
             options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running }))}
           />

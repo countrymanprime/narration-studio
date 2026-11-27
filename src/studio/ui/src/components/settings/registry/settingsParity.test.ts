@@ -124,12 +124,12 @@ const STORAGE: Parity = {
     'narration.booth.chapterPlaces.': 'Where the Booth was in each chapter: remembered position, not a preference.',
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
     'narration.editing.lastChapter.': 'The chapter Editing was last on: remembered position, not a preference.',
-    'narration.proof.scope.': 'The chapter, or All chapters, Proof was last showing: remembered position, not a preference.',
     'narration.settings.lastCategory.': 'The category Settings was last on: remembered position, not a preference.',
-    'narration.master.diagnosticsSource.': 'Which kind of file Master & QC Diagnostics was set to check: remembered position, not a preference.',
+    'narration.master.diagnosticsSource.':
+      "The kind of file (rendered chapters or raw recordings) Master & QC Diagnostics checks: a per-project choice of one check's input, kept so the page reopens as it was left, not a preference of the app.",
     'narration.readAloud.flags': 'Read only; nothing writes it.',
   },
-  cap: 12,
+  cap: 11,
 };
 
 // ---- Files that write a host settings field outside the Settings page.
