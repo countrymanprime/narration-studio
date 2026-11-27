@@ -3,7 +3,7 @@ import { Drawer } from '@base-ui/react/drawer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { useReturnFocusTarget } from './focusReturn';
+import { forgetPageTookFocus, handFocusToPage, pageTookFocusFrom, useReturnFocusTarget } from './focusReturn';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_ATTRIBUTE } from './Popover';
@@ -50,6 +50,7 @@ export function SlideOver({
   children: ReactNode;
 }) {
   const finalFocus = useReturnFocusTarget(open, returnFocus);
+  const popup = useRef<HTMLDivElement>(null);
   // A double press on the control that opened the panel lands its second press on the scrim as the panel slides in; a press that soon is the
   // same gesture, not a wish to dismiss.
   const openedAt = useRef(0);
@@ -59,6 +60,8 @@ export function SlideOver({
   finalFocusRef.current = finalFocus;
   useEffect(() => {
     if (!open) return;
+    // Opened again while it was still leaving, it is the same popup: what a key did to its focus hand-back (`pageTookFocusFrom`) was for the exit before.
+    forgetPageTookFocus(popup.current);
     const noteLayer = () => {
       pressBeganOverLayer.current = layerOverPanel() || aDialogIsOpen();
     };
@@ -108,8 +111,10 @@ export function SlideOver({
         <Drawer.Backdrop data-slide-over-backdrop className="fixed inset-0 z-[var(--z-slide-over-scrim)] bg-[var(--panel-scrim)]" />
         <Drawer.Viewport className="fixed inset-0 z-[var(--z-slide-over)] flex items-stretch justify-end">
           <Drawer.Popup
+            ref={popup}
             data-slide-over
-            finalFocus={finalFocus}
+            // A key that leaves Enter and Space to the page (a voice key, Ctrl+Alt+Space) came while the panel was leaving: the page has focus, and the opener would take it back.
+            finalFocus={() => (pageTookFocusFrom(popup.current) ? handFocusToPage() : finalFocus())}
             className={`flex h-full ${WIDTH[size]} [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col border-l border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none data-[swiping]:duration-0 motion-ok:transition-transform motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter) data-[ending-style]:motion-ok:[transform:translateX(100%)] data-[starting-style]:motion-ok:[transform:translateX(100%)]`}
           >
             {/* Content: a mouse drag inside the panel selects text instead of starting a swipe-to-dismiss (touch still swipes). */}

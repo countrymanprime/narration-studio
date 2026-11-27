@@ -84,6 +84,9 @@ export function handFocusToPage(): boolean {
 }
 
 const POPUPS = '[data-popover-popup], [role="menu"]';
+// The popups a Booth key marks while they are leaving: those above, and a slide-over (the engine panel), which is not "another popup" for `anotherPopoverTakesFocus`
+// (a popover opened inside the panel must not read the panel as one) and so stays out of `POPUPS`.
+const MARKABLE = `${POPUPS}, [data-slide-over]`;
 const LEAVING = '[data-ending-style], [data-closed]';
 
 /**
@@ -111,7 +114,7 @@ const pageTookFocus = new WeakSet<Element>();
  * `pageTookFocusFrom` as it closes and gives the page its focus instead.
  */
 export function pageTakesFocusFromLeavingPopups(): void {
-  for (const popup of document.querySelectorAll(POPUPS)) if (popup.closest(LEAVING)) pageTookFocus.add(popup);
+  for (const popup of document.querySelectorAll(MARKABLE)) if (popup.closest(LEAVING)) pageTookFocus.add(popup);
 }
 
 /** Whether a key handed focus to the page while `popup` was leaving (see `pageTakesFocusFromLeavingPopups`). */

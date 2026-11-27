@@ -300,6 +300,18 @@ describe('pageTakesFocusFromLeavingPopups', () => {
     expect(pageTookFocusFrom(open)).toBe(false);
   });
 
+  it('marks a slide-over that is leaving (the engine panel), and not one that is open', () => {
+    const { leaving, open } = popups('<div id="leaving" data-slide-over="" data-ending-style=""></div><div id="open" data-slide-over="" data-open=""></div>');
+    pageTakesFocusFromLeavingPopups();
+    expect(pageTookFocusFrom(leaving)).toBe(true);
+    expect(pageTookFocusFrom(open)).toBe(false);
+  });
+
+  it('does not count an open slide-over (the engine panel) as another popup for a popover that opened from the page', () => {
+    document.body.innerHTML = '<div data-slide-over="" data-open=""></div><button id="opener">Open</button>';
+    expect(anotherPopoverTakesFocus(document.createElement('div'), document.getElementById('opener'))).toBe(false);
+  });
+
   it('does not mark a popover that opens afterwards, and answers false for no popup', () => {
     const { leaving } = popups('<div id="leaving" data-popover-popup="" data-ending-style=""></div>');
     pageTakesFocusFromLeavingPopups();
