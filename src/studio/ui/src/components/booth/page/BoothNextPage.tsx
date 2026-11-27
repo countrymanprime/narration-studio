@@ -83,6 +83,7 @@ import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
 import { loadLastPlace, type LastPlace } from './lastPlace';
+import { openingChapter } from '../openingChapter';
 import { useBoothSpeakers } from './useBoothSpeakers';
 import { useChapterNavigation } from './useChapterNavigation';
 import { useChapterResume } from './useChapterResume';
@@ -167,14 +168,14 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   // True from the first commit of a session: until then the page reads what the address says, so a chapter chosen at open (the kept one, the DAW's) is the first one
   // read, never the first chapter of the book drawn for a moment before `shown` catches up with the address.
   const sessionUp = useRef(false);
-  const data = useBoothData(sessionUp.current ? shown : asked);
+  // The chapter the narrator left the Booth on (browser storage, so it survives an app restart). Read once, when the Booth opens.
+  const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
+  const data = useBoothData(sessionUp.current ? shown : asked, kept);
   // The Booth opens on the chapter the DAW is on when the address names none, and moves the DAW to the chapter the address names.
   const openedByAddress = useRef(asked !== null);
   // The chapters the Booth opened on by itself (the one it opened on with no address, the one it followed the DAW to): the DAW is already there, so
   // it is not moved. A chapter the narrator goes to is moved to (BoothSession is keyed by the chapter), and one left stops being exempt, so going
   // back to it moves the DAW.
-  // The chapter the narrator left the Booth on (browser storage, so it survives an app restart). Read once, when the Booth opens.
-  const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
   const selfOpened = useRef(new Set<string>());
   const firstChapter = useRef(false);
   const shownChapter = data.source?.chapter.id ?? '';
@@ -198,8 +199,10 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   const [returning, setReturning] = useState<LastPlace | null>(null);
   // A reload (or a link naming the chapter with no line) keeps the chapter in the address: the place kept for that chapter is still where it opens.
   const [reloaded, setReloaded] = useState<LastPlace | null>(() => (asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null));
-  // Known once the chapters are read: the kept place, when its chapter is still in the book. Until then the Booth cannot say, and holds its save.
-  const planned = asked === null && kept && chapterIds?.includes(kept.chapterId) ? kept : null;
+  // The one order for the chapter to open on (`openingChapter`, the Companion's too): a running session, then the kept place, then the DAW's chapter, then the
+  // last read. Known once the chapters are read; until then the Booth cannot say, and holds its save.
+  const opening = openingChapter({ asked: asked?.chapter ?? null, host: data.host, kept, chapters: data.chapters, lastRead: data.lastRead, daw: 'unasked' });
+  const planned = asked === null && opening !== 'ask-daw' && opening.by === 'kept' ? kept : null;
   const undecided = asked === null && kept !== null && chapterIds === undefined;
   useEffect(() => {
     if (!planned) return;
@@ -208,8 +211,8 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   }, [planned, pickupIds, setParams]);
   const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
   const followingDaw = useFollowDawOnOpen({
-    // A kept place wins over the DAW's chapter: the DAW is not asked where it is, it is taken to the kept chapter.
-    enabled: asked === null && planned === null,
+    // Asked only when the order reaches the DAW: a running session or a kept place before it means the DAW is not asked where it is.
+    enabled: opening === 'ask-daw',
     chapterIds,
     busy: () => takeBusy.current,
     onChapter: (chapterId) => {

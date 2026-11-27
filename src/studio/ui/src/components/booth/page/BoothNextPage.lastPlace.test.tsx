@@ -177,3 +177,80 @@ describe('the DAW goes back to the chapter the narrator left after a restart (#3
     expect(dawGoToChapter).not.toHaveBeenCalled();
   });
 });
+
+describe('nothing remembered and the DAW has no chapter (#4087)', () => {
+  const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+  it.each([
+    ['no track selected', async () => ({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 })],
+    ['no DAW linked', async () => ({ ok: false, message: 'No DAW is linked.', chapterId: '', selected: 0, cursor: 0 })],
+  ])('%s: the Booth opens on chapter 1 and does not move the DAW to it', async (_name, answer) => {
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter, dawPlace: vi.fn(answer) } });
+    await waitFor(() => expect(document.body.textContent).toContain('The Garden was quiet'));
+    await settle();
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  it('a remembered chapter wins over the DAW: the DAW is taken to it, never followed', async () => {
+    keep({ chapterId: 'c1', paragraphId: 'p3', word: 2 });
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter, dawPlace: vi.fn(async () => ({ ok: true, message: '', chapterId: 'c2', selected: 1, cursor: 0 })) } });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledWith('c1', expect.any(String), expect.any(Number)));
+    expect(address).toContain('chapter=c1');
+  });
+});
+
+describe('the last-read chapter and a running session in the one order (#4087)', () => {
+  const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+  const noChapter = async () => ({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 });
+
+  it('a last-read chapter other than chapter 1 opens, and the DAW is not sent to it', async () => {
+    const dawGoToChapter = goTo();
+    renderPage({
+      api: { dawGoToChapter, dawPlace: noChapter, readerState: async () => ({ ...(await pageApi().readerState()), activeChapter: 'Chapter Two' }) },
+    });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  const RUNNING_ON_TWO = async () => ({ phase: 'running', message: '', engine: null, chapter: 'c2', script: null, position: null }) as never;
+  const lastReadOne = async () => ({ ...(await pageApi().readerState()), activeChapter: 'Chapter One' });
+  const dawOnOne = async () => ({ ok: true, message: '', chapterId: 'c1', selected: 1, cursor: 0 });
+
+  // A Booth that drops the running session (it would open the kept chapter, the DAW's or the last read), or checks the last read before it, opens chapter 1 here.
+  it('a running reading session wins over the kept place, the DAW and the last read, and the DAW is not asked', async () => {
+    keep({ chapterId: 'c1', paragraphId: 'p3', word: 2 });
+    const dawPlace = vi.fn(dawOnOne);
+    renderPage({ api: { dawPlace, teleprompterState: RUNNING_ON_TWO, readerState: lastReadOne } });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    expect(dawPlace).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain('The Garden was quiet');
+  });
+
+  it('a running reading session wins over the DAW and the last read when nothing is kept', async () => {
+    const dawPlace = vi.fn(dawOnOne);
+    renderPage({ api: { dawPlace, teleprompterState: RUNNING_ON_TWO, readerState: lastReadOne } });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    expect(dawPlace).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain('The Garden was quiet');
+  });
+
+  it('a last-read read that never answers holds the Booth for the DAW cap (3.5 s) and no longer, then opens the first chapter with text', async () => {
+    // The clock is the test's alone (no auto-advance), so the bound is read off it exactly: a cap of 7 s would fail the second expect.
+    vi.useFakeTimers();
+    try {
+      renderPage({ api: { dawPlace: noChapter, readerState: () => new Promise<never>(() => {}) } });
+      await act(async () => void (await vi.advanceTimersByTimeAsync(3400)));
+      expect(document.body.textContent).not.toContain('The Garden was quiet');
+      await act(async () => void (await vi.advanceTimersByTimeAsync(300)));
+      expect(document.body.textContent).toContain('The Garden was quiet');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
