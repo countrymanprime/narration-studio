@@ -198,3 +198,15 @@ describe('a DAW answer that comes after the narrator pressed Play moves nothing 
     stays();
   });
 });
+
+describe('a last-read read that never answers (#4087)', () => {
+  it('holds the Companion for the DAW cap (3.5 s) and no longer, then opens the first chapter with text', async () => {
+    // The clock is the test's alone (no auto-advance), so the bound is read off it exactly: a cap of 7 s would fail the second expect.
+    vi.useFakeTimers();
+    render(tree(createMockApi({ dawPlace: dawOn(''), readerState: () => new Promise<never>(() => {}) })));
+    await act(async () => void (await vi.advanceTimersByTimeAsync(3400)));
+    expect(spies.shellProps).not.toHaveBeenCalled();
+    await act(async () => void (await vi.advanceTimersByTimeAsync(300)));
+    expect(shown()).toBe('chapter-1');
+  });
+});

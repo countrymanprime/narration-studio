@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { openingChapter, type OpeningChapterInput } from './openingChapter';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { openingChapter, readLastReadWithinCap, type OpeningChapterInput } from './openingChapter';
 
 const CHAPTERS = [
   { id: 'credits-opening', title: 'Opening credits', isCredits: true },
@@ -78,5 +78,37 @@ describe('the one order for the chapter a page opens on (#4087)', () => {
     ['empty', []],
   ])('chapters %s: nothing to open, and the DAW is not asked', (_name, chapters) => {
     expect(openingChapter({ ...NOTHING, chapters, daw: 'unasked', kept: kept('c2') })).toEqual({ chapterId: '', by: 'unread' });
+  });
+});
+
+describe('the last-read read is bounded by the DAW answer cap (#4087)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('answers the chapter the read names', async () => {
+    const read = readLastReadWithinCap({ readerState: async () => ({ activeChapter: 'c2' }) });
+    await expect(read.result).resolves.toBe('c2');
+  });
+
+  it('answers nothing when the read fails', async () => {
+    const read = readLastReadWithinCap({ readerState: async () => Promise.reject(new Error('no')) });
+    await expect(read.result).resolves.toBeUndefined();
+  });
+
+  it('answers nothing at 3.5 s for a read that never answers, and not before', async () => {
+    vi.useFakeTimers();
+    const settled = vi.fn();
+    void readLastReadWithinCap({ readerState: () => new Promise<never>(() => {}) }).result.then(settled);
+    await vi.advanceTimersByTimeAsync(3499);
+    expect(settled).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(2);
+    expect(settled).toHaveBeenCalledWith(undefined);
+  });
+
+  it('cancel clears the timer', () => {
+    vi.useFakeTimers();
+    const read = readLastReadWithinCap({ readerState: () => new Promise<never>(() => {}) });
+    expect(vi.getTimerCount()).toBe(1);
+    read.cancel();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

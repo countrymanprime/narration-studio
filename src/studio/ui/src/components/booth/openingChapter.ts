@@ -8,6 +8,7 @@
 import { lastReadOrFirstTextChapter } from '../../chapterKinds';
 import type { TeleprompterState } from '../../types';
 import { keptChapterIn, type LastPlace } from './page/lastPlace';
+import { FIRST_ANSWER_MAX_MS } from './page/useDawFollow';
 import { ACTIVE_PHASES } from './useTeleprompterSession';
 
 /** What the DAW said when asked where the narrator is: not asked yet, no chapter, or a chapter. */
@@ -47,4 +48,24 @@ export function openingChapter({ asked, host, kept, chapters, lastRead, daw }: O
   if (daw === 'unasked') return 'ask-daw';
   if (daw !== 'none' && ids.includes(daw.chapterId)) return { chapterId: daw.chapterId, by: 'daw' };
   return { chapterId: lastReadOrFirstTextChapter(chapters, lastRead)?.id ?? '', by: 'fallback' };
+}
+
+/**
+ * Reads the last-read chapter for `openingChapter`, once for both pages. It answers undefined when the read fails or has not answered within the cap the DAW's
+ * answer has (`FIRST_ANSWER_MAX_MS`): it is a fallback of the order, so a read that hangs holds the page on its skeleton (and the DAW's ask) for the cap, not for ever.
+ * `cancel` clears the timer when the page is left first.
+ */
+export function readLastReadWithinCap(reader: { readerState(): Promise<{ activeChapter?: string }> }): {
+  result: Promise<string | undefined>;
+  cancel: () => void;
+} {
+  let cap: ReturnType<typeof setTimeout> | undefined;
+  const result = new Promise<string | undefined>((resolve) => {
+    cap = setTimeout(() => resolve(undefined), FIRST_ANSWER_MAX_MS);
+    reader.readerState().then(
+      (state) => resolve(state.activeChapter),
+      () => resolve(undefined),
+    );
+  }).finally(() => clearTimeout(cap));
+  return { result, cancel: () => clearTimeout(cap) };
 }

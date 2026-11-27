@@ -7,7 +7,7 @@ import type { BoothSource } from '../page/useBoothData';
 import { boothQuery, readBoothQuery } from '../page/boothQuery';
 import { creditsKindOf } from '../page/useBoothData';
 import { loadLastPlace, type LastPlace } from '../page/lastPlace';
-import { openingChapter } from '../openingChapter';
+import { openingChapter, readLastReadWithinCap } from '../openingChapter';
 import { useFollowDawOnOpen } from '../page/useDawFollow';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import { CompanionSkeleton } from './CompanionSkeleton';
@@ -50,9 +50,10 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
 
   useEffect(() => {
     let live = true;
+    const lastReadRead = readLastReadWithinCap(api);
     void Promise.all([
       readChapters(),
-      api.readerState().catch(() => undefined),
+      lastReadRead.result,
       api.teleprompterState().catch(() => undefined),
       api.guideEntities().catch(() => NO_ENTITIES),
       api.guideTypes().catch(() => NO_TYPES),
@@ -67,11 +68,12 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
         setNotes(nextNotes);
         setHost(host);
         setKept(projectFolder ? loadLastPlace(projectFolder) : null);
-        setLastRead(reader?.activeChapter);
+        setLastRead(reader);
       })
       .catch(() => live && setChapters([]));
     return () => {
       live = false;
+      lastReadRead.cancel();
     };
   }, [api, readChapters, projectFolder]);
 

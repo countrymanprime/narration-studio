@@ -240,14 +240,15 @@ describe('the last-read chapter and a running session in the one order (#4087)',
     expect(document.body.textContent).not.toContain('The Garden was quiet');
   });
 
-  it('a last-read read that never answers does not hold the Booth: it opens after the cap, on the first chapter with text', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+  it('a last-read read that never answers holds the Booth for the DAW cap (3.5 s) and no longer, then opens the first chapter with text', async () => {
+    // The clock is the test's alone (no auto-advance), so the bound is read off it exactly: a cap of 7 s would fail the second expect.
+    vi.useFakeTimers();
     try {
       renderPage({ api: { dawPlace: noChapter, readerState: () => new Promise<never>(() => {}) } });
       await act(async () => void (await vi.advanceTimersByTimeAsync(3400)));
       expect(document.body.textContent).not.toContain('The Garden was quiet');
       await act(async () => void (await vi.advanceTimersByTimeAsync(300)));
-      await waitFor(() => expect(document.body.textContent).toContain('The Garden was quiet'));
+      expect(document.body.textContent).toContain('The Garden was quiet');
     } finally {
       vi.useRealTimers();
     }

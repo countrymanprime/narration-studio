@@ -7,8 +7,7 @@ import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import { recordedAtOf, type RecordedAt } from '../../../recordedThrough';
 import type { CreditsKind } from '../readerModel';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
-import { openingChapter } from '../openingChapter';
-import { FIRST_ANSWER_MAX_MS } from './useDawFollow';
+import { openingChapter, readLastReadWithinCap } from '../openingChapter';
 import type { LastPlace } from './lastPlace';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
@@ -102,7 +101,8 @@ export function useBoothData(target: BoothChapterTarget | null, kept: LastPlace 
   useEffect(() => {
     let live = true;
     const mine = ++recordedRead.current;
-    void Promise.all([readChapters(attempt > 0), teleprompter.teleprompterState().catch(() => undefined), lastReadWithinCap(manuscript.readerState())])
+    const lastReadRead = readLastReadWithinCap(manuscript);
+    void Promise.all([readChapters(attempt > 0), teleprompter.teleprompterState().catch(() => undefined), lastReadRead.result])
       .then(([all, state, lastReadChapter]) => {
         if (!live) return;
         const narration = all.filter(isNarrationChapter);
@@ -118,6 +118,7 @@ export function useBoothData(target: BoothChapterTarget | null, kept: LastPlace 
       });
     return () => {
       live = false;
+      lastReadRead.cancel();
     };
   }, [manuscript, readChapters, teleprompter, attempt]);
 
@@ -209,24 +210,4 @@ function recordedOf(chapters: readonly ManuscriptChapter[]): Record<string, Reco
       return at ? [[chapter.id, at]] : [];
     }),
   );
-}
-
-/**
- * The last-read chapter, or undefined when the read fails or has not answered within the cap the DAW's answer has (`FIRST_ANSWER_MAX_MS`): it is a fallback
- * of the opening order, so a read that hangs must not keep the Booth on its skeleton or hold back the DAW's ask.
- */
-function lastReadWithinCap(read: Promise<{ activeChapter?: string }>): Promise<string | undefined> {
-  return new Promise((resolve) => {
-    const cap = setTimeout(() => resolve(undefined), FIRST_ANSWER_MAX_MS);
-    read.then(
-      (state) => {
-        clearTimeout(cap);
-        resolve(state.activeChapter);
-      },
-      () => {
-        clearTimeout(cap);
-        resolve(undefined);
-      },
-    );
-  });
 }
