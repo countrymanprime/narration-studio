@@ -44,6 +44,7 @@ import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { PRESS_LIMITS_MS } from '../record/pressLimits';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { chaptersOf } from '../../../api/chaptersOf';
+import { textDirection } from '../../../visibleText';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -2483,6 +2484,20 @@ describe('the-built-in-recorder-names-the-microphone-it-records-on', () => {
     await settle();
     expect(toastText(page)).toContain('No microphone found. Plug one in, then press Record again.');
     expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('isolates a right-to-left microphone name that leads the refusal, so it reads left to right (#4113)', async () => {
+    const AR = '\u0627\u0644\u0641\u0635\u0644'.repeat(20);
+    const page = renderPage({
+      setup: 'builtin',
+      api: { settingsForScope: savedAs(AR), teleprompterDevices: list('A'), recorderDevices: list('A'), recorderState: recorderState('') } as never,
+    });
+    await ready();
+    await space();
+    await settle();
+    const text = toastText(page).join(' ');
+    expect(text).toContain('\u2068' + AR + '\u2069 was not found.');
+    expect(textDirection(text)).toBe('ltr');
   });
 
   it('refuses to record on a chosen microphone that is no longer listed, and names it', async () => {

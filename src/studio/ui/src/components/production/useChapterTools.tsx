@@ -1,4 +1,5 @@
 import { headingName } from '../../chapterHeading';
+import { isolatedIfRtl } from '../../visibleText';
 import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { describeApiError } from '../../api/errorMessage';
@@ -212,7 +213,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const removeFromRecording = async (chapterId: string, kind: ManuscriptContentKind) => {
     try {
       const result = await api.manuscriptSetChapterKind(chapterId, kind);
-      notify(`${result.chapter.title} removed from recording.`);
+      notify(`${isolatedIfRtl(result.chapter.title)} removed from recording.`);
       await afterKind();
     } catch (error) {
       notify(describeApiError(error), 'error');
@@ -223,7 +224,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     setRestoringId(chapterId);
     try {
       const result = await api.manuscriptSetChapterKind(chapterId, 'narration');
-      notify(`${result.chapter.title} restored.`);
+      notify(`${isolatedIfRtl(result.chapter.title)} restored.`);
       await afterKind();
       onRestored?.(chapterId);
     } catch (error) {

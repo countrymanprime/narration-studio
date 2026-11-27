@@ -72,6 +72,12 @@ export const BOOTH_TOAST_SENTENCES: readonly BoothToastSentence[] = [
       text: createdSentence({ track: { name: 'x'.repeat(26) }, voice: { guid: '{1}', name: 'Narrator', index: 1 } }, daw),
     },
   ]),
+  // The same with a right-to-left name: the two isolate controls round it draw nothing and are not counted (#4113).
+  {
+    button: 'plain',
+    name: 'a track was made and linked (a right-to-left 26-character name)',
+    text: createdSentence({ track: { name: '\u0627'.repeat(26) } }, 'REAPER'),
+  },
   { button: 'plain', name: 'a press inside the start guard is ignored', text: START_GUARD_SENTENCE },
   { button: 'plain', name: 'the DAW refused a roll and gave no words', text: ROLL_REFUSED },
   // Its own button is Check recordings, a longer label than Check again; the question is 40 characters, so the Check again budget stands for it.

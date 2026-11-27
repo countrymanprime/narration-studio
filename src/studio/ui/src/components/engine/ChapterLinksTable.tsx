@@ -31,6 +31,7 @@ import { folderChildren, folderLinkLabel, kindInWords as kindWords, wordsCount }
 import { trackName } from '../tracks/trackName';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
+import { isolatedIfRtl } from '../../visibleText';
 
 /** The warning on a linked track whose audio cannot play (the removed Tracks card's per-track flag, kept where the link is made). */
 export const UNPLAYABLE = "This track has an item that can't be played";
@@ -194,7 +195,7 @@ const kindInWords = (track: Track, tracks: Track[], voiceFolders: boolean, notVo
 /** How a track is named in a message: quoted, cut at a sensible length, and named as every page names a track with no name (`trackName`). */
 function quoted(name: string, index?: number): string {
   const text = trackName(name, index);
-  return `“${text.length > 60 ? `${text.slice(0, 59)}…` : text}”`;
+  return `“${isolatedIfRtl(text.length > 60 ? `${text.slice(0, 59)}…` : text)}”`;
 }
 
 /** What the check on an unchanged link found: the track as it is now, what a folder holds, and whether its name moved. `how` says what was
@@ -211,23 +212,26 @@ export function recheckSentence(
 ): string {
   const found = tracks.find((candidate) => candidate.guid === guid);
   const noun = voiceFolders ? 'folder' : 'track';
-  if (!found) return `${short} is linked to a ${noun} that is no longer in the project. Choose another ${noun} or clear the link.`;
+  const who = isolatedIfRtl(short);
+  if (!found) return `${who} is linked to a ${noun} that is no longer in the project. Choose another ${noun} or clear the link.`;
   const what = kindInWords(found, tracks, voiceFolders, notVoiceGuids);
   const place = tracks.indexOf(found);
   if (was !== undefined && was !== found.name)
-    return `The ${noun} for ${short} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
-  const linked = `${short} is linked to ${quoted(found.name, place)} (${what})`;
+    return `The ${noun} for ${who} was renamed from ${quoted(was, place)} to ${quoted(found.name, place)} (${what}).`;
+  const linked = `${who} is linked to ${quoted(found.name, place)} (${what})`;
   if (how === 'live') return `${linked}. Nothing changed.`;
   return how === 'saved' ? `${linked}, as the saved project has it.` : `${linked}.`;
 }
 
 /** The done toast: what the DAW made, named as it was given (a folder with the Narrator, and the voices and Extras it was made with), that it is not saved yet, and what is left when the create was partly done. */
-function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
+export function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
   const named = childNames(result);
   const rest = result.message ? ` ${result.message}` : '';
+  const who = isolatedIfRtl(short);
+  const made = isolatedIfRtl(trackName(result.track.name, result.track.index));
   return result.voice
-    ? `Created the folder “${trackName(result.track.name, result.track.index)}” with ${named ? `${named} tracks` : `a ${result.voice.name} track`} and linked ${short} to it. Save the project to keep it.${rest}`
-    : `Created the track “${trackName(result.track.name, result.track.index)}” and linked ${short} to it. Save the project to keep it.${rest}`;
+    ? `Created the folder “${made}” with ${named ? `${named} tracks` : `a ${isolatedIfRtl(result.voice.name)} track`} and linked ${who} to it. Save the project to keep it.${rest}`
+    : `Created the track “${made}” and linked ${who} to it. Save the project to keep it.${rest}`;
 }
 
 /** How long a Cancel or Clear keeps its note of where focus goes: a Clear waits for the host to answer, and a slow answer is no reason to leave focus on the page. */

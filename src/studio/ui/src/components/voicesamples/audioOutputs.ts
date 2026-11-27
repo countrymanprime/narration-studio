@@ -2,7 +2,7 @@
 // audio, so the choice is an output of this computer, applied to the player's `Audio` with `setSinkId`. The setting keeps the output's name, not its
 // id: the id is the webview's own and changes when its profile is reset, the name is what the narrator chose.
 
-import { hasVisibleText } from '../../visibleText';
+import { hasVisibleText, isolatedIfRtl } from '../../visibleText';
 
 /** One named output of this computer. */
 type AudioOutput = { id: string; label: string };
@@ -65,7 +65,8 @@ export function outputChoices(listing: OutputListing | undefined, saved: string)
 }
 
 /** What is said of a saved output that is not connected; `plays` is what sounds on the system default meanwhile ("Sound plays", "Voice samples play"). */
-export const missingOutputSentence = (label: string, plays: string): string => `${label} is not connected. ${plays} on the system default until it is back.`;
+export const missingOutputSentence = (label: string, plays: string): string =>
+  `${isolatedIfRtl(label)} is not connected. ${plays} on the system default until it is back.`;
 
 /** Why a named output could not be used: it is not in the list, the list would not come (or the webview cannot choose), or the audio system refused it. */
 type SinkFailure = 'missing' | 'unlisted' | 'refused';
@@ -104,6 +105,6 @@ export async function setOutput(element: Sinkable, label: string): Promise<SinkR
     return { ok: true };
   } catch {
     await toDefault(element);
-    return { ok: false, message: `Could not play on ${label}. Choose another output or use the system default.`, kind: 'refused' };
+    return { ok: false, message: `Could not play on ${isolatedIfRtl(label)}. Choose another output or use the system default.`, kind: 'refused' };
   }
 }

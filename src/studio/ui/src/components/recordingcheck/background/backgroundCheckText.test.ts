@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterSyncBackground } from '../../../api/contracts/chapterSync';
+import { textDirection } from '../../../visibleText';
 import { doneText, modelPairText, needsNotice, queuedText, runningDetail, runningText, startedToast } from './backgroundCheckText';
 
 const background = (over: Partial<ChapterSyncBackground> = {}): ChapterSyncBackground => ({
@@ -38,6 +39,13 @@ describe('background check text', () => {
     expect(startedToast('Chapter 3', running, background())).toBe(
       'Checking Chapter 3 in the background with tiny + small. Only audio not checked before is listened to.',
     );
+  });
+
+  it('isolates a right-to-left chapter title and leaves the sentence reading left to right (#4113)', () => {
+    const AR = '\u0627\u0644\u0641\u0635\u0644';
+    const text = startedToast(AR, running, background());
+    expect(text.startsWith(`Checking ${`${'\u2068'}${AR}${'\u2069'}`} in the background`)).toBe(true);
+    expect(textDirection(text)).toBe('ltr');
   });
 
   it('asks first only when checks are on, unanswered and there is something to check', () => {

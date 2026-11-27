@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { recheckSentence } from './ChapterLinksTable';
+import { createdSentence, recheckSentence } from './ChapterLinksTable';
+import { textDirection } from '../../visibleText';
 import type { Track } from '../../types';
 
 const track = (guid: string, name: string, depth = 0, isFolder = false): Track =>
@@ -22,9 +23,33 @@ describe('recheckSentence', () => {
     expect(recheckSentence('Chapter 1', 'Ch 1', [...folder, track('w', 'White Rabbit', 1)], 'f', true)).toContain('(a folder of 2 voices)');
     expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f')).toContain('(a folder of 1 track). Nothing changed.');
   });
+  it('isolates a right-to-left chapter and track name and reads left to right, found or gone (#4113)', () => {
+    const AR = '\u0627\u0644\u0641\u0635\u0644';
+    const ISO = '\u2068' + '\u0627\u0644\u0641\u0635\u0644' + '\u2069';
+    const found = recheckSentence(AR, AR, [track('a', AR)], 'a');
+    expect(found.startsWith(ISO)).toBe(true);
+    expect(found).toContain(AR);
+    expect(found).toMatch(/“\u2068.*\u2069”/);
+    expect(textDirection(found)).toBe('ltr');
+    const gone = recheckSentence(AR, AR, [], 'x');
+    expect(gone.startsWith(ISO)).toBe(true);
+    expect(textDirection(gone)).toBe('ltr');
+    const renamed = recheckSentence(AR, 'Old', [track('a', AR)], 'a');
+    expect(renamed).toContain('for ' + ISO + ' was renamed');
+    expect(textDirection(renamed)).toBe('ltr');
+  });
+
+  it('isolates the track, the chapter and a single voice in the created toast, quotes outside (#4113)', () => {
+    const AR = '\u0627\u0644\u0641';
+    const made = { outcome: 'created', track: { name: AR, index: 0 }, voice: { name: AR, index: 1 } } as never;
+    const text = createdSentence(made, AR);
+    expect(text).toBe(`Created the folder “\u2068${AR}\u2069” with a \u2068${AR}\u2069 track and linked \u2068${AR}\u2069 to it. Save the project to keep it.`);
+    expect(textDirection(text)).toBe('ltr');
+  });
+
   it('says the track was renamed', () => {
-    expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New ‮evil')], 'a')).toBe(
-      'The track for Chapter 1 was renamed from “Old” to “New ‮evil” (a single track).',
+    expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New \u202eevil')], 'a')).toBe(
+      'The track for Chapter 1 was renamed from “Old” to “New evil” (a single track).',
     );
   });
   it('only says Nothing changed when a read of REAPER answered', () => {

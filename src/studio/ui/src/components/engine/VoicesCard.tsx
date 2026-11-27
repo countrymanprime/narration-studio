@@ -21,6 +21,7 @@ import { useIsRecording } from '../../daw/useIsRecording';
 import { assignmentOf, folderChildren, folderVoices, type Voice } from './voices';
 import { trackName } from '../tracks/trackName';
 import { chapterLink } from '../chapterTracks/chapterLink';
+import { isolatedIfRtl } from '../../visibleText';
 
 const LAYOUTS = [
   { value: 'flat', label: 'Flat' },
@@ -51,7 +52,7 @@ const narrowNow = () => window.matchMedia?.(NARROW).matches ?? false;
 /** What turning a voice off or on did, worked out from the keys before and after (never from a track's name): the voice's own state, and where the keys stand
  * now when any moved. Every press says something, so a notice never stays up under a row it no longer describes. */
 function switchConsequence(voice: Voice, before: readonly Voice[], after: readonly Voice[], counts: boolean, placeOf: (guid: string) => number): string {
-  const name = bidiIsolated(shortName(trackName(voice.name, placeOf(voice.guid))));
+  const name = isolatedIfRtl(shortName(trackName(voice.name, placeOf(voice.guid))));
   const lead = counts ? `${name} is a voice again.` : `${name} is turned off as a voice.`;
   if (!counts && !after.some((other) => !other.notVoice)) return `${lead} No voice is left, so the Booth cannot record until you turn one back on.`;
   const keyBefore = new Map(before.map((other) => [other.guid, other.key]));
@@ -65,13 +66,10 @@ function switchConsequence(voice: Voice, before: readonly Voice[], after: readon
   if (changed.length === 0) return `${lead} Key 0 has no track now.`;
   const shown = changed
     .slice(0, 5)
-    .map((other) => `${other.key} ${bidiIsolated(shortName(trackName(other.name, placeOf(other.guid))))}`)
+    .map((other) => `${other.key} ${isolatedIfRtl(shortName(trackName(other.name, placeOf(other.guid))))}`)
     .join(', ');
   return `${lead} Keys now: ${shown}${changed.length > 5 ? `, and ${changed.length - 5} more` : ''}.`;
 }
-
-/** A track's name inside a sentence of another direction: isolated, so a right-to-left name does not turn the sentence around. */
-const bidiIsolated = (name: string) => `\u2068${name}\u2069`;
 
 const SOURCE = { assigned: 'assigned', name: 'by name', alias: 'by alias' } as const;
 
@@ -331,9 +329,9 @@ function CharacterPicker({
 }) {
   if (voice.notVoice) {
     const reason = 'Not a voice: it records no character. Turn it back on to choose one.';
-    const name = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
+    const buttonLabel = voice.name.trim() === '' ? `Choose who ${placeName} records` : `Choose who the ${shortName(placeName)} track records`;
     // IconButton shows its disabledReason as a tooltip itself.
-    return <IconButton label={name} action="edit" size="sm" disabledReason={reason} />;
+    return <IconButton label={buttonLabel} action="edit" size="sm" disabledReason={reason} />;
   }
   const label = voice.narrator
     ? 'Choose the character the Narrator track also voices'

@@ -4,6 +4,7 @@ import { HIT_AREA } from './hitArea';
 import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
 import { formatCount, plural } from '../../plural';
+import { textDirection } from '../../visibleText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -351,7 +352,10 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       <span
         ref={text}
         data-toast-text
-        dir="auto"
+        // The app's own sentences are English: `dir="auto"` took the direction of the first strong character, so a sentence that began with a right-to-left chapter or track name ("<Arabic> is linked
+        // to its track. Press Record…") turned the whole line around and sent the full stop to the start (#4113). `textDirection` reads it left to right when the app's own words outnumber (or equal)
+        // the right-to-left ones, outside the names the builders isolate, and leaves `auto` to a message that is mostly right to left (#2957).
+        dir={textDirection(message.text)}
         tabIndex={scrolls ? 0 : undefined}
         // The attribute is always set: the text keeps the keys that scroll it, so the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts). Only while the
         // text overflows is it a scroller (which Chromium makes a tab stop): a message that fits, even by a sub-pixel, is plain text and no tab stop.

@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { clickCase, contextMenuCase, hoverCase, type OverlayCase } from '../helpers/overlayGuardFor';
+import { raiseToast } from '../helpers/raiseToast';
 
 // The overlays every page with the sidebar has, because the shell draws them (components/layout/AppShell.tsx). Two lists, because
 // they differ in what decides where they are drawn:
@@ -26,11 +27,7 @@ export const shellPageCases: OverlayCase[] = [
     kind: 'popover',
     root: (page) => page.locator('[data-toast-region] [data-tone="error"]').last(),
     open: async (page) => {
-      await page.evaluate(() =>
-        (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast(
-          "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.",
-        ),
-      );
+      await raiseToast(page, "This chapter's audio couldn't be played. Check that its source files are still where the project expects them.");
       await page.locator('[data-toast-region] [data-tone="error"]').last().waitFor();
     },
   },

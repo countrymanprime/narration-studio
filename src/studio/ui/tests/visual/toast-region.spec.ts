@@ -6,6 +6,7 @@ import { VIEWPORTS, REFLOW_VIEWPORT } from './viewports';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 import { boothChapterReady } from './helpers/viewTop';
+import { raiseToast } from './helpers/raiseToast';
 
 const SIZES = [...VIEWPORTS, REFLOW_VIEWPORT];
 const regions = (page: Page) => page.locator('[data-toast-region]');
@@ -257,9 +258,8 @@ test('a toast publishes the room it takes while it shows, and a dialog reads it'
 test("holding Enter on a toast's Retry activates no other control", async ({ page }) => {
   await page.goto('/?mockNoProject=1');
   await settlePage(page);
-  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
   const before = await page.getByRole('button', { name: /^Remove .* from recent projects/ }).count();
-  await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('Hold me'));
+  await raiseToast(page, 'Hold me');
   const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
   await retry.focus();
   await page.keyboard.down('Enter');
@@ -278,9 +278,7 @@ test("holding Enter on a toast's Retry activates no other control", async ({ pag
 test('a double click on Dismiss dismisses one toast of a queue', async ({ page }) => {
   await page.goto('/?mockNoProject=1');
   await settlePage(page);
-  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-  for (const text of ['Alpha failed', 'Beta failed', 'Gamma failed'])
-    await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+  for (const text of ['Alpha failed', 'Beta failed', 'Gamma failed']) await raiseToast(page, text);
   const toast = page.locator('[data-toast-region] [data-tone]:not([hidden]) [data-toast-text]');
   await expect(toast).toHaveText('Alpha failed');
   await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).dblclick();
@@ -313,8 +311,7 @@ test("holding Enter on a toast's Undo presses no Remove button the Undo focused"
 test('on the project picker, Dismiss of the last toast by keyboard puts focus on the main area', async ({ page }) => {
   await page.goto('/?mockNoProject=1');
   await settlePage(page);
-  await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-  await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('Only one.'));
+  await raiseToast(page, 'Only one.');
   await page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' }).focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-toast-region] [data-tone]')).toHaveCount(0);
