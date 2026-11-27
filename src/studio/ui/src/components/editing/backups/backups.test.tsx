@@ -322,6 +322,30 @@ describe('a backup before each edit', () => {
     expect(record.mock.calls[0]![1]).toMatchObject({ backupId: row!.id });
   });
 
+  it('Put back journals a backup whose label holds a right-to-left chain name isolated left to right (#4129)', async () => {
+    // An Arabic chain name, written with escapes so no right-to-left character sits in the source.
+    const chain = '\u0635\u0648\u062A 2.RfxChain';
+    const daw = spyDaw(DAW_SETUPS.audacity, { applyFxToRange: async () => ok });
+    installBackupSteps(daw, places);
+    const command = applyFxCommand(
+      {
+        daw,
+        log: { editingWordFxRecord: async (chapterId) => ({ chapterId, effects: [], changed: ['fx1'], over: [] }), editingWordFxRemove: vi.fn() },
+        onEffects: () => {},
+      },
+      audacityPlan,
+      { chapterId: CHAPTER, range: sum().ranges[0]!, chain: { id: 'x', name: chain }, source: 'Effects', locator, needsOver: false, confirmedOver: false },
+    );
+    expect((await command.run()).ok).toBe(true);
+    const [row] = await daw.backups();
+    mount(daw);
+    await flush();
+    await act(async () => void fireEvent.click(document.querySelector('[data-bkrestore]')!));
+    await flush();
+    const [entry] = await journal.entries();
+    expect(entry?.label).toBe(`Put back \u2066${row!.label}\u2069`);
+  });
+
   it('window-never-passes-the-audio-there-is: the page sends only the words, and the DAW adds the window inside the audio there is', async () => {
     const daw = spyDaw(DAW_SETUPS.audacity, { deleteRange: async () => ok, stackTakes: async () => ok });
     const sent = vi.spyOn(daw, 'backupAround');

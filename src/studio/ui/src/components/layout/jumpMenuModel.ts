@@ -136,17 +136,19 @@ export function rankEntries({
   pageOnly: boolean;
   commandsOnly: boolean;
 }): Entry[] {
-  const tokens = term.split(/\s+/).filter(Boolean);
+  // A term pasted from a History row keeps its isolate marks, and one typed with a direction mark holds them too: they draw nothing, so they are not matched.
+  const plain = stripBidi(term);
+  const tokens = plain.split(/\s+/).filter(Boolean);
   const own = startsFirst(
     page.filter((entry) => matches(entry, tokens)),
-    term,
+    plain,
   );
   const found = commandsOnly ? [] : hits;
   const global = pageOnly
     ? []
     : startsFirst(
         commands.filter((entry) => matches(entry, tokens)),
-        term,
+        plain,
       );
   return [...own, ...found, ...global];
 }
