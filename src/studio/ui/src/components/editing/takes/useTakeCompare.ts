@@ -13,6 +13,8 @@ export interface TakeCompareArgs {
   onPlay: (take: LineTake) => void;
   /** The take whose play is being asked, or that was asked and played nothing (the notice offers Retry), or null. A run holds on it. */
   waitingId?: string | null;
+  /** `TakeAudition.stops`: a change since the run began is a stop from outside (the script's Play), which ends the run. */
+  stops?: number;
 }
 
 export interface TakeCompareState {
@@ -52,7 +54,7 @@ interface Run {
  * starts when the one playing ends; Stop and Escape (while focus is on the compare controls, where a press of Play leaves it) end the run. The pickers start on the kept take (else the active one) and on the suggested
  * take (else the next one): a suggestion only fills a picker, it keeps nothing. A take that cannot be heard is left out of the run, with its reason.
  */
-export function useTakeCompare({ passage, keptId, playingId, onPlay, waitingId = null }: TakeCompareArgs): TakeCompareState {
+export function useTakeCompare({ passage, keptId, playingId, onPlay, waitingId = null, stops = 0 }: TakeCompareArgs): TakeCompareState {
   const { takes } = passage;
   const [pickA, setA] = useState<string | null>(null);
   const [pickB, setB] = useState<string | null>(null);
@@ -100,6 +102,14 @@ export function useTakeCompare({ passage, keptId, playingId, onPlay, waitingId =
     );
   }, [takes, playable, begin]);
   const playAB = useCallback(() => begin('ab', [aId, bId]), [begin, aId, bId]);
+
+  // A stop from outside (the script's Play) ends the run: it must not start the next take over what stopped it.
+  const stopsSeen = useRef(stops);
+  useEffect(() => {
+    if (stopsSeen.current === stops) return;
+    stopsSeen.current = stops;
+    if (run.current) end();
+  }, [stops, end]);
 
   // Moves the run on: the next take starts when the one playing ends; another take started by hand ends the run.
   useEffect(() => {

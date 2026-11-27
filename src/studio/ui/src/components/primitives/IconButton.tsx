@@ -1,4 +1,5 @@
 import { PendingSpinner } from './PendingSpinner';
+import { ignoreKeyRepeat } from './keyRepeat';
 import type { ComponentPropsWithRef } from 'react';
 import { nameFor, tooltipFor, CATALOG, type CatalogRow, type IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
@@ -43,6 +44,8 @@ type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   disabledReason?: string;
   /** What the tooltip says when the button is usable, in place of its label: for a button whose label is a short name and whose hint says what pressing it will do. */
   hint?: string;
+  /** A held Enter or Space presses the button again with every key repeat (stepping, zooming, scrolling). Absent, a held key presses once, so a play control does not toggle with every repeat (`keyRepeat.ts`). */
+  repeats?: boolean;
 };
 
 // Either a `label` (the accessible name, for a control the catalogue has no row for) or an `action` (a catalogue key, docs/design/design-system.md#layout-rules:
@@ -74,6 +77,8 @@ export function IconButton({
   disabledReason,
   hint,
   onClick,
+  onKeyDown,
+  repeats = false,
   children,
   ...rest
 }: Props) {
@@ -91,6 +96,10 @@ export function IconButton({
       onClick={gated ? (event) => event.preventDefault() : (event) => !echo(event) && onClick?.(event)}
       // `display` has no specificity here, so a caller can hide it (`hidden max-md:inline-flex`) without a class fight.
       className={`${SIZE_CLASSES[size]} items-center justify-center rounded-[var(--radius-button)] border disabled:pointer-events-none disabled:opacity-55 aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed not-aria-busy:aria-disabled:opacity-55 [:where(&)]:inline-flex [:where(&)]:flex-none ${VARIANT_CLASSES[variant]} ${className}`}
+      onKeyDown={(event) => {
+        if (!repeats) ignoreKeyRepeat(event);
+        onKeyDown?.(event);
+      }}
       {...rest}
     >
       {pending ? (

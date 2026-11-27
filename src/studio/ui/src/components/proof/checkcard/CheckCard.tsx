@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ignoreKeyRepeat } from '../../primitives/keyRepeat';
 import type { CoverageGapReviews, CoverageResult, CoverageState } from '../../../api/contracts/coverage';
 import type { Finding } from '../../../api/contracts/findings';
 import { describeApiError } from '../../../api/errorMessage';
@@ -257,10 +258,7 @@ export function CheckCard({
             disabled={!hasRecording(chapter.recordedSeconds)}
             aria-describedby={whyNot ? 'check-why-not' : undefined}
             onClick={compare.onOpen}
-            // A held Enter repeats keydown and so repeats the press: one press toggles once.
-            onKeyDown={(event) => {
-              if (event.repeat) event.preventDefault();
-            }}
+            onKeyDown={ignoreKeyRepeat}
           >
             Compare with the script
           </Button>

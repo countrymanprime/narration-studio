@@ -276,6 +276,45 @@ describe('before-the-daw-answers', () => {
   });
 });
 
+// #4124: the script's Play calls `stop`: a take that plays in the DAW, is being asked, or plays in the app is silenced.
+describe('stop silences a take wherever it plays', () => {
+  const ok = async (): Promise<DawResult> => ({ ok: true, changed: false, message: '', undoSteps: 0 });
+  it('in the DAW: the preview is stopped', async () => {
+    const stopPreview = vi.fn(ok);
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: ok, stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    act(() => result.current.stop());
+    await flush();
+    expect(stopPreview).toHaveBeenCalledTimes(1);
+    expect(result.current.playingId).toBeNull();
+    expect(result.current.stops).toBe(1);
+  });
+  it('while it is being asked: the preview that then lands is stopped, not left playing', async () => {
+    const stopPreview = vi.fn(ok);
+    let land: () => void = () => {};
+    const previewTake = () => new Promise<DawResult>((resolve) => (land = () => resolve({ ok: true, changed: false, message: '', undoSteps: 0 })));
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake, stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    act(() => result.current.stop());
+    await act(async () => land());
+    await flush();
+    expect(stopPreview).toHaveBeenCalled();
+    expect(result.current.playingId).toBeNull();
+  });
+  it('in the app: the audio is paused', async () => {
+    const { result } = mount(DAW_SETUPS.builtin, {});
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    expect(audio.play).toHaveBeenCalled();
+    audio.pause.mockClear();
+    act(() => result.current.stop());
+    expect(audio.pause).toHaveBeenCalled();
+    expect(result.current.playingId).toBeNull();
+  });
+});
+
 describe('without-a-daw-that-plays-the-app-plays-the-take', () => {
   it.each([
     ['the built-in recorder', DAW_SETUPS.builtin],

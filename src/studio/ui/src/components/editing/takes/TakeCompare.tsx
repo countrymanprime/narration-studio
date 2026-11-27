@@ -1,4 +1,5 @@
 import { Button } from '../../primitives/Button';
+import { ignoreKeyRepeat } from '../../primitives/keyRepeat';
 import { IconButton } from '../../primitives/IconButton';
 import { Select } from '../../primitives/Select';
 import { useTakeCompare, type TakeCompareArgs } from './useTakeCompare';
@@ -37,6 +38,7 @@ export function TakeCompare(props: TakeCompareArgs) {
               aria-disabled={c.abReason ? true : undefined}
               title={c.abReason ?? undefined}
               onClick={() => (c.abReason ? undefined : c.playAB())}
+              onKeyDown={ignoreKeyRepeat}
             >
               A then B
             </Button>

@@ -72,6 +72,8 @@ export interface ScriptPlaybackOptions {
   sound?: SoundAt;
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
   output?: OutputPrefs;
+  /** Stops a take that plays, is being asked or plays in the app, when the script plays: one sound at a time (a take's own press stops the script the other way, `stopChapter`). */
+  stopTake?: () => void;
 }
 
 /**
@@ -87,6 +89,7 @@ export function useScriptPlayback({
   sync,
   sound,
   output,
+  stopTake,
 }: ScriptPlaybackOptions): ScriptPlayback {
   const { doc, state, dispatch } = useEditingPage();
   const daw = usePort('daw');
@@ -109,9 +112,9 @@ export function useScriptPlayback({
   // Undefined: no DAW was given, so the app plays. Null: the DAW has not answered yet.
   const caps = sync ? sync.caps : undefined;
   const read = sync?.read;
-  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch, caps, read, sound });
+  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch, caps, read, sound, stopTake });
   useEffect(() => {
-    live.current = { doc, state, playlist, mediaUrl, notify, dispatch, caps, read, sound };
+    live.current = { doc, state, playlist, mediaUrl, notify, dispatch, caps, read, sound, stopTake };
   });
 
   const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
@@ -203,7 +206,8 @@ export function useScriptPlayback({
   /** The latest `go`, so a notice's Retry plays again with what the page holds now. */
   const go = useCallback(
     (t: number): void => {
-      const { caps: now, read: dawRead, notify: say } = live.current;
+      const { caps: now, read: dawRead, notify: say, stopTake: quietTake } = live.current;
+      quietTake?.();
       fading.current?.();
       fading.current = null;
       halted.current = false;

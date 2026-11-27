@@ -41,6 +41,8 @@ export interface TakeAudition {
   playingId: string | null;
   /** The take whose play is being asked, or that was asked and played nothing (the notice offers Retry), or null; a comparison holds on it. */
   waitingId: string | null;
+  /** How many times `stop` was called from outside the takes (the script's Play): a comparison run ends on a change; a take's own press or end does not change it. */
+  stops: number;
   /** Plays the take, or stops it when it is the one playing. */
   play: (take: LineTake) => void;
   stop: () => void;
@@ -64,6 +66,7 @@ export function useTakeAudition({
   const player = useRangePlayer(mediaUrl, { pre: 0, post: 0 }, output);
   const [playing, setPlaying] = useState<string | null>(null);
   const [inDaw, setInDaw] = useState(false);
+  const [stops, setStops] = useState(0);
   const [failedId, setFailedId] = useState<string | null>(null);
   const [askingId, setAskingId] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -105,6 +108,12 @@ export function useTakeAudition({
     setFailedId(null);
     setAskingId(null);
   }, [player, stopPreview]);
+
+  /** `stop` for a caller outside the takes (the script's Play): it also counts, so a comparison run ends and does not start the next take over what stopped it. */
+  const stopFromOutside = useCallback(() => {
+    stop();
+    setStops((n) => n + 1);
+  }, [stop]);
 
   const play = useCallback(
     (take: LineTake) => {
@@ -227,5 +236,5 @@ export function useTakeAudition({
     [],
   );
 
-  return { playingId: inDaw || player.isPlaying ? playing : null, waitingId: askingId ?? failedId, play, stop };
+  return { playingId: inDaw || player.isPlaying ? playing : null, waitingId: askingId ?? failedId, stops, play, stop: stopFromOutside };
 }

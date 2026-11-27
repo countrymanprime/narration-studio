@@ -32,7 +32,7 @@ const PERMANENT: Record<string, Reason> = {
     note: 'stops an Escape auto-repeat so a held Escape closes one layer, not the one under it too (#3549), and the repeats of an Enter or Space that answered a dialog, so they do not press the control focus returns to (#3555): guards on the layers, not commands',
   },
   'src/components/primitives/Toast.tsx': {
-    note: "after a press on a toast's Retry, Dismiss or Undo, cancels the repeats of the held key until it comes up, so they press nothing the press moved focus to (#4063): a guard on the toast's buttons like dialogClosed.ts's, not a command",
+    note: "after a press on a toast's Retry, Dismiss or Undo, cancels the repeats of the held key (only that key's) until it comes up and ends the hand-back's wait for it, so they press nothing the press moved focus to (#4063, #4125): a guard on the toast's buttons like dialogClosed.ts's, not a command. It cannot be a useCommand row: it must run in the capture phase, before any command or field sees the repeat, and its listener belongs to the toast region, which removes it when the key comes up or the region goes",
   },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
 };
