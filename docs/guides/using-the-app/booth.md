@@ -7,7 +7,7 @@ starts and stops the take in your DAW (or the built-in recorder). It needs an [i
 Open it from **Booth** in the navigation, or from **Record in Booth** on a chapter or credits card on [Script](script.md), which
 opens it on that chapter. What the Booth is reading is part of its address (`/booth?chapter=…`, `/booth?credits=opening`), so Back
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
-While the chapters are being read, or for up to three and a half seconds while the Booth waits for the DAW to say which chapter it is on (it says **Opening your chapter…**; a DAW that has not answered by then, is not linked or refuses is left, and the Booth opens on the chapter you last read, else the first chapter with text, and stays there: a late answer from the DAW does not move it), the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with the Booth title, **Checking this link…** and **Go to Production** (Escape also leaves) while the chapter list is read once more.
+While the chapters are being read, or for up to three and a half seconds while the Booth waits for the DAW to say which chapter it is on (it says **Opening your chapter…**; a DAW with no chapter selected in it, that has not answered by then, is not linked or refuses is left, and the Booth opens on the chapter you last read, else the first chapter with text, and stays there: a late answer from the DAW does not move it), the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with the Booth title, **Checking this link…** and **Go to Production** (Escape also leaves) while the chapter list is read once more.
 
 This page is for narrators. [Record a chapter](#record-a-chapter) is the short version; the sections after it describe
 each part of the Booth in full, and [If something goes wrong](#if-something-goes-wrong) gathers what stops a take.
@@ -466,7 +466,8 @@ Each chapter opens where you left off in it, in this order:
 3. **The word you last read to in that chapter**, per project, on this computer: switching chapters, leaving the Booth and
    restarting the app keep it for every chapter, not only the last one. Open the Booth from the sidebar and it returns to the
    chapter you last left in this project ([switching project](navigation.md#the-header-and-the-footer) opens it on that
-   project's own remembered chapter, or the chapter the DAW is on when none is kept).
+   project's own remembered chapter). When none is kept, it opens on the chapter the DAW is on, else the chapter you last read,
+   else the first chapter with text.
 4. **The top of the chapter**, for a chapter with nothing recorded that you have not opened before.
 
 A chapter edited since it was recorded loses the places that named its old words: the Booth then uses the track's length, or the

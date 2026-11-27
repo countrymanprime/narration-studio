@@ -77,13 +77,18 @@ describe('the Companion with nothing remembered opens on the DAW chapter (#4087)
   });
 
   it('says "Opening your chapter…", as the Booth does, until the DAW answers', async () => {
+    // The DAW's answer is held open by this test, so the status is on screen for as long as the test needs it, whatever the load.
     let answer: () => void = () => {};
-    const dawPlace = () =>
-      new Promise<never>((resolve) => {
-        answer = () => resolve({ ok: true, message: '', chapterId: 'chapter-3', selected: 1, cursor: 0 } as never);
-      });
+    const dawPlace = vi.fn(
+      () =>
+        new Promise<never>((resolve) => {
+          answer = () => resolve({ ok: true, message: '', chapterId: 'chapter-3', selected: 1, cursor: 0 } as never);
+        }),
+    );
     render(tree(createMockApi({ dawPlace })));
-    expect(await screen.findByText('Opening your chapter…')).toBeTruthy();
+    // The status is drawn once the chapters are read and the DAW is asked: wait for that call, not for the text under a timer.
+    await waitFor(() => expect(dawPlace).toHaveBeenCalledTimes(1), { timeout: 10_000 });
+    expect(screen.getByText('Opening your chapter…')).toBeTruthy();
     expect(spies.shellProps).not.toHaveBeenCalled();
     await act(async () => answer());
     await waitFor(() => expect(shown()).toBe('chapter-3'));
