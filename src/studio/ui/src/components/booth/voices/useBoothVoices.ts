@@ -1,7 +1,7 @@
 import { isolatedIfRtl } from '../../../visibleText';
 import { HELD_TOPIC } from '../record/useRecordControl';
 import { COLD_READ_NO_VOICE_REASON } from '../../../input/hints';
-import { releaseFocusToPage } from '../releaseFocusToPage';
+import { claimFocusForPage, releaseFocusToPage } from '../releaseFocusToPage';
 import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
@@ -383,6 +383,8 @@ export function useBoothVoices({
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
       }
+      // Past the refusals the key acts: a popup still leaving (Escape on Record options a moment ago) must not give focus back to its trigger after it.
+      claimFocusForPage();
       // "Who is in Num N?" is open: it is answered first, and a key behind it neither asks again nor switches a voice.
       if (asking) return;
       // A stop is being answered: this key is the one acted on once it is (a held key repeats; a second key replaces the first).
@@ -527,6 +529,7 @@ export function useBoothVoices({
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
       }
+      claimFocusForPage();
       // From the voice last pressed, so Num + twice while the host answers steps twice.
       const from = queued.current ?? sending.current ?? current;
       const at = Math.max(
