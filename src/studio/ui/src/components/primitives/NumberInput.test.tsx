@@ -418,3 +418,90 @@ describe('NumberInput', () => {
     });
   });
 });
+
+describe('NumberInput holdRefused', () => {
+  function Held({ allowEmpty = false, onRefused = () => undefined }: { allowEmpty?: boolean; onRefused?: (text: string) => void }) {
+    const [value, setValue] = useState<number | null>(3);
+    const [held, setHeld] = useState<string>();
+    const common = { label: 'Count', min: 1, max: 12, step: 1, stepFrom: 1, heldText: held, holdRefused: true, invalid: held !== undefined } as const;
+    const refused = (text: string) => {
+      setHeld(text);
+      onRefused(text);
+    };
+    return allowEmpty ? (
+      <NumberInput
+        {...common}
+        allowEmpty
+        value={value}
+        onValueChange={(next) => {
+          setValue(next);
+          setHeld(undefined);
+        }}
+        onRefused={refused}
+      />
+    ) : (
+      <NumberInput
+        {...common}
+        value={value ?? 3}
+        onValueChange={(next) => {
+          setValue(next);
+          setHeld(undefined);
+        }}
+        onRefused={refused}
+      />
+    );
+  }
+
+  it('hands an out-of-range, off-step or junk entry over as typed and keeps it when the box is left', () => {
+    const onRefused = vi.fn();
+    render(<Held onRefused={onRefused} />);
+    for (const text of ['99', '0', '2.5', 'abc']) {
+      fireEvent.change(box(), { target: { value: text } });
+      expect(onRefused).toHaveBeenLastCalledWith(text);
+      fireEvent.blur(box());
+      expect(box().value).toBe(text);
+    }
+  });
+
+  it('marks the box invalid while it holds a refused entry, and not after a valid one', () => {
+    render(<Held />);
+    fireEvent.change(box(), { target: { value: '99' } });
+    expect(box().getAttribute('aria-invalid')).toBe('true');
+    fireEvent.change(box(), { target: { value: '7' } });
+    expect(box().getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('holdRefused: an arrow steps from the held text (0 to 1, 2.5 to 3, empty to min)', async () => {
+    render(<Held />);
+    for (const [typed, key, expected] of [
+      ['0', '{ArrowUp}', '1'],
+      ['2.5', '{ArrowUp}', '3'],
+      ['2.5', '{ArrowDown}', '2'],
+      ['', '{ArrowUp}', '1'],
+    ] as const) {
+      fireEvent.change(box(), { target: { value: typed } });
+      fireEvent.blur(box());
+      await userEvent.click(box());
+      await userEvent.keyboard(key);
+      expect(box().value).toBe(expected);
+    }
+  });
+
+  it('hands over empty text, and takes a valid number again', () => {
+    const onRefused = vi.fn();
+    render(<Held onRefused={onRefused} />);
+    fireEvent.change(box(), { target: { value: '' } });
+    expect(onRefused).toHaveBeenLastCalledWith('');
+    fireEvent.change(box(), { target: { value: '7' } });
+    expect(box().getAttribute('aria-describedby')).toBeNull();
+    expect(box().value).toBe('7');
+  });
+
+  it('with allowEmpty an emptied box is the value null and is not handed to onRefused', () => {
+    const onRefused = vi.fn();
+    render(<Held allowEmpty onRefused={onRefused} />);
+    fireEvent.change(box(), { target: { value: '' } });
+    expect(onRefused).not.toHaveBeenCalled();
+    expect(box().value).toBe('');
+  });
+});

@@ -40,4 +40,9 @@ describe('DateField', () => {
     expect(field.className).not.toContain('w-full');
     expect(field.disabled).toBe(true);
   });
+
+  it('an aria-invalid date field takes the danger border, as TextField does', () => {
+    render(<DateField label="Due" value="" onChange={() => undefined} aria-invalid />);
+    expect(screen.getByLabelText('Due').className).toContain('aria-[invalid=true]:border-[var(--danger)]');
+  });
 });

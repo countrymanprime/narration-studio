@@ -24,6 +24,12 @@ type Base = Omit<TextFieldProps, 'value' | 'onChange' | 'type' | 'mono' | 'readO
   onRefused?: (text: string) => void;
   /** The text the form holds for this box that is not a number (what `onRefused` handed it): the box shows it in place of `value`. */
   heldText?: string;
+  /**
+   * With `onRefused`, a form that must say why a number is wrong and never change it: text that is not a number, is outside `min`..`max` or is
+   * off `step` is handed to `onRefused` as typed and kept in the box when it is left, where it is otherwise moved to the nearest allowed number.
+   * Empty text goes to `onRefused` too, unless `allowEmpty` makes an emptied box the value `null`.
+   */
+  holdRefused?: boolean;
 };
 /** `onValueChange` may return the save it starts: a `settle` box then shows the value being saved until that save ends. */
 type Filled = { allowEmpty?: false; value: number; onValueChange: (value: number) => void | Promise<unknown> };
@@ -48,7 +54,24 @@ const asText = (n: number | null): string => (n === null ? '' : String(n));
 // holds a draft (its dialog dismissed by a press outside) reports it, as leaving the box does.
 // `allowEmpty` makes an emptied box a value (`null`) and not junk; an arrow step from an empty box starts at `min`, else 0.
 export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberInput(
-  { value, onValueChange, allowEmpty, commit = 'input', min, max, step = 1, stepFrom, accepted, onRefused, heldText, invalid, onBlur, onKeyDown, ...rest },
+  {
+    value,
+    onValueChange,
+    allowEmpty,
+    commit = 'input',
+    min,
+    max,
+    step = 1,
+    stepFrom,
+    accepted,
+    onRefused,
+    heldText,
+    holdRefused,
+    invalid,
+    onBlur,
+    onKeyDown,
+    ...rest
+  },
   ref,
 ) {
   const isSettle = commit === 'settle';
@@ -80,8 +103,21 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
     },
     settleOnUnmount: isSettle,
   });
+  const onStep = (n: number): boolean => {
+    const steps = (n - (stepFrom ?? min ?? 0)) / step;
+    return Math.abs(steps - Math.round(steps)) <= STEP_TOLERANCE * Math.max(1, Math.abs(steps));
+  };
+  /** Whether `text` is a number the box accepts as it stands: with `holdRefused`, one inside the range and on a step. */
+  const isAcceptable = (text: string): boolean => {
+    const n = parse(text);
+    return n !== null && n === clamp(n) && (!holdRefused || onStep(n));
+  };
   const settle = (): void => {
     if (typedDraft === null) return;
+    if (holdRefused && onRefused && !isEmptied(typedDraft) && !isAcceptable(typedDraft)) {
+      setTypedDraft(null);
+      return;
+    }
     apply(readDraft(typedDraft));
     setTypedDraft(null);
   };
@@ -95,7 +131,9 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
   const stepBy = (direction: 1 | -1): void => {
     const shown = isSettle ? (settled.standing === '' ? null : Number(settled.standing)) : value;
     const typed = isSettle ? settled.draft : typedDraft;
-    const base = (typed !== null ? parse(typed) : null) ?? shown;
+    // A box that holds a refused entry steps from that text (a number off the range or the step), or from `min` when it is not a number, not from the value it hides.
+    const held = holdRefused && heldText !== undefined ? parse(heldText) : undefined;
+    const base = (typed !== null ? parse(typed) : null) ?? (held === undefined ? shown : held);
     const next = clamp(base === null ? (min ?? 0) : stepped(base, direction));
     if (isSettle) {
       settled.settleText(String(next));
@@ -138,6 +176,12 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
         }
         setTypedDraft(text);
         const n = parse(text);
+        if (holdRefused && onRefused) {
+          if (n !== null && isAcceptable(text)) apply(toAccepted(n));
+          else if (isEmptied(text)) apply(null);
+          else if (text.trim() !== heldText) onRefused(text.trim());
+          return;
+        }
         if (n !== null && n === clamp(n)) apply(toAccepted(n));
         else if (isEmptied(text)) apply(null);
         // An emptied box that may not be empty is no text to hold: it reverts.

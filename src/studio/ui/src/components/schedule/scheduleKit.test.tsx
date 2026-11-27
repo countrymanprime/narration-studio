@@ -1,6 +1,6 @@
 // A shared harness for the Schedule page's behaviour tests: the page mounted on the mock host, with the host's calls wrapped so a test can
 // count them, hold them, fail them or answer them late.
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { ChapterStatus, ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -9,6 +9,7 @@ import { createMockApi } from '../../api/mockApi';
 import type { ProductionSeed } from '../../api/productionMock';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { overlay } from '../../overlay/overlayService';
+import { StudioProvider } from '../../studio/StudioProvider';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { NarrationApi } from '../../types';
 import { WPH } from './estimates';
@@ -49,9 +50,17 @@ export type Mount = {
   wrap?: (base: NarrationApi) => Wrap;
   /** The page's fixed day; leave out to let the page use the clock (a test with fake timers). */
   today?: Date | null;
+  /** Mount the page under the app's store, so the shared chapter list is read again as it is in the app (a test of the list changing under an open dialog). */
+  store?: boolean;
 };
 
-export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not_started'], wrap, today = TODAY }: Mount = {}): Promise<NarrationApi> {
+export async function mountSchedule({
+  seed = {},
+  statuses = ['not_started', 'not_started'],
+  wrap,
+  today = TODAY,
+  store = false,
+}: Mount = {}): Promise<NarrationApi> {
   const production: ProductionSeed = { deadline: '2026-10-31', contractedAmount: 250, payment: 'per_finished_hour', milestones: [REC, CUSTOM], ...seed };
   const base = createMockApi(
     {
@@ -70,13 +79,39 @@ export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not
   kit.api = wrap ? { ...base, ...wrap(base) } : base;
   render(
     <ApiProvider api={kit.api}>
-      <SchedulePage journal={kit.journal} {...(today ? { today } : {})} />
+      {store ? (
+        <StudioProvider journal={kit.journal}>
+          <SchedulePage journal={kit.journal} {...(today ? { today } : {})} />
+        </StudioProvider>
+      ) : (
+        <SchedulePage journal={kit.journal} {...(today ? { today } : {})} />
+      )}
       <OverlayHost />
     </ApiProvider>,
   );
   await screen.findByRole('heading', { level: 1, name: 'Schedule' }).catch(() => undefined);
   return kit.api;
 }
+
+/** The reason under a "How many ..." box: the element its aria-describedby names, or null while the box has none. */
+export const nReasonNow = (within: { getByLabelText: (text: RegExp) => HTMLElement }): HTMLElement | null => {
+  const id = within.getByLabelText(/^How many/).getAttribute('aria-describedby');
+  return id ? document.getElementById(id) : null;
+};
+/** Waits for the dialog's reason slot to say something (the slot itself is always drawn, empty until a refusal), and returns what it says. */
+export const slotText = (): Promise<string> =>
+  waitFor(() => {
+    const text = document.getElementById('milestone-problem')?.textContent ?? '';
+    if (!text) throw new Error('the reason slot is empty');
+    return text;
+  });
+/** Waits for that reason. */
+export const reasonOf = (within: { getByLabelText: (text: RegExp) => HTMLElement }): Promise<HTMLElement> =>
+  waitFor(() => {
+    const el = nReasonNow(within);
+    if (!el) throw new Error('the N has no reason yet');
+    return el;
+  });
 
 export const stored = (): Promise<ProductionPlan> => kit.api.productionPlan();
 export const toasts = () => overlay.getSnapshot().toasts.map((t) => t.text);

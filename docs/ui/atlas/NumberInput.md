@@ -17,6 +17,7 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 - Emptied Reports Null
 - Settle Reports On Enter
 - Arrow Lands On The Next Step
+- Holds A Refused Number
 
 ## Used by
 
@@ -26,4 +27,5 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 - `src/components/editing/effects/CoverageStrip.tsx`
 - `src/components/editing/effects/EffectSettings.tsx`
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
+- `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/settings/value/SettingNumber.tsx`

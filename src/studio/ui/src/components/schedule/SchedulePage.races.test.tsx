@@ -104,7 +104,7 @@ describe('a host that is slow or silent', () => {
 });
 
 describe('the host refusing a save', () => {
-  it("shows the host's sentence in the dialog and a toast, and changes nothing", async () => {
+  it("raises the host's sentence as a toast, not in the dialog's reason slot, and changes nothing", async () => {
     await mountSchedule({
       wrap: () => ({
         saveProductionMilestones: async () => {
@@ -116,11 +116,37 @@ describe('the host refusing a save', () => {
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(within(dialog).getByRole('alert').textContent).toMatch(/longer than 200/));
-    expect(toasts().join(' ')).toMatch(/longer than 200/);
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/longer than 200/));
+    // The host's sentence has no length bound: it goes to the toast and the dialog's two-line reason slot stays as it was.
+    expect(within(dialog).getByRole('alert').textContent).toBe('');
+    expect(within(dialog).getByRole('alert').className).toMatch(/min-h-\[/);
     expect((await stored()).milestones[0]).toEqual(REC);
     expect((await stored()).milestones[1]).toEqual(CUSTOM);
     void kit;
+  });
+
+  it('a host sentence of 160 characters or more is carried whole by the toast and adds nothing to the dialog slot', async () => {
+    const long = `milestone 1 (Renamed): ${'the host could not keep this milestone because its list is held by another writer, '.repeat(2)}try again in a moment`;
+    expect(long.length).toBeGreaterThan(160);
+    await mountSchedule({
+      wrap: () => ({
+        saveProductionMilestones: async () => {
+          throw new Error(long);
+        },
+      }),
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit All chapters recorded' }));
+    const dialog = await screen.findByRole('dialog');
+    const slot = within(dialog).getByRole('alert');
+    const classBefore = slot.className;
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(toasts().join(' ')).toContain(long));
+    expect(within(dialog).getByRole('alert')).toBe(slot);
+    expect(slot.textContent).toBe('');
+    expect(slot.className).toBe(classBefore);
+    expect(slot.className).toMatch(/min-h-\[/);
+    expect((await stored()).milestones[0]).toEqual(REC);
   });
 
   it('says the schedule could not be read, and changes nothing, when the host cannot be read before a change', async () => {

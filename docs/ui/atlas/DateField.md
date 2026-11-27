@@ -7,6 +7,7 @@ Storybook title: `Primitives/DateField`. Source: `src/components/primitives/Date
 - Filled
 - Empty
 - Disabled
+- Invalid
 - With Width Class
 - Reports The Iso Date
 - Disabled Takes No Input

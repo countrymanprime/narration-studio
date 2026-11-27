@@ -23,6 +23,8 @@ export function Field({
   autoFocus,
   hint,
   error,
+  invalid = false,
+  describedBy,
   secret = false,
   labelHidden = false,
   compact = false,
@@ -41,6 +43,9 @@ export function Field({
   // What is wrong with the value: shows under the field, marks it `aria-invalid` and describes it (a disabled field shows
   // the error but is not marked invalid: Base UI leaves `aria-invalid` off a disabled control).
   error?: string;
+  // The field is wrong and a message elsewhere says why (a form's one alert): marks it `aria-invalid`, and `describedBy` names that message.
+  invalid?: boolean;
+  describedBy?: string;
   // A value that must not be shown or kept by the browser (the narrator's own API key): a masked input with the browser's
   // autofill, spell check and autocorrect off. Never with `textarea`.
   secret?: boolean;
@@ -52,7 +57,7 @@ export function Field({
 }) {
   return (
     <BaseField.Root
-      invalid={Boolean(error)}
+      invalid={Boolean(error) || invalid}
       disabled={disabled}
       className={`text-[0.88rem] font-medium text-[var(--text-muted)] ${labelHidden ? '' : 'first:mt-3'}`}
     >
@@ -80,6 +85,7 @@ export function Field({
           )
         }
         disabled={disabled}
+        {...(describedBy ? { 'aria-describedby': describedBy } : {})}
         placeholder={placeholder}
         autoFocus={autoFocus}
         value={value}
