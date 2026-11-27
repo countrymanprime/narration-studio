@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ignoreKeyRepeat } from '../../primitives/keyRepeat';
 import { DAW_RESULT_MAX_UNDO_STEPS, type DawActionKind, type DawFxRangeCompare, type DawFxSetting, type DawResult } from '../../../api/contracts/daw';
 import type { EditWordFxApi, WordFx } from '../../../api/contracts/wordFx';
 import { overlay } from '../../../overlay/overlayService';
@@ -378,7 +379,7 @@ export function EffectSettings({
         </div>
       ) : null}
       <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" disabled={!ready || phase !== 'idle'} onClick={preview}>
+        <Button variant="secondary" size="sm" disabled={!ready || phase !== 'idle'} onClick={preview} onKeyDown={ignoreKeyRepeat}>
           Preview
         </Button>
         {phase === 'idle' ? (

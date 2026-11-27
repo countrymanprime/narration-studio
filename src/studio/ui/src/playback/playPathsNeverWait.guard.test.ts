@@ -90,6 +90,8 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     'components/production/ChapterTrackPanel.tsx',
     'components/proof/checkcard/CheckCard.tsx',
     'components/editing/strip/TimelineStrip.tsx',
+    'components/editing/takes/TakeCompare.tsx',
+    'components/editing/effects/EffectSettings.tsx',
   ])('%s passes ignoreKeyRepeat to the buttons that play', (file) => {
     expect(all.find((s) => s.file === file)!.text).toMatch(/onKeyDown=\{ignoreKeyRepeat\}/);
   });
