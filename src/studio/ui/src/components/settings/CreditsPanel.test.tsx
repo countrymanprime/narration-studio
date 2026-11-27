@@ -538,6 +538,17 @@ describe('CreditsPanel', () => {
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toMatch(/copy|\(/i);
   });
 
+  // The Name field is an input with no direction of its own, so it draws "<Arabic> copy" with the Arabic run first and "copy" to its right. A first-strong isolate in the toast would put "copy" on the other side (#4129).
+  it('the Duplicate toast names the copy left to right, as the Name field draws it, so the added word stays on the same side (#4129)', async () => {
+    const { api, notify } = renderPanel();
+    await editTemplate();
+    const real = api.duplicateCreditsTemplate.bind(api);
+    const arabic = '\u0627\u0641\u062A\u062A\u0627\u062D\u064A\u0629 \u0627\u0644\u0643\u062A\u0627\u0628';
+    vi.spyOn(api, 'duplicateCreditsTemplate').mockImplementation(async (id) => ({ ...(await real(id)), name: `${arabic} copy` }));
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Duplicated as "\u2066${arabic} copy\u2069".`));
+  });
+
   it('a template list that fails to read says so with a Retry, in the notice and beside the hint, and the editor returns when a read lands (#3461 round 15 BR-K1)', async () => {
     let reads = 0;
     const real = createMockApi();
