@@ -3,7 +3,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { ProductionMilestone } from '../../api/contracts/production';
-import { installKit, mountSchedule, stored } from './scheduleKit.test';
+import { installKit, mountSchedule, stored, toasts } from './scheduleKit.test';
 
 installKit();
 
@@ -57,7 +57,11 @@ describe('how many', () => {
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'One too many' } });
     fireEvent.change(within(dialog).getByLabelText('Due'), { target: { value: '2026-10-25' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add milestone' }));
-    await waitFor(() => expect(within(dialog).getByRole('alert').textContent).toMatch(/at most 100 milestones/));
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/at most 100 milestones/));
+    // The host's sentence has no length bound: it goes to the toast and the dialog's two-line reason slot stays as it was.
+    expect(within(dialog).getByRole('alert').textContent).toBe('');
+    expect(within(dialog).getByRole('alert').className).toMatch(/min-h-\[/);
+
     expect((await stored()).milestones).toHaveLength(100);
   });
 

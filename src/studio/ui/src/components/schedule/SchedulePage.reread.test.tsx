@@ -229,7 +229,11 @@ describe('a milestone dialog open while the list changes', () => {
     await screen.findByText('Added elsewhere');
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(within(dialog).getByRole('alert').textContent).toMatch(/changed since/));
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/changed since/));
+    // It goes to the toast, and the dialog's two-line reason slot stays as it was.
+    expect(within(dialog).getByRole('alert').textContent).toBe('');
+    expect(within(dialog).getByRole('alert').className).toMatch(/min-h-\[/);
+
     expect((await stored()).milestones.map((m) => m.name)).toEqual(['All chapters recorded', 'Retail sample', 'Added elsewhere']);
   });
 

@@ -82,7 +82,9 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
   const wrong = FIELD_ORDER.filter((field) => problems[field]);
   const stillFlagged = flagged.filter((field) => wrong.includes(field));
   const shown: readonly RefusedField[] = !refused ? [] : stillFlagged.length > 0 ? [stillFlagged[stillFlagged.length - 1]] : wrong.slice(0, 1);
-  const alertText = shown.length > 0 ? problems[shown[0]] : refused && !refused.field ? refused.text : undefined;
+  // The slot says why a field is wrong, in a sentence that fits its two lines. A refusal about no field (the host's answer, a list that changed) has no length bound and the page has
+  // already raised it as a toast, so it is not written here.
+  const alertText = shown.length > 0 ? problems[shown[0]] : undefined;
   /** What a field the refusal is about is given: marked invalid and described by the alert. */
   const about = (field: RefusedField) => ({ invalid: shown.includes(field), describedBy: shown.includes(field) ? 'milestone-problem' : undefined });
   /** The box a refusal about `field` is read in. */
@@ -109,8 +111,8 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
   // A refusal is brought into view: focus goes to the field it is about, then the field and its reason are scrolled to (see `showTogether`). A refusal about no field (the list changed)
   // scrolls the alert into view.
   useEffect(() => {
-    if (!refusals) return;
-    boxOf(refused?.field)?.focus({ preventScroll: true });
+    if (!refusals || !refused?.field) return;
+    boxOf(refused.field)?.focus({ preventScroll: true });
     scrollToReason(refused?.field);
     lastSpoken.current = speaking;
     // Once per refusal: editing the draft afterwards must not pull focus back.

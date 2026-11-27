@@ -55,8 +55,6 @@ export function measureOptions(
   return MEASURES.filter((m) => !m.needs || platformHas(profileId, m.needs, reported) || m.id === own).map((m) => ({ value: m.id, label: m.label }));
 }
 
-/** "chapter" for 1, "4 chapters" otherwise: the first one needs no number. */
-
 /** The measure as the narrator chose it, with its value filled in: "First 15 finished minutes", "First 4 chapters edited and proofed", "Whole book". */
 export function measureText(stored: string | undefined): string {
   const m = measOf(stored);

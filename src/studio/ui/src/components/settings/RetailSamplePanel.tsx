@@ -10,6 +10,7 @@ import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
 import { useReadChapters } from '../../studio/useChapters';
+import { plural } from '../../plural';
 
 // The sample is a stretch of the book's own text: the credits are narration but have no lines to pick.
 const lineOptions = (chapter?: ManuscriptChapter) =>
@@ -101,7 +102,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
       <p style={{ color: 'var(--text-muted)' }}>Up to 5 minutes, and it adds no time to the estimate.</p>
       <p aria-live="polite" className="m-0 text-[0.8125rem]">
         {sample
-          ? `${rangeOf(sample)} (${sample.words.toLocaleString('en-US')} words, about ${formatMinutesSeconds(sample.seconds)}).`
+          ? `${rangeOf(sample)} (${plural(sample.words, 'word')}, about ${formatMinutesSeconds(sample.seconds)}).`
           : answer?.problem
             ? `The saved sample cannot be shown: ${answer.problem}.`
             : 'No retail sample picked yet.'}

@@ -104,7 +104,7 @@ describe('a host that is slow or silent', () => {
 });
 
 describe('the host refusing a save', () => {
-  it("shows the host's sentence in the dialog and a toast, and changes nothing", async () => {
+  it("raises the host's sentence as a toast, not in the dialog's reason slot, and changes nothing", async () => {
     await mountSchedule({
       wrap: () => ({
         saveProductionMilestones: async () => {
@@ -116,8 +116,10 @@ describe('the host refusing a save', () => {
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Renamed' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(within(dialog).getByRole('alert').textContent).toMatch(/longer than 200/));
-    expect(toasts().join(' ')).toMatch(/longer than 200/);
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/longer than 200/));
+    // The host's sentence has no length bound: it goes to the toast and the dialog's two-line reason slot stays as it was.
+    expect(within(dialog).getByRole('alert').textContent).toBe('');
+    expect(within(dialog).getByRole('alert').className).toMatch(/min-h-\[/);
     expect((await stored()).milestones[0]).toEqual(REC);
     expect((await stored()).milestones[1]).toEqual(CUSTOM);
     void kit;
