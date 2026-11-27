@@ -27,7 +27,7 @@ While the manuscript is being read, the page shows the same three columns as gre
 
 ![Script - the dialogue cues could not be read: the text without speaker chips, and a message that says why, with Retry](../../images/ui/script-cue-read-failed.webp)
 
-The reader opens where you left it in this project; a project you have not read yet opens at the start.
+The reader opens where you left it in this project; a project you have not read yet opens at its first chapter.
 
 The first time you open the page, a small tip over the reader says to select text to mark it, add a note, or look it up. **Got it** hides it for good, and so does selecting text; it is not shown again (see [First-use tips](#first-use-tips)).
 

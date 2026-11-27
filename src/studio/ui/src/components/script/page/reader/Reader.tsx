@@ -400,7 +400,8 @@ export function Reader(props: ReaderProps) {
     if (place !== 'end' && !bound) return;
     const top = Math.max(0, place === 'end' ? root.scrollHeight - root.clientHeight : bound!.offsetTop + place.offset);
     if (root.scrollTop !== top) root.scrollTop = top;
-    if (placed.current !== null) placed.current = top;
+    // Read back: the browser clamps a scroll past the end, and its scroll event reports the clamped value.
+    if (placed.current !== null) placed.current = root.scrollTop;
   };
   const release = (): void => {
     held.current = null;
@@ -536,7 +537,8 @@ export function Reader(props: ReaderProps) {
 
   const onScroll = (): void => {
     onSpy();
-    if (placed.current !== null && scroller.current?.scrollTop === placed.current) return;
+    // Within a pixel: a fractional scroll position (a scaled display) is not the narrator moving.
+    if (placed.current !== null && Math.abs((scroller.current?.scrollTop ?? Infinity) - placed.current) <= 1) return;
     placed.current = null;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(savePlace, SAVE_DELAY_MS);

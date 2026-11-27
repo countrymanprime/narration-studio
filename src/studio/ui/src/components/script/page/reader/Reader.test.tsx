@@ -11,6 +11,8 @@ import { chapter, cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './read
 // jsdom lays nothing out, so the rows get tops by their order in the document (100 px each) and scrollTop is a stored number.
 const tops = new WeakMap<Element, number>();
 const scrolls = new WeakMap<Element, number>();
+/** The furthest the fake browser scrolls: a scroll past it is clamped, as a real one is. */
+let maxScroll = Infinity;
 function layOut(): void {
   const rows = Array.from(document.querySelectorAll('[data-bound], [data-para]'));
   rows.forEach((row, i) => tops.set(row, i * 100));
@@ -18,6 +20,7 @@ function layOut(): void {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  maxScroll = Infinity;
   vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
     if (!tops.has(this)) layOut();
     return tops.get(this) ?? 0;
@@ -26,7 +29,7 @@ beforeEach(() => {
     return scrolls.get(this) ?? 0;
   });
   vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (this: Element, value: number) {
-    scrolls.set(this, value);
+    scrolls.set(this, Math.min(value, maxScroll));
   });
   window.localStorage.clear();
 });
@@ -349,6 +352,29 @@ describe('the remembered position', () => {
     scrollTo(450);
     act(() => void vi.advanceTimersByTime(250));
     expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 150 });
+  });
+
+  it('a restore the browser clamps at the end saves no place', () => {
+    maxScroll = 300;
+    const stored = JSON.stringify({ chapterId: 'c3', offset: 500 });
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    const { unmount } = render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBe(300);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  it('a restore whose scroll comes back fractional (a scaled display) saves no place', () => {
+    const stored = JSON.stringify({ chapterId: 'c2', offset: 50 });
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    const { unmount } = render(<Reader {...props()} />);
+    scrolls.set(scroller(), 350.6);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
   });
 
   it('opening a project with nothing stored writes nothing until the narrator scrolls', () => {
