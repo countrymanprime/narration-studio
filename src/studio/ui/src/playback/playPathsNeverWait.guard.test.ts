@@ -109,6 +109,29 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     expect(missing).toEqual([]);
   });
 
+  // `repeats` lets a held key press an `IconButton` again with every repeat (stepping, zooming, scrolling): a control that plays, stops or pauses never takes it.
+  it('no IconButton that plays carries repeats', () => {
+    const PLAYS = /action="(play|stop|pause)"|\b(Play|Hear|Preview|Compare|A then B)\b/;
+    const found: string[] = [];
+    for (const { file, text } of all) {
+      if (!file.endsWith('.tsx')) continue;
+      const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      const visit = (node: ts.Node): void => {
+        const opening = ts.isJsxElement(node) ? node.openingElement : ts.isJsxSelfClosingElement(node) ? node : null;
+        if (
+          opening &&
+          opening.tagName.getText() === 'IconButton' &&
+          opening.attributes.properties.some((a) => ts.isJsxAttribute(a) && a.name.getText() === 'repeats')
+        ) {
+          if (PLAYS.test(opening.getText())) found.push(`${file}:${sf.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(sf);
+    }
+    expect(found).toEqual([]);
+  });
+
   // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it. The shared
   // owner stops the older settled play when a newer press is refused (`dawPlayOwner.test.ts`), so every path must hand it that stop when it settles.
   it.each(CALLERS)('%s settles its play with the stop that ends it (so a refused newer play stops it before the app plays)', (file) => {
