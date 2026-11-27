@@ -477,11 +477,14 @@ jobs:
     # the CPUs and a timing test failed (run 42403486674), so each shard runs one group.
     # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result. Windows is the only supported
     # platform and Linux's native libraries are not installed on the Linux runners, so Go is tested and linted here.
-    # 40 min: a main-health run's mutation checks take about 17 min (1,024 s in docs/research/test-speed-plan-2026-11.md) and sit on shard 1, which then runs about 34 min with the root tests, lint and test-schedules; they sat on shard 2 before, with about the same total.
+    # Limit below: a main-health run's mutation checks take about 17 min (1,024 s in docs/research/test-speed-plan-2026-11.md) and sit on shard 1, which then runs about 34 min with the root tests, lint and test-schedules; they sat on shard 2 before, with about the same total.
     needs: lint
     if: needs.lint.outputs.shell == 'true'
     name: Test (Windows ${{ matrix.shard }}/2)
-    timeout-minutes: 40
+    # 60 min (was 40): shard 1 takes 22 min on a normal runner (run 45956899282) but the runner of run 45961364070 was about 2x slower
+    # (go test root 9 min against 4, the Lua mutation step still running at 24 min against 13) and shard 1 was cancelled at 40 min with every
+    # step before it green (job 140390700103, #4154). Neither commit in that run touched Go or Lua. The job is a matrix, so shard 2 gets the limit too.
+    timeout-minutes: 60
     runs-on: windows-latest
     strategy:
       fail-fast: false
