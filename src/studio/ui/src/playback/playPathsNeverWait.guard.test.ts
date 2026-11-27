@@ -74,17 +74,13 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     for (const m of settles) expect(m[1]).toMatch(/,\s*\S/);
   });
 
-  // One tone for a stop that failed (#4117): every surface says it as an error toast (the narrator must stop the DAW by hand). Hear it, a take and the script
-  // pass `stopFailedToast`; Pickups says it through the page's `onRefused`, which is the error toast.
-  it.each(['components/proof/inspector/HearIt.tsx', 'components/editing/takes/useTakeAudition.ts', 'components/editing/follow/useDawTransportSync.ts'])(
-    '%s says a failed stop with stopFailedToast',
-    (file) => {
-      expect(all.find((s) => s.file === file)!.text).toMatch(/stopAndSay\([^;]*\bstopFailedToast\b/s);
-    },
-  );
-  it('Pickups says a failed stop through onRefused, an error toast', () => {
-    expect(all.find((s) => s.file === 'components/pickups/PickupsPage.tsx')!.text).toMatch(
-      /usePlayOriginal\(\s*\(sentence, retry\) => overlay\.toast\(sentence, \{ tone: 'error'/,
-    );
+  // One tone for a stop that failed (#4117): every surface says it through `stopFailedToast`, an error toast (the narrator must stop the DAW by hand).
+  it.each([
+    'components/proof/inspector/HearIt.tsx',
+    'components/editing/takes/useTakeAudition.ts',
+    'components/editing/follow/useDawTransportSync.ts',
+    'components/pickups/list/usePlayOriginal.ts',
+  ])('%s says a failed stop with stopFailedToast', (file) => {
+    expect(all.find((s) => s.file === file)!.text).toMatch(/stopAndSay\([^;]*\bstopFailedToast\b/s);
   });
 });
