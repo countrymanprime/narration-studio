@@ -234,8 +234,13 @@ describe('proof-reopens-where-it-was (#4099)', () => {
   });
 
   it('a Back onto an All chapters entry shows All chapters and does not rewrite the entry', async () => {
-    noteAppMoved(); // the app was opened on /proof and has moved on: this Back is not the first load
-    renderPage({ before: ['/proof'], at: '/pickups', shared: 'chapter-3' });
+    renderPage({ at: '/proof?chapter=chapter-3' });
+    await screen.findByText(/Recording check/i);
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    await noteRows();
+    noteAppMoved(); // what App.tsx does once the app has a second address
+    act(() => navigateTo('/pickups'));
     await screen.findByText('The pickups page');
     back();
     await noteRows();
@@ -247,6 +252,27 @@ describe('proof-reopens-where-it-was (#4099)', () => {
     renderPage({ shared: null });
     await noteRows();
     expect(where()).toBe('/proof'); // the Back onto All chapters is the narrator's last word, as a choice of All
+  });
+
+  it('a Back onto a Proof entry left before the chapters were read opens the kept chapter and does not set All chapters', async () => {
+    const api = createMockApi();
+    const book = await api.manuscriptChapters();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(async () => {
+      await gate;
+      return book;
+    });
+    renderPage({ api, shared: 'chapter-3' });
+    noteAppMoved();
+    act(() => navigateTo('/pickups'));
+    await screen.findByText('The pickups page');
+    release();
+    back();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
   });
 
   it('the page the app was opened on still opens on the kept chapter', async () => {

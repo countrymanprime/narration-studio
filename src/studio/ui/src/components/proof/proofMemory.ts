@@ -12,6 +12,7 @@ const selected = new Map<string, string>();
 const drafts = new Map<string, string>();
 const allChosen = new Set<string>();
 let moved = false;
+const shownAll = new Set<string>();
 
 const scopeKey = (projectFolder: string, scope: string): string => `${folderKey(projectFolder)}\u0000${scope}`;
 
@@ -24,6 +25,13 @@ export const rememberSelection = (projectFolder: string, scope: string, id: stri
  */
 export const appHasMoved = (): boolean => moved;
 export const noteAppMoved = (): void => void (moved = true);
+
+/**
+ * Notes that the history entry `entryKey` of this project drew All chapters (after the chapters were read). A Back onto a bare entry shows All only when it did: an entry left before
+ * the chapters were read, or written under another project, never showed it, and opens on the kept chapter (#4099).
+ */
+export const recordShownAll = (projectFolder: string, entryKey: string): void => void shownAll.add(`${folderKey(projectFolder)}\u0000${entryKey}`);
+export const showedAll = (projectFolder: string, entryKey: string): boolean => shownAll.has(`${folderKey(projectFolder)}\u0000${entryKey}`);
 
 /** Whether the narrator's last choice of scope in this project, this session, was All chapters. */
 export const chosenAll = (projectFolder: string): boolean => allChosen.has(folderKey(projectFolder));
@@ -48,4 +56,5 @@ export function forgetProofMemory(): void {
   drafts.clear();
   allChosen.clear();
   moved = false;
+  shownAll.clear();
 }

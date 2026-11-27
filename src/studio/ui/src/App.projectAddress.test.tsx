@@ -230,6 +230,24 @@ describe('the chapter in the address is not carried into another project (#4059)
     expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
   });
 
+  it('Proof: a Back onto the old project’s All chapters entry after a switch opens the new project’s kept chapter', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', alice), 'chapter-4');
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', OTHER), 'chapter-6');
+    const { api } = await openAt('/proof');
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-4'));
+    fireEvent.click(await onChapter(/^Chapter: /));
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: /All chapters/ }));
+    await waitFor(() => expect(address()).toBe('/proof'));
+    await jumpTo('Script');
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
+    await back();
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-6'));
+    expect(window.localStorage.getItem(projectStorageKey('proof.lastChapter', OTHER))).toBe('chapter-6');
+  });
+
   it('Proof: rapid A, V, A, V switches never forget either project’s kept chapter', async () => {
     const alice = await aliceFolder();
     window.localStorage.setItem(projectStorageKey('proof.lastChapter', alice), 'chapter-4');
