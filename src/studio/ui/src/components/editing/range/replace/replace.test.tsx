@@ -125,7 +125,8 @@ describe('replaceCommand', () => {
   });
 
   it('names one word and several', () => {
-    expect(replaceLabel(1, 'إريك 🎙', 3)).toBe("Replaced 1 word with إريك 🎙's audio at 00:00:03.000");
+    // The narrator's name is built isolated (#4129): the isolate holds it apart from the English round it.
+    expect(replaceLabel(1, '\u0625\u0631\u064A\u0643 🎙', 3)).toBe("Replaced 1 word with \u2068\u0625\u0631\u064A\u0643 🎙\u2069's audio at 00:00:03.000");
   });
 });
 

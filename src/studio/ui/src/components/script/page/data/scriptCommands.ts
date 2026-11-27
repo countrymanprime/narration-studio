@@ -18,6 +18,7 @@ import type { Command, Journal, Result } from '../../../../studio/journal/create
 import { attributeCueCommand } from '../../../../studio/commands/attributeCue';
 import type { ScriptData, ScriptList } from './scriptData';
 import { clamp } from '../../../../clamp';
+import { isolatedIfRtl } from '../../../../visibleText';
 
 export type ScriptCommandEnv = {
   journal: Pick<Journal, 'act'>;
@@ -293,7 +294,7 @@ export async function createEntryFrom(env: ScriptCommandEnv, category: string, t
   const found = entries.find((entry) => entry.canonical_name.toLowerCase() === low || entry.aliases.some((alias) => alias.text.toLowerCase() === low));
   if (found) return { ok: true, value: { value: found.id, entryId: null, created: false } };
   const result = await journalled<string>(env, ['entries'], {
-    label: `Added “${name}” to the Story Bible`,
+    label: `Added “${isolatedIfRtl(name)}” to the Story Bible`,
     touches: ['storyBible/entities'],
     run: () => attempt(() => env.storyBible.guideCreate(name, category, [])),
     undo: (id) => attempt(() => env.storyBible.guideDelete(id)),

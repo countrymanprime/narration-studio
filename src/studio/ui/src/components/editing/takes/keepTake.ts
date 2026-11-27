@@ -40,10 +40,10 @@ async function choose(daw: DawClient, passage: LinePassage, take: LineTake): Pro
  * active again, so the journal refuses it once a later change came after (the DAW's last action then is not this one). With no take active before,
  * there is nothing to go back to and the entry says so.
  */
-function keepTakeCommand(daw: DawClient, passage: LinePassage, take: LineTake): Command<DawResult> {
+export function keepTakeCommand(daw: DawClient, passage: LinePassage, take: LineTake): Command<DawResult> {
   const before = passage.takes.find((t) => t.active);
   return {
-    label: `Kept ${take.label}`,
+    label: `Kept ${isolatedIfRtl(take.label)}`,
     touches: [`takes/${passage.id}`],
     daw: true,
     // One undo point in the DAW's history (narration_workspace.lua's set_active_take, or a lane pick); a keep that changed nothing left none and names no action.

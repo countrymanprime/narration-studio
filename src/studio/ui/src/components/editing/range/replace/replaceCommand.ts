@@ -4,6 +4,7 @@ import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
 import { clock } from '../../../../clock';
 import { plural } from '../../../../plural';
+import { isolatedIfRtl } from '../../../../visibleText';
 
 /** What the dialog asks for: the words as token indices, their stretch in seconds of their file, the fade at each seam and the level change. */
 export interface ReplaceAsk {
@@ -43,7 +44,7 @@ const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message:
 
 /** The history entry's name: "Replaced 13 words with Eric Leach's audio at 0:54". */
 export function replaceLabel(words: number, narrator: string, start: number): string {
-  return `Replaced ${plural(words, 'word', 'words')} with ${narrator}'s audio at ${clock(start, { full: true })}`;
+  return `Replaced ${plural(words, 'word', 'words')} with ${isolatedIfRtl(narrator)}'s audio at ${clock(start, { full: true })}`;
 }
 
 /**

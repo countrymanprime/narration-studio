@@ -181,6 +181,22 @@ describe('adds-to-a-thread-and-resolves-and-reopens', () => {
 });
 
 // What a card keeps while the narrator is typing in it, through every change the page makes to the mark under it (#3400, qa-breaker on #3458).
+describe('a right-to-left quote in the held reply label (#4129)', () => {
+  it('names the quote isolated in "your reply on <quote>"', async () => {
+    await seed();
+    // An Arabic quote, written with escapes so no right-to-left character sits in the source.
+    const quote = '\u0643\u0644\u0645\u0629';
+    const list = api.marksList.bind(api);
+    vi.spyOn(api, 'marksList').mockImplementation(async (...args) => {
+      const all = await list(...args);
+      return { ...all, marks: all.marks.map((mark) => ({ ...mark, quote })) };
+    });
+    const { user } = mount();
+    await user.type((await screen.findAllByRole('textbox', { name: /Add to this note|Reply or note/ }))[0]!, 'a reply');
+    expect(registry.heldNow().map((held) => held.label)).toContain(`your reply on \u201C\u2068${quote}\u2069\u201D`);
+  });
+});
+
 describe('a typed reply survives what happens to its note', () => {
   it('changing the Type of the note keeps the reply typed under it', async () => {
     const { note } = await seed();

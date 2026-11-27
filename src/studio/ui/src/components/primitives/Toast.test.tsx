@@ -1404,6 +1404,46 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     expect(document.activeElement === origin).toBe(!held);
   });
 
+  // The threshold is a key's own last gap, kept up to date at every repeat and measured between repeats, not from the keydown (#4125).
+  it('a pointer press after a key repeated steadily: the gap is the latest one (50 ms), so 800 ms of silence lets it go, though its first repeat came 500 ms after the keydown', () => {
+    const origin = document.createElement('button');
+    const onOrigin = vi.fn();
+    origin.addEventListener('click', onOrigin);
+    document.body.append(origin);
+    const view = pressUndoHoldingEnter(origin);
+    act(() => void vi.advanceTimersByTime(500));
+    repeatReaches(document.body, 'Enter');
+    for (let n = 0; n < 20; n += 1) {
+      act(() => void vi.advanceTimersByTime(50));
+      expect(repeatReaches(document.body, 'Enter')).toBe(false);
+    }
+    act(() => void vi.advanceTimersByTime(800));
+    view.rerender(<ToastRegion messages={[withUndo(9)]} dismiss={vi.fn()} />);
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Undo' }));
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(repeatReaches(document.body, 'Enter')).toBe(true);
+    expect(document.activeElement).toBe(origin);
+    expect(onOrigin).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['2500 ms (under 3 x 1000 ms)', 2500, true],
+    ['3100 ms (over 3 x 1000 ms)', 3100, false],
+  ])('a pointer press after a key repeated 1000 ms apart and was silent for %s: the threshold is three times its own gap', (_name, quiet, held) => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = pressUndoHoldingEnter(origin);
+    act(() => void vi.advanceTimersByTime(1000));
+    repeatReaches(document.body, 'Enter');
+    act(() => void vi.advanceTimersByTime(1000));
+    repeatReaches(document.body, 'Enter');
+    act(() => void vi.advanceTimersByTime(quiet));
+    view.rerender(<ToastRegion messages={[withUndo(9)]} dismiss={vi.fn()} />);
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Undo' }));
+    act(() => void vi.advanceTimersByTime(1));
+    expect(repeatReaches(document.body, 'Enter')).toBe(!held);
+  });
+
   it('a key that repeated in one hold, came up, and is held again a second later is not let go by its old repeat', () => {
     const field = document.createElement('input');
     document.body.append(field);

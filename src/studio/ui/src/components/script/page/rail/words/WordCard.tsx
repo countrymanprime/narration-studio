@@ -1,6 +1,7 @@
 import { withoutSent } from '../../../../../studio/drafts/withoutSent';
 import { plural } from '../../../../../plural';
 import { shortName } from '../../../../../studio/drafts/draftSentence';
+import { isolatedIfRtl } from '../../../../../visibleText';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { useState } from 'react';
 import { overlay } from '../../../../../overlay/overlayService';
@@ -134,7 +135,7 @@ function SaveToMyDictionary({ word, onSave }: { word: string; onSave: (say: stri
   // A pronunciation typed and not yet saved is held text: leaving the page asks first (#3400).
   useUnsavedDraft(`script-word-say-${word}`, {
     dirty: say.trim() !== '',
-    label: `your “${shortName(word, 13)}” pronunciation`,
+    label: `your “${isolatedIfRtl(shortName(word, 13))}” pronunciation`,
     brief: 'your pronunciation',
     kind: 'script-word-say',
     many: (n) => `${plural(n, 'pronunciation')} you typed`,

@@ -19,9 +19,13 @@ import { describe, expect, it } from 'vitest';
 // `device`, `listening.device`, `chapter`, `short`, `who`, `term`, `text`), and a list built with `.map(…)` before `.join(…)`. Those wraps are held by their own unit tests instead
 // (`deviceProblem.test.ts`, `quoteTerm.test.ts`, `movedOutSentence.test.ts`, `recheckSentence.test.ts`, `BoothNextPage.test.tsx`).
 //
-// NOT covered yet, tracked in #4129 (and #4126 for the host's own sentences): journal labels (the text of an Undo entry, which a toast can show bare: `Undid <label>`, `Undo '<label>' first`), leave-guard labels (the text of a save refusal or a save/discard verdict, built in
-// `GuideDetail` and read in `App.tsx`),
-// page and dialog text, file names and paths outside a toast, joined lists on pages, a sentence built in one place and interpolated in another, an alias of a toast function, a backtick in a
+// Journal labels (the text of an Undo entry that a toast shows bare: `Undid <label>`, `Undo '<label>' first`) and leave-guard labels (`label:` of an unsaved draft, read by `saveVerdict`,
+// `discardVerdict` and the Story Bible save refusal) are BUILT isolated (#4129 slice C), and this guard does NOT read them: a `label:` property is not a toast call or a `message` statement, and a
+// rule over every `label:` template would fail on the many labels that name no narrator's text. Each producer family holds its wrap with its own unit test instead (`journalLabels.rtl.test.ts`,
+// `SchedulePage.test.tsx`, `GuideDetail.holders.test.tsx`, `GuideDetail.actions.test.tsx`, `StoryBibleTypesPanel.test.tsx`, `WordsTab.test.tsx`, `ThreadsTab.test.tsx`, `useScriptData.test.tsx`,
+// `draftSentence.test.ts`, `voiceSample.test.tsx`, `backups.test.tsx`, `jumpMenuModel.test.ts`); a NEW label producer that carries a name is a blind spot until a later slice widens this guard.
+//
+// NOT covered yet, tracked in #4129 (and #4126 for the host's own sentences): page and dialog text, file names and paths outside a toast, joined lists on pages, a sentence built in one place and interpolated in another, an alias of a toast function, a backtick in a
 // regular expression literal, `overlay['toast'](`, `overlay.announce` (read out, never drawn), and `engine/destination.ts` (its unit tests, `destination.test.ts`).
 const SRC = __dirname;
 const NOT_READ = /^(?:api|fixtures|ports)\//;
@@ -172,9 +176,12 @@ const APP_DEFINED: Record<string, string> = {
   'components/booth/record/RecordSetup.tsx: Name': 'the name of a DAW product (REAPER, Audacity) or the built-in recorder',
   'components/booth/toastSentences.ts: name': 'the name of a DAW product (REAPER, Audacity) or the built-in recorder',
   'components/connection/useReaperLaunch.ts: name': 'the name of a DAW product (REAPER, Audacity) or the built-in recorder',
-  "App.tsx: newest?.label ?? 'the last change'": 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
-  'studio/journal/createJournal.ts: blocker.label': 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
-  'studio/journal/createJournal.ts: newest.label': 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
+  "App.tsx: newest?.label ?? 'the last change'":
+    'a journal label (the text of an Undo entry): built isolated at its producer (#4129 slice C), so the toast reads it bare',
+  'studio/journal/createJournal.ts: blocker.label':
+    'a journal label (the text of an Undo entry): built isolated at its producer (#4129 slice C), so the toast reads it bare',
+  'studio/journal/createJournal.ts: newest.label':
+    'a journal label (the text of an Undo entry): built isolated at its producer (#4129 slice C), so the toast reads it bare',
   'components/engine/chapterSyncText.ts: readable(item.best.trackName, item.best.trackIndex)':
     'a false positive: the statement holds `item.reason`, but this is panel and dialog text, never a toast',
   'components/primitives/ChapterStepper.tsx: name': 'the name in a tooltip, not a toast',
@@ -186,7 +193,7 @@ const APP_DEFINED: Record<string, string> = {
   'components/storybible/usePreviewAudio.ts: error.name': 'the name of a browser error kind (AbortError)',
   'components/settings/models/AssetsStore.tsx: name': 'the name of a model the app ships',
   'components/storybible/GuideDetail.tsx: capitalize(stuck.label)':
-    'a leave-guard label: it can hold a narrator name (built at GuideDetail :396 and :421), shown bare in a toast on a save refusal; a known gap, #4129',
+    'a leave-guard label: built isolated at GuideDetail (#4129 slice C), so the save refusal toast reads it bare',
 };
 
 /** A product name the app defines, whichever file it is in: the DAW's name (REAPER, Audacity), never a narrator's or an author's. */

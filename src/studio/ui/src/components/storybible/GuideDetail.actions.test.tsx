@@ -12,6 +12,7 @@ import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
 import { overlay } from '../../overlay/overlayService';
+import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import { ENTRY_SORT_STORAGE_KEY } from './entryTableModel';
 import { cellsOf, chooseKind, chooseShow, entryRows, entryTable, kindChoices, rowName, rowNames, showChoice, waitForShowChoice } from './entryTableTestKit';
 import { Guide } from './Guide';
@@ -275,14 +276,14 @@ describe('each-row-shows-its-name-and-its-kind', () => {
 // SNB-3b: the "Needs review" choice of the Show menu over the table. The mock host flags nothing to start with; its
 // suggestions put 2 to verify on White Rabbit and none on the other entries.
 describe('needs-review-show-menu', () => {
-  async function renderBible(prepare: (api: ReturnType<typeof createMockApi>) => Promise<void> | void = () => undefined) {
+  async function renderBible(prepare: (api: ReturnType<typeof createMockApi>) => Promise<void> | void = () => undefined, journal?: Journal) {
     window.localStorage.clear();
     const api = createMockApi();
     await prepare(api);
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <StudioProvider>
+          <StudioProvider journal={journal}>
             <CommandRouter>
               <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
             </CommandRouter>
@@ -366,6 +367,21 @@ describe('needs-review-show-menu', () => {
     await waitForShowChoice('Needs review', 1);
     expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review?.entry).toBe(true);
     toast.mockRestore();
+  });
+
+  it('mark-reviewed-names-a-right-to-left-entry-isolated: the journal entry reads the name held apart (#4129)', async () => {
+    // An Arabic name, written with escapes so no right-to-left character sits in the source.
+    const name = '\u0625\u0631\u064A\u0643';
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    await renderBible(async (host) => {
+      noSuggestions(host);
+      await flagHatter(host);
+      await host.guideEdit('mad-hatter', { canonical_name: name });
+    }, journal);
+    fireEvent.click(rowFor(name));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(async () => expect((await journal.entries()).map((row) => row.label)).toEqual([`Reviewed \u201C\u2068${name}\u2069\u201D`]));
   });
 
   it('editor-shows-the-flags: Cancel of an edit does not bring a cleared flag back', async () => {

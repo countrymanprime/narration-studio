@@ -9,7 +9,7 @@ import type { RangePlan } from '../common/rangePlan';
 import { appliedSpan, subWordNote } from '../common/spanRequest';
 import type { Span } from '../../ribbon/rangeMath';
 import { plural } from '../../../../plural';
-import { isolatedIfRtl } from '../../../../visibleText';
+import { isolatedIfRtl, stripBidi } from '../../../../visibleText';
 
 /** The fade at each new split, in milliseconds (the mock's FX_FADE_MS). */
 export const FX_FADE_MS = 8;
@@ -41,7 +41,8 @@ const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message:
 const scriptKeys = (keys: readonly string[]): string[] => keys.filter((k) => /:\d+$/.test(k));
 
 /** The history entry's name: "Added Voice polish to 3 words at 0:12". */
-const addLabel = (chain: string, n: number, start: number): string => `Added ${chain} to ${plural(n, 'word', 'words')} at ${clock(start, { full: true })}`;
+export const addFxLabel = (chain: string, n: number, start: number): string =>
+  `Added ${isolatedIfRtl(chain)} to ${plural(n, 'word', 'words')} at ${clock(start, { full: true })}`;
 
 /** What stands in the way of confirming without being a refusal: the narrator must say "Add anyway" first. */
 export interface FxOver {
@@ -162,7 +163,7 @@ const nothingChanged = (res: DawResult): Result<never> => refusal('nothing_chang
  */
 export function applyFxCommand(deps: FxDeps, plan: Acting, ask: FxAsk): Command<FxDone> {
   const { chapterId, range, chain, locator } = ask;
-  const label = addLabel(chain.name, range.items.length, range.start);
+  const label = addFxLabel(chain.name, range.items.length, range.start);
   const viaDaw = plan.kind !== 'recorder';
   // What the DAW's call added to its undo history, read by `dawAction` as soon as `run` has answered.
   let dawSteps = 0;
@@ -180,7 +181,8 @@ export function applyFxCommand(deps: FxDeps, plan: Acting, ask: FxAsk): Command<
       if (plan.kind === 'backup-then-daw') {
         if (!beforeFx.length) return refusal('no_backup', NO_BACKUP);
         for (const step of beforeFx) {
-          const done = await step.run({ chapterId, range, label });
+          // The Backups list keeps this text in the host's row (backups.json, 256 bytes): it gets the label without the isolate marks the journal entry carries.
+          const done = await step.run({ chapterId, range, label: stripBidi(label) });
           if (!done.ok) return done;
           const id = (done.value as { backupId?: unknown } | undefined)?.backupId;
           if (typeof id === 'string') backupId = id;
@@ -249,7 +251,7 @@ export function keepChosenCommand(
 ): Command<FxDone> {
   const { chapterId, range, label, locator } = ask;
   return {
-    label: addLabel(label, range.items.length, range.start),
+    label: addFxLabel(label, range.items.length, range.start),
     touches: [`editing/${chapterId}/wordfx`],
     // The narrator's own edits in the DAW's FX window sit on top of the choose point by the time this is recorded, so the DAW has no last
     // action of the app's to be asked about; the inverse takes the chosen plug-ins off by name and the DAW answers if they are gone.
@@ -322,7 +324,7 @@ export function removeFxCommand(deps: FxDeps, plan: Acting, ask: RemoveFxAsk): C
   const viaDaw = plan.kind !== 'recorder';
   let dawSteps = 0;
   return {
-    label: `Took ${fx.chainName} off ${fx.text}`,
+    label: `Took ${isolatedIfRtl(fx.chainName)} off ${isolatedIfRtl(fx.text)}`,
     touches: [`editing/${chapterId}/wordfx`],
     daw: viaDaw,
     dawAction: () => (viaDaw ? dawActionOf('remove_range_fx', dawSteps) : undefined),
