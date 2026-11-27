@@ -45,7 +45,7 @@ export function ChapterStepper({
     const reason = disabled ?? (atEnd ? (direction === -1 ? 'This is the first chapter' : 'This is the last chapter') : undefined);
     return (
       <TooltipTarget text={reason ?? (key ? `${name} (${key})` : name)} className="flex-none">
-        <IconButton label={name} disabledReason={reason} onClick={() => onStep(direction)}>
+        <IconButton label={name} repeats disabledReason={reason} onClick={() => onStep(direction)}>
           <Icon name={icon} />
         </IconButton>
       </TooltipTarget>

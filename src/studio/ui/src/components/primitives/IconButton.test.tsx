@@ -216,3 +216,13 @@ describe('a held key (#4124)', () => {
     expect(onKey).toHaveBeenCalledTimes(5);
   });
 });
+
+describe('repeats (#4124)', () => {
+  it('a button that steps, zooms or scrolls takes every repeat of a held Enter or Space', () => {
+    const onKey = vi.fn();
+    render(<IconButton label="Zoom in" repeats onKeyDown={onKey} />);
+    const button = screen.getByRole('button');
+    for (const key of ['Enter', ' ']) expect(fireEvent.keyDown(button, { key, repeat: true })).toBe(true);
+    expect(onKey).toHaveBeenCalledTimes(2);
+  });
+});

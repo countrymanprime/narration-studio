@@ -214,10 +214,10 @@ export function WaveformWindow({
         </span>
         <span className="flex-1" />
         <TooltipTarget text="Zoom out">
-          <IconButton action="zoomOut" disabledReason={zoomOutTo == null ? 'Zoom out' : undefined} onClick={() => zoom(1)} />
+          <IconButton action="zoomOut" repeats disabledReason={zoomOutTo == null ? 'Zoom out' : undefined} onClick={() => zoom(1)} />
         </TooltipTarget>
         <TooltipTarget text="Zoom in">
-          <IconButton action="zoomIn" disabledReason={zoomInTo == null ? 'Zoom in' : undefined} onClick={() => zoom(-1)} />
+          <IconButton action="zoomIn" repeats disabledReason={zoomInTo == null ? 'Zoom in' : undefined} onClick={() => zoom(-1)} />
         </TooltipTarget>
       </div>
 

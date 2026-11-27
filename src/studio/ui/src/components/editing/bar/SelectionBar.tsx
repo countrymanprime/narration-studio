@@ -51,7 +51,7 @@ export function SelectionBar({
       className="@container/bar flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 py-2"
     >
       <div className="flex max-w-full min-w-0 items-center gap-1.5">
-        <IconButton action="previousWord" onClick={() => playback.skip(-1)} />
+        <IconButton action="previousWord" repeats onClick={() => playback.skip(-1)} />
         <IconButton
           action={playback.playing ? 'pause' : 'play'}
           label={playLabel}
@@ -59,7 +59,7 @@ export function SelectionBar({
           {...(unavailable && !playback.playing ? { disabledReason: unavailable } : {})}
           onClick={playback.toggle}
         />
-        <IconButton action="nextWord" onClick={() => playback.skip(1)} />
+        <IconButton action="nextWord" repeats onClick={() => playback.skip(1)} />
         {/* The position (12 characters in `full`) and the chapter's length: where the row is too narrow (a small window) the length drops under the position, never cut off. */}
         <span className="ml-1.5 min-w-0 font-['IBM_Plex_Mono',ui-monospace,monospace] text-[15px] font-medium">
           <span className="whitespace-nowrap">{clock(at, { full: true })}</span>{' '}
