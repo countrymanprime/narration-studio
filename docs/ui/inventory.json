@@ -919,6 +919,7 @@
         "Filled",
         "Empty",
         "Disabled",
+        "Invalid",
         "With Width Class",
         "Reports The Iso Date",
         "Disabled Takes No Input"

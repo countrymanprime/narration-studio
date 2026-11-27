@@ -301,17 +301,13 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     await waitFor(() => expect(document.activeElement).toBe(document.getElementById('milestone-due')));
   });
 
-  it('B6: a refused N shows its reason under the box and scrolls it into view', async () => {
-    const scrolled = vi.fn();
-    Element.prototype.scrollIntoView = scrolled;
+  it('B6: a refused N shows its reason under the box', async () => {
     await mountSchedule({ statuses: book(12) });
     const d = await typeN('99');
     save(d);
     const alert = await reasonOf(d);
     expect(alert.id).toBe('milestone-problem');
     expect(alert.previousElementSibling).toBe(d.getByLabelText('How many chapters').parentElement);
-    await waitFor(() => expect(scrolled).toHaveBeenCalled());
-    expect(scrolled.mock.instances.at(-1)).toBe(alert);
   });
 
   it('R3 and R4: ArrowUp stops at the books chapter count', async () => {
@@ -397,24 +393,6 @@ describe('round 5: the field a refusal is about is marked, kept in view, and jud
     }
   });
 
-  it('R9: a name or date refusal keeps its field in view and does not scroll the alert over it; an N refusal scrolls the alert', async () => {
-    const scrolled = vi.fn();
-    Element.prototype.scrollIntoView = scrolled;
-    await mountSchedule({ statuses: book(12) });
-    const d = await open('', '2026-10-10', '5');
-    save2(d);
-    await d.findByRole('alert');
-    await waitFor(() => expect(scrolled).toHaveBeenCalled());
-    expect(scrolled.mock.instances.map((el) => (el as HTMLElement).tagName)).toEqual(['INPUT']);
-    expect(scrolled.mock.instances[0]).toBe(d.getByLabelText('Name'));
-    scrolled.mockClear();
-    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Named' } });
-    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '99' } });
-    save2(d);
-    await waitFor(() => expect(scrolled).toHaveBeenCalled());
-    expect((scrolled.mock.instances.at(-1) as HTMLElement).getAttribute('role')).toBe('alert');
-  });
-
   it('R12: emptying the name does not lift the mark on an N that is still wrong', async () => {
     await mountSchedule({ statuses: book(3) });
     const d = await open('Named', '2026-10-10', '8');
@@ -432,5 +410,100 @@ describe('round 5: the field a refusal is about is marked, kept in view, and jud
     expect(overlay.getSnapshot().dialogs).toHaveLength(1);
     cleanup();
     expect(overlay.getSnapshot().dialogs).toHaveLength(0);
+  });
+});
+
+describe('round 6: the field and its reason in view, and a wrong field is never dropped', () => {
+  const open = async (name: string, due: string, n: string) => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Add milestone' }));
+    const d = dialog();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: name } });
+    if (due) fireEvent.change(document.getElementById('milestone-due') as HTMLInputElement, { target: { value: due } });
+    await userEvent.selectOptions(d.getByRole('combobox', { name: 'What the milestone measures' }), 'chN');
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: n } });
+    return d;
+  };
+  const add = (d: ReturnType<typeof dialog>) => fireEvent.click(d.getByRole('button', { name: 'Add milestone' }));
+  /** Lays out the dialog's body (the form's first child) as `view`, the focused field as `field` and the alert as `alert`, each as [top, bottom]. */
+  const layout = (d: ReturnType<typeof dialog>, view: [number, number], field: [number, number], alert: [number, number]) => {
+    const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const [top, bottom] = this === body ? view : this.getAttribute('role') === 'alert' ? alert : field;
+      return { top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}) };
+    });
+    return body;
+  };
+
+  it('R16: when the field and its reason fit in the body together, the body scrolls to show both', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '5');
+    const body = layout(d, [0, 120], [10, 46], [100, 130]);
+    add(d);
+    await d.findByRole('alert');
+    await waitFor(() => expect(body.scrollTop).toBe(10));
+  });
+
+  it('R16: when they cannot both fit, the field stays in view', async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '5');
+    const body = layout(d, [0, 100], [-50, -14], [120, 150]);
+    add(d);
+    await d.findByRole('alert');
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
+    expect(scrolled.mock.instances.at(-1)).toBe(d.getByLabelText('Name'));
+    expect(body.scrollTop).toBe(0);
+  });
+
+  it('R14: a field stays marked while it is wrong, though its reason changes words', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('x'.repeat(250), '2026-10-10', '5');
+    add(d);
+    expect((await d.findByRole('alert')).textContent).toBe('The name is 250 characters; the most is 200.');
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'x'.repeat(249) } });
+    expect(d.getByLabelText('Name').getAttribute('aria-invalid')).toBe('true');
+    expect(d.getByRole('alert').textContent).toBe('The name is 249 characters; the most is 200.');
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'ok' } });
+    expect(d.queryByRole('alert')).toBeNull();
+  });
+
+  it('R14: an N stays marked as the book shrinks and the reason follows the new count', async () => {
+    let count = 3;
+    let reads = 0;
+    await mountSchedule({
+      store: true,
+      statuses: book(8),
+      wrap: (base) => ({
+        manuscriptChapters: async () => {
+          const list = await base.manuscriptChapters();
+          reads += 1;
+          return { ...list, chapters: list.chapters.slice(0, count) };
+        },
+      }),
+    });
+    const d = await typeN('8');
+    save(d);
+    await reasonOf(d);
+    count = 2;
+    const before = reads;
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000);
+    fireEvent.focus(window);
+    await waitFor(() => expect(reads).toBeGreaterThan(before));
+    await waitFor(async () => expect((await reasonOf(d)).textContent).toBe('The book has 2 chapters. Write a whole number from 1 to 2.'));
+    expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('item 4: with a wrong N and no name, fixing the name shows the N that is still wrong', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '0');
+    add(d);
+    await d.findByRole('alert');
+    expect(d.getByLabelText('Name').getAttribute('aria-invalid')).toBe('true');
+    expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBeNull();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Named' } });
+    expect(d.getByLabelText('Name').getAttribute('aria-invalid')).toBeNull();
+    expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBe('true');
+    expect((await reasonOf(d)).textContent).toBe(RANGE_12);
   });
 });

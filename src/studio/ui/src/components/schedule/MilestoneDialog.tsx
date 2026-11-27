@@ -27,6 +27,23 @@ export type MilestoneDialogProps = {
   onCancel: () => void;
 };
 
+const FIELD_ORDER = ['name', 'date', 'n'] as const;
+
+/** Scrolls `body` so the field and the alert under it are both in view when they fit together, and otherwise keeps the field in view. */
+function showTogether(body: HTMLElement, field: HTMLElement, alert: HTMLElement): void {
+  const view = body.getBoundingClientRect();
+  const a = field.getBoundingClientRect();
+  const b = alert.getBoundingClientRect();
+  const top = Math.min(a.top, b.top);
+  const bottom = Math.max(a.bottom, b.bottom);
+  if (bottom - top > view.height) {
+    field.scrollIntoView?.({ block: 'nearest' });
+    return;
+  }
+  if (top < view.top) body.scrollTop += top - view.top;
+  else if (bottom > view.bottom) body.scrollTop += bottom - view.bottom;
+}
+
 /**
  * Add or change every detail of a milestone (the mock's MilestoneDialog): name, due date, what it measures with its N, a note and done.
  * Saving is one undoable command and Cancel changes nothing. The N is saved as typed, or refused with the range the book allows.
@@ -34,6 +51,8 @@ export type MilestoneDialogProps = {
 export function MilestoneDialog({ existing, profileId, reportedCapabilities, bounds, focusNote, onSave, onCancel }: MilestoneDialogProps) {
   const [draft, setDraft] = useState<MilestoneDraft>(() => (existing ? draftOf(existing) : blankDraft()));
   const [refused, setRefused] = useState<{ text: string; field?: RefusedField }>();
+  /** The fields a save was refused about: they stay marked for as long as they are wrong, whatever else is fixed or broken meanwhile. */
+  const [flagged, setFlagged] = useState<readonly RefusedField[]>([]);
   const live = useSyncExternalStore(bounds.subscribe, bounds.get);
   const form = useRef<HTMLFormElement>(null);
   const [saving, setSaving] = useState(false);
@@ -52,14 +71,17 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     const start = measure === 'chN' ? chaptersOf(undefined) : minutesOf(undefined);
     return { [field]: String(clamp(start, 1, bounds.get()[field])) };
   };
-  // A refusal stands while its own field still earns it: filling in the name does not lift the mark on an N that is still wrong, and a book that grows past a typed N lifts it.
+  // Each field is judged on its own. Once a save has been refused, the fields it was refused about stay marked while they are wrong (their reason in the newest words), and when
+  // none of them is, the first field still wrong is marked, so a field that is still wrong is never dropped; the others wait for a save to be refused about them.
   const problems = fieldRefusals(draft, existing, live);
-  const standing = refused && (!refused.field || problems[refused.field] === refused.text) ? refused : undefined;
-  const marked = standing?.field;
+  const wrong = FIELD_ORDER.filter((field) => problems[field]);
+  const stillFlagged = wrong.filter((field) => flagged.includes(field));
+  const shown: readonly RefusedField[] = !refused ? [] : stillFlagged.length > 0 ? stillFlagged : wrong.slice(0, 1);
+  const alertText = shown.length > 0 ? problems[shown[0]] : refused && !refused.field ? refused.text : undefined;
   /** What a field the refusal is about is given: marked invalid and described by the alert. */
-  const about = (field: RefusedField) => ({ invalid: marked === field, describedBy: marked === field ? 'milestone-problem' : undefined });
-  // A refusal is brought into view. Focus goes to the field it is about and that field is kept in view (the alert announces the reason by itself); the alert is scrolled to only when
-  // the N box is the field, which sits in the same row as it.
+  const about = (field: RefusedField) => ({ invalid: shown.includes(field), describedBy: shown.includes(field) ? 'milestone-problem' : undefined });
+  // A refusal is brought into view. Focus goes to the field it is about; the field and the alert are both scrolled into view when they fit together in the body, and when they
+  // do not (a tiny window) the field stays in view and the alert is reachable below it. A refusal about no field (the list changed) scrolls the alert into view.
   useEffect(() => {
     if (!refusals || !form.current) return;
     const field = refused?.field;
@@ -69,11 +91,14 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
         : field === 'date'
           ? form.current.querySelector<HTMLElement>('#milestone-due')
           : field === 'n'
-            ? form.current.querySelector<HTMLElement>('input[aria-invalid="true"]')
+            ? form.current.querySelector<HTMLElement>('input[aria-label^="How many"]')
             : null;
     target?.focus({ preventScroll: true });
-    if (field === 'n' || !target) form.current.querySelector('[role="alert"]')?.scrollIntoView?.({ block: 'nearest' });
-    else target.scrollIntoView?.({ block: 'nearest' });
+    const alert = form.current.querySelector<HTMLElement>('[role="alert"]');
+    const body = form.current.firstElementChild as HTMLElement | null;
+    if (!alert) return;
+    if (target && body) showTogether(body, target, alert);
+    else alert.scrollIntoView?.({ block: 'nearest' });
     // Once per refusal: editing the draft afterwards must not pull focus back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refusals]);
@@ -100,7 +125,9 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     setSaving(true);
     const text = await onSave(draft);
     const made = milestoneFromDraft(draft, existing, bounds.get());
-    setRefused(text ? { text, ...('refusal' in made && made.refusal === text && made.field ? { field: made.field } : {}) } : undefined);
+    const field = 'refusal' in made && made.refusal === text ? made.field : undefined;
+    setRefused(text ? { text, ...(field ? { field } : {}) } : undefined);
+    if (text && field) setFlagged((now) => (now.includes(field) ? now : [...now, field]));
     if (text) setRefusals((n) => n + 1);
     inFlight.current = false;
     setSaving(false);
@@ -133,8 +160,8 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
             value={draft.date}
             onChange={(date) => set({ date })}
             className="mt-2"
-            aria-invalid={marked === 'date' ? true : undefined}
-            aria-describedby={marked === 'date' ? 'milestone-problem' : undefined}
+            aria-invalid={shown.includes('date') ? true : undefined}
+            aria-describedby={shown.includes('date') ? 'milestone-problem' : undefined}
           />
         </div>
         <div>
@@ -158,15 +185,15 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
                 holdRefused
                 max={clamp(live[draft.measure === 'chN' ? 'chapters' : 'minutes'], 1, MAX_N)}
                 stepFrom={1}
-                invalid={marked === 'n'}
-                aria-describedby={marked === 'n' ? 'milestone-problem' : undefined}
+                invalid={shown.includes('n')}
+                aria-describedby={shown.includes('n') ? 'milestone-problem' : undefined}
                 className="w-20!"
               />
             )}
           </div>
-          {refused && (!refused.field || standing) && (
+          {alertText && (
             <p id="milestone-problem" role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
-              {refused.text}
+              {alertText}
             </p>
           )}
         </div>

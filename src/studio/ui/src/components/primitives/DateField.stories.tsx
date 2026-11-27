@@ -32,6 +32,8 @@ type Story = StoryObj<typeof meta>;
 export const Filled: Story = {};
 export const Empty: Story = { args: { value: '' } };
 export const Disabled: Story = { args: { disabled: true } };
+// A date the form refused is marked wrong (aria-invalid takes the danger border, as in TextField).
+export const Invalid: Story = { args: { value: '', 'aria-invalid': true } };
 // A caller's `w-` class sets the width instead of the full-width default (the Schedule's Final delivery row is a 152 px column).
 export const WithWidthClass: Story = { args: { className: 'w-40' } };
 

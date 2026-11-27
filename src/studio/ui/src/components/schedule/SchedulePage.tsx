@@ -75,10 +75,10 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   // The rows whose change is on its way to the host: a second press on the same row while one is pending is the same press.
   const pending = useRef(new Set<string>());
-  /** The range of an N as the chapter list stands now: a dialog open while the list is read again checks the newest. */
   /** The close of the milestone dialog this page opened: it reads this page's chapters and saves through this page, so it goes when the page does. */
   const closeDialog = useRef<(() => void) | undefined>(undefined);
   useEffect(() => () => closeDialog.current?.(), []);
+  /** The range of an N as the chapter list stands now: a dialog open while the list is read again checks the newest. */
   const liveBounds = useRef(createLiveBounds({ chapters: 0, minutes: 0 })).current;
   // Told after every draw, so a dialog open over the page follows the chapter list when it is read again.
   useEffect(() => liveBounds.notify());
