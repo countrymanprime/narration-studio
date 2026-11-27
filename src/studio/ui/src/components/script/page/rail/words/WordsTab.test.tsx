@@ -354,6 +354,14 @@ describe('a-word-that-is-no-story-element (#2595)', () => {
     expect(registry.heldNow()).toEqual([]);
   });
 
+  it('names a right-to-left word isolated in the held pronunciation label (#4129)', async () => {
+    // An Arabic word, written with escapes so no right-to-left character sits in the source.
+    const word = '\u0643\u0644\u0645\u0629';
+    mountWithWord(word);
+    await userEvent.type(await screen.findByLabelText(`Pronunciation of ${word} for my dictionary`), 'KAL-ma');
+    expect(registry.heldNow().map((held) => held.label)).toEqual([`your \u201C\u2068${word}\u2069\u201D pronunciation`]);
+  });
+
   it('shows what each dictionary says, with its source and Hear, and offers no save while one has it', async () => {
     const preview = vi.spyOn(api, 'pronunciationPreview');
     mountWithWord('croquet');

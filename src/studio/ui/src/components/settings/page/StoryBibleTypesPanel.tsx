@@ -15,7 +15,7 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import { plural } from '../../../plural';
 import { shortName } from '../../../studio/drafts/draftSentence';
 import { useUnsavedDraft } from '../../../studio/drafts/unsavedDrafts';
-import { hasVisibleText } from '../../../visibleText';
+import { hasVisibleText, isolatedIfRtl } from '../../../visibleText';
 
 const COLOUR_LABELS: Record<GuideTypeColour, string> = { green: 'Green', blue: 'Blue', violet: 'Violet', amber: 'Amber', teal: 'Teal', rose: 'Rose' };
 // A type's hue is drawn from the token its chips use (`typeHueColour`), so the choice and the chip cannot differ.
@@ -189,7 +189,7 @@ export function StoryBibleTypesList({ types, counts, busy = false, error, onRena
   // A name typed in New type is added by Enter or the Add type button, not by leaving the box: blurring commits nothing, so leaving the page asks, and Save & continue adds it (#3457).
   useUnsavedDraft('story-bible-new-type', {
     dirty: hasVisibleText(name) && !adding,
-    label: `the new type “${shortName(name, 18)}”`,
+    label: `the new type “${isolatedIfRtl(shortName(name, 18))}”`,
     brief: 'a new type',
     save: async () => {
       const added = await onAdd(name);

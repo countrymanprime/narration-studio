@@ -368,6 +368,22 @@ describe('needs-review-show-menu', () => {
     toast.mockRestore();
   });
 
+  it('mark-reviewed-names-a-right-to-left-entry-isolated: the journal label and the toast read it held apart (#4129)', async () => {
+    // An Arabic name, written with escapes so no right-to-left character sits in the source.
+    const name = '\u0625\u0631\u064A\u0643';
+    const toast = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    await renderBible(async (host) => {
+      noSuggestions(host);
+      await flagHatter(host);
+      await host.guideEdit('mad-hatter', { canonical_name: name });
+    });
+    fireEvent.click(rowFor(name));
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    expect(toast.mock.calls[0][0]).toContain(`\u201C\u2068${name}\u2069\u201D`);
+    toast.mockRestore();
+  });
+
   it('editor-shows-the-flags: Cancel of an edit does not bring a cleared flag back', async () => {
     const api = await renderBible(async (host) => {
       noSuggestions(host);

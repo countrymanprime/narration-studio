@@ -167,3 +167,19 @@ describe('wording the breaker found (#3446, #3457)', () => {
     expect(draftQuestion([rows]).body).toBe("3 relationships you started can't be saved yet. Discard them before leaving?");
   });
 });
+
+describe('an isolated narrator name in a label (#4129)', () => {
+  const FSI = '\u2068';
+  const PDI = '\u2069';
+  // An Arabic name, written with escapes so no right-to-left character sits in the source.
+  const NAME = '\u0625\u0631\u064A\u0643';
+
+  it('does not count the isolate marks against the room the sentence has', () => {
+    const labels = [one(`the name \u201C${FSI}${NAME}${PDI}\u201D you are adding`), one('your changes to Alice')];
+    // The same room that holds the bare names holds the isolated ones: the marks draw nothing.
+    const bare = [one(`the name \u201C${NAME}\u201D you are adding`), one('your changes to Alice')];
+    const room = describeHeld(bare, 200).length;
+    expect(describeHeld(labels, room)).toBe(describeHeld(labels, 200));
+    expect(describeHeld(labels, 200)).toContain(`${FSI}${NAME}${PDI}`);
+  });
+});

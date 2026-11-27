@@ -19,9 +19,13 @@ import { describe, expect, it } from 'vitest';
 // `device`, `listening.device`, `chapter`, `short`, `who`, `term`, `text`), and a list built with `.map(…)` before `.join(…)`. Those wraps are held by their own unit tests instead
 // (`deviceProblem.test.ts`, `quoteTerm.test.ts`, `movedOutSentence.test.ts`, `recheckSentence.test.ts`, `BoothNextPage.test.tsx`).
 //
-// NOT covered yet, tracked in #4129 (and #4126 for the host's own sentences): journal labels (the text of an Undo entry, which a toast can show bare: `Undid <label>`, `Undo '<label>' first`), leave-guard labels (the text of a save refusal or a save/discard verdict, built in
-// `GuideDetail` and read in `App.tsx`),
-// page and dialog text, file names and paths outside a toast, joined lists on pages, a sentence built in one place and interpolated in another, an alias of a toast function, a backtick in a
+// Journal labels (the text of an Undo entry that a toast shows bare: `Undid <label>`, `Undo '<label>' first`) and leave-guard labels (`label:` of an unsaved draft, read by `saveVerdict`,
+// `discardVerdict` and the Story Bible save refusal) are BUILT isolated (#4129 slice C), and this guard does NOT read them: a `label:` property is not a toast call or a `message` statement, and a
+// rule over every `label:` template would fail on the many labels that name no narrator's text. Each producer family holds its wrap with its own unit test instead (`journalLabels.rtl.test.ts`,
+// `SchedulePage.test.tsx`, `GuideDetail.holders.test.tsx`, `GuideDetail.actions.test.tsx`, `StoryBibleTypesPanel.test.tsx`, `WordsTab.test.tsx`, `ThreadsTab.test.tsx`, `useScriptData.test.tsx`,
+// `draftSentence.test.ts`); a NEW label producer that carries a name is a blind spot until a later slice widens this guard.
+//
+// NOT covered yet, tracked in #4129 (and #4126 for the host's own sentences): page and dialog text, file names and paths outside a toast, joined lists on pages, a sentence built in one place and interpolated in another, an alias of a toast function, a backtick in a
 // regular expression literal, `overlay['toast'](`, `overlay.announce` (read out, never drawn), and `engine/destination.ts` (its unit tests, `destination.test.ts`).
 const SRC = __dirname;
 const NOT_READ = /^(?:api|fixtures|ports)\//;

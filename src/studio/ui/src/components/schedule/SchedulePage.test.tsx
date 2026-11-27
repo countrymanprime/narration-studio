@@ -286,6 +286,16 @@ describe('the milestone dialog', () => {
     await screen.findByText('Retail sample');
   });
 
+  it('names a right-to-left milestone isolated in the entry and in the Undo toast (#4129)', async () => {
+    // An Arabic name, written with escapes so no right-to-left character sits in the source.
+    const name = '\u0645\u0631\u062D\u0644\u0629';
+    await mount({ seed: { milestones: [REC, { name, dueDate: '2026-10-12' }] } });
+    fireEvent.click(within(rowOf(name)).getByRole('button', { name: `Remove ${name}` }));
+    await waitFor(async () => expect(await entries()).toEqual([`Remove \u2068${name}\u2069`]));
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(async () => expect((await stored()).map((m) => m.name)).toContain(name));
+  });
+
   it('gives focus to the milestone that came back after Undo, instead of dropping it on the page', async () => {
     await mount();
     await screen.findByText('Retail sample');

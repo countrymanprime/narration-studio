@@ -1,4 +1,5 @@
 import { plural } from '../../plural';
+import { stripBidi } from '../../visibleText';
 
 /**
  * What one holder says about itself: a specific singular `label` ("your edit of the note on “Alice”"), a nameless `brief` for when the label does not fit
@@ -51,7 +52,8 @@ export function shortName(name: string, max = MAX_NAME): string {
 }
 
 const joinList = (items: string[]): string => (items.length < 3 ? items.join(' and ') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
-const length = (text: string): number => graphemes(text).length;
+/** The room a phrase takes: an isolate round a name draws nothing, so it does not count. */
+const length = (text: string): number => graphemes(stripBidi(text)).length;
 
 /** "your changes to Alice", "3 replies you are writing and your edit of a note", or, when that is too long, the briefs, then "5 unsaved changes". */
 export function describeHeld(held: readonly DraftLabel[], room = ROOM): string {

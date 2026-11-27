@@ -41,7 +41,8 @@ const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message:
 const scriptKeys = (keys: readonly string[]): string[] => keys.filter((k) => /:\d+$/.test(k));
 
 /** The history entry's name: "Added Voice polish to 3 words at 0:12". */
-const addLabel = (chain: string, n: number, start: number): string => `Added ${chain} to ${plural(n, 'word', 'words')} at ${clock(start, { full: true })}`;
+export const addLabel = (chain: string, n: number, start: number): string =>
+  `Added ${isolatedIfRtl(chain)} to ${plural(n, 'word', 'words')} at ${clock(start, { full: true })}`;
 
 /** What stands in the way of confirming without being a refusal: the narrator must say "Add anyway" first. */
 export interface FxOver {
@@ -322,7 +323,7 @@ export function removeFxCommand(deps: FxDeps, plan: Acting, ask: RemoveFxAsk): C
   const viaDaw = plan.kind !== 'recorder';
   let dawSteps = 0;
   return {
-    label: `Took ${fx.chainName} off ${fx.text}`,
+    label: `Took ${isolatedIfRtl(fx.chainName)} off ${isolatedIfRtl(fx.text)}`,
     touches: [`editing/${chapterId}/wordfx`],
     daw: viaDaw,
     dawAction: () => (viaDaw ? dawActionOf('remove_range_fx', dawSteps) : undefined),

@@ -170,3 +170,48 @@ describe('a name typed in "Add a name"', () => {
     expect(confirm).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('right-to-left names in the held labels (#4129)', () => {
+  // An Arabic name, written with escapes so no right-to-left character sits in the source.
+  const NAME = '\u0625\u0631\u064A\u0643';
+  const isolated = `\u2068${NAME}\u2069`;
+
+  it('isolates the name typed in Add a name, in the held label and in the Save refusal', async () => {
+    const notify = vi.fn();
+    render(
+      <ApiProvider api={createMockApi()}>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          <GuideDetail entity={hatter} entities={WIRE_ENTITIES} reload={vi.fn().mockResolvedValue(undefined)} notify={notify} goToManuscript={vi.fn()} />
+        </UnsavedDraftsProvider>
+      </ApiProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Add a name' }), { target: { value: NAME } });
+    expect(registry.heldNow().map((held) => held.label)).toEqual([`the name \u201C${isolated}\u201D you are adding`]);
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes to this entry' }));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(`The name \u201C${isolated}\u201D you are adding still needs you to press Add name, so the entry was not saved.`),
+    );
+  });
+
+  it('isolates the entry name in "your changes to <entry>"', () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          <GuideDetail
+            entity={{ ...hatter, canonical_name: NAME }}
+            entities={WIRE_ENTITIES}
+            reload={vi.fn().mockResolvedValue(undefined)}
+            notify={vi.fn()}
+            goToManuscript={vi.fn()}
+          />
+        </UnsavedDraftsProvider>
+      </ApiProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: `${NAME} 2` } });
+    expect(registry.heldNow().map((held) => held.label)).toEqual([`your changes to ${isolated}`]);
+  });
+});

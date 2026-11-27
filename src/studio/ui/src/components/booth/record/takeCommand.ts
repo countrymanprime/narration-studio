@@ -1,6 +1,7 @@
 import { DAW_RESULT_MAX_UNDO_STEPS, type DawResult } from '../../../api/contracts/daw';
 import type { DawClient } from '../../../ports/daw';
 import type { Command, Result } from '../../../studio/journal/createJournal';
+import { isolatedIfRtl } from '../../../visibleText';
 
 /** The kind of DAW change a take is, in the DAW port's words (`DawActionKind`). */
 export const TAKE_KIND = 'record_take';
@@ -21,7 +22,7 @@ export function recordedTakeCommand({ daw, result, title }: { daw: Pick<DawClien
   const steps = result.undoSteps;
   const undoable = steps >= 1 && steps <= DAW_RESULT_MAX_UNDO_STEPS;
   return {
-    label: `Recorded a take of ${title}`,
+    label: `Recorded a take of ${isolatedIfRtl(title)}`,
     touches: ['booth/takes'],
     daw: true,
     dawAction: () => (undoable ? { kind: TAKE_KIND, steps } : undefined),

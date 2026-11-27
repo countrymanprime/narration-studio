@@ -2,6 +2,7 @@ import type { DawResult } from '../../../../api/contracts/daw';
 import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
 import { NO_SPLIT_COMMAND, type SplitPlan, type TakeSplitter } from './splitPlan';
+import { isolatedIfRtl } from '../../../../visibleText';
 
 /** The take to cut and where, in seconds of the chapter. */
 export interface SplitTarget {
@@ -24,7 +25,7 @@ const refusal = (r: DawResult): Result<never> => ({ ok: false, refusal: { code: 
  */
 export function splitCommand(splitter: TakeSplitter, plan: Cutting, target: SplitTarget): Command<DawResult> {
   return {
-    label: `Split ${target.label} at the second read`,
+    label: `Split ${isolatedIfRtl(target.label)} at the second read`,
     touches: [`takes/${target.takeId}`],
     daw: plan.kind !== 'recorder',
     async run() {
