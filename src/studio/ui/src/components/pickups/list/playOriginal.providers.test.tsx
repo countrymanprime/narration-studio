@@ -547,6 +547,28 @@ describe('the-app-plays-when-the-daw-cannot', () => {
 });
 
 describe('a-recording-daw-keeps-the-room-quiet', () => {
+  // #4117: the refusal carries its code, so the app stays quiet whatever the project-state read answers (idle, failing or never answering).
+  it.each([
+    ['idle', async () => ({ savedAt: null, unsavedChanges: false, playState: 'stopped' as const, playPosition: 0 })],
+    ['failing', () => Promise.reject(new Error('read failed'))],
+    ['never answering', () => new Promise<never>(() => {})],
+  ])('a playRange refused with the recording code plays nothing when the project-state read is %s', async (_name, projectState) => {
+    transport = vi.fn(async () => ({
+      ...ok,
+      ok: false,
+      message: 'REAPER is recording. Stop recording first.',
+      refused: 'REAPER is recording. Stop recording first.',
+      code: 'recording' as const,
+    }));
+    const { result } = await mountRead(DAW_SETUPS.reaper, { projectState });
+    await act(async () => {
+      void result.current.play(pickup(15));
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS * 2);
+    });
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(result.current.playingId).toBeNull();
+    expect(refused.join(' ')).toMatch(/REAPER is recording/);
+  });
   it('plays nothing, in the DAW or the app, and says why', async () => {
     transport = vi.fn(async () => ({ ...ok, ok: false, message: 'REAPER is recording. Stop recording first.', refused: 'REAPER is recording.' }));
     const { result } = await mountRead(DAW_SETUPS.reaper, {

@@ -91,6 +91,7 @@ const GOLDEN_FILES = [
   'daw-capabilities-reaper.json',
   'daw-result-ok.json',
   'daw-result-refused-stale.json',
+  'daw-result-refused-recording.json',
   'daw-result-multi-step.json',
   'daw-hide-takes-done.json',
   'workspace-preview-take-playing.json',

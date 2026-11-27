@@ -249,7 +249,10 @@ export function useScriptPlayback({
             audioRef.current?.pause();
             live.current.dispatch({ type: 'play', t: at });
             const why = await remoteRef.current?.start(at, stopAt.current ?? undefined);
-            return why === null ? { played: true } : { played: false, why: `${capitalised(name)} could not play it: ${why ?? 'it is not answering.'}` };
+            if (why === null) return { played: true };
+            // A DAW that is recording keeps the room quiet: the app does not play over it.
+            const final = remoteRef.current?.refusedForRecording() === true;
+            return { played: false, why: `${capitalised(name)} could not play it: ${why ?? 'it is not answering.'}`, ...(final ? { final } : {}) };
           },
         });
       }

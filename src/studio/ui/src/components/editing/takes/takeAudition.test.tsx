@@ -167,6 +167,28 @@ describe('a-linked-daw-plays-the-take', () => {
     expect(audio.play).toHaveBeenCalled();
     expect(notices.join(' ')).toMatch(/line is not on the page any more\. Played in the app instead\./);
   });
+  // #4117: the refusal carries its code, so the app stays quiet whatever the project-state read answers.
+  it.each([
+    ['idle', async () => ({ savedAt: null, unsavedChanges: false, playState: 'stopped' as const, playPosition: 0 })],
+    ['failing', () => Promise.reject(new Error('read failed'))],
+  ])('a preview refused with the recording code plays nothing in the app when the project-state read is %s', async (_name, projectState) => {
+    const { result } = mount(DAW_SETUPS.reaper, {
+      previewTake: async () => ({
+        ok: false,
+        changed: false,
+        message: 'REAPER is recording.',
+        undoSteps: 0,
+        refused: 'REAPER is recording.',
+        code: 'recording',
+      }),
+      projectState,
+    });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(result.current.playingId).toBeNull();
+    expect(notices.join(' ')).toMatch(/REAPER is recording/);
+  });
   it('plays nothing while the DAW records, in the DAW or the app', async () => {
     const { result } = mount(DAW_SETUPS.reaper, {
       previewTake: async () => ({ ok: false, changed: false, message: 'REAPER is recording.', undoSteps: 0, refused: 'REAPER is recording.' }),
