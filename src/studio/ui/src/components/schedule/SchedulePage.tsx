@@ -34,8 +34,8 @@ import { WorkedOut } from './WorkedOut';
 export const WRITE_WAIT_MS = 15_000;
 
 /**
- * After the next paint, puts focus on the first selector that matches, if focus has fallen to the page (a button that was pressed has gone). Not while a dialog is open: the page is behind it,
- * and a toast's Undo pressed over the Add milestone dialog leaves focus to the toast's hand-back, which stays in the dialog.
+ * After the next paint, puts focus on the first selector that matches, if focus has fallen to the page (a button that was pressed has gone). Not while a modal layer is open (any dialog or alert
+ * dialog): the page is behind it, and a toast's Undo pressed over one (the Add milestone dialog, say) leaves focus to the toast's hand-back, which stays inside the layer.
  */
 function focusSoon(...selectors: string[]): void {
   window.requestAnimationFrame(() => {
