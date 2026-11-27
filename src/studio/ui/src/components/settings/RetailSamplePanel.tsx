@@ -1,4 +1,4 @@
-import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
+import { isNumberedChapter } from '../../chapterKinds';
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -10,9 +10,9 @@ import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
 import { useReadChapters } from '../../studio/useChapters';
+import { plural } from '../../plural';
 
 // The sample is a stretch of the book's own text: the credits are narration but have no lines to pick.
-const isSampleChapter = (chapter: ManuscriptChapter) => isNarrationChapter(chapter) && !isCreditsChapter(chapter);
 const lineOptions = (chapter?: ManuscriptChapter) =>
   (chapter?.paragraphIds ?? []).map((_, index) => ({ value: String(index + 1), label: `Line ${index + 1}` }));
 
@@ -51,7 +51,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
   const load = useCallback(async () => {
     try {
       const [nextChapters, nextAnswer] = await Promise.all([readChapters(loads.current++ > 0), api.creditsRetailSample()]);
-      const narration = nextChapters.filter(isSampleChapter);
+      const narration = nextChapters.filter(isNumberedChapter);
       setChapters(narration);
       setAnswer(nextAnswer);
       const first = narration[0]?.id ?? '';
@@ -102,7 +102,7 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
       <p style={{ color: 'var(--text-muted)' }}>Up to 5 minutes, and it adds no time to the estimate.</p>
       <p aria-live="polite" className="m-0 text-[0.8125rem]">
         {sample
-          ? `${rangeOf(sample)} (${sample.words.toLocaleString('en-US')} words, about ${formatMinutesSeconds(sample.seconds)}).`
+          ? `${rangeOf(sample)} (${plural(sample.words, 'word')}, about ${formatMinutesSeconds(sample.seconds)}).`
           : answer?.problem
             ? `The saved sample cannot be shown: ${answer.problem}.`
             : 'No retail sample picked yet.'}

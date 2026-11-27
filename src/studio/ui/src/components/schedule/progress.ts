@@ -2,7 +2,7 @@ import type { ChapterStatus, ManuscriptContentKind, RecordedThrough } from '../.
 import type { ProductionMilestone } from '../../api/contracts/production';
 import type { StatusId } from '../../kinds/statusTone';
 import { reached } from '../../chapterStatus';
-import { isNarrationChapter } from '../../chapterKinds';
+import { isNarrationChapter, isNumberedChapter } from '../../chapterKinds';
 import { recordedShare } from '../../recordedThrough';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import type { CreditsKind } from '../credits/useCreditsRows';
@@ -46,6 +46,12 @@ export function scheduleChapters(
     };
   });
 }
+
+/** A chapter that carries a number in the book: narration that is not the opening or closing credits. */
+const isNumbered = (c: ScheduleChapter): boolean => isNumberedChapter({ contentKind: c.kind, isCredits: c.credits !== undefined });
+
+/** How many chapters the book numbers: what "First N chapters" counts from. */
+export const numberedCount = (chapters: readonly ScheduleChapter[]): number => chapters.filter(isNumbered).length;
 
 /** The first status at which a stage is done. */
 const DONE_AT = { rec: 'editing', edit: 'proofing', proof: 'finalized' } as const;
@@ -171,8 +177,9 @@ export function remainFor(chapters: readonly ScheduleChapter[], stored: string, 
     let numbered = 0;
     return chapters.reduce((a, c) => {
       if (c.credits === 'opening') return a + workLeft(c, 'proof', wph);
-      if (c.kind === 'narration' && !c.credits) numbered += 1;
-      return !c.credits && c.kind === 'narration' && numbered <= n ? a + workLeft(c, 'proof', wph) : a;
+      if (!isNumbered(c)) return a;
+      numbered += 1;
+      return numbered <= n ? a + workLeft(c, 'proof', wph) : a;
     }, 0);
   }
   const through: Record<string, keyof typeof DONE_AT> = { rec: 'rec', edit: 'edit', proof: 'proof', editproof: 'proof', all: 'proof' };

@@ -9,6 +9,7 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
 import { PortOverrides } from '../../../ports/usePort';
+import { overlay } from '../../../overlay/overlayService';
 import { previewPlayOwner } from '../../../playback/dawPlayOwner';
 import { READ_FAILED, type DawRead } from '../../../playback/providers';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
@@ -73,7 +74,9 @@ const flush = () =>
     await vi.advanceTimersByTimeAsync(0);
   });
 
+let toast: ReturnType<typeof vi.fn>;
 beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined) as unknown as ReturnType<typeof vi.fn>;
   previewPlayOwner.forget();
   hidden = null;
   vi.useFakeTimers();
@@ -367,7 +370,7 @@ describe('a-daw-that-does-not-answer-the-preview', () => {
     });
     answer({ ok: true, changed: false, message: '', undoSteps: 0 });
     await flush();
-    expect(notices.at(-1)).toBe('REAPER was not asked to stop: bridge gone. Stop it in REAPER.');
+    expect(toast).toHaveBeenLastCalledWith('REAPER was not asked to stop: bridge gone. Stop it in REAPER.', { tone: 'error' });
   });
   it('a preview answered after a newer take was pressed does not stop the newer take', async () => {
     const answers: ((r: DawResult) => void)[] = [];
@@ -472,6 +475,17 @@ describe('a-daw-that-does-not-answer-the-preview', () => {
     });
     expect(result.current.playingId).toBe('take-1');
   });
+  it('a take Stop the DAW never answers is an error toast that says where to stop it', async () => {
+    const stopPreview = vi.fn(() => new Promise<DawResult>(() => {}));
+    const { result } = mount(DAW_SETUPS.reaper, { previewTake: async () => ({ ok: true, changed: false, message: '', undoSteps: 0 }), stopPreview });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    act(() => result.current.stop());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
+    });
+    expect(toast).toHaveBeenLastCalledWith('REAPER did not answer in time. Stop it in REAPER.', { tone: 'error' });
+  });
   it('the take Stop that the DAW refuses says where to stop it', async () => {
     const stopPreview = vi
       .fn()
@@ -481,6 +495,6 @@ describe('a-daw-that-does-not-answer-the-preview', () => {
     await flush();
     act(() => result.current.stop());
     await flush();
-    expect(notices.at(-1)).toBe('REAPER would not stop. Stop it in REAPER.');
+    expect(toast).toHaveBeenLastCalledWith('REAPER would not stop. Stop it in REAPER.', { tone: 'error' });
   });
 });

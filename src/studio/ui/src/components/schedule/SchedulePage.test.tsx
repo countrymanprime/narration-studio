@@ -13,7 +13,7 @@ import { overlay } from '../../overlay/overlayService';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { NarrationApi } from '../../types';
 import { SchedulePage } from './SchedulePage';
-import { chapterList } from './scheduleKit.test';
+import { chapterList, reasonOf, slotText } from './scheduleKit.test';
 import { chaptersOf } from '../../api/chaptersOf';
 
 const TODAY = new Date(2026, 9, 1);
@@ -219,7 +219,7 @@ describe('the milestone dialog', () => {
     expect((d.getByLabelText('Name') as HTMLInputElement).value).toBe('All chapters recorded');
     fireEvent.change(d.getByLabelText('Name'), { target: { value: '  ' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
-    expect((await d.findByRole('alert')).textContent).toContain('Give the milestone a name.');
+    expect(await slotText()).toContain('Give the milestone a name.');
     expect((await stored())[0].name).toBe('All chapters recorded');
     fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Everything recorded' } });
     fireEvent.change(d.getByLabelText('Due'), { target: { value: '2026-10-09' } });
@@ -240,13 +240,14 @@ describe('the milestone dialog', () => {
     expect(await entries()).toEqual(['Edit milestone']);
   });
 
-  it('clamps the chapter count to the book, and Cancel changes nothing', async () => {
+  it('refuses a chapter count above the book, and Cancel changes nothing', async () => {
     await mount();
     let d = await open('All chapters recorded');
     await userEvent.selectOptions(d.getByRole('combobox', { name: 'What the milestone measures' }), 'chN');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '99' } });
-    fireEvent.blur(d.getByLabelText('How many chapters'));
-    expect((d.getByLabelText('How many chapters') as HTMLInputElement).value).toBe('2');
+    fireEvent.click(d.getByRole('button', { name: 'Save' }));
+    expect((await reasonOf(d)).textContent).toBe('The book has 2 chapters. Write a whole number from 1 to 2.');
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '2' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect((await stored())[0].measure).toBe('ch2');
@@ -264,7 +265,7 @@ describe('the milestone dialog', () => {
     await screen.findByText('Retail sample');
     fireEvent.click(screen.getByRole('button', { name: 'Add milestone' }));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Add milestone' }));
-    expect((await within(dialog()).findByRole('alert')).textContent).toContain('Give the milestone a name.');
+    expect(await slotText()).toContain('Give the milestone a name.');
     fireEvent.change(within(dialog()).getByLabelText('Name'), { target: { value: 'Second sample' } });
     fireEvent.change(within(dialog()).getByLabelText('Due'), { target: { value: '2026-10-02' } });
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Add milestone' }));

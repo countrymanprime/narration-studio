@@ -153,6 +153,24 @@ export const WithError: Story = {
   },
 };
 
+// `invalid` marks the field wrong while its reason is said by a message elsewhere (a form's one alert); `describedBy` names that message.
+export const InvalidWithMessageElsewhere: Story = {
+  args: { value: '', invalid: true, describedBy: 'story-reason' },
+  render: (args) => (
+    <>
+      <ControlledField {...args} />
+      <p id="story-reason" className="mt-1 text-xs text-[var(--danger-text)]">
+        A timeline context is required
+      </p>
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole('textbox', { name: 'Timeline context' });
+    await expect(input).toBeInvalid();
+    await expect(input).toHaveAccessibleDescription('A timeline context is required');
+  },
+};
+
 export const TextareaWithHintAndError: Story = {
   args: { label: 'Description', textarea: true, value: '', hint: 'One or two sentences', error: 'A description is required' },
   play: async ({ canvasElement }) => {
