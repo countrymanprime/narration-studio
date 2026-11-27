@@ -494,6 +494,20 @@ describe('marking a voice sample', () => {
     expect(remove).toHaveBeenCalledWith('a'.repeat(32));
   });
 
+  it('journals a right-to-left character name isolated (#4129)', async () => {
+    // An Arabic name, written with escapes so no right-to-left character sits in the source.
+    const name = '\u0645\u0644\u0643\u0629';
+    entities = () => Promise.resolve(ENTITIES.map((row) => (row.id === 'e-queen' ? { ...row, canonical_name: name } : row)));
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    mount(journal);
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    enter();
+    await flush();
+    const [row] = await journal.entries();
+    expect(row?.label).toBe(`Saved a voice sample for \u2068${name}\u2069`);
+  });
+
   it('a saved voice sample is one journal entry, and Ctrl+Z removes it', async () => {
     const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
     mount(journal);

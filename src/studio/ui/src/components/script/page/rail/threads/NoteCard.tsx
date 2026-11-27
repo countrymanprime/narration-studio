@@ -5,6 +5,7 @@ import { withoutSent } from '../../../../../studio/drafts/withoutSent';
 import { shortName } from '../../../../../studio/drafts/draftSentence';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { overlay } from '../../../../../overlay/overlayService';
+import { isolatedIfRtl } from '../../../../../visibleText';
 import { Button } from '../../../../primitives/Button';
 import { IconButton } from '../../../../primitives/IconButton';
 import { Select } from '../../../../primitives/Select';
@@ -141,7 +142,7 @@ export function NoteCard({
   // A reply typed and not yet added is held text: leaving the page asks first (#3400).
   useUnsavedDraft(`script-note-reply-${mark.id}`, {
     dirty: reply.trim() !== '',
-    label: `your reply on “${shortName(quote || line, 18)}”`,
+    label: `your reply on “${isolatedIfRtl(shortName(quote || line, 18))}”`,
     brief: 'your reply',
     kind: 'script-note-reply',
     many: (n) => `${plural(n, 'reply', 'replies')} you are writing`,

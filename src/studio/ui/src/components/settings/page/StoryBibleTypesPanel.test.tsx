@@ -408,6 +408,15 @@ describe('text typed in New type is held until it is added (#3457)', () => {
     return api;
   };
 
+  it('names a right-to-left New type text isolated in the held label (#4129)', async () => {
+    await mount();
+    // An Arabic name, written with escapes so no right-to-left character sits in the source.
+    const name = '\u0645\u062E\u0644\u0648\u0642';
+    fireEvent.change(within(panel()).getByRole('textbox', { name: 'New type' }), { target: { value: name } });
+    expect(registry.heldNow().map((held) => held.label)).toEqual([`the new type \u201C\u2068${name}\u2069\u201D`]);
+    act(() => registry.discard());
+  });
+
   it('typed New type text asks before leaving: held, named, and dropped by Discard', async () => {
     await mount();
     expect(registry.heldNow()).toEqual([]);

@@ -504,6 +504,16 @@ describe('entities-and-mentions', () => {
     expect(await hook.result.current.journal.entries()).toHaveLength(entries);
   });
 
+  it('journals an entry from a right-to-left selection with its name isolated (#4129)', async () => {
+    const hook = setup();
+    await ready(hook);
+    // An Arabic name, written with escapes so no right-to-left character sits in the source.
+    const name = '\u0627\u0644\u0633\u0644\u062D\u0641\u0627\u0629';
+    await act(async () => void (await hook.result.current.commands.createEntryFrom('Character', name)));
+    const labels = (await hook.result.current.journal.entries()).map((row) => row.label);
+    expect(labels).toEqual([`Added \u201C\u2068${name}\u2069\u201D to the Story Bible`]);
+  });
+
   it('a refused create is the host sentence and journals nothing', async () => {
     api = host({ guideCreate: refusing('The Story Bible is being rebuilt.') });
     const hook = setup();

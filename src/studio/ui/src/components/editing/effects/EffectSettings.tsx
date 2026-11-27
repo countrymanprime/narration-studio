@@ -6,6 +6,7 @@ import { overlay } from '../../../overlay/overlayService';
 import type { FxRangeTarget } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
 import type { Command, Journal, Result } from '../../../studio/journal/createJournal';
+import { isolatedIfRtl } from '../../../visibleText';
 import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { NumberInput } from '../../primitives/NumberInput';
@@ -111,10 +112,10 @@ const actionOf = (kind: DawActionKind, { undoSteps }: DawResult) =>
   undoSteps >= 1 && undoSteps <= DAW_RESULT_MAX_UNDO_STEPS ? { kind, steps: undoSteps } : undefined;
 
 /** One setting changed as one history entry: the DAW sets it (one undo step of its own), and Undo sets it back. */
-function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxSetting, value: number, previous: number): Command<DawResult> {
+export function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxSetting, value: number, previous: number): Command<DawResult> {
   const change = (to: number) => daw.setFxRangeParam({ ...target, fx: setting.fx, index: setting.index, value: to }).catch(failed);
   return {
-    label: `Set ${setting.name} of ${fx.chainName} to ${value}`,
+    label: `Set ${setting.name} of ${isolatedIfRtl(fx.chainName)} to ${value}`,
     touches: [`editing/${target.chapterId}/wordfx`],
     daw: true,
     dawAction: (res) => actionOf('set_fx_param', res),
@@ -130,7 +131,7 @@ function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxS
  * Bypass or turning back on as one history entry: the DAW switches the chain, then the effect's record keeps it so the coverage figure
  * counts only the effects that are on. Undo does both the other way.
  */
-function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], target: FxRangeTarget, fx: WordFx, bypass: boolean): Command<DawResult> {
+export function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], target: FxRangeTarget, fx: WordFx, bypass: boolean): Command<DawResult> {
   // A run that changes nothing in the DAW records nothing; an Undo puts the record back whatever the DAW answered.
   const to = async (b: boolean, mustChange: boolean): Promise<Result<DawResult>> => {
     const res = okOrRefusal(await daw.bypassFxRange(target, b).catch(failed));
@@ -140,7 +141,7 @@ function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], t
     return notKept ? refusal('record_failed', `${notKept} The DAW ${b ? 'bypassed' : 'turned on'} the effect: undo it there (Edit > Undo).`) : res;
   };
   return {
-    label: `${bypass ? 'Bypassed' : 'Turned on'} ${fx.chainName}`,
+    label: `${bypass ? 'Bypassed' : 'Turned on'} ${isolatedIfRtl(fx.chainName)}`,
     touches: [`editing/${target.chapterId}/wordfx`],
     daw: true,
     dawAction: (res) => actionOf(bypass ? 'bypass_fx' : 'enable_fx', res),
@@ -153,9 +154,16 @@ function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], t
  * Compare as one history entry: the DAW plays the words with the effect on, then bypassed, and puts it back, adding no undo step of its own.
  * Undo stops a Compare still playing and leaves the effect as it was before (`was`), in the DAW and the record.
  */
-function compareCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], target: FxRangeTarget, fx: WordFx, was: boolean): Command<DawFxRangeCompare> {
+export function compareCommand(
+  daw: Daw,
+  log: Log,
+  onEffects: EffectHost['onEffects'],
+  target: FxRangeTarget,
+  fx: WordFx,
+  was: boolean,
+): Command<DawFxRangeCompare> {
   return {
-    label: `Compared ${fx.chainName} with and without`,
+    label: `Compared ${isolatedIfRtl(fx.chainName)} with and without`,
     touches: [`editing/${target.chapterId}/wordfx`],
     // The DAW adds no undo point for a Compare, so it has no last action to be asked about; Undo stops the play and puts the effect back as it was.
     daw: false,
