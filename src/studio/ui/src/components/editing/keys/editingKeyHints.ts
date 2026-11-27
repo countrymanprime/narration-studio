@@ -4,7 +4,7 @@ import { gestureKeys } from '../../../input/hints';
 import type { Keymap } from '../../../input/keymap';
 
 /** One hint of the footer: the command whose first gesture is drawn, the commands whose caps join it in one chord, and the word beside them. */
-type HintSpec = { id: CommandId; with?: readonly CommandId[]; label: string };
+type HintSpec = { id: CommandId; with?: readonly CommandId[]; label: string; off?: boolean; offReason?: string };
 
 /** The Editing footer in the order of the mock's key hints. Only ids; the caps come from the narrator's keymap. */
 export const EDITING_FOOTER_SPEC: readonly HintSpec[] = [
@@ -23,9 +23,12 @@ export const EDITING_FOOTER_SPEC: readonly HintSpec[] = [
 /** The commands the edit-off notice says are off (Delete, Mute and Add FX); Mute has no hint. */
 const EDIT_OFF: ReadonlySet<CommandId> = new Set<CommandId>(['editing.delete', 'editing.fx']);
 
-/** The footer without the hints of commands that are off, so the hints never offer what the notice above them says is off (R4TA-8). */
-export function editOffHints(spec: readonly HintSpec[], off: boolean): HintSpec[] {
-  return off ? spec.filter((hint) => !EDIT_OFF.has(hint.id)) : [...spec];
+/**
+ * The footer with the hints of commands that are off drawn off (struck through, the reason after them), so the hints never offer what the notice above them says is off (R4TA-8).
+ * They stay listed: dropping them shortened a wrapped footer by a line and moved the page when the DAW went away (#4060).
+ */
+export function editOffHints(spec: readonly HintSpec[], reason: string | null): HintSpec[] {
+  return reason === null ? [...spec] : spec.map((hint) => (EDIT_OFF.has(hint.id) ? { ...hint, off: true, offReason: reason } : hint));
 }
 
 /**
@@ -46,7 +49,7 @@ const cap = (key: string): string => (key === 'Escape' ? 'Esc' : key);
  */
 export function editingKeyHints(keymap: Keymap, spec: readonly HintSpec[] = EDITING_FOOTER_SPEC): KeyHintItem[] {
   const hints: KeyHintItem[] = [];
-  for (const { id, with: more = [], label } of spec) {
+  for (const { id, with: more = [], label, off, offReason } of spec) {
     const gestures = [id, ...more].map((commandId) => keymap[commandId]?.[0]);
     if (!gestures.every(Boolean)) continue;
     const [first, ...rest] = gestures.map((gesture) => gestureKeys(gesture!));
@@ -55,7 +58,7 @@ export function editingKeyHints(keymap: Keymap, spec: readonly HintSpec[] = EDIT
       const shared = next.filter((k, i) => i < next.length - 1 && first.includes(k));
       keys.push(...next.filter((k) => !shared.includes(k)));
     }
-    hints.push({ keys: keys.map(cap), label, id: `hint-${id}` });
+    hints.push({ keys: keys.map(cap), label, id: `hint-${id}`, ...(off ? { off, ...(offReason ? { offReason } : {}) } : {}) });
   }
   return hints;
 }

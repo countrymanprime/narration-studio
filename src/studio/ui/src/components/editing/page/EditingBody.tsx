@@ -514,7 +514,7 @@ export function EditingBody(props: EditingBodyProps) {
   const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
   const hints = editingKeyHints(
     keymap,
-    editOffHints(EDITING_FOOTER_SPEC, cut.plan?.kind === 'refused').map((h) => {
+    editOffHints(EDITING_FOOTER_SPEC, cut.plan?.kind === 'refused' ? cut.plan.reason : null).map((h) => {
       if (h.id === 'editing.strip' && !stripFits) return { ...h, label: 'Timeline drawer' };
       if (h.id === 'editing.keep') return { ...h, label: enterHintLabel({ takesOpen: lineTakes.onTake !== null, onFlag: cursorOnFlag }) };
       return h;

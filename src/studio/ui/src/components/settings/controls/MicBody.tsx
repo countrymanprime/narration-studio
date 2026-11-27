@@ -100,7 +100,8 @@ function DawMic() {
         {back}
       </div>
     );
-  if (answer === null) return <span className={NOTE_CLASS}>{`Asking ${dawName} which microphone it records from…`}</span>;
+  // The answer is the input, the DAW's output, the pair of buttons: the note holds their room until it comes, so the rows below do not move (#4060).
+  if (answer === null) return <span className={`${NOTE_CLASS} block min-h-[6.8125rem]`}>{`Asking ${dawName} which microphone it records from…`}</span>;
   const told = answer === 'failed' ? null : answer;
   const resolved = resolveListeningMic({ dawRecords: true, answer: told, source: 'daw', chosen: computerValue(row, global), devices });
   const different = (

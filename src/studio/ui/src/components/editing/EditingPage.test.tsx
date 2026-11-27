@@ -804,11 +804,14 @@ describe('EditingPage', () => {
       const notice = await waitFor(() => document.querySelector<HTMLElement>('#editoff')!);
       expect(notice.textContent).toContain('Delete, Mute and Add FX are off.');
       expect(notice.textContent).toContain(DAW_SETUPS['reaper-off'].capabilities['cut_range'].message!);
-      // R4TA-8: the key hints under it do not offer what it says is off.
-      const hints = document.querySelector<HTMLElement>('#keyhints')!.textContent!;
-      expect(hints).not.toContain('Delete words and audio');
-      expect(hints).not.toContain('Add FX');
-      expect(hints).toContain('Play from here');
+      // R4TA-8: the key hints under it do not offer what it says is off: they stay listed, struck through with the reason after them, so the footer keeps its length (#4060).
+      const hints = document.querySelector<HTMLElement>('#keyhints')!;
+      for (const label of ['Delete words and audio', 'Add FX']) {
+        const hint = within(hints).getByText(label);
+        expect(hint.className).toContain('line-through');
+        expect(hint.parentElement!.textContent).toContain(DAW_SETUPS['reaper-off'].capabilities['cut_range'].message!);
+      }
+      expect(within(hints).getByText('Play from here').className).not.toContain('line-through');
     });
 
     it('has no such notice while the edits are on', async () => {

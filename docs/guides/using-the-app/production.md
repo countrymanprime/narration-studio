@@ -25,7 +25,7 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 
 ![Production with no manuscript imported: the page is the import](../../images/ui/production-no-manuscript.webp)
 
-The app connects to the REAPER you have open by itself. For the first ten seconds after REAPER stops answering the mark reads
+The app connects to the REAPER you have open by itself. For the first ten seconds after REAPER stops answering the mark, which sits in the top bar beside the engine chip so the page below does not move, reads
 "Connecting to REAPER…", and while the app is opening REAPER on the linked project it reads "Starting REAPER…" (the app
 waits up to 90 seconds for REAPER to answer); nothing asks you meanwhile, the header's engine chip reads **REAPER: Starting**, and the sentences the page prints about the DAW say it is starting instead of telling you to open it. A project with no REAPER project file linked does not wait: its dialog opens at once with **Link project file…**. If you open the dialog from the mark while REAPER is starting, it is titled **Starting REAPER** and its **Start REAPER** waits with it. If REAPER has not come up by then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
 that progress that comes from it may be out of date until it is running again, and when the app last checked. The mark is a problem notice that reopens this dialog, not the DAW chip: the engine chip in the header is the one that opens the [audio engine panel](navigation.md#the-audio-engine-panel).
