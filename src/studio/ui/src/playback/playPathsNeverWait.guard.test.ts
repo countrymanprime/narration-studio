@@ -61,4 +61,16 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
       else expect(text).toMatch(/\bdeadlineMs:\s*PLAY_DEADLINE_MS\b/);
     },
   );
+
+  // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it. The shared
+  // owner stops the older settled play when a newer press is refused (`dawPlayOwner.test.ts`), so every path must hand it that stop when it settles.
+  it.each(CALLERS)('%s settles its play with the stop that ends it (so a refused newer play stops it before the app plays)', (file) => {
+    const text =
+      file === 'components/editing/bar/useScriptPlayback.ts'
+        ? all.find((s) => s.file === 'components/editing/follow/useDawTransportSync.ts')!.text
+        : all.find((s) => s.file === file)!.text;
+    const settles = [...text.matchAll(/PlayOwner\.settle\(([^)]*(?:\([^)]*\)[^)]*)*)\)/g)];
+    expect(settles.length).toBeGreaterThan(0);
+    for (const m of settles) expect(m[1]).toMatch(/,\s*\S/);
+  });
 });

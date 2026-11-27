@@ -7,6 +7,7 @@ import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 import { toastProblems } from './helpers/overlayGuard';
 import { pastStartGuard } from './helpers/startGuard';
+import { raiseToast } from './helpers/raiseToast';
 
 const REFUSAL = 'REAPER refused to start recording because the armed track is locked for the moment, so nothing was recorded. Unlock it and try again.';
 const SIZES = [
@@ -302,8 +303,7 @@ for (const { width, height } of [
     await settlePage(page);
     await goToPage(page, 'Booth');
     await expect(record(page)).toBeEnabled();
-    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-    await page.evaluate(() => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast('The take could not be saved. Try again.'));
+    await raiseToast(page, 'The take could not be saved. Try again.');
     await expect(page.locator('[data-toast-region] [data-tone="error"]')).toBeVisible();
     await record(page).focus();
     const stops: string[] = [];

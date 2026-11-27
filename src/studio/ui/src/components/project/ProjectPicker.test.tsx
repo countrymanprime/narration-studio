@@ -242,6 +242,23 @@ describe('ProjectPicker', () => {
   describe('removing a recent project (#1778)', () => {
     beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
 
+    // #4113: the name opens the sentence, so a right-to-left one is isolated or it would turn the whole line around.
+    it('isolates a right-to-left project name in the removed message, and the already-removed one', async () => {
+      const arabic = '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644';
+      const { notify } = renderPicker({
+        projectRecents: async () => [{ path: 'C:\\Projects\\Arabic', name: arabic, lastOpened: '2026-01-01T00:00:00Z', pinned: false }],
+      });
+      await screen.findByText(arabic);
+
+      fireEvent.click(removeButton(arabic));
+
+      expect(notify).toHaveBeenCalledWith(
+        `Removed \u2068${arabic}\u2069 from recent projects. Its files are kept.`,
+        'info',
+        expect.objectContaining({ label: 'Undo' }),
+      );
+    });
+
     it('takes the row away at once, says its files are kept and offers Undo, but only asks the host after the undo window', async () => {
       const { api, notify } = renderPicker();
       const removeRecentProject = vi.spyOn(api, 'removeRecentProject');

@@ -9,6 +9,7 @@ import type { RangePlan } from '../common/rangePlan';
 import { appliedSpan, subWordNote } from '../common/spanRequest';
 import type { Span } from '../../ribbon/rangeMath';
 import { plural } from '../../../../plural';
+import { isolatedIfRtl } from '../../../../visibleText';
 
 /** The fade at each new split, in milliseconds (the mock's FX_FADE_MS). */
 export const FX_FADE_MS = 8;
@@ -185,7 +186,7 @@ export function applyFxCommand(deps: FxDeps, plan: Acting, ask: FxAsk): Command<
           if (typeof id === 'string') backupId = id;
         }
       }
-      let message = `${chain.name} is kept as an effect entry on these words.`;
+      let message = `${isolatedIfRtl(chain.name)} is kept as an effect entry on these words.`;
       if (viaDaw) {
         const res = await deps.daw.applyFxToRange({ chapterId, ...tokens, chainName: chain.id, fadeMs: ask.fadeMs ?? FX_FADE_MS }).catch(failed);
         if (!res.ok) return refusal(res.code ?? 'daw_refused', res.refused ?? res.message);
@@ -265,9 +266,9 @@ export function keepChosenCommand(
           guid: `${chapterId}/${tokens.firstToken}-${tokens.lastToken}/${DAW_CHOSEN_CHAIN}`,
         });
         deps.onEffects(change.effects);
-        return { ok: true, value: { id: change.changed[0] ?? '', message: `Added ${label} to the words in ${plan.dawName}.` } };
+        return { ok: true, value: { id: change.changed[0] ?? '', message: `Added ${isolatedIfRtl(label)} to the words in ${plan.dawName}.` } };
       } catch (e) {
-        return refusal('record_failed', `${why(e)} ${label} is still on the words in ${plan.dawName}: take it off there, or press Cancel.`);
+        return refusal('record_failed', `${why(e)} ${isolatedIfRtl(label)} is still on the words in ${plan.dawName}: take it off there, or press Cancel.`);
       }
     },
     async undo({ id }) {
