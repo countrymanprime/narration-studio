@@ -1,5 +1,5 @@
 import { TOAST_ROOM_EVENT } from '../../hooks/useToastClearance';
-import { openModalLayer } from '../../input/targets';
+import { openModalLayer, takesTypedText } from '../../input/targets';
 import { HIT_AREA } from './hitArea';
 import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
@@ -93,6 +93,9 @@ class HandBacks {
   private waiting = new Set<HandBackWait>();
   private keysCancel: (() => void) | null = null;
   private pressKey: string | null = null;
+  private graceTimer: number | undefined;
+  /** Whether a keyboard dismissal is in progress or has just handed focus back: a fresh Enter or Space is consumed, so it presses neither what focus went to nor what the page does with the key (#4125). */
+  private grace = false;
   hold(cancel: () => void): void {
     if (this.open) this.cancels.add(cancel);
     else cancel();
@@ -102,6 +105,8 @@ class HandBacks {
   }
   close(): void {
     this.open = false;
+    window.clearTimeout(this.graceTimer);
+    this.grace = false;
     this.waiting.clear();
     const all = [...this.cancels];
     this.cancels.clear();
@@ -124,6 +129,26 @@ class HandBacks {
     if (this.keysCancel || !this.open) return;
     const swallow = (event: KeyboardEvent) => {
       const code = keyOf(event);
+      // A fresh Enter or Space from the moment a keyboard dismissal begins until a moment after it has handed focus back is not a press: it would press the control focus goes to (the next row's Remove) or run the page's
+      // own command (Space plays, Enter keeps a take). It is held, so its repeats are cancelled until its keyup, which (a button is clicked by Enter's keydown and by Space's keyup) a cancelled keydown never arms.
+      // Not a chord (Ctrl+Enter is a dialog's own), not a composition, and not a Space typed into a field (the space in the text).
+      if (
+        this.grace &&
+        !event.repeat &&
+        activates(event) &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        !event.isComposing &&
+        !(event.code === 'Space' && takesTypedText(event.target))
+      ) {
+        // A code already held is a fresh press whose keyup was lost (the rule below): it is held again, with every hand-back that is not past it, which waits for the new press's keyup.
+        this.held.set(code, performance.now());
+        for (const wait of this.waiting) if (!wait.taken()) wait.codes.add(code);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const own = this.held.has(code);
       // A fresh press of a held code means its keyup was lost: it is let go, so its next repeats (an Enter held down in a field) are the field's own. A hand-back that was waiting for it is not let run under the new
       // press: the next rule holds the code again for every hand-back whose focus is not taken, and a hand-back's timer waits for the keys then held (`waitsForKeys`).
@@ -191,6 +216,30 @@ class HandBacks {
     };
   }
   /**
+   * A keyboard dismissal begins: a fresh Enter, NumpadEnter or Space is consumed (`listen`) until `endGrace`, so a double press does not press what focus goes to (#4125). Not for ever: a dismissing key whose keyup never
+   * comes keeps the hand-back waiting, so the grace ends `KEY_LIVE_MS` after the dismissal at the latest (the time a key stays held with no repeat), and a fresh press is then the rule of a lost keyup.
+   */
+  startGrace(): void {
+    if (!this.open) return;
+    this.graceFor(KEY_LIVE_MS);
+  }
+  /** The dismissal has handed focus back (`handed`) or has nothing to hand: the grace runs `ACTION_FOCUS_MS` more, or ends now. */
+  endGrace(handed: boolean): void {
+    if (handed && this.open) this.graceFor(ACTION_FOCUS_MS);
+    else this.graceOver();
+  }
+  private graceFor(ms: number): void {
+    window.clearTimeout(this.graceTimer);
+    this.grace = true;
+    this.listen();
+    this.graceTimer = window.setTimeout(() => this.graceOver(), ms);
+  }
+  private graceOver(): void {
+    window.clearTimeout(this.graceTimer);
+    this.grace = false;
+    this.endKeysIfIdle();
+  }
+  /**
    * A press with the pointer on a toast: a held key that repeated and then went silent (its keyup was lost) is let go. One that is still repeating is held, and so is one that has not repeated yet (the first repeat
    * comes after the system's delay, up to about a second). Its keyup or a fresh press of it lets it go; the window losing focus or the page being hidden ends only the waits, and the region closing removes the
    * listeners but leaves the keys as they were.
@@ -216,7 +265,7 @@ class HandBacks {
     }
   }
   private endKeysIfIdle(): void {
-    if (this.held.size > 0 || this.waiting.size > 0) return;
+    if (this.held.size > 0 || this.waiting.size > 0 || this.grace) return;
     const cancel = this.keysCancel;
     if (!cancel) return;
     this.release(cancel);
@@ -378,6 +427,8 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       throw error;
     }
     dismiss(id);
+    // A dismissal's focus is handed at once, so an Enter or Space pressed again meanwhile would press what has it: they are consumed from now until a moment after (`HandBacks.startGrace`).
+    if (always) owner.startGrace();
     let timer: number | undefined;
     const cancel = () => {
       window.clearTimeout(timer);
@@ -392,11 +443,15 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       const active = document.activeElement;
       const taken = focus.taken();
       cancel();
-      if (taken) return;
+      if (taken) {
+        if (always) owner.endGrace(false);
+        return;
+      }
       // A dialog is open: a target outside it (the page's <main>, once the origin is gone) lies behind it. Only something inside the dialog or among the toasts takes focus.
       const layer = openModalLayer();
       const candidates = resolve().filter((target) => !layer || layer.contains(target) || target.closest('[data-toast-region]'));
-      if (always || !active || active === document.body || !active.isConnected) focusFirst(candidates);
+      const handed = (always || !active || active === document.body || !active.isConnected) && focusFirst(candidates);
+      if (always) owner.endGrace(handed);
     };
     const start = () => {
       window.clearTimeout(timer);
