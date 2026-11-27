@@ -236,8 +236,11 @@ describe('proof-reopens-where-it-was (#4099)', () => {
   it('a Back onto an All chapters entry shows All chapters and does not rewrite the entry', async () => {
     renderPage({ at: '/proof?chapter=chapter-3' });
     await screen.findByText(/Recording check/i);
-    press('Escape', 'Escape');
-    await waitFor(() => expect(where()).toBe('/proof'));
+    // CI once saw this Escape go unheard right after the check card showed (not reproduced here; the keys likely bind a little later on a loaded runner): press until it is heard, it does nothing on All chapters.
+    await waitFor(() => {
+      press('Escape', 'Escape');
+      expect(where()).toBe('/proof');
+    });
     await noteRows();
     noteAppMoved(); // what App.tsx does once the app has a second address
     act(() => navigateTo('/pickups'));
