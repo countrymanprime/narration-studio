@@ -1,7 +1,7 @@
-// Escape on Record options (or the chapter list), then a key that leaves Enter and Space to the page (Ctrl+Alt+Space, a voice key) before the popup has finished leaving. Base UI
-// gives focus back to the popup's trigger only when its exit ends (120 ms, --motion-fast); a key inside that window found focus on the leaving popup, moved nothing, started its
+// Escape on Record options, the chapter list or the engine panel, then a key that leaves Enter and Space to the page (Ctrl+Alt+Space, a voice key) before the popup has finished leaving. Base UI
+// gives focus back to the popup's trigger only when its exit ends (120 ms, --motion-fast; the engine panel's drawer, --motion-base); a key inside that window found focus on the leaving popup, moved nothing, started its
 // take, and the hand-back then put focus on Record options: a footswitch Enter opened the options and the take went on recording. The rest of the visual suite runs with reduced
-// motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. The exit is held at 600 ms (`--motion-fast`) so that every case can
+// motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. The exit is held at 600 ms (`--motion-fast` and `--motion-base`) so that every case can
 // assert the popup is still leaving when the key is pressed, and the 20 and 60 ms lags are inside it however slow the machine is.
 import { expect, test, type Page } from '@playwright/test';
 import { boothChapterReady } from './helpers/viewTop';
@@ -14,6 +14,14 @@ const recordOptions = (page: Page) => page.getByRole('button', { name: 'Record o
 const optionsDialog = (page: Page) => page.getByRole('dialog', { name: 'Record options' });
 const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: / });
 const leavingNow = (page: Page) => page.locator('[data-popover-popup][data-ending-style], [role="menu"][data-ending-style], [role="menu"][data-closed]');
+const engineChip = (page: Page) => page.getByRole('button', { name: /^Recording setup/ });
+const enginePanel = (page: Page) => page.locator('[data-slide-over]');
+const panelLeaving = (page: Page) => page.locator('[data-slide-over][data-ending-style]');
+/** The panel has slid in: closed halfway through its entry it would slide back only that far, and the exit would be over before the key. */
+const openedFully = async (page: Page): Promise<void> => {
+  await expect(enginePanel(page)).toBeVisible();
+  await page.evaluate(() => Promise.all((document.querySelector('[data-slide-over]')?.getAnimations() ?? []).map((animation) => animation.finished)));
+};
 const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
 
 async function openBoothWithMotion(page: Page): Promise<void> {
@@ -24,7 +32,7 @@ async function openBoothWithMotion(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /^Record$/ })).toBeEnabled();
   // The popup really animates here: the suite's reduced-motion default is not set.
   expect(await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(false);
-  await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; }` });
+  await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
 }
 
 /** Enter and Space are Record's only from the page itself: any focused control keeps them. The page's <main> has focus, not <body> (a Tab from <body> goes to the skip link). */
@@ -175,6 +183,28 @@ test('Ctrl+Alt+Space refused while a take runs leaves Record options its hand-ba
   expect(await dawRecording(page)).toBe(true);
 });
 
+// The engine panel (a SlideOver, the 'Recording setup' chip) leaves on --motion-base, longer than a popover: the same hand-back landed on the chip after Ctrl+Alt+Space
+// had started the take, and the Enter that should stop it reopened the panel with the take still recording.
+for (const lag of [20, 60, 120]) {
+  test(`Escape on the engine panel, ${lag} ms later Ctrl+Alt+Space starts the take, focus is on the page and Enter stops it instead of reopening the panel`, async ({
+    page,
+  }) => {
+    await openBoothWithMotion(page);
+    await recordOptions(page).click();
+    await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(optionsDialog(page)).toHaveCount(0);
+    await engineChip(page).click();
+    await openedFully(page);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(panelLeaving(page)).toHaveCount(1);
+    await page.keyboard.press('Control+Alt+Space');
+    await expectEnterStopsTheTake(page, 'Enter');
+    await expect(enginePanel(page)).toHaveCount(0);
+  });
+}
+
 // What the rule must not break: with no key in between, Escape still gives focus back to the control that opened the popup.
 test('Escape on Record options with no key after it still gives focus back to Record options, with motion on', async ({ page }) => {
   await openBoothWithMotion(page);
@@ -182,6 +212,14 @@ test('Escape on Record options with no key after it still gives focus back to Re
   await expect(optionsDialog(page)).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(recordOptions(page)).toBeFocused();
+});
+
+test('Escape on the engine panel with no key after it still gives focus back to the Recording setup chip, with motion on', async ({ page }) => {
+  await openBoothWithMotion(page);
+  await engineChip(page).click();
+  await openedFully(page);
+  await page.keyboard.press('Escape');
+  await expect(engineChip(page)).toBeFocused();
 });
 
 test('Escape on the chapter list with no key after it still gives focus back to the chapter button, with motion on', async ({ page }) => {

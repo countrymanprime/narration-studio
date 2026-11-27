@@ -84,6 +84,9 @@ export function handFocusToPage(): boolean {
 }
 
 const POPUPS = '[data-popover-popup], [role="menu"]';
+// The popups a Booth key marks while they are leaving: those above, and a slide-over (the engine panel), which is not "another popup" for `anotherPopoverTakesFocus`
+// (a popover opened inside the panel must not read the panel as one) and so stays out of `POPUPS`.
+const MARKABLE = `${POPUPS}, [data-slide-over]`;
 const LEAVING = '[data-ending-style], [data-closed]';
 
 /**
@@ -108,11 +111,11 @@ const pageTookFocus = new WeakSet<Element>();
 /**
  * A key that leaves Enter and Space to the page (a voice key, Ctrl+Alt+Space: `claimFocusForPage`) pressed while a popup is still leaving: its exit runs on the fast
  * motion token and Base UI gives focus back to the trigger only when the exit has ended, so the hand-back would land after the key and put focus on the control the key
- * just released (Record options, the chapter list: a footswitch Enter then opens it while the take the key started keeps running). A popover or menu asks
- * `pageTookFocusFrom` as it closes and gives the page its focus instead.
+ * just released (Record options, the chapter list: a footswitch Enter then opens it while the take the key started keeps running). A popover, a menu or a slide-over
+ * (the engine panel) asks `pageTookFocusFrom` as it closes and gives the page its focus instead.
  */
 export function pageTakesFocusFromLeavingPopups(): void {
-  for (const popup of document.querySelectorAll(POPUPS)) if (popup.closest(LEAVING)) pageTookFocus.add(popup);
+  for (const popup of document.querySelectorAll(MARKABLE)) if (popup.closest(LEAVING)) pageTookFocus.add(popup);
 }
 
 /** Whether a key handed focus to the page while `popup` was leaving (see `pageTakesFocusFromLeavingPopups`). */

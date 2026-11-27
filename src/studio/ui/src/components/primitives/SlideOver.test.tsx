@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Dialog } from './Dialog';
+import { pageTakesFocusFromLeavingPopups } from './focusReturn';
 import { SlideOver } from './SlideOver';
 import { tabInsideTrap } from './tabInsideTrap';
 
@@ -281,5 +282,71 @@ describe('the header (ENX-11, ENX-13)', () => {
       </SlideOver>,
     );
     expect(screen.getByRole('heading', { name: 'Undo history' }).parentElement!.className).toContain('h-13');
+  });
+});
+
+// The panel leaves on --motion-base, longer than a popover: a Booth key that leaves Enter and Space to the page (Ctrl+Alt+Space, a voice key) pressed inside that exit
+// must not have the opener take focus back once the exit ends (a footswitch Enter then reopened the engine panel with the take the key started still recording).
+describe('SlideOver focus when a key hands it to the page while the panel is leaving', () => {
+  const proto = Element.prototype as unknown as { getAnimations?: () => unknown[] };
+  const original = proto.getAnimations;
+  afterEach(() => {
+    proto.getAnimations = original;
+  });
+
+  async function escapeWhileLeaving() {
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole('button', { name: 'Open panel' }));
+    await screen.findByRole('dialog', { name: 'Entry details' });
+    // The panel takes focus a moment after it opens; Escape before that leaves focus on the opener, which is not the state a key finds.
+    await waitFor(() => expect(document.querySelector('[data-slide-over]')?.contains(document.activeElement)).toBe(true));
+    // The exit is held from here: the entry above ran as it does in jsdom, with no animation.
+    proto.getAnimations = () => [{ finished }];
+    await user.keyboard('{Escape}');
+    expect(document.querySelector('[data-slide-over][data-ending-style]')).not.toBeNull();
+    return {
+      user,
+      endLeaving: async () => {
+        endExit();
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Entry details' })).toBeNull());
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      },
+    };
+  }
+
+  it('gives focus back to the opener when the exit ends and no key took it', async () => {
+    const { endLeaving } = await escapeWhileLeaving();
+    await endLeaving();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Open panel' }));
+  });
+
+  it('hands focus to <main> instead, when a key took the page focus while the panel was leaving', async () => {
+    const { endLeaving } = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    await endLeaving();
+    expect(document.activeElement).toBe(document.querySelector('main'));
+  });
+
+  it('keeps a deliberate focus move after the key: the hand-back to <main> only fills an empty focus', async () => {
+    const { endLeaving } = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    const field = document.createElement('input');
+    document.body.append(field);
+    field.focus();
+    await endLeaving();
+    expect(document.activeElement).toBe(field);
+    field.remove();
+  });
+
+  it('forgets the mark when the panel is opened again while it is still leaving: that exit gives focus back to the opener', async () => {
+    const { user, endLeaving } = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    await user.click(screen.getByRole('button', { name: 'Open panel' }));
+    await user.keyboard('{Escape}');
+    await endLeaving();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Open panel' }));
   });
 });
