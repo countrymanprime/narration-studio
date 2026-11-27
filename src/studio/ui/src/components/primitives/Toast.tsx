@@ -67,6 +67,9 @@ const TEXT_SCROLL_CUE =
 
 /** A key's identity: its `code`, else its `key` (a synthetic event may have no code). */
 const keyOf = (event: { code: string; key: string }): string => event.code || event.key;
+/** Whether a key press activates a button: Enter (either one) and Space. A synthetic event may carry only its `key`. */
+const activates = (event: { code: string; key: string }): boolean =>
+  event.key === 'Enter' || event.key === ' ' || event.code === 'Enter' || event.code === 'NumpadEnter' || event.code === 'Space';
 
 /**
  * What a press or a focused toast leaves waiting (a hand-back's timer and its wait for a key, the fallback for a toast removed with focus inside it, the document listeners that swallow a held key's repeats)
@@ -259,14 +262,14 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
   const hold = () => setHeld(hover.current || focused.current);
   // The second click of a double click (`detail` 2) is not a press: when the first click dismissed this toast's neighbour, the next toast took its place under the pointer and would take the second click (#4063).
   const tooSoon = (event: { detail: number }) => event.detail >= 2;
-  // The key last pressed on this toast's button: a key held down repeats, and the repeats must not press it again, nor press what focus is handed to (#4063). The hand-back after a press waits for it, if it
-  // is still held, to come up (the owner knows which keys are held).
+  // The key that last activated this toast's button (Enter or Space): a key held down repeats, and the repeats must not press it again, nor press what focus is handed to (#4063). The hand-back after a press waits
+  // for it, if it is still held, to come up (the owner knows which keys are held). Another key pressed on the button meanwhile (a Shift) is held and has its repeats cancelled, but is not what the press waits for.
   const pressKey = useRef<string | null>(null);
   const onButtonKey = (event: { repeat: boolean; code: string; key: string; preventDefault: () => void }) => {
     if (event.repeat) event.preventDefault();
     else {
-      pressKey.current = keyOf(event);
-      owner.keyDown(pressKey.current);
+      if (activates(event)) pressKey.current = keyOf(event);
+      owner.keyDown(keyOf(event));
     }
   };
   // A toast under a pointer that is not moving is not hovered, however it came there (it appeared under the button that raised it, another toast above it went, it came back after a
@@ -320,7 +323,13 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
     pressed.current = true;
     // Focus that something took since the press (a dialog or menu opened, a field was reached, even if it has closed since) is theirs: nothing is handed back (#4103).
     const focus = watchFocusTaken();
-    act?.();
+    try {
+      act?.();
+    } catch (error) {
+      // An action that throws leaves no watch behind (the toast stays, as when it threw before the watch existed).
+      focus.stop();
+      throw error;
+    }
     dismiss(id);
     let timer: number | undefined;
     let stopWaiting = () => {};
