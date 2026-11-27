@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import { pageTookFocusFrom } from '../primitives/focusReturn';
-import { releaseFocusToPage } from './releaseFocusToPage';
+import { claimFocusForPage, releaseFocusToPage } from './releaseFocusToPage';
 
 afterEach(() => {
   document.body.innerHTML = '';
@@ -23,13 +23,20 @@ describe('releaseFocusToPage', () => {
     expect(document.activeElement).toBe(el('i'));
   });
 
-  it('tells a popover that is still leaving the page has focus, so it does not give focus back to its trigger after the key', () => {
+  it('claimFocusForPage tells a popover that is still leaving the page has focus, so it does not give focus back after the key', () => {
     const el = page(
       '<div id="leaving" data-popover-popup="" data-ending-style=""><button id="inside">Pick</button></div><div id="open" data-popover-popup="" data-open=""></div>',
     );
     el('inside').focus();
-    releaseFocusToPage();
+    claimFocusForPage();
     expect(pageTookFocusFrom(el('leaving'))).toBe(true);
     expect(pageTookFocusFrom(el('open'))).toBe(false);
+  });
+
+  it('releaseFocusToPage alone marks nothing: a key the Booth refuses leaves the popover its hand-back', () => {
+    const el = page('<div id="leaving" data-popover-popup="" data-ending-style=""><button id="inside">Pick</button></div>');
+    el('inside').focus();
+    releaseFocusToPage();
+    expect(pageTookFocusFrom(el('leaving'))).toBe(false);
   });
 });

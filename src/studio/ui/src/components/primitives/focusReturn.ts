@@ -100,13 +100,15 @@ export function anotherPopoverTakesFocus(own: Element | null, opener: Element | 
   return Array.from(document.querySelectorAll(POPUPS)).some((popup) => popup !== own && !popup.closest(LEAVING) && !(opener && popup.contains(opener)));
 }
 
-// The popups a key has already handed focus to the page from while they were leaving; a popup is a new element each time it opens, so the mark goes with it.
+// The popups a key has already handed focus to the page from while they were leaving. A popup that opens again while it is still leaving is the same element
+// (Base UI keeps it), so the mark is cleared when it opens (`forgetPageTookFocus`); once it has unmounted the mark goes with the element.
 const pageTookFocus = new WeakSet<Element>();
 
 /**
- * A key that leaves Enter and Space to the page (`releaseFocusToPage`: a voice key, Ctrl+Alt+Space) pressed while a popover is still leaving: its exit runs on the fast
+ * A key that leaves Enter and Space to the page (a voice key, Ctrl+Alt+Space: `claimFocusForPage`) pressed while a popup is still leaving: its exit runs on the fast
  * motion token and Base UI gives focus back to the trigger only when the exit has ended, so the hand-back would land after the key and put focus on the control the key
- * just released (Record options: a footswitch Enter then opens it while the take the key started keeps running). The popover asks `pageTookFocusFrom` and gives none.
+ * just released (Record options, the chapter list: a footswitch Enter then opens it while the take the key started keeps running). A popover or menu asks
+ * `pageTookFocusFrom` as it closes and gives the page its focus instead.
  */
 export function pageTakesFocusFromLeavingPopups(): void {
   for (const popup of document.querySelectorAll(POPUPS)) if (popup.closest(LEAVING)) pageTookFocus.add(popup);
@@ -115,4 +117,20 @@ export function pageTakesFocusFromLeavingPopups(): void {
 /** Whether a key handed focus to the page while `popup` was leaving (see `pageTakesFocusFromLeavingPopups`). */
 export function pageTookFocusFrom(popup: Element | null): boolean {
   return popup !== null && pageTookFocus.has(popup);
+}
+
+/** A popup that opens again while it is still leaving is the same element: the mark of its earlier exit must not outlive the exit it was set for. */
+export function forgetPageTookFocus(popup: Element | null): void {
+  if (popup) pageTookFocus.delete(popup);
+}
+
+/**
+ * What a Base UI menu popup's `finalFocus` answers (a function switches off the library's own rule that focus is not taken from a control the narrator moved to
+ * meanwhile, so that rule is kept here): after a key left focus to the page while it was leaving, the page's <main> (focus left on <body> would send the next Tab to
+ * the skip link); with focus on a control outside the popup, none; else the library's own place, the trigger.
+ */
+export function menuFinalFocus(popup: Element | null): boolean {
+  if (pageTookFocusFrom(popup)) return handFocusToPage();
+  const active = document.activeElement;
+  return !active || active === document.body || !!popup?.contains(active);
 }

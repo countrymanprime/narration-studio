@@ -1,5 +1,6 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
-import { useId, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import { useId, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import { menuFinalFocus } from './focusReturn';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type MenuItem = {
@@ -171,6 +172,7 @@ export function Menu({
   children: ReactNode;
 }) {
   const [main, setMain] = useState<HTMLElement>();
+  const popup = useRef<HTMLDivElement>(null);
   return (
     // Not modal unless it is a page menu: the page behind stays scrollable and clickable, as with the menu this replaced (a press outside closes it).
     <BaseMenu.Root
@@ -187,6 +189,8 @@ export function Menu({
       <BaseMenu.Portal container={pageMenu ? main : undefined}>
         <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
           <BaseMenu.Popup
+            ref={popup}
+            finalFocus={() => menuFinalFocus(popup.current)}
             className={`max-h-[var(--available-height)] ${sections ? 'w-60' : 'w-44'} overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
             {items.map((item) =>

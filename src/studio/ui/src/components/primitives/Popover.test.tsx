@@ -85,11 +85,32 @@ describe('Popover focus when a key hands it to the page while the popover is lea
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Options' }));
   });
 
-  it('gives none when a key handed focus to the page meanwhile: the trigger would keep the Enter the key left to the page', async () => {
+  it('a leaving popover a key took focus from hands focus to <main> when focus was inside it', async () => {
     const endLeaving = await escapeWhileLeaving();
+    expect(document.querySelector('[data-popover-popup]')?.contains(document.activeElement)).toBe(true);
     pageTakesFocusFromLeavingPopups();
     await endLeaving();
-    expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'Options' }));
+    expect(document.activeElement).toBe(document.querySelector('main'));
+  });
+
+  it('keeps a deliberate focus move after the key: the hand-back to <main> only fills an empty focus', async () => {
+    const endLeaving = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    const field = document.createElement('input');
+    document.body.append(field);
+    field.focus();
+    await endLeaving();
+    expect(document.activeElement).toBe(field);
+  });
+
+  it('forgets the mark when it is opened again while it is still leaving: that exit gives focus back', async () => {
+    const endLeaving = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await user.keyboard('{Escape}');
+    await endLeaving();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Options' }));
   });
 
   it('gives it back as before to a popover that opens after the key, which the mark does not follow', async () => {

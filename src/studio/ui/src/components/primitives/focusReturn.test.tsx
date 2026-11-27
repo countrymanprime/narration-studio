@@ -7,6 +7,8 @@ import {
   escapeClosesPanel,
   anotherPopoverTakesFocus,
   focusPageMain,
+  forgetPageTookFocus,
+  menuFinalFocus,
   pageTakesFocusFromLeavingPopups,
   pageTookFocusFrom,
   useReturnFocusTarget,
@@ -307,5 +309,37 @@ describe('pageTakesFocusFromLeavingPopups', () => {
     next.setAttribute('data-popover-popup', '');
     document.body.append(next);
     expect(pageTookFocusFrom(next)).toBe(false);
+  });
+});
+
+describe('every popup POPUPS matches, once a key took the page focus while it was leaving', () => {
+  const POPUP_HTML = [
+    '<div data-popover-popup="" data-ending-style=""><button>in</button></div>',
+    '<div role="menu" data-closed=""><button role="menuitem">in</button></div>',
+  ];
+
+  it.each(POPUP_HTML)('gives no focus back and hands focus to <main> (%s)', (html) => {
+    document.body.innerHTML = `<main>${html}</main><button id="trigger">Trigger</button>`;
+    const popup = document.querySelector('[data-popover-popup], [role="menu"]')!;
+    (popup.querySelector('button') as HTMLElement).focus();
+    pageTakesFocusFromLeavingPopups();
+    expect(pageTookFocusFrom(popup)).toBe(true);
+    expect(menuFinalFocus(popup)).toBe(false);
+  });
+
+  it('forgetPageTookFocus clears the mark, so a menu gets the library place again', () => {
+    document.body.innerHTML = '<div role="menu" data-closed=""><button role="menuitem">in</button></div>';
+    const popup = document.querySelector('[role="menu"]')!;
+    pageTakesFocusFromLeavingPopups();
+    forgetPageTookFocus(popup);
+    expect(pageTookFocusFrom(popup)).toBe(false);
+    expect(menuFinalFocus(popup)).toBe(true);
+  });
+
+  it('keeps the library rule for a menu no key marked: focus on a control elsewhere is not taken', () => {
+    document.body.innerHTML = '<div role="menu"></div><input id="field" />';
+    const popup = document.querySelector('[role="menu"]')!;
+    document.getElementById('field')!.focus();
+    expect(menuFinalFocus(popup)).toBe(false);
   });
 });
