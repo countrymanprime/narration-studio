@@ -64,6 +64,15 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
 
   // #4124: for every pair of play paths on one page, starting one stops the other. The editing page's pair is the script and a take: each is handed the
   // other's stop. Primitives that start a play ignore a held key's repeat (`keyRepeat.ts`).
+  // The Editing page's play paths and how each pair stops each other: script <-> take through `stopChapter`/`stopTake` (EditingBody), and the voice sample
+  // player <-> both through `onSampleStart` (the script's `halt`, every `useRangePlayer`, so a take's app audio). A new play path on the page joins this table.
+  it.each([
+    ['components/editing/bar/useScriptPlayback.ts', /onSampleStart\(halt\)/],
+    ['components/engine/useRangePlayer.ts', /onSampleStart\(stop\)/],
+    ['components/editing/takes/useTakeAudition.ts', /stopChapter:\s*quiet|quiet\(\)|stopChapter\(\)/],
+  ])('%s is stopped by, and stops, the other play paths on its page', (file, wired) => {
+    expect(all.find((s) => s.file === file)!.text).toMatch(wired);
+  });
   it("the editing page hands the script and a take each other's stop", () => {
     const text = all.find((s) => s.file === 'components/editing/page/EditingBody.tsx')!.text;
     expect(text).toMatch(/stopChapter:\s*playback\.stop/);
