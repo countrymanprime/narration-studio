@@ -1,4 +1,5 @@
 import { TOAST_ROOM_EVENT } from '../../hooks/useToastClearance';
+import { activates, HeldKeys, KEY_LIVE_MS, keyOf } from '../../input/heldKeys';
 import { openModalLayer, takesTypedText } from '../../input/targets';
 import { HIT_AREA } from './hitArea';
 import { StatusBadge } from './StatusBadge';
@@ -66,14 +67,6 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
 const TEXT_SCROLL_CUE =
   '[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
-/** A key's identity: its `code`, else its `key` (a synthetic event may have no code). */
-const keyOf = (event: { code: string; key: string }): string => event.code || event.key;
-/** Whether a key press activates a button: Enter (either one) and Space. A synthetic event may carry only its `key`. */
-const activates = (event: { code: string; key: string }): boolean =>
-  event.key === 'Enter' || event.key === ' ' || event.code === 'Enter' || event.code === 'NumpadEnter' || event.code === 'Space';
-
-/** A key that has repeated still counts as held, at a pointer press, when its last repeat was this recently, or within three of its own repeat gaps if that is longer (the slowest OS repeat settings, and Windows FilterKeys, repeat every one to two seconds). */
-const KEY_LIVE_MS = 700;
 /** One hand-back in progress: the keys it still waits for, what starts its timer once they are up, and whether focus has been taken meanwhile (then it will hand nothing, and holds no key). */
 type HandBackWait = { codes: Set<string>; run: () => void; taken: () => boolean };
 
@@ -86,10 +79,8 @@ type HandBackWait = { codes: Set<string>; run: () => void; taken: () => boolean 
 class HandBacks {
   private cancels = new Set<() => void>();
   private open = true;
-  /** Each held key, with when it went down. */
-  private held = new Map<string, number>();
-  /** When each held key last repeated and how long it took (a key that has not yet has no entry): a pointer press lets go of one that repeated and then went silent, a lost keyup. */
-  private heard = new Map<string, { at: number; gap: number }>();
+  /** The keys held since a press on a toast's button: a window that loses focus leaves them held (`onBlur: 'keep'`). A key let go ends what waited for it. */
+  private keys = new HeldKeys({ onBlur: 'keep', onUp: (code) => this.keyUp(code) });
   private waiting = new Set<HandBackWait>();
   private keysCancel: (() => void) | null = null;
   private pressKey: string | null = null;
@@ -120,7 +111,7 @@ class HandBacks {
    */
   keyDown(code: string, activating = false): void {
     if (!this.open) return;
-    this.held.set(code, performance.now());
+    this.keys.hold(code);
     if (activating) this.pressKey = code;
     this.listen();
   }
@@ -143,49 +134,33 @@ class HandBacks {
         !(event.code === 'Space' && takesTypedText(event.target))
       ) {
         // A code already held is a fresh press whose keyup was lost (the rule below): it is held again, with every hand-back that is not past it, which waits for the new press's keyup.
-        this.held.set(code, performance.now());
+        this.keys.hold(code);
         for (const wait of this.waiting) if (!wait.taken()) wait.codes.add(code);
         event.preventDefault();
         event.stopPropagation();
         return;
       }
-      const own = this.held.has(code);
+      const own = this.keys.isHeld(code);
       // A fresh press of a held code means its keyup was lost: it is let go, so its next repeats (an Enter held down in a field) are the field's own. A hand-back that was waiting for it is not let run under the new
       // press: the next rule holds the code again for every hand-back whose focus is not taken, and a hand-back's timer waits for the keys then held (`waitsForKeys`).
-      if (own && !event.repeat) this.keyUp(code);
+      if (own && !event.repeat) this.keys.release(code);
       // An Enter or a Space that goes down while a hand-back is in progress (on <body>, where the press left focus) would press the control focus is handed to, by its repeats and its keyup: the hand-back waits for it
       // too, and its repeats are cancelled. A hand-back whose focus has been taken (a field, a dialog: the key goes to what has focus) will hand nothing, so holds no key.
       const live = [...this.waiting].filter((wait) => !wait.taken());
       if (!event.repeat && live.length > 0 && activates(event)) {
-        this.held.set(code, performance.now());
+        this.keys.hold(code);
         for (const wait of live) wait.codes.add(code);
         return;
       }
       // Only the held key's repeats: another key's (a Backspace held in a field) are its own, even while a held key's keyup is lost.
-      if (!own || !event.repeat) return;
-      const now = performance.now();
-      this.heard.set(code, { at: now, gap: now - (this.heard.get(code)?.at ?? this.held.get(code) ?? now) });
-      event.preventDefault();
-      event.stopPropagation();
+      this.keys.swallowRepeat(event);
     };
-    const up = (event: KeyboardEvent) => this.keyUp(keyOf(event));
-    // The window lost focus (alt-tab, a native dialog) or the page was hidden: the keyup may never come, so the waits end and focus is handed back, but the key stays held until its keyup or a fresh press of it, so its
-    // repeats, once focus is back, still press nothing.
-    const lost = () => this.endWaits();
-    const hidden = () => {
-      if (document.visibilityState === 'hidden') this.endWaits();
-    };
+    // The window lost focus or the page was hidden: the keyup may never come, so the waits end and focus is handed back, but the keys stay held (`HeldKeys`).
+    const detach = this.keys.attach(swallow, () => this.endWaits());
     const cancel = () => {
-      document.removeEventListener('keydown', swallow, true);
-      document.removeEventListener('keyup', up, true);
-      window.removeEventListener('blur', lost);
-      document.removeEventListener('visibilitychange', hidden);
+      detach();
       this.keysCancel = null;
     };
-    document.addEventListener('keydown', swallow, true);
-    document.addEventListener('keyup', up, true);
-    window.addEventListener('blur', lost);
-    document.addEventListener('visibilitychange', hidden);
     this.keysCancel = cancel;
     this.hold(cancel);
   }
@@ -196,7 +171,7 @@ class HandBacks {
   pressKeyHeld(): string | null {
     const key = this.pressKey;
     this.pressKey = null;
-    return key !== null && this.held.has(key) ? key : null;
+    return key !== null && this.keys.isHeld(key) ? key : null;
   }
   /**
    * A hand-back begins, from the press's key (`key`, if still held). `run` starts its timer, once, when the keys it waits for are up (at once when there are none); it is called again if a key goes down while that
@@ -239,18 +214,12 @@ class HandBacks {
     this.grace = false;
     this.endKeysIfIdle();
   }
-  /**
-   * A press with the pointer on a toast: a held key that repeated and then went silent (its keyup was lost) is let go. One that is still repeating is held, and so is one that has not repeated yet (the first repeat
-   * comes after the system's delay, up to about a second). Its keyup or a fresh press of it lets it go; the window losing focus or the page being hidden ends only the waits, and the region closing removes the
-   * listeners but leaves the keys as they were.
-   */
+  /** A press with the pointer on a toast lets go of a held key that repeated and then went silent (its keyup was lost), see `HeldKeys.releaseLost`. */
   endLost(): void {
-    const now = performance.now();
-    for (const [code, { at, gap }] of [...this.heard]) if (now - at > Math.max(KEY_LIVE_MS, 3 * gap)) this.keyUp(code);
+    this.keys.releaseLost();
   }
+  /** A held key is up (let go): the hand-backs that waited for it start their timers once every key they waited for is up. */
   private keyUp(code: string): void {
-    this.held.delete(code);
-    this.heard.delete(code);
     for (const wait of [...this.waiting]) {
       if (wait.codes.delete(code) && wait.codes.size === 0) wait.run();
     }
@@ -265,7 +234,7 @@ class HandBacks {
     }
   }
   private endKeysIfIdle(): void {
-    if (this.held.size > 0 || this.waiting.size > 0 || this.grace) return;
+    if (this.keys.size > 0 || this.waiting.size > 0 || this.grace) return;
     const cancel = this.keysCancel;
     if (!cancel) return;
     this.release(cancel);
