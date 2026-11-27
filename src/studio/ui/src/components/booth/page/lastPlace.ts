@@ -76,6 +76,15 @@ export function loadLastPlace(projectFolder: string): LastPlace | null {
   }
 }
 
+/**
+ * The rule for which chapter a page opens on when none is asked: the kept place, when its chapter is still in the list (`chapterIds`, undefined until the
+ * list is read), else null (nothing kept, a chapter that is gone, the list not read yet). The Booth and the Companion both ask it, so what is remembered
+ * wins the same way in both; when it says null, both follow the DAW's chapter (`useFollowDawOnOpen`).
+ */
+export function keptChapterIn(place: LastPlace | null, chapterIds: readonly string[] | undefined): LastPlace | null {
+  return place && chapterIds?.includes(place.chapterId) ? place : null;
+}
+
 export function saveLastPlace(projectFolder: string, place: LastPlace): void {
   writeProjectStorage(PROJECT_KEY_LAST_PLACE, projectFolder, JSON.stringify(place)); // unavailable storage: the Booth then opens on the DAW's chapter or the first, as it did
   saveChapterPlace(projectFolder, place);

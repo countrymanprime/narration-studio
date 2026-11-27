@@ -131,7 +131,8 @@ describe('CompanionPage', () => {
     await screen.findByRole('heading', { level: 1, name: 'Companion' });
     const chapters = (await api.manuscriptChapters()).chapters;
     const expected = chapters.find((item) => item.id === reader.activeChapter || item.title === reader.activeChapter) ?? withoutCredits(chapters)[0]!;
-    expect(spies.shellProps.mock.calls.at(-1)![0].chapterId).toBe(expected.id);
+    // The Companion asks the DAW first (no chapter is drawn before it answers), then draws the reader's chapter.
+    await waitFor(() => expect(spies.shellProps.mock.calls.at(-1)?.[0].chapterId).toBe(expected.id));
   });
 
   it('an unknown chapter redirects to the Booth with its id, which answers in its own panel', async () => {
