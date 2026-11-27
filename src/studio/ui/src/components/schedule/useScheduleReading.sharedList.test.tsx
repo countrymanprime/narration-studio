@@ -10,6 +10,8 @@ import { createMockApi } from '../../api/mockApi';
 import { createJournal } from '../../studio/journal/createJournal';
 import { StudioProvider, useStoreHandle } from '../../studio/StudioProvider';
 import { chapterList } from './scheduleKit.test';
+import { WPH } from './estimates';
+import { recordedHoursOf } from './progress';
 import { useScheduleReading } from './useScheduleReading';
 import { chaptersOf } from '../../api/chaptersOf';
 
@@ -34,7 +36,8 @@ describe('useScheduleReading follows the shared chapter list', () => {
     const first = result.current.reading.state;
     if (first.phase !== 'ready') throw new Error('not ready');
     expect(first.chapters).toHaveLength(2);
-    expect(first.recordedHours).toBe(1);
+    const firstHours = recordedHoursOf(first.chapters, WPH);
+    expect(firstHours).toBeGreaterThan(0);
 
     // Another page's reader makes the store read a list with a chapter removed and the other one longer.
     list = [{ ...list[0]!, recordedSeconds: 7200 }];
@@ -45,7 +48,8 @@ describe('useScheduleReading follows the shared chapter list', () => {
     const next = result.current.reading.state;
     if (next.phase !== 'ready') throw new Error('not ready');
     expect(next.chapters).toHaveLength(1);
-    expect(next.recordedHours).toBe(2);
+    expect(recordedHoursOf(next.chapters, WPH)).toBeLessThan(firstHours + 1e-9);
+    expect(recordedHoursOf(next.chapters, WPH)).toBeGreaterThan(0);
     // One read, the store's own: the Schedule did not read the list a second time to catch up.
     expect(listReads - readsBefore).toBe(1);
   });

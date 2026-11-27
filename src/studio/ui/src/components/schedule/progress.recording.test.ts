@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import type { ChapterStatus, RecordedThrough } from '../../api/contracts/manuscript';
 import { bookFigures } from '../production/overview/overviewFigures';
 import type { ProductionChapter } from '../production/composeOverview';
-import { recordedPercent } from '../../recordedThrough';
+import { isDelivered, recordedPercent } from '../../recordedThrough';
 import { PACE, RATIO, WPH } from './estimates';
 import { parseIso } from './dates';
-import { calc, milestoneStatus, remainFor, scheduleChapters, type ScheduleChapter } from './progress';
+import { calc, milestoneStatus, recordedHoursOf, remainFor, scheduleChapters, type ScheduleChapter } from './progress';
 
 const TODAY = parseIso('2026-10-01');
 const DUE = parseIso('2026-12-31');
@@ -94,6 +94,33 @@ describe('Recording left follows what is recorded', () => {
     const reached: ScheduleChapter = { words: WPH, status: 'recording', kind: 'narration', recordedSeconds: 3600 };
     expect(recordedPercent({ recordedSeconds: 3600, wordCount: WPH }, WPH)).toBe(99);
     expect(recLeft([reached])).toBeCloseTo(0.01 * RATIO.rec);
+  });
+
+  it('draws the chart and the Recording left row from one recorded figure, on both pages', () => {
+    const rows = [
+      { id: 'a', contentKind: 'narration', status: 'recording', wordCount: WPH, recordedSeconds: 1800, recordedThrough: through(50) },
+      { id: 'b', contentKind: 'narration', status: 'recording', wordCount: WPH * 2, recordedSeconds: null },
+      { id: 'c', contentKind: 'narration', status: 'editing', wordCount: WPH, recordedSeconds: 3600 },
+      { id: 'd', contentKind: 'narration', status: 'recording', wordCount: WPH, recordedSeconds: 600, recordedThrough: through(65) },
+    ] as unknown as ProductionChapter[];
+    for (const master of [undefined, { d: { mastered: true, qc: 'PASS' } }]) {
+      const chapters = scheduleChapters(rows, master);
+      const hours = recordedHoursOf(chapters, WPH);
+      // Hours recorded and Recording left are the same split of the book's words.
+      expect(hours).toBeCloseTo(calc(chapters, TODAY, DUE).words / WPH - recLeft(chapters) / RATIO.rec);
+      // Production's "Recorded audio" (the figure its chart now plots) is that same number.
+      expect(bookFigures(rows, WPH, master).recordedHours).toBeCloseTo(hours);
+    }
+    // A delivered chapter at 65% counts whole.
+    expect(recordedHoursOf(scheduleChapters(rows, { d: { mastered: true, qc: 'PASS' } }), WPH)).toBeGreaterThan(recordedHoursOf(scheduleChapters(rows), WPH));
+  });
+
+  it('reads "delivered" from one rule: mastered with its checks passing', () => {
+    expect(isDelivered({ mastered: true, qc: 'PASS' })).toBe(true);
+    expect(isDelivered({ mastered: true, qc: 'FAIL' })).toBe(false);
+    expect(isDelivered({ mastered: true, qc: null })).toBe(false);
+    expect(isDelivered({ mastered: false, qc: 'PASS' })).toBe(false);
+    expect(isDelivered(undefined)).toBe(false);
   });
 
   it('reaches the chapter list through scheduleChapters', () => {

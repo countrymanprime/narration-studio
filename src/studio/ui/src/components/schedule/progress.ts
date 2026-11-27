@@ -3,7 +3,7 @@ import type { ProductionMilestone } from '../../api/contracts/production';
 import type { StatusId } from '../../kinds/statusTone';
 import { reached } from '../../chapterStatus';
 import { isNarrationChapter, isNumberedChapter } from '../../chapterKinds';
-import { chapterRecordedShare } from '../../recordedThrough';
+import { chapterRecordedShare, isDelivered } from '../../recordedThrough';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import type { CreditsKind } from '../credits/useCreditsRows';
 import { addDays, diffDays, fmtD, isIsoDate, num, parseIso } from './dates';
@@ -47,7 +47,7 @@ export function scheduleChapters(
       ...(credits ? { credits } : {}),
       ...(c.recordedSeconds !== undefined ? { recordedSeconds: c.recordedSeconds } : {}),
       ...(c.recordedThrough ? { recordedThrough: c.recordedThrough } : {}),
-      ...(review?.mastered && review.qc === 'PASS' ? { delivered: true } : {}),
+      ...(isDelivered(review) ? { delivered: true } : {}),
     };
   });
 }
@@ -71,6 +71,10 @@ const recordingLeft = (c: ScheduleChapter, wph: number): number =>
     wph,
     c.delivered,
   );
+
+/** The finished hours recorded so far, the book's words less `recordingLeft` over `wph`: the figure the chart's "recorded now" point and Production's "Recorded audio" are both drawn from. */
+export const recordedHoursOf = (chapters: readonly ScheduleChapter[], wph: number = WPH): number =>
+  chapters.reduce((a, c) => a + c.words * (1 - recordingLeft(c, wph)), 0) / wph;
 
 /** The work-hours left in a chapter to reach the end of `through`: each stage up to it, because a later stage cannot finish before the earlier one it depends on. */
 function workLeft(c: ScheduleChapter, through: keyof typeof DONE_AT, wph: number): number {

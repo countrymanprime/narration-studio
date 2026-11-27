@@ -5,8 +5,6 @@ import type { Measured } from '../../api/schemas/base';
 import type { TakeLogEntry } from '../../fixtures/measurements';
 import { usePort } from '../../ports/usePort';
 import { useChapters, useReadChapters } from '../../studio/useChapters';
-import { isNarrationChapter } from '../../chapterKinds';
-import { recordedAudioHours } from '../../recordedThrough';
 import { masterByChapter } from '../production/usePipelineSources';
 import { scheduleChapters, type ScheduleChapter } from './progress';
 
@@ -19,8 +17,6 @@ type Reading = {
   plan: ProductionPlan;
   chapters: ScheduleChapter[];
   profileId: string | undefined;
-  /** Finished hours recorded so far, summed over the narrated chapters whose length was measured. */
-  recordedHours: number;
   /** The chapters the delivery review has mastered, as Production reads them: a chapter delivered with its checks passing is recorded whatever its stage says. Absent while the measurement cannot be read. */
   master: ReturnType<typeof masterByChapter> | undefined;
   /** The take log, or why it could not be read: the chart's recorded line is drawn from it. */
@@ -97,7 +93,6 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
           chapters: scheduleChapters(chapters, master),
           master,
           profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
-          recordedHours: recordedAudioHours(chapters.filter(isNarrationChapter)),
           takeLog: log,
           readAt: Date.now(),
         });
@@ -157,10 +152,7 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
   // with it, so the page never sets an old copy of the list beside the pace worked out from the new one. The read above still decides loading, the first error and the plan.
   const shared = useChapters().chapters;
   const view = useMemo<Phase>(
-    () =>
-      state.phase === 'ready' && shared
-        ? { ...state, chapters: scheduleChapters(shared, state.master), recordedHours: recordedAudioHours(shared.filter(isNarrationChapter)) }
-        : state,
+    () => (state.phase === 'ready' && shared ? { ...state, chapters: scheduleChapters(shared, state.master) } : state),
     [state, shared],
   );
 

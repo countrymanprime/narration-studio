@@ -18,10 +18,6 @@ export type RecordedAt = { through: RecordedThrough; audio: boolean };
  */
 export const hasAudio = (seconds: number | null | undefined): boolean => seconds !== null && seconds !== undefined && seconds >= 1;
 
-/** The hours of audio recorded across chapters, as the plan chart and the Schedule read them: a length under a second adds nothing, as it does everywhere else. */
-export const recordedAudioHours = (chapters: readonly { recordedSeconds?: number | null }[]): number =>
-  chapters.reduce((total, chapter) => total + (audibleSeconds(chapter.recordedSeconds) ?? 0), 0) / 3600;
-
 /** A measured length as every page reads it: audio under a second is nothing recorded (0 s), whatever else is null or not. */
 export const audibleSeconds = (seconds: number | null | undefined): number | null =>
   seconds === null || seconds === undefined ? null : hasAudio(seconds) ? seconds : 0;
@@ -106,9 +102,13 @@ export function recordedShare(chapter: { recordedThrough?: RecordedThrough; reco
   return measured;
 }
 
+/** Whether the delivery review has mastered a chapter with its checks passing: the one rule for "delivered", read by Production's stage bar and the Schedule's estimates. */
+export const isDelivered = (review: { mastered: boolean; qc: string | null } | undefined): boolean => review?.mastered === true && review.qc === 'PASS';
+
 /**
- * How much of a chapter counts as recorded for the book's figures, 0 to 1, never above the percent every page prints for it: all of it once the delivery review has mastered it with its checks passing (`delivered`) or its stage
- * is Editing or later, else `recordedShare`, else none. The one rule behind Production's "Not recorded yet" and the Schedule's Recording left.
+ * How much of a chapter counts as recorded for the book's figures, 0 to 1: all of it once the delivery review has mastered it with its checks passing (`delivered`, `isDelivered`) or its stage
+ * is Editing or later, else the chapter's own `recordedShare`, never above the percent the Booth prints for it (`recordedPercent`). A delivered chapter counts whole even where its Record cell
+ * still prints a part percent: delivery is the stronger evidence. The one rule behind Production's "Not recorded yet" and "Recorded audio", and the Schedule's Recording left and chart.
  */
 export function chapterRecordedShare(
   chapter: { status: ChapterStatus; recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number },

@@ -66,8 +66,6 @@ describe('KpiRow', () => {
     expect(tile('editing').hint).toBe(`est. ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book`);
     // One book length on the strip: no tile hint prints a total of its own (the 3× and 3.33× work totals were two more "lengths" beside the book's).
     for (const t of o.tiles) for (const m of (t.hint ?? '').match(/\d+:\d{2}/g) ?? []) expect(m).toBe(hm(book));
-    // Recording left is 3x the part not recorded yet, and says so.
-    expect(tile('recording').tip).toContain(hm(sum(['unrecorded'])));
     // The chart's and the week's targets read the same book.
     expect(o.k.words / WPH).toBeCloseTo(book, 9);
   });
@@ -85,7 +83,7 @@ describe('KpiRow', () => {
   it('names the ratio behind an estimate in the tooltip', async () => {
     row();
     await userEvent.hover(screen.getByRole('button', { name: /Recording/ }));
-    expect(await screen.findByText(/Hours of work, estimated 3\.0× the \d+h \d{2}m of the book’s finished audio not yet recorded/)).toBeTruthy();
+    expect(await screen.findByText('Hours of work, estimated 3.0× the book’s finished audio not yet recorded')).toBeTruthy();
   });
 
   it('due-tile-uses-the-deadline-tone', () => {

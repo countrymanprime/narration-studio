@@ -18,7 +18,7 @@ import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton'
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
-import { recordedAudioHours, recordedPercent, recordedShare } from '../../recordedThrough';
+import { recordedPercent, recordedShare } from '../../recordedThrough';
 import { chapterLengthsOf } from '../../recordedThrough';
 import { effectiveWph, paceChapters, useRateBasis } from '../schedule/useEffectiveWph';
 import { useVoiceLayout } from '../engine/voiceLayout';
@@ -349,7 +349,6 @@ export function ProductionPage({
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
   // One book for the figures strip, the stage bar and the week: its finished length and how much of it is recorded (#2634).
   const book = bookFigures(narrated, wph, pipelineSources.master);
-  const recordedHours = recordedAudioHours(narrated);
   const recommendations = stages.state.byChapter;
   const pickupMinutes = measured.answers
     ? measured.answers.pickupSessionSeconds.ok
@@ -485,7 +484,7 @@ export function ProductionPage({
                   start={start}
                   today={today}
                   due={due}
-                  recordedHours={recordedHours}
+                  recordedHours={book.recordedHours}
                   series={recordedSeries(log, start)}
                   onOpenSchedule={() => go('/schedule')}
                   fill

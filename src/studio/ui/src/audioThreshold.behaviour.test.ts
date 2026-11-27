@@ -1,3 +1,4 @@
+import { recordedHoursOf, scheduleChapters } from './components/schedule/progress';
 import { describe, expect, it } from 'vitest';
 import type { ManuscriptChapter } from './api/contracts/manuscript';
 import type { ProductionChapter } from './components/production/composeOverview';
@@ -10,15 +11,7 @@ import { chapterLengthsOf } from './recordedThrough';
 import { ownRate } from './components/production/target/pace.selectors';
 import { audioToCheck, recordedChapters } from './components/recordingcheck/checkSelection';
 import { MIN_OWN_RATE_CHAPTERS } from './components/schedule/estimates';
-import {
-  chapterRecordedDetail,
-  recordedAtDetail,
-  recordedAtOf,
-  recordedAudioHours,
-  recordedPercent,
-  recordedShare,
-  recordedThroughLabel,
-} from './recordedThrough';
+import { chapterRecordedDetail, recordedAtDetail, recordedAtOf, recordedPercent, recordedShare, recordedThroughLabel } from './recordedThrough';
 
 // #3869: audio under one second is no audio on ANY page. `audioThreshold.test.ts` scans sources by name; this is the behavioural twin: every figure of a chapter with under a second of
 // audio equals the same figure at 0 s, across the pipeline row (Rec. figure, Record cell, tips, names), the book totals and the plan hours, the narrator's own rate, Next up, the
@@ -79,7 +72,7 @@ function figures(status: (typeof STAGES)[number], host: ReturnType<typeof throug
     share,
     next,
     book: bookFigures([production], WPH),
-    planHours: recordedAudioHours([production]),
+    planHours: recordedHoursOf(scheduleChapters([production]), WPH),
     chip: recordedThroughLabel(at, PARAGRAPHS),
     list: chapterRecordedDetail(manuscript),
     menu: recordedAtDetail(at),
