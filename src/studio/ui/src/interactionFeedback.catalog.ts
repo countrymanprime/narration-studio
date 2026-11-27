@@ -253,16 +253,15 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/proof/useChapterCompare.ts#1': 'Only offers to review the last compare run; without it the offer is absent (moved from the Proofing page).',
   'src/components/booth/companion/CompanionHost.tsx#1':
     'Keeps the suspected-line flags as the session ends; a failed save leaves them to be found again by the next check.',
-  'src/components/booth/companion/CompanionPage.tsx#1': 'The last-read chapter only picks the default chapter; the first chapter is used without it.',
-  'src/components/booth/companion/CompanionPage.tsx#2': 'The running session only picks the default chapter; the last-read chapter is used without it.',
-  'src/components/booth/companion/CompanionPage.tsx#3': 'The credits templates only decide whether the credits panel shows; with none, it stays absent.',
+  'src/components/booth/companion/CompanionPage.tsx#1': 'The running session only picks the default chapter; the last-read chapter is used without it.',
+  'src/components/booth/companion/CompanionPage.tsx#2': 'The credits templates only decide whether the credits panel shows; with none, it stays absent.',
   'src/components/booth/frame/useLevels.ts#1':
     'Releases the meter-only child on cleanup; nothing is left mounted to tell, and the next start works either way.',
   // The new Booth page (SN-O102): secondary reads that only add to a chapter that already reads.
   'src/components/booth/page/useBoothData.ts#1': 'The credits templates only decide whether the picker offers the credits; with none, it offers the chapters.',
   'src/components/booth/page/useBoothData.ts#2':
     'Reading again how far each chapter is recorded after a take only moves where a chapter the narrator comes back to opens; without it the value read when the Booth opened stands.',
-  'src/components/booth/page/useBoothData.ts#3': 'The running session only picks the default chapter; the first chapter is used without it.',
+  'src/components/booth/page/useBoothData.ts#3': 'The running session only picks the default chapter; the next step of the opening order is used without it.',
   'src/components/booth/page/useBoothData.ts#4': 'The Story Bible entries only tint names and fill the side panel; without them the chapter reads unmarked.',
   'src/components/booth/page/useBoothData.ts#5':
     'The Story Bible types only colour the names and speakers; without them every entry keeps the fallback colour and the page still opens.',

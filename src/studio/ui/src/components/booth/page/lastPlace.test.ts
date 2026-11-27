@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CHAPTER_PLACES_KEPT, loadChapterPlace, loadLastPlace, saveLastPlace } from './lastPlace';
+import { CHAPTER_PLACES_KEPT, keptChapterIn, loadChapterPlace, loadLastPlace, saveLastPlace } from './lastPlace';
 
 afterEach(() => {
   window.localStorage.clear();
@@ -93,5 +93,20 @@ describe('the Booth remembers the place in every chapter, not only the last one'
     });
     expect(() => saveLastPlace('/p', { chapterId: 'c1', paragraphId: 'p1', word: 0 })).not.toThrow();
     expect(loadChapterPlace('/p', 'c1')).toBeNull();
+  });
+});
+
+describe('the one rule for the remembered chapter (#4087)', () => {
+  const place = { chapterId: 'c2', paragraphId: 'p1', word: 3 };
+  it('is the kept place when its chapter is in the list', () => {
+    expect(keptChapterIn(place, ['c1', 'c2'])).toBe(place);
+  });
+  it.each([
+    ['nothing kept', null, ['c1', 'c2']],
+    ['the chapter is gone', place, ['c1', 'c3']],
+    ['the list is not read yet', place, undefined],
+    ['the list is empty', place, []],
+  ])('is null when %s', (_name, kept, ids) => {
+    expect(keptChapterIn(kept, ids)).toBeNull();
   });
 });

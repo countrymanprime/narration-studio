@@ -1,11 +1,14 @@
 import { creditsKindOfId } from '../../credits/creditsEntries';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
+import type { TeleprompterState } from '../../../api/contracts/teleprompter';
 import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, ManuscriptChapter } from '../../../types';
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import { recordedAtOf, type RecordedAt } from '../../../recordedThrough';
 import type { CreditsKind } from '../readerModel';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
+import { openingChapter, readLastReadWithinCap } from '../openingChapter';
+import type { LastPlace } from './lastPlace';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
@@ -59,14 +62,17 @@ function useCreditsPreviews(): { previews: Partial<Record<CreditsKind, CreditsRe
  * secondary, so a failure leaves them out. With no target in the address the page opens on the chapter a running session reads, else
  * the first. `correctCue` records the narrator's speaker for a quote and reads the cues again.
  */
-export function useBoothData(target: BoothChapterTarget | null) {
+export function useBoothData(target: BoothChapterTarget | null, kept: LastPlace | null = null) {
   // The chapter list is the store's, shared with the other pages: opening the Booth does not read what is held, a Retry and a take's refresh read it now.
+  const manuscript = usePort('manuscript');
   const readChapters = useReadChapters();
   const storyBible = usePort('storyBible');
   const teleprompter = usePort('teleprompter');
   const journal = useJournalOrOwn();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
-  const [fallback, setFallback] = useState('');
+  // What the order for the chapter to open on needs besides the chapters: the host's session and the last-read chapter, read with them.
+  const [host, setHost] = useState<TeleprompterState>();
+  const [lastRead, setLastRead] = useState<string>();
   const [error, setError] = useState('');
   const [errorDetails, setErrorDetails] = useState<string>();
   const [entities, setEntities] = useState<GuideEntity[]>(NONE);
@@ -95,15 +101,15 @@ export function useBoothData(target: BoothChapterTarget | null) {
   useEffect(() => {
     let live = true;
     const mine = ++recordedRead.current;
-    void Promise.all([readChapters(attempt > 0), teleprompter.teleprompterState().catch(() => undefined)])
-      .then(([all, host]) => {
+    const lastReadRead = readLastReadWithinCap(manuscript);
+    void Promise.all([readChapters(attempt > 0), teleprompter.teleprompterState().catch(() => undefined), lastReadRead.result])
+      .then(([all, state, lastReadChapter]) => {
         if (!live) return;
         const narration = all.filter(isNarrationChapter);
         setChapters(narration);
         if (mine === recordedRead.current) setRecorded(recordedOf(narration));
-        const running = host && host.phase !== 'idle' && host.phase !== 'stopped' ? narration.find((item) => item.id === host.chapter)?.id : undefined;
-        // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
-        setFallback(running ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '');
+        setHost(state);
+        setLastRead(lastReadChapter);
       })
       .catch((reason) => {
         if (!live) return;
@@ -112,8 +118,9 @@ export function useBoothData(target: BoothChapterTarget | null) {
       });
     return () => {
       live = false;
+      lastReadRead.cancel();
     };
-  }, [readChapters, teleprompter, attempt]);
+  }, [manuscript, readChapters, teleprompter, attempt]);
 
   useEffect(() => {
     let live = true;
@@ -142,7 +149,8 @@ export function useBoothData(target: BoothChapterTarget | null) {
     setAttempt((n) => n + 1);
   }, []);
 
-  const chapterId = target ? target.chapter : fallback;
+  // With no chapter asked for, the chapter `openingChapter` chooses (the same order as the Companion's); the page asks the DAW before this is drawn.
+  const { chapterId } = openingChapter({ asked: target?.chapter ?? null, host, kept, chapters, lastRead, daw: 'none' });
   const chapter = chapters?.find((item) => item.id === chapterId);
 
   const correctCue = useCallback(
@@ -177,6 +185,8 @@ export function useBoothData(target: BoothChapterTarget | null) {
           : undefined;
   return {
     chapters,
+    host,
+    lastRead,
     recorded,
     recordedAt,
     refreshRecorded,

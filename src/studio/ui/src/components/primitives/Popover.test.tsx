@@ -113,6 +113,40 @@ describe('Popover focus when a key hands it to the page while the popover is lea
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Options' }));
   });
 
+  it('forgets the mark when its `open` prop turns true again during the exit (a controlled reopen, no onOpenChange call)', async () => {
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    function Controlled() {
+      const [open, setOpen] = useState(false);
+      return (
+        <main tabIndex={-1}>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open it
+          </button>
+          <Popover trigger={<Button>Options</Button>} label="Options" open={open} onOpenChange={setOpen}>
+            <button type="button">Pick</button>
+          </Popover>
+        </main>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Controlled />);
+    await user.click(screen.getByRole('button', { name: 'Open it' }));
+    await screen.findByRole('dialog', { name: 'Options' });
+    await user.keyboard('{Escape}');
+    expect(document.querySelector('[data-popover-popup][data-ending-style]')).not.toBeNull();
+    pageTakesFocusFromLeavingPopups();
+    await user.click(screen.getByRole('button', { name: 'Open it' }));
+    await waitFor(() => expect(document.querySelector('[data-popover-popup][data-ending-style]')).toBeNull());
+    await user.keyboard('{Escape}');
+    endExit();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull());
+    // The exit gives focus back to a control (the library's own place), not to <main> as the key's mark would have sent it.
+    await waitFor(() => expect(document.activeElement?.tagName).toBe('BUTTON'));
+    expect(document.activeElement).not.toBe(document.querySelector('main'));
+  });
+
   it('gives it back as before to a popover that opens after the key, which the mark does not follow', async () => {
     const endLeaving = await escapeWhileLeaving();
     pageTakesFocusFromLeavingPopups();
