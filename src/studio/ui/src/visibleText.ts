@@ -47,11 +47,21 @@ const IS_BIDI = new RegExp(BIDI_CONTROLS.source);
 export const stripBidi = (text: string): string => text.replace(BIDI_CONTROLS, '');
 const LETTER = /\p{L}/u;
 const isRtlLetter = (ch: string): boolean => RTL_BLOCK.test(ch) && LETTER.test(ch);
+/**
+ * A right-to-left character that is not a letter but is strong all the same (bidi class R or AL): the Arabic semicolon, question mark, five-pointed star and full stop (U+061B, U+061F, U+066D, U+06D4), the
+ * Hebrew geresh, gershayim, maqaf and sof pasuq (U+05F3, U+05F4, U+05BE, U+05C3). A name made of these has no letter, and with none of them isolated a count after it is drawn before it. The comma (U+060C), the digits and the
+ * marks of those blocks are weak: they take the direction round them, so a name that holds only those stays bare.
+ */
+const RTL_STRONG_NOT_LETTER = /[\u061B\u061F\u066D\u06D4\u05F3\u05F4\u05BE\u05C3]/;
+const isStrongRtl = (ch: string): boolean => isRtlLetter(ch) || RTL_STRONG_NOT_LETTER.test(ch);
 const isLatinLetter = (ch: string): boolean => /[A-Za-z]/.test(ch);
 
-/** The characters that end a bidi paragraph or a line (LF, CR, U+001C to U+001E, NEL, the line and paragraph separators): inside a name one would end its isolate and swap its words, so each becomes a space. */
+/**
+ * The characters that end a bidi paragraph or a line (LF, CR, U+001C to U+001E, NEL, the line and paragraph separators) or are a bidi segment separator (the line tabulation U+000B and the unit separator U+001F):
+ * inside a name one would end its isolate or split its words into runs that are laid out on their own, so each becomes a space.
+ */
 // eslint-disable-next-line no-control-regex
-const LINE_BREAKS = /[\n\r\u001C-\u001E\u0085\u2028\u2029]/g;
+const LINE_BREAKS = /[\n\r\u000B\u001C-\u001F\u0085\u2028\u2029]/g;
 /** One line or paragraph break, for a test that keeps no state between characters. */
 const LINE_BREAK_CHAR = new RegExp(LINE_BREAKS.source);
 /** A name as it goes into a sentence: no bidi control and no line or paragraph break of its own. */
@@ -64,11 +74,18 @@ const plainName = (name: string): string => stripBidi(name).replace(LINE_BREAKS,
 export const bidiIsolated = (name: string, direction: 'auto' | 'ltr' = 'auto'): string => `${direction === 'ltr' ? LRI : FSI}${plainName(name)}${PDI}`;
 
 /**
- * A name for a toast sentence: isolated when it holds a right-to-left letter, otherwise left as it is (an English name in an English sentence needs no isolate, and the two invisible
+ * A name for a toast sentence: isolated when it holds a strong right-to-left character (a letter, or one of the non-letters that are strong, see `RTL_STRONG_NOT_LETTER`), otherwise left as it is (an English name in an English sentence needs no isolate, and the two invisible
  * characters would be in every copy, search and character count of the sentence). Controls of its own are removed either way. A path is isolated `ltr`: the sentence round it stays intact, though folders inside the path can still be drawn in reverse.
  */
 export const isolatedIfRtl = (name: string, direction: 'auto' | 'ltr' = 'auto'): string =>
-  Array.from(name).some(isRtlLetter) ? bidiIsolated(name, direction) : plainName(name);
+  Array.from(name).some(isStrongRtl) ? bidiIsolated(name, direction) : plainName(name);
+
+/**
+ * A sentence the host worded that names someone ("Replaced 2 words with Sara's audio in REAPER."): the name in it isolated the way `isolatedIfRtl` would, so a right-to-left name keeps its own run and the
+ * words after it stay where they were written. The sentence is left as it is when it does not hold the name (the host worded it another way) or the name is empty.
+ */
+export const isolateNameIn = (sentence: string, name: string): string =>
+  name.trim() !== '' && sentence.includes(name) ? sentence.split(name).join(isolatedIfRtl(name)) : sentence;
 
 /**
  * The direction a message is laid out in: left to right when the app's own words in it (not what is inside an isolate, at any depth) have at least as many Latin letters as right-to-left ones, so a

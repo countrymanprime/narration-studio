@@ -378,7 +378,8 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setSwitching(true);
     try {
       const duplicate = await api.duplicateCreditsTemplate(selected.id);
-      notify(`Duplicated as "${isolatedIfRtl(duplicate.name)}".`);
+      // The Name field shows this name left to right (an input with no direction of its own), so the toast does too: first-strong would turn a name that starts with a right-to-left letter round and put the added "copy" on the other side (#4129).
+      notify(`Duplicated as "${isolatedIfRtl(duplicate.name, 'ltr')}".`);
       projectDataChanged();
       // The copy is only selected once the list that shows it has landed.
       if (await load()) setSelectedId(duplicate.id);

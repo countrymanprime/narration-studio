@@ -60,13 +60,29 @@ test.describe('an English sentence that carries a right-to-left name reads left 
   });
 
   // A paragraph separator inside a name would end its isolate and swap its words: the builder turns it into a space, so the words stay in order (the first drawn at the right of the second).
-  test('a name holding a paragraph separator keeps its words in order', async ({ page }) => {
-    const one = '\u0648\u0627\u062D\u062F';
-    const two = '\u0627\u062B\u0646\u0627\u0646';
-    const text = `${isolatedIfRtl(`${one}\u2029${two}`)}: 3 takes were kept.`;
+  // The segment separators U+000B and U+001F split a name into runs laid out on their own, so they are spaces too (#4129).
+  for (const [label, separator] of [
+    ['a paragraph separator', '\u2029'],
+    ['a line tabulation (U+000B)', '\u000B'],
+    ['a unit separator (U+001F)', '\u001F'],
+  ] as const) {
+    test(`a name holding ${label} keeps its words in order`, async ({ page }) => {
+      const one = '\u0648\u0627\u062D\u062F';
+      const two = '\u0627\u062B\u0646\u0627\u0646';
+      const text = `${isolatedIfRtl(`${one}${separator}${two}`)}: 3 takes were kept.`;
+      await show(page, text);
+      expect(await leftOf(page, text, text.indexOf(one))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
+      expect(await leftOf(page, text, text.indexOf('3'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
+    });
+  }
+
+  // A name of right-to-left characters that are not letters (here the Arabic question mark) is isolated too: the count after it is drawn to its right (#4129).
+  test('a name made only of a right-to-left non-letter has the count after it drawn to its right', async ({ page }) => {
+    const mark = '\u061F\u061F';
+    const text = `${isolatedIfRtl(mark)}: 3 takes were kept.`;
+    expect(text.startsWith(FSI)).toBe(true);
     await show(page, text);
-    expect(await leftOf(page, text, text.indexOf(one))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
-    expect(await leftOf(page, text, text.indexOf('3'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
+    expect(await leftOf(page, text, text.indexOf('3'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(PDI) - 1));
   });
 });
 

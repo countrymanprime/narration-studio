@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Replacement } from '../../../../api/contracts/replace';
 import { overlay } from '../../../../overlay/overlayService';
+import { isolateNameIn } from '../../../../visibleText';
 import { usePort } from '../../../../ports/usePort';
 import type { Journal } from '../../../../studio/journal/createJournal';
 import { SelectionActionButton } from '../../bar/SelectionActionButton';
@@ -111,7 +112,7 @@ export function useReplaceAudio({ journal, chapterId, locator }: ReplaceAudioOpt
                 const result = await journal.act(replaceCommand({ api, daw, onReplacements: setReplacements }, request));
                 if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
                 const { id, value } = result.value;
-                overlay.toastUndo(value.message, () => journal.undo(id), { entry: id });
+                overlay.toastUndo(isolateNameIn(value.message, request.narrator), () => journal.undo(id), { entry: id });
               })();
             }}
           />
@@ -126,8 +127,8 @@ export function useReplaceAudio({ journal, chapterId, locator }: ReplaceAudioOpt
       try {
         const answer = await api.dawRestoreReplacement(chapterId, replacement.id);
         setReplacements(answer.replacements.replacements);
-        if (!answer.result.ok) return overlay.toast(answer.result.refused ?? answer.result.message, { tone: 'error' });
-        overlay.toast(answer.result.message);
+        if (!answer.result.ok) return overlay.toast(isolateNameIn(answer.result.refused ?? answer.result.message, replacement.narratorName), { tone: 'error' });
+        overlay.toast(isolateNameIn(answer.result.message, replacement.narratorName));
       } catch (e) {
         overlay.toast(why(e), { tone: 'error' });
       }

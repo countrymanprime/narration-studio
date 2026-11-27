@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bidiIsolated, hasVisibleText, isolatedIfRtl, textDirection, visibleKey, withBalancedIsolates } from './visibleText';
+import { bidiIsolated, hasVisibleText, isolateNameIn, isolatedIfRtl, textDirection, visibleKey, withBalancedIsolates } from './visibleText';
 
 // Built from code points so no invisible character sits in this file.
 const chars = (...codes: number[]) => String.fromCodePoint(...codes);
@@ -71,6 +71,9 @@ describe('a name inside a sentence (#4113)', () => {
     ['U+001C', '\u001C'],
     ['U+001D', '\u001D'],
     ['U+001E', '\u001E'],
+    // The segment separators: not line ends, but each splits a name into runs laid out on their own (#4129).
+    ['line tabulation U+000B', '\u000B'],
+    ['unit separator U+001F', '\u001F'],
     ['NEL', '\u0085'],
     ['line separator', '\u2028'],
     ['paragraph separator', '\u2029'],
@@ -96,9 +99,41 @@ describe('a name inside a sentence (#4113)', () => {
   it.each([
     ['Arabic-Indic digits', '\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669'],
     ['a vowel mark on a Latin letter', 'A\u064B'],
-    ['an Arabic comma and full stop', '\u060C\u06D4'],
+    // The Arabic comma is weak (it takes the direction round it). The Arabic full stop U+06D4 is strong, so it moved out of this list in #4129 (see the next test).
+    ['an Arabic comma', '\u060C'],
+    ['a Latin name with an Arabic comma', 'Take 1\u060C 2'],
   ])('does not isolate a name that holds only %s', (_label, name) => {
     expect(isolatedIfRtl(name)).toBe(name);
+  });
+
+  // A name of only right-to-left characters that are not letters is strong all the same (bidi class R or AL): left bare, a count after it is drawn before it (#4129).
+  it.each([
+    ['the Arabic semicolon U+061B', '\u061B'],
+    ['the Arabic question mark U+061F', '\u061F'],
+    ['the Arabic five-pointed star U+066D', '\u066D'],
+    ['the Arabic full stop U+06D4', '\u06D4'],
+    ['the Hebrew geresh U+05F3', '\u05F3'],
+    ['the Hebrew gershayim U+05F4', '\u05F4'],
+    ['the Hebrew maqaf U+05BE', '\u05BE'],
+    ['the Hebrew sof pasuq U+05C3', '\u05C3'],
+  ])('isolates a name made of %s, though it holds no letter', (_label, name) => {
+    expect(isolatedIfRtl(name)).toBe(`${FSI}${name}${PDI}`);
+    expect(isolatedIfRtl(`${name}${name}`, 'ltr')).toBe(`${LRI}${name}${name}${PDI}`);
+  });
+
+  it('isolates a Latin name that holds one of them, and leaves one that holds only weak characters bare', () => {
+    expect(isolatedIfRtl('Take\u061F')).toBe(`${FSI}Take\u061F${PDI}`);
+    expect(isolatedIfRtl('Take \u0661\u0662\u0663')).toBe('Take \u0661\u0662\u0663');
+  });
+
+  it('isolateNameIn isolates the name wherever a sentence holds it, and leaves a sentence without it as it is', () => {
+    const name = '\u0633\u0627\u0631\u0629 (Sara) 2';
+    expect(isolateNameIn(`Replaced 2 words with ${name}'s audio in REAPER.`, name)).toBe(`Replaced 2 words with ${FSI}${name}${PDI}'s audio in REAPER.`);
+    expect(isolateNameIn(`${name} and ${name}.`, name)).toBe(`${FSI}${name}${PDI} and ${FSI}${name}${PDI}.`);
+    expect(isolateNameIn('Replaced 2 words with Eric Leach\u2019s audio.', 'Eric Leach')).toBe('Replaced 2 words with Eric Leach\u2019s audio.');
+    expect(isolateNameIn('Done.', name)).toBe('Done.');
+    expect(isolateNameIn('Done.', '  ')).toBe('Done.');
+    expect(isolateNameIn('Done.', '')).toBe('Done.');
   });
 
   it.each([
