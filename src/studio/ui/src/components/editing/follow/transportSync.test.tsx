@@ -449,6 +449,55 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     expect(state().playing).toBe(false);
     expect(notices.join(' ')).toMatch(/REAPER is recording, so nothing plays/);
   });
+  // #4117: the refusal carries its code, so the app stays quiet although the project-state read says nothing records.
+  it('a play refused with the recording code plays nothing in the app when the project-state read says idle', async () => {
+    await ready();
+    daw.refuseNextSync('REAPER is recording. Stop recording first.', 'recording');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
+    expect(notices.join(' ')).toMatch(/REAPER is recording/);
+  });
+  // The mock DAW refuses like the host while it records, with no seeded refusal: the code comes from the mock's own answer.
+  it('a DAW that records refuses a play with the recording code by itself, and the app plays nothing', async () => {
+    await ready();
+    act(() => daw.moveInDaw({ recording: true }));
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
+    expect(notices.join(' ')).toMatch(/is recording/);
+  });
+  // The recording flag is per refusal: a play the DAW then could not be asked is not final, so the app plays.
+  it('a recording refusal does not make the next play final when that one cannot be asked', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    let plays = 0;
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      if (action === 'play') {
+        plays += 1;
+        if (plays === 2) return Promise.reject(new Error('bridge down'));
+      }
+      return (real as (...a: unknown[]) => unknown)(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    daw.refuseNextSync('REAPER is recording. Stop recording first.', 'recording');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).toHaveBeenCalled();
+  });
   it('a stop while the DAW is asked plays nothing in the app when the DAW then refuses', async () => {
     await ready();
     daw.refuseNextSync('REAPER could not start.');

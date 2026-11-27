@@ -51,6 +51,7 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-project-state-builtin-recording.json': dawProjectStateSchema,
   'daw-result-ok.json': dawResultSchema,
   'daw-result-refused-stale.json': dawResultSchema,
+  'daw-result-refused-recording.json': dawResultSchema,
   'daw-result-multi-step.json': dawResultSchema,
   // WorkspaceHideTakes (bindings_workspace_hide_test.go): other takes muted, nothing to mute, and a capability refusal.
   'daw-hide-takes-done.json': dawResultSchema,

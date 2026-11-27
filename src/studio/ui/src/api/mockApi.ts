@@ -815,7 +815,7 @@ function previewTakeMock(
     const preview = setup.capabilities.file_preview;
     if (!preview?.available) return refusedResult(preview?.message ?? '');
     // The bridge refuses a preview while the DAW records (narration_media_file.lua, bindings_daw_files.go).
-    if (recording()) return refusedResult(`${setup.daw} is recording. Stop recording first.`);
+    if (recording()) return { ...refusedResult(`${setup.daw} is recording. Stop recording first.`), code: 'recording' };
     const message = filePreviewAnswer(take.sourceFile, take.sourceStart, Math.min(take.sourceLength, MAX_PREVIEW_SECONDS));
     playing.playing = true;
     return { ok: true, changed: false, message, undoSteps: 0 };
