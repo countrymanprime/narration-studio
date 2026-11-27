@@ -66,13 +66,29 @@ describe('a milestone draft', () => {
   it('saves the N as typed and refuses one the book cannot have, with the reason', () => {
     const at = (patch: object) => milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', ...patch }, undefined, BOUNDS);
     expect(at({ measure: 'chN', chapters: ' 3 ' })).toMatchObject({ milestone: { measure: 'ch3' } });
-    expect(at({ measure: 'chN', chapters: '99' })).toEqual({ refusal: 'The book has 12 chapters. Write a number from 1 to 12.' });
+    expect(at({ measure: 'chN', chapters: '99' })).toEqual({ refusal: 'The book has 12 chapters. Write a whole number from 1 to 12.' });
     for (const bad of ['0', '-1', '2.5', '', 'abc'])
-      expect(at({ measure: 'chN', chapters: bad })).toEqual({ refusal: 'Write a whole number of chapters from 1 to 12.' });
-    expect(at({ measure: 'minN', minutes: '9999' })).toEqual({ refusal: 'Write a whole number of minutes from 1 to 600.' });
+      expect(at({ measure: 'chN', chapters: bad })).toEqual({ refusal: 'The book has 12 chapters. Write a whole number from 1 to 12.' });
+    expect(at({ measure: 'minN', minutes: '9999' })).toEqual({ refusal: 'The book runs 600 finished minutes. Write a whole number from 1 to 600.' });
     expect(at({ measure: 'minN', minutes: '20' })).toMatchObject({ milestone: { measure: 'min20' } });
     expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN' }, undefined, { chapters: 0, minutes: 600 })).toEqual({
       refusal: 'The book has no chapters yet.',
+    });
+  });
+
+  it('says "Write 1." when the book has one chapter', () => {
+    const one = { chapters: 1, minutes: 600 };
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN', chapters: '2' }, undefined, one)).toEqual({
+      refusal: 'The book has 1 chapter. Write 1.',
+    });
+  });
+
+  it('keeps the N a milestone already has when only its note changes, even after the book got shorter', () => {
+    const old = { name: 'First 12', dueDate: '2026-10-05', measure: 'ch12' };
+    const short = { chapters: 5, minutes: 600 };
+    expect(milestoneFromDraft({ ...draftOf(old), note: 'a note' }, old, short)).toMatchObject({ milestone: { measure: 'ch12', note: 'a note' } });
+    expect(milestoneFromDraft({ ...draftOf(old), chapters: '11' }, old, short)).toEqual({
+      refusal: 'The book has 5 chapters. Write a whole number from 1 to 5.',
     });
   });
 

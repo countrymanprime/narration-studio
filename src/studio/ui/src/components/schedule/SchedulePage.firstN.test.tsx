@@ -1,17 +1,18 @@
 // @vitest-environment jsdom
 // #4100: the "First N" milestone saves the N the narrator typed, or refuses it with a reason; it never changes it quietly.
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
+import type { NarrationApi } from '../../types';
 import { REC, installKit, mountSchedule, stored } from './scheduleKit.test';
 
 installKit();
 
 const book = (n: number, first: ChapterStatus = 'not_started'): ChapterStatus[] => Array.from({ length: n }, (_, i) => (i === 0 ? first : 'not_started'));
 const dialog = () => within(screen.getByRole('dialog'));
-const RANGE_12 = 'The book has 12 chapters. Write a number from 1 to 12.';
-const WHOLE_12 = 'Write a whole number of chapters from 1 to 12.';
+const RANGE_12 = 'The book has 12 chapters. Write a whole number from 1 to 12.';
+const WHOLE_12 = RANGE_12;
 
 /** Opens the Edit dialog of the seeded milestone, picks "First N chapters" (or minutes) and types `text` into its N field. */
 async function typeN(text: string | null, field: 'chN' | 'minN' = 'chN') {
@@ -82,27 +83,27 @@ describe('the First N chapters milestone', () => {
     expect(document.querySelector('[data-measure="1"]')?.textContent).toBe('First 3 chapters edited and proofed');
   });
 
-  it('counts the chapters actually proofed: with Chapter 1 proofed, First 1 is on track and First 2 is not', async () => {
+  it('counts the chapters actually proofed: with Chapter 1 proofed, First 1 reads On track and First 2 does not', async () => {
     await mountSchedule({
       statuses: book(12, 'finalized'),
       seed: {
         milestones: [
-          { name: 'One', dueDate: '2026-10-02', measure: 'ch1' },
-          { name: 'Two', dueDate: '2026-10-02', measure: 'ch2' },
+          { name: 'One', dueDate: '2026-10-20', measure: 'ch1' },
+          { name: 'Two', dueDate: '2026-10-20', measure: 'ch2' },
         ],
       },
     });
     await screen.findByText('One');
-    const status = (name: string) => screen.getByText(name).closest('tr')!.textContent ?? '';
-    expect(status('One')).toMatch(/est\. Oct 1/);
-    expect(status('Two')).not.toMatch(/est\. Oct 1/);
+    const sentence = (name: string) => screen.getByText(name).closest('tr')!.querySelector('[data-status]')!.getAttribute('aria-label');
+    expect(sentence('One')).toBe('On track (est. Oct 1)');
+    expect(sentence('Two')).not.toBe('On track (est. Oct 1)');
   });
 
   it('a one-chapter book offers 1 and refuses 2', async () => {
     await mountSchedule({ statuses: book(1) });
     const d = await typeN('2');
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 1 chapter. Write a number from 1 to 1.');
+    expect((await d.findByRole('alert')).textContent).toBe('The book has 1 chapter. Write 1.');
   });
 
   it('an empty book has no Schedule to add a milestone to (the draft refuses the N in draft.test.ts)', async () => {
@@ -114,7 +115,7 @@ describe('the First N chapters milestone', () => {
     await mountSchedule({ statuses: book(200) });
     const d = await typeN('201');
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 200 chapters. Write a number from 1 to 200.');
+    expect((await d.findByRole('alert')).textContent).toBe('The book has 200 chapters. Write a whole number from 1 to 200.');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '200' } });
     save(d);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -134,7 +135,7 @@ describe('the First N finished minutes milestone (the sibling N)', () => {
       const again = dialog();
       fireEvent.change(again.getByLabelText('How many finished minutes'), { target: { value: bad } });
       save(again);
-      expect((await again.findByRole('alert')).textContent).toMatch(/^Write a whole number of minutes from 1 to [\d,]+\.$/);
+      expect((await again.findByRole('alert')).textContent).toMatch(/^The book runs [\d,]+ finished minutes\. Write a whole number from 1 to [\d,]+\.$/);
       fireEvent.click(again.getByRole('button', { name: 'Cancel' }));
     }
     expect((await stored()).milestones[0].measure).toBe('min20');
@@ -144,5 +145,128 @@ describe('the First N finished minutes milestone (the sibling N)', () => {
     await mountSchedule({ statuses: book(12), seed: { milestones: [{ name: 'One', dueDate: '2026-10-06', measure: 'min1' }] } });
     await screen.findByText('One');
     expect(document.querySelector('[data-measure="0"]')?.textContent).toBe('First finished minute');
+  });
+});
+
+describe('a book whose chapters carry no content kind (an older manuscript, as the default mock book)', () => {
+  const unkinded = (n: number) => (base: NarrationApi) => ({
+    manuscriptChapters: async () => {
+      const list = await base.manuscriptChapters();
+      return { ...list, chapters: list.chapters.slice(0, n).map(({ contentKind: _kind, ...rest }) => rest) };
+    },
+  });
+
+  it('counts its chapters: 4 saves, 13 is refused with the real count', async () => {
+    await mountSchedule({ statuses: book(12), wrap: unkinded(12) });
+    const d = await typeN('13');
+    save(d);
+    expect((await d.findByRole('alert')).textContent).toBe(RANGE_12);
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '4' } });
+    save(d);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect((await stored()).milestones[0].measure).toBe('ch4');
+  });
+
+  it('counts the first N chapters of progress too', async () => {
+    await mountSchedule({
+      statuses: book(12, 'finalized'),
+      wrap: unkinded(12),
+      seed: { milestones: [{ name: 'One', dueDate: '2026-10-20', measure: 'ch1' }] },
+    });
+    await screen.findByText('One');
+    expect(screen.getByText('One').closest('tr')!.querySelector('[data-status]')!.getAttribute('aria-label')).toBe('On track (est. Oct 1)');
+  });
+});
+
+describe('the dialog keeps up with the book and the narrator', () => {
+  it('B2: checks the chapter count as it is when saved, after the list is read again while the dialog is open', async () => {
+    let count = 12;
+    let reads = 0;
+    await mountSchedule({
+      store: true,
+      statuses: book(12),
+      wrap: (base) => ({
+        manuscriptChapters: async () => {
+          const list = await base.manuscriptChapters();
+          reads += 1;
+          return { ...list, chapters: list.chapters.slice(0, count) };
+        },
+      }),
+    });
+    const d = await typeN('12');
+    count = 5;
+    const before = reads;
+    // The page reads the chapter list again when the window regains focus, once its last read is old enough.
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000);
+    fireEvent.focus(window);
+    await waitFor(() => expect(reads).toBeGreaterThan(before));
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    save(d);
+    expect((await d.findByRole('alert')).textContent).toBe('The book has 5 chapters. Write a whole number from 1 to 5.');
+  });
+
+  it('B3: Enter twice in the N box while the save is out adds one milestone', async () => {
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await mountSchedule({
+      statuses: book(12),
+      wrap: (base) => ({
+        saveProductionMilestones: async (...args) => {
+          await held;
+          return base.saveProductionMilestones(...args);
+        },
+      }),
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Add milestone' }));
+    const d = dialog();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Twice' } });
+    fireEvent.change(document.getElementById('milestone-due') as HTMLInputElement, { target: { value: '2026-10-10' } });
+    const form = d.getByLabelText('Name').closest('form')!;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+    release();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect((await stored()).milestones.filter((m) => m.name === 'Twice')).toHaveLength(1);
+  });
+
+  it('B4: a typed 6 survives a round trip through another measure', async () => {
+    await mountSchedule({ statuses: book(3) });
+    const d = await typeN('6');
+    const picker = d.getByRole('combobox', { name: 'What the milestone measures' });
+    await userEvent.selectOptions(picker, 'rec');
+    await userEvent.selectOptions(picker, 'chN');
+    expect((d.getByLabelText('How many chapters') as HTMLInputElement).value).toBe('6');
+  });
+
+  it('B4: the untouched default is held to a 3-chapter book', async () => {
+    await mountSchedule({ statuses: book(3) });
+    const d = await typeN(null);
+    expect((d.getByLabelText('How many chapters') as HTMLInputElement).value).toBe('3');
+  });
+
+  it('B5: a note-only edit of a milestone whose N is now past the book saves; a changed N is refused', async () => {
+    await mountSchedule({ statuses: book(5), seed: { milestones: [{ name: 'Old', dueDate: '2026-10-20', measure: 'ch12' }] } });
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit Old' }));
+    const d = dialog();
+    fireEvent.change(d.getByLabelText('Note'), { target: { value: 'still wanted' } });
+    save(d);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect((await stored()).milestones[0]).toMatchObject({ measure: 'ch12', note: 'still wanted' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit Old' }));
+    const again = dialog();
+    fireEvent.change(again.getByLabelText('How many chapters'), { target: { value: '11' } });
+    save(again);
+    expect((await again.findByRole('alert')).textContent).toBe('The book has 5 chapters. Write a whole number from 1 to 5.');
+  });
+
+  it('B6: a refused N takes the focus, is marked invalid and is linked to the reason', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await typeN('99');
+    save(d);
+    const alert = await d.findByRole('alert');
+    const box = d.getByLabelText('How many chapters');
+    await waitFor(() => expect(document.activeElement).toBe(box));
+    expect(box.getAttribute('aria-invalid')).toBe('true');
+    expect(box.getAttribute('aria-describedby')).toBe(alert.id);
   });
 });

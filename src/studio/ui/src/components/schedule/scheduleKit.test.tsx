@@ -9,6 +9,7 @@ import { createMockApi } from '../../api/mockApi';
 import type { ProductionSeed } from '../../api/productionMock';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import { overlay } from '../../overlay/overlayService';
+import { StudioProvider } from '../../studio/StudioProvider';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { NarrationApi } from '../../types';
 import { WPH } from './estimates';
@@ -49,9 +50,17 @@ export type Mount = {
   wrap?: (base: NarrationApi) => Wrap;
   /** The page's fixed day; leave out to let the page use the clock (a test with fake timers). */
   today?: Date | null;
+  /** Mount the page under the app's store, so the shared chapter list is read again as it is in the app (a test of the list changing under an open dialog). */
+  store?: boolean;
 };
 
-export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not_started'], wrap, today = TODAY }: Mount = {}): Promise<NarrationApi> {
+export async function mountSchedule({
+  seed = {},
+  statuses = ['not_started', 'not_started'],
+  wrap,
+  today = TODAY,
+  store = false,
+}: Mount = {}): Promise<NarrationApi> {
   const production: ProductionSeed = { deadline: '2026-10-31', contractedAmount: 250, payment: 'per_finished_hour', milestones: [REC, CUSTOM], ...seed };
   const base = createMockApi(
     {
@@ -70,7 +79,13 @@ export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not
   kit.api = wrap ? { ...base, ...wrap(base) } : base;
   render(
     <ApiProvider api={kit.api}>
-      <SchedulePage journal={kit.journal} {...(today ? { today } : {})} />
+      {store ? (
+        <StudioProvider journal={kit.journal}>
+          <SchedulePage journal={kit.journal} {...(today ? { today } : {})} />
+        </StudioProvider>
+      ) : (
+        <SchedulePage journal={kit.journal} {...(today ? { today } : {})} />
+      )}
       <OverlayHost />
     </ApiProvider>,
   );

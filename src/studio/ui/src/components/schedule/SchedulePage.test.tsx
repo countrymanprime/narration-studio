@@ -246,7 +246,7 @@ describe('the milestone dialog', () => {
     await userEvent.selectOptions(d.getByRole('combobox', { name: 'What the milestone measures' }), 'chN');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '99' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 2 chapters. Write a number from 1 to 2.');
+    expect((await d.findByRole('alert')).textContent).toBe('The book has 2 chapters. Write a whole number from 1 to 2.');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '2' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

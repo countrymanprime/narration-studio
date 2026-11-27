@@ -2,6 +2,7 @@ import type { ProductionMilestone } from '../../api/contracts/production';
 import { farDateProblem, isIsoDate, MAX_DATE_YEAR } from './dates';
 import { chaptersOf, measOf, minutesOf } from './measures';
 import { plural, formatCount } from '../../plural';
+import { numberProblem } from '../settings/numberSetting';
 
 /** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N" as typed, so a bad one can be refused, not rewritten. */
 export type MilestoneDraft = { name: string; date: string; measure: string; chapters: string; minutes: string; note: string; done: boolean };
@@ -46,23 +47,38 @@ const badDate = (text: string): string => {
 /** How far an N may go: the chapters the book has and the finished minutes it runs. */
 export type DraftBounds = { chapters: number; minutes: number };
 
-/** The N a narrator typed, or why it cannot be one: whole digits only, from 1 to `max`. */
-function readN(text: string, max: number, noun: 'chapter' | 'minute'): { n: number } | { refusal: string } {
+/** The range an N may be in: whole numbers from 1 to what the book has. */
+const nRange = (max: number) => ({ min: 1, max, step: 1, unit: '' });
+
+/** The N a narrator typed, or why it cannot be one. The check is the settings' `numberProblem`; the words say how much the book has. */
+function readN(text: string, max: number, noun: 'chapter' | 'finished minute'): { n: number } | { refusal: string } {
   const t = text.trim();
-  if (noun === 'chapter' && max < 1) return { refusal: 'The book has no chapters yet.' };
-  const whole = `Write a whole number of ${noun}s from 1 to ${formatCount(max)}.`;
-  if (!/^\d+$/.test(t) || Number(t) < 1) return { refusal: whole };
-  if (Number(t) > max) return { refusal: noun === 'chapter' ? `The book has ${plural(max, 'chapter')}. Write a number from 1 to ${formatCount(max)}.` : whole };
-  return { n: Number(t) };
+  if (max < 1) return { refusal: `The book has no ${noun}s yet.` };
+  if (t !== '' && numberProblem(nRange(max), t) === undefined) return { n: Number(t) };
+  const has = noun === 'chapter' ? `The book has ${plural(max, noun)}.` : `The book runs ${plural(max, noun)}.`;
+  return { refusal: `${has} ${max === 1 ? 'Write 1.' : `Write a whole number from 1 to ${formatCount(max)}.`}` };
 }
 
-/** The measure as stored: "first N" takes the N the draft holds, or the refusal saying why it cannot. */
-function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds): { measure: string } | { refusal: string } {
-  if (draft.measure === 'chN' || draft.measure === 'minN') {
-    const read = draft.measure === 'chN' ? readN(draft.chapters, bounds.chapters, 'chapter') : readN(draft.minutes, bounds.minutes, 'minute');
-    return 'refusal' in read ? read : { measure: `${draft.measure === 'chN' ? 'ch' : 'min'}${read.n}` };
+const N_MEASURES = { chN: ['chapters', 'chapter', 'ch'], minN: ['minutes', 'finished minute', 'min'] } as const;
+
+/** Why the N the draft holds cannot be saved, or undefined when the draft's measure has none or it is fine: what the dialog marks the N field with. */
+export function nRefusal(draft: MilestoneDraft, bounds: DraftBounds): string | undefined {
+  if (draft.measure !== 'chN' && draft.measure !== 'minN') return undefined;
+  const [field, noun] = N_MEASURES[draft.measure];
+  const read = readN(draft[field], bounds[field], noun);
+  return 'refusal' in read ? read.refusal : undefined;
+}
+
+/** The measure as stored: "first N" takes the N the draft holds, or the refusal saying why it cannot. An N left as the milestone has it is kept, whatever the book now has. */
+function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds, existing?: ProductionMilestone): { measure: string } | { refusal: string } {
+  if (draft.measure !== 'chN' && draft.measure !== 'minN') return { measure: draft.measure };
+  const [field, noun, prefix] = N_MEASURES[draft.measure];
+  if (existing?.measure && measOf(existing.measure) === draft.measure && /^\d+$/.test(draft[field].trim())) {
+    const held = (draft.measure === 'chN' ? chaptersOf : minutesOf)(existing.measure);
+    if (held === Number(draft[field].trim())) return { measure: existing.measure };
   }
-  return { measure: draft.measure };
+  const read = readN(draft[field], bounds[field], noun);
+  return 'refusal' in read ? read : { measure: `${prefix}${read.n}` };
 }
 
 /**
@@ -81,7 +97,7 @@ export function milestoneFromDraft(
   if (!isIsoDate(date)) return { refusal: badDate(date) };
   const far = farDateProblem(date);
   if (far) return { refusal: far };
-  const stored = storedMeasure(draft, bounds);
+  const stored = storedMeasure(draft, bounds, existing);
   if ('refusal' in stored) return stored;
   const { measure } = stored;
   const keepEstimate = existing?.estimate !== undefined && measOf(measure) !== 'custom' && existing.measure === measure;

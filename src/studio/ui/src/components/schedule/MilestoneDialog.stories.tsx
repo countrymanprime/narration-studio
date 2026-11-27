@@ -6,7 +6,7 @@ import { STORY_MILESTONES } from './scheduleFixtures';
 const meta = {
   title: 'Schedule/MilestoneDialog',
   component: MilestoneDialog,
-  args: { profileId: 'acx', bounds: { chapters: 12, minutes: 600 }, onSave: fn(async (): Promise<string | undefined> => undefined), onCancel: fn() },
+  args: { profileId: 'acx', bounds: () => ({ chapters: 12, minutes: 600 }), onSave: fn(async (): Promise<string | undefined> => undefined), onCancel: fn() },
   // A dialog draws on the surface, so axe measures contrast against it and not the page background.
   render: (args) => (
     <div className="max-w-md rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">

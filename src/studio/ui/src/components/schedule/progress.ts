@@ -22,6 +22,12 @@ export function scheduleChapters(
   });
 }
 
+/** A chapter that carries a number in the book: narration that is not the opening or closing credits. */
+const isNumberedChapter = (c: ScheduleChapter): boolean => !c.credits && isNarrationChapter({ contentKind: c.kind });
+
+/** How many chapters the book numbers: what "First N chapters" counts from. */
+export const numberedCount = (chapters: readonly ScheduleChapter[]): number => chapters.filter(isNumberedChapter).length;
+
 /** The first status at which a stage is done. */
 const DONE_AT = { rec: 'editing', edit: 'proofing', proof: 'finalized' } as const;
 const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => reached(c.status, DONE_AT[stage]);
@@ -123,8 +129,9 @@ export function remainFor(chapters: readonly ScheduleChapter[], stored: string, 
     let numbered = 0;
     return chapters.reduce((a, c) => {
       if (c.credits === 'opening') return a + stagesLeft(c, ['edit', 'proof']);
-      if (c.kind === 'narration' && !c.credits) numbered += 1;
-      return !c.credits && c.kind === 'narration' && numbered <= n ? a + stagesLeft(c, ['edit', 'proof']) : a;
+      if (!isNumberedChapter(c)) return a;
+      numbered += 1;
+      return numbered <= n ? a + stagesLeft(c, ['edit', 'proof']) : a;
     }, 0);
   }
   const stages: Record<string, readonly (keyof typeof DONE_AT)[]> = {

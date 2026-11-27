@@ -1,4 +1,4 @@
-import { formatCount, pluralWord } from '../../plural';
+import { plural } from '../../plural';
 import { CHECKPOINT_MINUTES, WPH } from './estimates';
 import { platformHas } from './platform';
 import type { PlatformCapability } from './profiles';
@@ -56,7 +56,7 @@ export function measureOptions(
 }
 
 /** "chapter" for 1, "4 chapters" otherwise: the first one needs no number. */
-const nounWithN = (n: number, noun: string): string => (n === 1 ? noun : `${formatCount(n)} ${pluralWord(n, noun)}`);
+const nounWithN = (n: number, noun: string): string => (n === 1 ? noun : plural(n, noun));
 
 /** The measure as the narrator chose it, with its value filled in: "First 15 finished minutes", "First 4 chapters edited and proofed", "Whole book". */
 export function measureText(stored: string | undefined): string {
