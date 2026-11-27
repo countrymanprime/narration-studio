@@ -285,11 +285,13 @@ function watchFocusTaken(): { taken: () => boolean; stop: () => void } {
 
 /**
  * Where focus goes when a toast hands it on: the control that had it before the toast took it, else the Dismiss of the toast now in the slot, else the page's <main> (the app's `#main-content`, the project picker's
- * too), the first of them that takes focus. When none does, or a dialog is open that they all lie behind, nothing is handed on and focus stays where it is, possibly <body> (see `settle`).
+ * too), the first of them that takes focus. A dialog that is open keeps what lies behind it: only a target inside it or among the toasts counts, so with an origin that is gone, `<main>` is left alone. When none takes focus,
+ * nothing is handed on and focus stays where it is, possibly <body>. Both ways a toast hands focus on, a press (`settle`) and a removal with focus inside it (the fallback), look here.
  */
-function focusCandidates(origin: HTMLElement | null): HTMLElement[] {
+function handBackTargets(origin: HTMLElement | null): HTMLElement[] {
+  const layer = openModalLayer();
   const found = [origin, document.querySelector<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]'), document.getElementById('main-content')];
-  return found.filter((el): el is HTMLElement => el !== null && el.isConnected);
+  return found.filter((el): el is HTMLElement => el !== null && el.isConnected && (!layer || layer.contains(el) || el.closest('[data-toast-region]') !== null));
 }
 
 /** Focuses the first candidate that takes it (a disabled or hidden one does not); false when none did. */
@@ -385,7 +387,7 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
   }, [held, stays]);
   // The control that had focus before the toast took it: where focus goes back once the toast is gone and no other toast is to take it.
   const origin = useRef<HTMLElement | null>(null);
-  // A press (a click or a key on the toast's own buttons) hands focus on by itself (`settle`); a toast that goes any other way with focus inside it (the same message raised again, replacing it) hands it on here, so focus never falls to <body>.
+  // A press (a click or a key on the toast's own buttons) hands focus on by itself (`settle`); a toast that goes any other way with focus inside it (the same message raised again, replacing it) hands it on here the same way (`handBackTargets`), so focus does not fall to <body> unless a dialog keeps everything else behind it.
   const pressed = useRef(false);
   // Which of the toast's own buttons has focus (its action's label, or 'Dismiss message'): the toast that replaces this one in place has the same control, and focus stays on that.
   const focusedButton = useRef<string | null>(null);
@@ -404,7 +406,7 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
                 (b) => (b.getAttribute('aria-label') ?? b.textContent) === name,
               );
         if (same) same.focus();
-        else focusFirst(focusCandidates(origin.current));
+        else focusFirst(handBackTargets(origin.current));
       }, 0);
       const cancel = () => window.clearTimeout(timer);
       owner.hold(cancel);
@@ -413,9 +415,6 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
   );
   // `act` is the press's action, run once the watch for focus moving is up, so focus the action moves itself is seen by it.
   const settle = (always: boolean, act?: () => void) => {
-    // Where focus goes, looked up when it is handed over: where it was before the toast took it, else the Dismiss of the toast that has taken the slot by then, else <main>
-    // (an origin that is gone, a dialog that closed). Not into the page behind an open dialog: <main> there is left alone.
-    const resolve = () => focusCandidates(origin.current);
     pressed.current = true;
     // Focus that something took since the press (a dialog or menu opened, a field was reached, even if it has closed since) is theirs: nothing is handed back (#4103).
     const focus = watchFocusTaken();
@@ -447,10 +446,8 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
         if (always) owner.endGrace(false);
         return;
       }
-      // A dialog is open: a target outside it (the page's <main>, once the origin is gone) lies behind it. Only something inside the dialog or among the toasts takes focus.
-      const layer = openModalLayer();
-      const candidates = resolve().filter((target) => !layer || layer.contains(target) || target.closest('[data-toast-region]'));
-      const handed = (always || !active || active === document.body || !active.isConnected) && focusFirst(candidates);
+      // Looked up when it is handed over: the Dismiss of the toast that has taken the slot by then, <main> once the origin is gone, none of them behind an open dialog.
+      const handed = (always || !active || active === document.body || !active.isConnected) && focusFirst(handBackTargets(origin.current));
       if (always) owner.endGrace(handed);
     };
     const start = () => {
