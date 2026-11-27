@@ -1,6 +1,7 @@
 // How to reach each `schedule` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
 import { MOCK_DAY } from '../lib/pinnedDay';
+import { expect, type Page } from '@playwright/test';
 import { type Driver, clickNav, clickVisible, confirmDialog, openWithoutManuscript } from './shared';
 
 // Opens the Schedule through the rail, optionally booted with a mock seed (main.tsx), and waits until the plan has been read.
@@ -10,6 +11,18 @@ async function openSchedule(page: Parameters<Driver>[0], query = '', day: Date =
   await settlePage(page);
   await clickNav(page, 'Schedule');
   await page.getByRole('heading', { level: 2, name: 'Milestones' }).waitFor();
+}
+
+/** Adds a milestone through the dialog, then dismisses its "Milestone added." toast (toasts show one at a time, so that one would hold the slot for the next message). */
+export async function addMilestone(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: 'Add milestone', exact: true }).first().click();
+  const dialog = confirmDialog(page, /milestone/i);
+  await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
+  await dialog.getByRole('textbox', { name: 'Due' }).fill('2026-10-05');
+  await dialog.getByRole('button', { name: 'Add milestone' }).click();
+  await dialog.waitFor({ state: 'detached' });
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(page.locator('[data-toast-text]')).toHaveCount(0);
 }
 
 export const scheduleDrivers: Record<string, Driver> = {

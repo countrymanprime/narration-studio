@@ -3,23 +3,12 @@
 // came from, inside the dialog; the page used to put focus on that row's Edit button first (a control behind the dialog's scrim), and the hand-back then left it there. With the pointer, focus
 // goes nowhere (`<body>`), as for any press on a toast, and the dialog stays open. An Undo that is refused (an older toast) leaves focus where the toast's hand-back puts it, inside the dialog.
 import { expect, test, type Page } from '@playwright/test';
+import { addMilestone } from './drivers/schedule';
 import { confirmDialog } from './drivers/shared';
 import { settlePage } from './helpers/settle';
 
 const ORIGIN = 'data-test-origin';
 const IN_DIALOG = '[role="dialog"], [role="alertdialog"]';
-
-async function addMilestone(page: Page, name: string): Promise<void> {
-  await page.getByRole('button', { name: 'Add milestone', exact: true }).first().click();
-  const dialog = confirmDialog(page, /milestone/i);
-  await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
-  await dialog.getByRole('textbox', { name: 'Due' }).fill('2026-10-05');
-  await dialog.getByRole('button', { name: 'Add milestone' }).click();
-  await dialog.waitFor({ state: 'detached' });
-  // Toasts show one at a time: the Add toast holds the slot until it is dismissed.
-  await page.getByRole('button', { name: 'Dismiss' }).click();
-  await expect(page.locator('[data-toast-text]')).toHaveCount(0);
-}
 
 async function removeByKeyboard(page: Page, name: RegExp): Promise<void> {
   await page.getByRole('button', { name }).focus();

@@ -93,6 +93,9 @@ class HandBacks {
   private waiting = new Set<HandBackWait>();
   private keysCancel: (() => void) | null = null;
   private pressKey: string | null = null;
+  private graceTimer: number | undefined;
+  /** Whether a dismissal has just handed focus back: for a moment a fresh Enter or Space is consumed, so it presses neither what focus went to nor what the page does with the key (#4125). */
+  private grace = false;
   hold(cancel: () => void): void {
     if (this.open) this.cancels.add(cancel);
     else cancel();
@@ -102,6 +105,8 @@ class HandBacks {
   }
   close(): void {
     this.open = false;
+    window.clearTimeout(this.graceTimer);
+    this.grace = false;
     this.waiting.clear();
     const all = [...this.cancels];
     this.cancels.clear();
@@ -124,6 +129,13 @@ class HandBacks {
     if (this.keysCancel || !this.open) return;
     const swallow = (event: KeyboardEvent) => {
       const code = keyOf(event);
+      // A fresh Enter or Space just after a dismissal handed focus back is not a press: it would press the control focus went to (the next row's Remove) or run the page's own command on it. Its repeats and keyup are
+      // harmless (a button is clicked by Enter's keydown and by Space's keyup, which a cancelled keydown never arms).
+      if (this.grace && !event.repeat && activates(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const own = this.held.has(code);
       // A fresh press of a held code means its keyup was lost: it is let go, so its next repeats (an Enter held down in a field) are the field's own. A hand-back that was waiting for it is not let run under the new
       // press: the next rule holds the code again for every hand-back whose focus is not taken, and a hand-back's timer waits for the keys then held (`waitsForKeys`).
@@ -190,6 +202,17 @@ class HandBacks {
       waitsForKeys: () => wait.codes.size > 0,
     };
   }
+  /** A dismissal has handed focus back: for `ACTION_FOCUS_MS` a fresh Enter or Space is consumed (`listen`), so a double press does not press what focus went to (#4125). */
+  startGrace(): void {
+    if (!this.open) return;
+    window.clearTimeout(this.graceTimer);
+    this.grace = true;
+    this.listen();
+    this.graceTimer = window.setTimeout(() => {
+      this.grace = false;
+      this.endKeysIfIdle();
+    }, ACTION_FOCUS_MS);
+  }
   /**
    * A press with the pointer on a toast: a held key that repeated and then went silent (its keyup was lost) is let go. One that is still repeating is held, and so is one that has not repeated yet (the first repeat
    * comes after the system's delay, up to about a second). Its keyup or a fresh press of it lets it go; the window losing focus or the page being hidden ends only the waits, and the region closing removes the
@@ -216,7 +239,7 @@ class HandBacks {
     }
   }
   private endKeysIfIdle(): void {
-    if (this.held.size > 0 || this.waiting.size > 0) return;
+    if (this.held.size > 0 || this.waiting.size > 0 || this.grace) return;
     const cancel = this.keysCancel;
     if (!cancel) return;
     this.release(cancel);
@@ -396,12 +419,14 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       // A dialog is open: a target outside it (the page's <main>, once the origin is gone) lies behind it. Only something inside the dialog or among the toasts takes focus.
       const layer = openModalLayer();
       const candidates = resolve().filter((target) => !layer || layer.contains(target) || target.closest('[data-toast-region]'));
-      if (always || !active || active === document.body || !active.isConnected) focusFirst(candidates);
+      if (always || !active || active === document.body || !active.isConnected) {
+        // A dismissal's focus is handed at once, so an Enter or Space pressed again at once would press what has it.
+        if (focusFirst(candidates) && always) owner.startGrace();
+      }
     };
-    // Every press waits out the same grace, a dismissal too: an Enter pressed again at once lands on <body> (and is waited for, above) and not on the control focus is handed to, which it would press (#4125).
     const start = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(hand, ACTION_FOCUS_MS);
+      timer = window.setTimeout(hand, always ? 0 : ACTION_FOCUS_MS);
     };
     // The key that pressed, still held down, would repeat on whatever gets focus: wait for that key (not another) to come up. The wait ends too when the window loses focus or the page is hidden (`HandBacks`),
     // where its keyup may never come.

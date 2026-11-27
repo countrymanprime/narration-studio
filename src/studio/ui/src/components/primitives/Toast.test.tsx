@@ -537,13 +537,13 @@ describe('ToastRegion, action labels and focus (issue 2899)', () => {
     origin.focus();
     act(() => dismissButton.focus());
     fireEvent.click(dismissButton);
-    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    act(() => void vi.advanceTimersByTime(1));
     expect(dismiss).toHaveBeenLastCalledWith(1);
     expect(document.activeElement).toBe(origin);
     // A click that did not have focus moves nothing.
     (document.activeElement as HTMLElement).blur();
     fireEvent.click(dismissButton);
-    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    act(() => void vi.advanceTimersByTime(1));
     expect(document.activeElement).toBe(document.body);
   });
 });
@@ -856,25 +856,105 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     expect(document.activeElement).toBe(origin);
   });
 
-  it('a second Enter soon after a keyboard Dismiss presses nothing: focus is not handed back onto the origin until it has come up (#4125 B4)', () => {
-    const origin = document.createElement('button');
-    const pressed = vi.fn();
-    origin.addEventListener('click', pressed);
-    document.body.append(origin);
-    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
-    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
-    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
-    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
-    act(() => void vi.advanceTimersByTime(30));
-    // The origin has not been handed focus yet, so a fresh Enter lands on <body> and is waited for.
-    expect(document.activeElement).toBe(document.body);
-    fireEvent.keyDown(document.body, { key: 'Enter', code: 'Enter' });
-    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
-    expect(document.activeElement).toBe(document.body);
-    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
-    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
-    expect(document.activeElement).toBe(origin);
-    expect(pressed).not.toHaveBeenCalled();
+  describe("a dismissal's grace: a fresh Enter or Space just after focus is handed back is consumed (#4125 B4)", () => {
+    /** Dismisses the toast from the keyboard and lets its key come up: focus is handed back to `origin` at once. */
+    const dismissed = () => {
+      const origin = document.createElement('button');
+      const pressed = vi.fn();
+      origin.addEventListener('click', pressed);
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(1));
+      return { origin, pressed };
+    };
+    /** A fresh key press on `target`: whether it still does something, that is whether it was neither cancelled (the button would not be clicked) nor stopped (nothing below the document sees it). */
+    const reaches = (target: HTMLElement, key: string, code: string) => {
+      const event = createEvent.keyDown(target, { key, code });
+      fireEvent(target, event);
+      return !event.defaultPrevented && !event.cancelBubble;
+    };
+
+    it.each([
+      ['Enter', 'Enter'],
+      ['Enter', 'NumpadEnter'],
+      [' ', 'Space'],
+    ])('a fresh %s (%s) on the control focus went back to reaches neither it nor the page', (key, code) => {
+      const { origin } = dismissed();
+      expect(document.activeElement).toBe(origin);
+      expect(reaches(origin, key, code)).toBe(false);
+    });
+
+    it("an Enter or Space pressed during the grace reaches no handler of the page's own", () => {
+      const handler = vi.fn();
+      const view = render(
+        <div onKeyDown={handler}>
+          <button>Origin</button>
+          <ToastRegion messages={[info(1)]} dismiss={vi.fn()} />
+        </div>,
+      );
+      const origin = screen.getByRole('button', { name: 'Origin' });
+      press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      handler.mockClear();
+      view.rerender(
+        <div onKeyDown={handler}>
+          <button>Origin</button>
+          <ToastRegion messages={[]} dismiss={vi.fn()} />
+        </div>,
+      );
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(1));
+      expect(document.activeElement).toBe(origin);
+      fireEvent.keyDown(origin, { key: 'Enter', code: 'Enter' });
+      fireEvent.keyDown(origin, { key: ' ', code: 'Space' });
+      expect(handler).not.toHaveBeenCalled();
+      // Another key is the page's own.
+      fireEvent.keyDown(origin, { key: 'k', code: 'KeyK' });
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('a fresh Enter on <body> is consumed too, and another key is not', () => {
+      dismissed();
+      expect(reaches(document.body, 'Enter', 'Enter')).toBe(false);
+      expect(reaches(document.body, 'Tab', 'Tab')).toBe(true);
+    });
+
+    it('the grace ends after ACTION_FOCUS_MS: a deliberate press then reaches the control', () => {
+      const { origin } = dismissed();
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS - 2));
+      expect(reaches(origin, 'Enter', 'Enter')).toBe(false);
+      act(() => void vi.advanceTimersByTime(2));
+      expect(reaches(origin, 'Enter', 'Enter')).toBe(true);
+    });
+
+    it('an action (Undo) has no grace: its own hand-back wait covers a key pressed meanwhile', () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: 'Undo' }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+      expect(document.activeElement).toBe(origin);
+      expect(reaches(origin, 'Enter', 'Enter')).toBe(true);
+    });
+
+    it('a dismissal that handed nothing back (focus was taken) starts no grace', () => {
+      const field = document.createElement('input');
+      document.body.append(field);
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      field.focus();
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(1));
+      expect(document.activeElement).toBe(field);
+      expect(reaches(field, 'Enter', 'Enter')).toBe(true);
+    });
   });
 
   it("a held key swallows only its own repeats: another key's, a Backspace held in a field, are the field's own even while the held key's keyup is lost", () => {
@@ -2209,7 +2289,7 @@ describe('a toast is never lost unseen, never pressed twice, and never takes a k
     act(() => void vi.advanceTimersByTime(1_000));
     expect(document.activeElement).toBe(dismissButton);
     fireEvent.keyUp(dismissButton, { key: 'Enter' });
-    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    act(() => void vi.advanceTimersByTime(10));
     expect(document.activeElement).toBe(page);
   });
 
@@ -2243,13 +2323,13 @@ describe('a toast is never lost unseen, never pressed twice, and never takes a k
       gone.remove();
       fireEvent.click(dismissButton, { detail: 0 });
       rerender(<ToastRegion messages={[failure(2, 'Beta')]} dismiss={vi.fn()} />);
-      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+      act(() => void vi.advanceTimersByTime(10));
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
       const only = screen.getByRole('button', { name: 'Dismiss message' });
       only.focus();
       fireEvent.click(only, { detail: 0 });
       rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
-      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+      act(() => void vi.advanceTimersByTime(10));
       expect(document.activeElement).toBe(document.getElementById('main-content'));
     } finally {
       document.getElementById('main-content')?.remove();
