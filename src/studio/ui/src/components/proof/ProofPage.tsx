@@ -47,6 +47,7 @@ import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './note
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
 import { recallSelection, rememberSelection } from './proofMemory';
+import { loadProofScope, saveProofScope } from './lastScope';
 import { SurroundingText } from './around/SurroundingText';
 import { useParagraphsAround } from './around/useParagraphsAround';
 import { SpotTakes } from './spot/SpotTakes';
@@ -154,6 +155,27 @@ export function ProofPage({
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
   const all = scope === ALL_CHAPTERS;
+  // With no chapter and no note in the address, Proof opens on the scope the narrator last had in this project (#4099): once the chapters are read, a kept chapter the book
+  // still has is written into the address (replacing the entry, as the Booth does), and until then, or when that chapter is gone, it is All chapters. `restored` holds
+  // the scope from then on, so the kept scope is not overwritten by the first All chapters the page draws before the restore.
+  const [restored, setRestored] = useState(false);
+  const restoring = useRef<string | null>(null);
+  useEffect(() => {
+    if (restored || !firstRead.chapters) return;
+    setRestored(true);
+    if (params.has('chapter') || params.has('finding')) return;
+    const kept = loadProofScope(projectFolder);
+    if (kept && kept !== ALL_CHAPTERS && chapters.some((c) => c.id === kept)) {
+      restoring.current = kept;
+      setSelectedId(recallSelection(projectFolder, kept));
+      setParams({ chapter: kept }, { replace: true });
+    }
+  }, [restored, firstRead.chapters, params, chapters, projectFolder, setParams]);
+  useEffect(() => {
+    if (restoring.current !== null && scope !== restoring.current) return; // the restore's address is not committed yet
+    restoring.current = null;
+    if (restored && hasManuscript) saveProofScope(projectFolder, scope);
+  }, [restored, hasManuscript, projectFolder, scope]);
   // The host sorts by a chapter-relative time, so All chapters is put in book order here; the table groups by chapter and J/K must follow it.
   const findings = useMemo(
     () =>

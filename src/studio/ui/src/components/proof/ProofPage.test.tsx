@@ -129,6 +129,70 @@ const noteRows = async () => {
 const where = () => screen.getByTestId('where').textContent;
 const press = (key: string, code: string) => fireEvent.keyDown(document.body, { key, code });
 
+describe('proof-remembers-its-scope (#4099)', () => {
+  const scopeKey = 'narration.proof.scope./p';
+
+  it('opens on the chapter it was last on after a trip through another page', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    cleanup();
+    renderPage();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    expect(await screen.findByText(/Recording check/i)).toBeTruthy();
+  });
+
+  it('keeps All chapters when that was the choice, though a chapter was looked at before', async () => {
+    renderPage({ at: '/proof?chapter=chapter-2' });
+    await noteRows();
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    await waitFor(() => expect(window.localStorage.getItem(scopeKey)).toBe('all'));
+    cleanup();
+    renderPage();
+    await noteRows();
+    expect(where()).toBe('/proof');
+    expect(screen.getByText('Open notes, by chapter')).toBeTruthy();
+  });
+
+  it('opens on All chapters when nothing is kept', async () => {
+    renderPage();
+    await noteRows();
+    expect(where()).toBe('/proof');
+    await waitFor(() => expect(window.localStorage.getItem(scopeKey)).toBe('all'));
+  });
+
+  it('lets the address win over what is kept, and keeps the address’s chapter', async () => {
+    window.localStorage.setItem(scopeKey, 'chapter-2');
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    await noteRows();
+    expect(where()).toBe('/proof?chapter=chapter-1');
+    await waitFor(() => expect(window.localStorage.getItem(scopeKey)).toBe('chapter-1'));
+  });
+
+  it('opens on All chapters when the kept chapter is no longer in the book, and forgets it', async () => {
+    window.localStorage.setItem(scopeKey, 'chapter-that-was-deleted');
+    renderPage();
+    await noteRows();
+    expect(where()).toBe('/proof');
+    await waitFor(() => expect(window.localStorage.getItem(scopeKey)).toBe('all'));
+  });
+
+  it('keeps the scope per project: another project’s chapter is never opened', async () => {
+    window.localStorage.setItem('narration.proof.scope./other', 'chapter-2');
+    renderPage();
+    await noteRows();
+    expect(where()).toBe('/proof');
+  });
+
+  it('opens a kept chapter under another spelling of the same folder', async () => {
+    window.localStorage.setItem('narration.proof.scope.\\p', 'chapter-2');
+    renderPage();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+  });
+});
+
 describe('sort-asks-the-host', () => {
   it('asks the host for the sort through FindingsQuery', async () => {
     const api = createMockApi();

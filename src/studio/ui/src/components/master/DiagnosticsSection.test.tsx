@@ -62,6 +62,60 @@ describe('Master & QC, Diagnostics wording', () => {
   });
 });
 
+describe('Master & QC, Diagnostics remembers the kind of file per project (#4099)', () => {
+  const pressed = (name: string) => screen.getByRole('button', { name }).getAttribute('aria-pressed');
+  async function openFor(projectFolder: string, initial: Initial = {}) {
+    const user = userEvent.setup();
+    render(
+      <PageHost api={createMockApi({}, initial)}>
+        <MasterPage onOpenDelivery={vi.fn()} openSettings={vi.fn()} projectFolder={projectFolder} />
+      </PageHost>,
+    );
+    await screen.findByRole('region', { name: 'Thresholds' });
+    return user;
+  }
+
+  it('opens on Raw recordings again after a trip through another page', async () => {
+    window.localStorage.clear();
+    const user = await openFor('/p');
+    expect(pressed('Rendered chapters')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Raw recordings' }));
+    cleanup();
+    await openFor('/p');
+    expect(pressed('Raw recordings')).toBe('true');
+    expect(pressed('Rendered chapters')).toBe('false');
+  });
+
+  it('keeps the choice per project, and under either spelling of the folder', async () => {
+    window.localStorage.clear();
+    const user = await openFor('C:/Projects/Alice');
+    await user.click(screen.getByRole('button', { name: 'Raw recordings' }));
+    cleanup();
+    await openFor('C:\\Projects\\Alice');
+    expect(pressed('Raw recordings')).toBe('true');
+    cleanup();
+    await openFor('C:/Projects/Voltage');
+    expect(pressed('Rendered chapters')).toBe('true');
+  });
+
+  it('puts Rendered chapters back too, when that was the last choice', async () => {
+    window.localStorage.clear();
+    const user = await openFor('/p');
+    await user.click(screen.getByRole('button', { name: 'Raw recordings' }));
+    await user.click(screen.getByRole('button', { name: 'Rendered chapters' }));
+    cleanup();
+    await openFor('/p');
+    expect(pressed('Rendered chapters')).toBe('true');
+  });
+
+  it('ignores a kept value that is no kind', async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem('narration.master.diagnosticsSource./p', 'nonsense');
+    await openFor('/p');
+    expect(pressed('Rendered chapters')).toBe('true');
+  });
+});
+
 describe('Master & QC, Diagnostics', () => {
   it('shows every threshold before anything is checked, and says nothing is checked yet', async () => {
     await openDiagnostics();

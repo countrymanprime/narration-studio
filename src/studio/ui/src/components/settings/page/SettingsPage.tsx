@@ -19,6 +19,7 @@ import { isAnyChanged, isBrowserChanged, overrideValue } from '../data/values';
 import { isResettable, useRowResets, type RowReset } from '../data/rowResets';
 import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
+import { loadSettingsCategory, saveSettingsCategory } from './lastCategory';
 import { DiagnosticsSection } from '../controls/DiagnosticsSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
 import { ROWS } from '../registry/rows';
@@ -77,7 +78,9 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const { data, go } = useSettingsHost();
   const hasProject = useHasProject();
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
-  const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
+  // A link's category wins; with none asked for, the one this project's Settings was last on, else the first.
+  const [cat, setCat] = useState<CategoryId>(() => target?.cat ?? loadSettingsCategory(data.projectFolder) ?? 'recording');
+  useEffect(() => saveSettingsCategory(data.projectFolder, cat), [data.projectFolder, cat]);
   const [query, setQuery] = useState('');
   // Letters typed while the question is open, which has not let them apply yet. They show in the box only until it is answered: Cancel puts the applied query back (`onCancel`),
   // and every write of `query` clears them, so whenever no question is open the box reads exactly what the results are for (#3456).

@@ -124,9 +124,12 @@ const STORAGE: Parity = {
     'narration.booth.chapterPlaces.': 'Where the Booth was in each chapter: remembered position, not a preference.',
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
     'narration.editing.lastChapter.': 'The chapter Editing was last on: remembered position, not a preference.',
+    'narration.proof.scope.': 'The chapter, or All chapters, Proof was last showing: remembered position, not a preference.',
+    'narration.settings.lastCategory.': 'The category Settings was last on: remembered position, not a preference.',
+    'narration.master.diagnosticsSource.': 'Which kind of file Master & QC Diagnostics was set to check: remembered position, not a preference.',
     'narration.readAloud.flags': 'Read only; nothing writes it.',
   },
-  cap: 9,
+  cap: 12,
 };
 
 // ---- Files that write a host settings field outside the Settings page.

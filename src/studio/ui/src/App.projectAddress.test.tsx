@@ -196,12 +196,21 @@ describe('the chapter in the address is not carried into another project (#4059)
     expect(address()).toBe('/master');
   });
 
-  it('a Settings anchor names a category, not project content: it stays across a project change', async () => {
-    const { api } = await openAt('/settings#credits');
+  it('a Settings row anchor is a one-time ask of the old project: it is dropped across a project change (#4099)', async () => {
+    const { api } = await openAt('/settings#cleanup');
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
-    expect(window.location.hash).toBe('#credits');
+    await waitFor(() => expect(window.location.hash).toBe(''));
+  });
+
+  it('Settings opens a project on its own last category, not the other project’s spot (#4099)', async () => {
+    window.localStorage.setItem(`narration.settings.lastCategory.${OTHER}`, 'delivery');
+    const { api } = await openAt('/settings#cleanup');
+    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    expect((await screen.findByRole('heading', { level: 2, name: 'Delivery' })).textContent).toBe('Delivery');
   });
 
   it('Settings\u2019 Back to a page goes to the bare page after a project change, not to the old project\u2019s chapter', async () => {

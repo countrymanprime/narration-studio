@@ -92,12 +92,13 @@ export function pageOfPath(pathname: string): string {
 export type PageAddress = { pathname: string; search: string; hash: string };
 
 /**
- * The address cut back to the page: no chapter, query or anchor of the project it was written under. Settings' anchors (`/settings#credits`, `#category-<id>`) name a category, not
- * project content, so they stay. An address that is already the bare page comes back equal, which is how a caller tells there is nothing to drop (#4059).
+ * The address cut back to the page: no chapter, query or anchor of the project it was written under. Settings' `#category-<id>` names a category, not project content, so it stays.
+ * Its other anchors (`#cleanup`, `#credits`...) ask to land on and light up one row, a one-time request of the page that sent the narrator there: carried into another
+ * project it opens that project's first visit at the old project's spot, so they go, and the project's own remembered category applies (#4099). An address that is already the bare page comes back equal, which is how a caller tells there is nothing to drop (#4059).
  */
 export function addressWithoutProject({ pathname, hash }: PageAddress): PageAddress {
   const page = pageOfPath(pathname);
-  const keepsHash = page === PAGE_PATH.settings && hash in SETTINGS_HASHES;
+  const keepsHash = page === PAGE_PATH.settings && hash.startsWith('#category-') && hash in SETTINGS_HASHES;
   return { pathname: page, search: '', hash: keepsHash ? hash : '' };
 }
 
