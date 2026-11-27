@@ -15,6 +15,7 @@ import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT, wireLink 
 import { createOverlayService } from '../../overlay/overlayService';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import type { LineIdentityState, NarrationApi, Track } from '../../types';
+import { isolatedIfRtl } from '../../visibleText';
 
 afterEach(cleanup);
 
@@ -513,7 +514,7 @@ describe('LinkChaptersDialog', () => {
       },
     });
     await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), track.guid);
-    expect(await screen.findByText(`${expected} was linked to that track and is now not linked.`)).toBeTruthy();
+    expect(await screen.findByText(`${isolatedIfRtl(expected)} was linked to that track and is now not linked.`)).toBeTruthy();
   });
 
   it('shows a REAPER error state', async () => {

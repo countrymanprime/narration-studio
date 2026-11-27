@@ -1,3 +1,4 @@
+import { isolatedIfRtl } from '../../visibleText';
 import { useEffect, useRef, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -114,7 +115,7 @@ export function useExportJobs() {
           .map((path): ExportItem => ({ kind: kindFromFileName(fileName(path)), title: titleFromPath(path), path }));
         return [...current, ...added];
       });
-      if (repeats.length === 1) overlay.toast(`${fileName(repeats[0] ?? '')} is already in the list.`);
+      if (repeats.length === 1) overlay.toast(`${isolatedIfRtl(fileName(repeats[0] ?? ''), 'ltr')} is already in the list.`);
       else if (repeats.length > 1) overlay.toast(`${plural(repeats.length, 'file')} are already in the list.`);
     } catch (error) {
       setProblem(apiErrorMessage(error));

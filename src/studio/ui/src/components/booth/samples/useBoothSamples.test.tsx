@@ -499,6 +499,8 @@ describe('the V key', () => {
     act(() => result.current.toggleSpeaker('Alice'));
     expect(options.notify).toHaveBeenCalledWith(noSampleSentence('Alice'));
     expect(noSampleSentence('Alice')).toBe('No voice sample for Alice yet. Mark one in Editing.');
+    // A right-to-left character name is isolated (#4113).
+    expect(noSampleSentence('\u0627\u0644\u0641\u0635\u0644')).toBe(`No voice sample for \u2068\u0627\u0644\u0641\u0635\u0644\u2069 yet. Mark one in Editing.`);
     expect(options.listening.pause).not.toHaveBeenCalled();
   });
 

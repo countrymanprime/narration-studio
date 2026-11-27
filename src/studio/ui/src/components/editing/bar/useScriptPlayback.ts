@@ -222,6 +222,12 @@ export function useScriptPlayback({
       if (now === null && dawRead?.failed) void dawRead.retry();
       const name = dawNameOf(now);
       const providers: PlaybackProvider<number>[] = [];
+      // The DAW was never asked (not ready, not placed): what it is playing (the page's play, or one started in it) is stopped before the app plays, or both would be heard.
+      let notAsked = false;
+      const refused = <T>(verdict: T): T => {
+        notAsked = true;
+        return verdict;
+      };
       if (now !== undefined) {
         providers.push({
           name,
@@ -229,12 +235,12 @@ export function useScriptPlayback({
             // A DAW that has not yet answered what it can do is not waited for: no check stands between the click and the play. With no capabilities
             // there is no word table either, so `refusal` says not placed and the app plays; a read that failed is said and asked again.
             const declared = playReadiness(now, 'transport_sync', !!dawRead?.failed);
-            if (!declared.ready) return declared;
+            if (!declared.ready) return refused(declared);
             const remote = remoteRef.current;
             const refusal = remote ? remote.refusal(at) : null;
             if (refusal === 'not_ready')
-              return { ready: false, why: remote?.refusedWith() ?? `${capitalised(name)} has not answered, or has another project open.` };
-            if (refusal === 'not_placed') return { ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` };
+              return refused({ ready: false, why: remote?.refusedWith() ?? `${capitalised(name)} has not answered, or has another project open.` });
+            if (refusal === 'not_placed') return refused({ ready: false, why: remote?.notPlacedWhy(at, name) ?? `That part is not in ${name}'s project.` });
             return { ready: true };
           },
           play: async (at) => {
@@ -251,6 +257,7 @@ export function useScriptPlayback({
         name: APP,
         readiness: (at) => (covers(at) ? { ready: true } : { ready: false, why: NOTHING_FROM_HERE }),
         play: (at) => {
+          if (notAsked) remoteRef.current?.stop();
           appPlays.current = true;
           stopReport.setPath('app');
           cue(at);
@@ -270,6 +277,8 @@ export function useScriptPlayback({
         if (notice && by === null && now !== undefined) say(notice, () => newest.current(asked) && goAgain.current(t, stopsAt, word));
         else if (notice) say(notice);
         if (by !== null) return;
+        // Nothing could play, and the DAW was never asked: what it was playing is not left running under the notice.
+        if (notAsked) halt();
         stopAt.current = null;
         if (live.current.state.playT === t) halt();
       });

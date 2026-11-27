@@ -16,6 +16,7 @@ import { useDawPlayPosition } from './useDawPlayPosition';
 import { buildWordClock, type WordClock } from './wordClock';
 import { linear, wordTimesFor } from './wordTimesFixtures';
 import { ECHO_WINDOW_MS } from './echoGuard';
+import { dawPlayOwner } from '../../../playback/dawPlayOwner';
 import { LEASE_RENEW_MS, SILENT_MS } from './useDawTransportSync';
 import { READ_FAILED, type DawRead } from '../../../playback/providers';
 import { PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
@@ -125,6 +126,8 @@ beforeEach(() => {
   });
   notices.length = 0;
   retries.length = 0;
+  stopTake.mockClear();
+  dawPlayOwner.forget();
 });
 afterEach(() => {
   cleanup();
@@ -492,6 +495,239 @@ describe("the script's play stops a take (#4124)", () => {
     act(() => press());
     await wait(10);
     expect(stopTake).toHaveBeenCalledTimes(1);
+  });
+});
+
+/** A DAW whose bridge answers in order and can be held: the held calls run, one after the other, when `release` is called (#4127). */
+function heldBridge() {
+  const api = createMockApi({}, { daw: {} });
+  const real = api.dawTransportSync.bind(api) as (...a: unknown[]) => Promise<never>;
+  const queue: Array<() => void> = [];
+  let tail: Promise<unknown> = Promise.resolve();
+  let holding = true;
+  const held = new Set(['play', 'playRange', 'stop']);
+  api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+    if (!holding || !held.has(action)) return real(action, ...rest);
+    return new Promise((resolve, reject) => {
+      queue.push(() => {
+        tail = tail.then(() => real(action, ...rest)).then(resolve, reject);
+      });
+    });
+  }) as typeof api.dawTransportSync;
+  daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+  render(
+    <ApiProvider api={api}>
+      <EditingPageProvider doc={doc}>
+        <Harness caps={DAW_SETUPS.reaper} />
+      </EditingPageProvider>
+    </ApiProvider>,
+  );
+  return {
+    /** Answers every held call, in the order asked, and the ones asked after. */
+    release: async () => {
+      holding = false;
+      for (const run of queue.splice(0)) run();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+    },
+  };
+}
+
+describe('script-transport-races (#4127)', () => {
+  it('a newer play the DAW refuses stops the DAWs older play before the app plays', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(state().playing).toBe(true);
+    let stopsWhenAppPlayed = -1;
+    audio.play.mockImplementation(() => {
+      stopsWhenAppPlayed = calls('stop').length;
+      return Promise.resolve();
+    });
+    act(() => daw.refuseNextSync('REAPER would not play it'));
+    act(() => playback.playFrom(t0('p-2:3'), t0('p-2:5')));
+    await wait(10);
+    expect(audio.play).toHaveBeenCalled();
+    expect(calls('stop')).toHaveLength(1);
+    expect(stopsWhenAppPlayed).toBe(1);
+  });
+  it('a newer play that goes to the app because its word has no place in the DAW stops the DAWs older play first', async () => {
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const tree = (clock: WordClock) => (
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} clock={clock} />
+        </EditingPageProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(CLOCK));
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(state().playing).toBe(true);
+    let stopsWhenAppPlayed = -1;
+    audio.play.mockImplementation(() => {
+      stopsWhenAppPlayed = calls('stop').length;
+      return Promise.resolve();
+    });
+    // The word is no longer placed in the DAW's project: the DAW is never asked, and the app plays.
+    view.rerender(tree(NO_CLOCK));
+    act(() => playback.playFrom(t0('p-2:3')));
+    await wait(10);
+    expect(calls('play')).toHaveLength(1);
+    expect(audio.play).toHaveBeenCalled();
+    expect(stopsWhenAppPlayed).toBe(1);
+  });
+  it('a newer play that neither the DAW nor the app can play stops the DAWs older play', async () => {
+    const api = createMockApi({}, { daw: {} });
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    const tree = (clock: WordClock) => (
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} clock={clock} />
+        </EditingPageProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(CLOCK));
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    view.rerender(tree(NO_CLOCK));
+    // A second past the recorded files: no DAW place, no recording.
+    act(() => playback.playFrom(60));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(calls('stop')).toHaveLength(1);
+    expect(state().playing).toBe(false);
+  });
+  it.each([
+    ['every reading', false],
+    ['changes only, as the real script sends them while stopped', true],
+  ])('a narrator Stop in the DAW heard while a play is being answered ends that play soon after the answer, with %s', async (_name, changesOnly) => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api) as (...a: unknown[]) => Promise<never>;
+    let release: () => void = () => {};
+    const answered = new Promise<void>((resolve) => (release = resolve));
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      // The DAW plays at once; only its answer is held.
+      if (action === 'play' || action === 'playRange') return real(action, ...rest).then(async (result) => (await answered, result));
+      return real(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    daw.streamChangesOnly(changesOnly);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(300);
+    act(() => daw.moveInDaw({ playing: false }));
+    await wait(300);
+    release();
+    await wait(1000);
+    expect(state().playing).toBe(false);
+    // Ended as the narrator's stop: no "stopped answering" notice follows.
+    await wait(SILENT_MS + 1000);
+    expect(notices).toEqual([]);
+  });
+  it('a play the DAW refuses leaves nothing for the page Stop to stop', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    act(() => daw.refuseNextSync('no'));
+    // The stop the refusal sends is not read back (REAPER's reading of it may be dropped), so the page must not rely on it to know the DAW is silent.
+    act(() => daw.dropEvents(true));
+    act(() => playback.playFrom(t0('p-2:3')));
+    await wait(10);
+    const stops = calls('stop').length;
+    act(() => playback.stop());
+    await wait(10);
+    expect(calls('stop')).toHaveLength(stops);
+  });
+  it('a play the DAW has not answered, which the page stopped, does not hide a Play the narrator presses in REAPER', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    daw.streamChangesOnly(true);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    // The play stays unanswered; the narrator then presses Play in REAPER, well after the page's stop.
+    await wait(11_000);
+    act(() => daw.moveInDaw({ playing: true, head: at(t0('p-2:3')) }));
+    await wait(300);
+    expect(state().playT).not.toBeNull();
+    await bridge.release();
+  });
+  it('a play started in the DAW is ignored for 2 s after the page stopped a late answer, then followed', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    await bridge.release();
+    await wait(10);
+    act(() => daw.moveInDaw({ playing: true, head: at(t0('p-2:3')) }));
+    await wait(300);
+    expect(state().playT).toBeNull();
+    await wait(2000);
+    act(() => daw.moveInDaw({ playing: true, head: at(t0('p-2:3')) + 0.1 }));
+    await wait(300);
+    expect(state().playT).not.toBeNull();
+  });
+  it('a play the DAW ended by itself leaves nothing for a later refused play to stop', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-2:1'), t0('p-2:3')));
+    await wait(10);
+    // The DAW stops itself at the end of the stretch.
+    act(() => daw.moveInDaw({ head: at(t0('p-2:3')) + 1 }));
+    await wait(600);
+    expect(state().playing).toBe(false);
+    const stops = calls('stop').length;
+    act(() => daw.refuseNextSync('REAPER would not play it'));
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).toHaveBeenCalled();
+    expect(calls('stop')).toHaveLength(stops);
+  });
+  it('a stop reading from the pages own earlier stop does not end a newer play still being asked', async () => {
+    await wait(0);
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    act(() => playback.playFrom(t0('p-2:3')));
+    await bridge.release();
+    await wait(10);
+    expect(state().playing).toBe(true);
+    expect(notices).toEqual([]);
+    expect(calls('stop')).toHaveLength(1);
+  });
+  it('a play stopped because it was answered after the page stopped leaves the bar on Play', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    await bridge.release();
+    await wait(10);
+    expect(state().playT).toBeNull();
+    expect(state().playing).toBe(false);
+  });
+  it('a play stopped because it was answered after the page gave it up leaves the bar on Play', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => daw.dropEvents(true));
+    await wait(15_000);
+    expect(notices.join(' ')).toMatch(/stopped answering/);
+    act(() => daw.dropEvents(false));
+    await bridge.release();
+    await wait(10);
+    expect(state().playT).toBeNull();
+    expect(state().playing).toBe(false);
   });
 });
 

@@ -31,4 +31,12 @@ describe('chapterSyncBatchToastText', () => {
     );
     expect(text).toBe('Linked 2 tracks to chapters.');
   });
+
+  // #4113: a right-to-left chapter title or track name is isolated (U+2068 … U+2069), or it opens the sentence and turns the line around.
+  it('isolates a right-to-left chapter title and track name, and leaves English ones bare', () => {
+    const arabic = '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644';
+    const one = batch([{ trackGuid: 'g1', chapterId: 'c1', chapterTitle: arabic, confirmedAt: '2026-09-25T10:00:00Z', origin: 'auto' }]);
+    expect(chapterSyncBatchToastText(one, () => arabic)).toBe(`Linked track “\u2068${arabic}\u2069” to \u2068${arabic}\u2069.`);
+    expect(chapterSyncBatchToastText(one, () => undefined)).toBe(`Linked a track to \u2068${arabic}\u2069.`);
+  });
 });

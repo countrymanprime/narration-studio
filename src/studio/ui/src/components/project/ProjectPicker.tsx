@@ -1,4 +1,5 @@
 import { describeApiError } from '../../api/errorMessage';
+import { isolatedIfRtl } from '../../visibleText';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBook, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -192,7 +193,7 @@ export function ProjectPicker({
     const timer = removalTimers.current.get(path);
     // The picker closed (a project was opened) and sent the removal while this Undo was still on screen: say so rather than do nothing.
     if (timer === undefined) {
-      notify(`${entry.name} was already removed from recent projects.`);
+      notify(`${isolatedIfRtl(entry.name)} was already removed from recent projects.`);
       return;
     }
     window.clearTimeout(timer);
@@ -211,7 +212,7 @@ export function ProjectPicker({
     );
     setHidden((current) => [...current, entry.path]);
     setReason('');
-    notify(`Removed ${entry.name} from recent projects. Its files are kept.`, 'info', { label: 'Undo', onAction: () => undoRemoval(entry) });
+    notify(`Removed ${isolatedIfRtl(entry.name)} from recent projects. Its files are kept.`, 'info', { label: 'Undo', onAction: () => undoRemoval(entry) });
   };
 
   const browse = () =>

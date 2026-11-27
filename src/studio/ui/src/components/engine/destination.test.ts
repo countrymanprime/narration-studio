@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createdSentence, destinationFor } from './destination';
+import { childNames, createdSentence, destinationFor } from './destination';
 
 // #3271: the project's layout (flat, or Voice folders) is one setting, so every sentence that names where a chapter records follows it. Each layout is
 // pinned over every message the function builds, so a flat sentence cannot show on a folders project or the other way round.
@@ -108,6 +108,15 @@ describe('destinationFor names where a chapter records from the project layout',
     expect(createdSentence(partial, 'REAPER')).toBe(
       'Folder “Opening” is in REAPER, linked here. Save the REAPER project to keep it. REAPER added 1 of the 3 tracks asked for. Add the rest in REAPER.',
     );
+    // Each voice name is isolated before the list is joined, so two right-to-left names keep their order (#4113).
+    const arabic = (name: string, index: number) => ({ guid: `{${index}}`, name, index, notVoice: false });
+    expect(
+      childNames({
+        track: { name: 'Opening' },
+        voice: { guid: '{4}', name: 'Narrator', index: 4 },
+        children: [arabic('\u0627\u0644\u0641', 4), arabic('\u0628\u0627\u0628', 5), arabic('Extras', 6)],
+      }),
+    ).toBe('\u2068' + '\u0627\u0644\u0641' + '\u2069, \u2068' + '\u0628\u0627\u0628' + '\u2069 and Extras');
     expect(createdSentence({ track: { name: 'Opening' } }, 'REAPER')).toBe('Track “Opening” is in REAPER, linked here. Save the REAPER project to keep it.');
   });
 
@@ -124,5 +133,33 @@ describe('destinationFor names where a chapter records from the project layout',
   it('a link to a track the project does not hold gets one sentence in either layout (#3269)', () => {
     expect(destinationFor('flat').noVoiceKeys('unknown')).toBe(destinationFor('folders').noVoiceKeys('unknown'));
     expect(destinationFor('flat').noVoiceKeys('unknown')).not.toMatch(/records on one track/);
+  });
+});
+
+// #4113: a chapter or track name the narrator wrote in a right-to-left script is isolated (U+2068 … U+2069) in the toast sentences that carry it, so it cannot turn the sentence around; an English name
+// is left as it is, and a name holding controls of its own cannot unbalance the pair.
+describe('the toast sentences that carry a name isolate a right-to-left one (#4113)', () => {
+  const FSI = '\u2068';
+  const PDI = '\u2069';
+  const arabic = '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644'; // "the first chapter", in Arabic
+  const isolates = (text: string) => text.match(/[\u2066-\u2069]/g)?.join('') ?? '';
+
+  it('the linked message isolates an Arabic chapter name once and leaves an English one bare', () => {
+    expect(destinationFor('flat').linkedToast(arabic)).toBe(`${FSI}${arabic}${PDI} is linked to its track. Press Record when you are ready.`);
+    expect(destinationFor('folders').linkedToast(arabic)).toBe(`${FSI}${arabic}${PDI} is linked to its folder. Press Record when you are ready.`);
+    expect(isolates(destinationFor('flat').linkedToast('Chapter 1'))).toBe('');
+  });
+
+  it('the created message isolates an Arabic track or folder name once', () => {
+    expect(createdSentence({ track: { name: arabic } }, 'REAPER')).toBe(
+      `Track “${FSI}${arabic}${PDI}” is in REAPER, linked here. Save the REAPER project to keep it.`,
+    );
+    expect(isolates(createdSentence({ track: { name: arabic }, voice: { guid: '{1}', name: 'Narrator', index: 1 } }, 'REAPER'))).toBe(`${FSI}${PDI}`);
+  });
+
+  it('a name with controls of its own is isolated by exactly one balanced pair', () => {
+    const hostile = `\u202E${arabic}\u2069\u2066`;
+    expect(isolates(destinationFor('flat').linkedToast(hostile))).toBe(`${FSI}${PDI}`);
+    expect(isolates(createdSentence({ track: { name: hostile } }, 'REAPER'))).toBe(`${FSI}${PDI}`);
   });
 });

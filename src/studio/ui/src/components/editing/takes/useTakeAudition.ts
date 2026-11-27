@@ -153,7 +153,7 @@ export function useTakeAudition({
                 previewPlayOwner.stopOrOrphan(token, dropPreview);
                 return { played: true };
               }
-              previewPlayOwner.settle(token);
+              previewPlayOwner.settle(token, dropPreview);
               // The DAW says nothing when a preview ends, so the take is shown playing for as long as it plays.
               timer.current = window.setTimeout(
                 () => {
