@@ -1310,6 +1310,9 @@ describe('a key held on a toast button: its own repeats, and only its, press not
   it.each([
     ['has not repeated yet after 800 ms (the first repeat is slow)', 800, false, false],
     ['repeated 650 ms ago, just under the threshold', 650, true, false],
+    ['repeated 699 ms ago', 699, true, false],
+    ['repeated exactly 700 ms ago', 700, true, false],
+    ['repeated 701 ms ago, then went silent', 701, true, true],
     ['repeated 800 ms ago, then went silent', 800, true, true],
   ])('a pointer press: a key that %s', (_name, quiet, repeated, letGo) => {
     const field = document.createElement('input');
@@ -1342,6 +1345,83 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     expect(onOrigin).not.toHaveBeenCalled();
     fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
     act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+  });
+
+  it('a pointer press: a key that has repeated steadily for 1.5 s is still held, not judged by its first repeat', () => {
+    const field = document.createElement('input');
+    document.body.append(field);
+    render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+    for (let at = 0; at < 30; at += 1) {
+      act(() => void vi.advanceTimersByTime(50));
+      repeatReaches(field, 'Enter');
+    }
+    fireEvent.pointerDown(undo);
+    expect(repeatReaches(field, 'Enter')).toBe(false);
+  });
+
+  it('a pointer press: a fresh Enter held on the page body during a hand-back that has not repeated for 900 ms stays held', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    origin.focus();
+    fireEvent.focus(undo, { relatedTarget: origin });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(undo, { detail: 0 });
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    fireEvent.keyDown(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(900));
+    view.rerender(<ToastRegion messages={[withUndo(9)]} dismiss={vi.fn()} />);
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Undo' }));
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).not.toBe(origin);
+  });
+
+  it('a key that repeated in one hold, came up, and is held again a second later is not let go by its old repeat', () => {
+    const field = document.createElement('input');
+    document.body.append(field);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    let undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Shift', code: 'ShiftLeft' });
+    fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+    repeatReaches(field, 'Enter');
+    fireEvent.keyUp(undo, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(1000));
+    view.rerender(<ToastRegion messages={[withUndo(2)]} dismiss={vi.fn()} />);
+    undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(100));
+    fireEvent.pointerDown(undo);
+    expect(repeatReaches(field, 'Enter')).toBe(false);
+  });
+
+  it('a click with no key (a screen reader) on a later toast does not wait for an Enter whose keyup was lost long before', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    origin.focus();
+    fireEvent.focus(undo, { relatedTarget: origin });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(undo, { detail: 0 });
+    // Enter's keyup never comes and it never repeats; no blur, no hidden page.
+    view.rerender(<ToastRegion messages={[withUndo(2)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    const later = screen.getByRole('button', { name: 'Undo' });
+    origin.focus();
+    fireEvent.focus(later, { relatedTarget: origin });
+    later.focus();
+    fireEvent.click(later, { detail: 0 });
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
     expect(document.activeElement).toBe(origin);
   });
 

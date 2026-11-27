@@ -168,6 +168,7 @@ class HandBacks {
    */
   pressKeyHeld(): string | null {
     const key = this.pressKey;
+    this.pressKey = null;
     return key !== null && this.held.has(key) ? key : null;
   }
   /**
@@ -189,7 +190,8 @@ class HandBacks {
   }
   /**
    * A press with the pointer on a toast: a held key that repeated and then went silent (its keyup was lost) is let go. One that is still repeating is held, and so is one that has not repeated yet (the first repeat
-   * comes after the system's delay, up to about a second): its keyup, the window's blur, the page being hidden or the region closing ends it.
+   * comes after the system's delay, up to about a second). Its keyup or a fresh press of it lets it go; the window losing focus or the page being hidden ends only the waits, and the region closing removes the
+   * listeners but leaves the keys as they were.
    */
   endLost(): void {
     const now = performance.now();
