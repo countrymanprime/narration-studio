@@ -94,7 +94,7 @@ async function raiseWithOpenerFocused(page: Page) {
   return opener;
 }
 
-test("Enter's keyup lost, a fresh Enter held on <body>: the Jump menu stays shut and focus goes back after the new Enter comes up", async ({ page }) => {
+test("Enter's keyup lost, a fresh Enter held on the page body: the Jump menu stays shut and focus goes back after the new Enter comes up", async ({ page }) => {
   const opener = await raiseWithOpenerFocused(page);
   const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
   await expect(dismiss).toBeVisible();
@@ -143,3 +143,69 @@ for (const second of ['Space', 'NumpadEnter']) {
     await expect(jumpField(page)).toHaveCount(0);
   });
 }
+
+test("Enter's keyup lost: a held Space and a held Enter typed into the Jump field still repeat", async ({ page }) => {
+  await raiseWithOpenerFocused(page);
+  const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+  await expect(dismiss).toBeVisible();
+  await dismiss.focus();
+  await page.evaluate(() => {
+    const drop = (event: KeyboardEvent) => {
+      if ((window as unknown as { __dropKeyup?: boolean }).__dropKeyup) event.stopImmediatePropagation();
+    };
+    (window as unknown as { __dropKeyup: boolean }).__dropKeyup = true;
+    window.addEventListener('keyup', drop, true);
+  });
+  // Enter's keyup is lost (the toast goes, the hand-back waits for it), then the narrator opens the Jump menu and types in its field: a Space held there types every repeat.
+  await page.keyboard.press('Enter');
+  await expect(dismiss).toHaveCount(0);
+  await page.evaluate(() => ((window as unknown as { __dropKeyup: boolean }).__dropKeyup = false));
+  await page.keyboard.press('Control+KeyK');
+  await expect(jumpField(page)).toBeFocused();
+  await jumpField(page).fill('ab');
+  for (let repeat = 0; repeat < 5; repeat += 1) await page.keyboard.down('Space');
+  await page.keyboard.up('Space');
+  await expect(jumpField(page)).toHaveValue('ab     ');
+});
+
+// The hand-back's own 250 ms timer is a phase of its wait: a key that goes down meanwhile is waited for like the press's own.
+for (const second of ['Enter', 'NumpadEnter', 'Space']) {
+  test(`press Retry with Enter, hold ${second} on the page body before the hand-back fires: the Jump menu stays shut`, async ({ page }) => {
+    const opener = await raiseWithOpenerFocused(page);
+    const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
+    await expect(retry).toBeVisible();
+    await retry.focus();
+    await page.keyboard.press('Enter');
+    await expect(retry).toHaveCount(0);
+    // Within the timer (it is 250 ms): a fresh key, held with its repeats.
+    await page.waitForTimeout(40);
+    for (let repeat = 0; repeat < 6; repeat += 1) await page.keyboard.down(second);
+    await page.waitForTimeout(PAST_HAND_BACK_MS);
+    await expect(jumpField(page)).toHaveCount(0);
+    await expect(opener).not.toBeFocused();
+    await page.keyboard.up(second);
+    await expect(opener).toBeFocused();
+    await page.waitForTimeout(PAST_HAND_BACK_MS);
+    await expect(jumpField(page)).toHaveCount(0);
+  });
+}
+
+test('Enter held after Retry, a pointer press on the next toast: its repeats still do not open the Jump menu', async ({ page }) => {
+  const opener = await raiseWithOpenerFocused(page);
+  await raiseToast(page, 'The second message.');
+  const region = page.locator('[data-toast-region]');
+  const retry = region.getByRole('button', { name: 'Retry' });
+  await expect(retry).toBeVisible();
+  await retry.focus();
+  await page.keyboard.down('Enter');
+  await expect(region.getByText('The second message.')).toBeVisible();
+  // Enter is repeating, so it is live: a press on the next toast does not let it go.
+  await page.keyboard.down('Enter');
+  await region.getByText('The second message.').click();
+  for (let repeat = 0; repeat < 4; repeat += 1) await page.keyboard.down('Enter');
+  await page.waitForTimeout(PAST_HAND_BACK_MS);
+  await expect(jumpField(page)).toHaveCount(0);
+  await expect(opener).not.toBeFocused();
+  await page.keyboard.up('Enter');
+  await expect(opener).toBeFocused();
+});
