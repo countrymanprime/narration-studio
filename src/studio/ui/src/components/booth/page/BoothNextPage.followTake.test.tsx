@@ -51,9 +51,9 @@ describe('the Booth follows the DAW on open, until the narrator records', () => 
     await userEvent.click(stop);
     await screen.findByRole('button', { name: /^Record$/ }, { timeout: 5000 });
     allow = true;
-    // The retry that comes 2 s after the first ask gets the DAW's chapter: the narrator recorded here, so it does not move the Booth.
+    // The refused ask is not repeated (a chapter is drawn, and the narrator recorded here), so the DAW's chapter now moves nothing.
     await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 3500))));
-    expect(dawPlace.mock.calls.length).toBeGreaterThan(asked);
+    expect(dawPlace.mock.calls.length).toBe(asked);
     expect(address).not.toContain('chapter=c2');
   }, 20_000);
 });

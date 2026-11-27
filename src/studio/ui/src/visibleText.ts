@@ -65,7 +65,7 @@ export const bidiIsolated = (name: string, direction: 'auto' | 'ltr' = 'auto'): 
 
 /**
  * A name for a toast sentence: isolated when it holds a right-to-left letter, otherwise left as it is (an English name in an English sentence needs no isolate, and the two invisible
- * characters would be in every copy, search and character count of the sentence). Controls of its own are removed either way. A path is isolated `ltr`: it reads left to right whatever its folders are called.
+ * characters would be in every copy, search and character count of the sentence). Controls of its own are removed either way. A path is isolated `ltr`: the sentence round it stays intact, though folders inside the path can still be drawn in reverse.
  */
 export const isolatedIfRtl = (name: string, direction: 'auto' | 'ltr' = 'auto'): string =>
   Array.from(name).some(isRtlLetter) ? bidiIsolated(name, direction) : plainName(name);

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
-import { useDawSession } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
 
 /** How long after the Booth opens a DAW that connects is still followed: one that connected later is not, since the narrator has been working by then. */
 const ASK_FOR_MS = 20_000;
-/** A DAW that says it is reachable but refuses (REAPER is still loading its project) has no event to say it is ready, so that one case is asked again on a timer that slows down: 2 s, then 10 s, then 30 s. */
-const RETRY_REACHABLE_MS = [2000, 10_000, 30_000];
-/** The last retry lands this long before the window ends, so a slow answer still counts; a retry sooner than `MIN_RETRY_MS` after the previous one is not made. */
-const LAST_ASK_BEFORE_END_MS = 2000;
-const MIN_RETRY_MS = 500;
+/**
+ * The most the Booth waits for the DAW's answer before it draws the chapter it opens on. It is above the host's own 3 s limit on a DAW call, so a DAW
+ * that answers decides before anything is drawn, and a host that never answers cannot hold the page.
+ */
+const FIRST_ANSWER_MAX_MS = 3500;
 
 /**
  * Keeps `latch` true from the first time `acted` is true: the narrator acted in the Booth (a take started or ran), and a take that has since ended does not
@@ -21,11 +20,11 @@ export function useLatchOnce(latch: MutableRefObject<boolean>, acted: boolean) {
 }
 
 /**
- * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW may not have
- * connected yet (the app connects on its own a few seconds after it opens), so an ask the DAW did not answer is repeated when it says it is reachable (its capabilities event), for a short while after the Booth opened, with no timer; an answer that names
- * no chapter (no track selected, several, or a track no chapter is linked to) leaves the Booth where it opens anyway. It is asked once per
- * Booth, never once the narrator or the address has chosen a chapter, and never while a take runs. Any DAW whose `follow_position`
- * capability answers is followed the same way.
+ * Opening the Booth with no chapter asked for: it opens on the chapter whose track the narrator is on in the DAW. The DAW is asked once, and the page
+ * draws no chapter until the answer is in (`deciding`), so a chapter that the DAW then replaces is never seen. The hold ends at the answer: a chapter
+ * (the page moves to it), no chapter (no track selected, several, or one no chapter is linked to), a refusal or a failure (no DAW linked, REAPER not
+ * answering), a take that is starting or running, or after `FIRST_ANSWER_MAX_MS`. Once the hold has ended without a chosen chapter a chapter is drawn, so a
+ * later answer does not move it, and nothing is asked again. Any DAW whose `follow_position` capability answers is followed the same way.
  *
  * `chapterIds` is the narration chapters, or undefined until they are read; `enabled` is false once something else chose the chapter.
  */
@@ -40,12 +39,18 @@ export function useFollowDawOnOpen({
   onChapter: (chapterId: string) => void;
   /** A take is starting or running: an answer that comes then ends the follow without moving the Booth. */
   busy?: () => boolean;
-}) {
+}): boolean {
+  const [ended, setEnded] = useState(false);
   const place = usePort('dawPlace');
-  const daw = usePort('daw');
-  const session = useDawSession();
+  // Set with `ended`, but readable by an answer that lands in the same tick the cap runs out.
+  const drawn = useRef(false);
   const settled = useRef(false);
-  const openedAt = useRef<number | undefined>(undefined);
+  const end = () => {
+    drawn.current = true;
+    setEnded(true);
+  };
+  const endRef = useRef(end);
+  endRef.current = end;
   const onChapterRef = useRef(onChapter);
   onChapterRef.current = onChapter;
   const busyRef = useRef(busy);
@@ -54,69 +59,37 @@ export function useFollowDawOnOpen({
   const ids = useRef(chapterIds);
   ids.current = chapterIds;
   useEffect(() => {
-    if (!ready || settled.current) return;
+    if (!ready || drawn.current) return;
+    const cap = setTimeout(() => endRef.current(), FIRST_ANSWER_MAX_MS);
+    return () => clearTimeout(cap);
+  }, [ready]);
+  useEffect(() => {
+    if (!ready || settled.current || drawn.current) return;
     let live = true;
-    let inFlight = false;
-    let owed = false;
-    // The host sends no event for a state the DAW is already in when the Booth opens, so the session's last picture is where reachability starts.
-    let retries = 0;
-    let reachable = session.getState().caps?.reachable === true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    // The window opens once, with the first ready effect: a Booth that is enabled again later is not given a new one.
-    openedAt.current ??= Date.now();
-    const deadline = openedAt.current + ASK_FOR_MS;
-    // No answer: a DAW that has not connected yet is asked again by its event; one that says it is reachable and still refuses has no event coming, so it is asked again soon.
-    const noAnswer = () => {
-      if (!live || !reachable || settled.current) return;
-      // The last retry is pulled in to just before the window ends, so a REAPER that becomes ready late is still asked once more.
-      const wait = Math.min(RETRY_REACHABLE_MS[Math.min(retries, RETRY_REACHABLE_MS.length - 1)]!, deadline - Date.now() - LAST_ASK_BEFORE_END_MS);
-      if (wait < MIN_RETRY_MS) return;
-      retries++;
-      clearTimeout(timer);
-      timer = setTimeout(ask, wait);
-    };
-    function ask() {
-      // An event heard while a retry is waiting is that retry's answer: one chain of asks, not one more each.
-      clearTimeout(timer);
-      if (!live || settled.current) return;
-      // One ask at a time: an event heard while one is out is answered by one more when it ends.
-      if (inFlight) {
-        owed = true;
-        return;
-      }
-      inFlight = true;
-      void place
-        .dawPlace()
-        .then((answer) => {
-          if (!live) return;
-          if (!answer.ok) return noAnswer();
-          settled.current = true;
-          // A take that is starting or running keeps its chapter, and the follow is over: the narrator acted in the Booth, so a chapter chosen for them later (after a take, or a start that failed) would be a surprise.
-          if (busyRef.current?.()) return;
-          // An answer after the time is up is too late to move a Booth the narrator has been using.
-          if (Date.now() >= deadline) return;
-          if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
-        })
-        // A read that failed is the same as one the DAW has not answered, and the Booth opens as it would have.
-        .catch(noAnswer)
-        .finally(() => {
-          inFlight = false;
-          const again = owed;
-          owed = false;
-          if (live && again && !settled.current && Date.now() < deadline) ask();
-        });
-    }
-    ask();
-    const off = daw.subscribeCapabilities?.((next) => {
-      reachable = next.reachable;
-      if (live && next.reachable && !settled.current && Date.now() < deadline) ask();
-    });
+    void place
+      .dawPlace()
+      .then((answer) => {
+        if (!live) return;
+        settled.current = true;
+        // A chapter is already drawn (the cap ran out first): the narrator may be using it, so a late answer moves nothing.
+        if (drawn.current) return;
+        // A take that is starting or running keeps its chapter: the narrator acted in the Booth.
+        if (!answer.ok || busyRef.current?.()) return endRef.current();
+        // The chapter chosen ends the hold through the address (`enabled` goes false), so the page never draws between the two.
+        if (answer.chapterId !== '' && ids.current?.includes(answer.chapterId)) onChapterRef.current(answer.chapterId);
+        else endRef.current();
+      })
+      // A read that failed is the same as a refusal: the Booth opens as it would have.
+      .catch(() => {
+        if (!live) return;
+        settled.current = true;
+        endRef.current();
+      });
     return () => {
       live = false;
-      if (timer !== undefined) clearTimeout(timer);
-      off?.();
     };
-  }, [ready, place, daw, session]);
+  }, [ready, place]);
+  return ready && !ended;
 }
 
 /**

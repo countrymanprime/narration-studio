@@ -15,7 +15,8 @@ import { describe, expect, it } from 'vitest';
 // (`ok ? isolatedIfRtl(a.title) : b.title`) does not count, nor one that wraps a joined list (each name is isolated before the join). A name the app itself defines (a setting's label, a
 // product's name) is allowed with the reason in `APP_DEFINED`; an entry nothing reads any more fails.
 //
-// NOT covered yet, tracked in #4129 (and #4126 for the host's own sentences): journal labels (the text of an Undo entry, which a toast can show bare: `Undid <label>`, `Undo '<label>' first`),
+// NOT covered yet, tracked in #4129 (and #4126 for the host's own sentences): journal labels (the text of an Undo entry, which a toast can show bare: `Undid <label>`, `Undo '<label>' first`), leave-guard labels (the text of a save refusal or a save/discard verdict, built in
+// `GuideDetail` and read in `App.tsx`),
 // page and dialog text, file names and paths outside a toast, joined lists on pages, a sentence built in one place and interpolated in another, an alias of a toast function, a backtick in a
 // regular expression literal, `overlay['toast'](`, `overlay.announce` (read out, never drawn), and `engine/destination.ts` (its unit tests, `destination.test.ts`).
 const SRC = __dirname;
@@ -171,7 +172,7 @@ const APP_DEFINED: Record<string, string> = {
   'studio/journal/createJournal.ts: blocker.label': 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
   'studio/journal/createJournal.ts: newest.label': 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
   'components/engine/chapterSyncText.ts: readable(item.best.trackName, item.best.trackIndex)':
-    'page and dialog text (the Chapter sync panel and its consent dialog), not a toast: #4129',
+    'a false positive: the statement holds `item.reason`, but this is panel and dialog text, never a toast',
   'components/primitives/ChapterStepper.tsx: name': 'the name in a tooltip, not a toast',
   'components/settings/row/SettingRowView.tsx: row.label': "the label of a setting, the app's own wording",
   'components/proof/ProofPage.tsx: noteRow(next).resolution.label': 'the label of a resolution kind the app defines ("Fine as read")',
@@ -181,7 +182,7 @@ const APP_DEFINED: Record<string, string> = {
   'components/storybible/usePreviewAudio.ts: error.name': 'the name of a browser error kind (AbortError)',
   'components/settings/models/AssetsStore.tsx: name': 'the name of a model the app ships',
   'components/storybible/GuideDetail.tsx: capitalize(stuck.label)':
-    "a field label of the Story Bible form, the app's own wording (a leave-guard label can hold a name: #4129)",
+    'a leave-guard label: it can hold a narrator name (built at GuideDetail :396 and :421), shown bare in a toast on a save refusal; a known gap, #4129',
 };
 
 /** A product name the app defines, whichever file it is in: the DAW's name (REAPER, Audacity), never a narrator's or an author's. */
