@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { isolatedIfRtl } from '../../../visibleText';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import type { VoiceSamples } from '../../../api/contracts/voiceSamples';
 import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
@@ -153,8 +154,8 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                       return refuse(
                         'duplicate',
                         extended
-                          ? `That stretch’s voice sample for ${name} is now kept in the project folder and the DAW.`
-                          : `That stretch is already a voice sample for ${name}.`,
+                          ? `That stretch’s voice sample for ${isolatedIfRtl(name)} is now kept in the project folder and the DAW.`
+                          : `That stretch is already a voice sample for ${isolatedIfRtl(name)}.`,
                       );
                     }
                     return { ok: true as const, value: id };
@@ -177,7 +178,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                 close();
                 const entry = done.value.id;
                 overlay.toastUndo(
-                  `Saved voice sample for ${name}.`,
+                  `Saved voice sample for ${isolatedIfRtl(name)}.`,
                   async () => {
                     const undone = await journal.undo(entry);
                     return undone.ok ? { ok: true as const } : undone;

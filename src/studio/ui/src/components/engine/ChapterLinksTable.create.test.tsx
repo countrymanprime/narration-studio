@@ -37,6 +37,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { isolatedIfRtl } from '../../visibleText';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { QUIET_MS } from '../../quietWindow';
 import { resetChapterTrackCreateGuard, useChapterLinks } from './useChapterLinks';
@@ -316,7 +317,12 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const { notify } = renderTable({ api: { ...base, manuscriptChapters: chapters, chapterTrackCreate: create } });
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     await user.click(await within(table).findByRole('button', { name: `Create a track for ${rtl}` }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Created the track “${rtl}” and linked ${rtl} to it. Save the project to keep it.`, 'info'));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(
+        `Created the track “${isolatedIfRtl(rtl)}” and linked ${isolatedIfRtl(rtl)} to it. Save the project to keep it.`,
+        'info',
+      ),
+    );
     await waitFor(() => expect(within(table).queryByRole('button', { name: `Create a track for ${rtl}` })).toBeNull());
     // Past the quiet time after an answer (tested on its own below).
     resetChapterTrackCreateGuard();

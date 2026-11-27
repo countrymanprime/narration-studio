@@ -1,4 +1,5 @@
 import type { ChapterSyncBatch } from '../../api/contracts/chapterSync';
+import { isolatedIfRtl } from '../../visibleText';
 import { plural } from '../../plural';
 
 /**
@@ -13,7 +14,7 @@ export function chapterSyncBatchToastText(batch: ChapterSyncBatch, trackName: (t
   if (batch.linked.length === 1) {
     const [link] = batch.linked;
     const name = trackName(link.trackGuid);
-    return name ? `Linked track “${name}” to ${link.chapterTitle}.` : `Linked a track to ${link.chapterTitle}.`;
+    return name ? `Linked track “${isolatedIfRtl(name)}” to ${isolatedIfRtl(link.chapterTitle)}.` : `Linked a track to ${isolatedIfRtl(link.chapterTitle)}.`;
   }
   return `Linked ${plural(batch.linked.length, 'track')} to chapters.`;
 }

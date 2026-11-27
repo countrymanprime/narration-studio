@@ -4,17 +4,7 @@
 // with it, raise it while the box overflows, and expect the box to stop scrolling and drop out of the tab order once the cause is gone. The window is narrow (about the gutter's width), so the
 // message is searched for in the real layout, and the font test searches across box widths too; neither skips: a browser with no such message fails them.
 import { expect, test, type Browser, type Page } from '@playwright/test';
-
-declare global {
-  interface Window {
-    /** Mock build only (`main.tsx`): undefined for a Retry button, null for none, a string for a button with that label. */
-    __raiseToast?: (text: string, actionLabel?: string | null) => void;
-  }
-}
-
-// A local copy of the hook's declaration and calls, the minimum this spec needs: it moves to the shared helper of #4118 once that lands.
-const hookReady = (page: Page) => page.waitForFunction(() => typeof window.__raiseToast === 'function');
-const raiseToast = (page: Page, text: string, label?: string | null) => page.evaluate((args) => window.__raiseToast?.(args.text, args.label), { text, label });
+import { raiseToast, toastHookReady } from './helpers/raiseToast';
 
 const PROSE =
   'The Booth could not stop listening, so your microphone may still be open. Quit and reopen the app to be sure it stopped, then record the take again from the top of the chapter, and check the take.';
@@ -30,7 +20,7 @@ const FAMILY = '"IBM Plex Sans"';
 async function open(page: Page): Promise<void> {
   await page.setViewportSize({ width: 768, height: 900 });
   await page.goto('/?mockNoProject=1');
-  await hookReady(page);
+  await toastHookReady(page);
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -95,7 +85,7 @@ async function openWithFontsHeld(page: Page): Promise<() => void> {
   });
   await page.setViewportSize({ width: 768, height: 900 });
   await page.goto('/?mockNoProject=1', { waitUntil: 'domcontentloaded' });
-  await hookReady(page);
+  await toastHookReady(page);
   expect(
     await page.evaluate((family) => !document.fonts.check(`1em ${family}`), FAMILY),
     `the web font ${FAMILY} should be held, or the test proves nothing`,
