@@ -610,7 +610,7 @@ export function useToastsClearOfModal(active: boolean): void {
 function keepFocusInDialog(): void {
   // Only where the rule applies: in a taller window the room does not change with the toast, and a resize must not move a narrator's place in a long dialog.
   if (window.innerHeight > 400) return;
-  const popup = [...document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]')].pop();
+  const popup = openModalLayer();
   const focused = document.activeElement;
   if (!popup || !(focused instanceof HTMLElement) || focused === popup || !popup.contains(focused)) return;
   for (let scroller = focused.parentElement; scroller && scroller !== popup; scroller = scroller.parentElement) {
@@ -736,8 +736,6 @@ export function routeTabAcrossToasts(event: { key: string; shiftKey: boolean; pr
   } else if (!event.shiftKey && (inside.length === 0 || active === inside[inside.length - 1])) go(toasts[0]);
   else if (event.shiftKey && (inside.length === 0 || active === inside[0] || active === popup)) go(toasts[toasts.length - 1]);
 }
-/** The dialog a toast's Tab wraps into: the newest one open. */
-const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]')].pop() ?? null;
 
 // The messages the app shows, in the order they were raised; the first shows. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
@@ -768,7 +766,7 @@ export function ToastRegion({ messages: queued, dismiss }: { messages: readonly 
     <div
       ref={region}
       data-toast-region
-      onKeyDown={(event) => routeTabAcrossToasts(event, topModal())}
+      onKeyDown={(event) => routeTabAcrossToasts(event, openModalLayer())}
       // While a modal is open, a press on a toast's plain text would take focus from the dialog's control to <body> (the toast is outside the dialog); a press on
       // the toast's own button or link is the browser's.
       onMouseDown={(event) => {
