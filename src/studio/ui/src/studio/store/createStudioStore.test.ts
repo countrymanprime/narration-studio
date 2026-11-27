@@ -236,19 +236,22 @@ describe('store-is-throwaway', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it('a load that every reset drops is read at most three times, then settles with nothing held', async () => {
-    const gates = [deferred<unknown>(), deferred<unknown>(), deferred<unknown>(), deferred<unknown>()];
+  // Behaviour changed (#4085): a load dropped by every reset was given up after three; a drop is the attach's, bounded by the host's events, so it is read
+  // again once per reset, and the answer after the last one is held. The host-did-not-answer time ends a reader the host leaves hanging.
+  it('a load that every reset drops is read once more after each reset, and the answer after the last one is held', async () => {
+    const gates = [deferred<unknown>(), deferred<unknown>(), deferred<unknown>(), deferred<unknown>(), deferred<unknown>()];
     let n = 0;
     const { store } = make({ a: { schema: isCount, load: () => gates[n++]!.promise } });
     const inFlight = store.load('a');
-    for (const g of gates.slice(0, 3)) {
+    for (const g of gates.slice(0, 4)) {
       store.reset();
       g.resolve({ count: 1 });
       await flush();
     }
+    gates[4]!.resolve({ count: 7 });
     await inFlight;
-    expect(n).toBe(3);
-    expect(store.getState().slots.a).toBeUndefined();
+    expect(n).toBe(5); // one read per reset, plus the first
+    expect(store.getState().slots.a).toEqual({ count: 7 });
   });
 
   it('keeps its event subscriptions across a reset, so the new project hydrates on the next event', async () => {
@@ -992,6 +995,72 @@ describe('the host says which project a list was read from (#4040)', () => {
     gates.forEach((g) => g.resolve({ project: 'A', payload: { count: 1 } }));
     await asked;
     expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+
+  it.each([3, 10])(
+    'an unnamed reader across %i same-folder attaches while its reads are slower than the bootstrap is served, not resolved empty',
+    async (attaches) => {
+      const { store, read } = await rig();
+      const open: Array<() => void> = [];
+      read.mockImplementation(() => new Promise((resolve) => open.push(() => resolve({ project: 'A', payload: { count: 1 } }))));
+      store.reset();
+      const asked = store.ensure('a', { settled: true });
+      for (let i = 0; i < attaches; i += 1) {
+        store.reset();
+        await flush();
+        store.setProject('A');
+        await flush();
+      }
+      expect(read.mock.calls.length).toBeLessThanOrEqual(1 + 1 + 2 * attaches); // the rig's own read, the reader's, and at most two per attach
+      open.splice(0).forEach((f) => f());
+      await flush();
+      open.splice(0).forEach((f) => f());
+      await asked;
+      expect(store.getState().slots.a).toEqual({ count: 1 });
+    },
+  );
+
+  it('an unnamed reader in flight across a reset before any setProject, setProject(A), and one more attach is served A', async () => {
+    const open: Array<() => void> = [];
+    const read = vi.fn(
+      () => new Promise<{ project: string; payload: { count: number } }>((resolve) => open.push(() => resolve({ project: 'A', payload: { count: 1 } }))),
+    );
+    const { store } = make({ a: { schema: isCount, read } });
+    store.reset(); // before any setProject
+    const asked = store.ensure('a', { settled: true });
+    await flush();
+    store.setProject('A');
+    await flush();
+    store.reset();
+    await flush();
+    store.setProject('A');
+    await flush();
+    for (let i = 0; i < 4; i += 1) {
+      open.splice(0).forEach((f) => f());
+      await flush();
+    }
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+
+  it('attach events without setProject: an unnamed reader reads at most once per event and settles within 15 s of the last event', async () => {
+    vi.useFakeTimers();
+    try {
+      const { store, read } = await rig();
+      read.mockImplementation(() => new Promise(() => undefined)); // the host never answers
+      const asked = store.ensure('a');
+      const outcome = expect(asked).rejects.toThrow('The host did not answer.');
+      const before = read.mock.calls.length;
+      for (let i = 0; i < 20; i += 1) {
+        store.reset();
+        await vi.advanceTimersByTimeAsync(100);
+      }
+      expect(read.mock.calls.length - before).toBeLessThanOrEqual(21); // one per event, plus the reader's first
+      await vi.advanceTimersByTimeAsync(15_001);
+      await outcome;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('setProject(A) five times in a row after a read started unconfirmed reads twice, not in a loop', async () => {

@@ -75,7 +75,7 @@ export type StudioStore<R extends SlotRegistry> = {
   subscribe(listener: () => void): () => void;
   /**
    * Reads one slot now. Rejects when the loader fails or the payload has the wrong shape; the failure is also recorded. A read that a reset dropped
-   * is read again (at most three times), so the caller's answer is the project it is on, never a dropped one. `project` is the folder the reader is on.
+   * is read again (each reset or attach drops it once; an answer from another project at most three times), so the caller's answer is the project it is on, never a dropped one. `project` is the folder the reader is on.
    */
   load(slot: keyof R & string, options?: ReadOptions): Promise<void>;
   /**
@@ -83,7 +83,7 @@ export type StudioStore<R extends SlotRegistry> = {
    * already in flight, and otherwise reads it. A page that needs the list calls this on mount instead of `load`, so mounting does not read what is held.
    * Rejects when the read it started or joined fails. With `settled`, a value that is held while a read of it is in flight (an event made it stale) is not
    * served: the call waits for that read and rejects when it fails (a page that works on what it read shows the failure with its Retry, as it did before the
-   * store, and the store keeps the held list for the pages that only show it). A read that a reset dropped is read again, at most three times.
+   * store, and the store keeps the held list for the pages that only show it). A read that a reset dropped is read again (an answer from another project, at most three times).
    */
   ensure(slot: keyof R & string, options?: ReadOptions & { settled?: boolean }): Promise<void>;
   /** The keyed cache registered under `name` (the options' `keyed`); throws for a name nothing registered. */
@@ -313,15 +313,11 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     Object.hasOwn(state.slots, name) && state.slots[name] !== undefined && (project === undefined || owners.get(name) === project);
 
   // A read dropped by a reset (it answered after the project changed, or the same project was attached again) wrote nothing: the reader is on a project
-  // that is still the store's, so it is read again for it, at most three times in a row so a store that keeps being emptied is not read in a loop.
+  // that is still the store's, so it is read again for it, an answer from another project at most three times in a row; a drop by an attach event uses no round and the host-did-not-answer time ends a reader the host leaves hanging.
   function readUntilKept(name: keyof R & string, options: ReadOptions, once: () => Promise<void>, round = 0): Promise<void> {
     const start = () => {
       const before = epoch;
       const aheadBefore = aheadSeq;
-      // A read that starts while the store waits for the host's answer is dropped by the answer itself (`setProject` empties what it may have mixed up),
-      // however the attach goes: that drop is the attach's, not a store that keeps being emptied, so it does not use up a round (#4085). Each such drop
-      // needs an attach event, so the reads still end with the events.
-      const free = !confirmed;
       let release = () => {};
       const dropped = new Promise<void>((resolve) => releases.add((release = resolve)));
       // A host that never answers gives way after a while (a skeleton with no way out is no state): the reader fails and its Retry reads again.
@@ -338,8 +334,12 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
           // would register after the wake and wait the stuck age for an answer that came already, so the reader is told now (#4085).
           const named = norm(options.project);
           if (named !== undefined && confirmed && ahead === undefined && onProject !== undefined && onProject !== named) throw new ProjectChangedError();
-          if (round >= 2 && !free) return;
-          return readUntilKept(name, options, once, free ? round : round + 1);
+          // A drop by a reset or `setProject` is the attach's, bounded by the host's events, not by anything the reader got wrong: it uses no round. A round
+          // counts only when the host answered and the answer was another project's (`ahead`), the thing the cap bounds. A reader that waits for ever is
+          // bounded by the host-did-not-answer time above, which each new round restarts (#4085).
+          const answeredForeign = epoch === before;
+          if (answeredForeign && round >= 2) return;
+          return readUntilKept(name, options, once, answeredForeign ? round + 1 : round);
         });
     };
     // A reader that waits for nothing starts its read in the same turn, as every reader did before the gate.
