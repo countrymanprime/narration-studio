@@ -213,8 +213,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Reading the Words tab's old per-viewer definition source from localStorage, once, to move it to the host setting; with storage blocked there is nothing to move and the host's setting is used.",
   'src/components/script/scriptPageHost.ts#4':
     "Reading Script.definition_source for the Words tab's source menu (or moving the old localStorage choice into it); a failed read keeps the source the menu shows, and the next window focus reads again. A choice the narrator makes has its own toast on failure.",
-  'src/components/script/page/reader/readerPosition.ts#1':
-    'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
   'src/components/booth/page/boothSize.ts#1':
     "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':
