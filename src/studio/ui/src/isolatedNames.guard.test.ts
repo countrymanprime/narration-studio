@@ -15,6 +15,10 @@ import { describe, expect, it } from 'vitest';
 // (`ok ? isolatedIfRtl(a.title) : b.title`) does not count, nor one that wraps a joined list (each name is isolated before the join). A name the app itself defines (a setting's label, a
 // product's name) is allowed with the reason in `APP_DEFINED`; an entry nothing reads any more fails.
 //
+// Not read, because the matcher is narrow on purpose (a wider one is #4129): a name held in a variable or an identifier that does not end in name, title, label, path or quote (`speaker`,
+// `device`, `listening.device`, `chapter`, `short`, `who`, `term`, `text`), and a list built with `.map(…)` before `.join(…)`. Those wraps are held by their own unit tests instead
+// (`deviceProblem.test.ts`, `quoteTerm.test.ts`, `movedOutSentence.test.ts`, `recheckSentence.test.ts`, `BoothNextPage.test.tsx`).
+//
 // NOT covered yet, tracked in #4129 (and #4126 for the host's own sentences): journal labels (the text of an Undo entry, which a toast can show bare: `Undid <label>`, `Undo '<label>' first`), leave-guard labels (the text of a save refusal or a save/discard verdict, built in
 // `GuideDetail` and read in `App.tsx`),
 // page and dialog text, file names and paths outside a toast, joined lists on pages, a sentence built in one place and interpolated in another, an alias of a toast function, a backtick in a

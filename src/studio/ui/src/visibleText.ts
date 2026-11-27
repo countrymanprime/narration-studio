@@ -92,7 +92,7 @@ export const textDirection = (text: string): 'ltr' | 'auto' => {
 
 /**
  * A message with its bidi controls removed except the first-strong and left-to-right isolates the app puts round a name or a path, kept when they open and close: a stray close, an unclosed open and
- * an isolate that a removed opener (a right-to-left isolate, an embedding) left unbalanced all go, so no part of a name ends outside its pair. One pass, linear in the message. A line break inside an isolate becomes a space when the isolate is read; if that isolate is dropped later (never closed, or removed with its opener) the space stays.
+ * an isolate that a removed right-to-left isolate (U+2067) left unbalanced all go, so no part of a name ends outside its pair. Only isolate openers (U+2066, U+2067, U+2068) go on the stack: an embedding or override (U+202A to U+202E) is removed on its own and never opens a pair, and a U+2069 closes the last isolate opener only. One pass, linear in the message. A line break inside an isolate becomes a space when the isolate is read; if that isolate is dropped later (never closed, or removed with its opener) the space stays.
  */
 export const withBalancedIsolates = (text: string): string => {
   const out: string[] = [];
