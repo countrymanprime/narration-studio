@@ -60,7 +60,8 @@ export const numberedCount = (chapters: readonly ScheduleChapter[]): number => c
 
 /** The first status at which a stage is done. */
 const DONE_AT = { rec: 'editing', edit: 'proofing', proof: 'finalized' } as const;
-const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => reached(c.status, DONE_AT[stage]);
+/** A stage is done from the status after it, or for a delivered chapter (mastered with its checks passing), which has no recording, editing or proofing left, as Production's stage bar counts it. */
+const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => c.delivered === true || reached(c.status, DONE_AT[stage]);
 const STAGES = ['rec', 'edit', 'proof'] as const;
 
 /** The share of a chapter's words still to record, 0 to 1: what Production's "Not recorded yet" leaves of it (`chapterRecordedShare`, one rule for both pages). */

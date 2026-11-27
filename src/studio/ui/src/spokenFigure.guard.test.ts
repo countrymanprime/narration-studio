@@ -18,6 +18,8 @@ const files = [...sources(join(SRC, 'components'))].map((path) => relative(SRC, 
 const DRAWS = /\b(?:hm|formatClock)\(/;
 // Components that call the formatter and have a reason not to draw the figure in the page.
 const EXEMPT: Readonly<Record<string, string>> = {
+  'components/production/overview/ProgressChart.tsx':
+    "writes the chart's screen-reader summary sentence, with each figure spelled out through spokenMarked, not a drawn figure",
   'components/production/ProductionPage.tsx': 'hands the string to a StatTile value, which spells it out through SpokenFigure itself',
 };
 

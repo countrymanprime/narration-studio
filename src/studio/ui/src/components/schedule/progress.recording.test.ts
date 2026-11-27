@@ -115,6 +115,28 @@ describe('Recording left follows what is recorded', () => {
     expect(recordedHoursOf(scheduleChapters(rows, { d: { mastered: true, qc: 'PASS' } }), WPH)).toBeGreaterThan(recordedHoursOf(scheduleChapters(rows), WPH));
   });
 
+  it("leaves a delivered chapter no recording, editing or proofing, as Production's stage bar counts it", () => {
+    const rows = [
+      { id: 'a', contentKind: 'narration', status: 'not_started', wordCount: WPH, recordedSeconds: null },
+      { id: 'b', contentKind: 'narration', status: 'recording', wordCount: WPH * 2, recordedSeconds: null },
+      { id: 'c', contentKind: 'narration', status: 'editing', wordCount: WPH, recordedSeconds: null },
+      { id: 'd', contentKind: 'narration', status: 'proofing', wordCount: WPH, recordedSeconds: null },
+    ] as unknown as ProductionChapter[];
+    const all = Object.fromEntries(rows.map((r) => [r.id, { mastered: true, qc: 'PASS' }]));
+    const some = { b: { mastered: true, qc: 'PASS' }, c: { mastered: true, qc: 'FAIL' } };
+    for (const master of [all, some, undefined]) {
+      const k = calc(scheduleChapters(rows, master), TODAY, DUE, 0, WPH);
+      const { words } = bookFigures(rows, WPH, master);
+      expect(k.recLeft).toBeCloseTo(((words.total - words.recorded) / WPH) * RATIO.rec);
+      expect(k.editLeft).toBeCloseTo(((words.total - words.edited) / WPH) * RATIO.edit);
+      expect(k.proofLeft).toBeCloseTo(((words.total - words.proofed) / WPH) * RATIO.proof);
+    }
+    const everyone = calc(scheduleChapters(rows, all), TODAY, DUE, 0, WPH);
+    expect(everyone.remain).toBe(0);
+    // Every milestone is reached at once, and none is dated after another.
+    for (const m of ['rec', 'edit', 'proof', 'editproof', 'all', 'ch2', 'min60']) expect(remainFor(scheduleChapters(rows, all), m)).toBe(0);
+  });
+
   it('reads "delivered" from one rule: mastered with its checks passing', () => {
     expect(isDelivered({ mastered: true, qc: 'PASS' })).toBe(true);
     expect(isDelivered({ mastered: true, qc: 'FAIL' })).toBe(false);

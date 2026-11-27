@@ -22,6 +22,13 @@ describe('ProgressChart', () => {
     expect(await screen.findByText('Set a due date to see the plan line.')).toBeTruthy();
   });
 
+  it('says the recorded hours with hours and minutes, spelled out, so recorded and Recording left read from one figure', () => {
+    const { container } = draw(overviewFor(MID_BOOK).kpi.due);
+    const sentence = container.querySelector('.sr-only')!.textContent ?? '';
+    expect(sentence).toContain('3 hours 30 minutes of 5 hours of finished audio recorded');
+    expect(sentence).not.toMatch(/\d\.\d of \d\.\d finished hours/);
+  });
+
   it('draws no caption with a due date and a take log', () => {
     const { container } = draw(overviewFor(MID_BOOK).kpi.due);
     expect(container.querySelector('[data-chart-note]')).toBeNull();
