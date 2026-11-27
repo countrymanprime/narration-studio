@@ -99,3 +99,20 @@ export function anotherPopoverTakesFocus(own: Element | null, opener: Element | 
   if (holding && holding !== own && !holding.closest(LEAVING)) return true;
   return Array.from(document.querySelectorAll(POPUPS)).some((popup) => popup !== own && !popup.closest(LEAVING) && !(opener && popup.contains(opener)));
 }
+
+// The popups a key has already handed focus to the page from while they were leaving; a popup is a new element each time it opens, so the mark goes with it.
+const pageTookFocus = new WeakSet<Element>();
+
+/**
+ * A key that leaves Enter and Space to the page (`releaseFocusToPage`: a voice key, Ctrl+Alt+Space) pressed while a popover is still leaving: its exit runs on the fast
+ * motion token and Base UI gives focus back to the trigger only when the exit has ended, so the hand-back would land after the key and put focus on the control the key
+ * just released (Record options: a footswitch Enter then opens it while the take the key started keeps running). The popover asks `pageTookFocusFrom` and gives none.
+ */
+export function pageTakesFocusFromLeavingPopups(): void {
+  for (const popup of document.querySelectorAll(POPUPS)) if (popup.closest(LEAVING)) pageTookFocus.add(popup);
+}
+
+/** Whether a key handed focus to the page while `popup` was leaving (see `pageTakesFocusFromLeavingPopups`). */
+export function pageTookFocusFrom(popup: Element | null): boolean {
+  return popup !== null && pageTookFocus.has(popup);
+}

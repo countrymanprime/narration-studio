@@ -1,4 +1,4 @@
-import { anotherPopoverTakesFocus, handFocusToPage } from './focusReturn';
+import { anotherPopoverTakesFocus, handFocusToPage, pageTookFocusFrom } from './focusReturn';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
@@ -136,6 +136,8 @@ export function Popover({
               // Another popover or menu that opened while this one was leaving has the focus, or is about to take it (its exit waits a frame). Giving focus back to this one's
               // trigger would take it from the new popup, which closes when focus leaves it (#3949). Base UI's own check for this is off while `finalFocus` is a function.
               if (anotherPopoverTakesFocus(popup.current, opened.by)) return false;
+              // A key that leaves Enter and Space to the page (a voice key, Ctrl+Alt+Space) came while this was leaving: the page has focus, and the trigger would take it back.
+              if (pageTookFocusFrom(popup.current)) return false;
               return toPage ? handFocusToPage() : backToOpener();
             }}
             aria-label={label}

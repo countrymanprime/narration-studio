@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Button } from './Button';
 import { Popover, POPOVER_POPUP_ATTRIBUTE, popupBottomReserve, useWindowHeight } from './Popover';
+import { pageTakesFocusFromLeavingPopups } from './focusReturn';
 
 afterEach(cleanup);
 
@@ -42,6 +43,65 @@ describe('Popover focus on close', () => {
   it('hands focus to <main> (not its first button) when focusPageOnClose answers true', async () => {
     await pickInPopover(() => true);
     await waitFor(() => expect(document.activeElement).toBe(document.querySelector('main')));
+  });
+});
+
+// The exit of a popover is a transition (120 ms, --motion-fast), and Base UI gives focus back to the trigger only once it has ended. jsdom has none, so the exit is held
+// here by an animation that finishes when the test says: the popup stays, leaving (`data-ending-style`), with focus still in it.
+describe('Popover focus when a key hands it to the page while the popover is leaving', () => {
+  const proto = Element.prototype as unknown as { getAnimations?: () => unknown[] };
+  const original = proto.getAnimations;
+  afterEach(() => {
+    proto.getAnimations = original;
+  });
+
+  async function escapeWhileLeaving() {
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    const user = userEvent.setup();
+    render(
+      <main tabIndex={-1}>
+        <Popover trigger={<Button>Options</Button>} label="Options">
+          <button type="button">Pick</button>
+        </Popover>
+      </main>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await screen.findByRole('dialog', { name: 'Options' });
+    await user.keyboard('{Escape}');
+    expect(document.querySelector('[data-popover-popup][data-ending-style]')).not.toBeNull();
+    return async () => {
+      endExit();
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Options' })).toBeNull());
+      // Base UI hands focus back in a microtask after the unmount.
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    };
+  }
+
+  it('gives focus back to the trigger when the exit ends and no key took it', async () => {
+    const endLeaving = await escapeWhileLeaving();
+    await endLeaving();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Options' }));
+  });
+
+  it('gives none when a key handed focus to the page meanwhile: the trigger would keep the Enter the key left to the page', async () => {
+    const endLeaving = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    await endLeaving();
+    expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'Options' }));
+  });
+
+  it('gives it back as before to a popover that opens after the key, which the mark does not follow', async () => {
+    const endLeaving = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    await endLeaving();
+    const user = userEvent.setup();
+    proto.getAnimations = original;
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await screen.findByRole('dialog', { name: 'Options' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Options' })));
   });
 });
 
