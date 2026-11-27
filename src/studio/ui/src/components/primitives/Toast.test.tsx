@@ -537,13 +537,13 @@ describe('ToastRegion, action labels and focus (issue 2899)', () => {
     origin.focus();
     act(() => dismissButton.focus());
     fireEvent.click(dismissButton);
-    act(() => void vi.advanceTimersByTime(1));
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     expect(dismiss).toHaveBeenLastCalledWith(1);
     expect(document.activeElement).toBe(origin);
     // A click that did not have focus moves nothing.
     (document.activeElement as HTMLElement).blur();
     fireEvent.click(dismissButton);
-    act(() => void vi.advanceTimersByTime(1));
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     expect(document.activeElement).toBe(document.body);
   });
 });
@@ -854,6 +854,27 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
     act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     expect(document.activeElement).toBe(origin);
+  });
+
+  it('a second Enter soon after a keyboard Dismiss presses nothing: focus is not handed back onto the origin until it has come up (#4125 B4)', () => {
+    const origin = document.createElement('button');
+    const pressed = vi.fn();
+    origin.addEventListener('click', pressed);
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(30));
+    // The origin has not been handed focus yet, so a fresh Enter lands on <body> and is waited for.
+    expect(document.activeElement).toBe(document.body);
+    fireEvent.keyDown(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+    expect(pressed).not.toHaveBeenCalled();
   });
 
   it("a held key swallows only its own repeats: another key's, a Backspace held in a field, are the field's own even while the held key's keyup is lost", () => {
@@ -2188,7 +2209,7 @@ describe('a toast is never lost unseen, never pressed twice, and never takes a k
     act(() => void vi.advanceTimersByTime(1_000));
     expect(document.activeElement).toBe(dismissButton);
     fireEvent.keyUp(dismissButton, { key: 'Enter' });
-    act(() => void vi.advanceTimersByTime(10));
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     expect(document.activeElement).toBe(page);
   });
 
@@ -2222,13 +2243,13 @@ describe('a toast is never lost unseen, never pressed twice, and never takes a k
       gone.remove();
       fireEvent.click(dismissButton, { detail: 0 });
       rerender(<ToastRegion messages={[failure(2, 'Beta')]} dismiss={vi.fn()} />);
-      act(() => void vi.advanceTimersByTime(10));
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
       expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
       const only = screen.getByRole('button', { name: 'Dismiss message' });
       only.focus();
       fireEvent.click(only, { detail: 0 });
       rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
-      act(() => void vi.advanceTimersByTime(10));
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
       expect(document.activeElement).toBe(document.getElementById('main-content'));
     } finally {
       document.getElementById('main-content')?.remove();

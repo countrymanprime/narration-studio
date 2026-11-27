@@ -398,9 +398,10 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       const candidates = resolve().filter((target) => !layer || layer.contains(target) || target.closest('[data-toast-region]'));
       if (always || !active || active === document.body || !active.isConnected) focusFirst(candidates);
     };
+    // Every press waits out the same grace, a dismissal too: an Enter pressed again at once lands on <body> (and is waited for, above) and not on the control focus is handed to, which it would press (#4125).
     const start = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(hand, always ? 0 : ACTION_FOCUS_MS);
+      timer = window.setTimeout(hand, ACTION_FOCUS_MS);
     };
     // The key that pressed, still held down, would repeat on whatever gets focus: wait for that key (not another) to come up. The wait ends too when the window loses focus or the page is hidden (`HandBacks`),
     // where its keyup may never come.
