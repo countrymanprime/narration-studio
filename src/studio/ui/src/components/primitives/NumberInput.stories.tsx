@@ -107,7 +107,7 @@ export const ArrowLandsOnTheNextStep: Story = {
 };
 
 // `holdRefused` with `onRefused` and `heldText`, for a form that says why a number is wrong and never changes it: 99 is handed over as typed, stays in the
-// box when focus leaves (it is not clamped to 12), and `error` gives the reason under the box, which is marked invalid and described by it.
+// box when focus leaves (it is not clamped to 12), and `invalid` marks the box while it holds one.
 function HeldRefusal(props: { label: string }) {
   const [value, setValue] = useState(3);
   const [held, setHeld] = useState<string>();
@@ -120,7 +120,7 @@ function HeldRefusal(props: { label: string }) {
         value={value}
         heldText={held}
         holdRefused
-        error={held === undefined ? undefined : 'Write a whole number from 1 to 12.'}
+        invalid={held !== undefined}
         onValueChange={(next) => {
           setValue(next);
           setHeld(undefined);
@@ -140,6 +140,5 @@ export const HoldsARefusedNumber: Story = {
     await userEvent.tab();
     await expect(field).toHaveValue('99');
     await expect(field).toHaveAttribute('aria-invalid', 'true');
-    await expect(within(canvasElement).getByRole('alert')).toHaveTextContent('Write a whole number from 1 to 12.');
   },
 };

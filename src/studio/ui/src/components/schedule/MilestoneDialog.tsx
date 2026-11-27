@@ -63,7 +63,9 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     if (field === 'name') form.current.querySelector<HTMLInputElement>('input')?.focus();
     else if (field === 'date') form.current.querySelector<HTMLElement>('#milestone-due')?.focus();
     else if (field === 'n') form.current.querySelector<HTMLInputElement>('input[aria-invalid="true"]')?.focus();
-    form.current.querySelector('[role="alert"]')?.scrollIntoView?.({ block: 'nearest' });
+    // The reason is the alert below the form's body, or the line a marked box is described by.
+    const marked = form.current.querySelector('[aria-invalid="true"]')?.getAttribute('aria-describedby');
+    (marked ? document.getElementById(marked) : form.current.querySelector('[role="alert"]'))?.scrollIntoView?.({ block: 'nearest' });
     // Once per refusal: editing the draft afterwards must not pull focus back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refusals]);
@@ -140,18 +142,19 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
                 min={1}
                 holdRefused
                 max={clamp(live[draft.measure === 'chN' ? 'chapters' : 'minutes'], 1, MAX_N)}
-                error={aboutN}
+                invalid={aboutN !== undefined}
+                aria-describedby={aboutN === undefined ? undefined : 'milestone-problem'}
                 className="w-20!"
               />
             )}
           </div>
+          {refused && (!refused.field || standing) && (
+            <p id="milestone-problem" role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
+              {refused.text}
+            </p>
+          )}
         </div>
         <Field label="Note" textarea value={draft.note} onChange={(note) => set({ note })} autoFocus={focusNote} />
-        {refused && refused.field !== 'n' && (!refused.field || standing) && (
-          <p role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
-            {refused.text}
-          </p>
-        )}
       </div>
       {/* Done shares the button row, at its left (R3SH-9), rather than a row of its own over a half-empty one. */}
       <div className="flex flex-wrap items-center justify-end gap-2">

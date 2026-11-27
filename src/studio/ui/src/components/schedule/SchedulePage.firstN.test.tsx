@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { NarrationApi } from '../../types';
-import { REC, installKit, mountSchedule, stored } from './scheduleKit.test';
+import { REC, installKit, mountSchedule, nReasonNow, reasonOf, stored } from './scheduleKit.test';
 
 installKit();
 
@@ -57,7 +57,7 @@ describe('the First N chapters milestone', () => {
     await mountSchedule({ statuses: book(12) });
     const d = await typeN(text);
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe(reason);
+    expect((await reasonOf(d)).textContent).toBe(reason);
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect((await stored()).milestones[0].measure).toBe('rec');
   });
@@ -104,7 +104,7 @@ describe('the First N chapters milestone', () => {
     await mountSchedule({ statuses: book(1) });
     const d = await typeN('2');
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 1 chapter. Write 1.');
+    expect((await reasonOf(d)).textContent).toBe('The book has 1 chapter. Write 1.');
   });
 
   it('an empty book has no Schedule to add a milestone to (the draft refuses the N in draft.test.ts)', async () => {
@@ -116,7 +116,7 @@ describe('the First N chapters milestone', () => {
     await mountSchedule({ statuses: book(200) });
     const d = await typeN('201');
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 200 chapters. Write a whole number from 1 to 200.');
+    expect((await reasonOf(d)).textContent).toBe('The book has 200 chapters. Write a whole number from 1 to 200.');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '200' } });
     save(d);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -136,7 +136,7 @@ describe('the First N finished minutes milestone (the sibling N)', () => {
       const again = dialog();
       fireEvent.change(again.getByLabelText('How many finished minutes'), { target: { value: bad } });
       save(again);
-      expect((await again.findByRole('alert')).textContent).toMatch(/^The book runs [\d,]+ finished minutes\. Write a whole number from 1 to [\d,]+\.$/);
+      expect((await reasonOf(again)).textContent).toMatch(/^The book runs [\d,]+ finished minutes\. Write a whole number from 1 to [\d,]+\.$/);
       fireEvent.click(again.getByRole('button', { name: 'Cancel' }));
     }
     expect((await stored()).milestones[0].measure).toBe('min20');
@@ -161,7 +161,7 @@ describe('a book whose chapters carry no content kind (an older manuscript, as t
     await mountSchedule({ statuses: book(12), wrap: unkinded(12) });
     const d = await typeN('13');
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe(RANGE_12);
+    expect((await reasonOf(d)).textContent).toBe(RANGE_12);
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '4' } });
     save(d);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -203,7 +203,7 @@ describe('the dialog keeps up with the book and the narrator', () => {
     await waitFor(() => expect(reads).toBeGreaterThan(before));
     await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 5 chapters. Write a whole number from 1 to 5.');
+    expect((await reasonOf(d)).textContent).toBe('The book has 5 chapters. Write a whole number from 1 to 5.');
   });
 
   it('B3: Enter twice in the N box while the save is out adds one milestone', async () => {
@@ -257,14 +257,14 @@ describe('the dialog keeps up with the book and the narrator', () => {
     const again = dialog();
     fireEvent.change(again.getByLabelText('How many chapters'), { target: { value: '11' } });
     save(again);
-    expect((await again.findByRole('alert')).textContent).toBe('The book has 5 chapters. Write a whole number from 1 to 5.');
+    expect((await reasonOf(again)).textContent).toBe('The book has 5 chapters. Write a whole number from 1 to 5.');
   });
 
   it('B6: a refused N takes the focus, is marked invalid and is linked to the reason', async () => {
     await mountSchedule({ statuses: book(12) });
     const d = await typeN('99');
     save(d);
-    const alert = await d.findByRole('alert');
+    const alert = await reasonOf(d);
     const box = d.getByLabelText('How many chapters');
     await waitFor(() => expect(document.activeElement).toBe(box));
     expect(box.getAttribute('aria-invalid')).toBe('true');
@@ -306,8 +306,9 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     await mountSchedule({ statuses: book(12) });
     const d = await typeN('99');
     save(d);
-    const alert = await d.findByRole('alert');
-    expect(alert.previousElementSibling).toBe(d.getByLabelText('How many chapters'));
+    const alert = await reasonOf(d);
+    expect(alert.id).toBe('milestone-problem');
+    expect(alert.previousElementSibling).toBe(d.getByLabelText('How many chapters').parentElement);
     await waitFor(() => expect(scrolled).toHaveBeenCalled());
     expect(scrolled.mock.instances.at(-1)).toBe(alert);
   });
@@ -337,13 +338,13 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     });
     const d = await typeN('8');
     save(d);
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 3 chapters. Write a whole number from 1 to 3.');
+    expect((await reasonOf(d)).textContent).toBe('The book has 3 chapters. Write a whole number from 1 to 3.');
     count = 8;
     const before = reads;
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000);
     fireEvent.focus(window);
     await waitFor(() => expect(reads).toBeGreaterThan(before));
-    await waitFor(() => expect(d.queryByRole('alert')).toBeNull());
+    await waitFor(() => expect(nReasonNow(d)).toBeNull());
     expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBeNull();
     save(d);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -354,8 +355,9 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     await mountSchedule({ statuses: book(12) });
     const d = await typeN('99');
     save(d);
-    await d.findByRole('alert');
+    await reasonOf(d);
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '3' } });
+    expect(nReasonNow(d)).toBeNull();
     expect(d.queryByRole('alert')).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 // A shared harness for the Schedule page's behaviour tests: the page mounted on the mock host, with the host's calls wrapped so a test can
 // count them, hold them, fail them or answer them late.
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { ChapterStatus, ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -92,6 +92,19 @@ export async function mountSchedule({
   await screen.findByRole('heading', { level: 1, name: 'Schedule' }).catch(() => undefined);
   return kit.api;
 }
+
+/** The reason under a "How many ..." box: the element its aria-describedby names, or null while the box has none. */
+export const nReasonNow = (within: { getByLabelText: (text: RegExp) => HTMLElement }): HTMLElement | null => {
+  const id = within.getByLabelText(/^How many/).getAttribute('aria-describedby');
+  return id ? document.getElementById(id) : null;
+};
+/** Waits for that reason. */
+export const reasonOf = (within: { getByLabelText: (text: RegExp) => HTMLElement }): Promise<HTMLElement> =>
+  waitFor(() => {
+    const el = nReasonNow(within);
+    if (!el) throw new Error('the N has no reason yet');
+    return el;
+  });
 
 export const stored = (): Promise<ProductionPlan> => kit.api.productionPlan();
 export const toasts = () => overlay.getSnapshot().toasts.map((t) => t.text);

@@ -423,7 +423,7 @@ describe('NumberInput holdRefused', () => {
   function Held({ allowEmpty = false, onRefused = () => undefined }: { allowEmpty?: boolean; onRefused?: (text: string) => void }) {
     const [value, setValue] = useState<number | null>(3);
     const [held, setHeld] = useState<string>();
-    const common = { label: 'Count', min: 1, max: 12, step: 1, heldText: held, holdRefused: true, error: held === undefined ? undefined : 'Why not' } as const;
+    const common = { label: 'Count', min: 1, max: 12, step: 1, heldText: held, holdRefused: true, invalid: held !== undefined } as const;
     const refused = (text: string) => {
       setHeld(text);
       onRefused(text);
@@ -463,13 +463,12 @@ describe('NumberInput holdRefused', () => {
     }
   });
 
-  it('shows the reason under the box, marks it invalid and describes it by the reason', () => {
+  it('marks the box invalid while it holds a refused entry, and not after a valid one', () => {
     render(<Held />);
     fireEvent.change(box(), { target: { value: '99' } });
-    const alert = screen.getByRole('alert');
-    expect(alert.textContent).toBe('Why not');
     expect(box().getAttribute('aria-invalid')).toBe('true');
-    expect(box().getAttribute('aria-describedby')).toBe(alert.id);
+    fireEvent.change(box(), { target: { value: '7' } });
+    expect(box().getAttribute('aria-invalid')).toBeNull();
   });
 
   it('hands over empty text, and takes a valid number again', () => {
@@ -478,7 +477,7 @@ describe('NumberInput holdRefused', () => {
     fireEvent.change(box(), { target: { value: '' } });
     expect(onRefused).toHaveBeenLastCalledWith('');
     fireEvent.change(box(), { target: { value: '7' } });
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(box().getAttribute('aria-describedby')).toBeNull();
     expect(box().value).toBe('7');
   });
 

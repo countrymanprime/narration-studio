@@ -1,4 +1,4 @@
-import { forwardRef, useId, useState, type KeyboardEvent } from 'react';
+import { forwardRef, useState, type KeyboardEvent } from 'react';
 import { useSettledDraft } from './settledDraft';
 import { TextField } from './TextField';
 
@@ -30,11 +30,6 @@ type Base = Omit<TextFieldProps, 'value' | 'onChange' | 'type' | 'mono' | 'readO
    * Empty text goes to `onRefused` too, unless `allowEmpty` makes an emptied box the value `null`.
    */
   holdRefused?: boolean;
-  /**
-   * What is wrong with the number, in words: it shows under the box on a line of its own (the box's parent wraps), marks the box `aria-invalid` and
-   * describes it, as `Field`'s `error` does for a text box.
-   */
-  error?: string;
 };
 /** `onValueChange` may return the save it starts: a `settle` box then shows the value being saved until that save ends. */
 type Filled = { allowEmpty?: false; value: number; onValueChange: (value: number) => void | Promise<unknown> };
@@ -72,7 +67,6 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
     onRefused,
     heldText,
     holdRefused,
-    error,
     invalid,
     onBlur,
     onKeyDown,
@@ -162,7 +156,6 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
       settled.reset();
     }
   };
-  const errorId = useId();
   const input = (
     <TextField
       {...(rest as TextFieldProps)}
@@ -172,8 +165,7 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
       min={min}
       max={max}
       step={step}
-      aria-invalid={invalid || error ? true : undefined}
-      aria-describedby={error ? errorId : rest['aria-describedby']}
+      aria-invalid={invalid ? true : undefined}
       value={isSettle ? settled.draft : (typedDraft ?? heldText ?? asText(value))}
       onChange={(text) => {
         if (isSettle) {
@@ -201,13 +193,5 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
       onKeyDown={handleKeyDown}
     />
   );
-  if (!error) return input;
-  return (
-    <>
-      {input}
-      <p id={errorId} role="alert" className="basis-full text-xs text-[var(--danger-text)]">
-        {error}
-      </p>
-    </>
-  );
+  return input;
 });

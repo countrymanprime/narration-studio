@@ -13,7 +13,7 @@ import { overlay } from '../../overlay/overlayService';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { NarrationApi } from '../../types';
 import { SchedulePage } from './SchedulePage';
-import { chapterList } from './scheduleKit.test';
+import { chapterList, reasonOf } from './scheduleKit.test';
 import { chaptersOf } from '../../api/chaptersOf';
 
 const TODAY = new Date(2026, 9, 1);
@@ -246,7 +246,7 @@ describe('the milestone dialog', () => {
     await userEvent.selectOptions(d.getByRole('combobox', { name: 'What the milestone measures' }), 'chN');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '99' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
-    expect((await d.findByRole('alert')).textContent).toBe('The book has 2 chapters. Write a whole number from 1 to 2.');
+    expect((await reasonOf(d)).textContent).toBe('The book has 2 chapters. Write a whole number from 1 to 2.');
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '2' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
