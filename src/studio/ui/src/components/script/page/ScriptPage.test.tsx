@@ -937,6 +937,7 @@ describe('the reader position across a project switch made off the Script (#4091
     );
     const reader = () => screen.getByRole('region', { name: /Script reader/ });
     const narratorScrolls = async (folder: string) => {
+      fireEvent.wheel(reader());
       at.set(reader(), 250);
       fireEvent.scroll(reader());
       await waitFor(() => expect(window.localStorage.getItem(keyOf(folder))).not.toBeNull());

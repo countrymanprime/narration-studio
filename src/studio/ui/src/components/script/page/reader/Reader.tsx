@@ -386,12 +386,15 @@ export function Reader(props: ReaderProps) {
   const jumpTo = (chapterId: string): void => {
     scrollToChapter(chapterId);
     held.current = { chapterId, offset: -8 };
-    placed.current = null;
+    restoring.current = false;
   };
   /** Where the first draw, a jump or End put the reader, held until the narrator scrolls or a request scrolls it. */
   const held = useRef<{ chapterId: string; offset: number } | 'end' | null>(null);
-  /** Where the reader itself put the scroll (the first draw, a held place): the scroll event that follows is not the narrator moving, so it saves no place (#4091). */
-  const placed = useRef<number | null>(null);
+  /**
+   * True from the first draw until the narrator's first input (`release`: wheel, pointer, touch, key, a jump or a request). Until then the reader moved itself, and so did the
+   * browser (it clamps a place past the end, and again when the header wraps and the content shrinks), so no scroll event writes a place: only the narrator moving it does (#4091).
+   */
+  const restoring = useRef(false);
   const hold = (): void => {
     const root = scroller.current;
     const place = held.current;
@@ -400,12 +403,10 @@ export function Reader(props: ReaderProps) {
     if (place !== 'end' && !bound) return;
     const top = Math.max(0, place === 'end' ? root.scrollHeight - root.clientHeight : bound!.offsetTop + place.offset);
     if (root.scrollTop !== top) root.scrollTop = top;
-    // Read back: the browser clamps a scroll past the end, and its scroll event reports the clamped value.
-    if (placed.current !== null) placed.current = root.scrollTop;
   };
   const release = (): void => {
     held.current = null;
-    placed.current = null;
+    restoring.current = false;
   };
   const rowOf = (paragraphId: string): HTMLElement | null =>
     Array.from(scroller.current?.querySelectorAll<HTMLElement>('[data-para]') ?? []).find((row) => row.dataset.para === paragraphId) ?? null;
@@ -419,7 +420,7 @@ export function Reader(props: ReaderProps) {
     // The remembered place can be a section that is not a chapter (the credits, #3821): any boundary drawn in the reader counts.
     const known = remembered && Array.from(root.querySelectorAll<HTMLElement>('[data-bound]')).some((bound) => bound.dataset.ch === remembered.chapterId);
     held.current = known ? remembered : { chapterId: startChapter, offset: -8 };
-    placed.current = root.scrollTop;
+    restoring.current = true;
     hold();
     // The first draw only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -537,9 +538,7 @@ export function Reader(props: ReaderProps) {
 
   const onScroll = (): void => {
     onSpy();
-    // Within a pixel: a fractional scroll position (a scaled display) is not the narrator moving.
-    if (placed.current !== null && Math.abs((scroller.current?.scrollTop ?? Infinity) - placed.current) <= 1) return;
-    placed.current = null;
+    if (restoring.current) return;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(savePlace, SAVE_DELAY_MS);
   };

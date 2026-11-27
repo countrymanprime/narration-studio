@@ -55,7 +55,9 @@ const FOLDER_B = 'C:/Books/B';
 const READER_POSITION_KEY = projectStorageKey('script.reader.position', FOLDER_A);
 const props = (extra: Partial<Props> = {}): Props => ({ chapters, paragraphsOf, sources, projectFolder: FOLDER_A, ...extra });
 const scroller = (): HTMLElement => screen.getByRole('region', { name: /Script reader/ });
-const scrollTo = (value: number): void => {
+/** The narrator scrolls: the wheel is the input that releases the reader's first-draw hold, then the position moves. */
+const scrollTo = (value: number, input: boolean = true): void => {
+  if (input) fireEvent.wheel(scroller());
   scrolls.set(scroller(), value);
   fireEvent.scroll(scroller());
 };
@@ -375,6 +377,37 @@ describe('the remembered position', () => {
     act(() => void vi.advanceTimersByTime(250));
     unmount();
     expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  // A small window wraps the header, the reader loses height, the content shrinks and the browser clamps the held end place itself, after the restore ran.
+  it('a scroll the browser makes after the restore (the content shrinks under a held end place) saves no place', () => {
+    maxScroll = 5000;
+    const stored = JSON.stringify({ chapterId: 'c3', offset: 500 });
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    const { unmount } = render(<Reader {...props()} />);
+    maxScroll = 560;
+    scrolls.set(scroller(), 560); // the browser's own clamp, no wheel, pointer, key or touch
+    fireEvent.scroll(scroller());
+    scrolls.set(scroller(), 559);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    expect(vi.getTimerCount()).toBe(0);
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  it.each([
+    ['the wheel', (el: HTMLElement) => fireEvent.wheel(el)],
+    ['a pointer press (a scrollbar drag or track click)', (el: HTMLElement) => fireEvent.pointerDown(el)],
+    ['a touch', (el: HTMLElement) => fireEvent.touchStart(el)],
+    ['a key', (el: HTMLElement) => fireEvent.keyDown(el, { key: 'ArrowDown' })],
+  ])('a one-pixel scroll right after %s is the narrator moving and is saved', (_name, input) => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'c2', offset: 50 }));
+    render(<Reader {...props()} />);
+    input(scroller());
+    scrollTo(351, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 51 });
   });
 
   it('opening a project with nothing stored writes nothing until the narrator scrolls', () => {
