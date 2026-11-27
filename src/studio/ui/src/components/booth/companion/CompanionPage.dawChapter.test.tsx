@@ -44,7 +44,8 @@ const shown = (): string | undefined => spies.shellProps.mock.calls.at(-1)?.[0].
 const drawn = (): string[] => [...new Set(spies.shellProps.mock.calls.map((call) => call[0].chapterId as string))];
 const dawOn = (chapterId: string) => async () => ({ ok: true, message: '', chapterId, selected: chapterId === '' ? 0 : 1, cursor: 0 });
 const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-/** The reader state names chapter 2: the Companion does not read it, so the first chapter still opens when the DAW names none. */
+/** The reader state names the chapter the narrator last read: the page opens on it when the DAW names none. */
+const READER_ON_1 = async () => ({ ...(await createMockApi().readerState()), activeChapter: 'chapter-1' });
 const READER_ON_2 = async () => ({ ...(await createMockApi().readerState()), activeChapter: 'chapter-2' });
 
 function tree(api: NarrationApi, entry = '/companion', projectFolder = '/proj') {
@@ -106,10 +107,10 @@ describe('the Companion with nothing remembered opens on the DAW chapter (#4087)
         throw new Error('no answer');
       },
     ],
-  ])('%s: the first chapter opens, and the DAW is not moved', async (_name, dawPlace) => {
+  ])('%s: the chapter last read opens, and the DAW is not moved', async (_name, dawPlace) => {
     const dawGoToChapter = goTo();
     render(tree(createMockApi({ readerState: READER_ON_2, dawPlace, dawGoToChapter } as Partial<NarrationApi>)));
-    await waitFor(() => expect(shown()).toBe('chapter-1'));
+    await waitFor(() => expect(shown()).toBe('chapter-2'));
     expect(dawGoToChapter).not.toHaveBeenCalled();
   });
 
@@ -154,7 +155,7 @@ describe('a DAW answer that comes after the narrator pressed Play moves nothing 
           answer = () => resolve({ ok: true, message: '', chapterId: 'chapter-3', selected: 1, cursor: 0 } as never);
         }),
     );
-    render(tree(createMockApi({ readerState: READER_ON_2, dawPlace, ...overrides })));
+    render(tree(createMockApi({ readerState: READER_ON_1, dawPlace, ...overrides })));
     await act(async () => void (await vi.advanceTimersByTimeAsync(3600)));
     await waitFor(() => expect(shown()).toBe('chapter-1'));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });

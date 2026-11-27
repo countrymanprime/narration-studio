@@ -7,7 +7,7 @@ import { boothQuery, readBoothQuery } from '../page/boothQuery';
 import { creditsKindOf } from '../page/useBoothData';
 import { keptChapterIn, loadLastPlace } from '../page/lastPlace';
 import { useFollowDawOnOpen } from '../page/useDawFollow';
-import { firstTextChapter, isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
+import { isCreditsChapter, isNarrationChapter, lastReadOrFirstTextChapter } from '../../../chapterKinds';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionSkeleton } from './CompanionSkeleton';
 import { CompanionHost } from './CompanionHost';
@@ -28,7 +28,7 @@ type Props = {
 /**
  * The Companion's route (`/companion?chapter=<id>`; the credits are chapters, and `?credits=opening` is the old spelling of `?chapter=credits-opening`): the chapter rule of the old Booth page without its
  * picker. With neither in the address it reads the chapter a running session is on, else the chapter the Booth remembers for this project (`keptChapterIn`), else the chapter the DAW is on
- * (`useFollowDawOnOpen`, as the Booth does), else the first chapter of the text (`firstTextChapter`, the Booth's end of the order too); an unknown
+ * (`useFollowDawOnOpen`, as the Booth does), else the chapter last read, else the first chapter with text (`lastReadOrFirstTextChapter`, the Booth's end of the order too); an unknown
  * chapter sends the narrator to `/booth`.
  */
 export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
@@ -51,12 +51,13 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
     let live = true;
     void Promise.all([
       readChapters(),
+      api.readerState().catch(() => undefined),
       api.teleprompterState().catch(() => undefined),
       api.guideEntities().catch(() => NO_ENTITIES),
       api.guideTypes().catch(() => NO_TYPES),
       api.noteList().catch(() => NO_NOTES),
     ])
-      .then(([all, host, nextEntities, nextTypes, nextNotes]) => {
+      .then(([all, reader, host, nextEntities, nextTypes, nextNotes]) => {
         if (!live) return;
         const narration = all.filter(isNarrationChapter);
         setChapters(narration);
@@ -70,7 +71,7 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
           narration.map((item) => item.id),
         )?.chapterId;
         setDecided(!running && !remembered);
-        setFallback(running || remembered || firstTextChapter(narration)?.id || '');
+        setFallback(running || remembered || lastReadOrFirstTextChapter(narration, reader?.activeChapter)?.id || '');
       })
       .catch(() => live && setChapters([]));
     return () => {

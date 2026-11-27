@@ -7,7 +7,7 @@ starts and stops the take in your DAW (or the built-in recorder). It needs an [i
 Open it from **Booth** in the navigation, or from **Record in Booth** on a chapter or credits card on [Script](script.md), which
 opens it on that chapter. What the Booth is reading is part of its address (`/booth?chapter=…`, `/booth?credits=opening`), so Back
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
-While the chapters are being read, or for up to three and a half seconds while the Booth waits for the DAW to say which chapter it is on (it says **Opening your chapter…**; a DAW that has not answered by then, is not linked or refuses is left, and the Booth opens on the first chapter and stays there: a late answer from the DAW does not move it), the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with the Booth title, **Checking this link…** and **Go to Production** (Escape also leaves) while the chapter list is read once more.
+While the chapters are being read, or for up to three and a half seconds while the Booth waits for the DAW to say which chapter it is on (it says **Opening your chapter…**; a DAW that has not answered by then, is not linked or refuses is left, and the Booth opens on the chapter you last read, else the first chapter with text, and stays there: a late answer from the DAW does not move it), the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with the Booth title, **Checking this link…** and **Go to Production** (Escape also leaves) while the chapter list is read once more.
 
 This page is for narrators. [Record a chapter](#record-a-chapter) is the short version; the sections after it describe
 each part of the Booth in full, and [If something goes wrong](#if-something-goes-wrong) gathers what stops a take.
@@ -605,10 +605,9 @@ If the book's chapters cannot be read when the Booth opens, it shows "This page 
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`. It
 opens on the chapter a reading session is running on. With none running, it opens on the chapter you last had open in the Booth in
 this project. With neither, it opens on the chapter your DAW is on, as the Booth does: for up to three and a half seconds the panel
-draws grey blocks and says **Opening your chapter…** while the DAW answers. A DAW with no chapter selected in it, with none linked, that
-refuses, or that has not answered by then is left, and the Companion opens on the first chapter that is not a credits chapter.
-The panel shows the reading session, with a
-badge in its header, the script in its own scroll box, the reading controls and the hotkeys that work while the panel has focus.
+draws grey blocks and says **Opening your chapter…** while the DAW answers. A DAW with no chapter selected in it, with none linked,
+that refuses, or that has not answered by then is left, and the Companion opens on the chapter you last read, else on the first
+chapter with text. The panel shows the reading session, with a badge in its header, the script in its own scroll box, the reading controls and the hotkeys that work while the panel has focus.
 The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and
 REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for
 its name and key. A chapter recorded part way opens with *Continuing at "…the next words"*, the same place the Booth opens it at

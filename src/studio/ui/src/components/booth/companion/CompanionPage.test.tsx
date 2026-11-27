@@ -124,12 +124,14 @@ describe('CompanionPage', () => {
     expect(spies.toggleFullscreen).not.toHaveBeenCalled();
   });
 
-  it('a-chapterless-address-opens-the-first-chapter-of-the-text-whatever-the-reader-state-says', async () => {
+  it('a-chapterless-address-picks-the-last-read-chapter', async () => {
     const api = createMockApi();
-    await renderCompanion('/companion', { readerState: async () => ({ ...(await api.readerState()), activeChapter: 'chapter-3' }) });
+    const reader = await api.readerState();
+    await renderCompanion('/companion');
     await screen.findByRole('heading', { level: 1, name: 'Companion' });
-    const expected = withoutCredits((await api.manuscriptChapters()).chapters)[0]!;
-    // The Companion asks the DAW first (no chapter is drawn before it answers), then draws the first chapter.
+    const chapters = (await api.manuscriptChapters()).chapters;
+    const expected = chapters.find((item) => item.id === reader.activeChapter || item.title === reader.activeChapter) ?? withoutCredits(chapters)[0]!;
+    // The Companion asks the DAW first (no chapter is drawn before it answers), then draws the reader's chapter.
     await waitFor(() => expect(spies.shellProps.mock.calls.at(-1)?.[0].chapterId).toBe(expected.id));
   });
 

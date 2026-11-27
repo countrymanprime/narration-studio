@@ -13,11 +13,17 @@ export const isNarrationChapter = (chapter: { contentKind?: ManuscriptChapter['c
   !chapter.contentKind || chapter.contentKind === 'narration';
 
 /**
- * The chapter a page opens on when nothing was asked, remembered or followed from the DAW: the first chapter of the book's text, not the opening credits
- * (the book's first chapter when it has only credits). The Booth and the Companion both end their open-chapter order here.
+ * The end of the open-chapter order, once for the Booth and the Companion: with nothing asked, no session running, nothing remembered and no chapter
+ * from the DAW, the chapter the narrator last read (the reader state's `activeChapter`, an id or a title) if the list has it, else the first chapter of
+ * the book's text, not the opening credits (the first chapter of the list when it has only credits).
  */
-export const firstTextChapter = <T extends { isCredits?: boolean }>(chapters: readonly T[]): T | undefined =>
-  chapters.find((item) => !isCreditsChapter(item)) ?? chapters[0];
+export const lastReadOrFirstTextChapter = <T extends { id: string; title?: string; isCredits?: boolean }>(
+  chapters: readonly T[],
+  lastRead: string | undefined,
+): T | undefined =>
+  (lastRead ? chapters.find((item) => item.id === lastRead || item.title === lastRead) : undefined) ??
+  chapters.find((item) => !isCreditsChapter(item)) ??
+  chapters[0];
 
 /** The chapters the book numbers, and the ones a sample or a "first N chapters" is taken from: narration with the credits left out. */
 export const isNumberedChapter = (chapter: { contentKind?: ManuscriptChapter['contentKind'] | ''; isCredits?: boolean }): boolean =>

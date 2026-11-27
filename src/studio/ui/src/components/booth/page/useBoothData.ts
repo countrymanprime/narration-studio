@@ -5,7 +5,7 @@ import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, Man
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import { recordedAtOf, type RecordedAt } from '../../../recordedThrough';
 import type { CreditsKind } from '../readerModel';
-import { firstTextChapter, isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
+import { isCreditsChapter, isNarrationChapter, lastReadOrFirstTextChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
@@ -61,6 +61,7 @@ function useCreditsPreviews(): { previews: Partial<Record<CreditsKind, CreditsRe
  */
 export function useBoothData(target: BoothChapterTarget | null) {
   // The chapter list is the store's, shared with the other pages: opening the Booth does not read what is held, a Retry and a take's refresh read it now.
+  const manuscript = usePort('manuscript');
   const readChapters = useReadChapters();
   const storyBible = usePort('storyBible');
   const teleprompter = usePort('teleprompter');
@@ -95,15 +96,15 @@ export function useBoothData(target: BoothChapterTarget | null) {
   useEffect(() => {
     let live = true;
     const mine = ++recordedRead.current;
-    void Promise.all([readChapters(attempt > 0), teleprompter.teleprompterState().catch(() => undefined)])
-      .then(([all, host]) => {
+    void Promise.all([readChapters(attempt > 0), teleprompter.teleprompterState().catch(() => undefined), manuscript.readerState().catch(() => undefined)])
+      .then(([all, host, reader]) => {
         if (!live) return;
         const narration = all.filter(isNarrationChapter);
         setChapters(narration);
         if (mine === recordedRead.current) setRecorded(recordedOf(narration));
         const running = host && host.phase !== 'idle' && host.phase !== 'stopped' ? narration.find((item) => item.id === host.chapter)?.id : undefined;
-        // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
-        setFallback(running ?? firstTextChapter(narration)?.id ?? '');
+        // With nothing asked for and nothing running the page opens on the last chapter read, else the first chapter of the book's text (`lastReadOrFirstTextChapter`, shared with the Companion).
+        setFallback(running ?? lastReadOrFirstTextChapter(narration, reader?.activeChapter)?.id ?? '');
       })
       .catch((reason) => {
         if (!live) return;
@@ -113,7 +114,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
     return () => {
       live = false;
     };
-  }, [readChapters, teleprompter, attempt]);
+  }, [manuscript, readChapters, teleprompter, attempt]);
 
   useEffect(() => {
     let live = true;

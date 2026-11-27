@@ -54,9 +54,10 @@ The header is short, and the same on every page. Left to right: the **Project** 
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it (Escape does the same), and opening a
 recent project there switches to it. Like every other way out of a page, it asks first when the page holds something: unsaved changes in [Settings](settings.md) (**Unsaved changes**), text typed in an editor that has not been saved yet (**Unsaved changes**; each page's own guide says which of its editors do this), or a take recording in the Booth (**Stop recording?**, which names the page you are going to, by the name the rail gives it: "Leaving the Booth for Script stops it."; after **Stop and leave** stops the take, **Take saved** shows on that page, with its **Undo** unless the take marked pickups or added suspected lines to them, see [the Booth](booth.md)). **Save & continue** never drops anything: when a save fails it keeps you where you are, with what you typed, and says so; when a save does not answer within 15 seconds it stops waiting and gives you **Cancel** and **Discard & continue** back. When something typed cannot be saved from the question at all, the question says so in one sentence ("... still needs ...") and offers only **Keep editing** and **Discard & continue**; a page's guide names which of its editors can be in that state. A way out that is not a button saying it discards (going to another page) asks; where an editor holds text, its own Escape and closing its panel ask the same way (each page's guide says which editors do); a button that says it discards or deletes (**Discard changes**, **Delete**, **Discard**) does not. Only **Discard & continue** drops what you typed. Closing the app window asks the same question when unsaved changes or text in an editor are held (not for a take that is recording): **Cancel** keeps the window open with what you typed, **Save & continue** saves and then closes it, and **Discard & continue** closes it and drops what you typed. Closing the app to install an update does not ask: save or discard before you accept it.
 
-Switching project reopens the Booth, Editing and the [Companion](booth.md#companion-mode) on the new project's own remembered
-chapter. When none is remembered, the Booth and the Companion open on the chapter the DAW is on, else on the first chapter of the text,
-and the Companion takes the chapter of a running reading session first. Editing opens on its first chapter. Proof and Pickups open on All chapters, and
+Switching project reopens the Booth, Editing and the [Companion](booth.md#companion-mode) on the new project. The Companion takes the
+chapter of a running reading session first. Otherwise the Booth and the Companion reopen on the project's remembered chapter, else on
+the chapter the DAW is on, else on the chapter you last read, else on the first chapter with text. Editing reopens on its remembered
+chapter, else its first chapter with text. Proof and Pickups open on All chapters, and
 Master & QC opens with no chapter picked.
 
 In [Settings](settings.md), edited fields and the settings panels (such as **Recording check rules** under Speech to text), a key pasted into the Merriam-Webster box, and a [credit template](settings.md#credits) edited and not yet saved, are held this way. Changing the category, the search or the filter, or closing **Advanced**, over one of them asks too (**Unsaved changes**, "... before leaving?"), and **Cancel** keeps the text, with the Search box showing what the results are for.
@@ -67,9 +68,10 @@ In the [Story Bible](story-bible.md), an entry being edited, a relationship, a n
 
 On the [Script](script.md), a reply or an edit of a note message typed and not yet saved, and a pronunciation typed under **Save to my dictionary**, are held this way, and so is a note being written in the Mark dialog.
 
-Switching project reopens the Booth, Editing and the [Companion](booth.md#companion-mode) on the new project's own remembered
-chapter. When none is remembered, the Booth and the Companion open on the chapter the DAW is on, else on the first chapter of the text,
-and the Companion takes the chapter of a running reading session first. Editing opens on its first chapter. Proof and Pickups open on All chapters, and
+Switching project reopens the Booth, Editing and the [Companion](booth.md#companion-mode) on the new project. The Companion takes the
+chapter of a running reading session first. Otherwise the Booth and the Companion reopen on the project's remembered chapter, else on
+the chapter the DAW is on, else on the chapter you last read, else on the first chapter with text. Editing reopens on its remembered
+chapter, else its first chapter with text. Proof and Pickups open on All chapters, and
 Master & QC opens with no chapter picked.
 
 On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.

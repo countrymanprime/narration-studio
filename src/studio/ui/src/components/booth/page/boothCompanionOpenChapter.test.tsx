@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // #4087, one rule: the Booth and the Companion open on the same chapter when none is asked. The order lives once (running session, `keptChapterIn`, the DAW's
-// chapter through `useFollowDawOnOpen`, then `firstTextChapter`), so a DAW that names no chapter, whatever the reader state says, gives both the same one.
+// chapter through `useFollowDawOnOpen`, then `lastReadOrFirstTextChapter`), so a DAW that names no chapter, gives both the same one, the last-read chapter if the list has it.
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -70,8 +70,17 @@ async function companionOpensOn(overrides: Partial<NarrationApi>): Promise<strin
 }
 
 describe('the Booth and the Companion open on the same chapter (#4087)', () => {
-  it.each(CASES)('%s, nothing remembered, the reader state on chapter two: both open the first chapter', async (_name, dawPlace) => {
+  it.each(CASES)('%s, nothing remembered, the reader state on chapter two: both open the chapter last read', async (_name, dawPlace) => {
     const overrides = { dawPlace, readerState: READER_ON_TWO };
+    const booth = await boothOpensOn(overrides);
+    cleanup();
+    const companion = await companionOpensOn(overrides);
+    expect(booth).toBe('c2');
+    expect(companion).toBe(booth);
+  });
+
+  it.each(CASES)('%s, nothing remembered, the last-read chapter not in the list: both open the first chapter with text', async (_name, dawPlace) => {
+    const overrides = { dawPlace, readerState: async () => ({ ...(await pageApi().readerState()), activeChapter: 'Chapter Nine' }) };
     const booth = await boothOpensOn(overrides);
     cleanup();
     const companion = await companionOpensOn(overrides);
