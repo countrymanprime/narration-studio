@@ -1,8 +1,10 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
+import { useRef } from 'react';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { IconButton } from './IconButton';
 import { TooltipTarget } from './Tooltip';
+import { menuFinalFocus } from './focusReturn';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 // The value that stands for "All chapters" in `value` and in `onChange`, where the page allows it.
@@ -35,6 +37,7 @@ export function ChapterStepper({
   onChange: (id: string) => void;
   onStep: (direction: -1 | 1) => void;
 }) {
+  const popup = useRef<HTMLDivElement>(null);
   const isAll = value === ALL_CHAPTERS;
   const index = chapters.findIndex((chapter) => chapter.id === value);
   const label = isAll ? 'All chapters' : (chapters[index]?.name ?? '');
@@ -98,6 +101,8 @@ export function ChapterStepper({
         <BaseMenu.Portal>
           <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
             <BaseMenu.Popup
+              ref={popup}
+              finalFocus={() => menuFinalFocus(popup.current)}
               className={`max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
             >
               <BaseMenu.RadioGroup value={value} onValueChange={(next) => onChange(String(next))}>
