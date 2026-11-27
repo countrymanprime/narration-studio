@@ -60,7 +60,7 @@ The six figures are one card; each opens the page it counts. Every amount of tim
   the book's finished length estimated from its words. It is the same count as the stage bar's
   segments above **Not recorded yet**, and the finished length is the one every figure on the page is out of.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
-  words still to do. Under each is the multiple of the book's finished length that stage is estimated at (**est. 3.0× the book**), so the strip names one length, the book's. The info icon on **Recording** opens the target pace: the standard rate or
+  words still to do. Under **Recording** is its multiple of the finished audio not yet recorded (**est. 3.0× not recorded**: a chapter recorded half-way counts for its other half, as the stage bar's **Not recorded yet** does); under **Editing + proof** is the multiple of the whole book (**est. 3.04× the book**), so the strip names one length, the book's. The info icon on **Recording** opens the target pace: the standard rate or
   your own, once enough chapters are measured. The basis you choose there sets the hours on this page and on
   [Schedule](schedule.md).
 - **Open pickups**: the open lines of the [Pickups](pickups.md) list, and the booth time to redo

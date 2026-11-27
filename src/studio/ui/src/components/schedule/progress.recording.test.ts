@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChapterStatus, RecordedThrough } from '../../api/contracts/manuscript';
 import { bookFigures } from '../production/overview/overviewFigures';
 import type { ProductionChapter } from '../production/composeOverview';
+import { recordedPercent } from '../../recordedThrough';
 import { PACE, RATIO, WPH } from './estimates';
 import { parseIso } from './dates';
 import { calc, milestoneStatus, remainFor, scheduleChapters, type ScheduleChapter } from './progress';
@@ -70,6 +71,31 @@ describe('Recording left follows what is recorded', () => {
     expect(recLeft(book)).toBeCloseTo(((words.total - words.recorded) / WPH) * RATIO.rec);
   });
 
+  it('counts a chapter mastered with its checks passing as recorded, as Production does, whatever its stage says', () => {
+    const rows = [
+      { id: 'a', contentKind: 'narration', status: 'recording', wordCount: WPH, recordedSeconds: null },
+      { id: 'b', contentKind: 'narration', status: 'not_started', wordCount: WPH, recordedSeconds: null },
+      { id: 'c', contentKind: 'narration', status: 'recording', wordCount: WPH, recordedSeconds: null },
+    ] as unknown as ProductionChapter[];
+    const master = { a: { mastered: true, qc: 'PASS' }, b: { mastered: true, qc: 'FAIL' }, c: { mastered: false, qc: null } };
+    const { words } = bookFigures(rows, WPH, master);
+    const k = calc(scheduleChapters(rows, master), TODAY, DUE, 0, WPH);
+    expect(words.total - words.recorded).toBe(2 * WPH);
+    expect(k.recLeft).toBeCloseTo(((words.total - words.recorded) / WPH) * RATIO.rec);
+    expect(calc(scheduleChapters(rows), TODAY, DUE).recLeft).toBeCloseTo(3 * RATIO.rec);
+  });
+
+  it('keeps recording left for a chapter the Booth prints below 100%', () => {
+    // A host 0% with a long track prints 1%.
+    const longTrack: ScheduleChapter = { words: WPH, status: 'recording', kind: 'narration', recordedSeconds: 7200, recordedThrough: through(0) };
+    expect(recordedPercent({ recordedThrough: longTrack.recordedThrough, recordedSeconds: 7200, wordCount: WPH }, WPH)).toBe(1);
+    expect(recLeft([longTrack])).toBeCloseTo(0.99 * RATIO.rec);
+    // No host value and a track that reached the estimate prints 99%: only the host says done.
+    const reached: ScheduleChapter = { words: WPH, status: 'recording', kind: 'narration', recordedSeconds: 3600 };
+    expect(recordedPercent({ recordedSeconds: 3600, wordCount: WPH }, WPH)).toBe(99);
+    expect(recLeft([reached])).toBeCloseTo(0.01 * RATIO.rec);
+  });
+
   it('reaches the chapter list through scheduleChapters', () => {
     const [c] = scheduleChapters([{ status: 'recording', wordCount: WPH, contentKind: 'narration', recordedSeconds: 5, recordedThrough: through(40) }]);
     expect(c.recordedSeconds).toBe(5);
@@ -88,6 +114,22 @@ describe('milestone estimates follow the pipeline order', () => {
     [chapter('finalized'), chapter('editing', WPH * 2), chapter('recording', WPH * 0.1, 100, true)],
     ...stages.map((s) => [chapter(s), chapter(s, WPH * 7, 30)]),
   ];
+
+  it('keeps First N milestones within the whole book and ch(N) within ch(N+1)', () => {
+    const numbered = (status: ChapterStatus, words = WPH, percent?: number) => chapter(status, words, percent);
+    for (const book of [
+      [numbered('not_started'), numbered('recording', WPH, 60), numbered('editing')],
+      [numbered('proofing'), numbered('not_started', WPH * 3)],
+    ]) {
+      const all = remainFor(book, 'all');
+      for (const m of ['ch1', 'ch2', 'ch3', 'min15', 'min60', 'checkpoint']) expect(remainFor(book, m)).toBeLessThanOrEqual(all + 1e-9);
+      expect(remainFor(book, 'ch1')).toBeLessThanOrEqual(remainFor(book, 'ch2') + 1e-9);
+      expect(remainFor(book, 'ch2')).toBeLessThanOrEqual(remainFor(book, 'ch3') + 1e-9);
+      expect(remainFor(book, 'min15')).toBeLessThanOrEqual(remainFor(book, 'min60') + 1e-9);
+      // The work of the first chapter is no less than recording alone: a chapter is edited after it is recorded.
+      expect(remainFor(book, 'ch1')).toBeGreaterThanOrEqual(remainFor(book.slice(0, 1), 'rec') - 1e-9);
+    }
+  });
 
   it('never lets an earlier milestone come later than a later one, in hours or in days', () => {
     for (const book of books) {

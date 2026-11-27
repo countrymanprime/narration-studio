@@ -4,7 +4,7 @@ import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../composeOverview';
 import type { Measured } from '../../../api/schemas/base';
 import { isNarrationChapter } from '../../../chapterKinds';
-import { recordedShare } from '../../../recordedThrough';
+import { chapterRecordedShare } from '../../../recordedThrough';
 import { fmtD, hm } from '../../schedule/dates';
 import { RATIO } from '../../schedule/estimates';
 import { statusTone } from '../../../kinds/statusTone';
@@ -116,8 +116,8 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       label: 'Recording',
       value: hm(k.recLeft),
       unit: 'left',
-      hint: `est. ${RATIO.rec.toFixed(1)}× the book`,
-      tip: `Hours of work, estimated ${RATIO.rec.toFixed(1)}× the book’s ${hm(finished)} of finished audio`,
+      hint: `est. ${RATIO.rec.toFixed(1)}× not recorded`,
+      tip: `Hours of work, estimated ${RATIO.rec.toFixed(1)}× the ${hm(Math.max(0, finished - book.recordedHours))} of the book’s finished audio not yet recorded`,
       tone: 'neutral',
     },
     {
@@ -198,12 +198,11 @@ export function bookFigures(
   for (const c of chapters) {
     if (!isNarrationChapter(c)) continue;
     const done = DONE_SHARE[c.status];
-    const measured = recordedShare(c, wph) ?? 0;
     const review = master?.[c.id];
     const delivered = review?.mastered && review.qc === 'PASS' ? 1 : 0;
     const proofed = Math.max(delivered, done.proof);
     const edited = Math.max(proofed, done.edit);
-    const recorded = Math.max(edited, done.rec, measured);
+    const recorded = Math.max(edited, chapterRecordedShare(c, wph, delivered === 1));
     words.total += c.wordCount;
     words.delivered += c.wordCount * delivered;
     words.proofed += c.wordCount * proofed;

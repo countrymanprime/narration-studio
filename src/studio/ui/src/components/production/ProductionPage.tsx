@@ -344,7 +344,7 @@ export function ProductionPage({
   }
 
   const due = plan?.deadline ? parseIso(plan.deadline) : null;
-  const k = calc(scheduleChapters(narrated), today, due, openPickups, wph);
+  const k = calc(scheduleChapters(narrated, pipelineSources.master), today, due, openPickups, wph);
   const start = planStart(today);
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
   // One book for the figures strip, the stage bar and the week: its finished length and how much of it is recorded (#2634).

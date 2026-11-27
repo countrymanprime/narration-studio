@@ -1,5 +1,6 @@
-import type { RecordedThrough } from './api/contracts/manuscript';
+import type { ChapterStatus, RecordedThrough } from './api/contracts/manuscript';
 import type { Measured } from './api/schemas/base';
+import { reached } from './chapterStatus';
 import { clamp } from './clamp';
 
 const wordsOf = (text: string): string[] => text.match(/\S+/g) ?? [];
@@ -103,6 +104,22 @@ export function recordedShare(chapter: { recordedThrough?: RecordedThrough; reco
     return throughPercent({ through, audio: hasAudio(chapter.recordedSeconds) }) / 100;
   if (through) return measured ?? 0.01;
   return measured;
+}
+
+/**
+ * How much of a chapter counts as recorded for the book's figures, 0 to 1, never above the percent every page prints for it: all of it once the delivery review has mastered it with its checks passing (`delivered`) or its stage
+ * is Editing or later, else `recordedShare`, else none. The one rule behind Production's "Not recorded yet" and the Schedule's Recording left.
+ */
+export function chapterRecordedShare(
+  chapter: { status: ChapterStatus; recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number },
+  wph: number,
+  delivered = false,
+): number {
+  if (delivered || reached(chapter.status, 'editing')) return 1;
+  const share = recordedShare(chapter, wph) ?? 0;
+  // Never more than the percent the Booth prints (`recordedPercent`: only the host says complete, so a length that has reached the estimate is 99%, and a host 0 with audio is 1%).
+  const printed = recordedPercent(chapter, wph);
+  return printed === null ? share : Math.min(share, printed / 100);
 }
 
 /**

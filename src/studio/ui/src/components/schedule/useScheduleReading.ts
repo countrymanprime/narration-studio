@@ -7,6 +7,7 @@ import { usePort } from '../../ports/usePort';
 import { useChapters, useReadChapters } from '../../studio/useChapters';
 import { isNarrationChapter } from '../../chapterKinds';
 import { recordedAudioHours } from '../../recordedThrough';
+import { masterByChapter } from '../production/usePipelineSources';
 import { scheduleChapters, type ScheduleChapter } from './progress';
 
 /** The host answers nothing by itself when a book changes on disk or in the DAW, so the page asks again this often while it is open. */
@@ -20,6 +21,8 @@ type Reading = {
   profileId: string | undefined;
   /** Finished hours recorded so far, summed over the narrated chapters whose length was measured. */
   recordedHours: number;
+  /** The chapters the delivery review has mastered, as Production reads them: a chapter delivered with its checks passing is recorded whatever its stage says. Absent while the measurement cannot be read. */
+  master: ReturnType<typeof masterByChapter> | undefined;
   /** The take log, or why it could not be read: the chart's recorded line is drawn from it. */
   takeLog: Measured<TakeLogEntry[]>;
   /** When this reading was taken (ms since the epoch). */
@@ -54,6 +57,7 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
   const production = usePort('production');
   const deliveryProfiles = usePort('deliveryProfiles');
   const measurements = usePort('measurements');
+  const measure = usePort('measure');
   // The chapters (their set, names, kinds, words, stages and recorded length) are the shared list every page reads, not a copy from the overview.
   const readChapters = useReadChapters();
   const [state, setState] = useState<Phase>({ phase: 'loading' });
@@ -70,24 +74,28 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
       const writesAtStart = writes.current;
       lastAttempt.current = Date.now();
       try {
-        const [nextPlan, chapters, profiles, log] = await Promise.all([
+        const [nextPlan, chapters, profiles, log, job] = await Promise.all([
           production.productionPlan(),
           readChapters(fresh),
           // The profile only decides which measures are offered; if it cannot be read the neutral profile applies.
           Promise.allSettled([deliveryProfiles.deliveryProfiles()]),
           // The take log only draws the chart's recorded line; a refused read leaves the line out with its reason.
           measurements.takeLog().catch((error: unknown): Measured<TakeLogEntry[]> => ({ ok: false, reason: apiErrorMessage(error) })),
+          // The mastering measurement only says which chapters are delivered; one that cannot be read leaves them as their stage says.
+          measure.measureState().catch(() => undefined),
         ]);
         // A save answered while this read was under way: its plan is newer than what this read saw, so this read gives way.
         if (!live.current || writes.current !== writesAtStart) return;
         const read = profiles[0];
         plan.current = nextPlan;
         setRefreshFailure(null);
+        const master = job?.files.length ? masterByChapter(chapters, job.files) : undefined;
         setClock(Date.now());
         setState({
           phase: 'ready',
           plan: nextPlan,
-          chapters: scheduleChapters(chapters),
+          chapters: scheduleChapters(chapters, master),
+          master,
           profileId: platformIdOf(read.status === 'fulfilled' ? read.value.projectProfile : undefined),
           recordedHours: recordedAudioHours(chapters.filter(isNarrationChapter)),
           takeLog: log,
@@ -101,7 +109,7 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
         else setState({ phase: 'error', message: `The schedule could not be read: ${message}` });
       }
     },
-    [production, deliveryProfiles, measurements, readChapters],
+    [production, deliveryProfiles, measurements, measure, readChapters],
   );
   // Retry from the first read's error swaps the error for the skeleton while it reads again, as on every other page (the error comes back if it fails again).
   const reload = useCallback(() => {
@@ -151,7 +159,7 @@ export function useScheduleReading(fixedToday: Date | undefined, journal: { subs
   const view = useMemo<Phase>(
     () =>
       state.phase === 'ready' && shared
-        ? { ...state, chapters: scheduleChapters(shared), recordedHours: recordedAudioHours(shared.filter(isNarrationChapter)) }
+        ? { ...state, chapters: scheduleChapters(shared, state.master), recordedHours: recordedAudioHours(shared.filter(isNarrationChapter)) }
         : state,
     [state, shared],
   );
