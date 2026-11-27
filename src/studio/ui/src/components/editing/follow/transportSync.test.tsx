@@ -629,6 +629,19 @@ describe('script-transport-races (#4127)', () => {
     await wait(10);
     expect(calls('stop')).toHaveLength(stops);
   });
+  it('a play the DAW has not answered, which the page stopped, does not hide a Play the narrator presses in REAPER', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    daw.streamChangesOnly(true);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    // The play stays unanswered; the narrator then presses Play in REAPER, well after the page's stop.
+    await wait(11_000);
+    act(() => daw.moveInDaw({ playing: true, head: at(t0('p-2:3')) }));
+    await wait(300);
+    expect(state().playT).not.toBeNull();
+    await bridge.release();
+  });
   it('a play started in the DAW is ignored for 2 s after the page stopped a late answer, then followed', async () => {
     const bridge = heldBridge();
     await wait(10);

@@ -25,6 +25,8 @@ const WRITE_DEBOUNCE_MS = 80;
 const STALE_PLAY_MS = 2000;
 /** How long after a play is answered ok a Stop heard while it was asked stands as the narrator's, when no "playing" reading follows (REAPER sends one every 0.25 s while it plays). */
 const STOP_HEARD_WINDOW_MS = 600;
+/** How long an ask the page gave up on may still be answered: its "playing" readings are not a play the narrator started. After this a Play pressed in the DAW is followed. */
+const ABANDONED_ASK_MS = 10_000;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
 /** A play asked before the watch lease was answered that no position ever followed: the page could not follow it, so it stopped it. */
@@ -119,6 +121,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const staleUntil = useRef(0);
   /** A "stopped" reading was heard while a play of the page was being asked, and no "playing" reading has come since: the page's own earlier stop, or the narrator's. */
   const stopHeard = useRef(false);
+  /** When the page last gave up or stopped a play: an ask still unanswered after that is the page's own old play, for `ABANDONED_ASK_MS`. */
+  const abandonedAt = useRef(0);
 
   // The lease: taken now and renewed while the window is visible. A refusal (another project open, a recording, the capability off) is not ready.
   useEffect(() => {
@@ -153,6 +157,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       range.current = null;
       epoch.current += 1;
+      // The DAW went quiet: its answer to a play asked may still come, however late.
+      abandonedAt.current = Number.POSITIVE_INFINITY;
       l.onLost(LOST);
     } else if (mine.current != null && l.state.playT === mine.current) {
       mine.current = null;
@@ -221,7 +227,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       if (playing) {
         if (owns.current) stopHeard.current = false;
         // A play the page gave up is still being asked, or was answered a moment ago: the DAW's play is that one, which the page stops.
-        if (!owns.current && (asking.current > 0 || Date.now() < staleUntil.current)) return;
+        if (!owns.current && ((asking.current > 0 && Date.now() - abandonedAt.current < ABANDONED_ASK_MS) || Date.now() < staleUntil.current)) return;
         const started = !dawPlaying.current;
         dawPlaying.current = true;
         heard = { at: Date.now(), position: pos.playPosition };
@@ -323,6 +329,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       dawPlaying.current = false;
       epoch.current += 1;
+      abandonedAt.current = Number.POSITIVE_INFINITY;
       // The page gave the play up: it owns nothing in the DAW, and a stale answer parked behind it is stopped.
       dawPlayOwner.release();
       live.current.onLost(leased ? LOST : UNFOLLOWED);
@@ -412,6 +419,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     },
     stop: () => {
       epoch.current += 1;
+      abandonedAt.current = Date.now();
       stopHeard.current = false;
       range.current = null;
       const was = owns.current || dawPlaying.current;
