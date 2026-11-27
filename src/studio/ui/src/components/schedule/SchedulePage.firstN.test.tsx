@@ -533,6 +533,8 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     const d = await open('', '2026-10-10', '5');
     add(d);
     await slotText();
+    // The reason can be drawn before the refusal's passive effects (the scroll, the resize listener) have run; act flushes them.
+    await act(async () => {});
     const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
     expect(body.scrollTop).toBe(0);
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
@@ -580,20 +582,21 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     check();
   });
 
-  /** Lays out the body as `view`, and each box by its aria-label or role as [top, bottom]; anything else is [0, 0]. */
-  const rects = (view: [number, number], by: (el: Element) => [number, number] | undefined) =>
+  /**
+   * Lays out each box by its aria-label or role as [top, bottom]; anything else is [0, 0]. A box inside the dialog's body moves up by the body's `scrollTop`, as in a real layout, so
+   * a scroll that is repeated finds the box already in view and does nothing.
+   */
+  const rects = (by: (el: Element) => [number, number] | undefined) =>
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
-      const [top, bottom] = by(this) ?? [0, 0];
+      const body = this.closest('form')?.firstElementChild;
+      const shift = body && body !== this && body.contains(this) ? body.scrollTop : 0;
+      const [top, bottom] = (by(this) ?? [0, 0]).map((y) => y - shift);
       return { top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}) };
     });
 
-  it('R23: when the shown field changes without a save, it and its reason are scrolled to', async () => {
-    await mountSchedule({ statuses: book(12) });
-    const d = await open('', '2026-10-10', '99');
-    add(d);
-    await slotText();
-    const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
-    rects([0, 120], (el) =>
+  /** The box the narrator types in is the Name (the refusal focused it), the shown field is N, and N with its reason fits the body only after a scroll of 10. */
+  const layoutR23 = (body: HTMLElement) =>
+    rects((el) =>
       el === body
         ? [0, 120]
         : el.getAttribute('role') === 'alert'
@@ -604,9 +607,24 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
               ? [20, 56]
               : undefined,
     );
-    expect(body.scrollTop).toBe(0);
+
+  // The refusal's own scroll (focus the Name, scroll to it) runs in a passive effect that may land before or after the layout is stubbed; the result must not depend on which.
+  it.each([
+    ['after', false],
+    ['before', true],
+  ])('R23: when the shown field changes without a save, it and its reason are scrolled to (layout set %s the refusal)', async (_when, early) => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '99');
+    const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
+    if (early) layoutR23(body);
+    add(d);
+    await slotText();
+    await act(async () => {});
+    if (!early) layoutR23(body);
     fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Typed' } });
     await waitFor(() => expect(body.scrollTop).toBe(10));
+    await act(async () => {});
+    expect(body.scrollTop).toBe(10);
   });
 
   it('R24: a window resize never moves the box being typed in out of view', async () => {
@@ -616,10 +634,12 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     const d = await open('Named', '2026-10-10', '99');
     add(d);
     await reasonOf(d);
+    // The refusal's passive effects focus the Name box and attach the resize listener; once they have run the Note can be focused for good.
+    await act(async () => {});
     const note = d.getByLabelText('Note');
     note.focus();
     const body = note.closest('form')!.firstElementChild as HTMLElement;
-    rects([66, 152], (el) =>
+    rects((el) =>
       el === body
         ? [66, 152]
         : el === note
