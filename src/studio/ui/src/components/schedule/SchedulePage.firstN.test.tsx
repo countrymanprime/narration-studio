@@ -506,4 +506,76 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBe('true');
     expect((await reasonOf(d)).textContent).toBe(RANGE_12);
   });
+
+  it('only the field the alert speaks for is marked, and each is described by its own reason', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('Named', '2026-10-10', '99');
+    add(d);
+    expect((await reasonOf(d)).textContent).toBe(RANGE_12);
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: '' } });
+    add(d);
+    await waitFor(() => expect(d.getByRole('alert').textContent).toBe('Give the milestone a name.'));
+    const name = d.getByLabelText('Name');
+    const n = d.getByLabelText('How many chapters');
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(name.getAttribute('aria-describedby')).toBe('milestone-problem');
+    expect(n.getAttribute('aria-invalid')).toBeNull();
+    expect(n.getAttribute('aria-describedby')).toBeNull();
+    fireEvent.change(name, { target: { value: 'Named again' } });
+    expect(name.getAttribute('aria-invalid')).toBeNull();
+    expect(n.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(n.getAttribute('aria-describedby') ?? '')?.textContent).toBe(RANGE_12);
+  });
+
+  it('R20: a window resize while a reason shows scrolls to the field and its reason again', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '5');
+    add(d);
+    await d.findByRole('alert');
+    const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
+    expect(body.scrollTop).toBe(0);
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const [top, bottom] = this === body ? [0, 120] : this.getAttribute('role') === 'alert' ? [100, 130] : [10, 46];
+      return { top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}) };
+    });
+    fireEvent(window, new Event('resize'));
+    expect(body.scrollTop).toBe(10);
+  });
+
+  it('R19: N is shown again as soon as the field refused after it is valid', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('Named', '2026-10-10', '99');
+    add(d);
+    await reasonOf(d);
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: '' } });
+    add(d);
+    await waitFor(() => expect(d.getByLabelText('Name').getAttribute('aria-invalid')).toBe('true'));
+    expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBeNull();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Back' } });
+    expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('R18: every marked field is described by its own reason, in every state', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '', '99');
+    const check = () => {
+      const marked = Array.from(document.querySelectorAll('[aria-invalid="true"]'));
+      for (const el of marked) {
+        const text = document.getElementById(el.getAttribute('aria-describedby') ?? '')?.textContent;
+        const own = el.id === 'milestone-due' ? /date|YYYY/ : /^How many/.test(el.getAttribute('aria-label') ?? '') ? /book has/ : /name/i;
+        expect(text, `${el.getAttribute('aria-label') ?? el.id}`).toMatch(own);
+      }
+      expect(marked.length).toBeLessThanOrEqual(1);
+    };
+    add(d);
+    await d.findByRole('alert');
+    check();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Ok' } });
+    check();
+    fireEvent.change(document.getElementById('milestone-due') as HTMLInputElement, { target: { value: '2026-10-10' } });
+    check();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: '' } });
+    add(d);
+    check();
+  });
 });

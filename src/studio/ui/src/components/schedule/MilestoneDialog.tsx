@@ -51,7 +51,7 @@ function showTogether(body: HTMLElement, field: HTMLElement, alert: HTMLElement)
 export function MilestoneDialog({ existing, profileId, reportedCapabilities, bounds, focusNote, onSave, onCancel }: MilestoneDialogProps) {
   const [draft, setDraft] = useState<MilestoneDraft>(() => (existing ? draftOf(existing) : blankDraft()));
   const [refused, setRefused] = useState<{ text: string; field?: RefusedField }>();
-  /** The fields a save was refused about: they stay marked for as long as they are wrong, whatever else is fixed or broken meanwhile. */
+  /** The fields a save was refused about, the newest last: the newest one that is still wrong is the one the alert speaks for. */
   const [flagged, setFlagged] = useState<readonly RefusedField[]>([]);
   const live = useSyncExternalStore(bounds.subscribe, bounds.get);
   const form = useRef<HTMLFormElement>(null);
@@ -71,37 +71,52 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     const start = measure === 'chN' ? chaptersOf(undefined) : minutesOf(undefined);
     return { [field]: String(clamp(start, 1, bounds.get()[field])) };
   };
-  // Each field is judged on its own. Once a save has been refused, the fields it was refused about stay marked while they are wrong (their reason in the newest words), and when
-  // none of them is, the first field still wrong is marked, so a field that is still wrong is never dropped; the others wait for a save to be refused about them.
+  // Each field is judged on its own. Once a save has been refused, the one alert says why about ONE field, and only that field is marked and described by it: the field the newest
+  // refusal was about while it is wrong, else the one refused before it that is still wrong, else the first field still wrong. So a wrong field is never lost, only one is flagged
+  // at a time, and what a field is described by is always its own reason.
   const problems = fieldRefusals(draft, existing, live);
   const wrong = FIELD_ORDER.filter((field) => problems[field]);
-  const stillFlagged = wrong.filter((field) => flagged.includes(field));
-  const shown: readonly RefusedField[] = !refused ? [] : stillFlagged.length > 0 ? stillFlagged : wrong.slice(0, 1);
+  const stillFlagged = flagged.filter((field) => wrong.includes(field));
+  const shown: readonly RefusedField[] = !refused ? [] : stillFlagged.length > 0 ? [stillFlagged[stillFlagged.length - 1]] : wrong.slice(0, 1);
   const alertText = shown.length > 0 ? problems[shown[0]] : refused && !refused.field ? refused.text : undefined;
   /** What a field the refusal is about is given: marked invalid and described by the alert. */
   const about = (field: RefusedField) => ({ invalid: shown.includes(field), describedBy: shown.includes(field) ? 'milestone-problem' : undefined });
-  // A refusal is brought into view. Focus goes to the field it is about; the field and the alert are both scrolled into view when they fit together in the body, and when they
-  // do not (a tiny window) the field stays in view and the alert is reachable below it. A refusal about no field (the list changed) scrolls the alert into view.
-  useEffect(() => {
-    if (!refusals || !form.current) return;
-    const field = refused?.field;
-    const target =
-      field === 'name'
-        ? form.current.querySelector<HTMLElement>('input')
-        : field === 'date'
-          ? form.current.querySelector<HTMLElement>('#milestone-due')
-          : field === 'n'
-            ? form.current.querySelector<HTMLElement>('input[aria-label^="How many"]')
-            : null;
-    target?.focus({ preventScroll: true });
-    const alert = form.current.querySelector<HTMLElement>('[role="alert"]');
-    const body = form.current.firstElementChild as HTMLElement | null;
+  /** The box a refusal about `field` is read in. */
+  const boxOf = (field: RefusedField | undefined): HTMLElement | null => {
+    if (!form.current) return null;
+    if (field === 'name') return form.current.querySelector<HTMLElement>('input');
+    if (field === 'date') return form.current.querySelector<HTMLElement>('#milestone-due');
+    if (field === 'n') return form.current.querySelector<HTMLElement>('input[aria-label^="How many"]');
+    return null;
+  };
+  /** Scrolls the dialog's body so the field and the alert are both in view when they fit together, and otherwise the field; with no field, the alert. */
+  const scrollToReason = (field: RefusedField | undefined) => {
+    const alert = form.current?.querySelector<HTMLElement>('[role="alert"]');
+    const body = form.current?.firstElementChild as HTMLElement | null | undefined;
+    const target = boxOf(field);
     if (!alert) return;
     if (target && body) showTogether(body, target, alert);
     else alert.scrollIntoView?.({ block: 'nearest' });
+  };
+  // A refusal is brought into view: focus goes to the field it is about, then the field and its reason are scrolled to (see `showTogether`). A refusal about no field (the list changed)
+  // scrolls the alert into view.
+  useEffect(() => {
+    if (!refusals) return;
+    boxOf(refused?.field)?.focus({ preventScroll: true });
+    scrollToReason(refused?.field);
     // Once per refusal: editing the draft afterwards must not pull focus back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refusals]);
+  // While a reason is showing, a window resize scrolls to it again: the body's height changed under it.
+  const speaking = shown[0] ?? refused?.field;
+  const showing = alertText !== undefined;
+  useEffect(() => {
+    if (!showing) return;
+    const again = () => scrollToReason(speaking);
+    window.addEventListener('resize', again);
+    return () => window.removeEventListener('resize', again);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showing, speaking]);
   /** What a "first N" box is given: the number while the text is one, and the text itself while it is not, so a wrong N stays as typed until it is saved or fixed. */
   const nField = (field: 'chapters' | 'minutes') => {
     const text = draft[field];
@@ -127,7 +142,7 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     const made = milestoneFromDraft(draft, existing, bounds.get());
     const field = 'refusal' in made && made.refusal === text ? made.field : undefined;
     setRefused(text ? { text, ...(field ? { field } : {}) } : undefined);
-    if (text && field) setFlagged((now) => (now.includes(field) ? now : [...now, field]));
+    if (text && field) setFlagged((now) => [...now.filter((f) => f !== field), field]);
     if (text) setRefusals((n) => n + 1);
     inFlight.current = false;
     setSaving(false);
