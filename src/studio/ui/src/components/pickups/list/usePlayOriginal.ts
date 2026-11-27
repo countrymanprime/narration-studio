@@ -168,7 +168,7 @@ export function usePlayOriginal(onRefused: (sentence: string, retry?: () => void
                 dawPlayOwner.stopOrOrphan(token, stopDaw);
                 return { played: true };
               }
-              dawPlayOwner.settle(token);
+              dawPlayOwner.settle(token, stopDaw);
               setPlayingId(p.id);
               setInDaw(true);
               timer.current = window.setTimeout(
