@@ -1076,7 +1076,10 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     const origin = document.createElement('button');
     document.body.append(origin);
     pressUndoHoldingEnter(origin);
-    fireEvent.keyDown(document.body, second);
+    // The second key's own keydown is the page's: only its repeats are cancelled.
+    const down = createEvent.keyDown(document.body, second);
+    fireEvent(document.body, down);
+    expect(down.defaultPrevented).toBe(false);
     // Enter comes up first: focus is not handed to the control while the second key could still press it.
     fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
     act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
@@ -1085,6 +1088,87 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     fireEvent.keyUp(document.body, second);
     act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     expect(document.activeElement).toBe(origin);
+  });
+
+  it('a Space whose keyup was lost, pressed again while the hand-back waits for an Enter, is waited for too', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    // Space went down on the toast's button and its keyup was lost (the window lost focus): it stays held, with nothing waiting for it.
+    fireEvent.keyDown(undo, { key: ' ', code: 'Space' });
+    fireEvent.blur(window);
+    // Enter then presses the Undo; a hand-back waits for it. Space is pressed again and held, on <body>.
+    origin.focus();
+    fireEvent.focus(undo, { relatedTarget: origin });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(undo, { detail: 0 });
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).not.toBe(origin);
+    expect(repeatReaches(document.body, ' ', 'Space')).toBe(false);
+    fireEvent.keyUp(document.body, { key: ' ', code: 'Space' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+  });
+
+  it('a second activating key pressed again while the hand-back waits for it is still waited for, not let go as a lost keyup', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    pressUndoHoldingEnter(origin);
+    fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    // Enter is up and only Space is waited for; a fresh Space press (its own keyup was lost) must not run the hand-back under it.
+    fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+    expect(repeatReaches(document.body, ' ', 'Space')).toBe(false);
+    fireEvent.keyUp(document.body, { key: ' ', code: 'Space' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+  });
+
+  it('every hand-back that waits for the held Enter waits for a second key too: two toasts pressed in turn under one Enter', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const first = screen.getByRole('button', { name: 'Undo' });
+    origin.focus();
+    fireEvent.focus(first, { relatedTarget: origin });
+    first.focus();
+    fireEvent.keyDown(first, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(first, { detail: 0 });
+    view.rerender(<ToastRegion messages={[withUndo(2)]} dismiss={vi.fn()} />);
+    const second = screen.getByRole('button', { name: 'Undo' });
+    fireEvent.focus(second, { relatedTarget: origin });
+    second.focus();
+    fireEvent.click(second, { detail: 0 });
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).not.toBe(origin);
+    fireEvent.keyUp(document.body, { key: ' ', code: 'Space' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+  });
+
+  it('with no hand-back waiting, an Enter pressed elsewhere while another key is held keeps its own repeats (a held Enter in a field)', () => {
+    const area = document.createElement('textarea');
+    document.body.append(area);
+    render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    // A Shift pressed on the button and not released: it is held, nothing waits.
+    fireEvent.keyDown(undo, { key: 'Shift', code: 'ShiftLeft' });
+    const down = createEvent.keyDown(area, { key: 'Enter', code: 'Enter' });
+    fireEvent(area, down);
+    expect(down.defaultPrevented).toBe(false);
+    expect(repeatReaches(area, 'Enter')).toBe(true);
   });
 
   it('a key that is not an activating one (a letter) pressed on <body> while the hand-back waits is not waited for', () => {

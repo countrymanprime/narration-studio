@@ -117,8 +117,8 @@ class HandBacks {
       // A fresh press of a held code means its keyup was lost: it is let go, so its next repeats (an Enter held down in a field) are the field's own. Not while a hand-back waits for that code: it would
       // run under the new press, whose repeats would press what focus went to, so the wait goes on for the new press's keyup and its repeats are cancelled.
       if (own && !event.repeat) {
-        if (![...this.waiting].some((waiter) => waiter.codes.has(code))) this.keyUp(code);
-        return;
+        if ([...this.waiting].some((waiter) => waiter.codes.has(code))) return;
+        this.keyUp(code);
       }
       // An Enter or a Space that goes down anywhere while a hand-back waits (on <body>, where the press left focus) would press the control focus is handed to, by its repeats and its keyup: the hand-back
       // waits for it too, and its repeats are cancelled.
