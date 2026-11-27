@@ -26,7 +26,7 @@ describe('a milestone draft', () => {
   });
 
   it('refuses a date past the last year, so a typo is not a milestone in the year 9999', () => {
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '9999-12-31' }, undefined, BOUNDS)).toEqual({
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '9999-12-31' }, undefined, BOUNDS)).toMatchObject({
       refusal: 'Write a date no later than Dec 31, 2100.',
     });
     expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2101-01-01' }, undefined, BOUNDS)).toHaveProperty('refusal');
@@ -34,31 +34,33 @@ describe('a milestone draft', () => {
   });
 
   it('tells a year before 1000 its range instead of saying it is not a date', () => {
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '0001-01-01' }, undefined, BOUNDS)).toEqual({
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '0001-01-01' }, undefined, BOUNDS)).toMatchObject({
       refusal: '0001-01-01 is too early. Write a date from the year 1000 to 2100.',
     });
   });
 
   it('refuses a name or note over the host limit in a sentence of its own', () => {
     const long = { ...blankDraft(), name: 'A', date: '2026-10-05' };
-    expect(milestoneFromDraft({ ...long, name: 'x'.repeat(201) }, undefined, BOUNDS)).toEqual({ refusal: 'The name is 201 characters; the most is 200.' });
-    expect(milestoneFromDraft({ ...long, note: '😀'.repeat(2001) }, undefined, BOUNDS)).toEqual({
+    expect(milestoneFromDraft({ ...long, name: 'x'.repeat(201) }, undefined, BOUNDS)).toMatchObject({
+      refusal: 'The name is 201 characters; the most is 200.',
+    });
+    expect(milestoneFromDraft({ ...long, note: '😀'.repeat(2001) }, undefined, BOUNDS)).toMatchObject({
       refusal: 'The note is 2,001 characters; the most is 2,000.',
     });
     expect(milestoneFromDraft({ ...long, name: '😀'.repeat(200), note: 'y'.repeat(2000) }, undefined, BOUNDS)).toHaveProperty('milestone');
   });
 
   it('refuses an empty name or no real date, and says so', () => {
-    expect(milestoneFromDraft({ ...blankDraft(), name: '  ', date: '2026-10-05' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_NAME });
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '' }, undefined, BOUNDS)).toEqual({ refusal: MISSING_DATE });
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-02-30' }, undefined, BOUNDS)).toEqual({
+    expect(milestoneFromDraft({ ...blankDraft(), name: '  ', date: '2026-10-05' }, undefined, BOUNDS)).toMatchObject({ refusal: MISSING_NAME });
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '' }, undefined, BOUNDS)).toMatchObject({ refusal: MISSING_DATE });
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-02-30' }, undefined, BOUNDS)).toMatchObject({
       refusal: '2026-02-30 is not a real date. Write it YYYY-MM-DD.',
     });
   });
 
   it('stores every detail: name, date, measure with its N, note and done', () => {
     const draft = { name: ' Everything ', date: '2026-10-09', measure: 'chN', chapters: '4', minutes: '15', note: ' Proofer wants it ', done: true };
-    expect(milestoneFromDraft(draft, existing, BOUNDS)).toEqual({
+    expect(milestoneFromDraft(draft, existing, BOUNDS)).toMatchObject({
       milestone: { name: 'Everything', dueDate: '2026-10-09', measure: 'ch4', note: 'Proofer wants it', done: true, template: 'acx' },
     });
   });
@@ -66,19 +68,43 @@ describe('a milestone draft', () => {
   it('saves the N as typed and refuses one the book cannot have, with the reason', () => {
     const at = (patch: object) => milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', ...patch }, undefined, BOUNDS);
     expect(at({ measure: 'chN', chapters: ' 3 ' })).toMatchObject({ milestone: { measure: 'ch3' } });
-    expect(at({ measure: 'chN', chapters: '99' })).toEqual({ refusal: 'The book has 12 chapters. Write a whole number from 1 to 12.' });
+    expect(at({ measure: 'chN', chapters: '99' })).toMatchObject({ refusal: 'The book has 12 chapters. Write a whole number from 1 to 12.' });
     for (const bad of ['0', '-1', '2.5', '', 'abc'])
-      expect(at({ measure: 'chN', chapters: bad })).toEqual({ refusal: 'The book has 12 chapters. Write a whole number from 1 to 12.' });
-    expect(at({ measure: 'minN', minutes: '9999' })).toEqual({ refusal: 'The book runs 600 finished minutes. Write a whole number from 1 to 600.' });
+      expect(at({ measure: 'chN', chapters: bad })).toMatchObject({ refusal: 'The book has 12 chapters. Write a whole number from 1 to 12.' });
+    expect(at({ measure: 'minN', minutes: '9999' })).toMatchObject({ refusal: 'The book runs 600 finished minutes. Write a whole number from 1 to 600.' });
     expect(at({ measure: 'minN', minutes: '20' })).toMatchObject({ milestone: { measure: 'min20' } });
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN' }, undefined, { chapters: 0, minutes: 600 })).toEqual({
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN' }, undefined, { chapters: 0, minutes: 600 })).toMatchObject({
       refusal: 'The book has no chapters yet.',
     });
   });
 
+  it('refuses a near-whole decimal, which the host would not read as a count (R2)', () => {
+    const at = (chapters: string) => milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN', chapters }, undefined, BOUNDS);
+    for (const bad of ['3.000000001', '1.0000000001', '11.99999999999'])
+      expect(at(bad)).toMatchObject({ refusal: 'The book has 12 chapters. Write a whole number from 1 to 12.', field: 'n' });
+    expect(at('3.0')).toMatchObject({ milestone: { measure: 'ch3' } });
+  });
+
+  it("refuses an N above 9999, the most the host keeps, in the dialog's words (R3)", () => {
+    const big = { chapters: 12000, minutes: 20000 };
+    const at = (patch: object) => milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', ...patch }, undefined, big);
+    expect(at({ measure: 'chN', chapters: '10000' })).toMatchObject({ refusal: 'The book has 12,000 chapters. Write a whole number from 1 to 9,999.' });
+    expect(at({ measure: 'minN', minutes: '10000' })).toMatchObject({
+      refusal: 'The book runs 20,000 finished minutes. Write a whole number from 1 to 9,999.',
+    });
+    expect(at({ measure: 'chN', chapters: '9999' })).toMatchObject({ milestone: { measure: 'ch9999' } });
+  });
+
+  it('says which field a refusal is about', () => {
+    const at = (patch: object) => milestoneFromDraft({ ...blankDraft(), ...patch }, undefined, BOUNDS);
+    expect(at({ name: '', date: '2026-10-05' })).toMatchObject({ field: 'name' });
+    expect(at({ name: 'A', date: '' })).toMatchObject({ field: 'date' });
+    expect(at({ name: 'A', date: '2026-10-05', measure: 'chN', chapters: '99' })).toMatchObject({ field: 'n' });
+  });
+
   it('says "Write 1." when the book has one chapter', () => {
     const one = { chapters: 1, minutes: 600 };
-    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN', chapters: '2' }, undefined, one)).toEqual({
+    expect(milestoneFromDraft({ ...blankDraft(), name: 'A', date: '2026-10-05', measure: 'chN', chapters: '2' }, undefined, one)).toMatchObject({
       refusal: 'The book has 1 chapter. Write 1.',
     });
   });
@@ -87,7 +113,7 @@ describe('a milestone draft', () => {
     const old = { name: 'First 12', dueDate: '2026-10-05', measure: 'ch12' };
     const short = { chapters: 5, minutes: 600 };
     expect(milestoneFromDraft({ ...draftOf(old), note: 'a note' }, old, short)).toMatchObject({ milestone: { measure: 'ch12', note: 'a note' } });
-    expect(milestoneFromDraft({ ...draftOf(old), chapters: '11' }, old, short)).toEqual({
+    expect(milestoneFromDraft({ ...draftOf(old), chapters: '11' }, old, short)).toMatchObject({
       refusal: 'The book has 5 chapters. Write a whole number from 1 to 5.',
     });
   });

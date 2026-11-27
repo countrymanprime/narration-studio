@@ -44,6 +44,7 @@ export const INLINE_ERRORS: Record<string, number> = {
   'components/pickups/list/PickupsTable.tsx': 2,
   'components/primitives/ErrorBoundary.tsx': 1,
   'components/primitives/Field.tsx': 1,
+  'components/primitives/NumberInput.tsx': 1,
   'components/production/ChapterTrackPanel.tsx': 4,
   'components/production/CreditsRowPanel.tsx': 1,
   'components/production/ProductionPage.tsx': 1,

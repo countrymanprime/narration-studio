@@ -24,6 +24,7 @@ async function typeN(text: string | null, field: 'chN' | 'minN' = 'chN') {
   return d;
 }
 const save = (d: ReturnType<typeof dialog>) => fireEvent.click(d.getByRole('button', { name: 'Save' }));
+const save2 = (d: ReturnType<typeof dialog>) => fireEvent.click(d.getByRole('button', { name: 'Add milestone' }));
 
 describe('the First N chapters milestone', () => {
   it.each(['1', '2', '3', '4', '5', '12'])('saves the %s that was typed', async (n) => {
@@ -268,5 +269,93 @@ describe('the dialog keeps up with the book and the narrator', () => {
     await waitFor(() => expect(document.activeElement).toBe(box));
     expect(box.getAttribute('aria-invalid')).toBe('true');
     expect(box.getAttribute('aria-describedby')).toBe(alert.id);
+  });
+});
+
+describe('round 3: where a refusal is read, and what follows the book', () => {
+  const filled = async (name: string, due: string, n = '99') => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Add milestone' }));
+    const d = dialog();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: name } });
+    if (due) fireEvent.change(document.getElementById('milestone-due') as HTMLInputElement, { target: { value: due } });
+    await userEvent.selectOptions(d.getByRole('combobox', { name: 'What the milestone measures' }), 'chN');
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: n } });
+    return d;
+  };
+
+  it('R1: a name refusal with First N picked focuses the name, not the N box', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await filled('', '2026-10-10', '5');
+    save2(d);
+    await d.findByRole('alert');
+    await waitFor(() => expect(document.activeElement).toBe(d.getByLabelText('Name')));
+    expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('R1: a due-date refusal with First N picked focuses the date, not the N box', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await filled('Dated', '', '5');
+    save2(d);
+    await d.findByRole('alert');
+    await waitFor(() => expect(document.activeElement).toBe(document.getElementById('milestone-due')));
+  });
+
+  it('B6: a refused N shows its reason under the box and scrolls it into view', async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await mountSchedule({ statuses: book(12) });
+    const d = await typeN('99');
+    save(d);
+    const alert = await d.findByRole('alert');
+    expect(alert.previousElementSibling).toBe(d.getByLabelText('How many chapters'));
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
+    expect(scrolled.mock.instances.at(-1)).toBe(alert);
+  });
+
+  it('R3 and R4: ArrowUp stops at the books chapter count', async () => {
+    await mountSchedule({ statuses: book(8) });
+    const d = await typeN(null);
+    const box = d.getByLabelText('How many chapters') as HTMLInputElement;
+    await userEvent.click(box);
+    for (let i = 0; i < 12; i += 1) await userEvent.keyboard('{ArrowUp}');
+    expect(box.value).toBe('8');
+  });
+
+  it('R5: the N mark and the reason clear when the book grows past the typed N', async () => {
+    let count = 3;
+    let reads = 0;
+    await mountSchedule({
+      store: true,
+      statuses: book(8),
+      wrap: (base) => ({
+        manuscriptChapters: async () => {
+          const list = await base.manuscriptChapters();
+          reads += 1;
+          return { ...list, chapters: list.chapters.slice(0, count) };
+        },
+      }),
+    });
+    const d = await typeN('8');
+    save(d);
+    expect((await d.findByRole('alert')).textContent).toBe('The book has 3 chapters. Write a whole number from 1 to 3.');
+    count = 8;
+    const before = reads;
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000);
+    fireEvent.focus(window);
+    await waitFor(() => expect(reads).toBeGreaterThan(before));
+    await waitFor(() => expect(d.queryByRole('alert')).toBeNull());
+    expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBeNull();
+    save(d);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect((await stored()).milestones[0].measure).toBe('ch8');
+  });
+
+  it('typing a valid number clears the reason with the mark', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await typeN('99');
+    save(d);
+    await d.findByRole('alert');
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '3' } });
+    expect(d.queryByRole('alert')).toBeNull();
   });
 });

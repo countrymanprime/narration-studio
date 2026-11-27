@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
@@ -6,7 +6,8 @@ import { DateField } from '../primitives/DateField';
 import { Field, FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { NumberInput } from '../primitives/NumberInput';
-import { blankDraft, draftOf, nRefusal, type DraftBounds, type MilestoneDraft } from './draft';
+import { blankDraft, draftOf, MAX_N, milestoneFromDraft, type MilestoneDraft, type RefusedField } from './draft';
+import type { LiveBounds } from './liveBounds';
 import { clamp } from '../../clamp';
 import { chaptersOf, measOf, measureOptions, minutesOf } from './measures';
 import type { PlatformCapability } from './profiles';
@@ -18,7 +19,7 @@ export type MilestoneDialogProps = {
   profileId: string | undefined;
   reportedCapabilities?: readonly PlatformCapability[];
   /** The range of an N as the chapter list stands now, asked when the dialog needs it: the list can be read again while the dialog is open. */
-  bounds: () => DraftBounds;
+  bounds: LiveBounds;
   /** Opens with the note ready to type in, from the note button. */
   focusNote?: boolean;
   /** Saves the draft: the sentence saying why it was refused, or nothing when it was saved. */
@@ -32,14 +33,14 @@ export type MilestoneDialogProps = {
  */
 export function MilestoneDialog({ existing, profileId, reportedCapabilities, bounds, focusNote, onSave, onCancel }: MilestoneDialogProps) {
   const [draft, setDraft] = useState<MilestoneDraft>(() => (existing ? draftOf(existing) : blankDraft()));
-  const [problem, setProblem] = useState<string>();
+  const [refused, setRefused] = useState<{ text: string; field?: RefusedField }>();
+  const live = useSyncExternalStore(bounds.subscribe, bounds.get);
+  const form = useRef<HTMLFormElement>(null);
   const [saving, setSaving] = useState(false);
   /** A save is out: a second submit before it ends is dropped. A ref, as a render may not have happened between two Enters. */
   const inFlight = useRef(false);
   /** The N fields the narrator has typed in: a typed number is never replaced by the starting one, whatever it equals. */
   const typed = useRef({ chapters: false, minutes: false });
-  const nBox = useRef<HTMLInputElement>(null);
-  const alertBox = useRef<HTMLParagraphElement>(null);
   const [refusals, setRefusals] = useState(0);
   const set = (patch: Partial<MilestoneDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const options = measureOptions(profileId, existing?.measure, reportedCapabilities);
@@ -49,14 +50,22 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     const field = measure === 'chN' ? 'chapters' : 'minutes';
     if (typed.current[field] || (existing && measOf(existing.measure) === measure)) return {};
     const start = measure === 'chN' ? chaptersOf(undefined) : minutesOf(undefined);
-    return { [field]: String(clamp(start, 1, bounds()[field])) };
+    return { [field]: String(clamp(start, 1, bounds.get()[field])) };
   };
-  const nMarked = problem !== undefined && problem === nRefusal(draft, bounds());
-  // A refusal is brought into view: focus goes to the N it is about, and any other one is scrolled into the dialog's body.
+  // A refusal stands while the draft still earns it: when the book grows past a typed N, or the name is filled in, its mark and its words go.
+  const now = milestoneFromDraft(draft, existing, live);
+  const standing = refused && 'refusal' in now && now.refusal === refused.text ? refused : undefined;
+  const aboutN = standing?.field === 'n' ? standing.text : undefined;
+  // A refusal is brought into view: focus goes to the field it is about (the first box is the name), and the reason is scrolled to where it is read.
   useEffect(() => {
-    if (refusals === 0) return;
-    if (nBox.current) nBox.current.focus();
-    else alertBox.current?.scrollIntoView?.({ block: 'nearest' });
+    if (!refusals || !form.current) return;
+    const field = refused?.field;
+    if (field === 'name') form.current.querySelector<HTMLInputElement>('input')?.focus();
+    else if (field === 'date') form.current.querySelector<HTMLElement>('#milestone-due')?.focus();
+    else if (field === 'n') form.current.querySelector<HTMLInputElement>('input[aria-invalid="true"]')?.focus();
+    form.current.querySelector('[role="alert"]')?.scrollIntoView?.({ block: 'nearest' });
+    // Once per refusal: editing the draft afterwards must not pull focus back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refusals]);
   /** What a "first N" box is given: the number while the text is one, and the text itself while it is not, so a wrong N stays as typed until it is saved or fixed. */
   const nField = (field: 'chapters' | 'minutes') => {
@@ -79,15 +88,17 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     if (inFlight.current) return;
     inFlight.current = true;
     setSaving(true);
-    const refused = await onSave(draft);
-    setProblem(refused);
-    if (refused) setRefusals((n) => n + 1);
+    const text = await onSave(draft);
+    const made = milestoneFromDraft(draft, existing, bounds.get());
+    setRefused(text ? { text, ...('refusal' in made && made.refusal === text && made.field ? { field: made.field } : {}) } : undefined);
+    if (text) setRefusals((n) => n + 1);
     inFlight.current = false;
     setSaving(false);
   };
   return (
     /* The dialog's 80dvh less its header and the body's padding: the fields scroll inside it and the footer stays on screen (as Check recordings does). */
     <form
+      ref={form}
       className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3.5"
       onSubmit={(event) => {
         event.preventDefault();
@@ -113,7 +124,7 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
           <span className={FIELD_LABEL_CLASSES} id="milestone-measure-label">
             Measures
           </span>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <Select
               label="What the milestone measures"
               aria-describedby="milestone-measure-label"
@@ -124,22 +135,21 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
             />
             {(draft.measure === 'chN' || draft.measure === 'minN') && (
               <NumberInput
-                ref={nBox}
                 label={draft.measure === 'chN' ? 'How many chapters' : 'How many finished minutes'}
                 {...nField(draft.measure === 'chN' ? 'chapters' : 'minutes')}
                 min={1}
                 holdRefused
-                invalid={nMarked}
-                aria-describedby={nMarked ? 'milestone-problem' : undefined}
+                max={clamp(live[draft.measure === 'chN' ? 'chapters' : 'minutes'], 1, MAX_N)}
+                error={aboutN}
                 className="w-20!"
               />
             )}
           </div>
         </div>
         <Field label="Note" textarea value={draft.note} onChange={(note) => set({ note })} autoFocus={focusNote} />
-        {problem && (
-          <p id="milestone-problem" ref={alertBox} role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
-            {problem}
+        {refused && refused.field !== 'n' && (!refused.field || standing) && (
+          <p role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
+            {refused.text}
           </p>
         )}
       </div>
