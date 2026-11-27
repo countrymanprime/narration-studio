@@ -5,6 +5,13 @@ import { activates, HeldKeys, KEY_LIVE_MS, keyOf } from './heldKeys';
 const press = (code: string, init: KeyboardEventInit = {}) =>
   new KeyboardEvent('keydown', { code, key: code === 'Space' ? ' ' : code, bubbles: true, cancelable: true, ...init });
 
+/** Whether a repeat (or the other event `init` makes) of `code` is cancelled. */
+function cancelled(keys: HeldKeys, code: string, init: KeyboardEventInit = { repeat: true }): boolean {
+  const event = press(code, init);
+  keys.swallowRepeat(event);
+  return event.defaultPrevented;
+}
+
 function make(onBlur: 'keep' | 'forget' = 'keep') {
   const onUp = vi.fn<(code: string) => void>();
   return { keys: new HeldKeys({ onBlur, onUp }), onUp };
@@ -37,6 +44,7 @@ describe('key identity', () => {
     expect(activates({ code: 'NumpadEnter', key: '' })).toBe(true);
     expect(activates({ code: 'Space', key: '' })).toBe(true);
     expect(activates({ code: '', key: ' ' })).toBe(true);
+    expect(activates({ code: '', key: 'Enter' })).toBe(true);
     expect(activates({ code: 'KeyA', key: 'a' })).toBe(false);
     expect(activates({ code: 'Tab', key: 'Tab' })).toBe(false);
   });
@@ -65,17 +73,11 @@ describe('held keys', () => {
   it('cancels only the held key own repeats', () => {
     const { keys } = make();
     keys.hold('Enter');
-    const own = press('Enter', { repeat: true });
-    expect(keys.swallowRepeat(own)).toBe(true);
-    expect(own.defaultPrevented).toBe(true);
+    expect(cancelled(keys, 'Enter')).toBe(true);
     // Another key's repeat (a Backspace held in a field) is its own, even while a held key's keyup is lost.
-    const other = press('Backspace', { repeat: true });
-    expect(keys.swallowRepeat(other)).toBe(false);
-    expect(other.defaultPrevented).toBe(false);
+    expect(cancelled(keys, 'Backspace')).toBe(false);
     // A fresh press of the held key is not a repeat.
-    const fresh = press('Enter');
-    expect(keys.swallowRepeat(fresh)).toBe(false);
-    expect(fresh.defaultPrevented).toBe(false);
+    expect(cancelled(keys, 'Enter', {})).toBe(false);
   });
 
   it('stops the event as well, so nothing after it hears the repeat', () => {
@@ -91,7 +93,7 @@ describe('held keys', () => {
     const { keys } = make();
     keys.hold('Enter');
     keys.release('Enter');
-    expect(keys.swallowRepeat(press('Enter', { repeat: true }))).toBe(false);
+    expect(cancelled(keys, 'Enter')).toBe(false);
   });
 });
 
@@ -177,18 +179,38 @@ describe('a keyup that never came: a pointer press lets go of a key gone silent'
 });
 
 describe('attach', () => {
-  it('hears a key in the capture phase, before a listener further down', () => {
+  it('hears a key before the target and what lies between (the capture phase), and stops it from reaching them', () => {
     const { keys } = make();
     const order: string[] = [];
     const detach = keys.attach(
-      () => order.push('keys'),
+      (event) => {
+        order.push('keys');
+        event.stopPropagation();
+      },
       () => {},
     );
-    const bubble = () => order.push('page');
-    document.addEventListener('keydown', bubble);
+    // A listener on the event's own target is the one a bubble listener on the document would be too late for.
+    const target = () => order.push('target');
+    document.body.addEventListener('keydown', target);
     document.body.dispatchEvent(press('KeyA'));
-    expect(order).toEqual(['keys', 'page']);
-    document.removeEventListener('keydown', bubble);
+    expect(order).toEqual(['keys']);
+    document.body.removeEventListener('keydown', target);
+    detach();
+  });
+
+  it('lets a key go at its keyup before the target can stop it (the capture phase)', () => {
+    const { keys, onUp } = make();
+    const detach = keys.attach(
+      () => {},
+      () => {},
+    );
+    const stop = (event: Event) => event.stopPropagation();
+    document.body.addEventListener('keyup', stop);
+    keys.hold('Enter');
+    document.body.dispatchEvent(new KeyboardEvent('keyup', { code: 'Enter', key: 'Enter', bubbles: true }));
+    expect(onUp).toHaveBeenCalledWith('Enter');
+    expect(keys.isHeld('Enter')).toBe(false);
+    document.body.removeEventListener('keyup', stop);
     detach();
   });
 
@@ -216,7 +238,7 @@ describe('attach', () => {
     expect(keys.isHeld('Enter')).toBe(true);
     expect(onUp).not.toHaveBeenCalled();
     // Its repeats, once focus is back, still press nothing.
-    expect(keys.swallowRepeat(press('Enter', { repeat: true }))).toBe(true);
+    expect(cancelled(keys, 'Enter')).toBe(true);
     detach();
   });
 
@@ -229,7 +251,7 @@ describe('attach', () => {
     window.dispatchEvent(new Event('blur'));
     expect(onUp.mock.calls).toEqual([['Enter'], ['Space']]);
     expect(onLost).toHaveBeenCalledTimes(1);
-    expect(keys.swallowRepeat(press('Enter', { repeat: true }))).toBe(false);
+    expect(cancelled(keys, 'Enter')).toBe(false);
     detach();
   });
 

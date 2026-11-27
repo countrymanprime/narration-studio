@@ -31,6 +31,9 @@ const PERMANENT: Record<string, Reason> = {
   'src/components/primitives/dialogClosed.ts': {
     note: 'stops an Escape auto-repeat so a held Escape closes one layer, not the one under it too (#3549), and the repeats of an Enter or Space that answered a dialog, so they do not press the control focus returns to (#3555): guards on the layers, not commands',
   },
+  'src/components/primitives/Toast.tsx': {
+    note: "installs the held-key listeners of HeldKeys (`attach`, src/input/heldKeys.ts) and, with them, the grace after a keyboard Dismiss: for a moment after a toast press, a fresh Enter or Space is consumed (`preventDefault`, `stopPropagation`, held, so its repeats are cancelled until its keyup), so it presses neither the control focus went back to nor the page's own command (#4063, #4125). It cannot be a useCommand row: a command row is a key bound to an action, and this is a rule on every Enter or Space for a short window after a press, in the capture phase, before any command or field sees it; it belongs to the toast region, which removes it when the keys come up or the region goes",
+  },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
 };
 
@@ -76,25 +79,56 @@ function keydownListenerCount(source: string, fileName: string): number {
   return count;
 }
 
+// `HeldKeys.attach` (src/input/heldKeys.ts) installs its caller's function as a keydown listener in the capture phase, from inside src/input/, which this scan skips: so a call to `attach` in a file that imports
+// `HeldKeys` counts as a keydown listener too, and the file needs the same reasoned entry. Read with the parser like the scan above; a file that never imports the class has no call to count.
+function heldKeysAttachCount(source: string, fileName: string): number {
+  const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const imported = file.statements.some(
+    (statement) =>
+      ts.isImportDeclaration(statement) &&
+      ts.isStringLiteralLike(statement.moduleSpecifier) &&
+      /(^|\/)heldKeys$/.test(statement.moduleSpecifier.text) &&
+      statement.importClause?.namedBindings !== undefined &&
+      ts.isNamedImports(statement.importClause.namedBindings) &&
+      statement.importClause.namedBindings.elements.some((element) => (element.propertyName ?? element.name).text === 'HeldKeys'),
+  );
+  if (!imported) return 0;
+  let count = 0;
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === 'attach') count++;
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return count;
+}
+
+const listenerCount = (source: string, fileName: string): number => keydownListenerCount(source, fileName) + heldKeysAttachCount(source, fileName);
+
+/** The files that listen for keys without an entry in `allowlist`, and the entries whose file no longer does. */
+function judge(counts: ReadonlyMap<string, number>, allowlist: Record<string, Reason>): { offenders: string[]; stale: string[] } {
+  return {
+    offenders: [...counts.keys()].filter((file) => (counts.get(file) ?? 0) > 0 && !(file in allowlist)),
+    stale: Object.keys(allowlist).filter((file) => (counts.get(file) ?? 0) === 0),
+  };
+}
+
 describe('command listeners stay inside src/input/', () => {
   const files = sourceFiles(srcRoot)
     .map((file) => relative(uiRoot, file))
     .filter((file) => !file.startsWith(inputDir + sep))
     .map((file) => file.split(sep).join('/'));
-  const counts = new Map(files.map((file) => [file, keydownListenerCount(readFileSync(join(uiRoot, file), 'utf8'), file)]));
+  const counts = new Map(files.map((file) => [file, listenerCount(readFileSync(join(uiRoot, file), 'utf8'), file)]));
 
   test('no file outside the allowlist adds a keydown listener', () => {
-    const offenders = files.filter((file) => (counts.get(file) ?? 0) > 0 && !(file in ALLOWLIST));
     expect(
-      offenders,
-      'register a command with useCommand (src/input/useCommand.ts) instead of listening for keydown yourself; ' +
+      judge(counts, ALLOWLIST).offenders,
+      'register a command with useCommand (src/input/useCommand.ts) instead of listening for keydown yourself (HeldKeys.attach is a keydown listener too); ' +
         'if this really is not a command, add a reasoned entry to listenerGuard.test.ts',
     ).toEqual([]);
   });
 
   test('every allowlist entry still has a keydown listener (delete a stale entry)', () => {
-    const stale = Object.keys(ALLOWLIST).filter((file) => (counts.get(file) ?? 0) === 0);
-    expect(stale, 'this file no longer adds a keydown listener - delete its listenerGuard.test.ts entry').toEqual([]);
+    expect(judge(counts, ALLOWLIST).stale, 'this file no longer adds a keydown listener - delete its listenerGuard.test.ts entry').toEqual([]);
   });
 
   test('the scan sees the call however it is written (a bad fixture per form)', () => {
@@ -106,5 +140,29 @@ describe('command listeners stay inside src/input/', () => {
   test('the scan ignores a comment or a string that only mentions keydown, and a different event', () => {
     expect(keydownListenerCount('// document.addEventListener(\'keydown\', x)\nconst a = "keydown";', 'probe.ts')).toBe(0);
     expect(keydownListenerCount("document.addEventListener('keyup', onKeyUp);", 'probe.ts')).toBe(0);
+  });
+
+  test('a call to HeldKeys.attach counts as a keydown listener, however the class is imported', () => {
+    const attach = "new HeldKeys({ onBlur: 'keep', onUp }).attach(onKeyDown, onLost);";
+    expect(heldKeysAttachCount(`import { HeldKeys } from '../../input/heldKeys';\n${attach}`, 'probe.ts')).toBe(1);
+    expect(heldKeysAttachCount("import { activates, HeldKeys as Keys } from '../input/heldKeys';\nkeys.attach(a, b);", 'probe.ts')).toBe(1);
+    expect(heldKeysAttachCount("import { HeldKeys } from './heldKeys';\nthis.keys.attach(a, b);\nother.attach(c, d);", 'probe.ts')).toBe(2);
+  });
+
+  test('a file that does not import HeldKeys, or only its helpers, has no attach to count', () => {
+    expect(heldKeysAttachCount('observer.attach(a, b);', 'probe.ts')).toBe(0);
+    expect(heldKeysAttachCount("import { keyOf } from '../../input/heldKeys';\nobserver.attach(a, b);", 'probe.ts')).toBe(0);
+    expect(heldKeysAttachCount("import { HeldKeys } from './elsewhere';\nkeys.attach(a, b);", 'probe.ts')).toBe(0);
+  });
+
+  test('an attach call outside src/input without an entry is an offender, and an entry without a listener is stale', () => {
+    const source = "import { HeldKeys } from '../input/heldKeys';\nnew HeldKeys({ onBlur: 'keep', onUp }).attach(onKeyDown, onLost);";
+    const counts = new Map([
+      ['src/components/feature/Feature.tsx', listenerCount(source, 'Feature.tsx')],
+      ['src/components/feature/Quiet.tsx', listenerCount('export const a = 1;', 'Quiet.tsx')],
+    ]);
+    const allowlist = { 'src/components/feature/Quiet.tsx': { note: 'a reason' } };
+    expect(judge(counts, allowlist)).toEqual({ offenders: ['src/components/feature/Feature.tsx'], stale: ['src/components/feature/Quiet.tsx'] });
+    expect(judge(counts, { ...allowlist, 'src/components/feature/Feature.tsx': { note: 'a reason' } }).offenders).toEqual([]);
   });
 });

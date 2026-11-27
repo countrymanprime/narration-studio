@@ -8,13 +8,13 @@ export const activates = (event: { code: string; key: string }): boolean =>
 /** A key that has repeated still counts as held, at a pointer press, when its last repeat was this recently, or within three of its own repeat gaps if that is longer (the slowest OS repeat settings, and Windows FilterKeys, repeat every one to two seconds). */
 export const KEY_LIVE_MS = 700;
 
-export type HeldKeysOptions = {
+type HeldKeysOptions = {
   /**
    * What the window losing focus (alt-tab, a native dialog) or the page being hidden does to the keys held, whose keyup may never come: `'keep'` leaves them held, so their repeats, once focus is back, still press nothing,
    * until the keyup or a fresh press of the key; `'forget'` lets every one of them go.
    */
   onBlur: 'keep' | 'forget';
-  /** A key was let go (its keyup, a fresh press of it, a pointer press that finds it lost, a blur that forgets): it is no longer held when this is called. */
+  /** A key was let go (its keyup, a fresh press of it, a pointer press that finds it lost, a blur that forgets): it is no longer held when this is called. Every keyup while attached calls it, a key never held too (a wait may be on it). */
   onUp: (code: string) => void;
 };
 
@@ -49,15 +49,14 @@ export class HeldKeys {
     this.heard.delete(code);
     this.options.onUp(code);
   }
-  /** A held key's own repeat is cancelled, and noted so `releaseLost` can tell a key still repeating from one gone silent; anything else is the event's own. Whether it was swallowed. */
-  swallowRepeat(event: KeyboardEvent): boolean {
+  /** A held key's own repeat is cancelled, and noted so `releaseLost` can tell a key still repeating from one gone silent; anything else is the event's own (it is left as it is). */
+  swallowRepeat(event: KeyboardEvent): void {
     const code = keyOf(event);
-    if (!event.repeat || !this.held.has(code)) return false;
+    if (!event.repeat || !this.held.has(code)) return;
     const now = performance.now();
     this.heard.set(code, { at: now, gap: now - (this.heard.get(code)?.at ?? this.held.get(code) ?? now) });
     event.preventDefault();
     event.stopPropagation();
-    return true;
   }
   /**
    * A press with the pointer: a held key that repeated and then went silent (its keyup was lost) is let go. One that is still repeating is held, and so is one that has not repeated yet (the first repeat comes after the
