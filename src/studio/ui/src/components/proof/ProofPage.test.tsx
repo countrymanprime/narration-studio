@@ -22,6 +22,7 @@ import type { Finding, NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
+import { noteAppMoved } from './proofMemory';
 import { ProofPage } from './ProofPage';
 import { loadSharedChapter, saveSharedChapter } from '../masterqc/page/sharedChapter';
 import { ProjectTrackProviders } from '../chapterTracks/ChapterTrackState';
@@ -229,6 +230,27 @@ describe('proof-reopens-where-it-was (#4099)', () => {
     expect(where()).toBe('/proof?chapter=chapter-3');
     cleanup();
     renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+  });
+
+  it('a Back onto an All chapters entry shows All chapters and does not rewrite the entry', async () => {
+    noteAppMoved(); // the app was opened on /proof and has moved on: this Back is not the first load
+    renderPage({ before: ['/proof'], at: '/pickups', shared: 'chapter-3' });
+    await screen.findByText('The pickups page');
+    back();
+    await noteRows();
+    expect(where()).toBe('/proof');
+    expect(screen.getByText('Open notes, by chapter')).toBeTruthy();
+    forward();
+    await waitFor(() => expect(screen.getByText('The pickups page')).toBeTruthy());
+    cleanup();
+    renderPage({ shared: null });
+    await noteRows();
+    expect(where()).toBe('/proof'); // the Back onto All chapters is the narrator's last word, as a choice of All
+  });
+
+  it('the page the app was opened on still opens on the kept chapter', async () => {
+    renderPage({ shared: 'chapter-3' });
     await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
   });
 

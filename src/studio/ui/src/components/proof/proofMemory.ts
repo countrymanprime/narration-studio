@@ -11,11 +11,19 @@ import { folderKey } from '../../projectFolder';
 const selected = new Map<string, string>();
 const drafts = new Map<string, string>();
 const allChosen = new Set<string>();
+let moved = false;
 
 const scopeKey = (projectFolder: string, scope: string): string => `${folderKey(projectFolder)}\u0000${scope}`;
 
 export const recallSelection = (projectFolder: string, scope: string): string | null => selected.get(scopeKey(projectFolder, scope)) ?? null;
 export const rememberSelection = (projectFolder: string, scope: string, id: string): void => void selected.set(scopeKey(projectFolder, scope), id);
+
+/**
+ * Whether the app has gone to a second address in this session. The first address of a session is the page the app was opened on (a restart or a reload), which opens on
+ * what was kept; after that a Back or Forward onto an entry shows that entry as it was left, never one rewritten to the kept chapter (#4099).
+ */
+export const appHasMoved = (): boolean => moved;
+export const noteAppMoved = (): void => void (moved = true);
 
 /** Whether the narrator's last choice of scope in this project, this session, was All chapters. */
 export const chosenAll = (projectFolder: string): boolean => allChosen.has(folderKey(projectFolder));
@@ -39,4 +47,5 @@ export function forgetProofMemory(): void {
   selected.clear();
   drafts.clear();
   allChosen.clear();
+  moved = false;
 }

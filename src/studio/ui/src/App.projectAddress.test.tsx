@@ -219,6 +219,17 @@ describe('the chapter in the address is not carried into another project (#4059)
     expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', alice))).toBe('appearance');
   });
 
+  it('a category picked after the jump menu\u2019s #category-<id> is the one a reload and a Back onto that entry open', async () => {
+    await openAt('/settings#category-speech');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Delivery/ }));
+    await screen.findByRole('heading', { level: 2, name: 'Delivery' });
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    cleanup();
+    await openAt(window.location.pathname + window.location.hash);
+    expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
+  });
+
   it('Proof: rapid A, V, A, V switches never forget either project’s kept chapter', async () => {
     const alice = await aliceFolder();
     window.localStorage.setItem(projectStorageKey('proof.lastChapter', alice), 'chapter-4');

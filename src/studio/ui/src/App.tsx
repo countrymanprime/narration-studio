@@ -98,6 +98,7 @@ import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { OPEN_LAYER_SELECTOR } from './overlay/overlayService';
 import { addressWithoutProject, pageOfPath } from './navigation/address';
+import { noteAppMoved } from './components/proof/proofMemory';
 import { isSameProject } from './projectFolder';
 import { historyAllowsCut, historyHoldsMove, isOtherProject, pageBoundaryKey, type HistoryEntryState } from './pageBoundaryKey';
 import { trace, traceId } from './api/tracing';
@@ -722,6 +723,11 @@ function AppRoutes() {
   // The router's `location.state` does not follow a stamp written afterwards, so the entry on screen keeps the project it was first rendered under here.
   const shownUnder = useRef<{ key: string; project: string; idx: unknown } | undefined>(undefined);
   const navigationType = useNavigationType();
+  // The first address is the page the app was opened on; once there is another, a Back onto an entry shows it as it was left (Proof's restore reads this).
+  const firstKey = useRef(location.key);
+  useEffect(() => {
+    if (location.key !== firstKey.current) noteAppMoved();
+  }, [location.key]);
   const owner = shownUnder.current?.key === location.key ? shownUnder.current.project : (location.state as { project?: unknown } | null)?.project;
   const bareAddress = addressWithoutProject(location);
   const addressStale =

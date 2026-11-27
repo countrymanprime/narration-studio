@@ -46,7 +46,7 @@ import { kindColour } from '../../kinds/kindMap';
 import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
-import { chosenAll, chooseAll, recallSelection, rememberSelection } from './proofMemory';
+import { appHasMoved, chosenAll, chooseAll, recallSelection, rememberSelection } from './proofMemory';
 import { SurroundingText } from './around/SurroundingText';
 import { useParagraphsAround } from './around/useParagraphsAround';
 import { SpotTakes } from './spot/SpotTakes';
@@ -157,12 +157,19 @@ export function ProofPage({
   // With no chapter and no note in the address, Proof opens on the chapter it last showed in this project (#4099): the shared chapter Master & QC also writes, unless the narrator
   // chose All chapters this session (`proofMemory`). Once the chapters are read, a kept chapter the book still has is written into the address (replacing the entry, as the
   // Booth does); one the book no longer has opens All chapters and is forgotten. An address that names a chapter is kept as the last one.
+  const navigationType = useNavigationType();
   const [restored, setRestored] = useState(false);
   // The chapter the restore is moving to, held until the address shows it so All chapters is never drawn first (the skeleton stays up).
   const [landing, setLanding] = useState<string | null>(null);
   useEffect(() => {
     if (restored || !firstRead.chapters) return;
     setRestored(true);
+    // A Back or Forward onto an entry shows it as it was left, All chapters included (and the entry is not rewritten); only the page the app was opened on, and a move the narrator
+    // makes (the rail, a link), opens on the kept chapter.
+    if (navigationType === 'POP' && appHasMoved()) {
+      if (!params.has('chapter') && !params.has('finding')) chooseAll(projectFolder, true);
+      return;
+    }
     if (params.has('chapter') || params.has('finding') || chosenAll(projectFolder)) return;
     const kept = loadSharedChapter(projectFolder);
     if (!kept) return;
@@ -171,7 +178,7 @@ export function ProofPage({
       setLanding(kept);
       setParams({ chapter: kept }, { replace: true });
     } else saveSharedChapter(projectFolder, '');
-  }, [restored, firstRead.chapters, params, chapters, projectFolder, setParams]);
+  }, [restored, firstRead.chapters, params, chapters, projectFolder, setParams, navigationType]);
   const asked = params.get('chapter');
   // The restore has landed, or an address that names another chapter came while it was landing (a link, Back): nothing is held for it any more.
   useEffect(() => {
@@ -180,7 +187,6 @@ export function ProofPage({
   // What the page shows is what is kept, whichever way the scope got there (a pick, Esc, a note, Back, Forward, a link): a chapter becomes the shared chapter and ends "All chapters
   // was chosen"; All chapters, reached by a move of the narrator's, sets it. A replace is the app's own (the restore above, a project change's cut of the old project's address)
   // and is never taken for a choice (#4099).
-  const navigationType = useNavigationType();
   const locationKey = useLocation().key;
   const trackedKey = useRef<string | null>(null);
   const tracking = restored && landing === null;
