@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -200,5 +200,19 @@ describe('IconButton', () => {
     render(<IconButton action="play" />);
     const icon = screen.getByRole('button', { name: 'Play' }).querySelector('svg');
     expect(icon?.parentElement?.className).not.toContain('--rec-text');
+  });
+});
+
+describe('a held key (#4124)', () => {
+  it('a repeated Enter or Space keydown is prevented (the press counts once), the first one is not, and the caller still hears both', () => {
+    const onKey = vi.fn();
+    render(<IconButton label="Play" onKeyDown={onKey} />);
+    const button = screen.getByRole('button');
+    for (const key of ['Enter', ' ']) {
+      expect(fireEvent.keyDown(button, { key, repeat: false })).toBe(true);
+      expect(fireEvent.keyDown(button, { key, repeat: true })).toBe(false);
+    }
+    expect(fireEvent.keyDown(button, { key: 'ArrowRight', repeat: true })).toBe(true);
+    expect(onKey).toHaveBeenCalledTimes(5);
   });
 });

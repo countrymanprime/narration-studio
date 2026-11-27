@@ -61,4 +61,16 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
       else expect(text).toMatch(/\bdeadlineMs:\s*PLAY_DEADLINE_MS\b/);
     },
   );
+
+  // #4124: for every pair of play paths on one page, starting one stops the other. The editing page's pair is the script and a take: each is handed the
+  // other's stop. Primitives that start a play ignore a held key's repeat (`keyRepeat.ts`).
+  it("the editing page hands the script and a take each other's stop", () => {
+    const text = all.find((s) => s.file === 'components/editing/page/EditingBody.tsx')!.text;
+    expect(text).toMatch(/stopChapter:\s*playback\.stop/);
+    expect(text).toMatch(/stopTake:\s*\(\)\s*=>\s*auditionRef\.current\?\.stop\(\)/);
+    expect(text).toMatch(/auditionRef\.current\s*=\s*audition/);
+  });
+  it.each(['components/primitives/IconButton.tsx'])('%s ignores a repeated Enter or Space keydown', (file) => {
+    expect(all.find((s) => s.file === file)!.text).toMatch(/\bignoreKeyRepeat\(event\)/);
+  });
 });

@@ -46,6 +46,7 @@ class FakeAudio extends EventTarget {
   pause = vi.fn();
 }
 let audio: FakeAudio;
+const stopTake = vi.fn();
 let daw: DawMockControl;
 let playback: ScriptPlayback;
 let page: ReturnType<typeof useEditingPage>;
@@ -72,6 +73,7 @@ function Harness({
       if (retry) retries.push(retry);
     },
     sync: { clock, clockPending: pending, caps, chapterId: 'chapter-1', ...(read ? { read } : {}) },
+    stopTake,
   });
   useDawPlayPosition({ clock, caps: playback.syncActive ? null : caps, playback });
   return (
@@ -474,6 +476,22 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     await wait(10);
     expect(calls('stop').length).toBeGreaterThanOrEqual(1);
     expect(state().playing).toBe(false);
+  });
+});
+
+describe("the script's play stops a take (#4124)", () => {
+  it.each([
+    ['Play from here', () => playback.playFrom(t0('p-2:1'))],
+    ['a selection', () => playback.playFrom(t0('p-2:1'), t0('p-2:3'))],
+    ['Space', () => playback.toggle()],
+    ['a play the DAW refuses, so the app plays', () => playback.playFrom(t0('p-2:1'))],
+  ])('%s stops a take that plays in the DAW, is being asked or plays in the app, before it plays', async (name, press) => {
+    await ready();
+    if (name.startsWith('a play the DAW refuses')) act(() => daw.refuseNextSync('no'));
+    else if (name === 'Space') act(() => page.dispatch({ type: 'place', key: 'p-2:1' }));
+    act(() => press());
+    await wait(10);
+    expect(stopTake).toHaveBeenCalledTimes(1);
   });
 });
 
