@@ -1,7 +1,7 @@
 // A right-to-left chapter or track name in a toast sentence must not turn the sentence around (#4113): the name is isolated (U+2068 … U+2069) and the sentence reads left to right, so the words after it
 // and the full stop stay to its right; a message that is mostly right to left (an Arabic sentence that holds "REAPER") keeps its own direction. Drawn in the real toast, not read off an attribute.
 import { expect, test, type Page } from '@playwright/test';
-import { isolatedIfRtl } from '../../src/visibleText';
+import { isolateNameIn, isolatedIfRtl } from '../../src/visibleText';
 import { raiseToast } from './helpers/raiseToast';
 import { settlePage } from './helpers/settle';
 
@@ -60,13 +60,45 @@ test.describe('an English sentence that carries a right-to-left name reads left 
   });
 
   // A paragraph separator inside a name would end its isolate and swap its words: the builder turns it into a space, so the words stay in order (the first drawn at the right of the second).
-  test('a name holding a paragraph separator keeps its words in order', async ({ page }) => {
-    const one = '\u0648\u0627\u062D\u062F';
-    const two = '\u0627\u062B\u0646\u0627\u0646';
-    const text = `${isolatedIfRtl(`${one}\u2029${two}`)}: 3 takes were kept.`;
+  // The segment separators U+000B and U+001F split a name into runs laid out on their own, so they are spaces too (#4129).
+  for (const [label, separator] of [
+    ['a paragraph separator', '\u2029'],
+    ['a line tabulation (U+000B)', '\u000B'],
+    ['a unit separator (U+001F)', '\u001F'],
+  ] as const) {
+    test(`a name holding ${label} keeps its words in order`, async ({ page }) => {
+      const one = '\u0648\u0627\u062D\u062F';
+      const two = '\u0627\u062B\u0646\u0627\u0646';
+      const text = `${isolatedIfRtl(`${one}${separator}${two}`)}: 3 takes were kept.`;
+      await show(page, text);
+      expect(await leftOf(page, text, text.indexOf(one))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
+      expect(await leftOf(page, text, text.indexOf('3'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
+    });
+  }
+
+  // The Replace toast's name, isolated left to right like the replaced-stretch mark and the Name fields draw it: the "2" of "<Arabic> (Sara) 2" is drawn to the right of the Arabic, not to its left (#4129).
+  // The host may isolate the name itself one day (#4126): a first-strong isolate round it would draw the name by its first letter, so the helper puts the left-to-right one inside, and the overlay keeps both.
+  for (const [label, wrap] of [
+    ['as the host words it', (name: string) => name],
+    ['inside a first-strong isolate the host added', (name: string) => `${FSI}${name}${PDI}`],
+  ] as const) {
+    test(`the Replace toast draws a mixed narrator name in the order the replaced-stretch mark draws it, ${label}`, async ({ page }) => {
+      const arabic = '\u0633\u0627\u0631\u0629';
+      const narrator = `${arabic} (Sara) 2`;
+      const text = isolateNameIn(`Replaced 2 words with ${wrap(narrator)}'s audio in REAPER.`, narrator);
+      expect(text).toContain(`\u2066${narrator}\u2069`);
+      await show(page, text);
+      expect(await leftOf(page, text, text.lastIndexOf('2'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(arabic)));
+    });
+  }
+
+  // A name of right-to-left characters that are not letters (here the Arabic question mark) is isolated too: the count after it is drawn to its right (#4129).
+  test('a name made only of a right-to-left non-letter has the count after it drawn to its right', async ({ page }) => {
+    const mark = '\u061F\u061F';
+    const text = `${isolatedIfRtl(mark)}: 3 takes were kept.`;
+    expect(text.startsWith(FSI)).toBe(true);
     await show(page, text);
-    expect(await leftOf(page, text, text.indexOf(one))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
-    expect(await leftOf(page, text, text.indexOf('3'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
+    expect(await leftOf(page, text, text.indexOf('3'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(PDI) - 1));
   });
 });
 
