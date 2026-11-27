@@ -102,11 +102,11 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
     {
       key: 'recorded',
       target: 'script',
-      // The stage bar's own count: finished hours recorded or further on, out of the book's finished length.
+      // The stage bar's own count: finished hours recorded (each chapter by how far it is recorded, whole from Editing on or once delivered), out of the book's finished length.
       label: 'Recorded audio',
       value: hm(book.recordedHours),
       unit: `/ ${hm(finished)}`,
-      hint: 'recorded or further on',
+      hint: 'by how far each is recorded',
       tip: 'The finished hours recorded, as Where the book stands counts them (a chapter counts for how far it is recorded, whole once it is edited, proofed or delivered), out of the book’s finished length estimated from its words',
       tone: 'neutral',
     },
@@ -177,7 +177,7 @@ const DONE_SHARE: Record<ChapterStatus, { rec: number; edit: number; proof: numb
 export type BookFigures = {
   /** The book's finished length in hours: its narrated words at `wph`. The one book length every figure of the page is out of. */
   finishedHours: number;
-  /** Finished hours recorded or further on (edited, proofed, delivered): the stage bar's segments below "Not recorded yet". */
+  /** Finished hours recorded, each chapter by how far it is recorded and whole from Editing on or once delivered: the stage bar's segments below "Not recorded yet". */
   recordedHours: number;
   words: { total: number; delivered: number; proofed: number; edited: number; recorded: number };
   wph: number;

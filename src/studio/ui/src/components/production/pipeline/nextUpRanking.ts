@@ -17,7 +17,7 @@ export function recordingChapterOf<C extends { id: string; status: ChapterStatus
 
 /** What the page knows that Next up can list. An input is null when its source has nothing to say, and then its item is absent. */
 export type NextUpInputs = {
-  /** The chapter being recorded: the first whose status is `recording`. `share` is the measured fraction recorded and `percent` the percent every page shows for it (`recordedPercent`), both null when not measured. */
+  /** The chapter being recorded: the first whose status is `recording` and that is not delivered (`recordingChapterOf`). `share` is the measured fraction recorded and `percent` the percent every page shows for it (`recordedPercent`), both null when not measured. */
   recording: { chapterId: string; stage: ChapterStatus; name: string; words: number; share: number | null; percent: number | null } | null;
   /** The open pickup lines, project-wide, and the names of the chapters they are in. */
   pickups: { lines: number; chapters: readonly string[] } | null;

@@ -107,8 +107,8 @@ export const isDelivered = (review: { mastered: boolean; qc: string | null } | u
 
 /**
  * How much of a chapter counts as recorded for the book's figures, 0 to 1: all of it once the delivery review has mastered it with its checks passing (`delivered`, `isDelivered`) or its stage
- * is Editing or later, else the chapter's own `recordedShare`, never above the percent the Booth prints for it (`recordedPercent`). A delivered chapter counts whole even where its Record cell
- * still prints a part percent: delivery is the stronger evidence. The one rule behind Production's "Not recorded yet" and "Recorded audio", and the Schedule's Recording left and chart.
+ * is Editing or later, else the chapter's own `recordedShare`, never above the percent the Booth prints for it (`recordedPercent`). A delivered chapter counts whole in these aggregate figures, though a per-chapter
+ * cell still prints the chapter's own stage and percent: delivery is the stronger evidence. The one rule behind Production's "Not recorded yet" and "Recorded audio", and the Schedule's Recording left and chart.
  */
 export function chapterRecordedShare(
   chapter: { status: ChapterStatus; recordedThrough?: RecordedThrough; recordedSeconds: number | null; wordCount: number },
