@@ -141,6 +141,14 @@ describe('chip-under-a-line-with-more-than-one-take', () => {
     // Play is still there.
     expect(document.querySelector('[data-tplay]')).not.toBeNull();
   });
+  // #4124: a held Enter repeats keydown and each repeat would press Play again (a take toggling with every repeat).
+  it("a repeated keydown on a take's Play is prevented, so a held key presses it once", () => {
+    mount(singleTakePassage());
+    fireEvent.click(chip());
+    const play = document.querySelector('[data-tplay]')!;
+    expect(fireEvent.keyDown(play, { key: 'Enter', repeat: false })).toBe(true);
+    for (const key of ['Enter', ' ']) expect(fireEvent.keyDown(play, { key, repeat: true })).toBe(false);
+  });
   it('says Stacked or Duplicate read where the line is, and Kept above both', () => {
     const base = { passage: measuredPassage(), open: false, onToggle: () => {} };
     const { rerender } = render(<TakeChip {...base} keptId={null} stacked />);

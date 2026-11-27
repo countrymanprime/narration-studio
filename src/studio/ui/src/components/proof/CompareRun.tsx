@@ -1,4 +1,5 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
+import { ignoreKeyRepeat } from '../primitives/keyRepeat';
 import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileExport, faPlay, faRotateLeft, faTriangleExclamation, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
@@ -510,7 +511,7 @@ export function CompareRun({
                 </span>
               ) : null}
               <CapabilityGate capability={gate}>
-                <Button variant="primary" onClick={() => void start()}>
+                <Button variant="primary" onClick={() => void start()} onKeyDown={ignoreKeyRepeat}>
                   <FontAwesomeIcon icon={faPlay} />
                   Start comparison
                 </Button>

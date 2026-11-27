@@ -26,8 +26,8 @@ export function ZoomRow({ t0, ribbon, head, gestures }: { t0: number; ribbon: Ri
       {/* The hint and the zoom buttons keep their size: only the head and the range text may shrink. */}
       <span className="flex flex-none items-center gap-2">
         {gestures ? <Tooltip text={gestures} label="Waveform gestures" icon="?" /> : null}
-        <IconButton action="zoomOut" size="sm" disabledReason={canZoomOut ? undefined : 'The whole recording is showing'} onClick={() => zoom(1)} />
-        <IconButton action="zoomIn" size="sm" disabledReason={canZoomIn ? undefined : 'One second is the closest view'} onClick={() => zoom(-1)} />
+        <IconButton action="zoomOut" size="sm" repeats disabledReason={canZoomOut ? undefined : 'The whole recording is showing'} onClick={() => zoom(1)} />
+        <IconButton action="zoomIn" size="sm" repeats disabledReason={canZoomIn ? undefined : 'One second is the closest view'} onClick={() => zoom(-1)} />
       </span>
     </div>
   );
@@ -64,6 +64,7 @@ export function ScrollEnd({ dir, ribbon }: { dir: 1 | -1; ribbon: RibbonView }) 
   return (
     <IconButton
       action={dir < 0 ? 'scrollWaveBack' : 'scrollWaveForward'}
+      repeats
       size="lane"
       disabledReason={able ? undefined : dir < 0 ? 'The start of the recording is showing' : 'The end of the recording is showing'}
       onPointerDown={(event) => {

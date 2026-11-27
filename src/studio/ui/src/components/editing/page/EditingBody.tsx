@@ -204,12 +204,14 @@ export function EditingBody(props: EditingBodyProps) {
   const sound = useChapterSound(chapterId, clocks);
   // Where each word plays in the DAW project now (the host's word table): the one map the follow-along, play-from-a-word and play-a-range read.
   const { clock, pending: clockPending } = useWordClock(chapterId, doc, locator.token, caps);
+  const auditionRef = useRef<{ stop: () => void } | null>(null);
   const playback = useScriptPlayback({
     playlist,
     sound,
     mediaUrl: tracks.mediaUrl,
     sync: { clock, clockPending, chapterId, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
+    stopTake: () => auditionRef.current?.stop(),
   });
   useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
@@ -229,6 +231,7 @@ export function EditingBody(props: EditingBodyProps) {
     passageOf: passageOfTake,
     stopChapter: playback.stop,
   });
+  auditionRef.current = audition;
   const playTake = audition.play;
   const stopRef = useRef({ playback, audition });
   stopRef.current = { playback, audition };
@@ -702,6 +705,7 @@ export function EditingBody(props: EditingBodyProps) {
                 keptId={keep.kept[pid] ?? null}
                 playingId={audition.playingId}
                 waitingId={audition.waitingId}
+                stops={audition.stops}
                 hiddenIds={hide.hiddenIds(pid)}
                 firstReadId={stackBase(pid)}
                 sourceLabel={sourceLabel}
