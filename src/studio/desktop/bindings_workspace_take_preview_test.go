@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"desktop/internal/bridge"
@@ -42,6 +43,18 @@ func TestWorkspacePreviewTakePlaysTheOfferedTakesOwnRangeThroughTheDaw(t *testin
 	sent := role.previews[0]
 	if !filepath.IsAbs(sent.Path) || filepath.Base(sent.Path) != "a.wav" || sent.Start != 0 || sent.Length != 4 {
 		t.Fatalf("sent %+v, want take A's own file from 0 for 4 s", sent)
+	}
+}
+
+// #4117: a DAW that is recording refuses a preview with the recording code, so a page treats it as final and does not play the take in the app.
+func TestWorkspacePreviewTakeWhileTheDawRecordsRefusesWithTheRecordingCode(t *testing.T) {
+	role := &fakeFiles{err: bridge.ErrRecording}
+	host := previewTakeHost(t, role)
+
+	got := decodeDawResult(t)(host.WorkspacePreviewTake("c-0001", 0, 0, hideKeepA))
+
+	if got.OK || got.Code != dawport.CodeRecording || got.Refused == "" || got.Refused != got.Message || !strings.Contains(got.Message, "recording") {
+		t.Fatalf("WorkspacePreviewTake while recording = %+v, want a refusal with code %q", got, dawport.CodeRecording)
 	}
 }
 

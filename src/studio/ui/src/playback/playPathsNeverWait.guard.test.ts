@@ -132,12 +132,18 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     expect(found).toEqual([]);
   });
 
-  // #4117: a DAW that refuses a play because it records is final: the app stays quiet too, whatever the project-state read says. Every caller reads the
-  // refusal's `recording` code (Hear it through its own `reason: 'recording'`); the script reads it through `refusedForRecording`.
-  it.each(CALLERS)('%s treats a recording refusal as final', (file) => {
+  // #4117: a DAW that refuses a play because it records is final: the app stays quiet too, whatever the project-state read says. Each caller reads the
+  // refusal's code (`result.code === 'recording'`; Hear it reads its findings reason `recording`) and returns `final`; the script's hook records the code.
+  it.each([
+    ['components/editing/bar/useScriptPlayback.ts', /refusedForRecording\(\)/, /\bfinal\b/],
+    ['components/editing/follow/useDawTransportSync.ts', /result\.code === 'recording'/, /recordingRefusal/],
+    ['components/editing/takes/useTakeAudition.ts', /result\.code === 'recording'/, /\bfinal\b/],
+    ['components/pickups/list/usePlayOriginal.ts', /result\.code === 'recording'/, /\bfinal\b/],
+    ['components/proof/inspector/HearIt.tsx', /answer\.reason === 'recording'/, /\bfinal: true\b/],
+  ])('%s reads the recording refusal and treats it as final', (file, reads, final) => {
     const text = all.find((s) => s.file === file)!.text;
-    expect(text).toMatch(/\brecording\b|refusedForRecording|reason === 'recording'/);
-    expect(text).toMatch(/final/);
+    expect(text).toMatch(reads);
+    expect(text).toMatch(final);
   });
 
   // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it. The shared

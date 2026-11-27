@@ -940,6 +940,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         sync.refuse = null;
         return { ...refusedMove(sentence), ...(code ? { code } : {}) };
       }
+      // The bridge turns a play or a stop away while the DAW records, and answers with the recording code.
+      if ((action === 'play' || action === 'playRange' || action === 'stop') && (sync.recording || recordingNow()))
+        return { ...refusedMove(`${currentCapabilities(live).daw} is recording. Stop recording first.`), code: 'recording' };
       if (action !== 'stop' && open !== 'linked')
         return refusedMove("REAPER does not have this book's project open, so its transport was left alone. Open the project in REAPER, then try again.");
       sync.calls.push({ action, seconds, ...(action === 'playRange' ? { until } : {}), ...(chapterId ? { chapterId } : {}) });

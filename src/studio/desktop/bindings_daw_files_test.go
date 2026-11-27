@@ -231,8 +231,13 @@ func TestTheFileBindingsWordWhatTheEngineRefused(t *testing.T) {
 	for err, sentence := range cases {
 		role := &fakeFiles{err: err}
 		host, path := filesHost(t, "REAPER", liveReachability(), role)
-		if got := decodeDawResult(t)(previewFile(host, path, 0, 5)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
-			t.Errorf("%v: preview = %+v, want Refused(%q)", err, got, sentence)
+		want := dawport.Refused(sentence)
+		if errors.Is(err, bridge.ErrRecording) {
+			// A recording DAW refuses with its code, so a page treats the play as final (#4117).
+			want = dawport.RefusedRecording(sentence)
+		}
+		if got := decodeDawResult(t)(previewFile(host, path, 0, 5)); !reflect.DeepEqual(got, want) {
+			t.Errorf("%v: preview = %+v, want %+v", err, got, want)
 		}
 	}
 	role := &fakeFiles{err: bridge.ErrRevealUnsupported}

@@ -41,7 +41,7 @@ export const DAW_RESULT_MAX_UNDO_STEPS = 12;
 
 /** The refusal codes a page branches on (dawport.CodeStale and CodeRecording in Go). `stale`: the call named an item, track or finding
  * the DAW no longer has where the app read it, so read the project again. `recording`: the DAW is recording, so a play is final and the
- * app stays quiet too. A later ADR adds a value. */
+ * app stays quiet too. */
 export const DAW_REFUSAL_CODES = ['stale', 'recording'] as const;
 export type DawRefusalCode = (typeof DAW_REFUSAL_CODES)[number];
 
