@@ -44,7 +44,8 @@ const shown = (): string | undefined => spies.shellProps.mock.calls.at(-1)?.[0].
 const drawn = (): string[] => [...new Set(spies.shellProps.mock.calls.map((call) => call[0].chapterId as string))];
 const dawOn = (chapterId: string) => async () => ({ ok: true, message: '', chapterId, selected: chapterId === '' ? 0 : 1, cursor: 0 });
 const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
-const ON_CHAPTER_1 = async () => ({ ...(await createMockApi().readerState()), activeChapter: 'Chapter 1' });
+/** The reader state names chapter 2: the Companion does not read it, so the first chapter still opens when the DAW names none. */
+const READER_ON_2 = async () => ({ ...(await createMockApi().readerState()), activeChapter: 'chapter-2' });
 
 function tree(api: NarrationApi, entry = '/companion', projectFolder = '/proj') {
   return (
@@ -65,13 +66,27 @@ function tree(api: NarrationApi, entry = '/companion', projectFolder = '/proj') 
 describe('the Companion with nothing remembered opens on the DAW chapter (#4087)', () => {
   it('opens on chapter 3 without drawing chapter 1, and Full app goes to chapter 3 without sending the DAW anywhere', async () => {
     const dawGoToChapter = goTo();
-    render(tree(createMockApi({ readerState: ON_CHAPTER_1, dawPlace: dawOn('chapter-3'), dawGoToChapter })));
+    render(tree(createMockApi({ readerState: READER_ON_2, dawPlace: dawOn('chapter-3'), dawGoToChapter })));
     await waitFor(() => expect(shown()).toBe('chapter-3'));
     expect(drawn()).toEqual(['chapter-3']);
     await userEvent.setup().click(await screen.findByRole('button', { name: /full app/i }));
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/booth?chapter=chapter-3'));
     // The Companion itself never moves the DAW, and the Booth it goes to is given the DAW's own chapter, not chapter 1.
     expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  it('says "Opening your chapter…", as the Booth does, until the DAW answers', async () => {
+    let answer: () => void = () => {};
+    const dawPlace = () =>
+      new Promise<never>((resolve) => {
+        answer = () => resolve({ ok: true, message: '', chapterId: 'chapter-3', selected: 1, cursor: 0 } as never);
+      });
+    render(tree(createMockApi({ dawPlace })));
+    expect(await screen.findByText('Opening your chapter…')).toBeTruthy();
+    expect(spies.shellProps).not.toHaveBeenCalled();
+    await act(async () => answer());
+    await waitFor(() => expect(shown()).toBe('chapter-3'));
+    expect(screen.queryByText('Opening your chapter…')).toBeNull();
   });
 
   it('asks the DAW once', async () => {
@@ -91,9 +106,9 @@ describe('the Companion with nothing remembered opens on the DAW chapter (#4087)
         throw new Error('no answer');
       },
     ],
-  ])('%s: the reader state chapter opens, and the DAW is not moved', async (_name, dawPlace) => {
+  ])('%s: the first chapter opens, and the DAW is not moved', async (_name, dawPlace) => {
     const dawGoToChapter = goTo();
-    render(tree(createMockApi({ readerState: ON_CHAPTER_1, dawPlace, dawGoToChapter } as Partial<NarrationApi>)));
+    render(tree(createMockApi({ readerState: READER_ON_2, dawPlace, dawGoToChapter } as Partial<NarrationApi>)));
     await waitFor(() => expect(shown()).toBe('chapter-1'));
     expect(dawGoToChapter).not.toHaveBeenCalled();
   });
@@ -139,7 +154,7 @@ describe('a DAW answer that comes after the narrator pressed Play moves nothing 
           answer = () => resolve({ ok: true, message: '', chapterId: 'chapter-3', selected: 1, cursor: 0 } as never);
         }),
     );
-    render(tree(createMockApi({ readerState: ON_CHAPTER_1, dawPlace, ...overrides })));
+    render(tree(createMockApi({ readerState: READER_ON_2, dawPlace, ...overrides })));
     await act(async () => void (await vi.advanceTimersByTimeAsync(3600)));
     await waitFor(() => expect(shown()).toBe('chapter-1'));
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });

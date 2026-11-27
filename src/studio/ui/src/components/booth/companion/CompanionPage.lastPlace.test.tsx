@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Opening the Companion with no chapter asked for: the chapter a running session is on, else the one the Booth remembers for this
-// project (`loadLastPlace`, the one source), else the reader state's, else the first chapter. "Full app" returns to that chapter.
+// project (`keptChapterIn`, the one rule), else the DAW's, else the first chapter of the text. The reader state is not read. "Full app" returns to that chapter.
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -85,15 +85,9 @@ describe('the Companion opens on the chapter the Booth remembers', () => {
     await waitFor(() => expect(shown()).toBe('chapter-2'));
   });
 
-  it('an-unknown-saved-chapter-falls-through-to-the-reader-state', async () => {
+  it('an-unknown-saved-chapter-falls-through-to-the-first-chapter-whatever-the-reader-state-says', async () => {
     saveLastPlace('/proj', place('no-such-chapter'));
     await open('/companion', { readerState: async () => ({ ...(await createMockApi().readerState()), activeChapter: 'chapter-2' }) });
-    await waitFor(() => expect(shown()).toBe('chapter-2'));
-  });
-
-  it('an-unknown-saved-chapter-and-reader-state-fall-through-to-the-first-chapter', async () => {
-    saveLastPlace('/proj', place('no-such-chapter'));
-    await open('/companion', { readerState: async () => ({ ...(await createMockApi().readerState()), activeChapter: 'nothing' }) });
     await waitFor(() => expect(shown()).toBe('chapter-1'));
   });
 

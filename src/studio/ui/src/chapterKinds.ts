@@ -12,6 +12,13 @@ export const isCreditsChapter = (chapter: { isCredits?: boolean }): boolean => c
 export const isNarrationChapter = (chapter: { contentKind?: ManuscriptChapter['contentKind'] | '' }): boolean =>
   !chapter.contentKind || chapter.contentKind === 'narration';
 
+/**
+ * The chapter a page opens on when nothing was asked, remembered or followed from the DAW: the first chapter of the book's text, not the opening credits
+ * (the book's first chapter when it has only credits). The Booth and the Companion both end their open-chapter order here.
+ */
+export const firstTextChapter = <T extends { isCredits?: boolean }>(chapters: readonly T[]): T | undefined =>
+  chapters.find((item) => !isCreditsChapter(item)) ?? chapters[0];
+
 /** The chapters the book numbers, and the ones a sample or a "first N chapters" is taken from: narration with the credits left out. */
 export const isNumberedChapter = (chapter: { contentKind?: ManuscriptChapter['contentKind'] | ''; isCredits?: boolean }): boolean =>
   isNarrationChapter(chapter) && !isCreditsChapter(chapter);

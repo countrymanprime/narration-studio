@@ -5,7 +5,7 @@ import type { CreditsRenderResult, GuideDialogueCue, GuideEntity, GuideType, Man
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import { recordedAtOf, type RecordedAt } from '../../../recordedThrough';
 import type { CreditsKind } from '../readerModel';
-import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
+import { firstTextChapter, isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import type { BoothChapterTarget } from './boothQuery';
 import { attributeCue } from '../../../studio/commands/attributeCue';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
@@ -103,7 +103,7 @@ export function useBoothData(target: BoothChapterTarget | null) {
         if (mine === recordedRead.current) setRecorded(recordedOf(narration));
         const running = host && host.phase !== 'idle' && host.phase !== 'stopped' ? narration.find((item) => item.id === host.chapter)?.id : undefined;
         // With nothing asked for and nothing running the page opens on the first chapter of the book's text, not on the opening credits.
-        setFallback(running ?? (narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id ?? '');
+        setFallback(running ?? firstTextChapter(narration)?.id ?? '');
       })
       .catch((reason) => {
         if (!live) return;
