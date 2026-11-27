@@ -109,6 +109,29 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     expect(missing).toEqual([]);
   });
 
+  // `repeats` lets a held key press an `IconButton` again with every repeat (stepping, zooming, scrolling): a control that plays, stops or pauses never takes it.
+  it('no IconButton that plays carries repeats', () => {
+    const PLAYS = /action="(play|stop|pause)"|\b(Play|Hear|Preview|Compare|A then B)\b/;
+    const found: string[] = [];
+    for (const { file, text } of all) {
+      if (!file.endsWith('.tsx')) continue;
+      const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      const visit = (node: ts.Node): void => {
+        const opening = ts.isJsxElement(node) ? node.openingElement : ts.isJsxSelfClosingElement(node) ? node : null;
+        if (
+          opening &&
+          opening.tagName.getText() === 'IconButton' &&
+          opening.attributes.properties.some((a) => ts.isJsxAttribute(a) && a.name.getText() === 'repeats')
+        ) {
+          if (PLAYS.test(opening.getText())) found.push(`${file}:${sf.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(sf);
+    }
+    expect(found).toEqual([]);
+  });
+
   // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it. The shared
   // owner stops the older settled play when a newer press is refused (`dawPlayOwner.test.ts`), so every path must hand it that stop when it settles.
   it.each(CALLERS)('%s settles its play with the stop that ends it (so a refused newer play stops it before the app plays)', (file) => {
@@ -119,5 +142,15 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     const settles = [...text.matchAll(/PlayOwner\.settle\(([^)]*(?:\([^)]*\)[^)]*)*)\)/g)];
     expect(settles.length).toBeGreaterThan(0);
     for (const m of settles) expect(m[1]).toMatch(/,\s*\S/);
+  });
+
+  // One tone for a stop that failed (#4117): every surface says it through `stopFailedToast`, an error toast (the narrator must stop the DAW by hand).
+  it.each([
+    'components/proof/inspector/HearIt.tsx',
+    'components/editing/takes/useTakeAudition.ts',
+    'components/editing/follow/useDawTransportSync.ts',
+    'components/pickups/list/usePlayOriginal.ts',
+  ])('%s says a failed stop with stopFailedToast', (file) => {
+    expect(all.find((s) => s.file === file)!.text).toMatch(/stopAndSay\([^;]*\bstopFailedToast\b/s);
   });
 });

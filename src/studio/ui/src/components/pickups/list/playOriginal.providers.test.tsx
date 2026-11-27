@@ -129,7 +129,9 @@ const flush = () =>
     await vi.advanceTimersByTimeAsync(0);
   });
 
+let toast: ReturnType<typeof vi.fn>;
 beforeEach(() => {
+  toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined) as unknown as ReturnType<typeof vi.fn>;
   dawPlayOwner.forget();
   vi.useFakeTimers();
   audio = new FakeAudio();
@@ -318,7 +320,22 @@ describe('a-daw-that-can-play-plays-the-original', () => {
       answer(ok);
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(refused).toContain(sentence);
+    expect(toast).toHaveBeenCalledWith(sentence, { tone: 'error' });
+  });
+  // #4117: Pickups' Stop is bounded like a play: a stop the DAW never answers says where to stop it.
+  it('says where to stop it when the DAW does not answer the stop', async () => {
+    transport = vi.fn((action: string) => (action === 'stop' ? new Promise<DawResult>(() => {}) : Promise.resolve(ok)));
+    const { result } = await mountRead(DAW_SETUPS.reaper);
+    await act(async () => {
+      await result.current.play(pickup(15));
+    });
+    await act(async () => {
+      await result.current.play(pickup(15));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
+    });
+    expect(toast).toHaveBeenCalledWith('REAPER did not answer in time. Stop it in REAPER.', { tone: 'error' });
   });
   it('says a clip that failed once, however often the page draws again', async () => {
     const { result, rerender } = await mountRead(DAW_SETUPS['reaper-off']);

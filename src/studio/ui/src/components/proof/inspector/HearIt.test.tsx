@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -98,6 +98,25 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^Stop hearing it/ }));
     expect(t.api.findingsStopLoop).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(hear()).toBeTruthy());
+  });
+
+  // #4117: Proof's Stop is bounded like a play: a stop the DAW never answers frees the button and says where to stop it.
+  it('a stop that does not answer in PLAY_DEADLINE_MS frees the button and says Stop it in REAPER', async () => {
+    const t = setup(placed(), looping);
+    await userEvent.click(hear());
+    const stopButton = await screen.findByRole('button', { name: /^Stop hearing it/ });
+    t.api.findingsStopLoop = vi.fn(() => new Promise<never>(() => {}));
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await userEvent.click(stopButton, { advanceTimers: vi.advanceTimersByTime });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(PLAY_DEADLINE_MS);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    await waitFor(() => expect(hear()).toBeTruthy());
+    expect(overlay.toast).toHaveBeenCalledWith('REAPER did not answer in time. Stop it in REAPER.', { tone: 'error' });
   });
 
   it('stops the loop it started when the Inspector moves to another note', async () => {

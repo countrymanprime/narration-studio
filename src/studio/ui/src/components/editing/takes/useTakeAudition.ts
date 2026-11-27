@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { dawNameOf, PLAY_DEADLINE_MS } from '../../engine/ShowInDaw';
 import { notAskedSentence } from '../../../studio/dawNames';
 import { previewPlayOwner } from '../../../playback/dawPlayOwner';
-import { stopAndSay } from '../../../playback/stopAndSay';
+import { stopAndSay, stopFailedToast } from '../../../playback/stopAndSay';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { useNewestPlay } from '../../../playback/useNewestPlay';
@@ -86,11 +86,7 @@ export function useTakeAudition({
   /** Stops the DAW's preview; a stop that fails says where to stop it (the one stop-and-say, `playback/stopAndSay.ts`). */
   const stopPreview = useCallback(
     (name: string): void => {
-      void stopAndSay(
-        name,
-        (text) => live.current.notify(text),
-        () => daw.stopPreview().then((result) => (result.ok ? null : result.message)),
-      );
+      void stopAndSay(name, stopFailedToast, () => daw.stopPreview().then((result) => (result.ok ? null : result.message)));
     },
     [daw],
   );
