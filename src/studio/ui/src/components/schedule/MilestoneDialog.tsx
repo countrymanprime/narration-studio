@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { DateField } from '../primitives/DateField';
 import { Field, FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { Select } from '../primitives/Select';
-import { TextField } from '../primitives/TextField';
-import { blankDraft, draftOf, type DraftBounds, type MilestoneDraft } from './draft';
-import { measureOptions } from './measures';
-import type { PlatformCapability } from './profiles';
+import { NumberInput } from '../primitives/NumberInput';
+import { blankDraft, draftOf, fieldRefusals, MAX_N, milestoneFromDraft, type MilestoneDraft, type RefusedField } from './draft';
+import type { LiveBounds } from './liveBounds';
 import { clamp } from '../../clamp';
+import { chaptersOf, measOf, measureOptions, minutesOf } from './measures';
+import type { PlatformCapability } from './profiles';
 
 export type MilestoneDialogProps = {
   /** The milestone being edited; none adds a new one. */
@@ -17,7 +18,8 @@ export type MilestoneDialogProps = {
   /** The project's delivery profile, which decides whether the checkpoint is offered. */
   profileId: string | undefined;
   reportedCapabilities?: readonly PlatformCapability[];
-  bounds: DraftBounds;
+  /** The range of an N as the chapter list stands now, asked when the dialog needs it: the list can be read again while the dialog is open. */
+  bounds: LiveBounds;
   /** Opens with the note ready to type in, from the note button. */
   focusNote?: boolean;
   /** Saves the draft: the sentence saying why it was refused, or nothing when it was saved. */
@@ -25,26 +27,147 @@ export type MilestoneDialogProps = {
   onCancel: () => void;
 };
 
-const digits = (text: string): number => Number(text.replace(/\D/g, ''));
+const FIELD_ORDER = ['name', 'date', 'n'] as const;
+
+/**
+ * Scrolls `body` so the field and the alert under it are both in view when they fit together, and otherwise the field. A box the narrator is typing in (`focused`, when it is
+ * not the field) is kept in view first: it is part of what must fit, and when everything cannot fit it alone stays.
+ */
+function showTogether(body: HTMLElement, field: HTMLElement, alert: HTMLElement, focused: HTMLElement | null = null): void {
+  const view = body.getBoundingClientRect();
+  const boxes = [field, alert, ...(focused && focused !== field ? [focused] : [])].map((el) => el.getBoundingClientRect());
+  const top = Math.min(...boxes.map((r) => r.top));
+  const bottom = Math.max(...boxes.map((r) => r.bottom));
+  if (bottom - top > view.height) {
+    (focused && focused !== field ? focused : field).scrollIntoView?.({ block: 'nearest' });
+    return;
+  }
+  if (top < view.top) body.scrollTop += top - view.top;
+  else if (bottom > view.bottom) body.scrollTop += bottom - view.bottom;
+}
 
 /**
  * Add or change every detail of a milestone (the mock's MilestoneDialog): name, due date, what it measures with its N, a note and done.
- * Saving is one undoable command and Cancel changes nothing. The N is kept between 1 and what the book has.
+ * Saving is one undoable command and Cancel changes nothing. The N is saved as typed, or refused with the range the book allows.
  */
 export function MilestoneDialog({ existing, profileId, reportedCapabilities, bounds, focusNote, onSave, onCancel }: MilestoneDialogProps) {
   const [draft, setDraft] = useState<MilestoneDraft>(() => (existing ? draftOf(existing) : blankDraft()));
-  const [problem, setProblem] = useState<string>();
+  const [refused, setRefused] = useState<{ text: string; field?: RefusedField }>();
+  /** The fields a save was refused about, the newest last: the newest one that is still wrong is the one the alert speaks for. */
+  const [flagged, setFlagged] = useState<readonly RefusedField[]>([]);
+  const live = useSyncExternalStore(bounds.subscribe, bounds.get);
+  const form = useRef<HTMLFormElement>(null);
   const [saving, setSaving] = useState(false);
+  /** A save is out: a second submit before it ends is dropped. A ref, as a render may not have happened between two Enters. */
+  const inFlight = useRef(false);
+  /** The N fields the narrator has typed in: a typed number is never replaced by the starting one, whatever it equals. */
+  const typed = useRef({ chapters: false, minutes: false });
+  const [refusals, setRefusals] = useState(0);
+  /** The field the alert last spoke for and was scrolled to, so a hand-over is told from the refusal that began it. */
+  const lastSpoken = useRef<RefusedField | undefined>(undefined);
   const set = (patch: Partial<MilestoneDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const options = measureOptions(profileId, existing?.measure, reportedCapabilities);
+  /** The N a measure starts at when picked: the default, held to what the book has, so the field shows the number it will save. A milestone's own N and a typed one stay. */
+  const startingN = (measure: string): Partial<MilestoneDraft> => {
+    if (measure !== 'chN' && measure !== 'minN') return {};
+    const field = measure === 'chN' ? 'chapters' : 'minutes';
+    if (typed.current[field] || (existing && measOf(existing.measure) === measure)) return {};
+    const start = measure === 'chN' ? chaptersOf(undefined) : minutesOf(undefined);
+    return { [field]: String(clamp(start, 1, bounds.get()[field])) };
+  };
+  // Each field is judged on its own. Once a save has been refused, the one alert says why about ONE field, and only that field is marked and described by it: the field the newest
+  // refusal was about while it is wrong, else the one refused before it that is still wrong, else the first field still wrong. So a wrong field is never lost, only one is flagged
+  // at a time, and what a field is described by is always its own reason.
+  const problems = fieldRefusals(draft, existing, live);
+  const wrong = FIELD_ORDER.filter((field) => problems[field]);
+  const stillFlagged = flagged.filter((field) => wrong.includes(field));
+  const shown: readonly RefusedField[] = !refused ? [] : stillFlagged.length > 0 ? [stillFlagged[stillFlagged.length - 1]] : wrong.slice(0, 1);
+  // The slot says why a field is wrong, in a sentence that fits its two lines. A refusal about no field (the host's answer, a list that changed) has no length bound and the page has
+  // already raised it as a toast, so it is not written here.
+  const alertText = shown.length > 0 ? problems[shown[0]] : undefined;
+  /** What a field the refusal is about is given: marked invalid and described by the alert. */
+  const about = (field: RefusedField) => ({ invalid: shown.includes(field), describedBy: shown.includes(field) ? 'milestone-problem' : undefined });
+  /** The box a refusal about `field` is read in. */
+  const boxOf = (field: RefusedField | undefined): HTMLElement | null => {
+    if (!form.current) return null;
+    if (field === 'name') return form.current.querySelector<HTMLElement>('input');
+    if (field === 'date') return form.current.querySelector<HTMLElement>('#milestone-due');
+    if (field === 'n') return form.current.querySelector<HTMLElement>('input[aria-label^="How many"]');
+    return null;
+  };
+  /** Scrolls the dialog's body so the field and the alert are both in view when they fit together, and otherwise the field; with no field, the alert. */
+  const scrollToReason = (field: RefusedField | undefined) => {
+    const alert = form.current?.querySelector<HTMLElement>('[role="alert"]');
+    const body = form.current?.firstElementChild as HTMLElement | null | undefined;
+    const target = boxOf(field);
+    if (!alert) return;
+    const active = document.activeElement;
+    const typing =
+      active instanceof HTMLElement && body?.contains(active) && active !== target && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) ? active : null;
+    if (target && body) showTogether(body, target, alert, typing);
+    else if (typing && body) showTogether(body, typing, alert);
+    else alert.scrollIntoView?.({ block: 'nearest' });
+  };
+  // A refusal is brought into view: focus goes to the field it is about, then the field and its reason are scrolled to (see `showTogether`). A refusal about no field (the list changed)
+  // scrolls the alert into view.
+  useEffect(() => {
+    if (!refusals || !refused?.field) return;
+    boxOf(refused.field)?.focus({ preventScroll: true });
+    scrollToReason(refused?.field);
+    lastSpoken.current = speaking;
+    // Once per refusal: editing the draft afterwards must not pull focus back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refusals]);
+  // While a reason is showing, a window resize scrolls to it again: the body's height changed under it.
+  const speaking = shown[0] ?? refused?.field;
+  // The reason moves to the next wrong field without a save (a name typed makes the N the one shown): that field and its reason are scrolled to, the box being typed in kept in view.
+  useEffect(() => {
+    if (speaking && refusals && speaking !== lastSpoken.current) scrollToReason(speaking);
+    lastSpoken.current = speaking;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speaking]);
+  const showing = alertText !== undefined;
+  useEffect(() => {
+    if (!showing) return;
+    const again = () => scrollToReason(speaking);
+    window.addEventListener('resize', again);
+    return () => window.removeEventListener('resize', again);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showing, speaking]);
+  /** What a "first N" box is given: the number while the text is one, and the text itself while it is not, so a wrong N stays as typed until it is saved or fixed. */
+  const nField = (field: 'chapters' | 'minutes') => {
+    const text = draft[field];
+    const isCount = /^[1-9]\d*$/.test(text.trim());
+    return {
+      value: isCount ? Number(text.trim()) : 1,
+      heldText: isCount ? undefined : text,
+      onValueChange: (n: number) => {
+        typed.current[field] = true;
+        set({ [field]: String(n) });
+      },
+      onRefused: (text: string) => {
+        typed.current[field] = true;
+        set({ [field]: text });
+      },
+    };
+  };
   const save = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
-    setProblem(await onSave(draft));
+    const text = await onSave(draft);
+    const made = milestoneFromDraft(draft, existing, bounds.get());
+    const field = 'refusal' in made && made.refusal === text ? made.field : undefined;
+    setRefused(text ? { text, ...(field ? { field } : {}) } : undefined);
+    if (text && field) setFlagged((now) => [...now.filter((f) => f !== field), field]);
+    if (text) setRefusals((n) => n + 1);
+    inFlight.current = false;
     setSaving(false);
   };
   return (
     /* The dialog's 80dvh less its header and the body's padding: the fields scroll inside it and the footer stays on screen (as Check recordings does). */
     <form
+      ref={form}
       className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3.5"
       onSubmit={(event) => {
         event.preventDefault();
@@ -52,63 +175,60 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
       }}
       // Ctrl+Enter (Cmd+Enter on a Mac) saves from anywhere in the form, the note box included, where a plain Enter is a new line.
       onKeyDown={(event) => {
-        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !saving) {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
           event.preventDefault();
           void save();
         }
       }}
     >
       <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3.5 overflow-y-auto">
-        <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} />
+        <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} {...about('name')} />
         <div>
           <label className={FIELD_LABEL_CLASSES} htmlFor="milestone-due">
             Due
           </label>
-          <DateField id="milestone-due" value={draft.date} onChange={(date) => set({ date })} className="mt-2" />
+          <DateField
+            id="milestone-due"
+            value={draft.date}
+            onChange={(date) => set({ date })}
+            className="mt-2"
+            aria-invalid={shown.includes('date') ? true : undefined}
+            aria-describedby={shown.includes('date') ? 'milestone-problem' : undefined}
+          />
         </div>
         <div>
           <span className={FIELD_LABEL_CLASSES} id="milestone-measure-label">
             Measures
           </span>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <Select
               label="What the milestone measures"
               aria-describedby="milestone-measure-label"
               value={draft.measure}
-              onChange={(measure) => set({ measure })}
+              onChange={(measure) => set({ measure, ...startingN(measure) })}
               options={options}
               className="min-w-0 flex-1"
             />
-            {draft.measure === 'chN' && (
-              <TextField
-                label="How many chapters"
-                mono
-                inputMode="numeric"
-                value={String(draft.chapters)}
-                onChange={(text) => set({ chapters: digits(text) })}
-                onBlur={() => set({ chapters: clamp(draft.chapters, 1, bounds.chapters) })}
-                className="w-20!"
-              />
-            )}
-            {draft.measure === 'minN' && (
-              <TextField
-                label="How many finished minutes"
-                mono
-                inputMode="numeric"
-                value={String(draft.minutes)}
-                onChange={(text) => set({ minutes: digits(text) })}
-                onBlur={() => set({ minutes: clamp(draft.minutes, 1, bounds.minutes) })}
+            {(draft.measure === 'chN' || draft.measure === 'minN') && (
+              <NumberInput
+                label={draft.measure === 'chN' ? 'How many chapters' : 'How many finished minutes'}
+                {...nField(draft.measure === 'chN' ? 'chapters' : 'minutes')}
+                min={1}
+                holdRefused
+                max={clamp(live[draft.measure === 'chN' ? 'chapters' : 'minutes'], 1, MAX_N)}
+                stepFrom={1}
+                invalid={shown.includes('n')}
+                aria-describedby={shown.includes('n') ? 'milestone-problem' : undefined}
                 className="w-20!"
               />
             )}
           </div>
+          {/* The reason's slot is always drawn, empty until a refusal, two lines tall: the buttons below never move as it comes and goes (the error-shift rule). It is a live region, so its text is read when it appears. */}
+          <p id="milestone-problem" role="alert" className="mt-1.5 min-h-[2.6rem] text-[0.88rem] leading-[1.35] text-[var(--danger-text)]">
+            {alertText}
+          </p>
         </div>
         <Field label="Note" textarea value={draft.note} onChange={(note) => set({ note })} autoFocus={focusNote} />
-        {problem && (
-          <p role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
-            {problem}
-          </p>
-        )}
       </div>
       {/* Done shares the button row, at its left (R3SH-9), rather than a row of its own over a half-empty one. */}
       <div className="flex flex-wrap items-center justify-end gap-2">

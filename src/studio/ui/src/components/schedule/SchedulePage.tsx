@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ProductionMilestone, ProductionPayment, ProductionPlan } from '../../api/contracts/production';
 import { openModalLayer } from '../../input/targets';
@@ -20,11 +20,12 @@ import { Panel } from '../primitives/Panel';
 import { ContractPanel } from './ContractPanel';
 import { agoText, daysText, dueDateProblem, fmtDY, isIsoDate, parseIso } from './dates';
 import { milestoneFromDraft } from './draft';
+import { createLiveBounds } from './liveBounds';
 import { maxMinutes } from './measures';
 import { MilestoneTable } from './MilestoneTable';
 import { openMilestoneDialog } from './openMilestoneDialog';
 import { useEffectiveWph } from './useEffectiveWph';
-import { calc } from './progress';
+import { calc, numberedCount } from './progress';
 import { useScheduleReading } from './useScheduleReading';
 import { saveMilestonesCommand, setAmountCommand, setDueDateCommand, setPaymentCommand } from './scheduleCommands';
 import { VerdictPill, verdictLabel } from './VerdictPill';
@@ -78,6 +79,13 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   // The rows whose change is on its way to the host: a second press on the same row while one is pending is the same press.
   const pending = useRef(new Set<string>());
+  /** The close of the milestone dialog this page opened: it reads this page's chapters and saves through this page, so it goes when the page does. */
+  const closeDialog = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => () => closeDialog.current?.(), []);
+  /** The range of an N as the chapter list stands now: a dialog open while the list is read again checks the newest. */
+  const liveBounds = useRef(createLiveBounds({ chapters: 0, minutes: 0 })).current;
+  // Told after every draw, so a dialog open over the page follows the chapter list when it is read again.
+  useEffect(() => liveBounds.notify());
 
   if (state.phase === 'loading') return <ScheduleSkeleton />;
   if (state.phase === 'error') return <LoadError title="Schedule" message={state.message} retry={() => void reload()} />;
@@ -149,7 +157,8 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   // A plan edited by hand can hold a date that is not one; the page treats it as no due date and says so.
   const due = plan.deadline && isIsoDate(plan.deadline) ? parseIso(plan.deadline) : null;
   const k = calc(chapters, day, due, openLines?.length ?? 0, wph);
-  const bounds = { chapters: chapters.filter((c) => c.kind === 'narration').length, minutes: maxMinutes(k.words, wph) };
+  const bounds = { chapters: numberedCount(chapters), minutes: maxMinutes(k.words, wph) };
+  liveBounds.set(bounds);
   const same = (a: ProductionMilestone | undefined, b: ProductionMilestone | undefined) => JSON.stringify(a) === JSON.stringify(b);
   const sameList = (a: readonly ProductionMilestone[], b: readonly ProductionMilestone[]) => a.length === b.length && a.every((m, i) => same(m, b[i]));
   const CHANGED = 'The milestones changed since this was shown. Look at them again and redo it.';
@@ -158,13 +167,13 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
   const edit = (index: number | null, focus?: 'note') => {
     const opened = plan.milestones;
     const existing = index === null ? undefined : opened[index];
-    openMilestoneDialog({
+    closeDialog.current = openMilestoneDialog({
       existing,
       profileId,
-      bounds,
+      bounds: liveBounds,
       focusNote: focus === 'note',
       onSave: async (draft) => {
-        const made = milestoneFromDraft(draft, existing, bounds);
+        const made = milestoneFromDraft(draft, existing, liveBounds.get());
         if ('refusal' in made) return made.refusal;
         // An edit saves the whole list, so one that changed since the dialog opened would be overwritten: refuse it. An add only appends.
         const stale = index === null ? undefined : (latest: ProductionPlan) => (sameList(latest.milestones, opened) ? undefined : CHANGED);

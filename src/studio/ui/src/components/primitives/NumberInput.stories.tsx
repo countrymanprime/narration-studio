@@ -105,3 +105,40 @@ export const ArrowLandsOnTheNextStep: Story = {
     await expect(args.onValueChange).toHaveBeenLastCalledWith(4);
   },
 };
+
+// `holdRefused` with `onRefused` and `heldText`, for a form that says why a number is wrong and never changes it: 99 is handed over as typed, stays in the
+// box when focus leaves (it is not clamped to 12), and `invalid` marks the box while it holds one.
+function HeldRefusal(props: { label: string }) {
+  const [value, setValue] = useState(3);
+  const [held, setHeld] = useState<string>();
+  return (
+    <div className="flex max-w-60 flex-wrap items-center gap-2">
+      <NumberInput
+        label={props.label}
+        min={1}
+        max={12}
+        value={value}
+        heldText={held}
+        holdRefused
+        invalid={held !== undefined}
+        onValueChange={(next) => {
+          setValue(next);
+          setHeld(undefined);
+        }}
+        onRefused={setHeld}
+      />
+    </div>
+  );
+}
+
+export const HoldsARefusedNumber: Story = {
+  render: () => <HeldRefusal label="Count" />,
+  play: async ({ canvasElement }) => {
+    const field = within(canvasElement).getByRole('textbox', { name: 'Count' });
+    await userEvent.clear(field);
+    await userEvent.type(field, '99');
+    await userEvent.tab();
+    await expect(field).toHaveValue('99');
+    await expect(field).toHaveAttribute('aria-invalid', 'true');
+  },
+};

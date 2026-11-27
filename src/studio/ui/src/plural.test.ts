@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCount, plural, pluralWord } from './plural';
+import { formatCount, plural, pluralOrBare, pluralWord } from './plural';
 
 describe('plural', () => {
   it('says one for exactly one and the many form for everything else, zero included', () => {
@@ -29,5 +29,12 @@ describe('formatCount', () => {
   it('groups thousands and reads 0 for a count that is missing', () => {
     expect([0, 999, 1000, 5002, 7_995_521].map(formatCount)).toEqual(['0', '999', '1,000', '5,002', '7,995,521']);
     expect([Number.NaN, Number.POSITIVE_INFINITY, undefined as unknown as number].map(formatCount)).toEqual(['0', '0', '0']);
+  });
+});
+
+describe('pluralOrBare', () => {
+  it('is the bare noun for one and the counted plural otherwise', () => {
+    expect([0, 1, 2, 1234].map((n) => pluralOrBare(n, 'chapter'))).toEqual(['0 chapters', 'chapter', '2 chapters', '1,234 chapters']);
+    expect(pluralOrBare(2, 'punch', 'punches')).toBe('2 punches');
   });
 });

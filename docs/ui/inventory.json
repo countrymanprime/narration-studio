@@ -919,6 +919,7 @@
         "Filled",
         "Empty",
         "Disabled",
+        "Invalid",
         "With Width Class",
         "Reports The Iso Date",
         "Disabled Takes No Input"
@@ -1223,6 +1224,7 @@
         "Textarea Disabled Is Inert",
         "With Hint",
         "With Error",
+        "Invalid With Message Elsewhere",
         "Textarea With Hint And Error",
         "Focused On Mount",
         "Textarea Compact Hidden Label"
@@ -2380,7 +2382,8 @@
         "Empty Is Not Set",
         "Emptied Reports Null",
         "Settle Reports On Enter",
-        "Arrow Lands On The Next Step"
+        "Arrow Lands On The Next Step",
+        "Holds A Refused Number"
       ],
       "consumers": [
         "src/components/booth/frame/LevelsMenu.tsx",
@@ -2389,6 +2392,7 @@
         "src/components/editing/effects/CoverageStrip.tsx",
         "src/components/editing/effects/EffectSettings.tsx",
         "src/components/editing/range/replace/ReplaceDialog.tsx",
+        "src/components/schedule/MilestoneDialog.tsx",
         "src/components/settings/value/SettingNumber.tsx"
       ],
       "a11yDebt": false
@@ -4098,7 +4102,6 @@
         "src/components/primitives/NumberInput.tsx",
         "src/components/primitives/SearchField.tsx",
         "src/components/schedule/ContractPanel.tsx",
-        "src/components/schedule/MilestoneDialog.tsx",
         "src/components/script/bookmarks/ui/BookmarkEditor.tsx",
         "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/script/page/tools/select/MarksDialog.tsx",

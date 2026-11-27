@@ -24,6 +24,7 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 - Textarea Disabled Is Inert
 - With Hint
 - With Error
+- Invalid With Message Elsewhere
 - Textarea With Hint And Error
 - Focused On Mount
 - Textarea Compact Hidden Label

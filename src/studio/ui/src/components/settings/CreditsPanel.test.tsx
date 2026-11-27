@@ -917,6 +917,35 @@ describe('Retail sample', () => {
     expect((await api.creditsRetailSample()).sample).toMatchObject({ startLine: 1, endLine: 3 });
   });
 
+  it.each([
+    [1, '1 word, about'],
+    [1234, '1,234 words, about'],
+  ])('writes a %s word sample with its noun in the singular or plural (never "1 words")', async (words, expected) => {
+    const base = createMockApi({});
+    const chapter = withoutCredits((await base.manuscriptChapters()).chapters)[1];
+    const [first] = chapter.paragraphIds ?? [];
+    const sample = {
+      startParagraphId: first.id,
+      endParagraphId: first.id,
+      startChapterId: chapter.id,
+      startLine: 1,
+      endChapterId: chapter.id,
+      endLine: 1,
+      words,
+      seconds: 30,
+    };
+    const api = { ...base, creditsRetailSample: async () => ({ sample, problem: '' }) };
+    render(
+      <ApiProvider api={api}>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          <CreditsPanel notify={vi.fn()} />
+        </UnsavedDraftsProvider>
+      </ApiProvider>,
+    );
+    expect(await screen.findByText(new RegExp(`\\(${expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))).toBeTruthy();
+  });
+
   it("offers only the book's own chapters to start and end in, never the credits", async () => {
     renderPanel();
     const starts = await screen.findByRole('combobox', { name: 'Sample starts in' });
