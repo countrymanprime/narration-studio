@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { ProductionMilestone, ProductionPayment, ProductionPlan } from '../../api/contracts/production';
+import { openModalLayer } from '../../input/targets';
 import { overlay } from '../../overlay/overlayService';
 import { isolatedIfRtl } from '../../visibleText';
 import { useOpenPickups } from '../pickups/useOpenPickups';
@@ -32,11 +33,14 @@ import { WorkedOut } from './WorkedOut';
 /** How long a write waits for the one before it to be answered, before it goes ahead anyway. */
 export const WRITE_WAIT_MS = 15_000;
 
-/** After the next paint, puts focus on the first selector that matches, if focus has fallen to the page (a button that was pressed has gone). */
+/**
+ * After the next paint, puts focus on the first selector that matches, if focus has fallen to the page (a button that was pressed has gone). Not while a modal layer is open (any dialog or alert
+ * dialog): the page is behind it, and a toast's Undo pressed over one (the Add milestone dialog, say) leaves focus to the toast's hand-back, which stays inside the layer.
+ */
 function focusSoon(...selectors: string[]): void {
   window.requestAnimationFrame(() => {
     const active = document.activeElement;
-    if (active && active !== document.body) return;
+    if ((active && active !== document.body) || openModalLayer()) return;
     for (const selector of selectors) {
       const el = document.querySelector<HTMLElement>(selector);
       if (el) return el.focus();
