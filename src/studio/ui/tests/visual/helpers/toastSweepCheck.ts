@@ -18,7 +18,7 @@ function openIsolates(text: string): number {
 }
 
 /** The text with every isolate (U+2066 to U+2068 \u2026 U+2069), its controls and what it holds removed: what the browser orders with the surrounding words. */
-export function outsideIsolates(text: string): string {
+function outsideIsolates(text: string): string {
   let depth = 0;
   let outside = '';
   for (const char of text) {

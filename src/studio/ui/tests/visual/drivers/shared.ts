@@ -336,7 +336,7 @@ export async function productionLoaded(page: Page): Promise<void> {
 // A chapter's row in the Production pipeline. A prefix match on the Chapter cell ("Chapter 1" and "Chapter 1 — Down the Rabbit-Hole"),
 // with a word boundary so "Chapter 1" never matches "Chapter 10".
 // A string names an English chapter ("Chapter 4", ended by a `\b` word boundary); a RegExp is used as given, for a title that has no ASCII word boundary (an Arabic one).
-export function boardRow(page: Page, chapter: string | RegExp): Locator {
+function boardRow(page: Page, chapter: string | RegExp): Locator {
   return page
     .getByRole('table', { name: 'Chapter pipeline' })
     .getByRole('row')

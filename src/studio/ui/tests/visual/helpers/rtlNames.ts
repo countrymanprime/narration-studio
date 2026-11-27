@@ -1,8 +1,8 @@
 import type { Page } from '@playwright/test';
 
-// The mock build's names, swapped for long Arabic ones as the page loads (#4129): the mock has no option to rename its chapters, tracks,
-// characters or microphones, and every toast that carries one of them is a sentence the narrator reads, so the sweep
-// (toast-rtl-sweep.spec.ts) runs on this data. The swap is made on the served bundle (`page.route`), not in the repo's fixtures: the
+// The mock build's names, swapped for long Arabic ones as the page loads (#4129): every toast that carries one of them is a sentence the narrator reads, so the sweep
+// (toast-rtl-sweep.spec.ts) runs on this data. No existing seam does it: none renames the REAPER mock's tracks or the Story Bible's characters, and
+// `?mockBooth=rtl` replaces the whole manuscript, which the stage and chapter-link flows drive. The swap is made on the served bundle (`page.route`), not in the repo's fixtures: the
 // fixtures stay what the rest of the suite measures, and the names are in the page, not in a test's string.
 // Each Arabic name is 20 letters or more, so a toast whose builder forgot to isolate one has more right-to-left letters than the
 // English words round it. Written as escapes: no right-to-left character stands in this file.
