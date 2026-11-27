@@ -7,7 +7,7 @@ const ASK_FOR_MS = 20_000;
  * The most the Booth waits for the DAW's answer before it draws the chapter it opens on. It is above the host's own 3 s limit on a DAW call, so a DAW
  * that answers decides before anything is drawn, and a host that never answers cannot hold the page.
  */
-const FIRST_ANSWER_MAX_MS = 3500;
+export const FIRST_ANSWER_MAX_MS = 3500;
 
 /**
  * Keeps `latch` true from the first time `acted` is true: the narrator acted in the Booth (a take started or ran), and a take that has since ended does not

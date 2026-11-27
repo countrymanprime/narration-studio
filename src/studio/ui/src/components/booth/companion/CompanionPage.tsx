@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
+import type { TeleprompterState } from '../../../api/contracts/teleprompter';
 import type { CreditsRenderResult, GuideEntity, GuideType, ManuscriptChapter, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
-import { readBoothQuery } from '../page/boothQuery';
+import { boothQuery, readBoothQuery } from '../page/boothQuery';
 import { creditsKindOf } from '../page/useBoothData';
-import { loadLastPlace } from '../page/lastPlace';
+import { loadLastPlace, type LastPlace } from '../page/lastPlace';
+import { openingChapter, readLastReadWithinCap } from '../openingChapter';
+import { useFollowDawOnOpen } from '../page/useDawFollow';
 import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
-import { ACTIVE_PHASES } from '../useTeleprompterSession';
 import { CompanionSkeleton } from './CompanionSkeleton';
 import { CompanionHost } from './CompanionHost';
 import { addressPath } from '../../../navigation/address';
@@ -26,28 +28,32 @@ type Props = {
 
 /**
  * The Companion's route (`/companion?chapter=<id>`; the credits are chapters, and `?credits=opening` is the old spelling of `?chapter=credits-opening`): the chapter rule of the old Booth page without its
- * picker. With neither in the address it reads the chapter a running session is on, else the chapter the Booth remembers for this project, else the last chapter read, else the first; an unknown
+ * picker. With none in the address the chapter is `openingChapter`'s, the same order as the Booth's (a running session, the Booth's remembered chapter, the DAW's, the last read, the first with text); an unknown
  * chapter sends the narrator to `/booth`.
  */
 export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
   const api = useApi();
   const readChapters = useReadChapters();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [entities, setEntities] = useState<GuideEntity[]>(NO_ENTITIES);
   const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
   const [notes, setNotes] = useState<ManuscriptNote[]>(NO_NOTES);
-  const [fallback, setFallback] = useState('');
+  // What `openingChapter` needs besides the chapters and the address, read with them: the reading session, the Booth's remembered place, the last-read chapter.
+  const [host, setHost] = useState<TeleprompterState>();
+  const [kept, setKept] = useState<LastPlace | null>(null);
+  const [lastRead, setLastRead] = useState<string>();
   const [credits, setCredits] = useState<CreditsRenderResult>();
   // The credits chapter read last, with text or without, so empty credits are not waited for for ever.
   const [creditsReadOf, setCreditsReadOf] = useState<string>();
 
   useEffect(() => {
     let live = true;
+    const lastReadRead = readLastReadWithinCap(api);
     void Promise.all([
       readChapters(),
-      api.readerState().catch(() => undefined),
+      lastReadRead.result,
       api.teleprompterState().catch(() => undefined),
       api.guideEntities().catch(() => NO_ENTITIES),
       api.guideTypes().catch(() => NO_TYPES),
@@ -60,21 +66,27 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
         setEntities(nextEntities);
         setTypes(nextTypes);
         setNotes(nextNotes);
-        const running = host && ACTIVE_PHASES.includes(host.phase) ? narration.find((item) => item.id === host.chapter)?.id : undefined;
-        // The Booth's remembered chapter, used when it is in this list.
-        const kept = projectFolder ? loadLastPlace(projectFolder)?.chapterId : undefined;
-        const remembered = kept ? narration.find((item) => item.id === kept)?.id : undefined;
-        const last = narration.find((item) => item.id === reader?.activeChapter || item.title === reader?.activeChapter);
-        setFallback(running || remembered || (last ?? narration.find((item) => !isCreditsChapter(item)) ?? narration[0])?.id || '');
+        setHost(host);
+        setKept(projectFolder ? loadLastPlace(projectFolder) : null);
+        setLastRead(reader);
       })
       .catch(() => live && setChapters([]));
     return () => {
       live = false;
+      lastReadRead.cancel();
     };
   }, [api, readChapters, projectFolder]);
 
   const asked = readBoothQuery(params)?.chapter;
-  const chosen = asked ?? fallback;
+  const chapterIds = useMemo(() => chapters?.map((item) => item.id), [chapters]);
+  // The one order for the chapter to open on, the Booth's too (`openingChapter`). Where it reaches the DAW the DAW is asked once, and nothing is drawn until it answers.
+  const opening = openingChapter({ asked: asked ?? null, host, kept, chapters, lastRead, daw: 'unasked' });
+  const followingDaw = useFollowDawOnOpen({
+    enabled: opening === 'ask-daw',
+    chapterIds,
+    onChapter: (chapterId) => setParams(new URLSearchParams(boothQuery({ chapter: chapterId }).slice(1)), { replace: true }),
+  });
+  const chosen = openingChapter({ asked: asked ?? null, host, kept, chapters, lastRead, daw: 'none' }).chapterId;
   const chapter = chapters?.find((item) => item.id === chosen);
   // A credits chapter has no paragraphs; it reads the credits' rendered text.
   const creditsKind = chapter && isCreditsChapter(chapter) ? creditsKindOf(chapter) : undefined;
@@ -100,6 +112,7 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
   }, [api, creditsKind]);
 
   if (!chapters) return <CompanionSkeleton />;
+  if (followingDaw) return <CompanionSkeleton status="Opening your chapter…" />;
   // A chapter the book does not list (a credits file with no template included) goes to the Booth with its id, which says so in its own panel.
   if (!chapter) return <Navigate to={asked ? addressPath({ page: 'booth', target: { chapter: asked } }) : '/booth'} replace />;
   const source: BoothSource | undefined = creditsKind
