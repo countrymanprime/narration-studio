@@ -29,15 +29,17 @@ export type MilestoneDialogProps = {
 
 const FIELD_ORDER = ['name', 'date', 'n'] as const;
 
-/** Scrolls `body` so the field and the alert under it are both in view when they fit together, and otherwise keeps the field in view. */
-function showTogether(body: HTMLElement, field: HTMLElement, alert: HTMLElement): void {
+/**
+ * Scrolls `body` so the field and the alert under it are both in view when they fit together, and otherwise the field. A box the narrator is typing in (`focused`, when it is
+ * not the field) is kept in view first: it is part of what must fit, and when everything cannot fit it alone stays.
+ */
+function showTogether(body: HTMLElement, field: HTMLElement, alert: HTMLElement, focused: HTMLElement | null = null): void {
   const view = body.getBoundingClientRect();
-  const a = field.getBoundingClientRect();
-  const b = alert.getBoundingClientRect();
-  const top = Math.min(a.top, b.top);
-  const bottom = Math.max(a.bottom, b.bottom);
+  const boxes = [field, alert, ...(focused && focused !== field ? [focused] : [])].map((el) => el.getBoundingClientRect());
+  const top = Math.min(...boxes.map((r) => r.top));
+  const bottom = Math.max(...boxes.map((r) => r.bottom));
   if (bottom - top > view.height) {
-    field.scrollIntoView?.({ block: 'nearest' });
+    (focused && focused !== field ? focused : field).scrollIntoView?.({ block: 'nearest' });
     return;
   }
   if (top < view.top) body.scrollTop += top - view.top;
@@ -61,6 +63,8 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
   /** The N fields the narrator has typed in: a typed number is never replaced by the starting one, whatever it equals. */
   const typed = useRef({ chapters: false, minutes: false });
   const [refusals, setRefusals] = useState(0);
+  /** The field the alert last spoke for and was scrolled to, so a hand-over is told from the refusal that began it. */
+  const lastSpoken = useRef<RefusedField | undefined>(undefined);
   const set = (patch: Partial<MilestoneDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const options = measureOptions(profileId, existing?.measure, reportedCapabilities);
   /** The N a measure starts at when picked: the default, held to what the book has, so the field shows the number it will save. A milestone's own N and a typed one stay. */
@@ -95,7 +99,11 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     const body = form.current?.firstElementChild as HTMLElement | null | undefined;
     const target = boxOf(field);
     if (!alert) return;
-    if (target && body) showTogether(body, target, alert);
+    const active = document.activeElement;
+    const typing =
+      active instanceof HTMLElement && body?.contains(active) && active !== target && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) ? active : null;
+    if (target && body) showTogether(body, target, alert, typing);
+    else if (typing && body) showTogether(body, typing, alert);
     else alert.scrollIntoView?.({ block: 'nearest' });
   };
   // A refusal is brought into view: focus goes to the field it is about, then the field and its reason are scrolled to (see `showTogether`). A refusal about no field (the list changed)
@@ -104,11 +112,18 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     if (!refusals) return;
     boxOf(refused?.field)?.focus({ preventScroll: true });
     scrollToReason(refused?.field);
+    lastSpoken.current = speaking;
     // Once per refusal: editing the draft afterwards must not pull focus back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refusals]);
   // While a reason is showing, a window resize scrolls to it again: the body's height changed under it.
   const speaking = shown[0] ?? refused?.field;
+  // The reason moves to the next wrong field without a save (a name typed makes the N the one shown): that field and its reason are scrolled to, the box being typed in kept in view.
+  useEffect(() => {
+    if (speaking && refusals && speaking !== lastSpoken.current) scrollToReason(speaking);
+    lastSpoken.current = speaking;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speaking]);
   const showing = alertText !== undefined;
   useEffect(() => {
     if (!showing) return;

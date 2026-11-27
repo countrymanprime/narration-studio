@@ -578,4 +578,59 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     add(d);
     check();
   });
+
+  /** Lays out the body as `view`, and each box by its aria-label or role as [top, bottom]; anything else is [0, 0]. */
+  const rects = (view: [number, number], by: (el: Element) => [number, number] | undefined) =>
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const [top, bottom] = by(this) ?? [0, 0];
+      return { top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}) };
+    });
+
+  it('R23: when the shown field changes without a save, it and its reason are scrolled to', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '99');
+    add(d);
+    await d.findByRole('alert');
+    const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
+    rects([0, 120], (el) =>
+      el === body
+        ? [0, 120]
+        : el.getAttribute('role') === 'alert'
+          ? [100, 130]
+          : /^How many/.test(el.getAttribute('aria-label') ?? '')
+            ? [10, 46]
+            : el === document.activeElement
+              ? [20, 56]
+              : undefined,
+    );
+    expect(body.scrollTop).toBe(0);
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Typed' } });
+    await waitFor(() => expect(body.scrollTop).toBe(10));
+  });
+
+  it('R24: a window resize never moves the box being typed in out of view', async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('Named', '2026-10-10', '99');
+    add(d);
+    await reasonOf(d);
+    const note = d.getByLabelText('Note');
+    note.focus();
+    const body = note.closest('form')!.firstElementChild as HTMLElement;
+    rects([66, 152], (el) =>
+      el === body
+        ? [66, 152]
+        : el === note
+          ? [188, 268]
+          : el.getAttribute('role') === 'alert'
+            ? [100, 130]
+            : /^How many/.test(el.getAttribute('aria-label') ?? '')
+              ? [60, 96]
+              : undefined,
+    );
+    fireEvent(window, new Event('resize'));
+    expect(scrolled.mock.instances.at(-1)).toBe(note);
+    expect(body.scrollTop).toBe(0);
+  });
 });
