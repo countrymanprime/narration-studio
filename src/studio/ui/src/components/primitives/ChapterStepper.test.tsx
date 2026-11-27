@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterStepper, ALL_CHAPTERS } from './ChapterStepper';
@@ -229,38 +229,90 @@ describe('ChapterStepper chapter list focus while it leaves', () => {
   afterEach(() => {
     proto.getAnimations = original;
   });
+  const leavingMenu = () => document.querySelector('[role="menu"][data-ending-style], [role="menu"][data-closed]');
 
-  async function escapeWhileLeaving() {
+  // The list is left with Escape and its exit is held until `end()`, as the Booth's 120 ms exit is while a key arrives.
+  async function escapeWhileLeaving(onChange: (id: string) => void = vi.fn()) {
     let endExit: () => void = () => {};
     const finished = new Promise<void>((resolve) => (endExit = resolve));
     proto.getAnimations = () => [{ finished }];
     render(
       <main tabIndex={-1}>
-        <ChapterStepper chapters={chapters} value="2" onChange={vi.fn()} onStep={vi.fn()} />
+        <ChapterStepper chapters={chapters} value="2" onChange={onChange} onStep={vi.fn()} />
       </main>,
     );
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /Change chapter/ }));
     await screen.findByRole('menu');
     await user.keyboard('{Escape}');
-    expect(document.querySelector('[role="menu"][data-ending-style], [role="menu"][data-closed]')).not.toBeNull();
-    return async () => {
+    expect(leavingMenu()).not.toBeNull();
+    const end = async () => {
       endExit();
       await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
       await new Promise((resolve) => setTimeout(resolve, 30));
     };
+    return { end, user };
   }
 
   it('gives focus back to the chapter button when the exit ends and no key took it', async () => {
-    const end = await escapeWhileLeaving();
+    const { end } = await escapeWhileLeaving();
     await end();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: /Change chapter/ }));
   });
 
   it('hands focus to <main> when a key took the page focus while it was leaving', async () => {
-    const end = await escapeWhileLeaving();
+    const { end } = await escapeWhileLeaving();
     pageTakesFocusFromLeavingPopups();
     await end();
     expect(document.activeElement).toBe(document.querySelector('main'));
+  });
+
+  it('a list reopened during its exit after a key marked it gives focus back to the chapter button on Escape', async () => {
+    const { end, user } = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    // The same popup element stays while it leaves, so the mark would stay with it: opening the list again clears it.
+    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    await waitFor(() => expect(leavingMenu()).toBeNull());
+    await user.keyboard('{Escape}');
+    await end();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Change chapter/ }));
+  });
+
+  describe('an item of a list that is leaving', () => {
+    // Space or Enter on the highlighted item (the keyboard left it focused while the exit ran) and a click both pick it: a chord's Space or a footswitch Enter
+    // pressed inside the exit must not (#4125, the Booth: Ctrl+Alt+Space picked "Opening credits" and asked "Stop recording?").
+    it.each([
+      ['Space', { key: ' ', code: 'Space' }],
+      ['Enter', { key: 'Enter', code: 'Enter' }],
+      ['NumpadEnter', { key: 'Enter', code: 'NumpadEnter' }],
+    ])('ignores %s on it', async (_name, key) => {
+      const onChange = vi.fn();
+      const { end } = await escapeWhileLeaving(onChange);
+      const item = screen.getAllByRole('menuitemradio')[0];
+      fireEvent.keyDown(item, key);
+      fireEvent.keyUp(item, key);
+      expect(onChange).not.toHaveBeenCalled();
+      await end();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('ignores a click on it', async () => {
+      const onChange = vi.fn();
+      const { end } = await escapeWhileLeaving(onChange);
+      fireEvent.click(screen.getAllByRole('menuitemradio')[0]);
+      expect(onChange).not.toHaveBeenCalled();
+      await end();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('is still picked while the list is open, and when it is opened again during the exit', async () => {
+      const onChange = vi.fn();
+      const { end, user } = await escapeWhileLeaving(onChange);
+      await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+      await waitFor(() => expect(leavingMenu()).toBeNull());
+      await user.click(screen.getAllByRole('menuitemradio')[0]);
+      expect(onChange).toHaveBeenCalledWith('1');
+      await end();
+    });
   });
 });

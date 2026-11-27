@@ -112,6 +112,69 @@ for (const lag of [20, 60]) {
   });
 }
 
+const alertQuestion = (page: Page) => page.getByRole('alertdialog', { name: 'Stop recording?' });
+const coldRunning = (page: Page) => page.getByText('Mic on · cold read', { exact: true });
+
+/** The chapter list opened from the keyboard (Enter on its button): the highlighted item keeps focus while the list leaves, so it is what a key pressed inside the exit lands on. */
+async function leaveChapterListFromKeyboard(page: Page, lag: number): Promise<string | null> {
+  const label = await chapterButton(page).getAttribute('aria-label');
+  await chapterButton(page).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[role="menuitemradio"]:focus')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(lag);
+  await expect(leavingNow(page)).toHaveCount(1);
+  return label;
+}
+
+// The same list left from the keyboard: the chord's Space went to the highlighted item and Base UI clicked it, so the chapter changed, "Stop recording?" opened with "Keep recording"
+// focused and the footswitch's first Enter pressed it (the second stopped the take). A list that is leaving takes no press.
+for (const lag of [20, 60]) {
+  test(`${lag} ms after leaving the chapter list from the keyboard in Cold read, Ctrl+Alt+Space starts the take, picks nothing and the first Enter stops it`, async ({
+    page,
+  }) => {
+    await openBoothWithMotion(page);
+    await recordOptions(page).click();
+    await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(optionsDialog(page)).toHaveCount(0);
+    await expect(recordOptions(page)).toBeFocused();
+    const before = await leaveChapterListFromKeyboard(page, lag);
+    await page.keyboard.press('Control+Alt+Space');
+    await expectEnterStopsTheTake(page, 'Enter');
+    await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
+    await expect(alertQuestion(page)).toHaveCount(0);
+  });
+
+  test(`${lag} ms after leaving the chapter list from the keyboard in Record, Ctrl+Alt+Space starts the cold read and picks no chapter`, async ({ page }) => {
+    await openBoothWithMotion(page);
+    const before = await leaveChapterListFromKeyboard(page, lag);
+    await page.keyboard.press('Control+Alt+Space');
+    await expect(coldRunning(page)).toBeVisible();
+    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
+    await expect(alertQuestion(page)).toHaveCount(0);
+    expect(await onThePage(page)).toBe(true);
+  });
+}
+
+// A chord the Booth refuses (a take already runs) takes nothing from a popup that is leaving: its own hand-back stands, and the take goes on.
+test('Ctrl+Alt+Space refused while a take runs leaves Record options its hand-back, with motion on', async ({ page }) => {
+  await openBoothWithMotion(page);
+  await page.getByRole('button', { name: /^Record$/ }).click();
+  await expect(stop(page)).toBeVisible();
+  await pastStartGuard(page);
+  await recordOptions(page).click();
+  await expect(optionsDialog(page)).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(20);
+  await expect(leavingNow(page)).toHaveCount(1);
+  await page.keyboard.press('Control+Alt+Space');
+  await expect(recordOptions(page)).toBeFocused();
+  await expect(stop(page)).toBeVisible();
+  expect(await dawRecording(page)).toBe(true);
+});
+
 // What the rule must not break: with no key in between, Escape still gives focus back to the control that opened the popup.
 test('Escape on Record options with no key after it still gives focus back to Record options, with motion on', async ({ page }) => {
   await openBoothWithMotion(page);

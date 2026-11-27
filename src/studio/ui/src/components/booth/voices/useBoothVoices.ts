@@ -529,6 +529,8 @@ export function useBoothVoices({
         notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
       }
+      // A take the DAW runs refuses the choice with a notice (`choose`): a key the Booth refuses is not one that acts, so it takes no focus (`byKey` asks the same first).
+      if (heldNow.current) return notify(heldNow.current, 'info', undefined, HELD_TOPIC);
       claimFocusForPage();
       // From the voice last pressed, so Num + twice while the host answers steps twice.
       const from = queued.current ?? sending.current ?? current;
