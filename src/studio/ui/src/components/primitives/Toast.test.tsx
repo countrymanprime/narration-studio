@@ -1382,6 +1382,28 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     expect(document.activeElement).not.toBe(origin);
   });
 
+  it.each([
+    ['1000 ms', 1000, 800, true],
+    ['1800 ms', 1800, 800, true],
+    ['50 ms, then silent for 800 ms', 50, 800, false],
+  ])('a pointer press: a key that repeats every %s', (_name, gap, quiet, held) => {
+    const origin = document.createElement('button');
+    const onOrigin = vi.fn();
+    origin.addEventListener('click', onOrigin);
+    document.body.append(origin);
+    const view = pressUndoHoldingEnter(origin);
+    act(() => void vi.advanceTimersByTime(gap));
+    repeatReaches(document.body, 'Enter');
+    act(() => void vi.advanceTimersByTime(quiet));
+    view.rerender(<ToastRegion messages={[withUndo(9)]} dismiss={vi.fn()} />);
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Undo' }));
+    act(() => void vi.advanceTimersByTime(1000));
+    // A slow repeater is still held: its repeat presses nothing, and focus has not gone back under it.
+    expect(repeatReaches(document.body, 'Enter')).toBe(!held);
+    expect(onOrigin).not.toHaveBeenCalled();
+    expect(document.activeElement === origin).toBe(!held);
+  });
+
   it('a key that repeated in one hold, came up, and is held again a second later is not let go by its old repeat', () => {
     const field = document.createElement('input');
     document.body.append(field);

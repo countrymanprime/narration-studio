@@ -72,7 +72,7 @@ const keyOf = (event: { code: string; key: string }): string => event.code || ev
 const activates = (event: { code: string; key: string }): boolean =>
   event.key === 'Enter' || event.key === ' ' || event.code === 'Enter' || event.code === 'NumpadEnter' || event.code === 'Space';
 
-/** A key that has repeated still counts as held, at a pointer press, when its last repeat was this recently: a held key repeats every few tens of ms (the slowest repeat rates are about a third of a second), a lost keyup leaves a key that does not. */
+/** A key that has repeated still counts as held, at a pointer press, when its last repeat was this recently, or within three of its own repeat gaps if that is longer (the slowest OS repeat settings, and Windows FilterKeys, repeat every one to two seconds). */
 const KEY_LIVE_MS = 700;
 /** One hand-back in progress: the keys it still waits for, what starts its timer once they are up, and whether focus has been taken meanwhile (then it will hand nothing, and holds no key). */
 type HandBackWait = { codes: Set<string>; run: () => void; taken: () => boolean };
@@ -86,9 +86,10 @@ type HandBackWait = { codes: Set<string>; run: () => void; taken: () => boolean 
 class HandBacks {
   private cancels = new Set<() => void>();
   private open = true;
-  private held = new Set<string>();
-  /** When each held key last repeated (a key that has not yet has no entry): a pointer press lets go of one that repeated and then went silent, a lost keyup. */
-  private heard = new Map<string, number>();
+  /** Each held key, with when it went down. */
+  private held = new Map<string, number>();
+  /** When each held key last repeated and how long it took (a key that has not yet has no entry): a pointer press lets go of one that repeated and then went silent, a lost keyup. */
+  private heard = new Map<string, { at: number; gap: number }>();
   private waiting = new Set<HandBackWait>();
   private keysCancel: (() => void) | null = null;
   private pressKey: string | null = null;
@@ -114,7 +115,7 @@ class HandBacks {
    */
   keyDown(code: string, activating = false): void {
     if (!this.open) return;
-    this.held.add(code);
+    this.held.set(code, performance.now());
     if (activating) this.pressKey = code;
     this.listen();
   }
@@ -131,13 +132,14 @@ class HandBacks {
       // too, and its repeats are cancelled. A hand-back whose focus has been taken (a field, a dialog: the key goes to what has focus) will hand nothing, so holds no key.
       const live = [...this.waiting].filter((wait) => !wait.taken());
       if (!event.repeat && live.length > 0 && activates(event)) {
-        this.held.add(code);
+        this.held.set(code, performance.now());
         for (const wait of live) wait.codes.add(code);
         return;
       }
       // Only the held key's repeats: another key's (a Backspace held in a field) are its own, even while a held key's keyup is lost.
       if (!own || !event.repeat) return;
-      this.heard.set(code, performance.now());
+      const now = performance.now();
+      this.heard.set(code, { at: now, gap: now - (this.heard.get(code)?.at ?? this.held.get(code) ?? now) });
       event.preventDefault();
       event.stopPropagation();
     };
@@ -195,7 +197,7 @@ class HandBacks {
    */
   endLost(): void {
     const now = performance.now();
-    for (const [code, last] of [...this.heard]) if (now - last > KEY_LIVE_MS) this.keyUp(code);
+    for (const [code, { at, gap }] of [...this.heard]) if (now - at > Math.max(KEY_LIVE_MS, 3 * gap)) this.keyUp(code);
   }
   private keyUp(code: string): void {
     this.held.delete(code);
