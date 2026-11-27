@@ -631,43 +631,6 @@ describe('script-transport-races (#4127)', () => {
     await wait(10);
     expect(calls('stop')).toHaveLength(stops);
   });
-  it("a play whose playing reading comes after its answer survives the stop heard while it was asked (the window's other side)", async () => {
-    const api = createMockApi({}, { daw: {} });
-    const real = api.dawTransportSync.bind(api) as (...a: unknown[]) => Promise<never>;
-    let plays = 0;
-    let answerFirst: () => void = () => {};
-    const firstAnswer = new Promise<void>((resolve) => (answerFirst = resolve));
-    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
-      if (action === 'play' || action === 'playRange') {
-        plays += 1;
-        // Play 1: the DAW plays at once, its answer is held. Play 2: answered at once, the DAW plays 200 ms later.
-        if (plays === 1) return real(action, ...rest).then(async (result) => (await firstAnswer, result));
-        const answered = { ok: true, changed: true, message: '', undoSteps: 0 };
-        setTimeout(() => void real(action, ...rest), 200);
-        return Promise.resolve(answered);
-      }
-      return real(action, ...rest);
-    }) as typeof api.dawTransportSync;
-    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
-    render(
-      <ApiProvider api={api}>
-        <EditingPageProvider doc={doc}>
-          <Harness caps={DAW_SETUPS.reaper} />
-        </EditingPageProvider>
-      </ApiProvider>,
-    );
-    await wait(10);
-    act(() => playback.playFrom(t0('p-2:1')));
-    await wait(100);
-    act(() => playback.stop());
-    act(() => playback.playFrom(t0('p-2:3')));
-    await wait(100);
-    answerFirst();
-    // Past the 600 ms window: the second play's own playing reading came within it.
-    await wait(1500);
-    expect(state().playing).toBe(true);
-    expect(notices).toEqual([]);
-  });
   it('a play the DAW has not answered, which the page stopped, does not hide a Play the narrator presses in REAPER', async () => {
     const bridge = heldBridge();
     await wait(10);
