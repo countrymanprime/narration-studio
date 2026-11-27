@@ -64,8 +64,9 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
 
   // #4124: for every pair of play paths on one page, starting one stops the other. The editing page's pair is the script and a take: each is handed the
   // other's stop. Primitives that start a play ignore a held key's repeat (`keyRepeat.ts`).
-  // The Editing page's play paths and how each pair stops each other: script <-> take through `stopChapter`/`stopTake` (EditingBody), and the voice sample
-  // player <-> both through `onSampleStart` (the script's `halt`, every `useRangePlayer`, so a take's app audio). A new play path on the page joins this table.
+  // The Editing page's play paths and how they stop each other. Wired both ways: script <-> take (`stopChapter` / `stopTake` in EditingBody). One way only
+  // (a voice sample starting stops the others, `onSampleStart`: the script's `halt` and every `useRangePlayer`, so a take's app audio): a sample does not stop a
+  // take that plays in the DAW, and the script's or a take's Play does not stop a sample or the Effects tab's Compare. Those pairs are not covered here (see the PR).
   it.each([
     ['components/editing/bar/useScriptPlayback.ts', /onSampleStart\(halt\)/],
     ['components/engine/useRangePlayer.ts', /onSampleStart\(stop\)/],

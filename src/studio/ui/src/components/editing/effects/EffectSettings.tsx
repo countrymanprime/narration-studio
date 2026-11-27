@@ -383,7 +383,7 @@ export function EffectSettings({
           Preview
         </Button>
         {phase === 'idle' ? (
-          <Button variant="secondary" size="sm" disabled={!ready} onClick={() => void compare()}>
+          <Button variant="secondary" size="sm" disabled={!ready} onClick={() => void compare()} onKeyDown={ignoreKeyRepeat}>
             Compare
           </Button>
         ) : (
