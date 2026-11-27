@@ -98,6 +98,7 @@ export function keyContextOf(event: Event): KeyContext | undefined {
 }
 
 const SOFT_LAYER = '[role="menu"], [data-popover-popup]';
+// Base UI aria-hides what is outside a popover only when the popover has a Popover.Close part: if one is ever added, `openModalLayer()` returns null while the popover is open, and the toast region's Tab routing and the hand-back's dialog filter stop filtering.
 const MODAL_LAYER = '[role="alertdialog"], [role="dialog"]:not([data-popover-popup])';
 
 /** Whether a menu or popover (a popup the page behind stays usable under, closed by Escape) is on screen. */
