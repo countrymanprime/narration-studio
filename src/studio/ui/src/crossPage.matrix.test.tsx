@@ -15,7 +15,12 @@ import { ThemeProvider } from './theme/ThemeContext';
 import { brand } from './brand.gen';
 
 configure({ asyncUtilTimeout: 12_000 });
-beforeEach(() => window.history.replaceState(null, '', '/'));
+// Every test starts with no kept place: the Booth and Editing remember the chapter a narrator was on (`narration.booth.lastPlace`, `narration.editing.lastChapter`),
+// and a row that opens the Booth with no chapter in its address would otherwise open on whichever chapter an earlier row left behind and write it into the address.
+beforeEach(() => {
+  window.localStorage.clear();
+  window.history.replaceState(null, '', '/');
+});
 afterEach(cleanup);
 
 function mountApp(address: string, initial: Parameters<typeof createMockApi>[1] = {}) {
