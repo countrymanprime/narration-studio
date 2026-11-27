@@ -1,8 +1,8 @@
 import type { DawResult } from '../../../../api/contracts/daw';
 import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
-import { NO_SPLIT_COMMAND, type SplitPlan, type TakeSplitter } from './splitPlan';
 import { isolatedIfRtl } from '../../../../visibleText';
+import { NO_SPLIT_COMMAND, type SplitPlan, type TakeSplitter } from './splitPlan';
 
 /** The take to cut and where, in seconds of the chapter. */
 export interface SplitTarget {

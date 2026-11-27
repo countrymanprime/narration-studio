@@ -5,6 +5,7 @@ import { withoutSent } from '../../../../../studio/drafts/withoutSent';
 import { shortName } from '../../../../../studio/drafts/draftSentence';
 import { useSharedSave, useUnsavedDraft } from '../../../../../studio/drafts/unsavedDrafts';
 import { overlay } from '../../../../../overlay/overlayService';
+import { isolatedIfRtl } from '../../../../../visibleText';
 import { Button } from '../../../../primitives/Button';
 import { IconButton } from '../../../../primitives/IconButton';
 import { Select } from '../../../../primitives/Select';
@@ -15,7 +16,6 @@ import { markMessages } from '../../data/script.selectors';
 import { markSwatch } from './markSwatch';
 import { MessageEditor } from './MessageEditor';
 import { NoteTextarea } from './NoteTextarea';
-import { isolatedIfRtl } from '../../../../../visibleText';
 
 /** What a card does to its mark. Each call names the mark; the ones that write answer whether the host took the change. */
 export type NoteActions = {

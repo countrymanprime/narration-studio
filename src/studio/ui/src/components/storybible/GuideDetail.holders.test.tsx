@@ -195,6 +195,26 @@ describe('right-to-left names in the held labels (#4129)', () => {
     );
   });
 
+  it('isolates the name typed over a new entry in "the new entry <name>"', () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <UnsavedDraftsProvider>
+          <RegistryProbe />
+          <GuideDetail
+            isNewDraft
+            entity={{ ...hatter, canonical_name: 'New entry' }}
+            entities={WIRE_ENTITIES}
+            reload={vi.fn().mockResolvedValue(undefined)}
+            notify={vi.fn()}
+            goToManuscript={vi.fn()}
+          />
+        </UnsavedDraftsProvider>
+      </ApiProvider>,
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: NAME } });
+    expect(registry.heldNow().map((held) => held.label)).toEqual([`the new entry \u201C${isolated}\u201D`]);
+  });
+
   it('isolates the entry name in "your changes to <entry>"', () => {
     render(
       <ApiProvider api={createMockApi()}>

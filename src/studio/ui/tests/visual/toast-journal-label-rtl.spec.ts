@@ -20,15 +20,20 @@ test('Schedule / a right-to-left milestone removed and undone: both toasts isola
   await dialog.getByRole('button', { name: 'Add milestone' }).click();
   await dialog.waitFor({ state: 'detached' });
 
-  const toast = page.locator('[data-toast-text]');
+  // Toasts are shown one at a time: the Add toast ("Milestone added.") holds the place until it is dismissed, so Remove's toast would wait behind it. Dismiss it and wait until none is left.
+  await page.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(page.locator('[data-toast-text]')).toHaveCount(0);
+  const toastWith = (words: string) => page.locator('[data-toast-text]', { hasText: words });
   await page.getByRole('button', { name: `Remove ${NAME}` }).click();
-  await expect(toast).toHaveText(`Removed ${FSI}${NAME}${PDI}.`);
-  expect(await toast.evaluate((el) => getComputedStyle(el).direction)).toBe('ltr');
-  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  const removed = toastWith('Removed');
+  await expect(removed).toHaveText(`Removed ${FSI}${NAME}${PDI}.`);
+  expect(await removed.evaluate((el) => getComputedStyle(el).direction)).toBe('ltr');
+  await expect(page.getByRole('button', { name: 'Undo' }).first()).toBeVisible();
 
   // The same entry undone from the keys: the shell's "Undid <label>" reads the label as built.
   await page.getByRole('heading', { level: 2, name: 'Milestones' }).click();
   await page.keyboard.press('Control+z');
-  await expect(toast).toHaveText(`Undid Remove ${FSI}${NAME}${PDI}`);
-  expect(await toast.evaluate((el) => getComputedStyle(el).direction)).toBe('ltr');
+  const undid = toastWith('Undid');
+  await expect(undid).toHaveText(`Undid Remove ${FSI}${NAME}${PDI}`);
+  expect(await undid.evaluate((el) => getComputedStyle(el).direction)).toBe('ltr');
 });

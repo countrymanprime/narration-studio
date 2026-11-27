@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { recordedTakeCommand } from '../booth/record/takeCommand';
 import { bypassCommand, compareCommand, setCommand } from './effects/EffectSettings';
-import { addLabel, removeFxCommand } from './range/fx/fxCommand';
+import { addFxLabel, removeFxCommand } from './range/fx/fxCommand';
 import { replaceLabel } from './range/replace/replaceCommand';
 import { keepTakeCommand } from './takes/keepTake';
 import { splitCommand } from './takes/split/splitCommand';
@@ -36,7 +36,7 @@ describe('a journal label isolates the narrator name it carries', () => {
   });
 
   it('Added <chain> to <n words>', () => {
-    expect(addLabel(NAME, 3, 12)).toBe(`Added ${isolated(NAME)} to 3 words at 00:00:12.000`);
+    expect(addFxLabel(NAME, 3, 12)).toBe(`Added ${isolated(NAME)} to 3 words at 00:00:12.000`);
   });
 
   it('Took <chain> off <words>', () => {

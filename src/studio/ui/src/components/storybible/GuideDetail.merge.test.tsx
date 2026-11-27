@@ -20,9 +20,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function renderGuide(journal?: Journal) {
+async function renderGuide(journal?: Journal, prepare?: (api: ReturnType<typeof createMockApi>) => Promise<void>) {
   window.localStorage.clear();
   const api = createMockApi();
+  await prepare?.(api);
   const merge = vi.spyOn(api, 'guideMerge');
   const unmerge = vi.spyOn(api, 'guideUnmerge');
   const edit = vi.spyOn(api, 'guideEdit');
@@ -89,6 +90,23 @@ describe('merging an entry into this one', () => {
     // The selection stays on the entry that took the merge, which now lists the names it absorbed.
     expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('Cheshire Cat');
     expect(screen.getByRole('list', { name: 'Names' }).textContent).toContain('garden');
+  });
+
+  it('a merge of right-to-left names journals both isolated (#4129)', async () => {
+    // Arabic names, written with escapes so no right-to-left character sits in the source.
+    const cat = '\u0642\u0637\u0629';
+    const garden = '\u062D\u062F\u064A\u0642\u0629';
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    await renderGuide(journal, async (api) => {
+      await api.guideEdit('cheshire-cat', { canonical_name: cat });
+      await api.guideEdit('queens-garden', { canonical_name: garden });
+    });
+    await open(cat);
+    offerFor(garden);
+    fireEvent.click(await screen.findByRole('button', { name: 'Merge into this entry' }));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    const [row] = await journal.entries();
+    expect(row?.label).toBe(`Merged \u201C\u2068${garden}\u2069\u201D into \u201C\u2068${cat}\u2069\u201D`);
   });
 
   it("the toast's Undo takes the merge back", async () => {

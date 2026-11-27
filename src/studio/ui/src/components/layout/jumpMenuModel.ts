@@ -2,6 +2,7 @@ import type { PageContext } from '../../input/pageCommands';
 import type { SearchHit } from '../../registries/search';
 import type { SearchSlot } from './useJumpSearch';
 import type { IconName } from '../../icons.catalog';
+import { stripBidi } from '../../visibleText';
 
 // What the jump menu lists, as data: one `Entry` per row from the three places a row comes from, and the pure functions that order
 // and filter them. The component holds only the typed term, the group and the active row.
@@ -80,8 +81,9 @@ export function pageGroupRows(entries: readonly Entry[]): Entry[] {
   }));
 }
 
+// The isolates round a narrator's name in an Undo row's title (#4129) draw nothing, so a typed term matches across them.
 const textOf = (entry: Entry) =>
-  `${entry.title} ${entry.source === 'page' ? entry.groupName : ''} ${entry.hint ?? ''} ${entry.keywords?.join(' ') ?? ''}`.toLowerCase();
+  `${stripBidi(entry.title)} ${entry.source === 'page' ? entry.groupName : ''} ${entry.hint ?? ''} ${entry.keywords?.join(' ') ?? ''}`.toLowerCase();
 
 const matches = (entry: Entry, tokens: readonly string[]) => {
   const text = textOf(entry);
@@ -90,7 +92,7 @@ const matches = (entry: Entry, tokens: readonly string[]) => {
 
 /** A title that starts with the term before one that only holds it; the order inside each stays the source's. */
 function startsFirst<T extends { title: string }>(rows: readonly T[], term: string): T[] {
-  const lead = (row: T) => (row.title.toLowerCase().startsWith(term) ? 0 : 1);
+  const lead = (row: T) => (stripBidi(row.title).toLowerCase().startsWith(term) ? 0 : 1);
   return rows
     .map((row, index) => ({ row, index }))
     .sort((a, b) => lead(a.row) - lead(b.row) || a.index - b.index)

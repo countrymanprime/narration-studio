@@ -294,6 +294,34 @@ describe('a backup before each edit', () => {
     expect(calls).toEqual(['deleteRange']);
   });
 
+  it('an effect with a right-to-left chain name journals it isolated but sends the backup the label without the isolate marks (#4129)', async () => {
+    // An Arabic chain name, written with escapes so no right-to-left character sits in the source.
+    const chain = '\u0635\u0648\u062A \u0646\u0642\u064A';
+    const daw = spyDaw(DAW_SETUPS.audacity, { applyFxToRange: async () => ok });
+    const sent = vi.spyOn(daw, 'backupAround');
+    const record = vi.fn(async (chapterId: string, _req: unknown) => ({ chapterId, effects: [], changed: ['fx1'], over: [] }));
+    installBackupSteps(daw, places);
+    const command = applyFxCommand({ daw, log: { editingWordFxRecord: record, editingWordFxRemove: vi.fn() }, onEffects: () => {} }, audacityPlan, {
+      chapterId: CHAPTER,
+      range: sum().ranges[0]!,
+      chain: { id: 'x', name: chain },
+      source: 'Effects',
+      locator,
+      needsOver: false,
+      confirmedOver: false,
+    });
+    expect(command.label).toContain(`\u2068${chain}\u2069`);
+    const done = await command.run();
+    expect(done.ok).toBe(true);
+    const asked = sent.mock.calls[0]![0].label;
+    expect(asked).toBe(command.label.replace(/[\u2068\u2069]/g, ''));
+    expect(asked).toContain(chain);
+    // The row the host kept is found by that same label, so the effect's record names the backup.
+    const [row] = await daw.backups();
+    expect(row!.label).toBe(asked);
+    expect(record.mock.calls[0]![1]).toMatchObject({ backupId: row!.id });
+  });
+
   it('window-never-passes-the-audio-there-is: the page sends only the words, and the DAW adds the window inside the audio there is', async () => {
     const daw = spyDaw(DAW_SETUPS.audacity, { deleteRange: async () => ok, stackTakes: async () => ok });
     const sent = vi.spyOn(daw, 'backupAround');

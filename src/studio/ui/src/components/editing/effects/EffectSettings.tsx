@@ -5,6 +5,7 @@ import { overlay } from '../../../overlay/overlayService';
 import type { FxRangeTarget } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
 import type { Command, Journal, Result } from '../../../studio/journal/createJournal';
+import { isolatedIfRtl } from '../../../visibleText';
 import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { NumberInput } from '../../primitives/NumberInput';
@@ -15,7 +16,6 @@ import type { RangeLocator } from '../range/common/locate';
 import { fxSpan } from '../range/fx/fxCommand';
 import { fmtPct, impactOf } from './effectsMath';
 import { useFxCap } from './useFxCap';
-import { isolatedIfRtl } from '../../../visibleText';
 
 /** What the page lends the inspector to change an effect and hear it: the chapter, where its words are for the DAW, the history, the other effects and the page's playback. */
 export interface EffectHost {

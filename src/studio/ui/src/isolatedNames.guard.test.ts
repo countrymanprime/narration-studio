@@ -176,9 +176,12 @@ const APP_DEFINED: Record<string, string> = {
   'components/booth/record/RecordSetup.tsx: Name': 'the name of a DAW product (REAPER, Audacity) or the built-in recorder',
   'components/booth/toastSentences.ts: name': 'the name of a DAW product (REAPER, Audacity) or the built-in recorder',
   'components/connection/useReaperLaunch.ts: name': 'the name of a DAW product (REAPER, Audacity) or the built-in recorder',
-  "App.tsx: newest?.label ?? 'the last change'": 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
-  'studio/journal/createJournal.ts: blocker.label': 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
-  'studio/journal/createJournal.ts: newest.label': 'a journal label (the text of an Undo entry) shown bare in a toast: a known gap, #4129',
+  "App.tsx: newest?.label ?? 'the last change'":
+    'a journal label (the text of an Undo entry): built isolated at its producer (#4129 slice C), so the toast reads it bare',
+  'studio/journal/createJournal.ts: blocker.label':
+    'a journal label (the text of an Undo entry): built isolated at its producer (#4129 slice C), so the toast reads it bare',
+  'studio/journal/createJournal.ts: newest.label':
+    'a journal label (the text of an Undo entry): built isolated at its producer (#4129 slice C), so the toast reads it bare',
   'components/engine/chapterSyncText.ts: readable(item.best.trackName, item.best.trackIndex)':
     'a false positive: the statement holds `item.reason`, but this is panel and dialog text, never a toast',
   'components/primitives/ChapterStepper.tsx: name': 'the name in a tooltip, not a toast',
@@ -190,7 +193,7 @@ const APP_DEFINED: Record<string, string> = {
   'components/storybible/usePreviewAudio.ts: error.name': 'the name of a browser error kind (AbortError)',
   'components/settings/models/AssetsStore.tsx: name': 'the name of a model the app ships',
   'components/storybible/GuideDetail.tsx: capitalize(stuck.label)':
-    'a leave-guard label: it can hold a narrator name (built at GuideDetail :396 and :421), shown bare in a toast on a save refusal; a known gap, #4129',
+    'a leave-guard label: built isolated at GuideDetail (#4129 slice C), so the save refusal toast reads it bare',
 };
 
 /** A product name the app defines, whichever file it is in: the DAW's name (REAPER, Audacity), never a narrator's or an author's. */
