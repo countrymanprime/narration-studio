@@ -2163,6 +2163,25 @@ describe('ToastRegion inside a modal (issue 2949)', () => {
     await waitFor(() => expect(document.activeElement).toBe(done));
   });
 
+  // #4125: the region wraps Tab into the dialog through the one modal lookup (`openModalLayer`), so a Base UI popover (a dialog-roled popup the page stays usable under) stacked after the dialog in the document is not the dialog Tab wraps into.
+  it('Tab from the last toast control goes to the dialog, not to a popover stacked after it', async () => {
+    open();
+    const settled = () => new Promise((resolve) => setTimeout(resolve, 60));
+    await settled();
+    const popover = document.createElement('div');
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('data-popover-popup', '');
+    popover.innerHTML = '<button type="button">Popover item</button>';
+    document.body.append(popover);
+    const dismiss = screen.getByRole('button', { name: 'Dismiss message' });
+    dismiss.focus();
+    fireEvent.keyDown(dismiss, { key: 'Tab' });
+    const landed = document.activeElement;
+    popover.remove();
+    expect(landed?.closest('[role="dialog"]')).not.toBeNull();
+    expect(landed?.closest('[data-popover-popup]')).toBeNull();
+  });
+
   it('leaves the dialog’s own Tab loop alone when no toast is showing', async () => {
     const user = userEvent.setup();
     render(
