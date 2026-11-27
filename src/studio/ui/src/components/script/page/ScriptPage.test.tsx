@@ -50,7 +50,7 @@ const noCreditsList = async () => {
 };
 
 function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}) {
-  const handlers = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
+  const handlers = { projectFolder: 'C:/Books/A', notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const utils = render(
     <MemoryRouter initialEntries={[at]}>
       <ApiProvider api={api}>
@@ -472,7 +472,7 @@ describe('credits-cards-and-banner-stay', () => {
     fireEvent.click(await within(panel('chapters')).findByRole('button', { name: /Closing credits/ }));
     await waitFor(() => expect(at.get(reader())).toBe(4992));
     fireEvent.scroll(reader());
-    await waitFor(() => expect(window.localStorage.getItem('narration.script.reader.position')).toContain('credits:closing'));
+    await waitFor(() => expect(window.localStorage.getItem('narration.script.reader.position.c:/books/a')).toContain('credits:closing'));
     first.unmount();
     mount();
     await firstHeading();

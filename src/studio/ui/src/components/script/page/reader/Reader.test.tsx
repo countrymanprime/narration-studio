@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { overlay } from '../../../../overlay/overlayService';
 import { Reader } from './Reader';
-import { READER_POSITION_KEY } from './readerPosition';
+import { projectStorageKey } from '../../../../projectFolder';
 import { chapter, cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 // jsdom lays nothing out, so the rows get tops by their order in the document (100 px each) and scrollTop is a stored number.
@@ -47,7 +47,10 @@ const sources = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [],
 const paragraphsOf = (id: string): ManuscriptParagraph[] | undefined => paras[id];
 
 type Props = ComponentProps<typeof Reader>;
-const props = (extra: Partial<Props> = {}): Props => ({ chapters, paragraphsOf, sources, ...extra });
+const FOLDER_A = 'C:/Books/A';
+const FOLDER_B = 'C:/Books/B';
+const READER_POSITION_KEY = projectStorageKey('script.reader.position', FOLDER_A);
+const props = (extra: Partial<Props> = {}): Props => ({ chapters, paragraphsOf, sources, projectFolder: FOLDER_A, ...extra });
 const scroller = (): HTMLElement => screen.getByRole('region', { name: /Script reader/ });
 const scrollTo = (value: number): void => {
   scrolls.set(scroller(), value);
@@ -293,6 +296,49 @@ describe('the remembered position', () => {
     window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'credits:"closing', offset: 30 }));
     render(<Reader {...props({ before: <div data-bound="" data-ch="credits:opening" /> })} />);
     expect(scrolls.get(scroller())).toBe(92);
+  });
+
+  // #4091: the place is the project's own; another project's, or the key an earlier build kept with no folder, is never applied.
+  it('keeps each project its own place: A, then B, then A restores each and B never opens at A', () => {
+    const a = render(<Reader {...props()} />);
+    scrollTo(350);
+    a.unmount();
+    const b = render(<Reader {...props({ projectFolder: FOLDER_B })} />);
+    expect(scrolls.get(scroller())).toBeUndefined();
+    scrollTo(650);
+    b.unmount();
+    render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBe(350);
+    cleanup();
+    render(<Reader {...props({ projectFolder: FOLDER_B })} />);
+    expect(scrolls.get(scroller())).toBe(650);
+  });
+
+  it('writes only under the folder it was opened for, one folder spelled two ways being one place', () => {
+    const { unmount } = render(<Reader {...props({ projectFolder: 'c:\\books\\a\\' })} />);
+    scrollTo(350);
+    unmount();
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
+    expect(window.localStorage.getItem(projectStorageKey('script.reader.position', FOLDER_B))).toBeNull();
+  });
+
+  it('ignores the key an earlier build kept with no folder in it', () => {
+    window.localStorage.setItem('narration.script.reader.position', JSON.stringify({ chapterId: 'c2', offset: 50 }));
+    render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBeUndefined();
+  });
+
+  it("opens at the start when the remembered chapter is not in this project's book", () => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'other-book-ch', offset: 50 }));
+    render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBeUndefined();
+  });
+
+  it('keeps no place when no project is open', () => {
+    const { unmount } = render(<Reader {...props({ projectFolder: '' })} />);
+    scrollTo(350);
+    unmount();
+    expect(window.localStorage.length).toBe(0);
   });
 
   it('opens at the given chapter when nothing is remembered', () => {

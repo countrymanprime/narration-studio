@@ -21,7 +21,7 @@ import { ReaderColumn } from '../../../primitives/ReaderColumn';
 import { READER_COLUMN_VAR } from '../tools/text/readerText';
 import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from './layers';
 import { Para, type FindRange } from './Para';
-import { loadReaderPosition, READER_POSITION_KEY, saveReaderPosition } from './readerPosition';
+import { loadReaderPosition, saveReaderPosition } from './readerPosition';
 
 /** A Find match in a paragraph, in the order Find lists them. `chapterId` lets the reader go to a match in a chapter not read yet. */
 type FindMatch = { paragraphId: string; chapterId?: string; start: number; end: number };
@@ -80,7 +80,8 @@ export type ReaderProps = {
   onTextClick?: () => void;
   /** Left and Right on the focused reader: the prep helper of the chapter in view. */
   onStepPrep?: (chapterId: string, direction: 1 | -1) => void;
-  positionKey?: string;
+  /** The open project's folder: the remembered place is kept under it, so each project opens where it was left. No project, no place kept. */
+  projectFolder?: string;
 };
 
 /** How many chapters either side of the one in view have their text drawn; the rest are a block of the estimated height. */
@@ -246,7 +247,7 @@ export function Reader(props: ReaderProps) {
     onShowEntry,
     onTextClick,
     onStepPrep,
-    positionKey = READER_POSITION_KEY,
+    projectFolder = '',
   } = props;
   const scroller = useRef<HTMLDivElement>(null);
   const spy = useMemo(createSpyStore, []);
@@ -255,7 +256,7 @@ export function Reader(props: ReaderProps) {
   const indexOf = useMemo(() => new Map(chapters.map((chapter, i) => [chapter.id, i])), [chapters]);
 
   /* The remembered place is read once, on the first draw. */
-  const [remembered] = useState(() => loadReaderPosition(positionKey));
+  const [remembered] = useState(() => loadReaderPosition(projectFolder));
   const startChapter = (remembered && indexOf.has(remembered.chapterId) ? remembered.chapterId : initialChapterId) ?? chapters[0]?.id;
   const [drawn, setDrawn] = useState<ReadonlySet<number>>(() => {
     const at = startChapter === undefined ? 0 : (indexOf.get(startChapter) ?? 0);
@@ -510,7 +511,7 @@ export function Reader(props: ReaderProps) {
     const root = scroller.current;
     const id = spy.get().chapterId;
     const bound = id ? root?.querySelector<HTMLElement>(`[data-bound][data-ch="${id}"]`) : null;
-    if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, positionKey);
+    if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, projectFolder);
   };
   const savePlaceNow = useRef(savePlace);
   savePlaceNow.current = savePlace;

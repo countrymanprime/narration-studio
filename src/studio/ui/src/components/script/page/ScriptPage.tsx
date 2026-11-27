@@ -94,6 +94,8 @@ export type ScriptPageProps = {
   goToEditing?: (chapterId: string) => void;
   /** Record in Booth on a chapter or the credits, or Record from here at a selection. Omitted, nothing offers it. */
   goToBooth?: (target: BoothTarget) => void;
+  /** The open project's folder; the reader's remembered place is kept per project under it. */
+  projectFolder?: string;
 };
 
 /** How long the paragraph of a bookmark just gone to stays lit, as the mock's. */
@@ -133,6 +135,7 @@ function ScriptWorkspace({
   notify,
   focusStoryBibleEntity,
   goToBooth,
+  projectFolder,
 }: ScriptPageProps & { chapters: readonly ManuscriptChapter[]; allChapters: readonly ManuscriptChapter[] }) {
   const navigate = useNavigate();
   const leave = useGuardedNavigate();
@@ -609,6 +612,7 @@ function ScriptWorkspace({
                 sectionNames={sectionNames}
                 toolbar={toolbar}
                 underHeader={<SkipToRail onOpenRail={() => update({ drawer: 'rail' })} />}
+                projectFolder={projectFolder}
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {
                   const mark = marks.marks.find((row) => row.id === id);
