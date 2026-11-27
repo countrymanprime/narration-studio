@@ -6,7 +6,7 @@ import { DateField } from '../primitives/DateField';
 import { Field, FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { NumberInput } from '../primitives/NumberInput';
-import { blankDraft, draftOf, MAX_N, milestoneFromDraft, type MilestoneDraft, type RefusedField } from './draft';
+import { blankDraft, draftOf, fieldRefusals, MAX_N, milestoneFromDraft, type MilestoneDraft, type RefusedField } from './draft';
 import type { LiveBounds } from './liveBounds';
 import { clamp } from '../../clamp';
 import { chaptersOf, measOf, measureOptions, minutesOf } from './measures';
@@ -52,20 +52,28 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
     const start = measure === 'chN' ? chaptersOf(undefined) : minutesOf(undefined);
     return { [field]: String(clamp(start, 1, bounds.get()[field])) };
   };
-  // A refusal stands while the draft still earns it: when the book grows past a typed N, or the name is filled in, its mark and its words go.
-  const now = milestoneFromDraft(draft, existing, live);
-  const standing = refused && 'refusal' in now && now.refusal === refused.text ? refused : undefined;
-  const aboutN = standing?.field === 'n' ? standing.text : undefined;
-  // A refusal is brought into view: focus goes to the field it is about (the first box is the name), and the reason is scrolled to where it is read.
+  // A refusal stands while its own field still earns it: filling in the name does not lift the mark on an N that is still wrong, and a book that grows past a typed N lifts it.
+  const problems = fieldRefusals(draft, existing, live);
+  const standing = refused && (!refused.field || problems[refused.field] === refused.text) ? refused : undefined;
+  const marked = standing?.field;
+  /** What a field the refusal is about is given: marked invalid and described by the alert. */
+  const about = (field: RefusedField) => ({ invalid: marked === field, describedBy: marked === field ? 'milestone-problem' : undefined });
+  // A refusal is brought into view. Focus goes to the field it is about and that field is kept in view (the alert announces the reason by itself); the alert is scrolled to only when
+  // the N box is the field, which sits in the same row as it.
   useEffect(() => {
     if (!refusals || !form.current) return;
     const field = refused?.field;
-    if (field === 'name') form.current.querySelector<HTMLInputElement>('input')?.focus();
-    else if (field === 'date') form.current.querySelector<HTMLElement>('#milestone-due')?.focus();
-    else if (field === 'n') form.current.querySelector<HTMLInputElement>('input[aria-invalid="true"]')?.focus();
-    // The reason is the alert below the form's body, or the line a marked box is described by.
-    const marked = form.current.querySelector('[aria-invalid="true"]')?.getAttribute('aria-describedby');
-    (marked ? document.getElementById(marked) : form.current.querySelector('[role="alert"]'))?.scrollIntoView?.({ block: 'nearest' });
+    const target =
+      field === 'name'
+        ? form.current.querySelector<HTMLElement>('input')
+        : field === 'date'
+          ? form.current.querySelector<HTMLElement>('#milestone-due')
+          : field === 'n'
+            ? form.current.querySelector<HTMLElement>('input[aria-invalid="true"]')
+            : null;
+    target?.focus({ preventScroll: true });
+    if (field === 'n' || !target) form.current.querySelector('[role="alert"]')?.scrollIntoView?.({ block: 'nearest' });
+    else target.scrollIntoView?.({ block: 'nearest' });
     // Once per refusal: editing the draft afterwards must not pull focus back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refusals]);
@@ -115,12 +123,19 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
       }}
     >
       <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-3.5 overflow-y-auto">
-        <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} />
+        <Field label="Name" value={draft.name} onChange={(name) => set({ name })} autoFocus={!focusNote} {...about('name')} />
         <div>
           <label className={FIELD_LABEL_CLASSES} htmlFor="milestone-due">
             Due
           </label>
-          <DateField id="milestone-due" value={draft.date} onChange={(date) => set({ date })} className="mt-2" />
+          <DateField
+            id="milestone-due"
+            value={draft.date}
+            onChange={(date) => set({ date })}
+            className="mt-2"
+            aria-invalid={marked === 'date' ? true : undefined}
+            aria-describedby={marked === 'date' ? 'milestone-problem' : undefined}
+          />
         </div>
         <div>
           <span className={FIELD_LABEL_CLASSES} id="milestone-measure-label">
@@ -142,8 +157,9 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
                 min={1}
                 holdRefused
                 max={clamp(live[draft.measure === 'chN' ? 'chapters' : 'minutes'], 1, MAX_N)}
-                invalid={aboutN !== undefined}
-                aria-describedby={aboutN === undefined ? undefined : 'milestone-problem'}
+                stepFrom={1}
+                invalid={marked === 'n'}
+                aria-describedby={marked === 'n' ? 'milestone-problem' : undefined}
                 className="w-20!"
               />
             )}

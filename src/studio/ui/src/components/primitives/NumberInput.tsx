@@ -131,7 +131,9 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
   const stepBy = (direction: 1 | -1): void => {
     const shown = isSettle ? (settled.standing === '' ? null : Number(settled.standing)) : value;
     const typed = isSettle ? settled.draft : typedDraft;
-    const base = (typed !== null ? parse(typed) : null) ?? shown;
+    // A box that holds a refused entry steps from that text (a number off the range or the step), or from `min` when it is not a number, not from the value it hides.
+    const held = holdRefused && heldText !== undefined ? parse(heldText) : undefined;
+    const base = (typed !== null ? parse(typed) : null) ?? (held === undefined ? shown : held);
     const next = clamp(base === null ? (min ?? 0) : stepped(base, direction));
     if (isSettle) {
       settled.settleText(String(next));

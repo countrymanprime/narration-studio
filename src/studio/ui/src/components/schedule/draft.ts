@@ -80,6 +80,29 @@ function storedMeasure(draft: MilestoneDraft, bounds: DraftBounds, existing?: Pr
   return 'refusal' in read ? read : { measure: `${prefix}${read.n}` };
 }
 
+const nameRefusal = (draft: MilestoneDraft): string | undefined => {
+  const name = draft.name.trim();
+  if (!name) return MISSING_NAME;
+  if ([...name].length > MAX_NAME) return `The name is ${plural([...name].length, 'character')}; the most is ${formatCount(MAX_NAME)}.`;
+  return undefined;
+};
+
+const dateRefusal = (draft: MilestoneDraft): string | undefined => {
+  const date = draft.date.trim();
+  if (!isIsoDate(date)) return badDate(date);
+  return farDateProblem(date) ?? undefined;
+};
+
+/** Why each field of the draft cannot be saved, each judged on its own, so a mark follows its field's validity and not the first one to fail. */
+export function fieldRefusals(draft: MilestoneDraft, existing: ProductionMilestone | undefined, bounds: DraftBounds): Partial<Record<RefusedField, string>> {
+  const stored = storedMeasure(draft, bounds, existing);
+  return {
+    ...(nameRefusal(draft) ? { name: nameRefusal(draft) } : {}),
+    ...(dateRefusal(draft) ? { date: dateRefusal(draft) } : {}),
+    ...('refusal' in stored ? { n: stored.refusal } : {}),
+  };
+}
+
 /**
  * The milestone a draft saves as, or why it cannot be: a name and a real date are needed, and the refusal says which is missing. A custom milestone has no estimate,
  * so a stored one is kept only while the measure stays what it was; the template it came from is kept.
@@ -90,13 +113,11 @@ export function milestoneFromDraft(
   bounds: DraftBounds,
 ): { milestone: ProductionMilestone } | { refusal: string; field?: RefusedField } {
   const name = draft.name.trim();
-  if (!name) return { refusal: MISSING_NAME, field: 'name' };
-  if ([...name].length > MAX_NAME)
-    return { refusal: `The name is ${plural([...name].length, 'character')}; the most is ${formatCount(MAX_NAME)}.`, field: 'name' };
+  const noName = nameRefusal(draft);
+  if (noName) return { refusal: noName, field: 'name' };
+  const noDate = dateRefusal(draft);
+  if (noDate) return { refusal: noDate, field: 'date' };
   const date = draft.date.trim();
-  if (!isIsoDate(date)) return { refusal: badDate(date), field: 'date' };
-  const far = farDateProblem(date);
-  if (far) return { refusal: far, field: 'date' };
   const stored = storedMeasure(draft, bounds, existing);
   if ('refusal' in stored) return { ...stored, field: 'n' };
   const { measure } = stored;

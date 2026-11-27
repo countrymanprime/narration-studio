@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 // #4100: the "First N" milestone saves the N the narrator typed, or refuses it with a reason; it never changes it quietly.
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { NarrationApi } from '../../types';
+import { overlay } from '../../overlay/overlayService';
 import { REC, installKit, mountSchedule, nReasonNow, reasonOf, stored } from './scheduleKit.test';
 
 installKit();
@@ -359,5 +360,77 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '3' } });
     expect(nReasonNow(d)).toBeNull();
     expect(d.queryByRole('alert')).toBeNull();
+  });
+});
+
+describe('round 5: the field a refusal is about is marked, kept in view, and judged on its own', () => {
+  const FIELDS = {
+    name: () => dialog().getByLabelText('Name'),
+    date: () => document.getElementById('milestone-due') as HTMLElement,
+    n: () => dialog().getByLabelText('How many chapters'),
+  };
+  const open = async (name: string, due: string, n: string) => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Add milestone' }));
+    const d = dialog();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: name } });
+    if (due) fireEvent.change(FIELDS.date(), { target: { value: due } });
+    await userEvent.selectOptions(d.getByRole('combobox', { name: 'What the milestone measures' }), 'chN');
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: n } });
+    return d;
+  };
+
+  it.each([
+    ['no name', '', '2026-10-10', '5', 'name'],
+    ['a 10,000-character name', 'x'.repeat(10_000), '2026-10-10', '5', 'name'],
+    ['no date', 'Ok', '', '5', 'date'],
+    ['a far date', 'Ok', '2999-01-01', '5', 'date'],
+    ['a wrong N', 'Ok', '2026-10-10', '99', 'n'],
+  ] as const)('R8: %s marks and describes only the field it is about', async (_label, name, due, n, field) => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open(name, due, n);
+    save2(d);
+    const alert = await d.findByRole('alert');
+    for (const [key, get] of Object.entries(FIELDS)) {
+      const marked = key === field;
+      expect(get().getAttribute('aria-invalid') === 'true', `${key} marked`).toBe(marked);
+      expect(get().getAttribute('aria-describedby') === alert.id, `${key} described`).toBe(marked);
+    }
+  });
+
+  it('R9: a name or date refusal keeps its field in view and does not scroll the alert over it; an N refusal scrolls the alert', async () => {
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '5');
+    save2(d);
+    await d.findByRole('alert');
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
+    expect(scrolled.mock.instances.map((el) => (el as HTMLElement).tagName)).toEqual(['INPUT']);
+    expect(scrolled.mock.instances[0]).toBe(d.getByLabelText('Name'));
+    scrolled.mockClear();
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Named' } });
+    fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '99' } });
+    save2(d);
+    await waitFor(() => expect(scrolled).toHaveBeenCalled());
+    expect((scrolled.mock.instances.at(-1) as HTMLElement).getAttribute('role')).toBe('alert');
+  });
+
+  it('R12: emptying the name does not lift the mark on an N that is still wrong', async () => {
+    await mountSchedule({ statuses: book(3) });
+    const d = await open('Named', '2026-10-10', '8');
+    save2(d);
+    await reasonOf(d);
+    expect(FIELDS.n().getAttribute('aria-invalid')).toBe('true');
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: '' } });
+    expect(FIELDS.n().getAttribute('aria-invalid')).toBe('true');
+    expect((await reasonOf(d)).textContent).toBe('The book has 3 chapters. Write a whole number from 1 to 3.');
+  });
+
+  it('R13: the dialog goes when the page it was opened from does', async () => {
+    await mountSchedule({ statuses: book(12) });
+    await typeN('5');
+    expect(overlay.getSnapshot().dialogs).toHaveLength(1);
+    cleanup();
+    expect(overlay.getSnapshot().dialogs).toHaveLength(0);
   });
 });

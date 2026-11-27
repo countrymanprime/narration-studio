@@ -423,7 +423,7 @@ describe('NumberInput holdRefused', () => {
   function Held({ allowEmpty = false, onRefused = () => undefined }: { allowEmpty?: boolean; onRefused?: (text: string) => void }) {
     const [value, setValue] = useState<number | null>(3);
     const [held, setHeld] = useState<string>();
-    const common = { label: 'Count', min: 1, max: 12, step: 1, heldText: held, holdRefused: true, invalid: held !== undefined } as const;
+    const common = { label: 'Count', min: 1, max: 12, step: 1, stepFrom: 1, heldText: held, holdRefused: true, invalid: held !== undefined } as const;
     const refused = (text: string) => {
       setHeld(text);
       onRefused(text);
@@ -469,6 +469,22 @@ describe('NumberInput holdRefused', () => {
     expect(box().getAttribute('aria-invalid')).toBe('true');
     fireEvent.change(box(), { target: { value: '7' } });
     expect(box().getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('holdRefused: an arrow steps from the held text (0 to 1, 2.5 to 3, empty to min)', async () => {
+    render(<Held />);
+    for (const [typed, key, expected] of [
+      ['0', '{ArrowUp}', '1'],
+      ['2.5', '{ArrowUp}', '3'],
+      ['2.5', '{ArrowDown}', '2'],
+      ['', '{ArrowUp}', '1'],
+    ] as const) {
+      fireEvent.change(box(), { target: { value: typed } });
+      fireEvent.blur(box());
+      await userEvent.click(box());
+      await userEvent.keyboard(key);
+      expect(box().value).toBe(expected);
+    }
   });
 
   it('hands over empty text, and takes a valid number again', () => {
