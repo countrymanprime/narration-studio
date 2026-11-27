@@ -1,7 +1,7 @@
 import type { ProductionMilestone } from '../../api/contracts/production';
 import { farDateProblem, isIsoDate, MAX_DATE_YEAR } from './dates';
 import { chaptersOf, measOf, minutesOf } from './measures';
-import { plural, formatCount } from '../../plural';
+import { plural, formatCount, pluralWord } from '../../plural';
 import { numberProblem } from '../settings/numberSetting';
 
 /** Everything the milestone dialog edits. `measure` is an id from the measure list; `chapters` and `minutes` are the N of "first N" as typed, so a bad one can be refused, not rewritten. */
@@ -59,7 +59,7 @@ const nRange = (max: number) => ({ min: 1, max: Math.min(max, MAX_N), step: 1, u
 /** The N a narrator typed, or why it cannot be one. The check is the settings' `numberProblem`; the words say how much the book has. */
 function readN(text: string, max: number, noun: 'chapter' | 'finished minute'): { n: number } | { refusal: string } {
   const t = text.trim();
-  if (max < 1) return { refusal: `The book has no ${noun}s yet.` };
+  if (max < 1) return { refusal: `The book has no ${pluralWord(0, noun)} yet.` };
   // `numberProblem` allows a hair of rounding on a step ("3.000000001"); a count is exactly whole.
   if (t !== '' && numberProblem(nRange(max), t) === undefined && Number.isInteger(Number(t))) return { n: Number(t) };
   const has = noun === 'chapter' ? `The book has ${plural(max, noun)}.` : `The book runs ${plural(max, noun)}.`;
