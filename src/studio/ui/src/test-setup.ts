@@ -25,6 +25,9 @@ afterEach(() => {
   // Nor is a toast one test raised the next test's.
   clearToasts();
   forgetEchoClicks();
+  // Nor is what the app kept in storage (the Booth's, Editing's and Proof's last chapter, the theme): a test that opened a chapter would otherwise leave the next
+  // test's Booth opening on it and writing it into the address (crossPage.matrix, Open Booth).
+  if (typeof window !== 'undefined') window.localStorage.clear();
 });
 
 // The Wails runtime polls from a module-level `window.setInterval` (dist/drag.js, up to 100 x 50 ms) as soon as a file imports it. A file
