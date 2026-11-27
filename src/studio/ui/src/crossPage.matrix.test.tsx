@@ -15,12 +15,7 @@ import { ThemeProvider } from './theme/ThemeContext';
 import { brand } from './brand.gen';
 
 configure({ asyncUtilTimeout: 12_000 });
-// Every test starts with no kept place: the Booth and Editing remember the chapter a narrator was on (`narration.booth.lastPlace`, `narration.editing.lastChapter`),
-// and a row that opens the Booth with no chapter in its address would otherwise open on whichever chapter an earlier row left behind and write it into the address.
-beforeEach(() => {
-  window.localStorage.clear();
-  window.history.replaceState(null, '', '/');
-});
+beforeEach(() => window.history.replaceState(null, '', '/'));
 afterEach(cleanup);
 
 function mountApp(address: string, initial: Parameters<typeof createMockApi>[1] = {}) {
@@ -166,11 +161,19 @@ describe('cross-page matrix: where an address lands the narrator', () => {
 
 describe('cross-page matrix: a bad address always has a way out', () => {
   it('Open Booth opens the Booth without the address, and Back does not return to the bad one', async () => {
+    // Production first, then the bad link on top of it: the history the narrator had when the link opened.
+    window.history.pushState(null, '', '/booth?chapter=nope');
     mountApp('/booth?chapter=nope');
     await blocked('Booth');
     fireEvent.click(screen.getByRole('button', { name: 'Open Booth' }));
-    await heading('Booth');
+    // The page's own h1 is drawn at once (and the bad-link screen has one too), so the working Booth is told by its take status, which only a session shows.
+    // Until it shows, the Booth may still be choosing its chapter and writing it into the address.
+    await screen.findByRole('status', { name: 'Take status' });
     expect(here()).toBe('/booth');
+    expect(screen.queryByText('This link could not be opened')).toBeNull();
+    act(() => window.history.back());
+    await heading('Production');
+    expect(here()).toBe('/');
     expect(screen.queryByText('This link could not be opened')).toBeNull();
   });
 
