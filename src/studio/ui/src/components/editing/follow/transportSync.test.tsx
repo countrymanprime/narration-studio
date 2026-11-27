@@ -583,7 +583,10 @@ describe('script-transport-races (#4127)', () => {
     expect(calls('stop')).toHaveLength(1);
     expect(state().playing).toBe(false);
   });
-  it('a narrator Stop in the DAW heard while a play is being answered ends that play once the answer comes (the DAW applied it at once)', async () => {
+  it.each([
+    ['every reading', false],
+    ['changes only, as the real script sends them while stopped', true],
+  ])('a narrator Stop in the DAW heard while a play is being answered ends that play soon after the answer, with %s', async (_name, changesOnly) => {
     const api = createMockApi({}, { daw: {} });
     const real = api.dawTransportSync.bind(api) as (...a: unknown[]) => Promise<never>;
     let release: () => void = () => {};
@@ -602,13 +605,29 @@ describe('script-transport-races (#4127)', () => {
       </ApiProvider>,
     );
     await wait(10);
+    daw.streamChangesOnly(changesOnly);
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(300);
     act(() => daw.moveInDaw({ playing: false }));
     await wait(300);
     release();
-    await wait(SILENT_MS + 2000);
+    await wait(1000);
     expect(state().playing).toBe(false);
+    // Ended as the narrator's stop: no "stopped answering" notice follows.
+    await wait(SILENT_MS + 1000);
+    expect(notices).toEqual([]);
+  });
+  it('a play the DAW refuses leaves nothing for the page Stop to stop', async () => {
+    await ready();
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    act(() => daw.refuseNextSync('no'));
+    act(() => playback.playFrom(t0('p-2:3')));
+    await wait(10);
+    const stops = calls('stop').length;
+    act(() => playback.stop());
+    await wait(10);
+    expect(calls('stop')).toHaveLength(stops);
   });
   it('a play started in the DAW is ignored for 2 s after the page stopped a late answer, then followed', async () => {
     const bridge = heldBridge();
