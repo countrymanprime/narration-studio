@@ -3,7 +3,16 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 import { rememberClosedTarget } from './dialogClosed';
-import { escapeClosesPanel, anotherPopoverTakesFocus, focusPageMain, useReturnFocusTarget } from './focusReturn';
+import {
+  escapeClosesPanel,
+  anotherPopoverTakesFocus,
+  focusPageMain,
+  forgetPageTookFocus,
+  menuFinalFocus,
+  pageTakesFocusFromLeavingPopups,
+  pageTookFocusFrom,
+  useReturnFocusTarget,
+} from './focusReturn';
 
 afterEach(cleanup);
 
@@ -271,5 +280,66 @@ describe('anotherPopoverTakesFocus', () => {
     const dialog = page(`<button id="opener"></button>${LEAVING_OWN}<div role="dialog"><input id="other" /></div><div role="listbox"></div>`);
     dialog.other!.focus();
     expect(anotherPopoverTakesFocus(dialog.own, dialog.opener)).toBe(false);
+  });
+});
+
+describe('pageTakesFocusFromLeavingPopups', () => {
+  const popups = (html: string) => {
+    document.body.innerHTML = html;
+    const el = (id: string) => document.getElementById(id);
+    return { leaving: el('leaving'), menu: el('menu'), open: el('open') };
+  };
+
+  it('marks the popovers and menus that are leaving, and not the one that is open', () => {
+    const { leaving, menu, open } = popups(
+      '<div id="leaving" data-popover-popup="" data-ending-style=""></div><div id="menu" role="menu" data-closed=""></div><div id="open" data-popover-popup="" data-open=""></div>',
+    );
+    pageTakesFocusFromLeavingPopups();
+    expect(pageTookFocusFrom(leaving)).toBe(true);
+    expect(pageTookFocusFrom(menu)).toBe(true);
+    expect(pageTookFocusFrom(open)).toBe(false);
+  });
+
+  it('does not mark a popover that opens afterwards, and answers false for no popup', () => {
+    const { leaving } = popups('<div id="leaving" data-popover-popup="" data-ending-style=""></div>');
+    pageTakesFocusFromLeavingPopups();
+    expect(pageTookFocusFrom(null)).toBe(false);
+    leaving!.remove();
+    const next = document.createElement('div');
+    next.setAttribute('data-popover-popup', '');
+    document.body.append(next);
+    expect(pageTookFocusFrom(next)).toBe(false);
+  });
+});
+
+describe('every popup POPUPS matches, once a key took the page focus while it was leaving', () => {
+  const POPUP_HTML = [
+    '<div data-popover-popup="" data-ending-style=""><button>in</button></div>',
+    '<div role="menu" data-closed=""><button role="menuitem">in</button></div>',
+  ];
+
+  it.each(POPUP_HTML)('gives no focus back and hands focus to <main> (%s)', (html) => {
+    document.body.innerHTML = `<main>${html}</main><button id="trigger">Trigger</button>`;
+    const popup = document.querySelector('[data-popover-popup], [role="menu"]')!;
+    (popup.querySelector('button') as HTMLElement).focus();
+    pageTakesFocusFromLeavingPopups();
+    expect(pageTookFocusFrom(popup)).toBe(true);
+    expect(menuFinalFocus(popup)).toBe(false);
+  });
+
+  it('forgetPageTookFocus clears the mark, so a menu gets the library place again', () => {
+    document.body.innerHTML = '<div role="menu" data-closed=""><button role="menuitem">in</button></div>';
+    const popup = document.querySelector('[role="menu"]')!;
+    pageTakesFocusFromLeavingPopups();
+    forgetPageTookFocus(popup);
+    expect(pageTookFocusFrom(popup)).toBe(false);
+    expect(menuFinalFocus(popup)).toBe(true);
+  });
+
+  it('keeps the library rule for a menu no key marked: focus on a control elsewhere is not taken', () => {
+    document.body.innerHTML = '<div role="menu"></div><input id="field" />';
+    const popup = document.querySelector('[role="menu"]')!;
+    document.getElementById('field')!.focus();
+    expect(menuFinalFocus(popup)).toBe(false);
   });
 });

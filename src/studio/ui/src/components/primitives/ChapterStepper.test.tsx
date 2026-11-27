@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterStepper, ALL_CHAPTERS } from './ChapterStepper';
+import { pageTakesFocusFromLeavingPopups } from './focusReturn';
 
 afterEach(cleanup);
 
@@ -219,5 +220,47 @@ describe('ChapterStepper', () => {
     expect(items.map((item) => item.querySelector('[data-chapter-detail]')?.textContent ?? null)).toEqual(['Complete', '45%', null]);
     expect(items[1].textContent).toBe('Chapter 2 — a very long name that has to truncate before its note45%');
     expect(items[1].querySelector('[data-chapter-detail]')?.className).toContain('flex-none');
+  });
+});
+
+describe('ChapterStepper chapter list focus while it leaves', () => {
+  const proto = Element.prototype as unknown as { getAnimations?: () => unknown[] };
+  const original = proto.getAnimations;
+  afterEach(() => {
+    proto.getAnimations = original;
+  });
+
+  async function escapeWhileLeaving() {
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    render(
+      <main tabIndex={-1}>
+        <ChapterStepper chapters={chapters} value="2" onChange={vi.fn()} onStep={vi.fn()} />
+      </main>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    await screen.findByRole('menu');
+    await user.keyboard('{Escape}');
+    expect(document.querySelector('[role="menu"][data-ending-style], [role="menu"][data-closed]')).not.toBeNull();
+    return async () => {
+      endExit();
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    };
+  }
+
+  it('gives focus back to the chapter button when the exit ends and no key took it', async () => {
+    const end = await escapeWhileLeaving();
+    await end();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Change chapter/ }));
+  });
+
+  it('hands focus to <main> when a key took the page focus while it was leaving', async () => {
+    const end = await escapeWhileLeaving();
+    pageTakesFocusFromLeavingPopups();
+    await end();
+    expect(document.activeElement).toBe(document.querySelector('main'));
   });
 });
