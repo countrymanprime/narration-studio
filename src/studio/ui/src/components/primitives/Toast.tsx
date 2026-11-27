@@ -65,14 +65,21 @@ export function toastLifetimeMs(message: Pick<ToastMessage, 'tone' | 'durationMs
 const TEXT_SCROLL_CUE =
   '[background:linear-gradient(var(--toast-bg)_30%,transparent)_center_top/100%_1rem_no-repeat_local,linear-gradient(to_top,var(--toast-bg)_30%,transparent)_center_bottom/100%_1rem_no-repeat_local,linear-gradient(color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_top/100%_0.5rem_no-repeat_scroll,linear-gradient(to_top,color-mix(in_srgb,var(--toast-text)_40%,transparent),transparent)_center_bottom/100%_0.5rem_no-repeat_scroll]';
 
+/** A key's identity: its `code`, else its `key` (a synthetic event may have no code). */
+const keyOf = (event: { code: string; key: string }): string => event.code || event.key;
+
 /**
- * What a press or a focused toast leaves waiting (a hand-back's timer and its wait for a key, the fallback for a toast removed with focus inside it) belongs to the region, not the module: it goes with the region (#4103).
+ * What a press or a focused toast leaves waiting (a hand-back's timer and its wait for a key, the fallback for a toast removed with focus inside it, the document listeners that swallow a held key's repeats)
+ * belongs to the region, not the module: it goes with the region (#4103).
  * A test's `cleanup()` unmounts the region but not a timer, and a timer left over moved focus in whatever ran next. A closed owner cancels what it is handed at once; React's development remount closes and reopens it
  * before anything is held.
  */
 class HandBacks {
   private cancels = new Set<() => void>();
   private open = true;
+  private held = new Set<string>();
+  private waiting = new Set<{ code: string; run: () => void }>();
+  private keysCancel: (() => void) | null = null;
   hold(cancel: () => void): void {
     if (this.open) this.cancels.add(cancel);
     else cancel();
@@ -82,12 +89,86 @@ class HandBacks {
   }
   close(): void {
     this.open = false;
+    this.waiting.clear();
     const all = [...this.cancels];
     this.cancels.clear();
     for (const cancel of all) cancel();
   }
   reopen(): void {
     this.open = true;
+  }
+  /**
+   * A key went down on a toast's button. Its repeats, and only its, must press nothing (they would press the button again, or what the press hands focus to) until it comes up: one set of document listeners
+   * for every key held at once, ended when the last comes up (#4063).
+   */
+  keyDown(code: string): void {
+    if (!this.open) return;
+    this.held.add(code);
+    if (this.keysCancel) return;
+    const swallow = (event: KeyboardEvent) => {
+      const own = this.held.has(keyOf(event));
+      // A fresh press of a held code means its keyup was lost: it is let go, so its next repeats (an Enter held down in a field) are the field's own.
+      if (own && !event.repeat) return this.keyUp(keyOf(event));
+      // Only the held key's repeats: another key's (a Backspace held in a field) are its own, even while a held key's keyup is lost.
+      if (!own || !event.repeat) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const up = (event: KeyboardEvent) => this.keyUp(keyOf(event));
+    // The window lost focus (alt-tab, a native dialog) or the page was hidden: the keyup may never come, so the waits end and focus is handed back, but the key stays held until its keyup or a fresh press of it, so its
+    // repeats, once focus is back, still press nothing.
+    const lost = () => this.endWaits();
+    const hidden = () => {
+      if (document.visibilityState === 'hidden') this.endWaits();
+    };
+    const cancel = () => {
+      document.removeEventListener('keydown', swallow, true);
+      document.removeEventListener('keyup', up, true);
+      window.removeEventListener('blur', lost);
+      document.removeEventListener('visibilitychange', hidden);
+      this.held.clear();
+      this.keysCancel = null;
+    };
+    document.addEventListener('keydown', swallow, true);
+    document.addEventListener('keyup', up, true);
+    window.addEventListener('blur', lost);
+    document.addEventListener('visibilitychange', hidden);
+    this.keysCancel = cancel;
+    this.hold(cancel);
+  }
+  isHeld(code: string): boolean {
+    return this.held.has(code);
+  }
+  /** Calls `run` once `code` comes up (or the waits end); the returned function stops waiting. */
+  whenReleased(code: string, run: () => void): () => void {
+    const waiter = { code, run };
+    this.waiting.add(waiter);
+    return () => void this.waiting.delete(waiter);
+  }
+  /** Gives up on every held key: its repeats are let through and each wait ends (a keyup that never came, a press with the pointer). */
+  endAll(): void {
+    this.endKeys();
+    this.endWaits();
+  }
+  private keyUp(code: string): void {
+    this.held.delete(code);
+    for (const waiter of [...this.waiting]) {
+      if (waiter.code !== code) continue;
+      this.waiting.delete(waiter);
+      waiter.run();
+    }
+    if (this.held.size === 0) this.endKeys();
+  }
+  private endWaits(): void {
+    const waiters = [...this.waiting];
+    this.waiting.clear();
+    for (const waiter of waiters) waiter.run();
+  }
+  private endKeys(): void {
+    const cancel = this.keysCancel;
+    if (!cancel) return;
+    this.release(cancel);
+    cancel();
   }
 }
 
@@ -117,24 +198,6 @@ function focusFirst(candidates: HTMLElement[]): boolean {
     if (document.activeElement === candidate) return true;
   }
   return false;
-}
-
-/**
- * A key pressed on a toast's button repeats while it is held, and the press may move focus (an Undo puts it on the control it restored): the repeats must press nothing, so every repeat of any key goes unheard until
- * a key comes up (#4063).
- */
-function swallowRepeatsUntilKeyUp(): void {
-  const swallow = (event: KeyboardEvent) => {
-    if (!event.repeat) return;
-    event.preventDefault();
-    event.stopPropagation();
-  };
-  const stop = () => {
-    document.removeEventListener('keydown', swallow, true);
-    document.removeEventListener('keyup', stop, true);
-  };
-  document.addEventListener('keydown', swallow, true);
-  document.addEventListener('keyup', stop, true);
 }
 
 function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessage; dismiss: (id: number) => void; owner: HandBacks; more?: number }) {
@@ -196,18 +259,14 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
   const hold = () => setHeld(hover.current || focused.current);
   // The second click of a double click (`detail` 2) is not a press: when the first click dismissed this toast's neighbour, the next toast took its place under the pointer and would take the second click (#4063).
   const tooSoon = (event: { detail: number }) => event.detail >= 2;
-  // A key held down on a toast's button repeats: the repeats must not press it again, nor press what focus is handed to (#4063).
-  const keyHeld = useRef(false);
-  useEffect(() => {
-    const up = () => (keyHeld.current = false);
-    window.addEventListener('keyup', up, true);
-    return () => window.removeEventListener('keyup', up, true);
-  }, []);
-  const onButtonKey = (event: { repeat: boolean; preventDefault: () => void }) => {
+  // The key last pressed on this toast's button: a key held down repeats, and the repeats must not press it again, nor press what focus is handed to (#4063). The hand-back after a press waits for it, if it
+  // is still held, to come up (the owner knows which keys are held).
+  const pressKey = useRef<string | null>(null);
+  const onButtonKey = (event: { repeat: boolean; code: string; key: string; preventDefault: () => void }) => {
     if (event.repeat) event.preventDefault();
     else {
-      keyHeld.current = true;
-      swallowRepeatsUntilKeyUp();
+      pressKey.current = keyOf(event);
+      owner.keyDown(pressKey.current);
     }
   };
   // A toast under a pointer that is not moving is not hovered, however it came there (it appeared under the button that raised it, another toast above it went, it came back after a
@@ -253,18 +312,21 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
     },
     [owner],
   );
-  const settle = (always: boolean) => {
+  // `act` is the press's action, run once the watch for focus moving is up, so focus the action moves itself is seen by it.
+  const settle = (always: boolean, act?: () => void) => {
     // Where focus goes, looked up when it is handed over: where it was before the toast took it, else the Dismiss of the toast that has taken the slot by then, else <main>
     // (an origin that is gone, a dialog that closed). Not into the page behind an open dialog: <main> there is left alone.
     const resolve = () => focusCandidates(origin.current);
     pressed.current = true;
-    dismiss(id);
     // Focus that something took since the press (a dialog or menu opened, a field was reached, even if it has closed since) is theirs: nothing is handed back (#4103).
     const focus = watchFocusTaken();
+    act?.();
+    dismiss(id);
     let timer: number | undefined;
+    let stopWaiting = () => {};
     const cancel = () => {
       window.clearTimeout(timer);
-      window.removeEventListener('keyup', start, true);
+      stopWaiting();
       focus.stop();
       owner.release(cancel);
     };
@@ -279,12 +341,13 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       const candidates = resolve().filter((target) => !layer || layer.contains(target) || target.closest('[data-toast-region]'));
       if (always || !active || active === document.body || !active.isConnected) focusFirst(candidates);
     };
-    function start() {
-      window.removeEventListener('keyup', start, true);
+    const start = () => {
       timer = window.setTimeout(hand, always ? 0 : ACTION_FOCUS_MS);
-    }
-    // A key still held down would repeat on whatever gets focus: wait for it to come up (main's behaviour, unchanged: a keyup that never comes is #4125).
-    if (keyHeld.current) window.addEventListener('keyup', start, true);
+    };
+    // The key that pressed, still held down, would repeat on whatever gets focus: wait for that key (not another) to come up. The wait ends too when the window loses focus, the page is hidden or the pointer
+    // presses a toast (`HandBacks`), where its keyup may never come.
+    const key = pressKey.current;
+    if (key !== null && owner.isHeld(key)) stopWaiting = owner.whenReleased(key, start);
     else start();
     owner.hold(cancel);
   };
@@ -305,6 +368,8 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
     <div
       data-tone={message.tone}
       onPointerMove={pointerOn}
+      // A press with the pointer gives up on a held key whose keyup never came: its repeats are let through and any hand-back waiting for it goes ahead.
+      onPointerDown={() => owner.endAll()}
       onPointerLeave={() => ((hover.current = false), hold())}
       onFocus={(event) => {
         focused.current = true;
@@ -379,9 +444,11 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
             const button = event.currentTarget;
             // Focus is handed back only when a key pressed the button (`detail` 0): a mouse press hands it nowhere, so focus the app moved is never a hold on a toast the narrator did not reach for (#4063).
             const had = event.detail === 0 && button.contains(document.activeElement);
-            message.action!.onAction();
-            if (had) settle(false);
-            else dismiss(id);
+            if (had) settle(false, () => message.action!.onAction());
+            else {
+              message.action!.onAction();
+              dismiss(id);
+            }
           }}
         >
           {message.action.label}
