@@ -104,7 +104,8 @@ export function anotherPopoverTakesFocus(own: Element | null, opener: Element | 
 }
 
 // The popups a key has already handed focus to the page from while they were leaving. A popup that opens again while it is still leaving is the same element
-// (Base UI keeps it), so the mark is cleared when it opens (`forgetPageTookFocus`); once it has unmounted the mark goes with the element.
+// (Base UI keeps it: the mark would stay with it), so the Popover and the chapter list clear it when they open (`forgetPageTookFocus`); once the popup has unmounted
+// the mark goes with the element.
 const pageTookFocus = new WeakSet<Element>();
 
 /**
@@ -128,7 +129,7 @@ export function forgetPageTookFocus(popup: Element | null): void {
 }
 
 /**
- * What a Base UI menu popup's `finalFocus` answers (a function switches off the library's own rule that focus is not taken from a control the narrator moved to
+ * What the Booth's chapter list (`ChapterStepper`, the one Base UI menu a Booth key can find leaving) answers as its popup's `finalFocus` (a function switches off the library's own rule that focus is not taken from a control the narrator moved to
  * meanwhile, so that rule is kept here): after a key left focus to the page while it was leaving, the page's <main> (focus left on <body> would send the next Tab to
  * the skip link); with focus on a control outside the popup, none; else the library's own place, the trigger.
  */
