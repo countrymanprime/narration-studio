@@ -24,6 +24,9 @@ async function chooseColdRead(page: Page): Promise<void> {
   await page.getByRole('radio', { name: 'Cold read' }).click();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Cold read' })).toBeVisible();
+  // The popover hands focus back to its trigger a frame or more after it closes. A chord pressed before that finds focus on <body>, releases nothing, and the
+  // late hand-back then lands on Record options: the settled state is the one every test below starts from (the label above shows at the pick, not at the close).
+  await expect(page.getByRole('button', { name: 'Record options' })).toBeFocused();
 }
 
 /** Enter and Space after the switch are Record's: focus must be on the page, not on a control that keeps them. */
