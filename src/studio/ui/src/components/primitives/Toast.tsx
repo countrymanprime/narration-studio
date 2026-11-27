@@ -142,7 +142,9 @@ class HandBacks {
         !event.isComposing &&
         !(event.code === 'Space' && takesTypedText(event.target))
       ) {
+        // A code already held is a fresh press whose keyup was lost (the rule below): it is held again, with every hand-back that is not past it, which waits for the new press's keyup.
         this.held.set(code, performance.now());
+        for (const wait of this.waiting) if (!wait.taken()) wait.codes.add(code);
         event.preventDefault();
         event.stopPropagation();
         return;
@@ -213,22 +215,29 @@ class HandBacks {
       waitsForKeys: () => wait.codes.size > 0,
     };
   }
-  /** A keyboard dismissal begins: a fresh Enter, NumpadEnter or Space is consumed (`listen`) until `endGrace`, so a double press does not press what focus goes to (#4125). */
+  /**
+   * A keyboard dismissal begins: a fresh Enter, NumpadEnter or Space is consumed (`listen`) until `endGrace`, so a double press does not press what focus goes to (#4125). Not for ever: a dismissing key whose keyup never
+   * comes keeps the hand-back waiting, so the grace ends `KEY_LIVE_MS` after the dismissal at the latest (the time a key stays held with no repeat), and a fresh press is then the rule of a lost keyup.
+   */
   startGrace(): void {
     if (!this.open) return;
-    window.clearTimeout(this.graceTimer);
-    this.grace = true;
-    this.listen();
+    this.graceFor(KEY_LIVE_MS);
   }
   /** The dismissal has handed focus back (`handed`) or has nothing to hand: the grace runs `ACTION_FOCUS_MS` more, or ends now. */
   endGrace(handed: boolean): void {
+    if (handed && this.open) this.graceFor(ACTION_FOCUS_MS);
+    else this.graceOver();
+  }
+  private graceFor(ms: number): void {
     window.clearTimeout(this.graceTimer);
-    const end = () => {
-      this.grace = false;
-      this.endKeysIfIdle();
-    };
-    if (handed && this.open) this.graceTimer = window.setTimeout(end, ACTION_FOCUS_MS);
-    else end();
+    this.grace = true;
+    this.listen();
+    this.graceTimer = window.setTimeout(() => this.graceOver(), ms);
+  }
+  private graceOver(): void {
+    window.clearTimeout(this.graceTimer);
+    this.grace = false;
+    this.endKeysIfIdle();
   }
   /**
    * A press with the pointer on a toast: a held key that repeated and then went silent (its keyup was lost) is let go. One that is still repeating is held, and so is one that has not repeated yet (the first repeat

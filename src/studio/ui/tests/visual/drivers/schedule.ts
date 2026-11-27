@@ -15,12 +15,12 @@ async function openSchedule(page: Parameters<Driver>[0], query = '', day: Date =
 
 /**
  * Adds a milestone through the Add milestone dialog, then dismisses its "Milestone added." toast: toasts show one at a time, so that one would hold the slot for the next message (and, stacked over the table, hide the rows
- * a state is about, alignment audit XSH-10).
+ * a state is about, alignment audit XSH-10). With `dismissToast: false` it stays up, for a case that needs a toast on screen.
  */
 export async function addMilestone(
   page: Page,
   name: string,
-  { due = '2026-10-05', note, done = false }: { due?: string; note?: string; done?: boolean } = {},
+  { due = '2026-10-05', note, done = false, dismissToast = true }: { due?: string; note?: string; done?: boolean; dismissToast?: boolean } = {},
 ): Promise<void> {
   await clickVisible(page, 'button', 'Add milestone');
   const dialog = confirmDialog(page, /milestone/i);
@@ -33,6 +33,7 @@ export async function addMilestone(
   await dialog.waitFor({ state: 'detached' });
   const added = page.getByRole('status').getByText('Milestone added.');
   await added.waitFor();
+  if (!dismissToast) return;
   await page.getByRole('button', { name: 'Dismiss message' }).click();
   await added.waitFor({ state: 'detached' });
 }

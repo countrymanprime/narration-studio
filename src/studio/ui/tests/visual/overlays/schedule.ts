@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { APP_DRIVERS } from '../app.drivers';
+import { addMilestone } from '../drivers/schedule';
 import { clickCase, type OverlayCase } from '../helpers/overlayGuardFor';
 
 const addButton = (page: Page) => page.getByRole('button', { name: 'Add milestone' }).first();
@@ -15,12 +16,7 @@ export const scheduleCases: OverlayCase[] = [
     over: {
       name: 'Undo toast',
       open: async (page) => {
-        await addButton(page).click();
-        const dialog = page.getByRole('dialog');
-        await dialog.getByRole('textbox', { name: 'Name' }).fill('Toast maker');
-        await dialog.getByRole('textbox', { name: 'Due' }).fill('2026-10-02');
-        await dialog.getByRole('button', { name: 'Add milestone' }).click();
-        await page.getByText('Milestone added.').first().waitFor();
+        await addMilestone(page, 'Toast maker', { due: '2026-10-02', dismissToast: false });
       },
     },
     open: async (page) => addButton(page).click(),
