@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 // Class guard for #4076 (owner rule on #4043, "no excuse for it to not be able to play the audio if it has [the track and timestamp]"): no play path
@@ -66,12 +67,12 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
   // other's stop. Primitives that start a play ignore a held key's repeat (`keyRepeat.ts`).
   // The Editing page's play paths and how they stop each other. Wired both ways: script <-> take (`stopChapter` / `stopTake` in EditingBody). One way only
   // (a voice sample starting stops the others, `onSampleStart`: the script's `halt` and every `useRangePlayer`, so a take's app audio): a sample does not stop a
-  // take that plays in the DAW, and the script's or a take's Play does not stop a sample or the Effects tab's Compare. Those pairs are not covered here (see the PR).
+  // take that plays in the DAW, and the script's or a take's Play does not stop a sample or the Effects tab's Compare. Those pairs are not covered here (#4139).
   it.each([
     ['components/editing/bar/useScriptPlayback.ts', /onSampleStart\(halt\)/],
     ['components/engine/useRangePlayer.ts', /onSampleStart\(stop\)/],
     ['components/editing/takes/useTakeAudition.ts', /stopChapter:\s*quiet|quiet\(\)|stopChapter\(\)/],
-  ])('%s is stopped by, and stops, the other play paths on its page', (file, wired) => {
+  ])('%s is one end of a pair of play paths on its page (script <-> take both ways; samples one way, #4139)', (file, wired) => {
     expect(all.find((s) => s.file === file)!.text).toMatch(wired);
   });
   it("the editing page hands the script and a take each other's stop", () => {
@@ -83,18 +84,33 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
   it.each(['components/primitives/IconButton.tsx'])('%s ignores a repeated Enter or Space keydown', (file) => {
     expect(all.find((s) => s.file === file)!.text).toMatch(/\bignoreKeyRepeat\(event\)/);
   });
-  // A `Button` that starts or toggles a play passes the shared repeat guard (a `Button` in a dialog keeps `holdEnter`'s own rule).
-  it.each([
-    'components/proof/NativeTakesPanel.tsx',
-    'components/editing/flags/FlagCard.tsx',
-    'components/editing/cleanup/CleanupInspector.tsx',
-    'components/production/ChapterTrackPanel.tsx',
-    'components/proof/checkcard/CheckCard.tsx',
-    'components/editing/strip/TimelineStrip.tsx',
-    'components/editing/takes/TakeCompare.tsx',
-    'components/editing/effects/EffectSettings.tsx',
-  ])('%s passes ignoreKeyRepeat to the buttons that play', (file) => {
-    expect(all.find((s) => s.file === file)!.text).toMatch(/onKeyDown=\{ignoreKeyRepeat\}/);
+  // A `Button` (or native `button`) with an `onClick` whose element draws a play, stop or pause icon, or says Play, Stop, Hear, Preview or A then B, passes
+  // `ignoreKeyRepeat` as its `onKeyDown`: a held Enter would otherwise press it again with every repeat (`IconButton` does it itself). Found by walking every
+  // component's JSX, so a new play control cannot slip past a file list. A dialog's own buttons keep `holdEnter`'s rule (none of them says Play).
+  it('every Button that plays passes ignoreKeyRepeat', () => {
+    const PLAYS = /name="(play|stop|pause)"|\bfa(Play|Stop|Pause)\b|\b(Play|Hear|Preview|A then B)\b|Stop (voice|hearing|take|preview)|'Stop'|'Play'/;
+    const missing: string[] = [];
+    for (const { file, text } of all) {
+      if (!file.endsWith('.tsx')) continue;
+      const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+      const visit = (node: ts.Node): void => {
+        if (ts.isJsxElement(node)) {
+          const tag = node.openingElement.tagName.getText();
+          const attr = (name: string) => node.openingElement.attributes.properties.find((a) => ts.isJsxAttribute(a) && a.name.getText() === name);
+          if (
+            (tag === 'Button' || tag === 'button') &&
+            attr('onClick') &&
+            PLAYS.test(node.getText()) &&
+            !attr('onKeyDown')?.getText().includes('ignoreKeyRepeat')
+          ) {
+            missing.push(`${file}:${sf.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
+          }
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(sf);
+    }
+    expect(missing).toEqual([]);
   });
 
   // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it. The shared

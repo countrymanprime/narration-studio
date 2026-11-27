@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ignoreKeyRepeat } from '../../primitives/keyRepeat';
 import type { VoiceSample } from '../../../api/contracts/voiceSamples';
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
@@ -159,6 +160,7 @@ function SampleButton({ sample, voice, samples }: { sample: VoiceSample; voice: 
       aria-pressed={active}
       aria-label={`${active ? 'Stop' : 'Play'} voice sample: ${name}, ${sampleLength(sample.durationMs)}${problem ? `. ${problem.sentence}` : ''}`}
       aria-disabled={problem && !active ? true : undefined}
+      onKeyDown={ignoreKeyRepeat}
       onClick={() => {
         if (active) samples.stop();
         else if (!problem) samples.play(sample, voice.name);
