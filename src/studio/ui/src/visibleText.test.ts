@@ -242,6 +242,11 @@ describe('a name inside a sentence (#4113)', () => {
     expect(isolateNameIn(`x ${BA} y`, ` ${BA} `)).toBe(`x ${LRI}${BA}${PDI} y`);
   });
 
+  // Go's TrimSpace trims U+0085 (next line) and JavaScript's trim does not: the lookup trims it too.
+  it("isolateNameIn trims U+0085 from the name as the host's TrimSpace does", () => {
+    expect(isolateNameIn(`x ${BA} y`, `\u0085${BA}\u0085`)).toBe(`x ${LRI}${BA}${PDI} y`);
+  });
+
   it('isolateNameIn leaves a name alone inside a longer word, so its joining letters are not split, and still isolates a whole-word match', () => {
     expect(isolateNameIn(`In chapter ${BAYT}, with ${BA}.`, BA)).toBe(`In chapter ${BAYT}, with ${LRI}${BA}${PDI}.`);
     // The name after a letter (the letter is the first half of the adjacency rule) and before one (the second half).
@@ -266,11 +271,19 @@ describe('a name inside a sentence (#4113)', () => {
   });
 
   it('isolateNameIn is idempotent: a name the sentence already isolates is not isolated again', () => {
-    const once = `Replaced 2 words with ${FSI}${SARA_WORD}${PDI}'s audio.`;
+    const once = `Replaced 2 words with ${LRI}${SARA_WORD}${PDI}'s audio.`;
     expect(isolateNameIn(once, SARA_WORD)).toBe(once);
     const twice = isolateNameIn(`Replaced 2 words with ${SARA_WORD}'s audio.`, SARA_WORD);
     expect(isolateNameIn(twice, SARA_WORD)).toBe(twice);
     expect(isolateNameIn(`${LRI}${SARA_WORD}${PDI} and ${SARA_WORD}.`, SARA_WORD)).toBe(`${LRI}${SARA_WORD}${PDI} and ${LRI}${SARA_WORD}${PDI}.`);
+  });
+
+  // A first-strong isolate round the name (what the host may add one day, #4126) draws a name by its first letter, "2 (Sara) <Arabic>": the name gets the left-to-right isolate inside it, and the overlay keeps the nested pair.
+  it('isolateNameIn makes a first-strong isolate round the name left to right', () => {
+    const sentence = `with ${FSI}${SARA}${PDI}'s audio`;
+    const isolated = isolateNameIn(sentence, SARA);
+    expect(isolated).toBe(`with ${FSI}${LRI}${SARA}${PDI}${PDI}'s audio`);
+    expect(withBalancedIsolates(isolated)).toBe(isolated);
   });
 
   // The overlay removes a right-to-left isolate with its close, so a name inside one is bare once it gets there: it is isolated again, and the pair that stays is the new one.

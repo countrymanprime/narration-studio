@@ -55,7 +55,7 @@ const isRtlLetter = (ch: string): boolean => RTL_BLOCK.test(ch) && LETTER.test(c
  *
  * Generated, not hand-picked: every assigned code point of Unicode 15.0 (Python 3.12 `unicodedata`) whose bidi class is R or AL and whose category is not a letter (L*), less the bidi controls this module strips
  * (U+061C, U+200E, U+200F, U+202A to U+202E, U+2066 to U+2069); merged into ranges, plus U+10D8E and U+10D8F (the Garay plus and minus signs, class R, added in Unicode 16.0, which Python's data does not have). JavaScript
- * has no Bidi_Class property escape, so the table is written out; a character a later Unicode version adds (U+10EC9 and U+10ECA in 18.0) is missed by a name made only of it until the table is made again. The test holds the
+ * has no Bidi_Class property escape, so the table is written out; a character a later Unicode version adds (U+10EC9 and U+10ECA are reported to arrive in 18.0; not verified) is missed by a name made only of it until the table is made again. The test holds the
  * table as data and checks every code point of the right-to-left blocks against it, so a range that loses or gains a code point fails. `textDirection` does not count these: it counts the right-to-left letters, on purpose.
  */
 const RTL_STRONG_NOT_LETTER =
@@ -96,8 +96,9 @@ const INSIDE_A_WORD = /[\p{L}\p{M}\u{200C}\u{200D}]/u;
  * directly inside an isolate.
  */
 export const isolateNameIn = (sentence: string, name: string): string => {
-  // The host trims the name it words into a sentence (Go `strings.TrimSpace`; JavaScript's trim differs on U+0085 and U+FEFF), so the trimmed name is what the sentence holds.
-  const candidate = name.trim();
+  // The host trims the name it words into a sentence (Go `strings.TrimSpace`), so the trimmed name is what the sentence holds. JavaScript's trim differs from Go's on U+0085 (Go trims it, JavaScript does not),
+  // so it is trimmed here too; U+FEFF is the other way (JavaScript trims it, Go does not) and is left to the JavaScript trim.
+  const candidate = name.replace(/^[\s\u0085]+|[\s\u0085]+$/g, '');
   if (candidate === '') return sentence;
   // Left to right, as the page draws a name written in plain text (the replaced-stretch mark, the Name fields): a first-strong isolate would draw an Arabic name followed by "(Sara) 2" with the 2 on its left.
   const isolated = isolatedIfRtl(candidate, 'ltr');
@@ -109,8 +110,9 @@ export const isolateNameIn = (sentence: string, name: string): string => {
     const after = Array.from(sentence.slice(end, end + 2))[0] ?? '';
     // A match next to a letter, a combining mark or a joiner is inside a longer word, not the name (a one-letter name inside an Arabic word would split its joining letters).
     if (INSIDE_A_WORD.test(before) || INSIDE_A_WORD.test(after)) continue;
-    // Already directly inside an isolate that the overlay keeps (the host may isolate it one day, #4126). A right-to-left isolate does not count: the overlay removes it with its close, and the name would be bare.
-    if ((before === FSI || before === LRI) && after === PDI) continue;
+    // Already directly inside a left-to-right isolate. A first-strong isolate does not count (it would draw the name by its first letter, "2 (Sara) <Arabic>", once the host isolates with one, #4126) and a right-to-left one
+    // does not either (the overlay removes it with its close, and the name would be bare): each gets the left-to-right isolate inside it, and the overlay keeps the nested pair.
+    if (before === LRI && after === PDI) continue;
     out += sentence.slice(from, at) + isolated;
     from = end;
   }
