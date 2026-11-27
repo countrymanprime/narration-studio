@@ -253,7 +253,8 @@ describe('Master & QC, Diagnostics', () => {
     await user.click(screen.getByRole('button', { name: 'Choose files to check…' }));
     expect(await screen.findByRole('progressbar', { name: 'Checking' })).toBeTruthy();
     expect(screen.getByText('Checking Chapter 01.wav (1 of 3).')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Raw recordings' }) as HTMLButtonElement).disabled).toBe(true);
+    // Off with the reason a hover and a screen reader get, not a native disabled that says nothing.
+    expect(screen.getAllByText('A check is running', { selector: '.sr-only' }).length).toBe(2);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(await screen.findByText('Diagnostics cancelled. 0 of 3 files were checked.')).toBeTruthy();
   });

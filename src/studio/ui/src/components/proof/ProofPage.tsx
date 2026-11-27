@@ -8,7 +8,7 @@ import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { useGuardedAction } from '../../studio/drafts/unsavedDrafts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
 import { shownFindingNoteType, type Finding, type FindingNoteType, type FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
@@ -173,12 +173,29 @@ export function ProofPage({
     } else saveSharedChapter(projectFolder, '');
   }, [restored, firstRead.chapters, params, chapters, projectFolder, setParams]);
   const asked = params.get('chapter');
+  // The restore has landed, or an address that names another chapter came while it was landing (a link, Back): nothing is held for it any more.
   useEffect(() => {
-    if (landing !== null && scope === landing) setLanding(null);
-  }, [landing, scope]);
+    if (landing !== null && (scope === landing || (asked !== null && asked !== landing))) setLanding(null);
+  }, [landing, scope, asked]);
+  // What the page shows is what is kept, whichever way the scope got there (a pick, Esc, a note, Back, Forward, a link): a chapter becomes the shared chapter and ends "All chapters
+  // was chosen"; All chapters, reached by a move of the narrator's, sets it. A replace is the app's own (the restore above, a project change's cut of the old project's address)
+  // and is never taken for a choice (#4099).
+  const navigationType = useNavigationType();
+  const locationKey = useLocation().key;
+  const trackedKey = useRef<string | null>(null);
+  const tracking = restored && landing === null;
   useEffect(() => {
-    if (restored && asked && chapters.some((c) => c.id === asked)) saveSharedChapter(projectFolder, asked);
+    if (restored && asked && chapters.some((c) => c.id === asked)) {
+      saveSharedChapter(projectFolder, asked);
+      chooseAll(projectFolder, false);
+    }
   }, [restored, asked, chapters, projectFolder]);
+  useEffect(() => {
+    if (!tracking) return;
+    const moved = trackedKey.current !== null && trackedKey.current !== locationKey;
+    trackedKey.current = locationKey;
+    if (moved && navigationType !== 'REPLACE' && scope === ALL_CHAPTERS) chooseAll(projectFolder, true);
+  }, [tracking, locationKey, navigationType, scope, projectFolder]);
   // The host sorts by a chapter-relative time, so All chapters is put in book order here; the table groups by chapter and J/K must follow it.
   const findings = useMemo(
     () =>
@@ -251,7 +268,6 @@ export function ProofPage({
 
   const choose = useCallback(
     (next: string) => {
-      chooseAll(projectFolder, next === ALL_CHAPTERS);
       if (next !== ALL_CHAPTERS) {
         setCurrent(next);
         saveSharedChapter(projectFolder, next);

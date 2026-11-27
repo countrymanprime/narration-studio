@@ -2,7 +2,6 @@
 // another page calls a builder here; a destination reads its address with `readAddress`, which says what is wrong with a bad one
 // instead of guessing. The Booth's own shape is wrapped, not changed: `boothQuery` and `readBoothQuery` do the work.
 
-import { SETTINGS_HASHES } from '../components/settings/page/anchors';
 import { boothQuery, readBoothQuery, type BoothTarget } from '../components/booth/page/boothQuery';
 
 /** The longest id, name or text an address may carry. Ids are short in practice; this stops an address that is a paste of a book. */
@@ -92,14 +91,12 @@ export function pageOfPath(pathname: string): string {
 export type PageAddress = { pathname: string; search: string; hash: string };
 
 /**
- * The address cut back to the page: no chapter, query or anchor of the project it was written under. Settings' `#category-<id>` names a category, not project content, so it stays.
- * Its other anchors (`#cleanup`, `#credits`...) ask to land on and light up one row, a one-time request of the page that sent the narrator there: carried into another
- * project it opens that project's first visit at the old project's spot, so they go, and the project's own remembered category applies (#4099). An address that is already the bare page comes back equal, which is how a caller tells there is nothing to drop (#4059).
+ * The address cut back to the page: no chapter, query or anchor of the project it was written under. Settings' hashes (`#cleanup`, `#credits`, the jump menu's `#category-<id>`) go too:
+ * each asks to open one category, and in another project that would override the category that project last had open, which each project keeps for itself (#4099). A link followed
+ * after the switch still opens its category. An address that is already the bare page comes back equal, which is how a caller tells there is nothing to drop (#4059).
  */
-export function addressWithoutProject({ pathname, hash }: PageAddress): PageAddress {
-  const page = pageOfPath(pathname);
-  const keepsHash = page === PAGE_PATH.settings && hash.startsWith('#category-') && hash in SETTINGS_HASHES;
-  return { pathname: page, search: '', hash: keepsHash ? hash : '' };
+export function addressWithoutProject({ pathname }: PageAddress): PageAddress {
+  return { pathname: pageOfPath(pathname), search: '', hash: '' };
 }
 
 /** What a page says when it will not act on an address, in words the narrator can use. */

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -52,6 +52,23 @@ function Back() {
       history back
     </button>
   );
+}
+
+/** The browser's Forward. */
+function Forward() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(1)}>
+      history forward
+    </button>
+  );
+}
+
+/** Lets a test move the router the way a link does, in the same tick as something else. */
+let navigateTo: (to: string) => void = () => {};
+function Nav() {
+  navigateTo = useNavigate();
+  return null;
 }
 
 /** Longer than any test: the toast outlasts the slowest runner. */
@@ -121,6 +138,8 @@ function renderPage({
               </Routes>
               <Where />
               <Back />
+              <Forward />
+              <Nav />
               <OverlayHost />
             </TooltipProvider>
           </CommandRouter>
@@ -151,6 +170,85 @@ describe('proof-reopens-where-it-was (#4099)', () => {
     renderPage();
     await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
     expect(await screen.findByText(/Recording check/i)).toBeTruthy();
+  });
+
+  const back = () => fireEvent.click(screen.getByRole('button', { name: 'history back' }));
+  const forward = () => fireEvent.click(screen.getByRole('button', { name: 'history forward' }));
+
+  it('a Back from All chapters to a chapter reopens on that chapter after a trip through another page', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    back();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+  });
+
+  it('a Back from a chapter to All chapters reopens on All chapters', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    back();
+    await waitFor(() => expect(where()).toBe('/proof'));
+    cleanup();
+    renderPage({ shared: null });
+    await noteRows();
+    expect(where()).toBe('/proof');
+  });
+
+  it('a Forward to a chapter after a Back to All chapters reopens on the chapter', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    back();
+    await waitFor(() => expect(where()).toBe('/proof'));
+    forward();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+  });
+
+  it('an address that names a chapter after All chapters was chosen reopens on that chapter', async () => {
+    renderPage({ at: '/proof?chapter=chapter-2' });
+    await noteRows();
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    cleanup();
+    renderPage({ at: '/proof?chapter=chapter-3', shared: null });
+    await screen.findByText(/Recording check/i);
+    expect(where()).toBe('/proof?chapter=chapter-3');
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+  });
+
+  it('an address change while the restore lands never leaves the skeleton up', async () => {
+    const api = createMockApi();
+    const book = await api.manuscriptChapters();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(async () => {
+      await gate;
+      return book;
+    });
+    renderPage({ api, shared: 'chapter-1' });
+    await act(async () => {
+      release();
+      navigateTo('/proof?chapter=chapter-2');
+    });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    expect(await screen.findByText(/Recording check/i)).toBeTruthy();
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 
   it('never draws All chapters before the kept chapter', async () => {

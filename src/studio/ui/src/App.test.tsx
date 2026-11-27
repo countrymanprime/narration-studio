@@ -45,6 +45,8 @@ const resetDocument = () => {
 let appKeptAcrossTests = false;
 let unmountKeptApp = () => {};
 beforeEach(() => {
+  // Settings and Proof keep their place per project in storage now, so one test's pick must not open the next test's page.
+  if (!appKeptAcrossTests) window.localStorage.clear();
   if (!appKeptAcrossTests) resetDocument();
 });
 afterEach(cleanup);

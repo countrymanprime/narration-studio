@@ -19,6 +19,9 @@ import { loadDiagnosticsSource, saveDiagnosticsSource } from './lastSource';
 /** How often a running check is read. */
 const POLL_MS = 500;
 
+/** What a control that waits for the running check says on hover. */
+const RUNNING_REASON = 'A check is running';
+
 const MUTED = { color: 'var(--text-muted)' };
 
 const SOURCE_KINDS = [
@@ -252,11 +255,11 @@ export function DiagnosticsSection({
           <div className="flex flex-wrap items-center gap-2">
             <Tooltip label="About diagnostics" text={`Times to listen to in ${dawName}: nothing here is changed`} />
             {measuredPaths.length > 0 && (
-              <Button variant="secondary" onClick={() => void checkMeasured()} pending={picking} disabled={running}>
+              <Button variant="secondary" onClick={() => void checkMeasured()} pending={picking} disabledReason={running ? RUNNING_REASON : undefined}>
                 {`Check the ${plural(measuredPaths.length, 'measured file', 'measured files')}`}
               </Button>
             )}
-            <Button onClick={() => void chooseFiles()} pending={picking} disabled={running}>
+            <Button onClick={() => void chooseFiles()} pending={picking} disabledReason={running ? RUNNING_REASON : undefined}>
               Choose files to check…
             </Button>
           </div>
@@ -270,7 +273,7 @@ export function DiagnosticsSection({
             look="segmented"
             value={running && job?.sourceKind ? job.sourceKind : sourceKind}
             onChange={(value) => chooseSource(value as DiagnosticsSourceKind)}
-            options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running }))}
+            options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running, disabledReason: running ? RUNNING_REASON : '' }))}
           />
         </div>
         {job && running && (

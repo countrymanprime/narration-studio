@@ -212,12 +212,10 @@ describe('the chapter in the address is not carried into another project (#4059)
     await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Appearance & keys/ }));
     await screen.findByRole('heading', { level: 2, name: 'Appearance & keys' });
-    await waitFor(() => expect(window.location.hash).toBe(''));
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
     expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', OTHER))).toBe('delivery');
-    await api.switchProject(alice, 'Alice in Wonderland');
-    expect(await screen.findByRole('heading', { level: 2, name: 'Appearance & keys' })).toBeTruthy();
+    await waitFor(() => expect(window.location.hash).toBe(''));
     expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', alice))).toBe('appearance');
   });
 
@@ -494,13 +492,18 @@ describe('the chapter in the address is not carried into another project (#4059)
     expect(window.location.hash).toBe('');
   });
 
-  it('a switch while Settings shows a category from the jump menu keeps Settings on that category', async () => {
-    const { api } = await openAt('/settings#category-delivery');
-    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+  // Each project keeps its own category (#4099), so a category link of the old project is not the new project's ask: it opens on its own, and neither project's kept one changes.
+  it('a switch while Settings shows a category from the jump menu opens the new project on its own category', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('settings.lastCategory', OTHER), 'delivery');
+    window.localStorage.setItem(projectStorageKey('settings.lastCategory', alice), 'models');
+    const { api } = await openAt('/settings#category-speech');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
-    await screen.findByRole('heading', { level: 1, name: 'Settings' });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    expect(window.location.hash).toBe('#category-delivery');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', OTHER))).toBe('delivery');
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', alice))).toBe('models');
   });
 
   // What the dev mock's states panel does: it rewrites the entry with no state at all, so history holds no key and no index while the router shows an entry that has both.

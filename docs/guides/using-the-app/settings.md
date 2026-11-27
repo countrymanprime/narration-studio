@@ -11,7 +11,7 @@ list. **Settings** is the page's one title; the category you are in is named by 
 
 **Ctrl+,** opens Settings from any page. When a link from another page brings you here (the Booth's DAW settings,
 a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
-offers **Back to** the page you came from. Opened any other way, Settings returns to the category you last had open in the project (Recording & DAW the first time), and after you switch project it opens on that project's own category, not on the row the old project's link lit. After you [switch project](navigation.md#the-header-and-the-footer), **Back to** returns to that page, not to a chapter of the old project.
+offers **Back to** the page you came from. Opened any other way, Settings returns to the category you last had open in the project (Recording & DAW the first time), and after you switch project it opens on that project's own category, whatever link the old project's Settings was opened from. After you [switch project](navigation.md#the-header-and-the-footer), **Back to** returns to that page, not to a chapter of the old project.
 
 This page is a reference to every setting, category by category. If you came to do one thing, start from the list
 below; each line goes to the section that has the steps.

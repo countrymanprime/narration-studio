@@ -219,7 +219,7 @@ is already listed adds no row, and a message says so.
 changes and long pauses. Press **Check the 3 measured files** (named for how many you measured) to check
 what you just checked, or **Choose files to check…** to pick others. First say what the files are, **Rendered chapters** or **Raw
 recordings**: room tone and level mean different things in each, because a render may have been gated or
-cleaned on purpose, so a room-tone change in a render is only information. The choice is kept for the project, so it is still **Raw recordings** when you come back from another page. The bar shows the audio read so
+cleaned on purpose, so a room-tone change in a render is only information. The choice is kept for the project, so it is still **Raw recordings** when you come back from another page. While a check runs the switch is off, with the reason on hover, and shows the kind being checked; your choice returns when the check ends. The bar shows the audio read so
 far, and **Cancel** keeps what was already checked.
 
 Each file gets a line with its length, how many clip regions and level shifts it has and how much of it is

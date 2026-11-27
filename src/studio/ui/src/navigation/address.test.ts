@@ -225,16 +225,11 @@ describe('addressWithoutProject: the address cut back to its page (#4059)', () =
     expect(addressWithoutProject({ pathname: '/editing/chapter-9', search: '?x=1', hash: '#a' })).toEqual({ pathname: '/editing', search: '', hash: '' });
     expect(addressWithoutProject({ pathname: '/master', search: '', hash: '#file=a.wav' })).toEqual({ pathname: '/master', search: '', hash: '' });
   });
-  it('drops Settings\u2019 row anchors, a one-time ask to land on a row, which the old project made (#4099)', () => {
-    expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#cleanup' })).toEqual({ pathname: '/settings', search: '', hash: '' });
-    const anchors = Object.keys(SETTINGS_HASHES).filter((hash) => !hash.startsWith('#category-'));
-    expect(anchors).toEqual(expect.arrayContaining(['#credits', '#cleanup', '#recording']));
-    for (const hash of anchors) expect(addressWithoutProject({ pathname: '/settings', search: '', hash }).hash).toBe('');
-  });
-  it('keeps the #category-<id> of every category, which names a category and no row', () => {
-    const hashes = CATEGORIES.map((category) => `#category-${category.id}`);
-    expect(Object.keys(SETTINGS_HASHES)).toEqual(expect.arrayContaining(hashes));
-    for (const hash of hashes) expect(addressWithoutProject({ pathname: '/settings', search: '', hash }).hash).toBe(hash);
+  it('drops every hash Settings resolves: each asks for a category, and the new project keeps its own (#4099)', () => {
+    const hashes = Object.keys(SETTINGS_HASHES);
+    expect(hashes).toEqual(expect.arrayContaining(['#credits', '#cleanup', ...CATEGORIES.map((category) => `#category-${category.id}`)]));
+    for (const hash of hashes)
+      expect(addressWithoutProject({ pathname: '/settings', search: '', hash })).toEqual({ pathname: '/settings', search: '', hash: '' });
   });
   it('drops a Settings hash that is no anchor', () => {
     expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#nothing' })).toEqual({ pathname: '/settings', search: '', hash: '' });
