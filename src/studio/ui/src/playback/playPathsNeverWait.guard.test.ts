@@ -84,25 +84,21 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
   it.each(['components/primitives/IconButton.tsx'])('%s ignores a repeated Enter or Space keydown', (file) => {
     expect(all.find((s) => s.file === file)!.text).toMatch(/\bignoreKeyRepeat\(event\)/);
   });
-  // A `Button` (or native `button`) with an `onClick` whose element draws a play, stop or pause icon, or says Play, Stop, Hear, Preview or A then B, passes
-  // `ignoreKeyRepeat` as its `onKeyDown`: a held Enter would otherwise press it again with every repeat (`IconButton` does it itself). Found by walking every
-  // component's JSX, so a new play control cannot slip past a file list. A dialog's own buttons keep `holdEnter`'s rule (none of them says Play).
+  // A `Button` (or native `button`) with an `onClick` whose element draws a play, stop or pause icon, or says Play, Stop, Hear, Preview, Compare or A then B,
+  // passes `ignoreKeyRepeat` as its `onKeyDown`: a held Enter would otherwise press it again with every repeat (`IconButton` does it itself). The walk reads every
+  // component's JSX by label and icon, so a play control with an unusual label, or a label held in a variable, is not seen (named in the PR). A dialog's own
+  // buttons keep `holdEnter`'s rule (none of them says Play).
   it('every Button that plays passes ignoreKeyRepeat', () => {
-    const PLAYS = /name="(play|stop|pause)"|\bfa(Play|Stop|Pause)\b|\b(Play|Hear|Preview|A then B)\b|Stop (voice|hearing|take|preview)|'Stop'|'Play'/;
+    const PLAYS = /name="(play|stop|pause)"|\bfa(Play|Stop|Pause)\b|\b(Play|Hear|Preview|Compare|A then B)\b|Stop (voice|hearing|take|preview)|'Stop'|'Play'/;
     const missing: string[] = [];
     for (const { file, text } of all) {
       if (!file.endsWith('.tsx')) continue;
       const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
       const visit = (node: ts.Node): void => {
-        if (ts.isJsxElement(node)) {
-          const tag = node.openingElement.tagName.getText();
-          const attr = (name: string) => node.openingElement.attributes.properties.find((a) => ts.isJsxAttribute(a) && a.name.getText() === name);
-          if (
-            (tag === 'Button' || tag === 'button') &&
-            attr('onClick') &&
-            PLAYS.test(node.getText()) &&
-            !attr('onKeyDown')?.getText().includes('ignoreKeyRepeat')
-          ) {
+        const opening = ts.isJsxElement(node) ? node.openingElement : ts.isJsxSelfClosingElement(node) ? node : null;
+        if (opening && ['Button', 'button'].includes(opening.tagName.getText())) {
+          const attr = (name: string) => opening.attributes.properties.find((a) => ts.isJsxAttribute(a) && a.name.getText() === name);
+          if (attr('onClick') && PLAYS.test(node.getText()) && !attr('onKeyDown')?.getText().includes('ignoreKeyRepeat')) {
             missing.push(`${file}:${sf.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
           }
         }
