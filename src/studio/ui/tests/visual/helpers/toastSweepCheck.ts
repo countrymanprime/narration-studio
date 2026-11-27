@@ -51,6 +51,8 @@ export function show(text: string): string {
  * - a right-to-left letter outside an isolate, among English words, is a name (or a piece of one: a name cut at 60 characters) the builder did not isolate;
  * - one of the names stands outside an isolate.
  * A toast with no English word of its own (a message in a right-to-left language) is left to the app: this sweep is for the app's English sentences.
+ * This is stricter than `textDirection` (visibleText.ts keeps `auto` for a mostly right-to-left message that holds "REAPER"): the app's own sentences are English, so an English word
+ * in an Arabic-only sentence is not a case the sweep covers, and the judge fails it on purpose (a stated divergence, pinned in the unit test).
  */
 export function problems(toasts: readonly Shown[], names: readonly string[]): string[] {
   const found: string[] = [];

@@ -6,7 +6,7 @@
 // The judge does not call the app's own `textDirection`, so a regression in that rule is seen, not agreed with (helpers/toastSweepCheck.ts).
 // The source guard (src/isolatedNames.guard.test.ts) reads what is written; this reads what is drawn.
 // A flow has to show the toast it is about (a driver that stops doing anything fails), and a gap that is known and written in KNOWN fails when it stops failing.
-// What it covers: Production (stage, remove and restore), Booth (link, create, microphone), the Story Bible (delete) and the Engine panel's Chapter links (create, check again): 9 flows in 5 areas.
+// What it covers: Production (stage, remove and restore), Booth (link, create, microphone), the Story Bible (delete) and the Engine panel's Chapter links (create, check again): 9 flows in 4 areas.
 // What it does not: the other call sites of isolatedIfRtl and bidiIsolated (35 files outside tests), the sentences the host (Go) words (#4126), and the pages and flows listed in the PR.
 // Mock only: no REAPER, no Go host.
 import { expect, test, type Page } from '@playwright/test';
@@ -14,7 +14,7 @@ import { QUIET_MS } from '../../src/quietWindow';
 import { clickVisible, confirmDialog, goToPage, openBooth, openEnginePanel, openStageEvidence, productionLoaded, rowMenu } from './drivers/shared';
 import { arabicNames, ARABIC_NAMES, ARABIC_VALUES, CHAPTER_TITLES, MISSING_MICROPHONE, startsWithTitle } from './helpers/rtlNames';
 import { settlePage } from './helpers/settle';
-import { problems, type Shown } from './helpers/toastSweepCheck';
+import { problems, show, type Shown } from './helpers/toastSweepCheck';
 
 /** Installs the recorder before the app loads: every distinct toast text that reaches `[data-toast-text]`, with the direction the browser computed for it. */
 async function recordToasts(page: Page): Promise<void> {
@@ -205,7 +205,7 @@ for (const flow of FLOWS) {
     // The flow ran on the Arabic data: a toast that names nothing from it means the swap or the driver did nothing.
     expect(
       all.some((toast) => flow.expectText.test(toast.text) && ARABIC_VALUES.some((name) => toast.text.includes(name))),
-      `the toast matching ${flow.expectText} names one of the Arabic names; shown: ${JSON.stringify(all)}`,
+      `the toast matching ${flow.expectText} names one of the Arabic names; shown: ${all.map((toast) => show(toast.text)).join(' ')}`,
     ).toBe(true);
     const found = problems(all, ARABIC_VALUES);
     const known = KNOWN[flow.name];

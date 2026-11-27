@@ -47,6 +47,18 @@ describe('problems', () => {
     expect(problems([{ text, direction: 'rtl' }], [])).toEqual([]);
   });
 
+  it('lets an Arabic sentence hold an isolated name with Latin letters in it, drawn right to left', () => {
+    const sentence = '\u062A\u0639\u0630\u0631 \u0639\u0644\u0649 \u062D\u0641\u0638';
+    const text = `${sentence} ${FSI}${NAME} (Realtek)${PDI} ${sentence}.`;
+    expect(problems([{ text, direction: 'rtl' }], [NAME])).toEqual([]);
+  });
+
+  it('fails an English word in an Arabic-only sentence on purpose (stricter than textDirection, which keeps auto for it)', () => {
+    // The app's own sentences are English: this is not a case the sweep covers, and the judge says so rather than guessing.
+    const sentence = '\u062A\u0639\u0630\u0631 \u0639\u0644\u0649 \u062D\u0641\u0638 \u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644';
+    expect(problems([{ text: `${sentence} REAPER ${sentence}.`, direction: 'rtl' }], [])).not.toEqual([]);
+  });
+
   it('judges by the words outside the isolates, not by the rule that sets the direction', () => {
     expect(problems([{ text: `${FSI}${NAME} ${NAME}${PDI} ok.`, direction: 'rtl' }], [NAME])).toHaveLength(1);
     expect(problems([{ text: `${FSI}${NAME} ${NAME}${PDI} ok.`, direction: 'ltr' }], [NAME])).toEqual([]);
