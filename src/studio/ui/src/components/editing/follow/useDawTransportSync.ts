@@ -123,6 +123,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const stopHeard = useRef(false);
   /** When the page last gave up or stopped a play: an ask still unanswered after that is the page's own old play, for `ABANDONED_ASK_MS`. */
   const abandonedAt = useRef(0);
+  /** The timer that ends the page's play as the narrator's stop when none of its "playing" readings follows its answer. */
+  const stopWindow = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(stopWindow.current), []);
 
   // The lease: taken now and renewed while the window is visible. A refusal (another project open, a recording, the capability off) is not ready.
   useEffect(() => {
@@ -411,13 +414,15 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       // A Stop was heard while this play was asked and no "playing" reading has followed: the narrator stopped it (the page's own earlier stop is followed by
       // this play's playing reading within a reading or two).
       if (stopHeard.current) {
-        window.setTimeout(() => {
+        window.clearTimeout(stopWindow.current);
+        stopWindow.current = window.setTimeout(() => {
           if (stopHeard.current && owns.current && epoch.current === mineEpoch) endOwnPlay();
         }, STOP_HEARD_WINDOW_MS);
       }
       return null;
     },
     stop: () => {
+      window.clearTimeout(stopWindow.current);
       epoch.current += 1;
       abandonedAt.current = Date.now();
       stopHeard.current = false;
