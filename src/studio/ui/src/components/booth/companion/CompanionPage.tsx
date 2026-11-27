@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
+import type { TeleprompterState } from '../../../api/contracts/teleprompter';
 import type { CreditsRenderResult, GuideEntity, GuideType, ManuscriptChapter, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
 import { boothQuery, readBoothQuery } from '../page/boothQuery';
 import { creditsKindOf } from '../page/useBoothData';
-import { keptChapterIn, loadLastPlace } from '../page/lastPlace';
+import { loadLastPlace, type LastPlace } from '../page/lastPlace';
+import { openingChapter } from '../openingChapter';
 import { useFollowDawOnOpen } from '../page/useDawFollow';
-import { isCreditsChapter, isNarrationChapter, lastReadOrFirstTextChapter } from '../../../chapterKinds';
-import { ACTIVE_PHASES } from '../useTeleprompterSession';
+import { isCreditsChapter, isNarrationChapter } from '../../../chapterKinds';
 import { CompanionSkeleton } from './CompanionSkeleton';
 import { CompanionHost } from './CompanionHost';
 import { addressPath } from '../../../navigation/address';
@@ -27,8 +28,7 @@ type Props = {
 
 /**
  * The Companion's route (`/companion?chapter=<id>`; the credits are chapters, and `?credits=opening` is the old spelling of `?chapter=credits-opening`): the chapter rule of the old Booth page without its
- * picker. With neither in the address it reads the chapter a running session is on, else the chapter the Booth remembers for this project (`keptChapterIn`), else the chapter the DAW is on
- * (`useFollowDawOnOpen`, as the Booth does), else the chapter last read, else the first chapter with text (`lastReadOrFirstTextChapter`, the Booth's end of the order too); an unknown
+ * picker. With none in the address the chapter is `openingChapter`'s, the same order as the Booth's (a running session, the Booth's remembered chapter, the DAW's, the last read, the first with text); an unknown
  * chapter sends the narrator to `/booth`.
  */
 export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
@@ -40,9 +40,10 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
   const [entities, setEntities] = useState<GuideEntity[]>(NO_ENTITIES);
   const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
   const [notes, setNotes] = useState<ManuscriptNote[]>(NO_NOTES);
-  // What decides the chapter when none is asked, read once with the chapters: a running session's, the remembered one, and the one to fall back on.
-  const [fallback, setFallback] = useState('');
-  const [decided, setDecided] = useState(false);
+  // What `openingChapter` needs besides the chapters and the address, read with them: the reading session, the Booth's remembered place, the last-read chapter.
+  const [host, setHost] = useState<TeleprompterState>();
+  const [kept, setKept] = useState<LastPlace | null>(null);
+  const [lastRead, setLastRead] = useState<string>();
   const [credits, setCredits] = useState<CreditsRenderResult>();
   // The credits chapter read last, with text or without, so empty credits are not waited for for ever.
   const [creditsReadOf, setCreditsReadOf] = useState<string>();
@@ -64,14 +65,9 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
         setEntities(nextEntities);
         setTypes(nextTypes);
         setNotes(nextNotes);
-        const running = host && ACTIVE_PHASES.includes(host.phase) ? narration.find((item) => item.id === host.chapter)?.id : undefined;
-        // The Booth's remembered chapter, used when it is in this list.
-        const remembered = keptChapterIn(
-          projectFolder ? loadLastPlace(projectFolder) : null,
-          narration.map((item) => item.id),
-        )?.chapterId;
-        setDecided(!running && !remembered);
-        setFallback(running || remembered || lastReadOrFirstTextChapter(narration, reader?.activeChapter)?.id || '');
+        setHost(host);
+        setKept(projectFolder ? loadLastPlace(projectFolder) : null);
+        setLastRead(reader?.activeChapter);
       })
       .catch(() => live && setChapters([]));
     return () => {
@@ -81,13 +77,14 @@ export function CompanionPage({ onFixCredits, projectFolder = '' }: Props) {
 
   const asked = readBoothQuery(params)?.chapter;
   const chapterIds = useMemo(() => chapters?.map((item) => item.id), [chapters]);
-  // Nothing asked, no session running and nothing remembered: the chapter the DAW is on, asked once, and nothing is drawn until it answers.
+  // The one order for the chapter to open on, the Booth's too (`openingChapter`). Where it reaches the DAW the DAW is asked once, and nothing is drawn until it answers.
+  const opening = openingChapter({ asked: asked ?? null, host, kept, chapters, lastRead, daw: 'unasked' });
   const followingDaw = useFollowDawOnOpen({
-    enabled: asked === undefined && decided,
+    enabled: opening === 'ask-daw',
     chapterIds,
     onChapter: (chapterId) => setParams(new URLSearchParams(boothQuery({ chapter: chapterId }).slice(1)), { replace: true }),
   });
-  const chosen = asked ?? fallback;
+  const chosen = openingChapter({ asked: asked ?? null, host, kept, chapters, lastRead, daw: 'none' }).chapterId;
   const chapter = chapters?.find((item) => item.id === chosen);
   // A credits chapter has no paragraphs; it reads the credits' rendered text.
   const creditsKind = chapter && isCreditsChapter(chapter) ? creditsKindOf(chapter) : undefined;

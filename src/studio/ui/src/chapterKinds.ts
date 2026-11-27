@@ -21,7 +21,7 @@ export const lastReadOrFirstTextChapter = <T extends { id: string; title?: strin
   chapters: readonly T[],
   lastRead: string | undefined,
 ): T | undefined =>
-  (lastRead ? chapters.find((item) => item.id === lastRead || item.title === lastRead) : undefined) ??
+  (lastRead ? (chapters.find((item) => item.id === lastRead) ?? chapters.find((item) => item.title === lastRead)) : undefined) ??
   chapters.find((item) => !isCreditsChapter(item)) ??
   chapters[0];
 

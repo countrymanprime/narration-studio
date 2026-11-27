@@ -200,3 +200,56 @@ describe('nothing remembered and the DAW has no chapter (#4087)', () => {
     expect(address).toContain('chapter=c1');
   });
 });
+
+describe('the last-read chapter and a running session in the one order (#4087)', () => {
+  const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+  const noChapter = async () => ({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 });
+
+  it('a last-read chapter other than chapter 1 opens, and the DAW is not sent to it', async () => {
+    const dawGoToChapter = goTo();
+    renderPage({
+      api: { dawGoToChapter, dawPlace: noChapter, readerState: async () => ({ ...(await pageApi().readerState()), activeChapter: 'Chapter Two' }) },
+    });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  const RUNNING_ON_TWO = async () => ({ phase: 'running', message: '', engine: null, chapter: 'c2', script: null, position: null }) as never;
+  const lastReadOne = async () => ({ ...(await pageApi().readerState()), activeChapter: 'Chapter One' });
+  const dawOnOne = async () => ({ ok: true, message: '', chapterId: 'c1', selected: 1, cursor: 0 });
+
+  // A Booth that drops the running session (it would open the kept chapter, the DAW's or the last read), or checks the last read before it, opens chapter 1 here.
+  it('a running reading session wins over the kept place, the DAW and the last read, and the DAW is not asked', async () => {
+    keep({ chapterId: 'c1', paragraphId: 'p3', word: 2 });
+    const dawPlace = vi.fn(dawOnOne);
+    renderPage({ api: { dawPlace, teleprompterState: RUNNING_ON_TWO, readerState: lastReadOne } });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    expect(dawPlace).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain('The Garden was quiet');
+  });
+
+  it('a running reading session wins over the DAW and the last read when nothing is kept', async () => {
+    const dawPlace = vi.fn(dawOnOne);
+    renderPage({ api: { dawPlace, teleprompterState: RUNNING_ON_TWO, readerState: lastReadOne } });
+    await waitFor(() => expect(document.body.textContent).toContain('A new day began in the court.'));
+    await settle();
+    expect(dawPlace).not.toHaveBeenCalled();
+    expect(document.body.textContent).not.toContain('The Garden was quiet');
+  });
+
+  it('a last-read read that never answers does not hold the Booth: it opens after the cap, on the first chapter with text', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderPage({ api: { dawPlace: noChapter, readerState: () => new Promise<never>(() => {}) } });
+      await act(async () => void (await vi.advanceTimersByTimeAsync(3400)));
+      expect(document.body.textContent).not.toContain('The Garden was quiet');
+      await act(async () => void (await vi.advanceTimersByTimeAsync(300)));
+      await waitFor(() => expect(document.body.textContent).toContain('The Garden was quiet'));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
