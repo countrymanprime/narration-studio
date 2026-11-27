@@ -10,6 +10,8 @@ import { ASK_DEADLINE_MS as SHOW_IN_DAW_MS } from './engine/ShowInDaw';
 // call that is shorter says the DAW did not answer and frees the control before the command lands (qa-breaker: Proof's marker and Show in, a leave
 // during a pending Stop). Each page-side limit on a call that sends one write is listed here and must outlast the host, read from the Go source.
 // A new limit on a DAW write goes in this list.
+// Not listed on purpose: `stopAndSay`'s `PLAY_DEADLINE_MS` limit on a Stop. A stop that lands after the limit only stops (it changes nothing the page then relies
+// on), and the page has said "Stop it in <DAW>" meanwhile (#4117).
 const GO = join(__dirname, '../../../desktop/internal/bridge');
 const seconds = (file: string, name: string): number => {
   const match = readFileSync(join(GO, file), 'utf8').match(new RegExp(`\\b${name}\\s*=\\s*(\\d+)\\s*\\*\\s*time\\.Second`));
