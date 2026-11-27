@@ -19,7 +19,9 @@ async function recordToasts(page: Page): Promise<void> {
     const read = () => {
       for (const el of document.querySelectorAll<HTMLElement>('[data-toast-text]')) {
         const text = el.textContent ?? '';
-        if (text !== '' && seen[seen.length - 1]?.text !== text) seen.push({ text, direction: getComputedStyle(el).direction });
+        const direction = getComputedStyle(el).direction;
+        // Keyed on the text and the direction: a toast whose `dir` changes after its text was recorded is recorded again.
+        if (text !== '' && !seen.some((toast) => toast.text === text && toast.direction === direction)) seen.push({ text, direction });
       }
     };
     new MutationObserver(read).observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
@@ -56,8 +58,11 @@ type Flow = {
   expectText: RegExp;
 };
 
-/** Gaps that fail today, by flow name: the reason, and the issue that holds the work. The sweep fails when a listed flow stops failing, so an entry never outlives its gap. */
-const KNOWN: Readonly<Record<string, { reason: string; issue: string }>> = {};
+/**
+ * Gaps that fail today, by flow name: what the sweep says is wrong (`problem`, a part of its message), the reason, and the issue that holds the work.
+ * The flow must fail with that problem, not with any problem, and the sweep fails when a listed flow stops failing, so an entry never outlives its gap.
+ */
+const KNOWN: Readonly<Record<string, { problem: string; reason: string; issue: string }>> = {};
 
 /** A chapter's track slide-over, opened from the board row's menu on a project that has `seed` (main.tsx's `?mockChapterLink=`). */
 async function openTrack(page: Page, title: string, seed: string) {
@@ -220,6 +225,8 @@ for (const flow of FLOWS) {
         timeout: 20_000,
       })
       .toBe(true);
+    // Let the queue empty before the last read: a toast raised after the expected one is judged too.
+    await expect(page.locator('[data-toast-text]')).toHaveCount(0, { timeout: 30_000 });
     const all = await shown(page);
     // The flow ran on the Arabic data: a toast that names nothing from it means the swap or the driver did nothing.
     expect(
@@ -228,7 +235,17 @@ for (const flow of FLOWS) {
     ).toBe(true);
     const found = problems(all, ARABIC_VALUES);
     const known = KNOWN[flow.name];
-    if (known) expect(found, `${flow.name} is listed as a known gap (${known.reason}, ${known.issue}); delete the entry once it passes`).not.toEqual([]);
-    else expect(found).toEqual([]);
+    if (known) {
+      const why = `${flow.name} is listed as a known gap (${known.reason}, ${known.issue}); delete the entry once it passes. Found: ${JSON.stringify(found)}`;
+      expect(
+        found.some((problem) => problem.includes(known.problem)),
+        why,
+      ).toBe(true);
+    } else expect(found).toEqual([]);
   });
 }
+
+test('toast sweep: every KNOWN entry names a flow that exists', () => {
+  const names = FLOWS.map((flow) => flow.name);
+  expect(Object.keys(KNOWN).filter((name) => !names.includes(name))).toEqual([]);
+});

@@ -32,16 +32,32 @@ export const ARABIC_VALUES: readonly string[] = [...Object.values(CHAPTER_TITLES
   (a, b) => b.length - a.length,
 );
 
+/** The chunk with its mock names swapped for Arabic ones, and the English patterns that matched nothing (a rename that silently stopped working). */
+export function swapNames(source: string): { body: string; unmatched: string[] } {
+  let body = source;
+  const unmatched: string[] = [];
+  const swap = (pattern: string, replacement: string) => {
+    if (!body.includes(pattern)) unmatched.push(pattern);
+    body = body.split(pattern).join(replacement);
+  };
+  for (const [number, title] of Object.entries(CHAPTER_TITLES)) swap(`title:\`Chapter ${number}\``, `title:\`${title}\``);
+  for (const [english, arabic] of Object.entries(ARABIC_NAMES)) swap(english, arabic);
+  return { body, unmatched };
+}
+
 /**
  * Serves the app's own script with its mock names swapped for Arabic ones, for every page this `page` loads.
  * Only the app's chunk is rewritten (`index-*.js`): the manuscript's text chunk keeps the book as published.
+ * A pattern the chunk no longer holds (the minifier printed it another way, the mock moved) fails the load, so a rename never stops silently.
  */
 export async function arabicNames(page: Page): Promise<void> {
   await page.route(/\/assets\/index-[^/]*\.js$/, async (route) => {
     const response = await route.fetch();
-    let body = await response.text();
-    for (const [number, title] of Object.entries(CHAPTER_TITLES)) body = body.split(`title:\`Chapter ${number}\``).join(`title:\`${title}\``);
-    for (const [english, arabic] of Object.entries(ARABIC_NAMES)) body = body.split(english).join(arabic);
+    const { body, unmatched } = swapNames(await response.text());
+    if (unmatched.length > 0) {
+      await route.abort();
+      throw new Error(`arabicNames: the app chunk no longer holds ${JSON.stringify(unmatched)}`);
+    }
     await route.fulfill({ response, body });
   });
 }
