@@ -25,8 +25,24 @@ describe('ProgressChart', () => {
   it('says the recorded hours with hours and minutes, spelled out, so recorded and Recording left read from one figure', () => {
     const { container } = draw(overviewFor(MID_BOOK).kpi.due);
     const sentence = container.querySelector('.sr-only')!.textContent ?? '';
-    expect(sentence).toContain('3 hours 30 minutes of the book’s 5 hours of finished audio are recorded');
+    expect(sentence).toContain('Recorded so far: 3 hours 30 minutes of the book’s 5 hours of finished audio.');
     expect(sentence).not.toMatch(/\d\.\d of \d\.\d finished hours/);
+  });
+
+  it('reads for a singular or tiny figure too, with no verb to disagree', () => {
+    const o = overviewFor(MID_BOOK);
+    for (const [hours, spoken] of [
+      [1 / 60, 'Recorded so far: 1 minute of'],
+      [0.001, 'Recorded so far: less than a minute of'],
+      [1, 'Recorded so far: 1 hour of'],
+    ] as const) {
+      const { container, unmount } = render(
+        <ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={null} recordedHours={hours} series={o.series} />,
+      );
+      expect(container.querySelector('.sr-only')!.textContent).toContain(spoken);
+      expect(container.querySelector('.sr-only')!.textContent).not.toMatch(/\bare recorded\b/);
+      unmount();
+    }
   });
 
   it('draws no caption with a due date and a take log', () => {

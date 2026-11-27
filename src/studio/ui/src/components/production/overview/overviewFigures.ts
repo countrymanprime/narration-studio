@@ -106,7 +106,7 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       label: 'Recorded audio',
       value: hm(book.recordedHours),
       unit: `/ ${hm(finished)}`,
-      hint: 'by how far each is recorded',
+      hint: 'part-recorded counted by share',
       tip: 'The finished hours recorded, as Where the book stands counts them (a chapter counts for how far it is recorded, whole once it is edited, proofed or delivered), out of the book’s finished length estimated from its words',
       tone: 'neutral',
     },
