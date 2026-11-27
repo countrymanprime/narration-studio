@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ignoreKeyRepeat } from '../primitives/keyRepeat';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
@@ -128,7 +129,13 @@ export function NativeTakesPanel({ chapter, whenEmpty }: { chapter: ManuscriptCh
               const playing = player.playing === take.path;
               return (
                 <li key={take.name} className="flex flex-wrap items-center gap-2 py-1">
-                  <Button variant="ghost" aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`} aria-pressed={playing} onClick={() => player.toggle(take)}>
+                  <Button
+                    variant="ghost"
+                    aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`}
+                    aria-pressed={playing}
+                    onClick={() => player.toggle(take)}
+                    onKeyDown={ignoreKeyRepeat}
+                  >
                     <FontAwesomeIcon icon={playing ? faStop : faPlay} />
                   </Button>
                   <span className={TAKE_NAME}>{take.name}</span>
@@ -154,7 +161,13 @@ export function NativeTakesPanel({ chapter, whenEmpty }: { chapter: ManuscriptCh
               const playing = player.playing === take.path;
               return (
                 <li key={take.name} className="flex flex-wrap items-center gap-2 py-1">
-                  <Button variant="ghost" aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`} aria-pressed={playing} onClick={() => player.toggle(take)}>
+                  <Button
+                    variant="ghost"
+                    aria-label={`${playing ? 'Stop' : 'Play'} ${take.name}`}
+                    aria-pressed={playing}
+                    onClick={() => player.toggle(take)}
+                    onKeyDown={ignoreKeyRepeat}
+                  >
                     <FontAwesomeIcon icon={playing ? faStop : faPlay} />
                   </Button>
                   <span className={TAKE_NAME}>{take.name}</span>

@@ -56,6 +56,7 @@ export function EffectInspector({
         <h3 className="m-0 flex-1 font-['Barlow_Condensed',sans-serif] text-lg font-semibold">{fx.chainName}</h3>
         <IconButton
           action="previous"
+          repeats
           label="Previous effect"
           size="sm"
           disabledReason={!step || step.at <= 0 ? 'This is the first effect.' : undefined}
@@ -63,6 +64,7 @@ export function EffectInspector({
         />
         <IconButton
           action="next"
+          repeats
           label="Next effect"
           size="sm"
           disabledReason={!step || step.at >= step.of - 1 ? 'This is the last effect.' : undefined}

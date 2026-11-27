@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ignoreKeyRepeat } from '../../../primitives/keyRepeat';
 import type { FxChoice, FxList } from '../../../../ports/daw';
 import { Button } from '../../../primitives/Button';
 import { Icon } from '../../../primitives/Icon';
@@ -124,6 +125,7 @@ export function FxDialog({
           disabled={!snapped || !r || !choice || abWhy !== ''}
           aria-describedby={abWhy ? 'fx-ab-why' : undefined}
           onClick={() => choice && onCompare(sum, choice)}
+          onKeyDown={ignoreKeyRepeat}
         >
           <Icon name="play" /> A/B
         </Button>

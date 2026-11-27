@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ignoreKeyRepeat } from '../../primitives/keyRepeat';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { Button } from '../../primitives/Button';
 import { Disclosure } from '../../primitives/Disclosure';
@@ -118,7 +119,7 @@ export function CleanupInspector(p: CleanupInspectorProps) {
       ) : null}
       {/* Preview and Apply stay in view at the drawer's foot while the settings above them scroll (alignment audit XED-11, R3ED-8). */}
       <div data-cleanup-actions="" className="sticky bottom-0 -mx-3 -mb-3 flex items-center gap-2 border-t border-[var(--border)] bg-[var(--surface)] p-3">
-        <Button variant="secondary" disabled={!p.selected} onClick={p.previewNote?.playing ? p.onStopPreview : p.onPreview}>
+        <Button variant="secondary" disabled={!p.selected} onClick={p.previewNote?.playing ? p.onStopPreview : p.onPreview} onKeyDown={ignoreKeyRepeat}>
           {p.previewNote?.playing ? 'Stop preview' : 'Preview'}
         </Button>
         <span className="flex-1" />
