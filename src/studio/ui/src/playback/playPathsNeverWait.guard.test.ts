@@ -132,6 +132,14 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
     expect(found).toEqual([]);
   });
 
+  // #4117: a DAW that refuses a play because it records is final: the app stays quiet too, whatever the project-state read says. Every caller reads the
+  // refusal's `recording` code (Hear it through its own `reason: 'recording'`); the script reads it through `refusedForRecording`.
+  it.each(CALLERS)('%s treats a recording refusal as final', (file) => {
+    const text = all.find((s) => s.file === file)!.text;
+    expect(text).toMatch(/\brecording\b|refusedForRecording|reason === 'recording'/);
+    expect(text).toMatch(/final/);
+  });
+
   // #4127: a path that falls back to the app after its DAW ask failed must not leave what the DAW was playing for that page running beside it. The shared
   // owner stops the older settled play when a newer press is refused (`dawPlayOwner.test.ts`), so every path must hand it that stop when it settles.
   it.each(CALLERS)('%s settles its play with the stop that ends it (so a refused newer play stops it before the app plays)', (file) => {

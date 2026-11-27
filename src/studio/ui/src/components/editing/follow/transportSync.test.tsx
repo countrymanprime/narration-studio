@@ -449,6 +449,16 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     expect(state().playing).toBe(false);
     expect(notices.join(' ')).toMatch(/REAPER is recording, so nothing plays/);
   });
+  // #4117: the refusal carries its code, so the app stays quiet although the project-state read says nothing records.
+  it('a play refused with the recording code plays nothing in the app when the project-state read says idle', async () => {
+    await ready();
+    daw.refuseNextSync('REAPER is recording. Stop recording first.', 'recording');
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
+    expect(notices.join(' ')).toMatch(/REAPER is recording/);
+  });
   it('a stop while the DAW is asked plays nothing in the app when the DAW then refuses', async () => {
     await ready();
     daw.refuseNextSync('REAPER could not start.');

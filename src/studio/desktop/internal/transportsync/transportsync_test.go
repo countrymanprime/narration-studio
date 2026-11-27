@@ -150,8 +150,15 @@ func TestTransportSyncWordsEachFailureAsASentence(t *testing.T) {
 	if want := "REAPER took the command but did not confirm it in time, so what it did may not match. Check REAPER."; late.Refused != want {
 		t.Errorf("a play taken and not confirmed: %q, want %q", late.Refused, want)
 	}
-	if got := run(t, &fakeSyncer{err: bridge.ErrRecording}, available(), true, "play", 3); !strings.Contains(got.Message, "recording") {
-		t.Errorf("recording sentence = %q", got.Message)
+	// A recording refusal carries its code, so a page treats the play as final and does not play over the recording (#4117).
+	for _, action := range []string{"play", "playRange", "stop"} {
+		got := runRange(t, &fakeSyncer{err: bridge.ErrRecording}, available(), true, action, 3, 9)
+		if !strings.Contains(got.Message, "recording") || got.Code != dawport.CodeRecording || got.Refused != got.Message {
+			t.Errorf("%s: recording refusal = %+v, want its sentence and code %q", action, got, dawport.CodeRecording)
+		}
+	}
+	if got := run(t, &fakeSyncer{err: bridge.ErrNoAnswer}, available(), true, "play", 3); got.Code != "" {
+		t.Errorf("a DAW that does not answer carries code %q, want none", got.Code)
 	}
 }
 

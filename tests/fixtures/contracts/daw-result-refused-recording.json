@@ -1,0 +1,8 @@
+{
+  "changed": false,
+  "code": "recording",
+  "message": "REAPER is recording. Stop recording first.",
+  "ok": false,
+  "refused": "REAPER is recording. Stop recording first.",
+  "undoSteps": 0
+}

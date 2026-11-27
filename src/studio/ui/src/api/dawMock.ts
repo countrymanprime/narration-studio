@@ -19,6 +19,7 @@ import type {
   DawPlaceApi,
   DawPosition,
   DawTransportSyncApi,
+  DawRefusalCode,
   DawResult,
   DawMeters,
   DawMonitorLevel,
@@ -455,7 +456,7 @@ export interface DawMockControl {
    * A stretch played with `playRange` stops itself when the head passes its end, as the DAW's own script does. */
   moveInDaw(change: { cursor?: number; head?: number; playing?: boolean; recording?: boolean }): void;
   /** The next transport action is refused with this sentence, as a recording or a stale REAPER would. */
-  refuseNextSync(sentence: string): void;
+  refuseNextSync(sentence: string, code?: DawRefusalCode): void;
   /** The word table the DAW answers (`workspaceWordTimes`); null (the start) is a DAW that cannot make one, so the page follows nothing in it. */
   setWordTimes(table: WordTimes | null): void;
   /** The narrator added a track in the DAW: it is in the live track list at once and `daw_tracks_changed` is sent. Does nothing on a `createDawMock` used alone: mockApi.ts wires it to the tracks mock. */
@@ -547,7 +548,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     head: number;
     cursor: number;
     watching: boolean;
-    refuse: string | null;
+    refuse: { sentence: string; code?: DawRefusalCode } | null;
     /** The project second a `playRange` stops itself at, while it plays; null for an open play. */
     stopAt: number | null;
     wordTimes: WordTimes | null;
@@ -750,8 +751,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       }
       streamPosition();
     },
-    refuseNextSync: (sentence) => {
-      sync.refuse = sentence;
+    refuseNextSync: (sentence, code) => {
+      sync.refuse = { sentence, ...(code ? { code } : {}) };
     },
     setPlace: (chapterId, cursor) => {
       place = { chapterId, cursor };
@@ -935,9 +936,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
         return refusedMove('That place is not a usable number of seconds.');
       if (action === 'playRange' && (!Number.isFinite(until) || until <= seconds)) return refusedMove('That stretch is not a usable pair of times.');
       if (sync.refuse !== null) {
-        const sentence = sync.refuse;
+        const { sentence, code } = sync.refuse;
         sync.refuse = null;
-        return refusedMove(sentence);
+        return { ...refusedMove(sentence), ...(code ? { code } : {}) };
       }
       if (action !== 'stop' && open !== 'linked')
         return refusedMove("REAPER does not have this book's project open, so its transport was left alone. Open the project in REAPER, then try again.");

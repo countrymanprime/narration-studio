@@ -139,6 +139,7 @@ export function useTakeAudition({
           setPlaying(t.id);
           setInDaw(true);
           let why: string;
+          let final = false;
           try {
             previewPlayOwner.claim(token);
             const result = await daw.previewTake(line.chapterId, line.firstToken, line.lastToken, t.id);
@@ -164,6 +165,8 @@ export function useTakeAudition({
               return { played: true };
             }
             why = result.message;
+            // A DAW that is recording keeps the room quiet: the app does not play over it.
+            final = result.code === 'recording';
           } catch (error) {
             why = notAskedSentence(name, error);
           }
@@ -173,7 +176,7 @@ export function useTakeAudition({
             setPlaying(null);
             setInDaw(false);
           }
-          return { played: false, why };
+          return { played: false, why, ...(final ? { final } : {}) };
         },
       };
       const app: PlaybackProvider<LineTake> = {

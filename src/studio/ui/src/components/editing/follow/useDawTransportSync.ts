@@ -51,6 +51,8 @@ export interface RemotePlayer {
   /** The narrator's words for why `refusal` said `not_placed` for this second: which check failed. */
   notPlacedWhy(docT: number, daw: string): string;
   start(docT: number, endDocT?: number): Promise<string | null>;
+  /** Whether the last refusal `start` returned was because the DAW is recording: nothing may play then, in the DAW or the app. */
+  refusedForRecording(): boolean;
   stop(): void;
 }
 
@@ -121,6 +123,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const staleUntil = useRef(0);
   /** A "stopped" reading was heard while a play of the page was being asked, and no "playing" reading has come since: the page's own earlier stop, or the narrator's. */
   const stopHeard = useRef(false);
+  /** The DAW's last refusal of a play was for a recording. */
+  const recordingRefusal = useRef(false);
   /** When the page last gave up or stopped a play: an ask still unanswered after that is the page's own old play, for `ABANDONED_ASK_MS`. */
   const abandonedAt = useRef(0);
   /** The timer that ends the page's play as the narrator's stop when none of its "playing" readings follows its answer. */
@@ -348,6 +352,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       return (l.clock?.projectAt(docT) ?? null) === null ? 'not_placed' : null;
     },
     refusedWith: () => live.current.lease.why,
+    refusedForRecording: () => recordingRefusal.current,
     notPlacedWhy: (docT, daw) =>
       live.current.clock?.whyNotPlaced(docT, daw) ??
       (live.current.clockPending ? `${daw} has not yet said where the words sit in its project.` : null) ??
@@ -368,6 +373,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       const generation = guard.write(project);
       let ok = false;
       let why: string;
+      recordingRefusal.current = false;
       asking.current += 1;
       try {
         dawPlayOwner.claim(token);
@@ -376,6 +382,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
           : await sync.dawTransportSync('play', project, 0, l.chapterId ?? '');
         ok = result.ok;
         why = result.message;
+        recordingRefusal.current = !result.ok && result.code === 'recording';
       } catch {
         why = 'The DAW could not be asked to play.';
       } finally {

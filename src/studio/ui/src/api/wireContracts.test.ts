@@ -2244,6 +2244,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   it('dawResult parses the host goldens and rejects an undo count outside 0..12', () => {
     expectMatches(dawResultSchema, readGolden('daw-result-ok.json'), 'daw-result-ok.json');
     expectMatches(dawResultSchema, readGolden('daw-result-refused-stale.json'), 'daw-result-refused-stale.json');
+    expectMatches(dawResultSchema, readGolden('daw-result-refused-recording.json'), 'daw-result-refused-recording.json');
     expectMatches(dawResultSchema, readGolden('daw-result-multi-step.json'), 'daw-result-multi-step.json');
     const ok = { ok: true, changed: true, message: 'Marker added.', undoSteps: 1 };
     expect(dawResultSchema.safeParse({ ...ok, undoSteps: -1 }).success).toBe(false);
@@ -2251,16 +2252,17 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawResultSchema.safeParse({ ...ok, undoSteps: 1.5 }).success).toBe(false);
   });
 
-  // SN-D42: one refusal code, `stale`, beside the sentence.
-  it('schema-accepts-the-code-and-nothing-else: dawResult takes code "stale" and rejects any other code', () => {
+  // SN-D42: the refusal codes, `stale` and `recording`, beside the sentence.
+  it('schema-accepts-the-code-and-nothing-else: dawResult takes code "stale" or "recording" and rejects any other code', () => {
     const golden = dawResultSchema.parse(readGolden('daw-result-refused-stale.json'));
     expect(golden.code).toBe('stale');
     expect(golden.refused).toBe(golden.message);
     const sentence = 'The project changed in REAPER since this was read. Read it again, then try again.';
     const stale = { ok: false, changed: false, message: sentence, undoSteps: 0, refused: sentence, code: 'stale' };
     expect(dawResultSchema.safeParse(stale).success).toBe(true);
+    expect(dawResultSchema.parse(readGolden('daw-result-refused-recording.json')).code).toBe('recording');
     expect(dawResultSchema.parse({ ...stale, code: null }).code).toBeUndefined();
-    for (const code of ['Stale', 'track_missing', 'recording', '']) expect(dawResultSchema.safeParse({ ...stale, code }).success, code).toBe(false);
+    for (const code of ['Stale', 'track_missing', 'Recording', '']) expect(dawResultSchema.safeParse({ ...stale, code }).success, code).toBe(false);
     expect(dawResultSchema.safeParse({ ...stale, undoSteps: 13 }).success).toBe(false);
   });
 
