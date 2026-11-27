@@ -947,22 +947,22 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     expect(document.activeElement).toBe(origin);
   });
 
-  it("the held key's repeat goes no further than the document: the field under it and the bubble phase never see it, another key's repeat does", () => {
-    const field = document.createElement('input');
+  it("the held key's repeat goes no further than the document: the page's own handler never sees it, another key's repeat it does", () => {
     const seen = vi.fn();
-    field.addEventListener('keydown', seen);
-    document.addEventListener('keydown', seen);
-    document.body.append(field);
-    render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    render(
+      <>
+        <input aria-label="Field" onKeyDown={seen} />
+        <ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />
+      </>,
+    );
+    const field = screen.getByRole('textbox', { name: 'Field' });
     const undo = screen.getByRole('button', { name: 'Undo' });
     undo.focus();
     fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
-    seen.mockClear();
     repeatReaches(field, 'Enter');
     expect(seen).not.toHaveBeenCalled();
     repeatReaches(field, 'Backspace');
-    expect(seen).toHaveBeenCalled();
-    document.removeEventListener('keydown', seen);
+    expect(seen).toHaveBeenCalledTimes(1);
   });
 
   it('the page becoming visible again does not end the wait: only becoming hidden does', () => {
@@ -1038,6 +1038,63 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     fireEvent.keyDown(undo, { key: ' ', code: 'Space' });
     fireEvent.keyUp(undo, { key: ' ', code: 'Space' });
     expect(repeatReaches(field, 'Enter')).toBe(true);
+  });
+
+  /** An Undo pressed with Enter held (its click is the key's own), the toast then gone, `origin` the control that had focus before it: the hand-back is waiting for Enter's keyup. */
+  const pressUndoHoldingEnter = (origin: HTMLElement) => {
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    origin.focus();
+    fireEvent.focus(undo, { relatedTarget: origin });
+    undo.focus();
+    fireEvent.keyDown(undo, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(undo, { detail: 0 });
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+  };
+
+  it('a fresh press of the held key while the hand-back waits for it does not hand focus back under that press: its repeats on the origin are cancelled, and focus goes back after ITS keyup', () => {
+    const origin = document.createElement('button');
+    const onOrigin = vi.fn();
+    origin.addEventListener('click', onOrigin);
+    document.body.append(origin);
+    pressUndoHoldingEnter(origin);
+    // Enter's keyup was lost; the narrator presses Enter again (on <body>, where the press left focus) and holds it.
+    fireEvent.keyDown(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS + 50));
+    expect(document.activeElement).toBe(document.body);
+    expect(repeatReaches(document.body, 'Enter')).toBe(false);
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+    expect(onOrigin).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['Space', { key: ' ', code: 'Space' }],
+    ['NumpadEnter', { key: 'Enter', code: 'NumpadEnter' }],
+  ])('a second activating key (%s) that goes down while the hand-back waits is waited for too: its repeats on the origin are cancelled', (_name, second) => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    pressUndoHoldingEnter(origin);
+    fireEvent.keyDown(document.body, second);
+    // Enter comes up first: focus is not handed to the control while the second key could still press it.
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+    expect(repeatReaches(document.body, second.key, second.code)).toBe(false);
+    fireEvent.keyUp(document.body, second);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
+  });
+
+  it('a key that is not an activating one (a letter) pressed on <body> while the hand-back waits is not waited for', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    pressUndoHoldingEnter(origin);
+    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK' });
+    fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
+    expect(document.activeElement).toBe(origin);
   });
 
   it('a click with no key, long after a key went down and the window lost focus, does not wait for a keyup that has gone: focus is handed back', () => {

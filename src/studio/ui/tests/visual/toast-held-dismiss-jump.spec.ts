@@ -84,3 +84,62 @@ test('a key still held after the window lost focus presses nothing focus was han
   await expect(jumpField(page)).toHaveCount(0);
   await page.keyboard.up('Enter');
 });
+
+async function raiseWithOpenerFocused(page: Page) {
+  await page.goto('/');
+  await settlePage(page);
+  const opener = jumpButton(page);
+  await opener.focus();
+  await raiseToast(page, TEXT);
+  return opener;
+}
+
+test("Enter's keyup lost, a fresh Enter held on <body>: the Jump menu stays shut and focus goes back after the new Enter comes up", async ({ page }) => {
+  const opener = await raiseWithOpenerFocused(page);
+  const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
+  await expect(dismiss).toBeVisible();
+  await dismiss.focus();
+  // Drop every keyup before the page sees it (a native dialog took it): Enter's keyup is lost, the toast goes and focus is on <body>.
+  await page.evaluate(() => {
+    const drop = (event: KeyboardEvent) => {
+      if ((window as unknown as { __dropKeyup?: boolean }).__dropKeyup) event.stopImmediatePropagation();
+    };
+    (window as unknown as { __dropKeyup: boolean }).__dropKeyup = true;
+    window.addEventListener('keyup', drop, true);
+  });
+  await page.keyboard.press('Enter');
+  await expect(dismiss).toHaveCount(0);
+  await page.evaluate(() => ((window as unknown as { __dropKeyup: boolean }).__dropKeyup = false));
+  // A fresh Enter, held: it must not press what focus is handed to under it.
+  await page.keyboard.down('Enter');
+  await page.keyboard.down('Enter');
+  await page.keyboard.down('Enter');
+  await page.waitForTimeout(PAST_HAND_BACK_MS);
+  await expect(jumpField(page)).toHaveCount(0);
+  await expect(opener).not.toBeFocused();
+  await page.keyboard.up('Enter');
+  await expect(opener).toBeFocused();
+  await expect(jumpField(page)).toHaveCount(0);
+});
+
+for (const second of ['Space', 'NumpadEnter']) {
+  test(`hold Enter on Retry, hold ${second}, release Enter then ${second}: the Jump menu stays shut`, async ({ page }) => {
+    const opener = await raiseWithOpenerFocused(page);
+    const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
+    await expect(retry).toBeVisible();
+    await retry.focus();
+    await page.keyboard.down('Enter');
+    await page.keyboard.down(second);
+    await page.keyboard.down(second);
+    await page.keyboard.up('Enter');
+    await page.waitForTimeout(PAST_HAND_BACK_MS);
+    await expect(jumpField(page)).toHaveCount(0);
+    // Still held: its repeats now land wherever focus is (the Jump button, when the hand-back did not wait for it), which makes it active, and its keyup presses it.
+    await page.keyboard.down(second);
+    await page.keyboard.up(second);
+    await expect(opener).toBeFocused();
+    // A Space comes up on the button it pressed (the Jump menu opens on its keyup), so give that a moment before looking.
+    await page.waitForTimeout(PAST_HAND_BACK_MS);
+    await expect(jumpField(page)).toHaveCount(0);
+  });
+}

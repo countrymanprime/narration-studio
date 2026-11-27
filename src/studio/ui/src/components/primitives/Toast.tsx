@@ -82,7 +82,7 @@ class HandBacks {
   private cancels = new Set<() => void>();
   private open = true;
   private held = new Set<string>();
-  private waiting = new Set<{ code: string; run: () => void }>();
+  private waiting = new Set<{ codes: Set<string>; run: () => void }>();
   private keysCancel: (() => void) | null = null;
   private pressKey: string | null = null;
   hold(cancel: () => void): void {
@@ -112,9 +112,21 @@ class HandBacks {
     if (activating) this.pressKey = code;
     if (this.keysCancel) return;
     const swallow = (event: KeyboardEvent) => {
-      const own = this.held.has(keyOf(event));
-      // A fresh press of a held code means its keyup was lost: it is let go, so its next repeats (an Enter held down in a field) are the field's own.
-      if (own && !event.repeat) return this.keyUp(keyOf(event));
+      const code = keyOf(event);
+      const own = this.held.has(code);
+      // A fresh press of a held code means its keyup was lost: it is let go, so its next repeats (an Enter held down in a field) are the field's own. Not while a hand-back waits for that code: it would
+      // run under the new press, whose repeats would press what focus went to, so the wait goes on for the new press's keyup and its repeats are cancelled.
+      if (own && !event.repeat) {
+        if (![...this.waiting].some((waiter) => waiter.codes.has(code))) this.keyUp(code);
+        return;
+      }
+      // An Enter or a Space that goes down anywhere while a hand-back waits (on <body>, where the press left focus) would press the control focus is handed to, by its repeats and its keyup: the hand-back
+      // waits for it too, and its repeats are cancelled.
+      if (!event.repeat && this.waiting.size > 0 && activates(event)) {
+        this.held.add(code);
+        for (const waiter of this.waiting) waiter.codes.add(code);
+        return;
+      }
       // Only the held key's repeats: another key's (a Backspace held in a field) are its own, even while a held key's keyup is lost.
       if (!own || !event.repeat) return;
       event.preventDefault();
@@ -143,17 +155,16 @@ class HandBacks {
     this.hold(cancel);
   }
   /**
-   * The key a press that has just been made is waiting for: the one that last activated a toast's button, if it is still held, and it is taken (a later press is not that key's). Forgotten when the waits end (a
-   * window that lost focus, a pointer press), so a click that comes much later with no key (a screen reader's) does not wait for a keyup that has gone.
+   * The key a press that has just been made is waiting for: the one that last activated a toast's button, if it is still held. Forgotten when the waits end (a window that lost focus, a pointer press), so a click
+   * that comes much later with no key (a screen reader's) does not wait for a keyup that has gone.
    */
-  takePressKey(): string | null {
+  pressKeyHeld(): string | null {
     const key = this.pressKey;
-    this.pressKey = null;
     return key !== null && this.held.has(key) ? key : null;
   }
   /** Calls `run` once `code` comes up (or the waits end); the returned function stops waiting. */
   whenReleased(code: string, run: () => void): () => void {
-    const waiter = { code, run };
+    const waiter = { codes: new Set([code]), run };
     this.waiting.add(waiter);
     return () => void this.waiting.delete(waiter);
   }
@@ -165,7 +176,7 @@ class HandBacks {
   private keyUp(code: string): void {
     this.held.delete(code);
     for (const waiter of [...this.waiting]) {
-      if (waiter.code !== code) continue;
+      if (!waiter.codes.delete(code) || waiter.codes.size > 0) continue;
       this.waiting.delete(waiter);
       waiter.run();
     }
@@ -363,7 +374,7 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
     };
     // The key that pressed, still held down, would repeat on whatever gets focus: wait for that key (not another) to come up. The wait ends too when the window loses focus, the page is hidden or the pointer
     // presses a toast (`HandBacks`), where its keyup may never come.
-    const key = owner.takePressKey();
+    const key = owner.pressKeyHeld();
     if (key !== null) stopWaiting = owner.whenReleased(key, start);
     else start();
     owner.hold(cancel);
