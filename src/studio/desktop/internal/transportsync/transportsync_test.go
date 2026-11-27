@@ -150,15 +150,29 @@ func TestTransportSyncWordsEachFailureAsASentence(t *testing.T) {
 	if want := "REAPER took the command but did not confirm it in time, so what it did may not match. Check REAPER."; late.Refused != want {
 		t.Errorf("a play taken and not confirmed: %q, want %q", late.Refused, want)
 	}
-	// A recording refusal carries its code, so a page treats the play as final and does not play over the recording (#4117).
-	for _, action := range []string{"play", "playRange", "stop"} {
-		got := runRange(t, &fakeSyncer{err: bridge.ErrRecording}, available(), true, action, 3, 9)
-		if !strings.Contains(got.Message, "recording") || got.Code != dawport.CodeRecording || got.Refused != got.Message {
-			t.Errorf("%s: recording refusal = %+v, want its sentence and code %q", action, got, dawport.CodeRecording)
+	// A recording refusal carries its code on any transport_sync action, whatever wraps the error, so a page treats a play as final and does not
+	// play over the recording (#4117).
+	for _, err := range []error{bridge.ErrRecording, fmt.Errorf("x: %w", bridge.ErrRecording)} {
+		for _, action := range []string{"cursor", "play", "playRange", "stop", "watch"} {
+			got := runRange(t, &fakeSyncer{err: err}, available(), true, action, 3, 9)
+			if !strings.Contains(got.Message, "recording") || got.Code != dawport.CodeRecording || got.Refused != got.Message {
+				t.Errorf("%s with %v: recording refusal = %+v, want its sentence and code %q", action, err, got, dawport.CodeRecording)
+			}
 		}
 	}
-	if got := run(t, &fakeSyncer{err: bridge.ErrNoAnswer}, available(), true, "play", 3); got.Code != "" {
-		t.Errorf("a DAW that does not answer carries code %q, want none", got.Code)
+	// No other refusal carries a code: a late answer, a missing answer, a generic failure and a capability refusal.
+	for name, c := range map[string]struct {
+		syncer  dawport.TransportSyncer
+		support dawport.Support
+	}{
+		"answer late":   {&fakeSyncer{err: fmt.Errorf("%w: %w", bridge.ErrAnswerLate, context.DeadlineExceeded)}, available()},
+		"no answer":     {&fakeSyncer{err: bridge.ErrNoAnswer}, available()},
+		"generic":       {&fakeSyncer{err: errors.New("boom")}, available()},
+		"not supported": {&fakeSyncer{}, dawport.Support{Available: false, Message: "REAPER cannot do that."}},
+	} {
+		if got := run(t, c.syncer, c.support, true, "play", 3); got.OK || got.Code != "" {
+			t.Errorf("%s: carries code %q (ok %v), want a refusal with no code", name, got.Code, got.OK)
+		}
 	}
 }
 
