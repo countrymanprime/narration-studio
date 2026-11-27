@@ -1,7 +1,7 @@
-// Escape on Record options (or the chapter list), then a key that leaves Enter and Space to the page (Ctrl+Alt+Space, a voice key) before the popup has finished leaving. Base UI
-// gives focus back to the popup's trigger only when its exit ends (120 ms, --motion-fast); a key inside that window found focus on the leaving popup, moved nothing, started its
+// Escape on Record options, the chapter list or the engine panel, then a key that leaves Enter and Space to the page (Ctrl+Alt+Space, a voice key) before the popup has finished leaving. Base UI
+// gives focus back to the popup's trigger only when its exit ends (120 ms, --motion-fast; the engine panel's drawer, --motion-base); a key inside that window found focus on the leaving popup, moved nothing, started its
 // take, and the hand-back then put focus on Record options: a footswitch Enter opened the options and the take went on recording. The rest of the visual suite runs with reduced
-// motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. The exit is held at 600 ms (`--motion-fast`) so that every case can
+// motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. The exit is held at 600 ms (`--motion-fast` and `--motion-base`) so that every case can
 // assert the popup is still leaving when the key is pressed, and the 20 and 60 ms lags are inside it however slow the machine is.
 import { expect, test, type Page } from '@playwright/test';
 import { boothChapterReady } from './helpers/viewTop';
