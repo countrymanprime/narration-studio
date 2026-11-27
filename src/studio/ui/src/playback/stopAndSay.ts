@@ -1,4 +1,4 @@
-import { PLAY_DEADLINE_MS } from '../components/engine/ShowInDaw';
+import { PLAY_DEADLINE_MS } from './deadline';
 import { noAnswerSentence, stopFailedSentence } from '../studio/dawNames';
 import { within } from '../within';
 
