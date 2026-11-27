@@ -8,6 +8,7 @@ import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { boothChapterReady, showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
+import { raiseToast } from './helpers/raiseToast';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 
@@ -423,8 +424,7 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     test(`Space on the toast's ${name} presses it and starts no take`, async ({ page }) => {
       await openBooth(page);
       await pastStartGuard(page);
-      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-      await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+      await raiseToast(page, 'The save failed. Try again.');
       const button = page.locator('[data-toast-region]').getByRole('button', { name });
       await expect(button).toBeVisible();
       await button.focus();
@@ -442,8 +442,7 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     await page.getByRole('button', { name: 'Text settings' }).click();
     const popup = page.getByRole('dialog', { name: /text settings/i });
     await focusSettled(page, popup);
-    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-    await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+    await raiseToast(page, 'The save failed. Try again.');
     const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
     await expect(dismiss).toBeVisible();
     await dismiss.focus();
@@ -458,8 +457,7 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     await record(page).click();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
     await pastStartGuard(page);
-    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-    await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+    await raiseToast(page, 'The save failed. Try again.');
     const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
     await expect(dismiss).toBeVisible();
     await dismiss.focus();
@@ -472,8 +470,7 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     test(`a second Space just after one on the toast's ${name} starts no take`, async ({ page }) => {
       await openBooth(page);
       await pastStartGuard(page);
-      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-      for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+      for (const text of ['One.', 'Two.']) await raiseToast(page, text);
       const button = page.locator('[data-toast-region]').getByRole('button', { name });
       await expect(button).toBeVisible();
       await button.focus();
@@ -489,8 +486,7 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     test(`a second ${code} just after one on the toast's Retry starts no take`, async ({ page }) => {
       await openBooth(page);
       await pastStartGuard(page);
-      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-      for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+      for (const text of ['One.', 'Two.']) await raiseToast(page, text);
       const retry = page.locator('[data-toast-region]').getByRole('button', { name: 'Retry' });
       await expect(retry).toBeVisible();
       await retry.focus();
@@ -513,8 +509,7 @@ test.describe('a toast button keeps its Space (#4094)', () => {
       await page.keyboard.press('Space');
       await expect(page.getByText('Mic on · cold read', { exact: true })).toBeVisible();
       await pastStartGuard(page);
-      await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-      await page.evaluate(() => (window as unknown as { __raiseToast: (text: string) => void }).__raiseToast('The save failed. Try again.'));
+      await raiseToast(page, 'The save failed. Try again.');
       const button = page.locator('[data-toast-region]').getByRole('button', { name });
       await expect(button).toBeVisible();
       await button.focus();
@@ -527,8 +522,7 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     await openBooth(page);
     await pastStartGuard(page);
     await record(page).focus();
-    await page.waitForFunction(() => typeof (window as unknown as { __raiseToast?: unknown }).__raiseToast === 'function');
-    for (const text of ['One.', 'Two.']) await page.evaluate((t) => (window as unknown as { __raiseToast: (t: string) => void }).__raiseToast(t), text);
+    for (const text of ['One.', 'Two.']) await raiseToast(page, text);
     const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
     await expect(dismiss).toBeVisible();
     await dismiss.focus();

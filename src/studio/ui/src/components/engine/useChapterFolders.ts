@@ -4,6 +4,7 @@ import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import type { Notify } from '../primitives/Toast';
 import { plural } from '../../plural';
+import { isolatedIfRtl } from '../../visibleText';
 
 /**
  * Whether a linked chapter's track sits inside another linked chapter's folder in the DAW (#2838), and the repair that moves it out.
@@ -19,6 +20,10 @@ export function linksKey(mappings: readonly { chapterId: string; trackGuid: stri
     .sort()
     .join('|');
 }
+
+/** What is said after the DAW moved chapters out of folders: each folder name is isolated before the list is joined, so two right-to-left names keep their order (#4113). */
+export const movedOutSentence = (count: number, fromNames: readonly string[]): string =>
+  `Moved ${plural(count, 'chapter')} out of ${[...new Set(fromNames.map((name) => isolatedIfRtl(name)))].join(', ')} in REAPER. One Undo in REAPER takes it back; save the project in REAPER to keep it.`;
 
 export function useChapterFolders({ revision, notify }: { revision: unknown; notify: Notify }) {
   const trackMap = usePort('chapterTrackMap');
@@ -50,16 +55,13 @@ export function useChapterFolders({ revision, notify }: { revision: unknown; not
     (opened: ChapterFolders) => {
       if (repairing || opened.outcome !== 'nested') return;
       setRepairing(true);
-      const folders = [...new Set(opened.moves.map((move) => move.fromName))].join(', ');
+      const fromNames = opened.moves.map((move) => move.fromName);
       trackMap
         .chapterFoldersRepair(opened.expected)
         .then((answer) => {
           if (answer.outcome === 'repaired' && answer.expected.length > 0) {
             const count = answer.expected.length;
-            notify(
-              `Moved ${plural(count, 'chapter')} out of ${folders} in REAPER. One Undo in REAPER takes it back; save the project in REAPER to keep it.`,
-              'info',
-            );
+            notify(movedOutSentence(count, fromNames), 'info');
           } else if (answer.outcome === 'repaired') {
             // Nothing moved (no chapter was nested any more): no undo to speak of (qa-breaker).
             notify('No chapter needed moving.', 'info');

@@ -4,6 +4,7 @@ import { HIT_AREA } from './hitArea';
 import { StatusBadge } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
 import { formatCount, plural } from '../../plural';
+import { textDirection } from '../../visibleText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faCircleExclamation, faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -83,6 +84,7 @@ class HandBacks {
   private held = new Set<string>();
   private waiting = new Set<{ code: string; run: () => void }>();
   private keysCancel: (() => void) | null = null;
+  private pressKey: string | null = null;
   hold(cancel: () => void): void {
     if (this.open) this.cancels.add(cancel);
     else cancel();
@@ -104,9 +106,10 @@ class HandBacks {
    * A key went down on a toast's button. Its repeats, and only its, must press nothing (they would press the button again, or what the press hands focus to) until it comes up: one set of document listeners
    * for every key held at once, ended when the last comes up (#4063).
    */
-  keyDown(code: string): void {
+  keyDown(code: string, activating = false): void {
     if (!this.open) return;
     this.held.add(code);
+    if (activating) this.pressKey = code;
     if (this.keysCancel) return;
     const swallow = (event: KeyboardEvent) => {
       const own = this.held.has(keyOf(event));
@@ -139,8 +142,14 @@ class HandBacks {
     this.keysCancel = cancel;
     this.hold(cancel);
   }
-  isHeld(code: string): boolean {
-    return this.held.has(code);
+  /**
+   * The key a press that has just been made is waiting for: the one that last activated a toast's button, if it is still held, and it is taken (a later press is not that key's). Forgotten when the waits end (a
+   * window that lost focus, a pointer press), so a click that comes much later with no key (a screen reader's) does not wait for a keyup that has gone.
+   */
+  takePressKey(): string | null {
+    const key = this.pressKey;
+    this.pressKey = null;
+    return key !== null && this.held.has(key) ? key : null;
   }
   /** Calls `run` once `code` comes up (or the waits end); the returned function stops waiting. */
   whenReleased(code: string, run: () => void): () => void {
@@ -163,6 +172,7 @@ class HandBacks {
     if (this.held.size === 0) this.endKeys();
   }
   private endWaits(): void {
+    this.pressKey = null;
     const waiters = [...this.waiting];
     this.waiting.clear();
     for (const waiter of waiters) waiter.run();
@@ -262,14 +272,12 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
   const hold = () => setHeld(hover.current || focused.current);
   // The second click of a double click (`detail` 2) is not a press: when the first click dismissed this toast's neighbour, the next toast took its place under the pointer and would take the second click (#4063).
   const tooSoon = (event: { detail: number }) => event.detail >= 2;
-  // The key that last activated this toast's button (Enter or Space): a key held down repeats, and the repeats must not press it again, nor press what focus is handed to (#4063). The hand-back after a press waits
-  // for it, if it is still held, to come up (the owner knows which keys are held). Another key pressed on the button meanwhile (a Shift) is held and has its repeats cancelled, but is not what the press waits for.
-  const pressKey = useRef<string | null>(null);
+  // A key held down repeats, and the repeats must not press the button again, nor press what focus is handed to (#4063). The owner knows which keys are held, and which one last activated a toast's button (Enter or
+  // Space): the hand-back after a press waits for that one to come up. Another key pressed on the button meanwhile (a Shift) is held and has its repeats cancelled, but is not what the press waits for.
   const onButtonKey = (event: { repeat: boolean; code: string; key: string; preventDefault: () => void }) => {
     if (event.repeat) event.preventDefault();
     else {
-      if (activates(event)) pressKey.current = keyOf(event);
-      owner.keyDown(keyOf(event));
+      owner.keyDown(keyOf(event), activates(event));
     }
   };
   // A toast under a pointer that is not moving is not hovered, however it came there (it appeared under the button that raised it, another toast above it went, it came back after a
@@ -355,8 +363,8 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
     };
     // The key that pressed, still held down, would repeat on whatever gets focus: wait for that key (not another) to come up. The wait ends too when the window loses focus, the page is hidden or the pointer
     // presses a toast (`HandBacks`), where its keyup may never come.
-    const key = pressKey.current;
-    if (key !== null && owner.isHeld(key)) stopWaiting = owner.whenReleased(key, start);
+    const key = owner.takePressKey();
+    if (key !== null) stopWaiting = owner.whenReleased(key, start);
     else start();
     owner.hold(cancel);
   };
@@ -425,7 +433,10 @@ function ToastItem({ message, dismiss, owner, more = 0 }: { message: ToastMessag
       <span
         ref={text}
         data-toast-text
-        dir="auto"
+        // The app's own sentences are English: `dir="auto"` took the direction of the first strong character, so a sentence that began with a right-to-left chapter or track name ("<Arabic> is linked
+        // to its track. Press Record…") turned the whole line around and sent the full stop to the start (#4113). `textDirection` reads it left to right when the app's own words outnumber (or equal)
+        // the right-to-left ones, outside the names the builders isolate, and leaves `auto` to a message that is mostly right to left (#2957).
+        dir={textDirection(message.text)}
         tabIndex={scrolls ? 0 : undefined}
         // The attribute is always set: the text keeps the keys that scroll it, so the page's shortcuts (Space starts a recording in the Booth) never fire from it (src/input/targets.ts). Only while the
         // text overflows is it a scroller (which Chromium makes a tab stop): a message that fits, even by a sub-pixel, is plain text and no tab stop.

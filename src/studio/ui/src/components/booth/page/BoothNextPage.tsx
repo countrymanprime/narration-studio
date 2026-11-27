@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { isolatedIfRtl } from '../../../visibleText';
 import { coldReadNoVoice, useBoothVoices } from '../voices/useBoothVoices';
 import { createdSentence, destinationFor } from '../../engine/destination';
 import { useVoiceLayout } from '../../engine/voiceLayout';
@@ -830,7 +831,7 @@ function BoothSession({
           ? 'No microphone found. Plug one in, then press Record again.'
           : 'Choose the microphone in Record options, then press Record.'
         : listening.origin === 'chosen' && !listening.micNames.includes(listening.device)
-          ? `${listening.device} was not found. Choose another microphone in Record options, then press Record.`
+          ? `${isolatedIfRtl(listening.device)} was not found. Choose another microphone in Record options, then press Record.`
           : null;
 
   return (

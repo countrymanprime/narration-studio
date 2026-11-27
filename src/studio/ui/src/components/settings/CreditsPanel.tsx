@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isolatedIfRtl } from '../../visibleText';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
@@ -377,7 +378,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setSwitching(true);
     try {
       const duplicate = await api.duplicateCreditsTemplate(selected.id);
-      notify(`Duplicated as "${duplicate.name}".`);
+      notify(`Duplicated as "${isolatedIfRtl(duplicate.name)}".`);
       projectDataChanged();
       // The copy is only selected once the list that shows it has landed.
       if (await load()) setSelectedId(duplicate.id);

@@ -6,6 +6,7 @@ import { announceBrowserSettingChange, useBrowserSetting } from '../../browserSe
 import { overlay } from '../../overlay/overlayService';
 import { missingOutputSentence, OUTPUT_TOAST_TOPIC, setOutput } from '../voicesamples/audioOutputs';
 import { clamp } from '../../clamp';
+import { isolatedIfRtl } from '../../visibleText';
 
 export type OutputPrefs = {
   /** 0 to 100. A media element cannot play louder than its file, so 100 is the recording as it is. */
@@ -87,7 +88,7 @@ export function applyOutput(el: HTMLMediaElement, { volume, muted, rate }: Pick<
 }
 
 /** What the page says when the chosen output cannot be used; the sound plays on the system default meanwhile. */
-export const deviceProblem = (device: string): string => `Could not play on ${device}. Playing on the system default until it is back.`;
+export const deviceProblem = (device: string): string => `Could not play on ${isolatedIfRtl(device)}. Playing on the system default until it is back.`;
 
 /**
  * Keeps an element on the narrator's choices. `getElement` returns the player's element once it exists (a player makes it lazily); the device is

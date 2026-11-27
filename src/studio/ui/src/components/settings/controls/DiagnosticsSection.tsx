@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isolatedIfRtl } from '../../../visibleText';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { DiagnosticsPreview } from '../../../api/contracts/system';
 import { useOverlay } from '../../../overlay/OverlayProvider';
@@ -49,7 +50,7 @@ export function DiagnosticsSection() {
       const { path } = await api.systemSaveDiagnostics();
       if (!path) return; // the narrator closed the folder picker
       const copied = await copyText(path);
-      overlay.toast(copied ? `Saved to ${path}. The path is copied.` : `Saved to ${path}.`);
+      overlay.toast(copied ? `Saved to ${isolatedIfRtl(path, 'ltr')}. The path is copied.` : `Saved to ${isolatedIfRtl(path, 'ltr')}.`);
     } catch (failure) {
       overlay.toast(apiErrorMessage(failure), { tone: 'error' });
     } finally {

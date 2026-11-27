@@ -1,21 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
+import { raiseToast } from './helpers/raiseToast';
 import { settlePage } from './helpers/settle';
 
 // #4125 (qa-breaker on #4120): a Dismiss pressed from the keyboard hands focus back to the control that had it before the toast. Held down, the key's own coming up decides when, and only
 // if nothing else took focus meanwhile: hold Enter on Dismiss, open the Jump menu (a click, or Ctrl+K), release the key: the Jump menu's field keeps focus, it does not jump to the
 // button behind the open modal and take the narrator's typing with it. A key whose keyup is lost (the window loses focus, the key never comes up) swallows only its own repeats.
-// shortcut: the same inline `__raiseToast` declaration the other toast specs carry; #4118 adds `helpers/raiseToast.ts` and moves them all, this one with them.
-type Raise = { __raiseToast: (text: string) => void };
-
-async function raiseToast(page: Page): Promise<void> {
-  await page.waitForFunction(() => typeof (window as unknown as Partial<Raise>).__raiseToast === 'function');
-  await page.evaluate(() => (window as unknown as Raise).__raiseToast('The save failed. Try again.'));
-}
+const TEXT = 'The save failed. Try again.';
 
 async function raiseAndFocusDismiss(page: Page): Promise<void> {
   await page.goto('/');
   await settlePage(page);
-  await raiseToast(page);
+  await raiseToast(page, TEXT);
   const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
   await expect(dismiss).toBeVisible();
   await dismiss.focus();
@@ -75,7 +70,7 @@ test('a key still held after the window lost focus presses nothing focus was han
   await settlePage(page);
   const opener = jumpButton(page);
   await opener.focus();
-  await raiseToast(page);
+  await raiseToast(page, TEXT);
   const dismiss = page.locator('[data-toast-region]').getByRole('button', { name: 'Dismiss message' });
   await expect(dismiss).toBeVisible();
   await dismiss.focus();

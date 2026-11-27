@@ -1040,6 +1040,53 @@ describe('a key held on a toast button: its own repeats, and only its, press not
     expect(repeatReaches(field, 'Enter')).toBe(true);
   });
 
+  it('a click with no key, long after a key went down and the window lost focus, does not wait for a keyup that has gone: focus is handed back', () => {
+    const origin = document.createElement('button');
+    document.body.append(origin);
+    const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    const dismiss = screen.getByRole('button', { name: 'Dismiss message' });
+    origin.focus();
+    fireEvent.focus(dismiss, { relatedTarget: origin });
+    dismiss.focus();
+    // Space goes down on Dismiss and activates on its keyup, which never comes: the window loses focus first.
+    fireEvent.keyDown(dismiss, { key: ' ', code: 'Space' });
+    fireEvent.blur(window);
+    // Later a screen reader activates the button: no key, `detail` 0.
+    fireEvent.click(dismiss, { detail: 0 });
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 10));
+    expect(document.activeElement).toBe(origin);
+  });
+
+  it("an action's error still reaches the page: the press does not swallow it", () => {
+    const message: ToastMessage = {
+      ...info(1),
+      action: {
+        label: 'Undo',
+        onAction: () => {
+          throw new Error('boom');
+        },
+      },
+    };
+    render(<ToastRegion messages={[message]} dismiss={vi.fn()} />);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    undo.focus();
+    // React reports an error thrown in a handler on the window or rethrows it from the dispatch; either way it is seen.
+    let seen = false;
+    const onError = (event: ErrorEvent) => {
+      seen = true;
+      event.preventDefault();
+    };
+    window.addEventListener('error', onError);
+    try {
+      fireEvent.click(undo, { detail: 0 });
+    } catch {
+      seen = true;
+    }
+    window.removeEventListener('error', onError);
+    expect(seen).toBe(true);
+  });
+
   it('an action that throws leaves no watch for focus behind', () => {
     const added = vi.spyOn(document, 'addEventListener');
     const removed = vi.spyOn(document, 'removeEventListener');
@@ -1284,9 +1331,39 @@ describe('ToastRegion time left (#3667)', () => {
 });
 
 describe('ToastRegion text direction (issue 2957)', () => {
-  it('lets the browser pick the direction of each message from its first strong letter', () => {
-    render(<ToastRegion messages={[info(1, 'تم الحفظ')]} dismiss={vi.fn()} />);
-    expect(screen.getByText('تم الحفظ').getAttribute('dir')).toBe('auto');
+  // A message that is mostly right to left takes the direction of its own first strong letter; the app's own English sentence reads left to right, even when a right-to-left name leads it.
+  it.each([
+    ['a message of right-to-left letters only', '\u062A\u0645 \u0627\u0644\u062D\u0641\u0638', 'auto'],
+    [
+      'an Arabic sentence that holds one Latin word',
+      '\u062A\u0639\u0630\u0631 \u0639\u0644\u0649 REAPER \u062D\u0641\u0638 \u0627\u0644\u0641\u0635\u0644.',
+      'auto',
+    ],
+    ['digits and Arabic, no Latin letter', '\u0661\u0662\u0663 \u062A\u0645', 'auto'],
+    [
+      'an English sentence that begins with an Arabic name',
+      '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644 is linked to its track. Press Record when you are ready.',
+      'ltr',
+    ],
+    [
+      'an English sentence whose Arabic name is isolated',
+      `\u2068\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644\u2069 is linked to its track. Press Record when you are ready.`,
+      'ltr',
+    ],
+    [
+      'a short English lead and a longer Arabic name (auto reads its first strong letter: Latin, so left to right)',
+      'Linked to \u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644',
+      'auto',
+    ],
+    [
+      'a long English sentence that ends with an Arabic name',
+      'Chapter linked to its track and ready to record: \u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644',
+      'ltr',
+    ],
+    ['as many Latin as right-to-left letters', 'abc \u0627\u0628\u062C', 'ltr'],
+  ])('lays out %s: dir %s is chosen (#4113, #2957)', (_name, text, expected) => {
+    render(<ToastRegion messages={[info(1, text)]} dismiss={vi.fn()} />);
+    expect(screen.getByText(text).getAttribute('dir')).toBe(expected);
   });
 });
 
