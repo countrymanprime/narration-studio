@@ -104,7 +104,10 @@ describe('softLayerOpen and modalLayerOpen', () => {
     const popover = mount('<div role="dialog" id="under"></div><div role="dialog" id="over" data-popover-popup></div>');
     expect(openModalLayer(popover)?.id).toBe('under');
     expect(openModalLayer(mount('<div role="menu"></div>'))).toBeNull();
-    expect(openModalLayer(mount('<div hidden><div role="dialog"></div></div>'))).toBeNull();
+    // Each of the three hidden states `GONE` names: Base UI sets aria-hidden on the parent of a nested dialog.
+    for (const wrap of ['<div hidden>', '<div inert>', '<div aria-hidden="true">'])
+      expect(openModalLayer(mount(`${wrap}<div role="dialog"></div></div>`))).toBeNull();
+    expect(openModalLayer(mount('<div role="dialog" id="under"></div><div aria-hidden="true"><div role="dialog" id="over"></div></div>'))?.id).toBe('under');
   });
 
   it('a hidden, inert or aria-hidden popup is not open', () => {

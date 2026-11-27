@@ -2344,6 +2344,58 @@ describe('the room the toasts take, published for a dialog in a short window', (
     modal.unmount();
     expect(published()).toBe('');
   });
+
+  // #4125: the dialog whose focused control is brought into view is the one `openModalLayer` finds, so a popover stacked after it (or a dialog that has begun closing) is not the dialog.
+  it.each([
+    ['a Base UI popover', '<div role="dialog" data-popover-popup=""><button type="button">Item</button></div>'],
+    ['a dialog that has begun closing', '<div role="dialog" data-ending-style=""><button type="button">Item</button></div>'],
+  ])(
+    'a toast raised over a dialog in a short window scrolls the dialog body to the focused control below the fold, with %s after the dialog',
+    async (_name, after) => {
+      const at = (top: number, bottom: number) =>
+        ({ top, bottom, left: 0, right: 100, width: 100, height: bottom - top, x: 0, y: top, toJSON: () => ({}) }) as DOMRect;
+      const inner = window.innerHeight;
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 300 });
+      const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+        if (this.id === 'body') return at(0, 100);
+        if (this.id === 'field') return at(150, 180);
+        return at(0, 0);
+      });
+      try {
+        render(
+          <div role="dialog">
+            <div id="body" style={{ overflowY: 'auto' }}>
+              <button id="field" type="button">
+                Field
+              </button>
+            </div>
+          </div>,
+        );
+        document.body.insertAdjacentHTML('beforeend', after);
+        const body = document.getElementById('body')!;
+        // jsdom does not scroll: the element keeps what the code sets.
+        let scrolled = 0;
+        Object.defineProperty(body, 'scrollTop', { configurable: true, get: () => scrolled, set: (value: number) => void (scrolled = value) });
+        document.getElementById('field')!.focus();
+        render(
+          <>
+            <Modal open />
+            <ToastRegion messages={[info(1)]} dismiss={vi.fn()} />
+          </>,
+        );
+        // The dialog flag is set by an effect and read by an observer (a microtask), then the scroll waits a frame.
+        await act(async () => {
+          await Promise.resolve();
+          vi.advanceTimersByTime(50);
+        });
+        expect(scrolled).toBe(80);
+      } finally {
+        rect.mockRestore();
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: inner });
+        document.querySelectorAll('[data-popover-popup], [data-ending-style]').forEach((node) => node.remove());
+      }
+    },
+  );
 });
 
 // One toast shows in the slot, with a dialog open or not (#4063, #3605); the others wait behind it, in the order they were raised, and show one after another.
