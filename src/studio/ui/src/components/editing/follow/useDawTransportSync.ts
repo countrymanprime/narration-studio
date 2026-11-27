@@ -21,6 +21,12 @@ const UNWATCHED_MS = 10_000;
 const MAX_EXTRAPOLATE_SECONDS = 0.6;
 /** A run of cursor moves in the page is written to the DAW once, this long after the last. */
 const WRITE_DEBOUNCE_MS = 80;
+/** How long after the page stops a play it gave up (the late answer is stopped) the DAW's "playing" readings are not taken as a play the narrator started in the DAW. */
+const STALE_PLAY_MS = 2000;
+/** How long after a play is answered ok a Stop heard while it was asked stands as the narrator's, when no "playing" reading follows (REAPER sends one every 0.25 s while it plays). */
+const STOP_HEARD_WINDOW_MS = 600;
+/** How long an ask the page gave up on may still be answered: its "playing" readings are not a play the narrator started. After this a Play pressed in the DAW is followed. */
+const ABANDONED_ASK_MS = 10_000;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
 /** A play asked before the watch lease was answered that no position ever followed: the page could not follow it, so it stopped it. */
@@ -109,6 +115,17 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
    * last play head heard while it played. */
   const range = useRef<{ docEnd: number; projectEnd: number; head: number; startedAt: number; length: number } | null>(null);
   const epoch = useRef(0);
+  /** Plays asked of the DAW whose answer has not come: a "stopped" reading heard meanwhile is the page's own earlier stop, not the narrator's. */
+  const asking = useRef(0);
+  /** Until this time, a "playing" reading with no play of the page's is the late play the page just stopped, not a play the narrator started in the DAW. */
+  const staleUntil = useRef(0);
+  /** A "stopped" reading was heard while a play of the page was being asked, and no "playing" reading has come since: the page's own earlier stop, or the narrator's. */
+  const stopHeard = useRef(false);
+  /** When the page last gave up or stopped a play: an ask still unanswered after that is the page's own old play, for `ABANDONED_ASK_MS`. */
+  const abandonedAt = useRef(0);
+  /** The timer that ends the page's play as the narrator's stop when none of its "playing" readings follows its answer. */
+  const stopWindow = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(stopWindow.current), []);
 
   // The lease: taken now and renewed while the window is visible. A refusal (another project open, a recording, the capability off) is not ready.
   useEffect(() => {
@@ -143,6 +160,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       range.current = null;
       epoch.current += 1;
+      // The DAW went quiet: its answer to a play asked may still come, however late.
+      abandonedAt.current = Number.POSITIVE_INFINITY;
       l.onLost(LOST);
     } else if (mine.current != null && l.state.playT === mine.current) {
       mine.current = null;
@@ -157,6 +176,19 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       () => sync.dawTransportSync('stop', 0).then((result) => (result.ok ? null : result.message)),
     );
   }, [sync]);
+
+  /** The DAW stopped the page's play (the stretch ended, or the narrator stopped it): a stretch the DAW stopped itself at the end of is the end of the page's play, as the page's own
+   * stop at a time is; a DAW the narrator stopped short of it is the narrator's stop. */
+  const endOwnPlay = useCallback((): void => {
+    const l = live.current;
+    owns.current = false;
+    dawPlaying.current = false;
+    stopHeard.current = false;
+    const done = range.current && range.current.head >= range.current.projectEnd - END_SLACK_SECONDS ? range.current.docEnd : null;
+    range.current = null;
+    if (done !== null) l.onHead(done, false);
+    else l.onStopped();
+  }, []);
 
   // The DAW's position. Heard whenever the page watches, not only once the lease is answered: the opening position comes with the answer.
   useEffect(() => {
@@ -196,6 +228,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         }
       }
       if (playing) {
+        if (owns.current) stopHeard.current = false;
+        // A play the page gave up is still being asked, or was answered a moment ago: the DAW's play is that one, which the page stops.
+        if (!owns.current && ((asking.current > 0 && Date.now() - abandonedAt.current < ABANDONED_ASK_MS) || Date.now() < staleUntil.current)) return;
         const started = !dawPlaying.current;
         dawPlaying.current = true;
         heard = { at: Date.now(), position: pos.playPosition };
@@ -209,15 +244,15 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       // A DAW that jumps to the end of its stretch and stops between two readings is heard stopping there: its play position is kept while stopped.
       if (range.current && owns.current && pos.playPosition > range.current.head) range.current.head = pos.playPosition;
       if (dawPlaying.current) {
+        // A play of the page is still being asked: a stop heard now may be the one the page sent before it, which that play follows. It is remembered:
+        // the play's answer ends the play as the narrator's stop unless a "playing" reading follows (`STOP_HEARD_WINDOW_MS`).
+        if (owns.current && asking.current > 0) {
+          stopHeard.current = true;
+          return;
+        }
         dawPlaying.current = false;
         if (owns.current) {
-          owns.current = false;
-          // A stretch the DAW stopped itself at the end of is the end of the page's play, as the page's own stop at a time is; a DAW the narrator
-          // stopped short of it is the narrator's stop.
-          const done = range.current && range.current.head >= range.current.projectEnd - END_SLACK_SECONDS ? range.current.docEnd : null;
-          range.current = null;
-          if (done !== null) l.onHead(done, false);
-          else l.onStopped();
+          endOwnPlay();
         } else if (mine.current != null && l.state.playT === mine.current) {
           // The DAW's own play stopped: its last word stays lit, but nothing plays, so the bar reads Play.
           l.dispatch({ type: 'hold' });
@@ -228,7 +263,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       clearInterval(carry);
       unsubscribe();
     };
-  }, [sync, active, visible, guard]);
+  }, [sync, active, visible, guard, endOwnPlay]);
 
   // After the DAW's own play stops, the word it reached stays lit until the cursor or the selection moves.
   const { cursor, sel } = state;
@@ -297,6 +332,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       owns.current = false;
       dawPlaying.current = false;
       epoch.current += 1;
+      abandonedAt.current = Number.POSITIVE_INFINITY;
       // The page gave the play up: it owns nothing in the DAW, and a stale answer parked behind it is stopped.
       dawPlayOwner.release();
       live.current.onLost(leased ? LOST : UNFOLLOWED);
@@ -334,6 +370,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       const generation = guard.write(project);
       let ok = false;
       let why: string;
+      asking.current += 1;
       try {
         dawPlayOwner.claim(token);
         const result = stretch
@@ -343,6 +380,8 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         why = result.message;
       } catch {
         why = 'The DAW could not be asked to play.';
+      } finally {
+        asking.current -= 1;
       }
       guard.settled(generation, ok);
       // The stretch's clock runs from the DAW accepting the play, not from asking: a REAPER busy with another command answers late.
@@ -354,6 +393,9 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         if (epoch.current === mineEpoch) {
           owns.current = false;
           range.current = null;
+          // Nothing plays for the page now: a reading it swallowed, or the older play's playing state, is not the DAW's.
+          dawPlaying.current = false;
+          stopHeard.current = false;
         }
         dawPlayOwner.release(token);
         return why || 'The DAW did not play it.';
@@ -362,14 +404,28 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       // A newer play of the page that is still being asked owns the DAW: this answer is stopped if that play fails (nothing then plays in the DAW), and dropped if
       // it settles (the DAW's one play is then the newer one).
       if (epoch.current !== mineEpoch) {
-        dawPlayOwner.stopOrOrphan(token, stopDaw);
+        dawPlayOwner.stopOrOrphan(token, () => {
+          staleUntil.current = Date.now() + STALE_PLAY_MS;
+          stopDaw();
+        });
         return null;
       }
-      if (epoch.current === mineEpoch) dawPlayOwner.settle(token);
+      dawPlayOwner.settle(token, stopDaw);
+      // A Stop was heard while this play was asked and no "playing" reading has followed: the narrator stopped it (the page's own earlier stop is followed by
+      // this play's playing reading within a reading or two).
+      if (stopHeard.current) {
+        window.clearTimeout(stopWindow.current);
+        stopWindow.current = window.setTimeout(() => {
+          if (stopHeard.current && owns.current && epoch.current === mineEpoch) endOwnPlay();
+        }, STOP_HEARD_WINDOW_MS);
+      }
       return null;
     },
     stop: () => {
+      window.clearTimeout(stopWindow.current);
       epoch.current += 1;
+      abandonedAt.current = Date.now();
+      stopHeard.current = false;
       range.current = null;
       const was = owns.current || dawPlaying.current;
       dawPlayOwner.release();
