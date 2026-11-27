@@ -604,7 +604,9 @@ If the book's chapters cannot be read when the Booth opens, it shows "This page 
 
 The Companion is a narrow panel pinned beside your DAW. Open it with **Open Companion** in the jump menu or with `Ctrl+Alt+C`. It
 opens on the chapter a reading session is running on. With none running, it opens on the chapter you last had open in the Booth in
-this project. Otherwise it opens on the first chapter that is not a credits chapter. The panel shows the reading session, with a
+this project. With neither, it opens on the chapter your DAW is on, as the Booth does: the panel shows its grey blocks until the
+DAW answers (at most a few seconds), and a DAW with no chapter selected, or none linked, leaves it on the last chapter you read, or else the first
+chapter that is not a credits chapter. The panel shows the reading session, with a
 badge in its header, the script in its own scroll box, the reading controls and the hotkeys that work while the panel has focus.
 The badge follows REAPER (**Recording**, **Playhead** with its time, or **Playhead stopped**); while the app reads along and
 REAPER is stopped it says **Reading**, or **Paused**. **Play** (or **Pause**) and **Stop reading** are icon buttons; hover one for

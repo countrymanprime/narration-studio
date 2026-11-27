@@ -120,6 +120,8 @@ export type UseTeleprompterSessionOptions = {
   credits?: { kind: CreditsKind; text: string };
   /** The standalone page migrates the earlier browser-storage device value once; the read-aloud modal does not (see above). */
   migrateLegacyDevice?: boolean;
+  /** Called the moment the narrator presses start, before the host has said anything: a page that is still choosing its chapter keeps it from then on. */
+  onPress?: () => void;
 };
 
 /**
@@ -128,8 +130,10 @@ export type UseTeleprompterSessionOptions = {
  * with each caller (the page has a picker; the modal is opened already pointed at one chapter) - callers pass `reset()`
  * after changing `chapterId` themselves.
  */
-export function useTeleprompterSession({ chapterId, chapter, credits, migrateLegacyDevice = true }: UseTeleprompterSessionOptions) {
+export function useTeleprompterSession({ chapterId, chapter, credits, migrateLegacyDevice = true, onPress }: UseTeleprompterSessionOptions) {
   const api = useApi();
+  const onPressRef = useRef(onPress);
+  onPressRef.current = onPress;
   // The narrator's saved microphone (`input_device`) and whose input to follow while a DAW records (`input_source`).
   const [chosenDevice, setDevice] = useState('');
   const [inputSource, setInputSource] = useState<InputSource>('daw');
@@ -341,6 +345,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
    * `coldRead` starts a cold read; `startWord`, when given, is where it begins instead of the one `setStartWord` chose (null is the top).
    */
   const start = async (options: { coldRead?: boolean; startWord?: number | null } = {}): Promise<{ ok: boolean; reason: string }> => {
+    onPressRef.current?.();
     setError('');
     setStopFailed(false);
     endedSince.current = false;

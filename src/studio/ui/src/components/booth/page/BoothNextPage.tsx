@@ -82,7 +82,7 @@ import { useIsRecording } from '../../../daw/useIsRecording';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
-import { loadLastPlace, type LastPlace } from './lastPlace';
+import { keptChapterIn, loadLastPlace, type LastPlace } from './lastPlace';
 import { useBoothSpeakers } from './useBoothSpeakers';
 import { useChapterNavigation } from './useChapterNavigation';
 import { useChapterResume } from './useChapterResume';
@@ -199,7 +199,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   // A reload (or a link naming the chapter with no line) keeps the chapter in the address: the place kept for that chapter is still where it opens.
   const [reloaded, setReloaded] = useState<LastPlace | null>(() => (asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null));
   // Known once the chapters are read: the kept place, when its chapter is still in the book. Until then the Booth cannot say, and holds its save.
-  const planned = asked === null && kept && chapterIds?.includes(kept.chapterId) ? kept : null;
+  const planned = asked === null ? keptChapterIn(kept, chapterIds) : null;
   const undecided = asked === null && kept !== null && chapterIds === undefined;
   useEffect(() => {
     if (!planned) return;

@@ -177,3 +177,26 @@ describe('the DAW goes back to the chapter the narrator left after a restart (#3
     expect(dawGoToChapter).not.toHaveBeenCalled();
   });
 });
+
+describe('nothing remembered and the DAW has no chapter (#4087)', () => {
+  const goTo = () => vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+  it.each([
+    ['no track selected', async () => ({ ok: true, message: '', chapterId: '', selected: 0, cursor: 0 })],
+    ['no DAW linked', async () => ({ ok: false, message: 'No DAW is linked.', chapterId: '', selected: 0, cursor: 0 })],
+  ])('%s: the Booth opens on chapter 1 and does not move the DAW to it', async (_name, answer) => {
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter, dawPlace: vi.fn(answer) } });
+    await waitFor(() => expect(document.body.textContent).toContain('The Garden was quiet'));
+    await settle();
+    await settle();
+    expect(dawGoToChapter).not.toHaveBeenCalled();
+  });
+
+  it('a remembered chapter wins over the DAW: the DAW is taken to it, never followed', async () => {
+    keep({ chapterId: 'c1', paragraphId: 'p3', word: 2 });
+    const dawGoToChapter = goTo();
+    renderPage({ api: { dawGoToChapter, dawPlace: vi.fn(async () => ({ ok: true, message: '', chapterId: 'c2', selected: 1, cursor: 0 })) } });
+    await waitFor(() => expect(dawGoToChapter).toHaveBeenCalledWith('c1', expect.any(String), expect.any(Number)));
+    expect(address).toContain('chapter=c1');
+  });
+});

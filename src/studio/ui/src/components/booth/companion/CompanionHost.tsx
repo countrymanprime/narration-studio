@@ -34,6 +34,8 @@ type Props = {
   onFullApp: () => void;
   /** The credits' unresolved-token warning's "Fill them in Settings". */
   onFixCredits?: () => void;
+  /** The narrator pressed start: the page above stops following the DAW to a chapter. */
+  onPress?: () => void;
 };
 
 /**
@@ -43,12 +45,13 @@ type Props = {
  *
  * Flags the session raised are kept as findings when it ends and when the Companion is left, as in the Booth.
  */
-export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES, notes = NO_NOTES, onFullApp, onFixCredits }: Props) {
+export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES, notes = NO_NOTES, onFullApp, onFixCredits, onPress }: Props) {
   const api = useApi();
   const chapter = source.kind === 'chapter' ? source.chapter : undefined;
   const session = useTeleprompterSession({
     chapterId: chapter?.id ?? '',
     chapter,
+    onPress,
     credits: source.kind === 'credits' ? { kind: source.credits, text: source.preview.text } : undefined,
   });
   // The Companion records in the DAW, so it listens on the DAW's own input as the Booth does (useListeningMic).
