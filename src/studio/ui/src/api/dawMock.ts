@@ -474,6 +474,8 @@ export interface DawMockControl {
   ownTake(): boolean;
   /** While true, events (capabilities, transport, project state) are not delivered; reads still answer. */
   dropEvents(on: boolean): void;
+  /** While on, a reading of a stopped DAW that repeats the last one is not sent, as the real script sends the transport on change only while it is stopped (every 0.25 s while it plays). */
+  streamChangesOnly(on: boolean): void;
   /** The next record start (or stop) is refused with this sentence, as a full disk or a locked file would. */
   refuseNextRecord(sentence: string, kind?: 'start' | 'stop'): void;
   /** What the mock DAW holds now, for a driver to assert on. */
@@ -566,6 +568,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   const positionSubs = new Set<(position: DawPosition) => void>();
   const editSubs = new Set<(edit: DawProjectEdited) => void>();
   const endedSubs = new Set<(ended: DawRecordEnded) => void>();
+  let changesOnly = false;
+  let lastStreamed = '';
   const streamPosition = () => {
     if (!sync.watching || dropped) return;
     const position: DawPosition = {
@@ -575,6 +579,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       editCursor: sync.cursor,
       sameProject: open === 'linked',
     };
+    const key = JSON.stringify(position);
+    if (changesOnly && !position.playing && key === lastStreamed) return;
+    lastStreamed = key;
     positionSubs.forEach((fn) => fn(wireClone(position)));
   };
   const timers = new Set<ReturnType<typeof setTimeout>>();
@@ -710,6 +717,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     recording: () => isRecording() && !!currentCapabilities(live).reachable,
     ownTake: () => isRecording() && appTake !== null,
+    streamChangesOnly: (on) => {
+      changesOnly = on;
+    },
     dropEvents: (on) => {
       dropped = on;
     },
