@@ -116,7 +116,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       vi.useRealTimers();
     }
     await waitFor(() => expect(hear()).toBeTruthy());
-    expect(overlay.toast).toHaveBeenCalledWith('REAPER did not answer in time. Stop it in REAPER.', expect.anything());
+    expect(overlay.toast).toHaveBeenCalledWith('REAPER did not answer in time. Stop it in REAPER.', { tone: 'error' });
   });
 
   it('stops the loop it started when the Inspector moves to another note', async () => {

@@ -916,6 +916,7 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     ['is stopped', undefined, undefined],
     ['is stopped, and a refused stop says where to stop it', { ok: false, message: 'REAPER would not stop' }, 'REAPER would not stop. Stop it in REAPER.'],
   ] as const)('a play the page already reported lost whose answer then comes (ok) %s', async (_name, stopAnswer, sentence) => {
+    const toast = vi.spyOn(overlay, 'toast');
     const api = createMockApi({}, { daw: {} });
     const real = api.dawTransportSync.bind(api);
     let answerPlay: (r: { ok: boolean; message: string }) => void = () => {};
@@ -943,7 +944,28 @@ describe('a-linked-daw-that-cannot-play-hands-the-play-to-the-app', () => {
     await act(async () => answerPlay({ ok: true, message: '' }));
     await wait(10);
     expect(actions.filter((x) => x === 'stop').length).toBeGreaterThan(stopsBefore);
-    if (sentence) expect(notices.at(-1)).toBe(sentence);
+    if (sentence) expect(toast).toHaveBeenLastCalledWith(sentence, { tone: 'error' });
+  });
+  it('a script Stop the DAW never answers is an error toast that says where to stop it', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api);
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) =>
+      action === 'stop' ? new Promise(() => {}) : (real as (...a: unknown[]) => unknown)(action, ...rest)) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    act(() => playback.stop());
+    await wait(PLAY_DEADLINE_MS);
+    expect(toast).toHaveBeenLastCalledWith('REAPER did not answer in time. Stop it in REAPER.', { tone: 'error' });
   });
   it('a play answered while a newer play of the page is asked is stopped when that newer play is refused (the older one is not left beside the app)', async () => {
     const api = createMockApi({}, { daw: {} });
