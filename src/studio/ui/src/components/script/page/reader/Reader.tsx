@@ -386,9 +386,12 @@ export function Reader(props: ReaderProps) {
   const jumpTo = (chapterId: string): void => {
     scrollToChapter(chapterId);
     held.current = { chapterId, offset: -8 };
+    placed.current = null;
   };
   /** Where the first draw, a jump or End put the reader, held until the narrator scrolls or a request scrolls it. */
   const held = useRef<{ chapterId: string; offset: number } | 'end' | null>(null);
+  /** Where the reader itself put the scroll (the first draw, a held place): the scroll event that follows is not the narrator moving, so it saves no place (#4091). */
+  const placed = useRef<number | null>(null);
   const hold = (): void => {
     const root = scroller.current;
     const place = held.current;
@@ -397,9 +400,11 @@ export function Reader(props: ReaderProps) {
     if (place !== 'end' && !bound) return;
     const top = Math.max(0, place === 'end' ? root.scrollHeight - root.clientHeight : bound!.offsetTop + place.offset);
     if (root.scrollTop !== top) root.scrollTop = top;
+    if (placed.current !== null) placed.current = top;
   };
   const release = (): void => {
     held.current = null;
+    placed.current = null;
   };
   const rowOf = (paragraphId: string): HTMLElement | null =>
     Array.from(scroller.current?.querySelectorAll<HTMLElement>('[data-para]') ?? []).find((row) => row.dataset.para === paragraphId) ?? null;
@@ -413,6 +418,7 @@ export function Reader(props: ReaderProps) {
     // The remembered place can be a section that is not a chapter (the credits, #3821): any boundary drawn in the reader counts.
     const known = remembered && Array.from(root.querySelectorAll<HTMLElement>('[data-bound]')).some((bound) => bound.dataset.ch === remembered.chapterId);
     held.current = known ? remembered : { chapterId: startChapter, offset: -8 };
+    placed.current = root.scrollTop;
     hold();
     // The first draw only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -530,6 +536,8 @@ export function Reader(props: ReaderProps) {
 
   const onScroll = (): void => {
     onSpy();
+    if (placed.current !== null && scroller.current?.scrollTop === placed.current) return;
+    placed.current = null;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(savePlace, SAVE_DELAY_MS);
   };

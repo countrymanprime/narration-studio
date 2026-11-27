@@ -7,6 +7,7 @@ import { chaptersOf } from '../../../../api/chaptersOf';
 
 function ports() {
   let name = 'Alice';
+  let epoch = 0;
   const jobEnded = new Set<() => void>();
   const projectAttach = new Set<(attach: { attached: boolean }) => void>();
   const storyBible = {
@@ -18,6 +19,8 @@ function ports() {
   };
   const manuscript = { manuscriptChapters: async () => chaptersOf([]), manuscriptParagraphs: vi.fn(async (chapterId: string) => [{ id: `p-${chapterId}` }]) };
   const data = createScriptData({
+    generation: () => epoch,
+    readChapters: async () => [],
     manuscript,
     marks: { marksList: async () => ({ marks: [] }) },
     scriptPrep: { scriptPrepList: async () => ({ chapters: [], words: [] }) },
@@ -38,6 +41,8 @@ function ports() {
     storyBible,
     manuscript,
     rename: (next: string) => (name = next),
+    /** The store reset a project switch makes, with no page reading. */
+    switchProject: () => (epoch += 1),
     endJob: () => jobEnded.forEach((listener) => listener()),
     attachProject: () => projectAttach.forEach((listener) => listener({ attached: true })),
   };
@@ -276,5 +281,33 @@ describe('a failed read of the dialogue cues (#3824)', () => {
     storyBible.guideDialogueCuesIn.mockClear();
     data.retryFailed();
     expect(storyBible.guideDialogueCuesIn).not.toHaveBeenCalled();
+  });
+});
+
+describe('a project switch made while no Script page reads', () => {
+  it("drops the cached chapters and paragraphs, so the next open reads the new project's", async () => {
+    const { data, switchProject, manuscript } = ports();
+    const leave = data.start();
+    await data.load('chapters');
+    await data.loadParagraphs('c1');
+    expect(data.getState().chapters?.status).toBe('ready');
+    expect(data.getState().paragraphs.c1?.status).toBe('ready');
+    leave();
+
+    switchProject();
+    data.syncProject();
+    expect(data.getState().chapters).toBeUndefined();
+    expect(data.getState().paragraphs).toEqual({});
+    data.ensureParagraphs('c1');
+    await vi.waitFor(() => expect(manuscript.manuscriptParagraphs).toHaveBeenCalledTimes(2));
+  });
+
+  it('keeps what is held when the project did not change', async () => {
+    const { data } = ports();
+    const leave = data.start();
+    await data.load('chapters');
+    leave();
+    data.syncProject();
+    expect(data.getState().chapters?.status).toBe('ready');
   });
 });

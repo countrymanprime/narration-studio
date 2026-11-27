@@ -24,6 +24,8 @@ export type ScriptPorts = {
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepList'>;
   storyBible: Pick<StoryBibleApi, 'guideEntities' | 'guideTypes' | 'guideDialogueCuesIn'>;
   system: Pick<SystemApi, 'subscribeJobEnded' | 'subscribeProjectAttach'>;
+  /** The store's epoch: it changes on every project switch, wherever the switch was made, so a cache that missed one (no page was reading) knows it holds another project's answers. */
+  generation?: () => number;
   /** Says a name's pronunciation changed, on this page or another, or was undone from History: the Story Bible is the one store of
    * pronunciations (#2595), so its entries are read again. */
   pronunciation?: { subscribe: (listener: () => void) => () => void };
@@ -57,6 +59,11 @@ export type ScriptData = {
   /** Reads a list unless it is loaded or loading. */
   ensure(list: ScriptList): void;
   ensureParagraphs(chapterId: string): void;
+  /**
+   * Drops everything held when the project changed while no page was reading (the page listens for a switch only while it is mounted), so the next read is the new
+   * project's and never serves the old project's chapters or paragraphs. Silent: with no reader there is nobody to tell. Cheap to call on every render.
+   */
+  syncProject(): void;
   /** Reads the cues of these chapters (every chapter held, when none are named) in one call. */
   loadCues(chapterIds?: readonly string[]): Promise<void>;
   /** Reads a chapter's cues unless they are held or asked for; the chapters asked in one tick share one call. */
@@ -165,6 +172,7 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
   };
 
   let started = 0;
+  let seen = ports.generation?.();
   let stop: (() => void) | null = null;
 
   return {
@@ -177,6 +185,16 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
     loadParagraphs,
     ensure(list) {
       if (!state[list]) void load(list);
+    },
+    syncProject() {
+      const now = ports.generation?.();
+      if (now === seen) return;
+      seen = now;
+      // A reader that is wired has handled the switch itself (the attach listener above).
+      if (started > 0) return;
+      latest.clear();
+      asked.clear();
+      state = { cues: {}, paragraphs: {} };
     },
     ensureParagraphs(chapterId) {
       if (!state.paragraphs[chapterId]) void loadParagraphs(chapterId);

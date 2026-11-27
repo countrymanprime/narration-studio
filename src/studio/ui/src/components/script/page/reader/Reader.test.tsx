@@ -334,6 +334,31 @@ describe('the remembered position', () => {
     expect(scrolls.get(scroller())).toBeUndefined();
   });
 
+  // The restore sets the scroll, and the browser answers with a scroll event: that is not the narrator moving, so it saves nothing (#4091).
+  it("does not save a place for the first-draw restore; only the narrator's scroll does", () => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'c2', offset: 50 }));
+    const before = window.localStorage.getItem(READER_POSITION_KEY);
+    const { unmount } = render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBe(350);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(before);
+    cleanup();
+    render(<Reader {...props()} />);
+    scrollTo(450);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 150 });
+  });
+
+  it('opening a project with nothing stored writes nothing until the narrator scrolls', () => {
+    const { unmount } = render(<Reader {...props({ projectFolder: FOLDER_B })} />);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(projectStorageKey('script.reader.position', FOLDER_B))).toBeNull();
+  });
+
   it('keeps no place when no project is open', () => {
     const { unmount } = render(<Reader {...props({ projectFolder: '' })} />);
     scrollTo(350);

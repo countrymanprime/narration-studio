@@ -890,3 +890,73 @@ describe('Script loading state', () => {
     await waitFor(() => expect(calls).toBe(2));
   });
 });
+
+describe('the reader position across a project switch made off the Script (#4091)', () => {
+  // The Script's cache listened for a switch only while a Script page was mounted: a switch made on another page left the old project's chapters in it, and the
+  // Script opened on them for the new project and saved the old project's chapter id under the new project's key.
+  it("opening the Script for project B with project A's chapter list cached never writes an A chapter id under B's key", async () => {
+    const attach = new Set<(state: { attached: boolean }) => void>();
+    let other = false;
+    const base = createMockApi();
+    const api = {
+      ...base,
+      subscribeProjectAttach: (listener: (state: { attached: boolean }) => void) => {
+        attach.add(listener);
+        return () => attach.delete(listener);
+      },
+      manuscriptChapters: async () => {
+        const list = await base.manuscriptChapters();
+        return other ? { ...list, chapters: list.chapters.map((c) => ({ ...c, id: `v-${c.id}` })) } : list;
+      },
+      manuscriptParagraphs: (chapterId: string) => base.manuscriptParagraphs(chapterId.replace(/^v-/, '')),
+    } as NarrationApi;
+    const at = new WeakMap<Element, number>();
+    vi.spyOn(Element.prototype, 'scrollTop', 'get').mockImplementation(function (this: Element) {
+      return at.get(this) ?? 0;
+    });
+    vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (this: Element, value: number) {
+      at.set(this, value);
+    });
+    const keyOf = (folder: string) => `narration.script.reader.position.${folder}`;
+    const page = (show: boolean, folder: string) => (
+      <MemoryRouter initialEntries={['/script']}>
+        <ApiProvider api={api}>
+          <StudioProvider>
+            <CommandRouter>
+              <TooltipProvider>
+                {show ? (
+                  <Routes>
+                    <Route path="/script" element={<ScriptPage notify={vi.fn()} focusStoryBibleEntity={vi.fn()} projectFolder={folder} />} />
+                  </Routes>
+                ) : null}
+              </TooltipProvider>
+            </CommandRouter>
+          </StudioProvider>
+        </ApiProvider>
+      </MemoryRouter>
+    );
+    const reader = () => screen.getByRole('region', { name: /Script reader/ });
+    const narratorScrolls = async (folder: string) => {
+      at.set(reader(), 250);
+      fireEvent.scroll(reader());
+      await waitFor(() => expect(window.localStorage.getItem(keyOf(folder))).not.toBeNull());
+      return (JSON.parse(window.localStorage.getItem(keyOf(folder))!) as { chapterId: string }).chapterId;
+    };
+
+    const view = render(page(true, 'c:/books/a'));
+    await firstHeading();
+    const chapterOfA = await narratorScrolls('c:/books/a');
+    expect(chapterOfA.startsWith('v-')).toBe(false);
+
+    // The switch is made on another page: no Script page is mounted when the project changes.
+    view.rerender(page(false, 'c:/books/a'));
+    other = true;
+    act(() => attach.forEach((listener) => listener({ attached: true })));
+    view.rerender(page(true, 'c:/books/b'));
+    await firstHeading();
+    expect(window.localStorage.getItem(keyOf('c:/books/b'))).toBeNull();
+    const chapterOfB = await narratorScrolls('c:/books/b');
+    expect(chapterOfB.startsWith('v-')).toBe(true);
+    expect((JSON.parse(window.localStorage.getItem(keyOf('c:/books/a'))!) as { chapterId: string }).chapterId).toBe(chapterOfA);
+  });
+});
