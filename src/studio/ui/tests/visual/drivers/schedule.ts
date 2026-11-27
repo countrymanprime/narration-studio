@@ -1,7 +1,7 @@
 // How to reach each `schedule` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
 import { MOCK_DAY } from '../lib/pinnedDay';
-import { expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { type Driver, clickNav, clickVisible, confirmDialog, openWithoutManuscript } from './shared';
 
 // Opens the Schedule through the rail, optionally booted with a mock seed (main.tsx), and waits until the plan has been read.
@@ -13,16 +13,28 @@ async function openSchedule(page: Parameters<Driver>[0], query = '', day: Date =
   await page.getByRole('heading', { level: 2, name: 'Milestones' }).waitFor();
 }
 
-/** Adds a milestone through the dialog, then dismisses its "Milestone added." toast (toasts show one at a time, so that one would hold the slot for the next message). */
-export async function addMilestone(page: Page, name: string): Promise<void> {
-  await page.getByRole('button', { name: 'Add milestone', exact: true }).first().click();
+/**
+ * Adds a milestone through the Add milestone dialog, then dismisses its "Milestone added." toast: toasts show one at a time, so that one would hold the slot for the next message (and, stacked over the table, hide the rows
+ * a state is about, alignment audit XSH-10).
+ */
+export async function addMilestone(
+  page: Page,
+  name: string,
+  { due = '2026-10-05', note, done = false }: { due?: string; note?: string; done?: boolean } = {},
+): Promise<void> {
+  await clickVisible(page, 'button', 'Add milestone');
   const dialog = confirmDialog(page, /milestone/i);
+  await dialog.waitFor();
   await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
-  await dialog.getByRole('textbox', { name: 'Due' }).fill('2026-10-05');
+  await dialog.getByRole('textbox', { name: 'Due' }).fill(due);
+  if (note !== undefined) await dialog.getByRole('textbox', { name: 'Note' }).fill(note);
+  if (done) await dialog.getByRole('checkbox', { name: 'Done' }).check();
   await dialog.getByRole('button', { name: 'Add milestone' }).click();
   await dialog.waitFor({ state: 'detached' });
-  await page.getByRole('button', { name: 'Dismiss' }).click();
-  await expect(page.locator('[data-toast-text]')).toHaveCount(0);
+  const added = page.getByRole('status').getByText('Milestone added.');
+  await added.waitFor();
+  await page.getByRole('button', { name: 'Dismiss message' }).click();
+  await added.waitFor({ state: 'detached' });
 }
 
 export const scheduleDrivers: Record<string, Driver> = {
@@ -71,21 +83,7 @@ export const scheduleDrivers: Record<string, Driver> = {
   },
   'long-text': async (page) => {
     await openSchedule(page, '?mockProduction=on-pace');
-    const add = async (name: string, note: string, due = '2026-10-02') => {
-      await clickVisible(page, 'button', 'Add milestone');
-      const dialog = confirmDialog(page, /milestone/i);
-      await dialog.waitFor();
-      await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
-      await dialog.getByRole('textbox', { name: 'Due' }).fill(due);
-      await dialog.getByRole('textbox', { name: 'Note' }).fill(note);
-      await dialog.getByRole('button', { name: 'Add milestone' }).click();
-      await dialog.waitFor({ state: 'detached' });
-      // Each add says "Milestone added."; three of them stacked over the table hid the rows this state is about (alignment audit XSH-10).
-      const added = page.getByRole('status').getByText('Milestone added.');
-      await added.waitFor();
-      await page.getByRole('button', { name: 'Dismiss message' }).click();
-      await added.waitFor({ state: 'detached' });
-    };
+    const add = (name: string, note: string, due = '2026-10-02') => addMilestone(page, name, { note, due });
     await add('W'.repeat(200), 'a note');
     await add('تسليم الفصل الأول للمراجعة النهائية', 'ملاحظة');
     await add('🎙️ Final mix 🦎🍺 — 👨‍👩‍👧‍👦', '🍺');
@@ -98,20 +96,7 @@ export const scheduleDrivers: Record<string, Driver> = {
   'milestone-statuses': async (page) => {
     // A custom milestone whose date has passed ("Past due"), one still ahead (a dash) and a done one, beside the Final delivery status.
     await openSchedule(page, '?mockProduction=on-pace');
-    const add = async (name: string, due: string, done = false) => {
-      await clickVisible(page, 'button', 'Add milestone');
-      const dialog = confirmDialog(page, /milestone/i);
-      await dialog.waitFor();
-      await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
-      await dialog.getByRole('textbox', { name: 'Due' }).fill(due);
-      if (done) await dialog.getByRole('checkbox', { name: 'Done' }).check();
-      await dialog.getByRole('button', { name: 'Add milestone' }).click();
-      await dialog.waitFor({ state: 'detached' });
-      const added = page.getByRole('status').getByText('Milestone added.');
-      await added.waitFor();
-      await page.getByRole('button', { name: 'Dismiss message' }).click();
-      await added.waitFor({ state: 'detached' });
-    };
+    const add = (name: string, due: string, done = false) => addMilestone(page, name, { due, done });
     await add('Retail sample', '2026-09-20');
     await add('Cover approved', '2026-09-10', true);
     await add('Press kit', '2026-10-05');

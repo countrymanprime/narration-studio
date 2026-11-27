@@ -1,7 +1,7 @@
 // A narrator's right-to-left name inside a journal label reaches the toasts through the real journal (#4129 slice C): removing a milestone raises "Removed <name>." with Undo, and
 // undoing it from the keys raises "Undid <label>". The label is built isolated (U+2068 … U+2069), so both toasts hold the name apart from the English round it and read left to right.
 import { expect, test } from '@playwright/test';
-import { confirmDialog } from './drivers/shared';
+import { addMilestone } from './drivers/schedule';
 import { settlePage } from './helpers/settle';
 
 const FSI = '\u2068';
@@ -12,17 +12,8 @@ test('Schedule / a right-to-left milestone removed and undone: both toasts isola
   await page.goto('/schedule?mockProduction=on-pace');
   await settlePage(page);
   await page.getByRole('heading', { level: 2, name: 'Milestones' }).waitFor();
-  await page.getByRole('button', { name: 'Add milestone', exact: true }).first().click();
-  const dialog = confirmDialog(page, /milestone/i);
-  await dialog.waitFor();
-  await dialog.getByRole('textbox', { name: 'Name' }).fill(NAME);
-  await dialog.getByRole('textbox', { name: 'Due' }).fill('2026-10-05');
-  await dialog.getByRole('button', { name: 'Add milestone' }).click();
-  await dialog.waitFor({ state: 'detached' });
-
-  // Toasts are shown one at a time: the Add toast ("Milestone added.") holds the place until it is dismissed, so Remove's toast would wait behind it. Dismiss it and wait until none is left.
-  await page.getByRole('button', { name: 'Dismiss' }).click();
-  await expect(page.locator('[data-toast-text]')).toHaveCount(0);
+  // Toasts are shown one at a time: the Add toast ("Milestone added.") holds the place until it is dismissed, so Remove's toast would wait behind it; `addMilestone` dismisses it.
+  await addMilestone(page, NAME);
   const toastWith = (words: string) => page.locator('[data-toast-text]', { hasText: words });
   await page.getByRole('button', { name: `Remove ${NAME}` }).click();
   const removed = toastWith('Removed');

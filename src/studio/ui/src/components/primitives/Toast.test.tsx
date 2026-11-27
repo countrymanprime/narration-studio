@@ -887,7 +887,9 @@ describe('a key held on a toast button: its own repeats, and only its, press not
       expect(reaches(origin, key, code)).toBe(false);
     });
 
-    it("an Enter or Space pressed during the grace reaches no handler of the page's own", () => {
+    // What this pins: a React handler above the control (the router's own `onKeyDown`s are the same kind) is not called. `stopPropagation` at the document's capture phase does not stop a document-capture listener registered
+    // before it (`usePedalSpace`, `inputModality`, the Booth's side panel): the Booth's take keys are safe because `usePedalSpace` has a guard of its own for a key after a toast press (#4094).
+    it('an Enter or Space pressed during the grace is not seen by a React handler above the control', () => {
       const handler = vi.fn();
       const view = render(
         <div onKeyDown={handler}>
@@ -913,6 +915,101 @@ describe('a key held on a toast button: its own repeats, and only its, press not
       // Another key is the page's own.
       fireEvent.keyDown(origin, { key: 'k', code: 'KeyK' });
       expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('the grace begins with the dismissal: a fresh Enter or Space while the dismissing key is down, or before focus is handed back, is consumed', () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      // Overlapping keys: Enter is still down and Space goes down.
+      expect(reaches(document.body, ' ', 'Space')).toBe(false);
+      expect(reaches(document.body, 'Enter', 'Enter')).toBe(false);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      // Enter is up, the hand-back's timer has not run: still consumed, and the key held is not the dismissing one.
+      expect(document.activeElement).not.toBe(origin);
+      expect(reaches(document.body, 'Enter', 'Enter')).toBe(false);
+      act(() => void vi.advanceTimersByTime(1));
+      expect(document.activeElement).toBe(origin);
+      // The hand-back went ahead under the consumed keys; their keyups release them.
+      fireEvent.keyUp(document.body, { key: ' ', code: 'Space' });
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      expect(reaches(origin, 'Enter', 'Enter')).toBe(false);
+    });
+
+    it('a consumed key is held: its repeats are cancelled until its keyup, and the keyup lets it go', () => {
+      dismissed();
+      expect(reaches(document.body, 'Enter', 'Enter')).toBe(false);
+      const repeat = createEvent.keyDown(document.body, { key: 'Enter', code: 'Enter', repeat: true });
+      fireEvent(document.body, repeat);
+      expect(repeat.defaultPrevented).toBe(true);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      // A repeat with no key held is the page's.
+      const later = createEvent.keyDown(document.body, { key: 'Enter', code: 'Enter', repeat: true });
+      fireEvent(document.body, later);
+      expect(later.defaultPrevented).toBe(false);
+    });
+
+    it('a dismissing key that repeats and then goes quiet is let go by a pointer press, as any held key is (the grace records its repeats)', () => {
+      const origin = document.createElement('button');
+      document.body.append(origin);
+      const view = render(<ToastRegion messages={[info(1), info(2)]} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: 'Dismiss message' }), origin);
+      for (let i = 0; i < 5; i++) {
+        act(() => void vi.advanceTimersByTime(50));
+        fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Enter', code: 'Enter', repeat: true });
+      }
+      view.rerender(<ToastRegion messages={[info(2)]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(2_000));
+      expect(document.activeElement).not.toBe(origin);
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'Dismiss message' }));
+      act(() => void vi.advanceTimersByTime(1));
+      expect(document.activeElement).toBe(origin);
+    });
+
+    it("a chord is the page's own (Ctrl+Enter, Alt+Enter, Meta+Space); Shift+Enter and Shift+Space are consumed; a composition is not consumed", () => {
+      const { origin } = dismissed();
+      const sees = (init: object) => {
+        const event = createEvent.keyDown(origin, init);
+        fireEvent(origin, event);
+        return !event.defaultPrevented;
+      };
+      expect(sees({ key: 'Enter', code: 'Enter', ctrlKey: true })).toBe(true);
+      expect(sees({ key: 'Enter', code: 'Enter', altKey: true })).toBe(true);
+      expect(sees({ key: ' ', code: 'Space', metaKey: true })).toBe(true);
+      expect(sees({ key: 'Enter', code: 'Enter', isComposing: true })).toBe(true);
+      expect(sees({ key: 'Enter', code: 'Enter', shiftKey: true })).toBe(false);
+      expect(sees({ key: ' ', code: 'Space', shiftKey: true })).toBe(false);
+    });
+
+    it('a Space typed into a text field is its own space, while Enter in it is consumed (the boundary the PR states)', () => {
+      const field = document.createElement('input');
+      document.body.append(field);
+      const view = render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+      press(screen.getByRole('button', { name: 'Dismiss message' }), field);
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(1));
+      expect(document.activeElement).toBe(field);
+      expect(reaches(field, ' ', 'Space')).toBe(true);
+      expect(reaches(field, 'Enter', 'Enter')).toBe(false);
+    });
+
+    it('a keyup inside the window does not end it: a key pressed, released and pressed again is consumed both times', () => {
+      dismissed();
+      expect(reaches(document.body, 'Enter', 'Enter')).toBe(false);
+      fireEvent.keyUp(document.body, { key: 'Enter', code: 'Enter' });
+      act(() => void vi.advanceTimersByTime(50));
+      expect(reaches(document.body, 'Enter', 'Enter')).toBe(false);
+    });
+
+    it('the region going away ends the grace', () => {
+      const { origin } = dismissed();
+      expect(origin).toBe(document.activeElement);
+      cleanup();
+      expect(reaches(document.body, 'Enter', 'Enter')).toBe(true);
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     });
 
     it('a fresh Enter on <body> is consumed too, and another key is not', () => {

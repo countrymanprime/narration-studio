@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { confirmDialog } from './drivers/shared';
+import { addMilestone } from './drivers/schedule';
 import { settlePage } from './helpers/settle';
 
 // The milestone table keeps the research mock's column sizes, whatever the milestones are called: the Due column stays about the width
@@ -15,13 +15,7 @@ for (const size of [
     await page.goto('/schedule?mockProduction=on-pace');
     await settlePage(page);
     await page.getByRole('heading', { level: 2, name: 'Milestones' }).waitFor();
-    await page.getByRole('button', { name: 'Add milestone', exact: true }).first().click();
-    const dialog = confirmDialog(page, /milestone/i);
-    await dialog.waitFor();
-    await dialog.getByRole('textbox', { name: 'Name' }).fill('A very long milestone name for the whole final mastering and delivery package');
-    await dialog.getByRole('textbox', { name: 'Due' }).fill('2026-10-05');
-    await dialog.getByRole('button', { name: 'Add milestone' }).click();
-    await dialog.waitFor({ state: 'detached' });
+    await addMilestone(page, 'A very long milestone name for the whole final mastering and delivery package');
     const table = page.getByRole('table', { name: 'Milestones' });
     const width = async (name: string) => (await table.getByRole('columnheader', { name, exact: true }).boundingBox())!.width;
     expect(await width('Due'), 'the Due column is about a date field wide').toBeLessThanOrEqual(160);

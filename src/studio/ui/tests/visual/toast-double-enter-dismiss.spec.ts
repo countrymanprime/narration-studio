@@ -65,13 +65,19 @@ test("Schedule / Enter on Remove 400 ms after Enter on the Undo toast's Dismiss 
 
 // Where focus goes back to is the Voice sample button (a second Enter or Space would open its dialog), and a key that reached the page itself would run its own commands (Space plays, Enter keeps the take): the grace
 // consumes it before either sees it.
-for (const key of ['Space', 'Enter']) {
-  test(`Editing / ${key} twice on a toast's Dismiss opens no dialog, starts no playback and keeps no take`, async ({ page }) => {
+// With no gap at all the second key goes down before the hand-back's own timer has run: the race the first version of the grace lost.
+for (const [key, gap] of [
+  ['Space', 30],
+  ['Enter', 30],
+  ['Space', 0],
+  ['Enter', 0],
+] as const) {
+  test(`Editing / ${key} twice ${gap} ms apart on a toast's Dismiss opens no dialog, starts no playback and keeps no take`, async ({ page }) => {
     await editingDrivers['voice-sample-saved'](page);
     const toast = page.getByRole('status').filter({ hasText: /^Saved voice sample for / });
     await toast.getByRole('button', { name: 'Dismiss message' }).focus();
     await page.keyboard.press(key);
-    await page.waitForTimeout(30);
+    if (gap > 0) await page.waitForTimeout(gap);
     await page.keyboard.press(key);
     await page.waitForTimeout(900);
     await expect(page.getByRole('dialog', { name: 'Voice sample' })).toHaveCount(0);
