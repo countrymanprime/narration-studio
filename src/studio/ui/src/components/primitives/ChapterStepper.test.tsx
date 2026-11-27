@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterStepper, ALL_CHAPTERS } from './ChapterStepper';
-import { pageTakesFocusFromLeavingPopups } from './focusReturn';
+import { focusPageMain, pageTakesFocusFromLeavingPopups } from './focusReturn';
 
 afterEach(cleanup);
 
@@ -249,7 +249,6 @@ describe('ChapterStepper chapter list focus while it leaves', () => {
     const end = async () => {
       endExit();
       await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
-      await new Promise((resolve) => setTimeout(resolve, 30));
     };
     return { end, user };
   }
@@ -257,25 +256,36 @@ describe('ChapterStepper chapter list focus while it leaves', () => {
   it('gives focus back to the chapter button when the exit ends and no key took it', async () => {
     const { end } = await escapeWhileLeaving();
     await end();
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Change chapter/ }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: /Change chapter/ })));
   });
 
   it('hands focus to <main> when a key took the page focus while it was leaving', async () => {
     const { end } = await escapeWhileLeaving();
+    // What a Booth key does (`claimFocusForPage`): focus to the page first, then the mark. Base UI may already have put focus on the trigger by now, and the hand-off must still end on <main>.
+    focusPageMain();
     pageTakesFocusFromLeavingPopups();
     await end();
-    expect(document.activeElement).toBe(document.querySelector('main'));
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector('main')));
   });
 
-  it('a list reopened during its exit after a key marked it gives focus back to the chapter button on Escape', async () => {
+  it.each([
+    ['a click', async (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: /Change chapter/ }))],
+    [
+      'Enter on its button',
+      async (user: ReturnType<typeof userEvent.setup>) => {
+        screen.getByRole('button', { name: /Change chapter/ }).focus();
+        await user.keyboard('{Enter}');
+      },
+    ],
+  ])('a list reopened by %s during its exit after a key marked it gives focus back to the chapter button on Escape', async (_how, reopen) => {
     const { end, user } = await escapeWhileLeaving();
     pageTakesFocusFromLeavingPopups();
     // The same popup element stays while it leaves, so the mark would stay with it: opening the list again clears it.
-    await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+    await reopen(user);
     await waitFor(() => expect(leavingMenu()).toBeNull());
     await user.keyboard('{Escape}');
     await end();
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Change chapter/ }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: /Change chapter/ })));
   });
 
   describe('an item of a list that is leaving', () => {

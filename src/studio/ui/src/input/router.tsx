@@ -133,7 +133,8 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         !event.target.closest(OWNS_KEYS) &&
         !KEY_ROLE_TARGET(event.target) &&
         !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code);
-      // A control left in a popup that has begun to close keeps Space and Enter (they would press it) but no other key: it is going, and the key is the page's (#3906, #3931).
+      // A control left in a popup that has begun to close keeps Space and Enter (a button there would press) but no other key: it is going, and the key is the page's (#3906, #3931).
+      // The chapter list's items are the exception: they are disabled while it leaves and press nothing (#4125), so this router's hold on those two keys is only for the buttons.
       const guarded = isGuardedTarget(event.target) && !(event.context?.targetClosing && !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code));
       if (event.gesture.modifiers.length === 0 && guarded && !onlyButton) return;
       // A key a button's own list already used (the Story Bible's rows walk with the arrows) is not also the page's.
