@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ignoreKeyRepeat } from '../../primitives/keyRepeat';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -97,6 +98,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay 
             aria-label={`${playingId === take.id ? 'Stop' : 'Play'} take ${take.label}`}
             aria-pressed={playingId === take.id}
             onClick={() => onPlay(take)}
+            onKeyDown={ignoreKeyRepeat}
           >
             <span
               className={`absolute inset-y-0.5 block overflow-hidden rounded-[var(--radius-button)] ${take.active ? 'bg-[var(--info-soft)]' : 'bg-[var(--surface)]'}`}

@@ -57,3 +57,15 @@ describe('a comparison whose take played nothing', () => {
     expect(onPlay.mock.calls.map((c) => c[0].id)).toEqual(['t1', 't2']);
   });
 });
+
+describe('a stop from outside ends the run (#4124)', () => {
+  it("the script's Play stopping the take that plays does not start the next take over it", () => {
+    const { onPlay, show, result } = start();
+    show({ waitingId: 't1', playingId: 't1' });
+    show({ waitingId: null, playingId: 't1' });
+    // The script played: the take was stopped (its `stops` count rose) and shows nothing playing.
+    show({ waitingId: null, playingId: null, stops: 1 });
+    expect(result.current.running).toBeNull();
+    expect(onPlay).toHaveBeenCalledTimes(1);
+  });
+});

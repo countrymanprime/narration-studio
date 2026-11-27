@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ignoreKeyRepeat } from '../primitives/keyRepeat';
 import { linkFailureSentence } from '../chapterTracks/linkFailure';
 import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksLine } from '../engine/LiveTracksStatus';
@@ -219,7 +220,7 @@ export function ChapterTrackPanel({
                 <Button variant="secondary" onClick={player.skipBackward} disabled={!canPlay} aria-label="Skip back 30s">
                   <FontAwesomeIcon icon={faBackward} /> 30s
                 </Button>
-                <Button onClick={player.togglePlay} disabled={!canPlay} aria-label={player.isPlaying ? 'Pause' : 'Play'}>
+                <Button onClick={player.togglePlay} onKeyDown={ignoreKeyRepeat} disabled={!canPlay} aria-label={player.isPlaying ? 'Pause' : 'Play'}>
                   <FontAwesomeIcon icon={player.isPlaying ? faPause : faPlay} />
                 </Button>
                 <Button variant="secondary" onClick={player.skipForward} disabled={!canPlay} aria-label="Skip forward 30s">
