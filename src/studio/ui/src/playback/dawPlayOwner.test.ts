@@ -44,7 +44,7 @@ describe('dawPlayOwner.stopOrOrphan', () => {
   });
   it('drops an orphaned play when the newer press settles in the DAW (its play replaced the old one)', () => {
     const { b, stop } = olderAnswerWhileNewerOwns();
-    dawPlayOwner.settle(b);
+    dawPlayOwner.settle(b, vi.fn());
     dawPlayOwner.release(b);
     expect(stop).not.toHaveBeenCalled();
   });
@@ -76,5 +76,51 @@ describe('createPlayOwner', () => {
     const late = vi.fn();
     other.stopOrOrphan(other.begin(), late);
     expect(late).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('dawPlayOwner: a newer press that is refused stops the older settled play (#4127)', () => {
+  it('runs the older press stop when the newer press releases the DAW without playing in it', () => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
+    const b = dawPlayOwner.begin();
+    dawPlayOwner.claim(b);
+    expect(stop).not.toHaveBeenCalled();
+    dawPlayOwner.release(b);
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    ['the press itself releases', (a: number) => dawPlayOwner.release(a)],
+    ['the narrator stops (no token)', () => dawPlayOwner.release()],
+  ])('does not run it when %s', (_name, end) => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
+    end(a);
+    expect(stop).not.toHaveBeenCalled();
+  });
+  it('does not run it when the newer press settles in the DAW', () => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
+    const b = dawPlayOwner.begin();
+    dawPlayOwner.claim(b);
+    dawPlayOwner.settle(b, vi.fn());
+    dawPlayOwner.release(b);
+    expect(stop).not.toHaveBeenCalled();
+  });
+  it('runs it when a late answer of the newest press is stopped (stopOrOrphan)', () => {
+    const a = dawPlayOwner.begin();
+    dawPlayOwner.claim(a);
+    const stop = vi.fn();
+    dawPlayOwner.settle(a, stop);
+    const b = dawPlayOwner.begin();
+    dawPlayOwner.claim(b);
+    dawPlayOwner.stopOrOrphan(b, vi.fn());
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 });

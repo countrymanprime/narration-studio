@@ -168,7 +168,7 @@ export function HearIt({
               return { played: true };
             }
             looped.current = true;
-            dawPlayOwner.settle(token);
+            dawPlayOwner.settle(token, () => dropLoop.current());
             setPlaying('daw');
             return { played: true };
           }
