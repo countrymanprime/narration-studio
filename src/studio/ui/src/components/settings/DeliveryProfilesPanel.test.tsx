@@ -212,3 +212,25 @@ describe('the delivery profile editor over a save that never answers', () => {
     expect(screen.getByText('Tighter peak')).toBeTruthy();
   });
 });
+
+describe('the Duplicate toast of a delivery profile (#4129)', () => {
+  // The profile's Name field is a plain input, drawn left to right: "<Arabic> copy" with the Arabic run first and "copy" to its right. A first-strong isolate in the toast would put "copy" on the other side.
+  it('names the copy left to right, as the Name field draws it', async () => {
+    const api = createMockApi({}, { deliveryProfile: 'custom' });
+    const notify = vi.fn();
+    const arabic = 'افتتاحية الكتاب';
+    const real = api.deliveryDuplicateProfile.bind(api);
+    vi.spyOn(api, 'deliveryDuplicateProfile').mockImplementation(async (id, version) => ({ ...(await real(id, version)), name: `${arabic} copy` }));
+    render(
+      <ApiProvider api={api}>
+        <UnsavedDraftsProvider>
+          <TooltipProvider>
+            <Harness notify={notify} />
+          </TooltipProvider>
+        </UnsavedDraftsProvider>
+      </ApiProvider>,
+    );
+    fireEvent.click((await screen.findAllByRole('button', { name: /^Duplicate / }))[0]!);
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Duplicated as "⁦${arabic} copy⁩".`));
+  });
+});

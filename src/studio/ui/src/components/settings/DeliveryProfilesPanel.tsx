@@ -129,7 +129,8 @@ export function useDeliveryProfiles(notify: Notify) {
     run(async () => {
       const copy = await api.deliveryDuplicateProfile(profile.id, profile.builtIn ? profile.version : '');
       setState(await api.deliveryProfiles());
-      notify(`Duplicated as "${isolatedIfRtl(copy.name)}".`);
+      // The profile name field is a plain input (left to right), so the toast draws the name the same way (#4129).
+      notify(`Duplicated as "${isolatedIfRtl(copy.name, 'ltr')}".`);
       if (edit) {
         setEditError(undefined);
         setEditing(copy);

@@ -48,11 +48,17 @@ export const stripBidi = (text: string): string => text.replace(BIDI_CONTROLS, '
 const LETTER = /\p{L}/u;
 const isRtlLetter = (ch: string): boolean => RTL_BLOCK.test(ch) && LETTER.test(ch);
 /**
- * A right-to-left character that is not a letter but is strong all the same (bidi class R or AL): the Arabic semicolon, question mark, five-pointed star and full stop (U+061B, U+061F, U+066D, U+06D4), the
- * Hebrew geresh, gershayim, maqaf and sof pasuq (U+05F3, U+05F4, U+05BE, U+05C3). A name made of these has no letter, and with none of them isolated a count after it is drawn before it. The comma (U+060C), the digits and the
- * marks of those blocks are weak: they take the direction round them, so a name that holds only those stays bare.
+ * A right-to-left character that is not a letter but is strong all the same (bidi class R or AL): the Arabic and Hebrew punctuation (U+05BE, U+05C0, U+05C3, U+05C6, U+05F3, U+05F4, U+061B to U+061F), the rial and
+ * Afghani signs, Syriac and Samaritan punctuation, N'Ko digits, and the same kinds in Adlam, Hanifi Rohingya and the other right-to-left scripts. A name made of these has no letter, and with none of them isolated a count
+ * after it is drawn before it. The comma (U+060C), the digits (Arabic-Indic, extended, U+066B and U+066C), the percent sign U+066A, the marks (class NSM) and the zero-width non-joiner are weak or neutral: they take the
+ * direction round them, so a name that holds only those stays bare.
+ *
+ * Generated, not hand-picked: every assigned code point of Unicode 15.0 (Python 3.12 `unicodedata`) whose bidi class is R or AL and whose category is not a letter (L*), less the bidi controls this module strips
+ * (U+061C, U+200E, U+200F, U+202A to U+202E, U+2066 to U+2069); merged into ranges. JavaScript has no Bidi_Class property escape, so the table is written out; a later Unicode version adds code points, which a
+ * name made only of them would miss until the table is generated again (the test holds one character of each class, so a wrong table fails).
  */
-const RTL_STRONG_NOT_LETTER = /[\u061B\u061F\u066D\u06D4\u05F3\u05F4\u05BE\u05C3]/;
+const RTL_STRONG_NOT_LETTER =
+  /[\u05BE\u05C0\u05C3\u05C6\u05F3-\u05F4\u0608\u060B\u060D\u061B\u061D-\u061F\u066D\u06D4\u06FD-\u06FE\u0700-\u070D\u070F\u07C0-\u07C9\u07FE-\u07FF\u0830-\u083E\u085E\u0888\uFBB2-\uFBC2\uFDFC\u{10857}-\u{1085F}\u{10877}-\u{1087F}\u{108A7}-\u{108AF}\u{108FB}-\u{108FF}\u{10916}-\u{1091B}\u{1093F}\u{109BC}-\u{109BD}\u{109C0}-\u{109CF}\u{109D2}-\u{109FF}\u{10A40}-\u{10A48}\u{10A50}-\u{10A58}\u{10A7D}-\u{10A7F}\u{10A9D}-\u{10A9F}\u{10AC8}\u{10AEB}-\u{10AF6}\u{10B58}-\u{10B5F}\u{10B78}-\u{10B7F}\u{10B99}-\u{10B9C}\u{10BA9}-\u{10BAF}\u{10CFA}-\u{10CFF}\u{10EAD}\u{10F1D}-\u{10F26}\u{10F51}-\u{10F59}\u{10F86}-\u{10F89}\u{10FC5}-\u{10FCB}\u{1E8C7}-\u{1E8CF}\u{1E950}-\u{1E959}\u{1E95E}-\u{1E95F}\u{1EC71}-\u{1ECB4}\u{1ED01}-\u{1ED3D}]/u;
 const isStrongRtl = (ch: string): boolean => isRtlLetter(ch) || RTL_STRONG_NOT_LETTER.test(ch);
 const isLatinLetter = (ch: string): boolean => /[A-Za-z]/.test(ch);
 
@@ -74,18 +80,38 @@ const plainName = (name: string): string => stripBidi(name).replace(LINE_BREAKS,
 export const bidiIsolated = (name: string, direction: 'auto' | 'ltr' = 'auto'): string => `${direction === 'ltr' ? LRI : FSI}${plainName(name)}${PDI}`;
 
 /**
- * A name for a toast sentence: isolated when it holds a strong right-to-left character (a letter, or one of the non-letters that are strong, see `RTL_STRONG_NOT_LETTER`), otherwise left as it is (an English name in an English sentence needs no isolate, and the two invisible
+ * A name for a toast sentence: isolated when it holds a strong right-to-left character (a letter, or a non-letter of class R or AL, see `RTL_STRONG_NOT_LETTER`), otherwise left as it is (an English name in an English sentence needs no isolate, and the two invisible
  * characters would be in every copy, search and character count of the sentence). Controls of its own are removed either way. A path is isolated `ltr`: the sentence round it stays intact, though folders inside the path can still be drawn in reverse.
  */
 export const isolatedIfRtl = (name: string, direction: 'auto' | 'ltr' = 'auto'): string =>
-  Array.from(name).some(isStrongRtl) ? bidiIsolated(name, direction) : plainName(name);
+  Array.from(plainName(name)).some(isStrongRtl) ? bidiIsolated(name, direction) : plainName(name);
 
 /**
  * A sentence the host worded that names someone ("Replaced 2 words with Sara's audio in REAPER."): the name in it isolated the way `isolatedIfRtl` would, so a right-to-left name keeps its own run and the
- * words after it stay where they were written. The sentence is left as it is when it does not hold the name (the host worded it another way) or the name is empty.
+ * words after it stay where they were written. The sentence is left as it is when it does not hold the name (the host worded it another way), when the name is empty, or where the name is part of a longer word or already
+ * directly inside an isolate.
  */
-export const isolateNameIn = (sentence: string, name: string): string =>
-  name.trim() !== '' && sentence.includes(name) ? sentence.split(name).join(isolatedIfRtl(name)) : sentence;
+export const isolateNameIn = (sentence: string, name: string): string => {
+  // The host trims the name it words into a sentence (Go `strings.TrimSpace`), so the name is looked for as it is stored, then trimmed.
+  for (const candidate of [name, name.trim()]) {
+    if (candidate === '') continue;
+    const isolated = isolatedIfRtl(candidate);
+    let out = '';
+    let from = 0;
+    for (let at = sentence.indexOf(candidate); at !== -1; at = sentence.indexOf(candidate, at + candidate.length)) {
+      const end = at + candidate.length;
+      const before = Array.from(sentence.slice(Math.max(0, at - 2), at)).at(-1) ?? '';
+      const after = Array.from(sentence.slice(end, end + 2))[0] ?? '';
+      // A match inside a word is not the name (a one-letter name inside a longer Arabic word would split its joining letters), and one that is already isolated is left alone (the host may isolate it one day, #4126).
+      if (LETTER.test(before) || LETTER.test(after)) continue;
+      if ((before === FSI || before === LRI || before === RLI) && after === PDI) continue;
+      out += sentence.slice(from, at) + isolated;
+      from = end;
+    }
+    if (from > 0) return out + sentence.slice(from);
+  }
+  return sentence;
+};
 
 /**
  * The direction a message is laid out in: left to right when the app's own words in it (not what is inside an isolate, at any depth) have at least as many Latin letters as right-to-left ones, so a

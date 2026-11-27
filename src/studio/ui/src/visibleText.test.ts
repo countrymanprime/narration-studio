@@ -101,6 +101,12 @@ describe('a name inside a sentence (#4113)', () => {
     ['a vowel mark on a Latin letter', 'A\u064B'],
     // The Arabic comma is weak (it takes the direction round it). The Arabic full stop U+06D4 is strong, so it moved out of this list in #4129 (see the next test).
     ['an Arabic comma', '\u060C'],
+    // The other weak or neutral characters of the right-to-left blocks: extended digits (EN), the percent sign (ET), the decimal and thousands separators (AN), a mark (NSM), the zero-width non-joiner (BN).
+    ['extended Arabic-Indic digits', '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9'],
+    ['the Arabic percent sign', '\u066A'],
+    ['the Arabic decimal and thousands separators', '\u066B\u066C'],
+    ['a vowel mark alone', '\u064B'],
+    ['a zero-width non-joiner', '\u200C'],
     ['a Latin name with an Arabic comma', 'Take 1\u060C 2'],
   ])('does not isolate a name that holds only %s', (_label, name) => {
     expect(isolatedIfRtl(name)).toBe(name);
@@ -116,6 +122,16 @@ describe('a name inside a sentence (#4113)', () => {
     ['the Hebrew gershayim U+05F4', '\u05F4'],
     ['the Hebrew maqaf U+05BE', '\u05BE'],
     ['the Hebrew sof pasuq U+05C3', '\u05C3'],
+    // The rest of the strong right-to-left non-letters, one of each kind (the table in visibleText.ts is generated from Unicode 15.0, not picked by hand).
+    ['the Hebrew punctuation paseq U+05C0', '\u05C0'],
+    ['the Arabic-Indic cube root sign U+0608', '\u0608'],
+    ['the Afghani sign U+060B', '\u060B'],
+    ['the Arabic end of text mark U+061D', '\u061D'],
+    ['the Syriac end of paragraph U+0700', '\u0700'],
+    ['the N\u2019Ko digit zero U+07C0', '\u07C0'],
+    ['the Samaritan punctuation U+0830', '\u0830'],
+    ['the Arabic ligature rial sign U+FDFC', '\uFDFC'],
+    ['an Adlam digit U+1E950 (outside the basic plane)', '\u{1E950}'],
   ])('isolates a name made of %s, though it holds no letter', (_label, name) => {
     expect(isolatedIfRtl(name)).toBe(`${FSI}${name}${PDI}`);
     expect(isolatedIfRtl(`${name}${name}`, 'ltr')).toBe(`${LRI}${name}${name}${PDI}`);
@@ -134,6 +150,37 @@ describe('a name inside a sentence (#4113)', () => {
     expect(isolateNameIn('Done.', name)).toBe('Done.');
     expect(isolateNameIn('Done.', '  ')).toBe('Done.');
     expect(isolateNameIn('Done.', '')).toBe('Done.');
+  });
+
+  it('isolateNameIn looks the name up as stored, then trimmed (the host trims it into the sentence)', () => {
+    const name = 'سارة';
+    expect(isolateNameIn(`Replaced 2 words with ${name}'s audio.`, ` ${name} `)).toBe(`Replaced 2 words with ${FSI}${name}${PDI}'s audio.`);
+  });
+
+  it('isolateNameIn leaves a name alone inside a longer word, so its joining letters are not split, and still isolates a whole-word match', () => {
+    const letter = 'ب';
+    const word = 'بيت';
+    expect(isolateNameIn(`In chapter ${word}, with ${letter}.`, letter)).toBe(`In chapter ${word}, with ${FSI}${letter}${PDI}.`);
+    expect(isolateNameIn('Sara and Sarah', 'Sara')).toBe('Sara and Sarah');
+    expect(isolateNameIn("Replaced 2 words with Sara's audio in REAPER.", 'Sara')).toBe("Replaced 2 words with Sara's audio in REAPER.");
+  });
+
+  it('isolateNameIn is idempotent: a name the sentence already isolates is not isolated again', () => {
+    const name = 'سارة';
+    const once = `Replaced 2 words with ${FSI}${name}${PDI}'s audio.`;
+    expect(isolateNameIn(once, name)).toBe(once);
+    const twice = isolateNameIn(`Replaced 2 words with ${name}'s audio.`, name);
+    expect(isolateNameIn(twice, name)).toBe(twice);
+    expect(isolateNameIn(`${LRI}${name}${PDI} and ${name}.`, name)).toBe(`${LRI}${name}${PDI} and ${FSI}${name}${PDI}.`);
+  });
+
+  // The break set is exact: U+001B (escape) is not a separator and U+0009 (tab, also a bidi segment separator) is not handled here, so each stays as it is.
+  it.each([
+    ['U+001B', '\u001B'],
+    ['U+0009', '\u0009'],
+  ])('a %s inside a name is left as it is', (_label, character) => {
+    const name = `واحد${character}اثنان`;
+    expect(isolatedIfRtl(name)).toBe(`${FSI}${name}${PDI}`);
   });
 
   it.each([

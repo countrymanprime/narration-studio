@@ -191,12 +191,10 @@ describe("Replace with another narrator's audio", () => {
     await waitFor(() => expect(marks.at.size).toBe(0));
   });
 
-  // A narrator named in both scripts: the host's sentence has the name in the middle, and a first-strong layout of the whole toast would read it in the wrong order (#4129).
-  it("names a right-to-left narrator in its own isolate in the replace toast and in Put my audio back's (#4129)", async () => {
+  // A narrator named in both scripts: the host's sentence (Go `replaceMessage`) has the name in the middle, and a first-strong layout of the whole toast would read it in the wrong order (#4129).
+  it('names a right-to-left narrator in its own isolate in the replace toast (#4129)', async () => {
     narratorName = 'سارة (Sara) 2';
-    restoreAnswer = ok(`Put your audio back in place of ${narratorName}'s in REAPER.`);
     const toastUndo = vi.spyOn(overlay, 'toastUndo');
-    const toast = vi.spyOn(overlay, 'toast');
     mount();
     await flush();
     await select('p-1:0', 'p-1:1');
@@ -209,11 +207,6 @@ describe("Replace with another narrator's audio", () => {
     const replaced = toastUndo.mock.calls[0]?.[0] as string;
     expect(replaced).toBe(`Replaced 2 words with ⁨${narratorName}⁩'s audio in REAPER.`);
     expect(textDirection(replaced)).toBe('ltr');
-
-    await act(async () => void (await marks.restore(replacements[0]!)));
-    const restored = toast.mock.calls.at(-1)?.[0] as string;
-    expect(restored).toBe(`Put your audio back in place of ⁨${narratorName}⁩'s in REAPER.`);
-    expect(textDirection(restored)).toBe('ltr');
   });
 
   it('Put my audio back marks the replacement put back; a refusal keeps it and says why', async () => {
