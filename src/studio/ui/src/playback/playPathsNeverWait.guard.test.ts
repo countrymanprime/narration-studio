@@ -73,4 +73,15 @@ describe('no-play-path-waits-on-a-readiness-check', () => {
   it.each(['components/primitives/IconButton.tsx'])('%s ignores a repeated Enter or Space keydown', (file) => {
     expect(all.find((s) => s.file === file)!.text).toMatch(/\bignoreKeyRepeat\(event\)/);
   });
+  // A `Button` that starts or toggles a play passes the shared repeat guard (a `Button` in a dialog keeps `holdEnter`'s own rule).
+  it.each([
+    'components/proof/NativeTakesPanel.tsx',
+    'components/editing/flags/FlagCard.tsx',
+    'components/editing/cleanup/CleanupInspector.tsx',
+    'components/production/ChapterTrackPanel.tsx',
+    'components/proof/checkcard/CheckCard.tsx',
+    'components/editing/strip/TimelineStrip.tsx',
+  ])('%s passes ignoreKeyRepeat to the buttons that play', (file) => {
+    expect(all.find((s) => s.file === file)!.text).toMatch(/onKeyDown=\{ignoreKeyRepeat\}/);
+  });
 });

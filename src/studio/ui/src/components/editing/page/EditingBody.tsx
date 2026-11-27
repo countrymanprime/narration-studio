@@ -705,6 +705,7 @@ export function EditingBody(props: EditingBodyProps) {
                 keptId={keep.kept[pid] ?? null}
                 playingId={audition.playingId}
                 waitingId={audition.waitingId}
+                stops={audition.stops}
                 hiddenIds={hide.hiddenIds(pid)}
                 firstReadId={stackBase(pid)}
                 sourceLabel={sourceLabel}

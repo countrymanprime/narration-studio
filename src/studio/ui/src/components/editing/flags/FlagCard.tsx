@@ -1,4 +1,5 @@
 import { useEffect, type KeyboardEvent, type ReactNode } from 'react';
+import { ignoreKeyRepeat } from '../../primitives/keyRepeat';
 import { clock } from '../../../clock';
 import { overlay } from '../../../overlay/overlayService';
 import { Button } from '../../primitives/Button';
@@ -174,7 +175,7 @@ export function FlagCard({ doc, chapterId, dp, flag, score = { conf: null, reaso
             <Button size="sm" {...gated(stack)}>
               Stack as 2 takes
             </Button>
-            <Button size="sm" variant="secondary" disabled={!!bothReason} title={bothReason} onClick={hearBoth}>
+            <Button size="sm" variant="secondary" disabled={!!bothReason} title={bothReason} onClick={hearBoth} onKeyDown={ignoreKeyRepeat}>
               <Icon name="play" /> Hear both reads
             </Button>
             <Button size="sm" variant="secondary" onClick={close}>
@@ -187,7 +188,7 @@ export function FlagCard({ doc, chapterId, dp, flag, score = { conf: null, reaso
         ) : (
           <>
             {it?.st !== 'miss' ? (
-              <Button size="sm" variant="secondary" disabled={!!hearReason} title={hearReason} onClick={hearIt}>
+              <Button size="sm" variant="secondary" disabled={!!hearReason} title={hearReason} onClick={hearIt} onKeyDown={ignoreKeyRepeat}>
                 <Icon name="play" /> {it?.st === 'extra' ? 'Hear it' : 'Hear the word'}
               </Button>
             ) : null}
