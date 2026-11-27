@@ -787,6 +787,68 @@ describe('a press leaves no hand-back behind once its region is gone, and leaves
     expect(document.activeElement).toBe(main);
   });
 
+  /** Focus on a toast's button with `origin` the control that had it before, without pressing it. */
+  const focusToast = (button: HTMLElement, origin: HTMLElement) => {
+    origin.focus();
+    fireEvent.focus(button, { relatedTarget: origin });
+    button.focus();
+  };
+
+  it('a focused toast removed without a press, its origin gone and a dialog open: focus stays out of <main> behind the dialog', () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    focusToast(screen.getByRole('button', { name: 'Undo' }), origin);
+    origin.remove();
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(document.body);
+    main.remove();
+    dialog.remove();
+  });
+
+  it("a focused toast removed without a press while a dialog is open: the next toast's Dismiss still takes focus", () => {
+    const origin = document.createElement('button');
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.append(origin, main, dialog);
+    const view = render(<ToastRegion messages={[withUndo(1), info(2)]} dismiss={vi.fn()} />);
+    focusToast(screen.getByRole('button', { name: 'Undo' }), origin);
+    origin.remove();
+    // The first toast goes with focus inside it; the toast that takes the slot has no Undo, only its Dismiss.
+    view.rerender(<ToastRegion messages={[info(2)]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss message' }));
+    main.remove();
+    dialog.remove();
+  });
+
+  it('a focused toast removed without a press, its origin inside an open dialog: focus goes back into the dialog', () => {
+    const main = document.createElement('main');
+    main.id = 'main-content';
+    main.tabIndex = -1;
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    const field = document.createElement('input');
+    dialog.append(field);
+    document.body.append(main, dialog);
+    const view = render(<ToastRegion messages={[withUndo(1)]} dismiss={vi.fn()} />);
+    focusToast(screen.getByRole('button', { name: 'Undo' }), field);
+    view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS * 2));
+    expect(document.activeElement).toBe(field);
+    main.remove();
+    dialog.remove();
+  });
+
   it('origin disabled: falls back to <main>, not <body>', () => {
     const origin = document.createElement('button');
     const main = document.createElement('main');
