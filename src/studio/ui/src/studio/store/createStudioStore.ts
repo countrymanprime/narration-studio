@@ -127,6 +127,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   // A keyed read that starts while the host's answer to an attach is not heard may come from a project the window has not heard of, and the text has no stamp:
   // `setProject` empties the keyed caches when one started (#4085). Declared here so the wrapped loaders below can set it.
   let confirmed = true;
+  // `reset()` was called and `setProject` has not answered, whether or not the store was ever told a project: what is read now has no known owner (#4085).
+  let unheard = false;
   let keyedUnsure = false;
   const caches = new Map<string, KeyedCache>(
     Object.entries(options.keyed ?? {}).map(([name, config]) => [
@@ -134,7 +136,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       createKeyedCache(name, {
         ...config,
         load: (key) => {
-          if (!confirmed) keyedUnsure = true;
+          if (!confirmed || unheard) keyedUnsure = true;
           return config.load(key);
         },
       }),
@@ -223,7 +225,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     const myEpoch = epoch;
     // A value read while the host's answer to an attach is not heard belongs to no known project: named readers read again for theirs.
     const owner = confirmed ? onProject : undefined;
-    const unconfirmedRead = !confirmed;
+    const unconfirmedRead = !confirmed || unheard;
     readSeq += 1;
     if (unconfirmedRead) unconfirmedReads.add(readSeq);
     const request = (requests.get(name) ?? 0) + 1;
@@ -245,6 +247,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       applied.set(name, request);
       const error = toError(e);
       setError(name, error);
+      // A failure read while unconfirmed may be the other project's: the news that the project is A empties it with the rest (#4085).
+      if (unconfirmedRead) unsure.add(name);
       onError(name, error);
       return error;
     }
@@ -314,6 +318,10 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     const start = () => {
       const before = epoch;
       const aheadBefore = aheadSeq;
+      // A read that starts while the store waits for the host's answer is dropped by the answer itself (`setProject` empties what it may have mixed up),
+      // however the attach goes: that drop is the attach's, not a store that keeps being emptied, so it does not use up a round (#4085). Each such drop
+      // needs an attach event, so the reads still end with the events.
+      const free = !confirmed;
       let release = () => {};
       const dropped = new Promise<void>((resolve) => releases.add((release = resolve)));
       // A host that never answers gives way after a while (a skeleton with no way out is no state): the reader fails and its Retry reads again.
@@ -325,12 +333,13 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
           clearTimeout(timer);
         })
         .then(() => {
-          if ((epoch === before && aheadSeq === aheadBefore) || holds(name, norm(options.project)) || round >= 2) return;
+          if ((epoch === before && aheadSeq === aheadBefore) || holds(name, norm(options.project))) return;
           // Dropped by a reset and the store has since heard it is on another project (`reset()` and `setProject(other)` in the same turn): the gate's waiter
           // would register after the wake and wait the stuck age for an answer that came already, so the reader is told now (#4085).
           const named = norm(options.project);
           if (named !== undefined && confirmed && ahead === undefined && onProject !== undefined && onProject !== named) throw new ProjectChangedError();
-          return readUntilKept(name, options, once, round + 1);
+          if (round >= 2 && !free) return;
+          return readUntilKept(name, options, once, free ? round : round + 1);
         });
     };
     // A reader that waits for nothing starts its read in the same turn, as every reader did before the gate.
@@ -455,6 +464,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       ahead = undefined;
       // The host attached a project and has not said which: readers that name theirs wait for `setProject`.
       if (onProject !== undefined) confirmed = false;
+      unheard = true;
       wake();
     },
     setProject(raw) {
@@ -462,6 +472,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       const changed = onProject !== undefined && onProject !== folder;
       onProject = folder;
       confirmed = true;
+      unheard = false;
       ahead = undefined;
       // What is held for a project other than `folder` is not served under it, whatever the store believed before: a list read from B and held while the
       // store was unconfirmed (or never told a project) stays only when the store turns out to be on B.

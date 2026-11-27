@@ -938,6 +938,117 @@ describe('the host says which project a list was read from (#4040)', () => {
     }
   });
 
+  // #4085 (qa-breaker): a drop that an attach causes must not use up the reader's rounds, or a reader resolves with the slot empty and the page shows an error.
+  it('an unnamed reader in flight across attach B, setProject(A) before the second attach, and that attach: served A, not resolved empty', async () => {
+    const { store, host, read } = await rig();
+    const gates: Array<ReturnType<typeof deferred<{ project: string; payload: { count: number } }>>> = [];
+    read.mockImplementation(() => {
+      const gate = deferred<{ project: string; payload: { count: number } }>();
+      const project = host.project;
+      gates.push(Object.assign(gate, { project }));
+      return gate.promise;
+    });
+    store.reset();
+    store.setProject('A');
+    const asked = store.ensure('a', { settled: true }); // in flight before the attach
+    await flush();
+    host.project = 'B';
+    store.reset(); // attach B
+    await flush();
+    host.project = 'A'; // the host went back, its event not yet delivered
+    store.setProject('A'); // the bootstrap answers A
+    await flush();
+    store.reset(); // the second system:attached
+    await flush();
+    store.setProject('A');
+    await flush();
+    // Every read answers with the project the host was on when it was asked.
+    for (let i = 0; i < 8; i += 1) {
+      gates.splice(0).forEach((g) => g.resolve({ project: (g as unknown as { project: string }).project, payload: { count: 1 } }));
+      await flush();
+    }
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    expect(store.projectOf('a')).toBe('A');
+  });
+
+  it('an unnamed reader across two same-folder attaches while its reads are slower than the bootstrap is served, not resolved empty', async () => {
+    const { store, read } = await rig();
+    const gates = [
+      deferred<{ project: string; payload: { count: number } }>(),
+      deferred<{ project: string; payload: { count: number } }>(),
+      deferred<{ project: string; payload: { count: number } }>(),
+    ];
+    let n = 0;
+    read.mockImplementation(() => (n < 3 ? gates[n++]!.promise : Promise.resolve({ project: 'A', payload: { count: 1 } })));
+    store.reset();
+    const asked = store.ensure('a', { settled: true });
+    for (let i = 0; i < 2; i += 1) {
+      store.reset();
+      await flush();
+      store.setProject('A');
+      await flush();
+    }
+    gates.forEach((g) => g.resolve({ project: 'A', payload: { count: 1 } }));
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+
+  it('setProject(A) five times in a row after a read started unconfirmed reads twice, not in a loop', async () => {
+    const { store, read } = await rig();
+    store.reset();
+    const asked = store.ensure('a');
+    for (let i = 0; i < 5; i += 1) {
+      store.setProject('A');
+      await flush();
+    }
+    await asked;
+    expect(read.mock.calls.length).toBeLessThanOrEqual(3); // the rig's first read, then at most two
+  });
+
+  it('a named reader dropped on its third round by reset+setProject(other) rejects with the project-changed error, not an empty answer', async () => {
+    const gates = [deferred<unknown>(), deferred<unknown>(), deferred<unknown>()];
+    let n = 0;
+    const { store } = make({ a: { schema: isCount, load: () => gates[n++]!.promise } });
+    store.setProject('A');
+    const asked = store.load('a', { project: 'A' });
+    const outcome = expect(asked).rejects.toThrow('The project changed');
+    for (const g of gates.slice(0, 2)) {
+      store.reset();
+      store.setProject('A');
+      g.resolve({ count: 1 });
+      await flush();
+    }
+    store.reset();
+    store.setProject('B');
+    gates[2]!.resolve({ count: 1 });
+    await outcome;
+  });
+
+  it('a slot read that fails while unconfirmed leaves no error after setProject(A)', async () => {
+    const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockRejectedValueOnce(new Error('B: no manuscript'));
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    await store.ensure('a');
+    store.reset();
+    await expect(store.ensure('a')).rejects.toThrow('no manuscript');
+    expect(store.getState().errors.a).toBeDefined();
+    store.setProject('A');
+    expect(store.getState().errors.a).toBeUndefined();
+  });
+
+  it('unstamped values read after a reset before any setProject are dropped by setProject(A)', async () => {
+    const host = { project: 'B' };
+    const load = vi.fn(async () => ({ count: host.project === 'A' ? 1 : 2 }));
+    const { store } = make({ a: { schema: isCount, load } });
+    store.reset();
+    await store.ensure('a');
+    expect(store.getState().slots.a).toEqual({ count: 2 });
+    host.project = 'A';
+    store.setProject('A');
+    expect(store.getState().slots.a).toBeUndefined();
+  });
+
   it('whatever the order of resets, answers and news, a held list belongs to the project the store is on', async () => {
     const projects = ['A', 'B', 'C'];
     let seed = 7;
@@ -948,12 +1059,26 @@ describe('the host says which project a list was read from (#4040)', () => {
     for (let run = 0; run < 40; run += 1) {
       const { host, read } = stamped('A');
       const { store } = make({ a: { schema: isCount, read } });
+      let unheard = false; // between a reset and the news the store's project is a belief, not a fact
       for (let step = 0; step < 12; step += 1) {
         const action = next(4);
-        if (action === 0) store.reset();
-        else if (action === 1) store.setProject(projects[next(3)]!);
-        else if (action === 2) host.project = projects[next(3)]!;
-        else void store.ensure('a').catch(() => undefined); // not awaited: a reader may wait for the news
+        if (action === 0) {
+          store.reset();
+          unheard = true;
+        } else if (action === 1) {
+          store.setProject(projects[next(3)]!);
+          unheard = false;
+        } else if (action === 2) host.project = projects[next(3)]!;
+        else {
+          // Not awaited: a reader may wait for the news. One that resolves finds a list held for the project the store is on (#4085).
+          void store.ensure('a').then(
+            () => {
+              expect(store.getState().slots.a).toBeDefined();
+              if (!unheard && store.project() !== undefined) expect(store.projectOf('a')).toBe(store.project());
+            },
+            () => undefined,
+          );
+        }
         await flush();
         // After the store hears of a project, nothing it holds is another project's.
         if (store.project() !== undefined && action === 1 && store.getState().slots.a !== undefined) expect(store.projectOf('a')).toBe(store.project());
