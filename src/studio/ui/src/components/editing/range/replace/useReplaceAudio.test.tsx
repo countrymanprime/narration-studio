@@ -11,6 +11,7 @@ import { overlay } from '../../../../overlay/overlayService';
 import { createMockDawClient, type DawClient } from '../../../../ports/daw';
 import { PortOverrides } from '../../../../ports/usePort';
 import { createJournal, type Journal } from '../../../../studio/journal/createJournal';
+import { textDirection } from '../../../../visibleText';
 import { SelectionBar } from '../../bar/SelectionBar';
 import type { ScriptPlayback } from '../../bar/useScriptPlayback';
 import { buildWordMenu } from '../../menu/wordMenuRegistry';
@@ -41,21 +42,23 @@ let undoCalls: Array<[string, number]>;
 let replacements: Replacement[];
 let restoreAnswer: DawResult;
 
-const narrators: Narrator[] = [
-  { id: 'n-1', name: 'Eric Leach', addedAt: '', files: [{ id: 'f-1', name: 'leach.wav', size: 1, length: 60, daw: 'REAPER', addedAt: '', state: 'ok' }] },
+// The other narrator's name: English by default, a right-to-left name in the test that checks the toast's direction (#4129).
+let narratorName = 'Eric Leach';
+const narratorList = (): Narrator[] => [
+  { id: 'n-1', name: narratorName, addedAt: '', files: [{ id: 'f-1', name: 'leach.wav', size: 1, length: 60, daw: 'REAPER', addedAt: '', state: 'ok' }] },
 ];
 
 function fakeApi(): ReplaceAudioApi {
   const list = () => ({ chapterId: 'chapter-1', replacements: replacements.map((r) => ({ ...r })) });
   return {
-    replaceNarrators: async () => ({ narrators }),
-    replaceNarratorAdd: async () => ({ narrators, changed: [] }),
-    replaceNarratorRemove: async () => ({ narrators, changed: [] }),
-    replaceAddFile: async () => ({ result: ok(''), fileId: '', narrators: { narrators } }),
+    replaceNarrators: async () => ({ narrators: narratorList() }),
+    replaceNarratorAdd: async () => ({ narrators: narratorList(), changed: [] }),
+    replaceNarratorRemove: async () => ({ narrators: narratorList(), changed: [] }),
+    replaceAddFile: async () => ({ result: ok(''), fileId: '', narrators: { narrators: narratorList() } }),
     replaceFilePeaks: async (fileId) => ({ fileId, length: 60, reason: 'no waveform' }),
     replacePlan: async (_c, first, last, _f, sourceStart, sourceEnd) => ({
       result: { ok: true, changed: false, message: '', undoSteps: 0 },
-      narrator: 'Eric Leach',
+      narrator: narratorName,
       words: last - first + 1,
       start: 0,
       end: 1,
@@ -78,7 +81,7 @@ function fakeApi(): ReplaceAudioApi {
         start: 0,
         end: 1,
         narratorId: 'n-1',
-        narratorName: 'Eric Leach',
+        narratorName,
         fileId,
         sourceStart,
         sourceEnd,
@@ -96,7 +99,7 @@ function fakeApi(): ReplaceAudioApi {
         stale: false,
       });
       return {
-        result: ok(`Replaced ${keys.length} words with Eric Leach's audio in REAPER.`),
+        result: ok(`Replaced ${keys.length} words with ${narratorName}'s audio in REAPER.`),
         replacementId: `r-${replacements.length}`,
         replacements: list(),
       };
@@ -146,6 +149,7 @@ beforeEach(() => {
   journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
   undoCalls = [];
   replacements = [];
+  narratorName = 'Eric Leach';
   restoreAnswer = ok("Put your audio back in place of Eric Leach's in REAPER.");
 });
 afterEach(() => {
@@ -185,6 +189,24 @@ describe("Replace with another narrator's audio", () => {
     expect(undoCalls).toEqual([['replace_range', 1]]);
     expect(replacements).toEqual([]);
     await waitFor(() => expect(marks.at.size).toBe(0));
+  });
+
+  // A narrator named in both scripts: the host's sentence (Go `replaceMessage`) has the name in the middle, and a first-strong layout of the whole toast would read it in the wrong order (#4129).
+  it('names a right-to-left narrator in its own left-to-right isolate in the replace toast (#4129)', async () => {
+    narratorName = '\u0633\u0627\u0631\u0629 (Sara) 2';
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    mount();
+    await flush();
+    await select('p-1:0', 'p-1:1');
+    await waitFor(() => expect((action("Replace with another narrator's audio") as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(action("Replace with another narrator's audio"));
+    const go = within(screen.getByRole('dialog')).getByRole<HTMLButtonElement>('button', { name: 'Replace 2 words' });
+    await waitFor(() => expect(go.disabled).toBe(false), { timeout: 2000 });
+    fireEvent.click(go);
+    await waitFor(() => expect(toastUndo).toHaveBeenCalled());
+    const replaced = toastUndo.mock.calls[0]?.[0] as string;
+    expect(replaced).toBe(`Replaced 2 words with \u2066${narratorName}\u2069's audio in REAPER.`);
+    expect(textDirection(replaced)).toBe('ltr');
   });
 
   it('Put my audio back marks the replacement put back; a refusal keeps it and says why', async () => {

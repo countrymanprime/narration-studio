@@ -697,6 +697,24 @@ describe('Delivery', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/^The Global default is now /)));
   });
 
+  // A profile named in Arabic and Latin: the toast draws it left to right, as the select's option and the list row do, so the Global default toast has the isolate the Duplicate, Saved and Deleted toasts have (#4129).
+  it('names a custom profile with an Arabic and Latin name left to right in the Global default toast', async () => {
+    const arabic = '\u0645\u0644\u0641 ACX \u0662 (September 2026)';
+    const api = createMockApi({}, { deliveryProfile: 'custom' });
+    const real = api.deliveryProfiles.bind(api);
+    vi.spyOn(api, 'deliveryProfiles').mockImplementation(async () => {
+      const state = await real();
+      return { ...state, profiles: state.profiles.map((profile) => (profile.builtIn ? profile : { ...profile, name: arabic })) };
+    });
+    const { notify } = await renderPage({ api, category: 'Delivery' });
+    const box = await within(row('delivery.default')).findByRole('combobox', { name: 'Default profile for new projects' });
+    const custom = within(box)
+      .getAllByRole('option')
+      .find((option) => option.textContent?.includes(arabic))!;
+    fireEvent.change(box, { target: { value: (custom as HTMLOptionElement).value } });
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/^The Global default is now \u2066[^\u2069]*\u2069\.$/)));
+  });
+
   it('lists the custom profiles and duplicates, edits and deletes one', async () => {
     const api = createMockApi({}, { deliveryProfile: 'custom' });
     const { notify } = await renderPage({ api, category: 'Delivery', advanced: true });
