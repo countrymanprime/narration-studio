@@ -1,7 +1,7 @@
 // A right-to-left chapter or track name in a toast sentence must not turn the sentence around (#4113): the name is isolated (U+2068 … U+2069) and the sentence reads left to right, so the words after it
 // and the full stop stay to its right; a message that is mostly right to left (an Arabic sentence that holds "REAPER") keeps its own direction. Drawn in the real toast, not read off an attribute.
 import { expect, test, type Page } from '@playwright/test';
-import { isolatedIfRtl } from '../../src/visibleText';
+import { isolateNameIn, isolatedIfRtl } from '../../src/visibleText';
 import { raiseToast } from './helpers/raiseToast';
 import { settlePage } from './helpers/settle';
 
@@ -75,6 +75,16 @@ test.describe('an English sentence that carries a right-to-left name reads left 
       expect(await leftOf(page, text, text.indexOf('3'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(two)));
     });
   }
+
+  // The Replace toast's name, isolated left to right like the replaced-stretch mark and the Name fields draw it: the "2" of "<Arabic> (Sara) 2" is drawn to the right of the Arabic, not to its left (#4129).
+  test('the Replace toast draws a mixed narrator name in the order the replaced-stretch mark draws it', async ({ page }) => {
+    const arabic = '\u0633\u0627\u0631\u0629';
+    const narrator = `${arabic} (Sara) 2`;
+    const text = isolateNameIn(`Replaced 2 words with ${narrator}'s audio in REAPER.`, narrator);
+    expect(text).toContain(`\u2066${narrator}\u2069`);
+    await show(page, text);
+    expect(await leftOf(page, text, text.lastIndexOf('2'))).toBeGreaterThan(await leftOf(page, text, text.indexOf(arabic)));
+  });
 
   // A name of right-to-left characters that are not letters (here the Arabic question mark) is isolated too: the count after it is drawn to its right (#4129).
   test('a name made only of a right-to-left non-letter has the count after it drawn to its right', async ({ page }) => {

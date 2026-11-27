@@ -137,41 +137,148 @@ describe('a name inside a sentence (#4113)', () => {
     expect(isolatedIfRtl(`${name}${name}`, 'ltr')).toBe(`${LRI}${name}${name}${PDI}`);
   });
 
+  // The strong right-to-left non-letters of Unicode 15.0 (bidi class R or AL, not a letter, less the bidi controls the module strips), plus the two Garay signs of 16.0, as data: a code point the table in
+  // visibleText.ts loses or gains, at either end of a range or inside it, fails the scan below (#4129).
+  const STRONG_NOT_LETTER: ReadonlyArray<readonly [number, number]> = [
+    [0x5be, 0x5be],
+    [0x5c0, 0x5c0],
+    [0x5c3, 0x5c3],
+    [0x5c6, 0x5c6],
+    [0x5f3, 0x5f4],
+    [0x608, 0x608],
+    [0x60b, 0x60b],
+    [0x60d, 0x60d],
+    [0x61b, 0x61b],
+    [0x61d, 0x61f],
+    [0x66d, 0x66d],
+    [0x6d4, 0x6d4],
+    [0x6fd, 0x6fe],
+    [0x700, 0x70d],
+    [0x70f, 0x70f],
+    [0x7c0, 0x7c9],
+    [0x7fe, 0x7ff],
+    [0x830, 0x83e],
+    [0x85e, 0x85e],
+    [0x888, 0x888],
+    [0xfbb2, 0xfbc2],
+    [0xfdfc, 0xfdfc],
+    [0x10857, 0x1085f],
+    [0x10877, 0x1087f],
+    [0x108a7, 0x108af],
+    [0x108fb, 0x108ff],
+    [0x10916, 0x1091b],
+    [0x1093f, 0x1093f],
+    [0x109bc, 0x109bd],
+    [0x109c0, 0x109cf],
+    [0x109d2, 0x109ff],
+    [0x10a40, 0x10a48],
+    [0x10a50, 0x10a58],
+    [0x10a7d, 0x10a7f],
+    [0x10a9d, 0x10a9f],
+    [0x10ac8, 0x10ac8],
+    [0x10aeb, 0x10af6],
+    [0x10b58, 0x10b5f],
+    [0x10b78, 0x10b7f],
+    [0x10b99, 0x10b9c],
+    [0x10ba9, 0x10baf],
+    [0x10cfa, 0x10cff],
+    [0x10d8e, 0x10d8f],
+    [0x10ead, 0x10ead],
+    [0x10f1d, 0x10f26],
+    [0x10f51, 0x10f59],
+    [0x10f86, 0x10f89],
+    [0x10fc5, 0x10fcb],
+    [0x1e8c7, 0x1e8cf],
+    [0x1e950, 0x1e959],
+    [0x1e95e, 0x1e95f],
+    [0x1ec71, 0x1ecb4],
+    [0x1ed01, 0x1ed3d],
+  ];
+
+  it('isolates exactly the strong right-to-left characters of the right-to-left blocks: every code point of every range, none just outside one', () => {
+    expect(STRONG_NOT_LETTER.reduce((sum, [first, last]) => sum + (last - first + 1), 0)).toBe(435);
+    const inTable = (cp: number) => STRONG_NOT_LETTER.some(([first, last]) => cp >= first && cp <= last);
+    const wrong: string[] = [];
+    // The blocks the module reads as right to left; a letter in them is isolated whatever the table says.
+    for (const [from, to] of [
+      [0x0590, 0x08ff],
+      [0xfb1d, 0xfdff],
+      [0xfe70, 0xfefc],
+      [0x10800, 0x10fff],
+      [0x1e800, 0x1efff],
+    ] as const) {
+      for (let cp = from; cp <= to; cp++) {
+        const ch = String.fromCodePoint(cp);
+        const expected = inTable(cp) || /\p{L}/u.test(ch);
+        if (isolatedIfRtl(ch).includes(FSI) !== expected) wrong.push(`U+${cp.toString(16).toUpperCase()} should be ${expected ? 'isolated' : 'bare'}`);
+      }
+    }
+    expect(wrong).toEqual([]);
+  });
+
   it('isolates a Latin name that holds one of them, and leaves one that holds only weak characters bare', () => {
     expect(isolatedIfRtl('Take\u061F')).toBe(`${FSI}Take\u061F${PDI}`);
     expect(isolatedIfRtl('Take \u0661\u0662\u0663')).toBe('Take \u0661\u0662\u0663');
   });
 
-  it('isolateNameIn isolates the name wherever a sentence holds it, and leaves a sentence without it as it is', () => {
-    const name = '\u0633\u0627\u0631\u0629 (Sara) 2';
-    expect(isolateNameIn(`Replaced 2 words with ${name}'s audio in REAPER.`, name)).toBe(`Replaced 2 words with ${FSI}${name}${PDI}'s audio in REAPER.`);
-    expect(isolateNameIn(`${name} and ${name}.`, name)).toBe(`${FSI}${name}${PDI} and ${FSI}${name}${PDI}.`);
-    expect(isolateNameIn('Replaced 2 words with Eric Leach\u2019s audio.', 'Eric Leach')).toBe('Replaced 2 words with Eric Leach\u2019s audio.');
-    expect(isolateNameIn('Done.', name)).toBe('Done.');
+  // A narrator named in both scripts, as the host words a sentence with the name in the middle.
+  const SARA = '\u0633\u0627\u0631\u0629 (Sara) 2';
+  const SARA_WORD = '\u0633\u0627\u0631\u0629';
+  const BA = '\u0628';
+  const BAYT = '\u0628\u064A\u062A';
+
+  it('isolateNameIn isolates the name left to right wherever a sentence holds it, and leaves a sentence without it as it is', () => {
+    expect(isolateNameIn(`Replaced 2 words with ${SARA}'s audio in REAPER.`, SARA)).toBe(`Replaced 2 words with ${LRI}${SARA}${PDI}'s audio in REAPER.`);
+    expect(isolateNameIn(`${SARA} and ${SARA}.`, SARA)).toBe(`${LRI}${SARA}${PDI} and ${LRI}${SARA}${PDI}.`);
+    expect(isolateNameIn('Replaced 2 words with Eric Leach’s audio.', 'Eric Leach')).toBe('Replaced 2 words with Eric Leach’s audio.');
+    expect(isolateNameIn('Done.', SARA)).toBe('Done.');
     expect(isolateNameIn('Done.', '  ')).toBe('Done.');
     expect(isolateNameIn('Done.', '')).toBe('Done.');
   });
 
-  it('isolateNameIn looks the name up as stored, then trimmed (the host trims it into the sentence)', () => {
-    const name = 'سارة';
-    expect(isolateNameIn(`Replaced 2 words with ${name}'s audio.`, ` ${name} `)).toBe(`Replaced 2 words with ${FSI}${name}${PDI}'s audio.`);
+  // The host trims the name it words into the sentence, so the trimmed name is looked for and the spaces round it stay outside the isolate.
+  it('isolateNameIn looks the trimmed name up, so the spaces of a stored name stay outside the isolate', () => {
+    expect(isolateNameIn(`Replaced 2 words with ${SARA_WORD}'s audio.`, ` ${SARA_WORD} `)).toBe(`Replaced 2 words with ${LRI}${SARA_WORD}${PDI}'s audio.`);
+    expect(isolateNameIn(`x ${BA} y`, ` ${BA} `)).toBe(`x ${LRI}${BA}${PDI} y`);
   });
 
   it('isolateNameIn leaves a name alone inside a longer word, so its joining letters are not split, and still isolates a whole-word match', () => {
-    const letter = 'ب';
-    const word = 'بيت';
-    expect(isolateNameIn(`In chapter ${word}, with ${letter}.`, letter)).toBe(`In chapter ${word}, with ${FSI}${letter}${PDI}.`);
+    expect(isolateNameIn(`In chapter ${BAYT}, with ${BA}.`, BA)).toBe(`In chapter ${BAYT}, with ${LRI}${BA}${PDI}.`);
+    // The name after a letter (the letter is the first half of the adjacency rule) and before one (the second half).
+    expect(isolateNameIn(`\u0627${BA}`, BA)).toBe(`\u0627${BA}`);
+    expect(isolateNameIn(`${BA}\u0627`, BA)).toBe(`${BA}\u0627`);
+    // A letter outside the basic plane before the name (two UTF-16 code units).
+    expect(isolateNameIn(`\u{10400}${SARA_WORD}`, SARA_WORD)).toBe(`\u{10400}${SARA_WORD}`);
+    // A right-to-left name inside a longer name of the same kind; the English narrator needs no isolate either way.
+    expect(isolateNameIn(`${SARA_WORD}\u0629 and ${SARA_WORD}`, SARA_WORD)).toBe(`${SARA_WORD}\u0629 and ${LRI}${SARA_WORD}${PDI}`);
     expect(isolateNameIn('Sara and Sarah', 'Sara')).toBe('Sara and Sarah');
     expect(isolateNameIn("Replaced 2 words with Sara's audio in REAPER.", 'Sara')).toBe("Replaced 2 words with Sara's audio in REAPER.");
   });
 
+  // A combining mark or a joiner next to the match is part of the same word: "in \u0628\u0651\u064A\u062A" must not split the shadda off its letter.
+  it.each([
+    ['a combining mark after the name', `${BA}\u0651\u064A\u062A`],
+    ['a combining mark before the name', `\u064B${BA}`],
+    ['a zero-width joiner after the name', `${BA}\u200D\u064A`],
+    ['a zero-width non-joiner before the name', `\u200C${BA}`],
+  ])('isolateNameIn leaves a name alone next to %s', (_label, text) => {
+    expect(isolateNameIn(`in ${text}`, BA)).toBe(`in ${text}`);
+  });
+
   it('isolateNameIn is idempotent: a name the sentence already isolates is not isolated again', () => {
-    const name = 'سارة';
-    const once = `Replaced 2 words with ${FSI}${name}${PDI}'s audio.`;
-    expect(isolateNameIn(once, name)).toBe(once);
-    const twice = isolateNameIn(`Replaced 2 words with ${name}'s audio.`, name);
-    expect(isolateNameIn(twice, name)).toBe(twice);
-    expect(isolateNameIn(`${LRI}${name}${PDI} and ${name}.`, name)).toBe(`${LRI}${name}${PDI} and ${FSI}${name}${PDI}.`);
+    const once = `Replaced 2 words with ${FSI}${SARA_WORD}${PDI}'s audio.`;
+    expect(isolateNameIn(once, SARA_WORD)).toBe(once);
+    const twice = isolateNameIn(`Replaced 2 words with ${SARA_WORD}'s audio.`, SARA_WORD);
+    expect(isolateNameIn(twice, SARA_WORD)).toBe(twice);
+    expect(isolateNameIn(`${LRI}${SARA_WORD}${PDI} and ${SARA_WORD}.`, SARA_WORD)).toBe(`${LRI}${SARA_WORD}${PDI} and ${LRI}${SARA_WORD}${PDI}.`);
+  });
+
+  // The overlay removes a right-to-left isolate with its close, so a name inside one is bare once it gets there: it is isolated again, and the pair that stays is the new one.
+  it('isolateNameIn does not take a name inside a right-to-left isolate for isolated: after the overlay it still holds a pair', () => {
+    const sentence = `with ${RLI}${SARA_WORD}${PDI}'s audio`;
+    const isolated = isolateNameIn(sentence, SARA_WORD);
+    expect(isolated).not.toBe(sentence);
+    expect(withBalancedIsolates(isolated)).toBe(`with ${LRI}${SARA_WORD}${PDI}'s audio`);
   });
 
   // The break set is exact: U+001B (escape) is not a separator and U+0009 (tab, also a bidi segment separator) is not handled here, so each stays as it is.
@@ -179,7 +286,7 @@ describe('a name inside a sentence (#4113)', () => {
     ['U+001B', '\u001B'],
     ['U+0009', '\u0009'],
   ])('a %s inside a name is left as it is', (_label, character) => {
-    const name = `واحد${character}اثنان`;
+    const name = `\u0648\u0627\u062D\u062F${character}\u0627\u062B\u0646\u0627\u0646`;
     expect(isolatedIfRtl(name)).toBe(`${FSI}${name}${PDI}`);
   });
 

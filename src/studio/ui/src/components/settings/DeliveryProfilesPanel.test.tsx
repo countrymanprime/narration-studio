@@ -218,7 +218,7 @@ describe('the Duplicate toast of a delivery profile (#4129)', () => {
   it('names the copy left to right, as the Name field draws it', async () => {
     const api = createMockApi({}, { deliveryProfile: 'custom' });
     const notify = vi.fn();
-    const arabic = 'افتتاحية الكتاب';
+    const arabic = '\u0627\u0641\u062A\u062A\u0627\u062D\u064A\u0629 \u0627\u0644\u0643\u062A\u0627\u0628';
     const real = api.deliveryDuplicateProfile.bind(api);
     vi.spyOn(api, 'deliveryDuplicateProfile').mockImplementation(async (id, version) => ({ ...(await real(id, version)), name: `${arabic} copy` }));
     render(
@@ -231,6 +231,30 @@ describe('the Duplicate toast of a delivery profile (#4129)', () => {
       </ApiProvider>,
     );
     fireEvent.click((await screen.findAllByRole('button', { name: /^Duplicate / }))[0]!);
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Duplicated as "⁦${arabic} copy⁩".`));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Duplicated as "\u2066${arabic} copy\u2069".`));
+  });
+
+  it('the Saved and Deleted toasts isolate a profile name ltr, as Duplicate does', async () => {
+    const api = createMockApi({}, { deliveryProfile: 'custom' });
+    const notify = vi.fn();
+    const arabic = '\u0645\u0644\u0641 ACX \u0662 (September 2026) copy';
+    render(
+      <ApiProvider api={api}>
+        <UnsavedDraftsProvider>
+          <TooltipProvider>
+            <Harness notify={notify} />
+          </TooltipProvider>
+        </UnsavedDraftsProvider>
+      </ApiProvider>,
+    );
+    fireEvent.click((await screen.findAllByRole('button', { name: /^Edit / }))[0]!);
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: arabic } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining(`Saved "\u2066${arabic}\u2069", revision `)));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.click(await screen.findByRole('button', { name: `Delete ${arabic}` }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete profile' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Deleted "\u2066${arabic}\u2069".`));
   });
 });

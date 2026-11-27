@@ -54,11 +54,12 @@ const isRtlLetter = (ch: string): boolean => RTL_BLOCK.test(ch) && LETTER.test(c
  * direction round them, so a name that holds only those stays bare.
  *
  * Generated, not hand-picked: every assigned code point of Unicode 15.0 (Python 3.12 `unicodedata`) whose bidi class is R or AL and whose category is not a letter (L*), less the bidi controls this module strips
- * (U+061C, U+200E, U+200F, U+202A to U+202E, U+2066 to U+2069); merged into ranges. JavaScript has no Bidi_Class property escape, so the table is written out; a later Unicode version adds code points, which a
- * name made only of them would miss until the table is generated again (the test holds one character of each class, so a wrong table fails).
+ * (U+061C, U+200E, U+200F, U+202A to U+202E, U+2066 to U+2069); merged into ranges, plus U+10D8E and U+10D8F (the Garay plus and minus signs, class R, added in Unicode 16.0, which Python's data does not have). JavaScript
+ * has no Bidi_Class property escape, so the table is written out; a character a later Unicode version adds (U+10EC9 and U+10ECA in 18.0) is missed by a name made only of it until the table is made again. The test holds the
+ * table as data and checks every code point of the right-to-left blocks against it, so a range that loses or gains a code point fails. `textDirection` does not count these: it counts the right-to-left letters, on purpose.
  */
 const RTL_STRONG_NOT_LETTER =
-  /[\u05BE\u05C0\u05C3\u05C6\u05F3-\u05F4\u0608\u060B\u060D\u061B\u061D-\u061F\u066D\u06D4\u06FD-\u06FE\u0700-\u070D\u070F\u07C0-\u07C9\u07FE-\u07FF\u0830-\u083E\u085E\u0888\uFBB2-\uFBC2\uFDFC\u{10857}-\u{1085F}\u{10877}-\u{1087F}\u{108A7}-\u{108AF}\u{108FB}-\u{108FF}\u{10916}-\u{1091B}\u{1093F}\u{109BC}-\u{109BD}\u{109C0}-\u{109CF}\u{109D2}-\u{109FF}\u{10A40}-\u{10A48}\u{10A50}-\u{10A58}\u{10A7D}-\u{10A7F}\u{10A9D}-\u{10A9F}\u{10AC8}\u{10AEB}-\u{10AF6}\u{10B58}-\u{10B5F}\u{10B78}-\u{10B7F}\u{10B99}-\u{10B9C}\u{10BA9}-\u{10BAF}\u{10CFA}-\u{10CFF}\u{10EAD}\u{10F1D}-\u{10F26}\u{10F51}-\u{10F59}\u{10F86}-\u{10F89}\u{10FC5}-\u{10FCB}\u{1E8C7}-\u{1E8CF}\u{1E950}-\u{1E959}\u{1E95E}-\u{1E95F}\u{1EC71}-\u{1ECB4}\u{1ED01}-\u{1ED3D}]/u;
+  /[\u05BE\u05C0\u05C3\u05C6\u05F3-\u05F4\u0608\u060B\u060D\u061B\u061D-\u061F\u066D\u06D4\u06FD-\u06FE\u0700-\u070D\u070F\u07C0-\u07C9\u07FE-\u07FF\u0830-\u083E\u085E\u0888\uFBB2-\uFBC2\uFDFC\u{10857}-\u{1085F}\u{10877}-\u{1087F}\u{108A7}-\u{108AF}\u{108FB}-\u{108FF}\u{10916}-\u{1091B}\u{1093F}\u{109BC}-\u{109BD}\u{109C0}-\u{109CF}\u{109D2}-\u{109FF}\u{10A40}-\u{10A48}\u{10A50}-\u{10A58}\u{10A7D}-\u{10A7F}\u{10A9D}-\u{10A9F}\u{10AC8}\u{10AEB}-\u{10AF6}\u{10B58}-\u{10B5F}\u{10B78}-\u{10B7F}\u{10B99}-\u{10B9C}\u{10BA9}-\u{10BAF}\u{10CFA}-\u{10CFF}\u{10D8E}-\u{10D8F}\u{10EAD}\u{10F1D}-\u{10F26}\u{10F51}-\u{10F59}\u{10F86}-\u{10F89}\u{10FC5}-\u{10FCB}\u{1E8C7}-\u{1E8CF}\u{1E950}-\u{1E959}\u{1E95E}-\u{1E95F}\u{1EC71}-\u{1ECB4}\u{1ED01}-\u{1ED3D}]/u;
 const isStrongRtl = (ch: string): boolean => isRtlLetter(ch) || RTL_STRONG_NOT_LETTER.test(ch);
 const isLatinLetter = (ch: string): boolean => /[A-Za-z]/.test(ch);
 
@@ -86,31 +87,34 @@ export const bidiIsolated = (name: string, direction: 'auto' | 'ltr' = 'auto'): 
 export const isolatedIfRtl = (name: string, direction: 'auto' | 'ltr' = 'auto'): string =>
   Array.from(plainName(name)).some(isStrongRtl) ? bidiIsolated(name, direction) : plainName(name);
 
+/** A character that joins the word it is in: a letter, a combining mark, the zero-width joiner and non-joiner. */
+const INSIDE_A_WORD = /[\p{L}\p{M}\u{200C}\u{200D}]/u;
+
 /**
- * A sentence the host worded that names someone ("Replaced 2 words with Sara's audio in REAPER."): the name in it isolated the way `isolatedIfRtl` would, so a right-to-left name keeps its own run and the
+ * A sentence the host worded that names someone ("Replaced 2 words with Sara's audio in REAPER."): the name in it isolated left to right the way `isolatedIfRtl(name, 'ltr')` does, so a right-to-left name keeps its own run and the
  * words after it stay where they were written. The sentence is left as it is when it does not hold the name (the host worded it another way), when the name is empty, or where the name is part of a longer word or already
  * directly inside an isolate.
  */
 export const isolateNameIn = (sentence: string, name: string): string => {
-  // The host trims the name it words into a sentence (Go `strings.TrimSpace`), so the name is looked for as it is stored, then trimmed.
-  for (const candidate of [name, name.trim()]) {
-    if (candidate === '') continue;
-    const isolated = isolatedIfRtl(candidate);
-    let out = '';
-    let from = 0;
-    for (let at = sentence.indexOf(candidate); at !== -1; at = sentence.indexOf(candidate, at + candidate.length)) {
-      const end = at + candidate.length;
-      const before = Array.from(sentence.slice(Math.max(0, at - 2), at)).at(-1) ?? '';
-      const after = Array.from(sentence.slice(end, end + 2))[0] ?? '';
-      // A match inside a word is not the name (a one-letter name inside a longer Arabic word would split its joining letters), and one that is already isolated is left alone (the host may isolate it one day, #4126).
-      if (LETTER.test(before) || LETTER.test(after)) continue;
-      if ((before === FSI || before === LRI || before === RLI) && after === PDI) continue;
-      out += sentence.slice(from, at) + isolated;
-      from = end;
-    }
-    if (from > 0) return out + sentence.slice(from);
+  // The host trims the name it words into a sentence (Go `strings.TrimSpace`; JavaScript's trim differs on U+0085 and U+FEFF), so the trimmed name is what the sentence holds.
+  const candidate = name.trim();
+  if (candidate === '') return sentence;
+  // Left to right, as the page draws a name written in plain text (the replaced-stretch mark, the Name fields): a first-strong isolate would draw an Arabic name followed by "(Sara) 2" with the 2 on its left.
+  const isolated = isolatedIfRtl(candidate, 'ltr');
+  let out = '';
+  let from = 0;
+  for (let at = sentence.indexOf(candidate); at !== -1; at = sentence.indexOf(candidate, at + candidate.length)) {
+    const end = at + candidate.length;
+    const before = Array.from(sentence.slice(Math.max(0, at - 2), at)).at(-1) ?? '';
+    const after = Array.from(sentence.slice(end, end + 2))[0] ?? '';
+    // A match next to a letter, a combining mark or a joiner is inside a longer word, not the name (a one-letter name inside an Arabic word would split its joining letters).
+    if (INSIDE_A_WORD.test(before) || INSIDE_A_WORD.test(after)) continue;
+    // Already directly inside an isolate that the overlay keeps (the host may isolate it one day, #4126). A right-to-left isolate does not count: the overlay removes it with its close, and the name would be bare.
+    if ((before === FSI || before === LRI) && after === PDI) continue;
+    out += sentence.slice(from, at) + isolated;
+    from = end;
   }
-  return sentence;
+  return from > 0 ? out + sentence.slice(from) : sentence;
 };
 
 /**

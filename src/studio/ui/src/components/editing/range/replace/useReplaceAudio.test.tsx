@@ -192,8 +192,8 @@ describe("Replace with another narrator's audio", () => {
   });
 
   // A narrator named in both scripts: the host's sentence (Go `replaceMessage`) has the name in the middle, and a first-strong layout of the whole toast would read it in the wrong order (#4129).
-  it('names a right-to-left narrator in its own isolate in the replace toast (#4129)', async () => {
-    narratorName = 'سارة (Sara) 2';
+  it('names a right-to-left narrator in its own left-to-right isolate in the replace toast (#4129)', async () => {
+    narratorName = '\u0633\u0627\u0631\u0629 (Sara) 2';
     const toastUndo = vi.spyOn(overlay, 'toastUndo');
     mount();
     await flush();
@@ -205,7 +205,7 @@ describe("Replace with another narrator's audio", () => {
     fireEvent.click(go);
     await waitFor(() => expect(toastUndo).toHaveBeenCalled());
     const replaced = toastUndo.mock.calls[0]?.[0] as string;
-    expect(replaced).toBe(`Replaced 2 words with ⁨${narratorName}⁩'s audio in REAPER.`);
+    expect(replaced).toBe(`Replaced 2 words with \u2066${narratorName}\u2069's audio in REAPER.`);
     expect(textDirection(replaced)).toBe('ltr');
   });
 

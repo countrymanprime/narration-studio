@@ -117,7 +117,7 @@ export function useDeliveryProfiles(notify: Notify) {
       const profile = state?.profiles.find((candidate) => optionValue(candidate) === value);
       if (!profile) return;
       setState(await api.deliverySelectProfile('global', profile.id, profile.builtIn ? profile.version : ''));
-      notify(`The Global default is now ${isolatedIfRtl(deliveryProfileTitle(profile))}.`);
+      notify(`The Global default is now ${isolatedIfRtl(deliveryProfileTitle(profile), 'ltr')}.`);
     });
   /** The project's own choice (the Delivery page's profile card saves it the same way). */
   const chooseProject = (profile: DeliveryProfile) =>
@@ -148,7 +148,7 @@ export function useDeliveryProfiles(notify: Notify) {
     setEditError(undefined);
     // The editor closes itself when nothing was typed since the save was sent, and stays open on what is there when something was (#3461 round 7 BR1).
     setEditing((current) => (current?.id === profile.id ? profile : current));
-    notify(`Saved "${isolatedIfRtl(profile.name)}", revision ${profile.revision}.`);
+    notify(`Saved "${isolatedIfRtl(profile.name, 'ltr')}", revision ${profile.revision}.`);
     // The row shows the profile as saved at once, so a read that fails cannot leave it at the old revision.
     setState((current) => current && { ...current, profiles: current.profiles.map((row) => (row.id === profile.id ? profile : row)) });
     // The other users of this hook read again first (this one too: its read is then overtaken by the read below, which is the one that says when it fails).
@@ -203,7 +203,7 @@ export function useDeliveryProfiles(notify: Notify) {
     run(async () => {
       setState(await api.deliveryDeleteProfile(profile.id));
       setDeleting(undefined);
-      notify(`Deleted "${isolatedIfRtl(profile.name)}".`);
+      notify(`Deleted "${isolatedIfRtl(profile.name, 'ltr')}".`);
     });
 
   return {

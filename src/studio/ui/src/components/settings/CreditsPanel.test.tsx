@@ -543,10 +543,10 @@ describe('CreditsPanel', () => {
     const { api, notify } = renderPanel();
     await editTemplate();
     const real = api.duplicateCreditsTemplate.bind(api);
-    const arabic = 'افتتاحية الكتاب';
+    const arabic = '\u0627\u0641\u062A\u062A\u0627\u062D\u064A\u0629 \u0627\u0644\u0643\u062A\u0627\u0628';
     vi.spyOn(api, 'duplicateCreditsTemplate').mockImplementation(async (id) => ({ ...(await real(id)), name: `${arabic} copy` }));
     fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Duplicated as "⁦${arabic} copy⁩".`));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(`Duplicated as "\u2066${arabic} copy\u2069".`));
   });
 
   it('a template list that fails to read says so with a Retry, in the notice and beside the hint, and the editor returns when a read lands (#3461 round 15 BR-K1)', async () => {
