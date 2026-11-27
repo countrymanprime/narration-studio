@@ -4,7 +4,7 @@
  * ends in the app. An answer that comes late, or for a note or list that was left, stops what it started (`stopOrOrphan`) only when no newer press has claimed
  * the DAW since; when one has, its stop is orphaned, which runs when the newer press releases the DAW without playing in it (the old play would
  * otherwise run on), and is dropped when the newer press settles (the DAW's one play is then the newer one). A press that settles hands over the stop of its play
- * (`settle(token, stop)`): a newer press that is refused, or ends in the app, runs it, so the older play does not sound beside the app. One owner is kept for the whole app for each kind of
+ * (`settle(token, stop)`): when a newer press then `release(token)`s the DAW without playing in it (the DAW refused it, or it ended in the app), the older play's stop runs, so it does not sound beside the app. A press the DAW is never asked about does not reach `release(token)`; the script stops the DAW itself for it (`useScriptPlayback`'s `notAsked`). The record is kept until a release: a play that ended with no release (a page left) is stopped again by the next refused press, which does no harm. One owner is kept for the whole app for each kind of
  * play (`createPlayOwner`), so the untokened `release()` of a Stop assumes one page plays at a time (Proof and Pickups are never on screen together).
  */
 

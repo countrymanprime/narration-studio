@@ -217,9 +217,10 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
       // A DAW that jumps to the end of its stretch and stops between two readings is heard stopping there: its play position is kept while stopped.
       if (range.current && owns.current && pos.playPosition > range.current.head) range.current.head = pos.playPosition;
       if (dawPlaying.current) {
-        dawPlaying.current = false;
-        // A play of the page is still being asked: this stop is the one the page sent before it, which that play follows.
+        // A play of the page is still being asked: a stop heard now may be the one the page sent before it, which that play follows. It is left unread, so the
+        // next reading (the answer's, or the heartbeat's) tells whether the DAW plays: a narrator's Stop heard here ends the play then, not never.
         if (owns.current && asking.current > 0) return;
+        dawPlaying.current = false;
         if (owns.current) {
           owns.current = false;
           // A stretch the DAW stopped itself at the end of is the end of the page's play, as the page's own stop at a time is; a DAW the narrator

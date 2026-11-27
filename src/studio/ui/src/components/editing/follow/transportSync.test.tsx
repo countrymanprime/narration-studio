@@ -583,6 +583,48 @@ describe('script-transport-races (#4127)', () => {
     expect(calls('stop')).toHaveLength(1);
     expect(state().playing).toBe(false);
   });
+  it('a narrator Stop in the DAW heard while a play is being answered ends that play once the answer comes (the DAW applied it at once)', async () => {
+    const api = createMockApi({}, { daw: {} });
+    const real = api.dawTransportSync.bind(api) as (...a: unknown[]) => Promise<never>;
+    let release: () => void = () => {};
+    const answered = new Promise<void>((resolve) => (release = resolve));
+    api.dawTransportSync = ((action: string, ...rest: unknown[]) => {
+      // The DAW plays at once; only its answer is held.
+      if (action === 'play' || action === 'playRange') return real(action, ...rest).then(async (result) => (await answered, result));
+      return real(action, ...rest);
+    }) as typeof api.dawTransportSync;
+    daw = window.__NARRATION_MOCK_DAW__ as DawMockControl;
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={DAW_SETUPS.reaper} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(300);
+    act(() => daw.moveInDaw({ playing: false }));
+    await wait(300);
+    release();
+    await wait(SILENT_MS + 2000);
+    expect(state().playing).toBe(false);
+  });
+  it('a play started in the DAW is ignored for 2 s after the page stopped a late answer, then followed', async () => {
+    const bridge = heldBridge();
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    act(() => playback.stop());
+    await bridge.release();
+    await wait(10);
+    act(() => daw.moveInDaw({ playing: true, head: at(t0('p-2:3')) }));
+    await wait(300);
+    expect(state().playT).toBeNull();
+    await wait(2000);
+    act(() => daw.moveInDaw({ playing: true, head: at(t0('p-2:3')) + 0.1 }));
+    await wait(300);
+    expect(state().playT).not.toBeNull();
+  });
   it('a play the DAW ended by itself leaves nothing for a later refused play to stop', async () => {
     await ready();
     act(() => playback.playFrom(t0('p-2:1'), t0('p-2:3')));

@@ -60,6 +60,8 @@ The rule, which replaces "a linked DAW is the only player" of #2251 item 32 by t
 - An engine that never declared the capability (Audacity today, the built-in recorder, no recording tool) is passed over without a notice: the app is its normal player. When Audacity builds `transport_sync` or `file_preview`, the same code drives it; nothing in the page names an engine.
 - Before the app plays in place of a DAW, the DAW's project state is read: while it records, nothing plays (`quietWhileRecording`).
 - A play the narrator stopped, or replaced, while the DAW was being asked is not handed on.
+- One sound at a time: a newer press that the DAW refuses, or that never asks it (the word has no place in the project, the DAW is not ready), stops the older play the DAW still plays for the page before the app plays, and a press nothing can play ends that play too (`dawPlayOwner.settle(token, stop)`, `useScriptPlayback`'s `notAsked`). That also stops a play the narrator started in REAPER.
+- While a play is being asked, the page does not read a DAW Stop as the narrator's: it may be the page's own earlier stop, which the play follows. The next reading tells (a Stop the narrator made in that moment ends the play then, and until it does the bar reads Play from the answer). For 2 seconds after a late answer is stopped, "playing" readings that no play of the page owns are not followed as a play the narrator started in REAPER (`STALE_PLAY_MS`).
 - An action that needs the DAW's own FX, routing or project state (`dawSpecific`) never falls back; nothing plays and the notice says it can only be done in the DAW. No play on this page is one; the rule is there for one that is.
 
 ## Loop safety and drift
@@ -87,6 +89,10 @@ Drift. While REAPER plays for the page, the app's audio is silent, so there is o
 | Built-in recorder, no tool, Audacity | The app plays the files itself, with no notice | `transportSync.test.tsx`, `providers.test.ts` |
 | Every provider readiness | The DAW ready, waiting, read failed, undeclared or unavailable; its play taken, refused or refused finally; the app ready or not; DAW-specific or not; recording or not: 120 cells | `providers.test.ts` |
 | The DAW stopped with its word still lit, then a word is clicked | The word is not a play, so the first cursor move is written to REAPER (`set_cursor`); while the DAW plays again it is not. REAPER holds a `set_cursor` sent at once after a stop, by hand or by `stop_play` | `transportSync.test.tsx`; `scenarios_playtrack.py` (real REAPER) |
+| Play, Stop, Play quickly while the DAW is slow | Each answer comes in order; the page's own earlier Stop reading does not end the newer play, and the older play's late answer is dropped when the newer one settles | `transportSync.test.tsx` (held in-order bridge) |
+| A newer press refused, or never asked | The DAW's older play is stopped before the app plays; a press nothing can play ends the older play | `transportSync.test.tsx`, `dawPlayOwner.test.ts` |
+| A play answered after the page gave it up or stopped it | The late play is stopped; its "playing" readings are not taken as the narrator's play for 2 s, so the bar reads Play | `transportSync.test.tsx` |
+| The narrator stops REAPER while a play is being answered | The stop is read with the next reading, which ends the play; not tested in a real REAPER (reading order unknown) | `transportSync.test.tsx` |
 | Rapid double-fire, leave mid-play | Cursor writes debounce; unmounting stops the lease and the DAW if the page played it | the first is tested; the second is not |
 | Lost, repeated or out-of-order events | A repeated cursor is `unchanged`; a late echo is a move; a lost event delays by one tick | `echoGuard.test.ts` |
 | Huge, negative, NaN times | Refused before anything is sent, in Go, in Lua and in the map | all three |
