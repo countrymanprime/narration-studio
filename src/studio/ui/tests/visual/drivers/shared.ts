@@ -335,15 +335,16 @@ export async function productionLoaded(page: Page): Promise<void> {
 
 // A chapter's row in the Production pipeline. A prefix match on the Chapter cell ("Chapter 1" and "Chapter 1 — Down the Rabbit-Hole"),
 // with a word boundary so "Chapter 1" never matches "Chapter 10".
-function boardRow(page: Page, chapter: string): Locator {
+// A string names an English chapter ("Chapter 4", ended by a `\b` word boundary); a RegExp is used as given, for a title that has no ASCII word boundary (an Arabic one).
+export function boardRow(page: Page, chapter: string | RegExp): Locator {
   return page
     .getByRole('table', { name: 'Chapter pipeline' })
     .getByRole('row')
-    .filter({ has: page.getByRole('cell', { name: new RegExp(`^${chapter}\\b`) }) });
+    .filter({ has: page.getByRole('cell', { name: typeof chapter === 'string' ? new RegExp(`^${chapter}\\b`) : chapter }) });
 }
 
 // Opens a pipeline row's menu (the mock's row menu, useChapterTools) and picks one of its items: a right click on the row's Chapter cell.
-async function rowMenu(page: Page, chapter: string, item: string): Promise<void> {
+export async function rowMenu(page: Page, chapter: string | RegExp, item: string): Promise<void> {
   await boardRow(page, chapter).getByRole('cell').first().click({ button: 'right' });
   await page.getByRole('menuitem', { name: item }).click();
 }
@@ -424,7 +425,7 @@ async function openStageSuggestions(page: Page, seed: 'mixed' | 'error') {
 }
 
 // A chapter's stage slide-over on the `mixed` seed. Returns the slide-over.
-export async function openStageEvidence(page: Page, chapter: string) {
+export async function openStageEvidence(page: Page, chapter: string | RegExp) {
   await openStageSuggestions(page, 'mixed');
   // The readiness chip on the chapter's current-stage cell opens the readiness slide-over (SN-P8; the old stage slide-over is gone).
   await boardRow(page, chapter)

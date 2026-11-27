@@ -8,20 +8,20 @@ import type { Page } from '@playwright/test';
 // English words round it. Written as escapes: no right-to-left character stands in this file.
 
 /** The chapters renamed, by the number the mock gives them: the title a toast names ("Chapter 4 moved to Editing.") is this one. */
-export const CHAPTER_TITLES: Readonly<Record<number, string>> = {
+export const CHAPTER_TITLES = {
   1: '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644 \u062C\u062D\u0631 \u0627\u0644\u0623\u0631\u0646\u0628 \u0627\u0644\u0639\u0645\u064A\u0642',
   2: '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u062B\u0627\u0646\u064A \u0628\u0631\u0643\u0629 \u0627\u0644\u062F\u0645\u0648\u0639 \u0627\u0644\u0643\u0628\u064A\u0631\u0629',
   4: '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0631\u0627\u0628\u0639 \u0627\u0644\u0623\u0631\u0646\u0628 \u064A\u0631\u0633\u0644 \u0628\u064A\u0644 \u0627\u0644\u0635\u063A\u064A\u0631',
-};
+} as const;
 
 /** Other names in the bundle, and what the sweep puts in their place. */
-export const ARABIC_NAMES: Readonly<Record<string, string>> = {
+export const ARABIC_NAMES = {
   'White Rabbit': '\u0627\u0644\u0623\u0631\u0646\u0628 \u0627\u0644\u0623\u0628\u064A\u0636 \u0627\u0644\u0645\u062A\u0623\u062E\u0631',
   'Cheshire Cat': '\u0642\u0637 \u062A\u0634\u064A\u0634\u0627\u064A\u0631 \u0627\u0644\u0645\u0628\u062A\u0633\u0645',
   'Chapter 1 Narration': '\u0631\u0627\u0648\u064A \u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644 \u0627\u0644\u0637\u0648\u064A\u0644',
   'Microphone Array (Realtek(R) Audio)':
     '\u0645\u064A\u0643\u0631\u0648\u0641\u0648\u0646 \u0627\u0644\u0645\u0643\u062A\u0628 \u0627\u0644\u0631\u0626\u064A\u0633\u064A (Realtek)',
-};
+} as const;
 
 /** A microphone the narrator chose that the recorder no longer lists (put in the page's storage, not in the bundle). */
 export const MISSING_MICROPHONE =
@@ -42,6 +42,8 @@ export function swapNames(source: string): { body: string; unmatched: string[] }
   };
   for (const [number, title] of Object.entries(CHAPTER_TITLES)) swap(`title:\`Chapter ${number}\``, `title:\`${title}\``);
   for (const [english, arabic] of Object.entries(ARABIC_NAMES)) swap(english, arabic);
+  // The REAPER mock's track for Chapter 1 (mockFixtures.ts) takes the chapter's own title, so the mock still pairs them by name; "Chapter 1" is the track a Chapter links toast quotes.
+  swap('name:`Chapter 1`', `name:\`${CHAPTER_TITLES[1]}\``);
   return { body, unmatched };
 }
 
@@ -61,3 +63,6 @@ export async function arabicNames(page: Page): Promise<void> {
     await route.fulfill({ response, body });
   });
 }
+
+/** A cell that starts with this title (the shared board drivers match an English "Chapter 4" with a `\b` that an Arabic title has none of). */
+export const startsWithTitle = (title: string): RegExp => new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);

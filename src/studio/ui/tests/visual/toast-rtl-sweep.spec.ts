@@ -1,13 +1,18 @@
-// The runtime sweep behind #4113 / #4129: every flow that raises a toast is driven on a build whose chapters, tracks, characters and microphones carry long Arabic names
-// (helpers/rtlNames.ts), a recorder on the toast region keeps every toast shown with its computed direction, and the sweep fails any toast that
-//   - is laid out right to left while the app's own words are mostly English (`textDirection(text)` is `ltr`): the toast did not take the rule, or
-//   - holds one of the Arabic names outside an isolate (U+2066 or U+2068 \u2026 U+2069): a builder forgot to isolate a name the narrator chose.
-// The source guard (src/isolatedNames.guard.test.ts) reads what is written; this reads what is drawn, so it also sees a sentence that reaches a toast through a value, an alias or the host.
-// A flow that has to show a toast is not allowed to show none (a driver that stops doing anything fails), and a gap that is known and written in KNOWN fails when it stops failing.
-// Mock only: no REAPER, no Go host; the host's own sentences are #4126.
+// A runtime sweep for #4113 / #4129: nine flows that raise a toast are driven on a build whose chapters, a REAPER track, characters and microphones carry long Arabic
+// names (helpers/rtlNames.ts). A recorder on the toast region keeps every toast shown with its computed direction, and the sweep fails a toast that
+//   - is laid out right to left while its own words (outside the names and the isolates) are English,
+//   - holds a right-to-left letter outside an isolate among those English words (a name, or a piece of one, a builder did not isolate), or
+//   - holds one of the Arabic names outside an isolate (U+2066 or U+2068 \u2026 U+2069).
+// The judge does not call the app's own `textDirection`, so a regression in that rule is seen, not agreed with (helpers/toastSweepCheck.ts).
+// The source guard (src/isolatedNames.guard.test.ts) reads what is written; this reads what is drawn.
+// A flow has to show the toast it is about (a driver that stops doing anything fails), and a gap that is known and written in KNOWN fails when it stops failing.
+// What it covers: Production (stage, remove and restore), Booth (link, create, microphone), the Story Bible (delete) and the Engine panel's Chapter links (create, check again): 9 flows in 5 areas.
+// What it does not: the other call sites of isolatedIfRtl and bidiIsolated (35 files outside tests), the sentences the host (Go) words (#4126), and the pages and flows listed in the PR.
+// Mock only: no REAPER, no Go host.
 import { expect, test, type Page } from '@playwright/test';
-import { clickVisible, confirmDialog, goToPage, openBooth, productionLoaded } from './drivers/shared';
-import { arabicNames, ARABIC_NAMES, ARABIC_VALUES, CHAPTER_TITLES, MISSING_MICROPHONE } from './helpers/rtlNames';
+import { QUIET_MS } from '../../src/quietWindow';
+import { clickVisible, confirmDialog, goToPage, openBooth, openEnginePanel, openStageEvidence, productionLoaded, rowMenu } from './drivers/shared';
+import { arabicNames, ARABIC_NAMES, ARABIC_VALUES, CHAPTER_TITLES, MISSING_MICROPHONE, startsWithTitle } from './helpers/rtlNames';
 import { settlePage } from './helpers/settle';
 import { problems, type Shown } from './helpers/toastSweepCheck';
 
@@ -30,26 +35,6 @@ async function recordToasts(page: Page): Promise<void> {
 
 const shown = (page: Page): Promise<Shown[]> => page.evaluate(() => (window as unknown as { __sweep: Shown[] }).__sweep.slice());
 
-/** A chapter's row in the Production pipeline, found by its title (the shared drivers match "Chapter 4" with an ASCII word boundary, which an Arabic title has none of). */
-const boardRow = (page: Page, title: string) =>
-  page
-    .getByRole('table', { name: 'Chapter pipeline' })
-    .getByRole('row')
-    .filter({ has: page.getByRole('cell', { name: title }) });
-
-/** The stage readiness slide-over of one chapter on the `mixed` stage seed (the same steps as drivers/shared.ts's openStageEvidence). */
-async function openStage(page: Page, title: string) {
-  await page.goto('/?mockStages=mixed');
-  await settlePage(page);
-  await productionLoaded(page);
-  await boardRow(page, title)
-    .getByRole('button', { name: /^Stage readiness: / })
-    .click();
-  const view = page.getByRole('dialog', { name: 'Stage readiness' });
-  await view.locator('[data-verdict-pill]').waitFor();
-  return view;
-}
-
 type Flow = {
   name: string;
   /** Drives the page until the toast(s) this flow raises are on screen. */
@@ -69,23 +54,16 @@ async function openTrack(page: Page, title: string, seed: string) {
   await page.goto(`/?${seed}`);
   await settlePage(page);
   await productionLoaded(page);
-  await boardRow(page, title).getByRole('cell').first().click({ button: 'right' });
-  await page.getByRole('menuitem', { name: 'Chapter track\u2026' }).click();
+  await rowMenu(page, startsWithTitle(title), 'Chapter track\u2026');
   const dialog = page.getByRole('dialog', { name: /^Track: / });
   await dialog.getByText('Reading the saved project\u2026').waitFor({ state: 'detached' });
   return dialog;
 }
 
-/** The Chapter links table of the Audio engine panel (the shared driver's steps), scrolled into view. */
+/** The Chapter links table of the Audio engine panel, scrolled into view. */
 async function chapterLinks(page: Page) {
-  await page
-    .locator('header')
-    .getByRole('button', { name: /^REAPER: / })
-    .click();
-  const panel = page.getByRole('dialog', { name: 'Audio engine' });
-  await panel.getByRole('region', { name: 'REAPER project' }).waitFor();
-  await panel.getByRole('status').filter({ hasText: 'Looking for the REAPER project file\u2026' }).waitFor({ state: 'detached' });
-  const table = page.getByRole('table', { name: 'Chapter links' });
+  const panel = await openEnginePanel(page);
+  const table = panel.getByRole('table', { name: 'Chapter links' });
   await table.scrollIntoViewIfNeeded();
   return table;
 }
@@ -94,7 +72,7 @@ const FLOWS: readonly Flow[] = [
   {
     name: 'Production: confirm a stage suggestion',
     drive: async (page) => {
-      const view = await openStage(page, CHAPTER_TITLES[4]);
+      const view = await openStageEvidence(page, startsWithTitle(CHAPTER_TITLES[4]));
       await view.getByRole('button', { name: 'Confirm', exact: true }).click();
     },
     expectText: /moved to/,
@@ -102,7 +80,7 @@ const FLOWS: readonly Flow[] = [
   {
     name: 'Production: revert a confirmed stage',
     drive: async (page) => {
-      const view = await openStage(page, CHAPTER_TITLES[4]);
+      const view = await openStageEvidence(page, startsWithTitle(CHAPTER_TITLES[4]));
       await view.getByRole('button', { name: 'Confirm', exact: true }).click();
       await view.getByRole('button', { name: 'Revert', exact: true }).click();
     },
@@ -194,21 +172,17 @@ const FLOWS: readonly Flow[] = [
       await page.goto('/');
       await settlePage(page);
       const table = await chapterLinks(page);
-      // The second body row is Chapter 1 (the opening credits come first, and a credits row names no chapter).
+      // The second body row is Chapter 1 (the opening credits come first, and a credits row names no chapter): the mock's track for it carries the chapter's Arabic title, so it is linked.
       const row = table.locator('tbody tr').nth(1);
-      await row.getByRole('combobox').selectOption({ index: 1 });
-      await row.getByRole('button', { name: /^Use this (track|folder) for/ }).click();
-      const change = row.getByRole('button', { name: 'Change the track' });
-      await change.waitFor();
-      // A press right after the swap is ignored (QUIET_MS), as a narrator's would be if it were a double click.
-      await page.waitForTimeout(700);
-      await change.click();
+      await row.getByRole('button', { name: /^Change the track for/ }).click();
       const check = row.getByRole('button', { name: /^Check the link for/ });
       await check.waitFor();
-      await page.waitForTimeout(700);
+      // A press right after the swap is ignored (QUIET_MS), as a narrator's would be if it were a double click.
+      await page.waitForTimeout(QUIET_MS + 50);
       await check.click();
     },
-    expectText: /is linked to|no longer in the project/,
+    // The toast quotes the track: its name is an Arabic one, so a quoted() that stops isolating it fails here.
+    expectText: /is linked to \u201C/,
   },
 ];
 

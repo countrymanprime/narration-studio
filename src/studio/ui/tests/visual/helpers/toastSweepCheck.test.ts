@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bareNames, problems } from './toastSweepCheck';
+import { bareNames, problems, show } from './toastSweepCheck';
 
 // The sweep's own judgement (toast-rtl-sweep.spec.ts): what it calls wrong must be wrong, and what the builders write must pass. Arabic written as escapes.
 const NAME = '\u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644 \u0627\u0644\u0637\u0648\u064A\u0644 \u062C\u062F\u0627';
@@ -42,20 +42,36 @@ describe('problems', () => {
     expect(problems([{ text: `${FSI}${NAME}${PDI} restored.`, direction: 'rtl' }], [NAME])).toHaveLength(1);
   });
 
-  it('lets a message that is mostly right to left be drawn right to left', () => {
-    const text =
-      '\u062A\u0639\u0630\u0631 \u0639\u0644\u0649 REAPER \u062D\u0641\u0638 \u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644 \u062C\u062F\u0627.';
+  it('lets a message with no English word of its own be drawn right to left', () => {
+    const text = '\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u0627\u0644\u0641\u0635\u0644 \u0627\u0644\u0623\u0648\u0644 \u062C\u062F\u0627.';
     expect(problems([{ text, direction: 'rtl' }], [])).toEqual([]);
+  });
+
+  it('judges by the words outside the isolates, not by the rule that sets the direction', () => {
+    expect(problems([{ text: `${FSI}${NAME} ${NAME}${PDI} ok.`, direction: 'rtl' }], [NAME])).toHaveLength(1);
+    expect(problems([{ text: `${FSI}${NAME} ${NAME}${PDI} ok.`, direction: 'ltr' }], [NAME])).toEqual([]);
   });
 
   it('fails a name outside an isolate, even in a sentence drawn left to right', () => {
     const found = problems([{ text: `${NAME} restored.`, direction: 'ltr' }], [NAME]);
+    expect(found.some((line) => line.includes('Arabic name outside an isolate'))).toBe(true);
+  });
+
+  it('fails a piece of a name outside an isolate (a name cut at 60 characters)', () => {
+    const cut = `${NAME.slice(0, 12)}\u2026`;
+    const found = problems([{ text: `The track is linked to \u201C${cut}\u201D. Nothing changed.`, direction: 'ltr' }], [NAME]);
     expect(found).toHaveLength(1);
-    expect(found[0]).toContain('outside an isolate');
+    expect(found[0]).toContain('right-to-left letters outside an isolate');
   });
 
   it('reports a toast once for each way it is wrong', () => {
     const text = `The chapter was removed from the recording and the old copy stays in the project folder: ${NAME}.`;
-    expect(problems([{ text, direction: 'rtl' }], [NAME])).toHaveLength(2);
+    expect(problems([{ text, direction: 'rtl' }], [NAME])).toHaveLength(3);
+  });
+});
+
+describe('show', () => {
+  it('writes the isolate controls out so a log shows them', () => {
+    expect(show(`${FSI}x${PDI}`)).toBe('"\\u2068x\\u2069"');
   });
 });
