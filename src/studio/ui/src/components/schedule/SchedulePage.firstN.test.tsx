@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { NarrationApi } from '../../types';
 import { overlay } from '../../overlay/overlayService';
-import { REC, installKit, mountSchedule, nReasonNow, reasonOf, stored } from './scheduleKit.test';
+import { REC, installKit, mountSchedule, nReasonNow, reasonOf, slotText, stored } from './scheduleKit.test';
 
 installKit();
 
@@ -288,7 +288,7 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     await mountSchedule({ statuses: book(12) });
     const d = await filled('', '2026-10-10', '5');
     save2(d);
-    await d.findByRole('alert');
+    await slotText();
     await waitFor(() => expect(document.activeElement).toBe(d.getByLabelText('Name')));
     expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBeNull();
   });
@@ -297,7 +297,7 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     await mountSchedule({ statuses: book(12) });
     const d = await filled('Dated', '', '5');
     save2(d);
-    await d.findByRole('alert');
+    await slotText();
     await waitFor(() => expect(document.activeElement).toBe(document.getElementById('milestone-due')));
   });
 
@@ -355,7 +355,7 @@ describe('round 3: where a refusal is read, and what follows the book', () => {
     await reasonOf(d);
     fireEvent.change(d.getByLabelText('How many chapters'), { target: { value: '3' } });
     expect(nReasonNow(d)).toBeNull();
-    expect(d.queryByRole('alert')).toBeNull();
+    expect(document.getElementById('milestone-problem')?.textContent).toBe('');
   });
 });
 
@@ -385,7 +385,8 @@ describe('round 5: the field a refusal is about is marked, kept in view, and jud
     await mountSchedule({ statuses: book(12) });
     const d = await open(name, due, n);
     save2(d);
-    const alert = await d.findByRole('alert');
+    await slotText();
+    const alert = document.getElementById('milestone-problem')!;
     for (const [key, get] of Object.entries(FIELDS)) {
       const marked = key === field;
       expect(get().getAttribute('aria-invalid') === 'true', `${key} marked`).toBe(marked);
@@ -439,7 +440,7 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     const d = await open('', '2026-10-10', '5');
     const body = layout(d, [0, 120], [10, 46], [100, 130]);
     add(d);
-    await d.findByRole('alert');
+    await slotText();
     await waitFor(() => expect(body.scrollTop).toBe(10));
   });
 
@@ -450,7 +451,7 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     const d = await open('', '2026-10-10', '5');
     const body = layout(d, [0, 100], [-50, -14], [120, 150]);
     add(d);
-    await d.findByRole('alert');
+    await slotText();
     await waitFor(() => expect(scrolled).toHaveBeenCalled());
     expect(scrolled.mock.instances.at(-1)).toBe(d.getByLabelText('Name'));
     expect(body.scrollTop).toBe(0);
@@ -460,12 +461,12 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     await mountSchedule({ statuses: book(12) });
     const d = await open('x'.repeat(250), '2026-10-10', '5');
     add(d);
-    expect((await d.findByRole('alert')).textContent).toBe('The name is 250 characters; the most is 200.');
+    expect(await slotText()).toBe('The name is 250 characters; the most is 200.');
     fireEvent.change(d.getByLabelText('Name'), { target: { value: 'x'.repeat(249) } });
     expect(d.getByLabelText('Name').getAttribute('aria-invalid')).toBe('true');
     expect(d.getByRole('alert').textContent).toBe('The name is 249 characters; the most is 200.');
     fireEvent.change(d.getByLabelText('Name'), { target: { value: 'ok' } });
-    expect(d.queryByRole('alert')).toBeNull();
+    expect(document.getElementById('milestone-problem')?.textContent).toBe('');
   });
 
   it('R14: an N stays marked as the book shrinks and the reason follows the new count', async () => {
@@ -498,7 +499,7 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     await mountSchedule({ statuses: book(12) });
     const d = await open('', '2026-10-10', '0');
     add(d);
-    await d.findByRole('alert');
+    await slotText();
     expect(d.getByLabelText('Name').getAttribute('aria-invalid')).toBe('true');
     expect(d.getByLabelText('How many chapters').getAttribute('aria-invalid')).toBeNull();
     fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Named' } });
@@ -514,7 +515,7 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     expect((await reasonOf(d)).textContent).toBe(RANGE_12);
     fireEvent.change(d.getByLabelText('Name'), { target: { value: '' } });
     add(d);
-    await waitFor(() => expect(d.getByRole('alert').textContent).toBe('Give the milestone a name.'));
+    await waitFor(() => expect(document.getElementById('milestone-problem')?.textContent).toBe('Give the milestone a name.'));
     const name = d.getByLabelText('Name');
     const n = d.getByLabelText('How many chapters');
     expect(name.getAttribute('aria-invalid')).toBe('true');
@@ -531,7 +532,7 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     await mountSchedule({ statuses: book(12) });
     const d = await open('', '2026-10-10', '5');
     add(d);
-    await d.findByRole('alert');
+    await slotText();
     const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
     expect(body.scrollTop).toBe(0);
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
@@ -568,7 +569,7 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
       expect(marked.length).toBeLessThanOrEqual(1);
     };
     add(d);
-    await d.findByRole('alert');
+    await slotText();
     check();
     fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Ok' } });
     check();
@@ -590,7 +591,7 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     await mountSchedule({ statuses: book(12) });
     const d = await open('', '2026-10-10', '99');
     add(d);
-    await d.findByRole('alert');
+    await slotText();
     const body = d.getByLabelText('Name').closest('form')!.firstElementChild as HTMLElement;
     rects([0, 120], (el) =>
       el === body
@@ -632,5 +633,25 @@ describe('round 6: the field and its reason in view, and a wrong field is never 
     fireEvent(window, new Event('resize'));
     expect(scrolled.mock.instances.at(-1)).toBe(note);
     expect(body.scrollTop).toBe(0);
+  });
+
+  it('the reason slot is always drawn, empty, with a reserved height, so nothing below it moves', async () => {
+    await mountSchedule({ statuses: book(12) });
+    const d = await open('', '2026-10-10', '5');
+    const slot = () => document.getElementById('milestone-problem') as HTMLElement;
+    const before = slot();
+    expect(before.getAttribute('role')).toBe('alert');
+    expect(before.textContent).toBe('');
+    expect(before.className).toMatch(/min-h-\[/);
+    const next = d.getByRole('button', { name: 'Add milestone' });
+    const siblingsBefore = Array.from(before.parentElement!.parentElement!.children);
+    add(d);
+    await waitFor(() => expect(slot().textContent).toBe('Give the milestone a name.'));
+    expect(slot()).toBe(before);
+    expect(Array.from(slot().parentElement!.parentElement!.children)).toEqual(siblingsBefore);
+    fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Named' } });
+    expect(slot()).toBe(before);
+    expect(slot().textContent).toBe('');
+    expect(next.isConnected).toBe(true);
   });
 });

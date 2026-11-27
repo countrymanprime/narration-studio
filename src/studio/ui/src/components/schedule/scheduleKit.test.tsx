@@ -98,6 +98,13 @@ export const nReasonNow = (within: { getByLabelText: (text: RegExp) => HTMLEleme
   const id = within.getByLabelText(/^How many/).getAttribute('aria-describedby');
   return id ? document.getElementById(id) : null;
 };
+/** Waits for the dialog's reason slot to say something (the slot itself is always drawn, empty until a refusal), and returns what it says. */
+export const slotText = (): Promise<string> =>
+  waitFor(() => {
+    const text = document.getElementById('milestone-problem')?.textContent ?? '';
+    if (!text) throw new Error('the reason slot is empty');
+    return text;
+  });
 /** Waits for that reason. */
 export const reasonOf = (within: { getByLabelText: (text: RegExp) => HTMLElement }): Promise<HTMLElement> =>
   waitFor(() => {

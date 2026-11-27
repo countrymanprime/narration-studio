@@ -158,7 +158,7 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
       settled.reset();
     }
   };
-  const input = (
+  return (
     <TextField
       {...(rest as TextFieldProps)}
       ref={ref}
@@ -195,5 +195,4 @@ export const NumberInput = forwardRef<HTMLInputElement, Props>(function NumberIn
       onKeyDown={handleKeyDown}
     />
   );
-  return input;
 });

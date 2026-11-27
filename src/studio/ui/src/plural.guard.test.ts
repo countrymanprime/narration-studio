@@ -76,7 +76,24 @@ const ownPluralIn = (text: string, allowCountBeforeNoun = false): string[] => {
   return found;
 };
 
+// The bare noun for one and the counted plural otherwise is `pluralOrBare` in plural.ts. These files still spell it `n === 1 ? 'noun' : plural(n, 'noun')`: they are converted in a
+// follow-up and this list only shrinks; a file not on it fails.
+const BARE_ONE_FORM = /===?\s*1\s*\?\s*[^:]+:\s*plural\(/;
+const BARE_ONE_STILL: Readonly<Record<string, string>> = {
+  'components/editing/takes/prep/HideOthersConfirm.tsx': 'follow-up',
+  'components/editing/range/replace/ReplacementMark.tsx': 'follow-up',
+  'components/engine/NestedChaptersNotice.tsx': 'follow-up',
+  'components/production/readiness/verdict.ts': 'follow-up',
+  'components/storybible/Relationships.tsx': 'follow-up',
+  'components/storybible/VoiceDataPanel.tsx': 'follow-up',
+};
+
 describe('the scan itself', () => {
+  it('sees the bare-one form', () => {
+    expect(BARE_ONE_FORM.test('n === 1 ? noun : plural(n, noun)')).toBe(true);
+    expect(BARE_ONE_FORM.test("count === 1 ? 'One check' : plural(count, 'check')")).toBe(true);
+    expect(BARE_ONE_FORM.test('pluralOrBare(n, noun)')).toBe(false);
+  });
   it.each([
     'const plural = (n: number) => n',
     '{ok && (<p>{job.itemsTotal} items.</p>)}',
@@ -130,5 +147,11 @@ describe('one plural for every count and noun', () => {
   it('has no file writing its own', () => {
     const found = files.flatMap((file) => ownPluralIn(readFileSync(join(SRC, file), 'utf8'), file in NOT_COUNTS).map((what) => `${file} ${what}`));
     expect(found).toEqual([]);
+  });
+  it('spells "bare noun for one, else plural" with pluralOrBare', () => {
+    const found = files.filter((file) => BARE_ONE_FORM.test(readFileSync(join(SRC, file), 'utf8')) && !(file in BARE_ONE_STILL));
+    expect(found).toEqual([]);
+    const stale = Object.keys(BARE_ONE_STILL).filter((file) => !BARE_ONE_FORM.test(readFileSync(join(SRC, file), 'utf8')));
+    expect(stale, 'Remove these from BARE_ONE_STILL: they no longer spell it by hand.').toEqual([]);
   });
 });

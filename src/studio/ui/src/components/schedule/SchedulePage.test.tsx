@@ -13,7 +13,7 @@ import { overlay } from '../../overlay/overlayService';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { NarrationApi } from '../../types';
 import { SchedulePage } from './SchedulePage';
-import { chapterList, reasonOf } from './scheduleKit.test';
+import { chapterList, reasonOf, slotText } from './scheduleKit.test';
 import { chaptersOf } from '../../api/chaptersOf';
 
 const TODAY = new Date(2026, 9, 1);
@@ -219,7 +219,7 @@ describe('the milestone dialog', () => {
     expect((d.getByLabelText('Name') as HTMLInputElement).value).toBe('All chapters recorded');
     fireEvent.change(d.getByLabelText('Name'), { target: { value: '  ' } });
     fireEvent.click(d.getByRole('button', { name: 'Save' }));
-    expect((await d.findByRole('alert')).textContent).toContain('Give the milestone a name.');
+    expect(await slotText()).toContain('Give the milestone a name.');
     expect((await stored())[0].name).toBe('All chapters recorded');
     fireEvent.change(d.getByLabelText('Name'), { target: { value: 'Everything recorded' } });
     fireEvent.change(d.getByLabelText('Due'), { target: { value: '2026-10-09' } });
@@ -265,7 +265,7 @@ describe('the milestone dialog', () => {
     await screen.findByText('Retail sample');
     fireEvent.click(screen.getByRole('button', { name: 'Add milestone' }));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Add milestone' }));
-    expect((await within(dialog()).findByRole('alert')).textContent).toContain('Give the milestone a name.');
+    expect(await slotText()).toContain('Give the milestone a name.');
     fireEvent.change(within(dialog()).getByLabelText('Name'), { target: { value: 'Second sample' } });
     fireEvent.change(within(dialog()).getByLabelText('Due'), { target: { value: '2026-10-02' } });
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Add milestone' }));

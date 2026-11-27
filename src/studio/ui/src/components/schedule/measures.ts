@@ -1,4 +1,4 @@
-import { plural } from '../../plural';
+import { pluralOrBare } from '../../plural';
 import { CHECKPOINT_MINUTES, WPH } from './estimates';
 import { platformHas } from './platform';
 import type { PlatformCapability } from './profiles';
@@ -56,13 +56,12 @@ export function measureOptions(
 }
 
 /** "chapter" for 1, "4 chapters" otherwise: the first one needs no number. */
-const nounWithN = (n: number, noun: string): string => (n === 1 ? noun : plural(n, noun));
 
 /** The measure as the narrator chose it, with its value filled in: "First 15 finished minutes", "First 4 chapters edited and proofed", "Whole book". */
 export function measureText(stored: string | undefined): string {
   const m = measOf(stored);
-  if (m === 'chN') return `First ${nounWithN(chaptersOf(stored), 'chapter')} edited and proofed`;
-  if (m === 'minN' || stored === CHECKPOINT_MEASURE) return `First ${nounWithN(minutesOf(stored), 'finished minute')}`;
+  if (m === 'chN') return `First ${pluralOrBare(chaptersOf(stored), 'chapter')} edited and proofed`;
+  if (m === 'minN' || stored === CHECKPOINT_MEASURE) return `First ${pluralOrBare(minutesOf(stored), 'finished minute')}`;
   if (m === 'custom') return 'Custom';
   return MEASURES.find((x) => x.id === m)?.label ?? m;
 }

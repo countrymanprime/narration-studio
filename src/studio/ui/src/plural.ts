@@ -12,5 +12,8 @@ export const plural = (count: number, one: string, many?: string): string => {
   return `${formatCount(n)} ${pluralWord(n, one, many)}`;
 };
 
+/** The bare noun for exactly one, else the count with its noun ("chapter", "4 chapters"): for a sentence that reads "the first chapter" but "the first 4 chapters". */
+export const pluralOrBare = (count: number, one: string, many?: string): string => (count === 1 ? one : plural(count, one, many));
+
 /** A count on its own, with thousands separators ("5,002", "0 of 5,002 encoded"): for a number that does not sit before a noun `plural` can join. */
 export const formatCount = (count: number): string => ((Number.isFinite(count) ? count : 0) + 0).toLocaleString('en-US');

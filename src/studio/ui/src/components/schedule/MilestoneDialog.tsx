@@ -221,11 +221,10 @@ export function MilestoneDialog({ existing, profileId, reportedCapabilities, bou
               />
             )}
           </div>
-          {alertText && (
-            <p id="milestone-problem" role="alert" className="text-[0.88rem] text-[var(--danger-text)]">
-              {alertText}
-            </p>
-          )}
+          {/* The reason's slot is always drawn, empty until a refusal, two lines tall: the buttons below never move as it comes and goes (the error-shift rule). It is a live region, so its text is read when it appears. */}
+          <p id="milestone-problem" role="alert" className="mt-1.5 min-h-[2.6rem] text-[0.88rem] leading-[1.35] text-[var(--danger-text)]">
+            {alertText}
+          </p>
         </div>
         <Field label="Note" textarea value={draft.note} onChange={(note) => set({ note })} autoFocus={focusNote} />
       </div>
