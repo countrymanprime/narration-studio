@@ -24,7 +24,7 @@ const isMainButton = (target: EventTarget | null): boolean =>
  * either (#4094). While a take or cold read runs, Space stops it from a toast button as from any other control: a stop that never happens leaves
  * the microphone recording, a dismiss that never happens costs nothing.
  */
-export function usePedalSpace(toggle: () => unknown, takeRunning: () => boolean = () => false): void {
+export function usePedalSpace(toggle: (closedAPopup: boolean) => unknown, takeRunning: () => boolean = () => false): void {
   useEffect(() => {
     let swallowUp = false;
     // When the last take key pressed a toast's button: a second one within a moment is the same pedal tap landing where focus went, not a request to start a take over the audio already there (#4094).
@@ -68,11 +68,12 @@ export function usePedalSpace(toggle: () => unknown, takeRunning: () => boolean 
       swallowUp = true;
       if (event.repeat) return;
       // Capture phase, so a popup's own item or control never sees the press. Escape closes what Escape closes.
-      if (softLayerOpen()) {
+      const closedAPopup = softLayerOpen();
+      if (closedAPopup) {
         const from = document.activeElement ?? document.body;
         from.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
       }
-      void toggle();
+      void toggle(closedAPopup);
     };
     const up = (event: KeyboardEvent) => {
       if (!swallowUp || event.code !== 'Space') return;

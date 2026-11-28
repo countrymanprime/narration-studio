@@ -74,6 +74,8 @@ async function expectEnterStopsTheTake(page: Page, key: 'Enter' | 'NumpadEnter')
   await expect(optionsDialog(page)).toHaveCount(0);
   await expect(page.getByRole('alertdialog', { name: 'Stop recording?' })).toHaveCount(0);
   await expect(page.getByRole('menu')).toHaveCount(0);
+  await expect(engineChip(page)).not.toBeFocused();
+  await expect(enginePanel(page)).toHaveCount(0);
 }
 
 for (const lag of [20, 60]) {
@@ -210,10 +212,7 @@ for (const lag of [20, 60, 120]) {
 for (const surface of ['Record options', 'the engine panel'] as const) {
   for (const mode of ['Record', 'Cold read'] as const) {
     for (const lag of [20, 60]) {
-      // Cold read is picked on a radio of Record options, which keeps focus through the exit: an Enter there is the radio's own press, not a take key (only Space is the pedal's
-      // there, #3976), so that cell has Space alone. The others reach the take key with focus on the popup itself or on the page.
-      const keys = surface === 'Record options' && mode === 'Cold read' ? (['Space'] as const) : (['Enter', 'NumpadEnter', 'Space'] as const);
-      for (const key of keys) {
+      for (const key of ['Enter', 'NumpadEnter', 'Space'] as const) {
         test(`Escape on ${surface} in ${mode}, ${lag} ms later ${key} starts it, focus is on the page and Enter stops it`, async ({ page }) => {
           await openBoothWithMotion(page);
           if (surface === 'Record options' && mode === 'Record') {
@@ -222,8 +221,19 @@ for (const surface of ['Record options', 'the engine panel'] as const) {
             await page.keyboard.press('Escape');
             await page.waitForTimeout(lag);
             await expect(leavingNow(page)).toHaveCount(1);
-          } else if (surface === 'Record options') await escapeFromOptions(page, mode, lag);
-          else {
+          } else if (surface === 'Record options') {
+            // Cold read is picked on a radio, which keeps focus through the exit: an Enter there would be the radio's own press. Reopened and left without touching a control,
+            // focus is on the popup itself, as in Record.
+            await recordOptions(page).click();
+            await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
+            await page.keyboard.press('Escape');
+            await expect(optionsDialog(page)).toHaveCount(0);
+            await recordOptions(page).click();
+            await expect(optionsDialog(page)).toBeVisible();
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(lag);
+            await expect(leavingNow(page)).toHaveCount(1);
+          } else {
             await recordOptions(page).click();
             await page.getByRole('radio', { name: mode, exact: true }).click();
             await page.keyboard.press('Escape');
@@ -252,6 +262,64 @@ for (const surface of ['Record options', 'the engine panel'] as const) {
       }
     }
   }
+}
+
+// The pedal's Space with a popup still OPEN (#4181): it sends Escape to the popup that has focus and starts the take in the same tick, before the popup has begun to leave, so there was
+// nothing to mark and the exit's hand-back put focus on the trigger: the next footswitch Enter reopened the popup with the take recording.
+test.describe('the pedal Space with a popup open, with motion on', () => {
+  test('pedal Space with Record options open starts the take and the first Enter stops it', async ({ page }) => {
+    await openBoothWithMotion(page);
+    await recordOptions(page).click();
+    await expect(optionsDialog(page)).toBeVisible();
+    await page.waitForTimeout(150);
+    await page.keyboard.press('Space');
+    await expectEnterStopsTheTake(page, 'Enter');
+  });
+
+  test('pedal Space with Text settings open starts the take and the first Enter stops it', async ({ page }) => {
+    await openBoothWithMotion(page);
+    await page.getByRole('button', { name: 'Text settings' }).click();
+    await expect(page.locator('[data-popover-popup]')).toBeVisible();
+    await page.waitForTimeout(150);
+    await page.keyboard.press('Space');
+    await expectEnterStopsTheTake(page, 'Enter');
+    await expect(page.getByRole('button', { name: 'Text settings' })).not.toBeFocused();
+  });
+
+  test('pedal Space with the chapter list open in Cold read starts the cold read and the first Enter stops it', async ({ page }) => {
+    await openBoothWithMotion(page);
+    await recordOptions(page).click();
+    await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(optionsDialog(page)).toHaveCount(0);
+    await chapterButton(page).click();
+    await expect(page.getByRole('menuitemradio', { checked: true })).toBeVisible();
+    await page.waitForTimeout(150);
+    await page.keyboard.press('Space');
+    await expect(coldRunning(page)).toBeVisible();
+    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    expect(await onThePage(page)).toBe(true);
+    await expect(chapterButton(page)).not.toBeFocused();
+    await pastStartGuard(page);
+    await page.keyboard.press('Enter');
+    await expect(coldRunning(page)).toHaveCount(0);
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(alertQuestion(page)).toHaveCount(0);
+  });
+});
+
+// R before a take is Record (#3858), so it is a take key too: Escape on Record options, R inside the exit.
+for (const lag of [20, 60]) {
+  test(`Escape on Record options, ${lag} ms later R starts the take and Enter stops it instead of opening the options`, async ({ page }) => {
+    await openBoothWithMotion(page);
+    await recordOptions(page).click();
+    await expect(optionsDialog(page)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('r');
+    await expectEnterStopsTheTake(page, 'Enter');
+  });
 }
 
 // What the rule must not break: with no key in between, Escape still gives focus back to the control that opened the popup.

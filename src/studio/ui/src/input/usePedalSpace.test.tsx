@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePedalSpace } from './usePedalSpace';
 
-function Harness({ toggle, running = false }: { toggle: () => unknown; running?: boolean }) {
+function Harness({ toggle, running = false }: { toggle: (closedAPopup: boolean) => unknown; running?: boolean }) {
   usePedalSpace(toggle, () => running);
   return (
     <div>
@@ -41,6 +41,21 @@ describe('the pedal Space (#4094)', () => {
     const event = pressSpace(getByRole('button', { name: 'Chapter list' }));
     expect(toggle).toHaveBeenCalledTimes(1);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('tells the take whether the Space closed an open popup (it sent Escape to it), so the take can mark that popup as left to the page', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<Harness toggle={toggle} />);
+    pressSpace(getByRole('button', { name: 'Chapter list' }));
+    expect(toggle).toHaveBeenLastCalledWith(false);
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    const item = document.createElement('button');
+    item.textContent = 'Item';
+    menu.append(item);
+    document.body.append(menu);
+    pressSpace(item);
+    expect(toggle).toHaveBeenLastCalledWith(true);
   });
 
   it.each([['Retry'], ['Dismiss message']])('leaves Space to the toast button %s: it presses the button and starts no take', (name) => {
