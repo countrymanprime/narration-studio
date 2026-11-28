@@ -1034,9 +1034,26 @@ describe('the reader position across project switches (#4091)', () => {
     expect(alert.textContent).toMatch(/still being opened/);
     fireEvent.click(screen.getByRole('button', { name: /Retry/ }));
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('alert')).toBeNull(); // the wait starts over
+    expect(screen.queryByRole('alert')).toBeNull(); // the wait starts over, with no extra render of the error
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS - 1000));
+    expect(screen.queryByRole('alert')).toBeNull();
+    act(() => void vi.advanceTimersByTime(2000));
+    expect(await screen.findByRole('alert')).toBeTruthy(); // still no folder: it gives up again
     view.rerender(t.page(true, B, refresh));
     await firstHeading();
+  });
+
+  it('a folder that changes while the lists still disagree starts the wait over instead of carrying the give-up over', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const t = twoProjects();
+    const view = render(t.page(true, A));
+    await firstHeading();
+    t.switchTo(true);
+    await waitFor(() => expect(t.readsOfB()).toBeGreaterThan(0));
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS + 1000));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    view.rerender(t.page(true, 'C:/Books/C'));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('a slow bootstrap (answering at 4 s) still shows the skeleton, then the new project', async () => {

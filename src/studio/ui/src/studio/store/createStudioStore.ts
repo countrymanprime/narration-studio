@@ -120,6 +120,9 @@ const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(Strin
 /** How long a reader waits on one read before it fails with "The host did not answer." (the store joins a read for the stuck age, then starts another). A page that waits on the store for its project gives up on the same clock. */
 export const READ_GIVES_UP_MS = 15_000;
 
+/** What a reader that waits on the store for its project is told when the app has not named that project in time; a page that gives up on the same clock says it too. */
+export const PROJECT_STILL_OPENING = 'The project is still being opened. Try again in a moment.';
+
 export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOptions<R>): StudioStore<R> {
   const {
     registry,
@@ -267,7 +270,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
         else done(() => reject(new ProjectChangedError()));
       };
       // A reader ahead of the store (its folder is the new one, the app's effect has not told the store yet) is answered by `setProject` in the same commit.
-      const timer = setTimeout(() => done(() => reject(new Error('The project is still being opened. Try again in a moment.'))), STUCK_READ_MS);
+      const timer = setTimeout(() => done(() => reject(new Error(PROJECT_STILL_OPENING))), STUCK_READ_MS);
       waiters.add(check);
     });
   }

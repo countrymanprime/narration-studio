@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useLocation, useNavigate } from 'react-router-dom';
 import { folderKey } from '../../../projectFolder';
 import { useOptionalStoreHandle } from '../../../studio/StudioProvider';
-import { READ_GIVES_UP_MS } from '../../../studio/store/createStudioStore';
+import { PROJECT_STILL_OPENING, READ_GIVES_UP_MS } from '../../../studio/store/createStudioStore';
 import { useGuardedAction, useGuardedNavigate } from '../../../studio/drafts/unsavedDrafts';
 import type { ScriptViewState } from './data/scriptView';
 import { useShowInRail } from './data/useShowInRail';
@@ -117,7 +117,8 @@ function useListProject(projectFolder: string | undefined): { state: 'agrees' | 
     () => store?.projectOf('chapters'),
     () => undefined,
   );
-  const agrees = !projectFolder || readFor === undefined || readFor === folderKey(projectFolder);
+  const wanted = projectFolder ? folderKey(projectFolder) : '';
+  const agrees = !projectFolder || readFor === undefined || readFor === wanted;
   const [attempt, setAttempt] = useState(0);
   const [gaveUp, setGaveUp] = useState(false);
   useEffect(() => {
@@ -125,8 +126,13 @@ function useListProject(projectFolder: string | undefined): { state: 'agrees' | 
     if (agrees) return;
     const timer = setTimeout(() => setGaveUp(true), READ_GIVES_UP_MS);
     return () => clearTimeout(timer);
-  }, [agrees, attempt]);
-  return { state: agrees ? 'agrees' : gaveUp ? 'gave-up' : 'waiting', again: () => setAttempt((n) => n + 1) };
+    // A folder that changes while the lists still disagree starts the countdown over, and a give-up for the old folder is not carried to the new one.
+  }, [agrees, attempt, wanted]);
+  const again = () => {
+    setGaveUp(false);
+    setAttempt((n) => n + 1);
+  };
+  return { state: agrees ? 'agrees' : gaveUp ? 'gave-up' : 'waiting', again };
 }
 const noSubscribe = () => () => undefined;
 
@@ -144,7 +150,7 @@ export function ScriptPage(props: ScriptPageProps) {
     return (
       <LoadError
         title="Script"
-        message="The project is still being opened. Try again in a moment."
+        message={PROJECT_STILL_OPENING}
         retry={() => {
           listProject.again();
           props.refreshProject?.();
