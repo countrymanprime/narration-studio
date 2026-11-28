@@ -419,6 +419,29 @@ describe('Menu items with Ctrl, Alt or Meta held', () => {
     expect(items[0]!.onSelect).toHaveBeenCalledOnce();
   });
 
+  // The page's side: the chord must still reach the router, which listens on the document and decides what it does with a menu open.
+  it('the Ctrl+Alt+Space chord still reaches the page once, prevented, and selects nothing', async () => {
+    items.forEach((item) => item.onSelect.mockClear());
+    const item = await openFocused(<Menu items={items}>Character</Menu>, 'Character');
+    const seen: boolean[] = [];
+    const onKeyDown = (event: KeyboardEvent) => void seen.push(event.defaultPrevented);
+    document.addEventListener('keydown', onKeyDown);
+    try {
+      fireEvent.keyDown(item, { key: ' ', code: 'Space', ctrlKey: true, altKey: true });
+    } finally {
+      document.removeEventListener('keydown', onKeyDown);
+    }
+    expect(seen).toEqual([true]);
+    items.forEach((entry) => expect(entry.onSelect).not.toHaveBeenCalled());
+  });
+
+  it('a chord of another key is left alone, not prevented', async () => {
+    const item = await openFocused(<Menu items={items}>Character</Menu>, 'Character');
+    expect(fireEvent.keyDown(item, { key: '@', code: 'KeyQ', ctrlKey: true, altKey: true })).toBe(true);
+    expect(fireEvent.keyDown(item, { key: 'a', code: 'KeyA', ctrlKey: true })).toBe(true);
+    expect(fireEvent.keyDown(item, { key: 'k', code: 'KeyK', metaKey: true })).toBe(true);
+  });
+
   it('a Shift press is still a press: only Ctrl, Alt and Meta make a chord', async () => {
     items.forEach((item) => item.onSelect.mockClear());
     const item = await openFocused(<Menu items={items}>Character</Menu>, 'Character');

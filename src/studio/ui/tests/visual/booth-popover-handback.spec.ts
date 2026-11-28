@@ -464,7 +464,11 @@ for (const mode of ['Record', 'Cold read'] as const) {
       } else {
         await chapterButton(page).click();
         await expect(page.getByRole('menu')).toBeVisible();
+        // Opened by a click no item is highlighted yet, so the chord would have nothing to press: the pointer walks onto the second chapter, as a narrator's does.
+        await page.getByRole('menuitemradio').nth(1).hover();
       }
+      await expect(page.locator('[role="menuitemradio"][data-highlighted]')).toHaveCount(1);
+      await expect(page.locator('[role="menuitemradio"]:focus')).toHaveCount(1);
       await page.keyboard.press('Control+Alt+Space');
       // Past the exit a pick would have started: the list is still there, the chapter is the same, and nothing is recording or asking.
       await page.waitForTimeout(HELD_EXIT_MS + 200);

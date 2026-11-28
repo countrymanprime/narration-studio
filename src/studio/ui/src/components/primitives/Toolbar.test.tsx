@@ -114,6 +114,32 @@ describe('Toolbar', () => {
     expect(onRecord).not.toHaveBeenCalled();
   });
 
+  // The page's side: the chord must still reach the router, which listens on the document.
+  it('the Ctrl+Alt+Space chord still reaches the page once, prevented, and presses nothing', () => {
+    const onRecord = vi.fn();
+    render(<Example onRecord={onRecord} />);
+    const record = screen.getByRole('button', { name: 'Record' });
+    record.focus();
+    const seen: boolean[] = [];
+    const onKeyDown = (event: KeyboardEvent) => void seen.push(event.defaultPrevented);
+    document.addEventListener('keydown', onKeyDown);
+    try {
+      fireEvent.keyDown(record, { key: ' ', code: 'Space', ctrlKey: true, altKey: true });
+    } finally {
+      document.removeEventListener('keydown', onKeyDown);
+    }
+    expect(seen).toEqual([true]);
+    expect(onRecord).not.toHaveBeenCalled();
+  });
+
+  it('a chord of another key on a button is left alone, not prevented', () => {
+    render(<Example />);
+    const record = screen.getByRole('button', { name: 'Record' });
+    record.focus();
+    expect(fireEvent.keyDown(record, { key: '@', code: 'KeyQ', ctrlKey: true, altKey: true })).toBe(true);
+    expect(fireEvent.keyDown(record, { key: 'a', code: 'KeyA', ctrlKey: true })).toBe(true);
+  });
+
   // Enter on a native button is the browser's own press, which a jsdom keydown does not make; the real-browser case is in booth-popover-handback.spec.ts.
   it('a button still takes a plain Space press', () => {
     const onRecord = vi.fn();
