@@ -225,13 +225,11 @@ describe('addressWithoutProject: the address cut back to its page (#4059)', () =
     expect(addressWithoutProject({ pathname: '/editing/chapter-9', search: '?x=1', hash: '#a' })).toEqual({ pathname: '/editing', search: '', hash: '' });
     expect(addressWithoutProject({ pathname: '/master', search: '', hash: '#file=a.wav' })).toEqual({ pathname: '/master', search: '', hash: '' });
   });
-  it('keeps Settings\u2019 anchor, which names a category', () => {
-    expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#credits' })).toEqual({ pathname: '/settings', search: '', hash: '#credits' });
-  });
-  it('keeps every hash Settings resolves: the old anchors and the #category-<id> of every category', () => {
+  it('drops every hash Settings resolves: each asks for a category, and the new project keeps its own (#4099)', () => {
     const hashes = Object.keys(SETTINGS_HASHES);
-    expect(hashes).toEqual(expect.arrayContaining(['#credits', ...CATEGORIES.map((category) => `#category-${category.id}`)]));
-    for (const hash of hashes) expect(addressWithoutProject({ pathname: '/settings', search: '', hash }).hash).toBe(hash);
+    expect(hashes).toEqual(expect.arrayContaining(['#credits', '#cleanup', ...CATEGORIES.map((category) => `#category-${category.id}`)]));
+    for (const hash of hashes)
+      expect(addressWithoutProject({ pathname: '/settings', search: '', hash })).toEqual({ pathname: '/settings', search: '', hash: '' });
   });
   it('drops a Settings hash that is no anchor', () => {
     expect(addressWithoutProject({ pathname: '/settings', search: '', hash: '#nothing' })).toEqual({ pathname: '/settings', search: '', hash: '' });

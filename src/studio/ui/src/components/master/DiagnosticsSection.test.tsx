@@ -62,6 +62,76 @@ describe('Master & QC, Diagnostics wording', () => {
   });
 });
 
+describe('Master & QC, Diagnostics remembers the kind of file per project (#4099)', () => {
+  const pressed = (name: string) => screen.getByRole('button', { name }).getAttribute('aria-pressed');
+  async function openFor(projectFolder: string, initial: Initial = {}) {
+    const user = userEvent.setup();
+    render(
+      <PageHost api={createMockApi({}, initial)}>
+        <MasterPage onOpenDelivery={vi.fn()} openSettings={vi.fn()} projectFolder={projectFolder} />
+      </PageHost>,
+    );
+    await screen.findByRole('region', { name: 'Thresholds' });
+    return user;
+  }
+
+  it('opens on Raw recordings again after a trip through another page', async () => {
+    window.localStorage.clear();
+    const user = await openFor('/p');
+    expect(pressed('Rendered chapters')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Raw recordings' }));
+    cleanup();
+    await openFor('/p');
+    expect(pressed('Raw recordings')).toBe('true');
+    expect(pressed('Rendered chapters')).toBe('false');
+  });
+
+  it('keeps the choice per project, and under either spelling of the folder', async () => {
+    window.localStorage.clear();
+    const user = await openFor('C:/Projects/Alice');
+    await user.click(screen.getByRole('button', { name: 'Raw recordings' }));
+    cleanup();
+    await openFor('C:\\Projects\\Alice');
+    expect(pressed('Raw recordings')).toBe('true');
+    cleanup();
+    await openFor('C:/Projects/Voltage');
+    expect(pressed('Rendered chapters')).toBe('true');
+  });
+
+  it('puts Rendered chapters back too, when that was the last choice', async () => {
+    window.localStorage.clear();
+    const user = await openFor('/p');
+    await user.click(screen.getByRole('button', { name: 'Raw recordings' }));
+    await user.click(screen.getByRole('button', { name: 'Rendered chapters' }));
+    cleanup();
+    await openFor('/p');
+    expect(pressed('Rendered chapters')).toBe('true');
+  });
+
+  it('while a check runs, the switch shows the kind being checked, and the kept choice returns after it ends', async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem('narration.master.diagnosticsSource./p', 'raw_recording');
+    const running = contract('diagnostics-running.json');
+    const done = { ...contract('diagnostics-success.json'), sourceKind: 'processed_render' as const };
+    const diagnosticsState = vi.fn<NarrationApi['diagnosticsState']>().mockResolvedValueOnce(running).mockResolvedValue(done);
+    render(
+      <PageHost api={createMockApi({ diagnosticsState }, {})}>
+        <MasterPage onOpenDelivery={vi.fn()} openSettings={vi.fn()} projectFolder="/p" />
+      </PageHost>,
+    );
+    await screen.findByRole('region', { name: 'Thresholds' });
+    await waitFor(() => expect(pressed('Rendered chapters')).toBe('true'));
+    await waitFor(() => expect(pressed('Raw recordings')).toBe('true'));
+  });
+
+  it('ignores a kept value that is no kind', async () => {
+    window.localStorage.clear();
+    window.localStorage.setItem('narration.master.diagnosticsSource./p', 'nonsense');
+    await openFor('/p');
+    expect(pressed('Rendered chapters')).toBe('true');
+  });
+});
+
 describe('Master & QC, Diagnostics', () => {
   it('shows every threshold before anything is checked, and says nothing is checked yet', async () => {
     await openDiagnostics();
@@ -183,7 +253,8 @@ describe('Master & QC, Diagnostics', () => {
     await user.click(screen.getByRole('button', { name: 'Choose files to check…' }));
     expect(await screen.findByRole('progressbar', { name: 'Checking' })).toBeTruthy();
     expect(screen.getByText('Checking Chapter 01.wav (1 of 3).')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Raw recordings' }) as HTMLButtonElement).disabled).toBe(true);
+    // Off with the reason a hover and a screen reader get, not a native disabled that says nothing.
+    expect(screen.getAllByText('A check is running', { selector: '.sr-only' }).length).toBe(2);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(await screen.findByText('Diagnostics cancelled. 0 of 3 files were checked.')).toBeTruthy();
   });

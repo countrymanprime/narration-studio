@@ -324,7 +324,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               onChoose={mastering.choose}
               retry={mastering.reload}
             />
-            <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
+            <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} projectFolder={projectFolder} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
           </div>
         </div>

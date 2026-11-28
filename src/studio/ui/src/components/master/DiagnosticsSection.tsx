@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { dawShortName } from '../../studio/StudioProvider';
@@ -14,9 +14,13 @@ import { ProofOptions } from '../proof/proofOptions/ProofOptions';
 import { cleanupThresholdRows, thresholdRows } from './diagnosticsFormat';
 import { CheckedFilesTable, CleanupFindingsTable, FindingsTable } from './DiagnosticsTables';
 import { plural } from '../../plural';
+import { loadDiagnosticsSource, saveDiagnosticsSource } from './lastSource';
 
 /** How often a running check is read. */
 const POLL_MS = 500;
+
+/** What a control that waits for the running check says on hover. */
+const RUNNING_REASON = 'A check is running';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -145,7 +149,16 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
  * host already accepts, so they can be checked without picking them again. Below it, `CleanupSection` lists the same check's silence
  * cleanup candidates apart from these findings; `openSettings` opens Settings > Silence cleanup.
  */
-export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPaths: readonly string[]; openSettings: () => void }) {
+export function DiagnosticsSection({
+  measuredPaths,
+  openSettings,
+  projectFolder = '',
+}: {
+  measuredPaths: readonly string[];
+  openSettings: () => void;
+  /** Keys the kind of file the narrator chose, so it survives a trip through another page. */
+  projectFolder?: string;
+}) {
   const dawName = useDawName();
   const api = useApi();
   const [job, setJob] = useState<DiagnosticsJob>();
@@ -153,7 +166,18 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
   const [problem, setProblem] = useState<string>();
   const [attempt, setAttempt] = useState(0);
   const [picking, setPicking] = useState(false);
-  const [sourceKind, setSourceKind] = useState<DiagnosticsSourceKind>('processed_render');
+  // The narrator's own choice for this project wins over the kind of the last check the host still holds, which only says what that check was.
+  const ownChoice = useRef(false);
+  const [sourceKind, setSourceKind] = useState<DiagnosticsSourceKind>(() => {
+    const kept = loadDiagnosticsSource(projectFolder);
+    ownChoice.current = kept !== undefined;
+    return kept ?? 'processed_render';
+  });
+  const chooseSource = (kind: DiagnosticsSourceKind) => {
+    setSourceKind(kind);
+    ownChoice.current = true;
+    saveDiagnosticsSource(projectFolder, kind);
+  };
   // What went wrong is a toast, not text that opens above the tables and pushes them down (rule 7, #2632).
   // Reading the check's state changes nothing, so Retry reads it again (issue #2919).
   useErrorToast(
@@ -173,7 +197,7 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
       .then((state) => {
         if (!active) return;
         setJob(state);
-        if (state.sourceKind) setSourceKind(state.sourceKind);
+        if (state.sourceKind && !ownChoice.current) setSourceKind(state.sourceKind);
       })
       .catch((error) => active && setJobError(apiErrorMessage(error)));
     return () => {
@@ -231,11 +255,11 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
           <div className="flex flex-wrap items-center gap-2">
             <Tooltip label="About diagnostics" text={`Times to listen to in ${dawName}: nothing here is changed`} />
             {measuredPaths.length > 0 && (
-              <Button variant="secondary" onClick={() => void checkMeasured()} pending={picking} disabled={running}>
+              <Button variant="secondary" onClick={() => void checkMeasured()} pending={picking} disabledReason={running ? RUNNING_REASON : undefined}>
                 {`Check the ${plural(measuredPaths.length, 'measured file', 'measured files')}`}
               </Button>
             )}
-            <Button onClick={() => void chooseFiles()} pending={picking} disabled={running}>
+            <Button onClick={() => void chooseFiles()} pending={picking} disabledReason={running ? RUNNING_REASON : undefined}>
               Choose files to check…
             </Button>
           </div>
@@ -247,9 +271,9 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
           <ToggleGroup
             label="The files are"
             look="segmented"
-            value={sourceKind}
-            onChange={(value) => setSourceKind(value as DiagnosticsSourceKind)}
-            options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running }))}
+            value={running && job?.sourceKind ? job.sourceKind : sourceKind}
+            onChange={(value) => chooseSource(value as DiagnosticsSourceKind)}
+            options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running, disabledReason: running ? RUNNING_REASON : '' }))}
           />
         </div>
         {job && running && (

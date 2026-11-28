@@ -10,6 +10,7 @@ import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
 import { ROWS } from '../registry/rows';
 import { brand } from '../../../brand.gen';
+import { projectStorageKey } from '../../../projectFolder';
 
 afterEach(() => {
   cleanup();
@@ -56,6 +57,43 @@ const waitForRow = (id: string) =>
     if (!found) throw new Error(`no row ${id}`);
     return found;
   });
+
+describe('Settings: remembers its category per project (#4099)', () => {
+  it('opens on the category it was last on after a trip through another page', async () => {
+    await renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    pick('Delivery');
+    await screen.findByRole('heading', { level: 2, name: 'Delivery' });
+    cleanup();
+    await renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Delivery' });
+  });
+
+  it('lets a link’s category win over the remembered one', async () => {
+    await renderPage();
+    pick('Delivery');
+    cleanup();
+    await renderPage({ initialCategory: 'Teleprompter' });
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+  });
+
+  it('keeps the category per project: another project’s is never opened', async () => {
+    const api = createMockApi();
+    const { projectFolder } = await api.bootstrap();
+    localStorage.setItem('narration.settings.lastCategory./some/other/project', 'delivery');
+    await renderPage({ api });
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    pick('Delivery');
+    await waitFor(() => expect(localStorage.getItem(projectStorageKey('settings.lastCategory', projectFolder))).toBe('delivery'));
+  });
+
+  it('ignores a kept value that is no category', async () => {
+    const { projectFolder } = await createMockApi().bootstrap();
+    localStorage.setItem(projectStorageKey('settings.lastCategory', projectFolder), 'nonsense');
+    await renderPage();
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+  });
+});
 
 describe('Settings: structure', () => {
   it('lists every category in three labelled groups, and no category groups settings by where else they are set', async () => {

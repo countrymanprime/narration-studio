@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // A page's address names a chapter of the project it was written under (`?chapter=` on the Booth, `/editing/:chapterId`). Changing project drops it, so the
 // other project opens on its own remembered chapter and the first project's chapter is not written down as the other's (#4059).
-import { act, cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { projectStorageKey } from './projectFolder';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { App } from './App';
 import { ApiProvider } from './api/ApiContext';
@@ -196,12 +197,81 @@ describe('the chapter in the address is not carried into another project (#4059)
     expect(address()).toBe('/master');
   });
 
-  it('a Settings anchor names a category, not project content: it stays across a project change', async () => {
-    const { api } = await openAt('/settings#credits');
+  it('a Settings row anchor is a one-time ask of the old project: it is dropped across a project change (#4099)', async () => {
+    const { api } = await openAt('/settings#cleanup');
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
     await screen.findByRole('heading', { level: 1, name: 'Settings' });
-    expect(window.location.hash).toBe('#credits');
+    await waitFor(() => expect(window.location.hash).toBe(''));
+  });
+
+  it('Settings: a jump-menu category the narrator moved off neither opens in another project nor overwrites its kept category', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('settings.lastCategory', OTHER), 'delivery');
+    const { api } = await openAt('/settings#category-speech');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Appearance & keys/ }));
+    await screen.findByRole('heading', { level: 2, name: 'Appearance & keys' });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', OTHER))).toBe('delivery');
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', alice))).toBe('appearance');
+  });
+
+  it('a category picked after the jump menu\u2019s #category-<id> is the one a reload and a Back onto that entry open', async () => {
+    await openAt('/settings#category-speech');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Delivery/ }));
+    await screen.findByRole('heading', { level: 2, name: 'Delivery' });
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    cleanup();
+    await openAt(window.location.pathname + window.location.hash);
+    expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
+  });
+
+  it('Proof: a Back onto the old project’s All chapters entry after a switch opens the new project’s kept chapter', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', alice), 'chapter-4');
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', OTHER), 'chapter-6');
+    const { api } = await openAt('/proof');
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-4'));
+    fireEvent.click(await onChapter(/^Chapter: /));
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: /All chapters/ }));
+    await waitFor(() => expect(address()).toBe('/proof'));
+    await jumpTo('Script');
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
+    await back();
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-6'));
+    expect(window.localStorage.getItem(projectStorageKey('proof.lastChapter', OTHER))).toBe('chapter-6');
+  });
+
+  it('Proof: rapid A, V, A, V switches never forget either project’s kept chapter', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', alice), 'chapter-4');
+    window.localStorage.setItem(projectStorageKey('proof.lastChapter', OTHER), 'chapter-5');
+    const { api } = await openAt('/proof');
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-4'));
+    await sameTask(async () => {
+      for (const [at, folder] of [OTHER, alice, OTHER, alice, OTHER, alice].map((folder, index) => [index * 15, folder] as const)) {
+        await new Promise((resolve) => setTimeout(resolve, at === 0 ? 0 : 15));
+        void api.switchProject(folder, folder === alice ? 'Alice in Wonderland' : 'Voltage and the Undercroft');
+      }
+    });
+    await waitFor(() => expect(address()).toBe('/proof?chapter=chapter-4'));
+    expect(window.localStorage.getItem(projectStorageKey('proof.lastChapter', alice))).toBe('chapter-4');
+    expect(window.localStorage.getItem(projectStorageKey('proof.lastChapter', OTHER))).toBe('chapter-5');
+  });
+
+  it('Settings opens a project on its own last category, not the other project’s spot (#4099)', async () => {
+    window.localStorage.setItem(`narration.settings.lastCategory.${OTHER}`, 'delivery');
+    const { api } = await openAt('/settings#cleanup');
+    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+    await api.switchProject(OTHER, 'Voltage and the Undercroft');
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    expect((await screen.findByRole('heading', { level: 2, name: 'Delivery' })).textContent).toBe('Delivery');
   });
 
   it('Settings\u2019 Back to a page goes to the bare page after a project change, not to the old project\u2019s chapter', async () => {
@@ -451,13 +521,18 @@ describe('the chapter in the address is not carried into another project (#4059)
     expect(window.location.hash).toBe('');
   });
 
-  it('a switch while Settings shows a category from the jump menu keeps Settings on that category', async () => {
-    const { api } = await openAt('/settings#category-delivery');
-    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+  // Each project keeps its own category (#4099), so a category link of the old project is not the new project's ask: it opens on its own, and neither project's kept one changes.
+  it('a switch while Settings shows a category from the jump menu opens the new project on its own category', async () => {
+    const alice = await aliceFolder();
+    window.localStorage.setItem(projectStorageKey('settings.lastCategory', OTHER), 'delivery');
+    window.localStorage.setItem(projectStorageKey('settings.lastCategory', alice), 'models');
+    const { api } = await openAt('/settings#category-speech');
+    await screen.findByRole('heading', { level: 2, name: 'Speech to text' });
     await api.switchProject(OTHER, 'Voltage and the Undercroft');
-    await screen.findByRole('heading', { level: 1, name: 'Settings' });
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    expect(window.location.hash).toBe('#category-delivery');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Delivery' })).toBeTruthy();
+    await waitFor(() => expect(window.location.hash).toBe(''));
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', OTHER))).toBe('delivery');
+    expect(window.localStorage.getItem(projectStorageKey('settings.lastCategory', alice))).toBe('models');
   });
 
   // What the dev mock's states panel does: it rewrites the entry with no state at all, so history holds no key and no index while the router shows an entry that has both.

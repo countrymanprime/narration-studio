@@ -8,7 +8,7 @@ import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useLayoutClass } from '../../hooks/useLayoutClass';
 import { useGuardedAction } from '../../studio/drafts/unsavedDrafts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigationType, useSearchParams } from 'react-router-dom';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
 import { shownFindingNoteType, type Finding, type FindingNoteType, type FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
@@ -46,7 +46,7 @@ import { kindColour } from '../../kinds/kindMap';
 import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
-import { recallSelection, rememberSelection } from './proofMemory';
+import { appHasMoved, chosenAll, chooseAll, recordShownAll, showedAll, recallSelection, rememberSelection } from './proofMemory';
 import { SurroundingText } from './around/SurroundingText';
 import { useParagraphsAround } from './around/useParagraphsAround';
 import { SpotTakes } from './spot/SpotTakes';
@@ -154,6 +154,58 @@ export function ProofPage({
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
   const all = scope === ALL_CHAPTERS;
+  // With no chapter and no note in the address, Proof opens on the chapter it last showed in this project (#4099): the shared chapter Master & QC also writes, unless the narrator
+  // chose All chapters this session (`proofMemory`). Once the chapters are read, a kept chapter the book still has is written into the address (replacing the entry, as the
+  // Booth does); one the book no longer has opens All chapters and is forgotten. An address that names a chapter is kept as the last one.
+  const navigationType = useNavigationType();
+  const locationKey = useLocation().key;
+  const [restored, setRestored] = useState(false);
+  // The chapter the restore is moving to, held until the address shows it so All chapters is never drawn first (the skeleton stays up).
+  const [landing, setLanding] = useState<string | null>(null);
+  useEffect(() => {
+    if (restored || !firstRead.chapters) return;
+    setRestored(true);
+    // A Back or Forward onto an entry shows it as it was left, All chapters included (and the entry is not rewritten); only the page the app was opened on, and a move the narrator
+    // makes (the rail, a link), opens on the kept chapter.
+    // Only an entry that drew All chapters here is shown as that: one left before the chapters were read, or written under another project, opens on the kept chapter.
+    if (navigationType === 'POP' && appHasMoved() && showedAll(projectFolder, locationKey) && !params.has('chapter') && !params.has('finding')) {
+      chooseAll(projectFolder, true);
+      return;
+    }
+    if (params.has('chapter') || params.has('finding') || chosenAll(projectFolder)) return;
+    const kept = loadSharedChapter(projectFolder);
+    if (!kept) return;
+    if (chapters.some((c) => c.id === kept)) {
+      setSelectedId(recallSelection(projectFolder, kept));
+      setLanding(kept);
+      setParams({ chapter: kept }, { replace: true });
+    } else saveSharedChapter(projectFolder, '');
+  }, [restored, firstRead.chapters, params, chapters, projectFolder, setParams, navigationType, locationKey]);
+  const asked = params.get('chapter');
+  // The restore has landed, or an address that names another chapter came while it was landing (a link, Back): nothing is held for it any more.
+  useEffect(() => {
+    if (landing !== null && (scope === landing || (asked !== null && asked !== landing))) setLanding(null);
+  }, [landing, scope, asked]);
+  // What the page shows is what is kept, whichever way the scope got there (a pick, Esc, a note, Back, Forward, a link): a chapter becomes the shared chapter and ends "All chapters
+  // was chosen"; All chapters, reached by a move of the narrator's, sets it. A replace is the app's own (the restore above, a project change's cut of the old project's address)
+  // and is never taken for a choice (#4099).
+  const trackedKey = useRef<string | null>(null);
+  const tracking = restored && landing === null;
+  useEffect(() => {
+    if (restored && asked && chapters.some((c) => c.id === asked)) {
+      saveSharedChapter(projectFolder, asked);
+      chooseAll(projectFolder, false);
+    }
+  }, [restored, asked, chapters, projectFolder]);
+  useEffect(() => {
+    if (tracking && scope === ALL_CHAPTERS && !params.has('finding')) recordShownAll(projectFolder, locationKey);
+  }, [tracking, scope, params, projectFolder, locationKey]);
+  useEffect(() => {
+    if (!tracking) return;
+    const moved = trackedKey.current !== null && trackedKey.current !== locationKey;
+    trackedKey.current = locationKey;
+    if (moved && navigationType !== 'REPLACE' && scope === ALL_CHAPTERS) chooseAll(projectFolder, true);
+  }, [tracking, locationKey, navigationType, scope, projectFolder]);
   // The host sorts by a chapter-relative time, so All chapters is put in book order here; the table groups by chapter and J/K must follow it.
   const findings = useMemo(
     () =>
@@ -449,7 +501,7 @@ export function ProofPage({
 
   if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
   if (loadProblem !== undefined) return <LoadError title="Proof" message={loadProblem} retry={() => setAttempt((n) => n + 1)} />;
-  if (!firstRead.chapters || !firstRead.notes) return <ProofSkeleton />;
+  if (!firstRead.chapters || !firstRead.notes || !restored || (landing !== null && scope !== landing)) return <ProofSkeleton />;
 
   const stepper = (
     <ChapterStepper

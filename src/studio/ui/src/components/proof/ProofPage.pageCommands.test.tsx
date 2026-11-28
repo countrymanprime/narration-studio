@@ -128,6 +128,7 @@ describe('proof-page-commands', () => {
     act(() => byId('check').run());
     expect(open).toHaveBeenCalledWith(['chapter-1']);
     unmount();
+    window.localStorage.clear(); // Proof now reopens on the chapter it was last on; this page is to open on All chapters
 
     const message = 'REAPER is not answering. Start it and open the project.';
     const caps: DawCapabilities = {

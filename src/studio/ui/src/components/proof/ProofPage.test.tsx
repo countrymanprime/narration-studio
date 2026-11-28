@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -22,6 +22,7 @@ import type { Finding, NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
+import { noteAppMoved } from './proofMemory';
 import { ProofPage } from './ProofPage';
 import { loadSharedChapter, saveSharedChapter } from '../masterqc/page/sharedChapter';
 import { ProjectTrackProviders } from '../chapterTracks/ChapterTrackState';
@@ -54,6 +55,23 @@ function Back() {
   );
 }
 
+/** The browser's Forward. */
+function Forward() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(1)}>
+      history forward
+    </button>
+  );
+}
+
+/** Lets a test move the router the way a link does, in the same tick as something else. */
+let navigateTo: (to: string) => void = () => {};
+function Nav() {
+  navigateTo = useNavigate();
+  return null;
+}
+
 /** Longer than any test: the toast outlasts the slowest runner. */
 const UNDO_TOAST_FOR_TEST_MS = 10 * 60_000;
 
@@ -64,14 +82,24 @@ function renderPage({
   hasManuscript = true,
   footer = null,
   trackState = false,
-}: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean; footer?: HTMLElement | null; trackState?: boolean } = {}) {
+  shared = null,
+}: {
+  api?: NarrationApi;
+  at?: string;
+  before?: string[];
+  hasManuscript?: boolean;
+  footer?: HTMLElement | null;
+  trackState?: boolean;
+  /** The chapter Proof and Master & QC share, set before the page opens (null leaves what storage holds). */
+  shared?: string | null;
+} = {}) {
   const handlers = { goTo: vi.fn(), goToScript: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
   // The toast's Undo goes away on a real five-second timer. A loaded runner takes longer than that between the decision and the click, so the
   // button was gone when the click landed. These tests are about what Undo does, not how long it stays: keep the toast for the whole test.
   const toastUndo = overlay.toastUndo;
   vi.spyOn(overlay, 'toastUndo').mockImplementation((text, undo, options) => toastUndo(text, undo, { ...options, durationMs: UNDO_TOAST_FOR_TEST_MS }));
-  saveSharedChapter('/p', 'chapter-2');
+  if (shared !== null) saveSharedChapter('/p', shared);
   render(
     <MemoryRouter initialEntries={[...before, at]} initialIndex={before.length}>
       <ApiProvider api={api}>
@@ -111,6 +139,8 @@ function renderPage({
               </Routes>
               <Where />
               <Back />
+              <Forward />
+              <Nav />
               <OverlayHost />
             </TooltipProvider>
           </CommandRouter>
@@ -128,6 +158,226 @@ const noteRows = async () => {
 };
 const where = () => screen.getByTestId('where').textContent;
 const press = (key: string, code: string) => fireEvent.keyDown(document.body, { key, code });
+
+describe('proof-reopens-where-it-was (#4099)', () => {
+  const kept = () => loadSharedChapter('/p');
+
+  it('opens on the chapter it was last on after a trip through another page', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    cleanup();
+    renderPage();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    expect(await screen.findByText(/Recording check/i)).toBeTruthy();
+  });
+
+  const back = () => fireEvent.click(screen.getByRole('button', { name: 'history back' }));
+  const forward = () => fireEvent.click(screen.getByRole('button', { name: 'history forward' }));
+
+  it('a Back from All chapters to a chapter reopens on that chapter after a trip through another page', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    back();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+  });
+
+  it('a Back from a chapter to All chapters reopens on All chapters', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    back();
+    await waitFor(() => expect(where()).toBe('/proof'));
+    cleanup();
+    renderPage({ shared: null });
+    await noteRows();
+    expect(where()).toBe('/proof');
+  });
+
+  it('a Forward to a chapter after a Back to All chapters reopens on the chapter', async () => {
+    renderPage();
+    await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    back();
+    await waitFor(() => expect(where()).toBe('/proof'));
+    forward();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+  });
+
+  it('an address that names a chapter after All chapters was chosen reopens on that chapter', async () => {
+    renderPage({ at: '/proof?chapter=chapter-2' });
+    await noteRows();
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    cleanup();
+    renderPage({ at: '/proof?chapter=chapter-3', shared: null });
+    await screen.findByText(/Recording check/i);
+    expect(where()).toBe('/proof?chapter=chapter-3');
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+  });
+
+  it('a Back onto an All chapters entry shows All chapters and does not rewrite the entry', async () => {
+    renderPage({ at: '/proof?chapter=chapter-3' });
+    await screen.findByText(/Recording check/i);
+    // CI once saw this Escape go unheard right after the check card showed (not reproduced here; the keys likely bind a little later on a loaded runner): press until it is heard, it does nothing on All chapters.
+    await waitFor(() => {
+      press('Escape', 'Escape');
+      expect(where()).toBe('/proof');
+    });
+    await noteRows();
+    noteAppMoved(); // what App.tsx does once the app has a second address
+    act(() => navigateTo('/pickups'));
+    await screen.findByText('The pickups page');
+    back();
+    await noteRows();
+    expect(where()).toBe('/proof');
+    expect(screen.getByText('Open notes, by chapter')).toBeTruthy();
+    forward();
+    await waitFor(() => expect(screen.getByText('The pickups page')).toBeTruthy());
+    cleanup();
+    renderPage({ shared: null });
+    await noteRows();
+    expect(where()).toBe('/proof'); // the Back onto All chapters is the narrator's last word, as a choice of All
+  });
+
+  it('a Back onto a Proof entry left before the chapters were read opens the kept chapter and does not set All chapters', async () => {
+    const api = createMockApi();
+    const book = await api.manuscriptChapters();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(async () => {
+      await gate;
+      return book;
+    });
+    renderPage({ api, shared: 'chapter-3' });
+    noteAppMoved();
+    act(() => navigateTo('/pickups'));
+    await screen.findByText('The pickups page');
+    release();
+    back();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+  });
+
+  it('the page the app was opened on still opens on the kept chapter', async () => {
+    renderPage({ shared: 'chapter-3' });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+  });
+
+  it('an address change while the restore lands never leaves the skeleton up', async () => {
+    const api = createMockApi();
+    const book = await api.manuscriptChapters();
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.spyOn(api, 'manuscriptChapters').mockImplementation(async () => {
+      await gate;
+      return book;
+    });
+    renderPage({ api, shared: 'chapter-1' });
+    await act(async () => {
+      release();
+      navigateTo('/proof?chapter=chapter-2');
+    });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    expect(await screen.findByText(/Recording check/i)).toBeTruthy();
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+
+  it('never draws All chapters before the kept chapter', async () => {
+    let drewAll = false;
+    const watch = new MutationObserver(() => {
+      if (document.body.textContent?.includes('Open notes, by chapter')) drewAll = true;
+    });
+    watch.observe(document.body, { childList: true, subtree: true, characterData: true });
+    renderPage({ shared: 'chapter-2' });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    expect(await screen.findByText(/Recording check/i)).toBeTruthy();
+    watch.disconnect();
+    expect(drewAll).toBe(false);
+  });
+
+  it('opens on the chapter Master & QC last wrote, the one key they share', async () => {
+    renderPage({ shared: 'chapter-3' });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-3'));
+  });
+
+  it('opens on All chapters when nothing is kept', async () => {
+    renderPage();
+    await noteRows();
+    expect(where()).toBe('/proof');
+  });
+
+  it('keeps All chapters when that was the choice this session, though a chapter was looked at before', async () => {
+    renderPage({ at: '/proof?chapter=chapter-2' });
+    await noteRows();
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    cleanup();
+    renderPage({ shared: null });
+    await noteRows();
+    expect(where()).toBe('/proof');
+    expect(screen.getByText('Open notes, by chapter')).toBeTruthy();
+    expect(kept()).toBe('chapter-2');
+  });
+
+  it('opens a chapter again once one is chosen after All chapters', async () => {
+    renderPage({ at: '/proof?chapter=chapter-2' });
+    await noteRows();
+    press('Escape', 'Escape');
+    await waitFor(() => expect(where()).toBe('/proof'));
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+    cleanup();
+    renderPage({ shared: null });
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
+  });
+
+  it('lets the address win over what is kept, and keeps the address’s chapter', async () => {
+    renderPage({ at: '/proof?chapter=chapter-1', shared: 'chapter-2' });
+    await noteRows();
+    expect(where()).toBe('/proof?chapter=chapter-1');
+    await waitFor(() => expect(kept()).toBe('chapter-1'));
+  });
+
+  it('opens on All chapters when the kept chapter is no longer in the book, and forgets it', async () => {
+    renderPage({ shared: 'chapter-that-was-deleted' });
+    await noteRows();
+    expect(where()).toBe('/proof');
+    await waitFor(() => expect(kept()).toBe(''));
+  });
+
+  it('keeps the chapter per project: another project’s is never opened', async () => {
+    window.localStorage.setItem('narration.proof.lastChapter./other', 'chapter-2');
+    renderPage();
+    await noteRows();
+    expect(where()).toBe('/proof');
+  });
+
+  it('opens a kept chapter under another spelling of the same folder', async () => {
+    window.localStorage.setItem('narration.proof.lastChapter.\\p', 'chapter-2');
+    renderPage();
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+  });
+});
 
 describe('sort-asks-the-host', () => {
   it('asks the host for the sort through FindingsQuery', async () => {
@@ -248,21 +498,23 @@ describe('proof-route-draws-the-mock-page', () => {
     await waitFor(() => expect(where()).toBe('/proof'));
   });
 
-  it('steps the chapter with Left and Right, from All chapters to the one last looked at', async () => {
+  it('steps the chapter with Left and Right, from All chapters to the first chapter when none was looked at', async () => {
     renderPage();
     await noteRows();
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
     press('ArrowRight', 'ArrowRight');
     await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
     press('ArrowLeft', 'ArrowLeft');
     await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
-    expect(loadSharedChapter('/p')).toBe('chapter-1'); // the key Master & QC shares, so Proof cannot keep one of its own
+    expect(loadSharedChapter('/p')).toBe('chapter-1'); // the key Master & QC shares
   });
 
   it('a chapter change is a step in the history, so Back goes to the page before it, not out of the page', async () => {
     renderPage({ before: ['/pickups'] });
     await noteRows();
     press('ArrowRight', 'ArrowRight');
-    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-1'));
     fireEvent.click(screen.getByRole('button', { name: 'history back' }));
     await waitFor(() => expect(where()).toBe('/proof'));
     fireEvent.click(screen.getByRole('button', { name: 'history back' }));
