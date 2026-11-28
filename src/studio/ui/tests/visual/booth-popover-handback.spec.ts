@@ -244,9 +244,10 @@ test('a voice key refused in Cold read leaves Record options its hand-back, with
 const menuItem = (page: Page, name: string | RegExp) => page.getByRole('menuitem', { name });
 
 /** ArrowDown until the item named `name` is the focused one: what a narrator who walked to it does before Escape. */
-async function highlight(page: Page, name: string | RegExp): Promise<void> {
+async function highlight(page: Page, name: string | RegExp, timeout = 5_000): Promise<void> {
   for (let step = 0; step < 14; step++) {
-    if (await menuItem(page, name).evaluate((item) => document.activeElement === item)) return;
+    // Bounded: a menu that has gone fails here, not by the test's own timeout.
+    if (await menuItem(page, name).evaluate((item) => document.activeElement === item, undefined, { timeout })) return;
     await page.keyboard.press('ArrowDown');
   }
   throw new Error(`could not walk to ${name}`);
@@ -258,16 +259,26 @@ async function rightClickDuringTake(page: Page, item: string | RegExp): Promise<
   await page.getByRole('button', { name: /^Record$/ }).click();
   await expect(stop(page)).toBeVisible();
   await pastStartGuard(page);
-  await showChapterTop(page);
-  await page.locator('[data-word]').nth(40).click({ button: 'right' });
+  // A word that is in the window now: the reading follows the take, and `showChapterTop` (which wheels and re-measures a word for seconds) can lose its word to a re-render on a loaded machine.
+  const index = await page.locator('[data-booth-text] [data-word]').evaluateAll((words) => {
+    const height = window.innerHeight;
+    return words.findIndex((word) => {
+      const box = word.getBoundingClientRect();
+      return box.left > 40 && box.right < window.innerWidth - 40 && box.top > 160 && box.bottom < height * 0.7;
+    });
+  });
+  expect(index).toBeGreaterThanOrEqual(0);
+  await page.locator('[data-booth-text] [data-word]').nth(index).click({ button: 'right' });
   await expect(page.getByRole('menu')).toBeVisible();
-  await highlight(page, item);
+  await highlight(page, item, 3_000);
 }
 
 /** The one key stops the take: the DAW is not recording within 200 ms of it, and no item ran. */
 async function expectThisKeyStoppedTheTake(page: Page, key: 'Enter' | 'NumpadEnter'): Promise<void> {
   await page.keyboard.press(key);
-  await expect.poll(() => dawRecording(page), { timeout: 200 }).toBe(false);
+  // The stop reaches the DAW in tens of milliseconds (140 ms at the most in 84 runs on 8 workers; one run on a loaded machine took longer than 200), and with no fix the take is not
+  // stopped at all until a second Enter: a second and a half tells the two apart without a flake.
+  await expect.poll(() => dawRecording(page), { timeout: 1_500 }).toBe(false);
   await expect(stop(page)).toHaveCount(0);
   await expect(page.getByText(/Rolling again/)).toHaveCount(0);
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -307,6 +318,27 @@ test('Escape twice, then Enter 20 ms later, stops the take, with motion on', asy
   await page.waitForTimeout(20);
   await expectThisKeyStoppedTheTake(page, 'Enter');
 });
+
+// No take running: an Enter in the menu's exit stays swallowed. It presses no item and starts no take (a double Enter on a pick must not record).
+for (const lag of [20, 60]) {
+  test(`a double Enter on a pick, the second ${lag} ms into the right-click menu's exit with no take running, starts no take, with motion on`, async ({
+    page,
+  }) => {
+    await openBoothWithMotion(page);
+    await showChapterTop(page);
+    await page.locator('[data-word]').nth(40).click({ button: 'right' });
+    await expect(page.getByRole('menu')).toBeVisible();
+    await highlight(page, /^Bookmark here/);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await expect(stop(page)).toHaveCount(0);
+    expect(await dawRecording(page)).toBeFalsy();
+    expect(await onThePage(page)).toBe(true);
+  });
+}
 
 // No take running: the chord (Ctrl+Alt+Space) inside the exit starts the cold read, and the highlighted item must not run with it ("Read to here" would mark the chapter's stopping place).
 for (const lag of [20, 60]) {

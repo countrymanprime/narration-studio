@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { isGuardedTarget, keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
+import { isGuardedTarget, isInertLeavingItem, keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
 
 /** How long after a press that pressed a toast's button the next take key (Space, Enter) is taken as the same tap (#4094). */
 const AFTER_TOAST_PRESS_MS = 600;
@@ -46,6 +46,19 @@ export function usePedalSpace(toggle: () => unknown, takeRunning: () => boolean 
     };
     const takeKey = (event: KeyboardEvent) => TAKE_KEYS.has(event.code) && !event.ctrlKey && !event.altKey && !event.metaKey;
     const down = (event: KeyboardEvent) => {
+      // A footswitch Enter on an item of a menu that is leaving (its items are off and press nothing, #4183) stops the take that runs: the router holds Enter for a control in a closing
+      // popup, and Base UI swallows it on the disabled item, so nothing else would. With no take running it stays swallowed: it must not start one (a double Enter on a pick).
+      if (
+        takeKey(event) &&
+        event.code !== 'Space' &&
+        event.target instanceof Element &&
+        isInertLeavingItem(event.target, event.target.closest('[data-ending-style]') !== null) &&
+        takeRunning()
+      ) {
+        event.preventDefault();
+        if (!event.repeat) void toggle();
+        return;
+      }
       if (takeKey(event) && !event.repeat && !takeRunning()) {
         const target = event.target;
         if (target instanceof Element && target.closest('[data-toast-region] button')) lastToastPress = event.timeStamp;
