@@ -4,6 +4,7 @@ import { Button } from './Button';
 import { Icon } from './Icon';
 import { IconButton } from './IconButton';
 import { TooltipTarget } from './Tooltip';
+import { ignoreChordPress } from './chordKeys';
 import { forgetPageTookFocus, menuFinalFocus } from './focusReturn';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 import { useLeaving } from './useLeaving';
@@ -122,6 +123,7 @@ export function ChapterStepper({
                     key={item.id}
                     value={item.id}
                     disabled={leaving}
+                    onKeyDown={ignoreChordPress}
                     closeOnClick
                     className="flex w-full cursor-pointer items-center gap-2 rounded-[0.3rem] px-[0.55rem] py-[0.45rem] text-left text-[0.82rem] outline-none data-[checked]:font-semibold data-[highlighted]:bg-[var(--surface-2)]"
                   >

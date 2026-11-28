@@ -315,6 +315,36 @@ describe('ChapterStepper chapter list focus while it leaves', () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
+    // A chord's Space with the list still OPEN is the page's too, not the highlighted chapter's: Base UI presses an item on the keydown of Space whatever else is
+    // held, and Ctrl+Alt+Space (the Booth's switch between Record and Cold read) picked "Opening credits" with the list open and then asked "Stop recording?" (#4195).
+    it.each([
+      ['Ctrl+Space', { key: ' ', code: 'Space', ctrlKey: true }],
+      ['Alt+Space', { key: ' ', code: 'Space', altKey: true }],
+      ['Meta+Space', { key: ' ', code: 'Space', metaKey: true }],
+      ['Ctrl+Alt+Space', { key: ' ', code: 'Space', ctrlKey: true, altKey: true }],
+      ['Ctrl+Enter', { key: 'Enter', code: 'Enter', ctrlKey: true }],
+      ['Alt+NumpadEnter', { key: 'Enter', code: 'NumpadEnter', altKey: true }],
+    ])('an open list takes no %s press and stays open', async (_name, key) => {
+      const { onChange, user } = setup();
+      await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+      const item = (await screen.findAllByRole('menuitemradio'))[0];
+      item.focus();
+      fireEvent.keyDown(item, key);
+      fireEvent.keyUp(item, key);
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getAllByRole('menuitemradio')).toHaveLength(3);
+      expect(leavingMenu()).toBeNull();
+    });
+
+    it('an open list still takes a plain Space', async () => {
+      const { onChange, user } = setup();
+      await user.click(screen.getByRole('button', { name: /Change chapter/ }));
+      const item = (await screen.findAllByRole('menuitemradio'))[0];
+      item.focus();
+      fireEvent.keyDown(item, { key: ' ', code: 'Space' });
+      expect(onChange).toHaveBeenCalledWith('1');
+    });
+
     it('is still picked while the list is open, and when it is opened again during the exit', async () => {
       const onChange = vi.fn();
       const { end, user } = await escapeWhileLeaving(onChange);

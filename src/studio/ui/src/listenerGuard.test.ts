@@ -35,6 +35,12 @@ const PERMANENT: Record<string, Reason> = {
     note: "installs the held-key listeners of HeldKeys (`attach`, src/input/heldKeys.ts) and, with them, the grace after a keyboard Dismiss: for a moment after a toast press, a fresh Enter or Space is consumed (`preventDefault`, `stopPropagation`, held, so its repeats are cancelled until its keyup), so it presses neither the control focus went back to nor the page's own command (#4063, #4125). It cannot be a useCommand row: a command row is a key bound to an action, and this is a rule on every Enter or Space for a short window after a press, in the capture phase, before any command or field sees it; it belongs to the toast region, which removes it when the keys come up or the region goes",
   },
   'src/components/booth/useFollowCursor.ts': { note: 'isScrollKey detects a hand scroll, not a command' },
+  'src/components/primitives/Menu.test.tsx': {
+    note: "a test stands in for the router: it listens on the document to prove that a Ctrl+Alt+Space chord pressed on a menu item still reaches the page once (#4195); the router's own listener is in src/input/",
+  },
+  'src/components/primitives/Toolbar.test.tsx': {
+    note: "a test stands in for the router: it listens on the document to prove that a Ctrl+Alt+Space chord pressed on a toolbar button still reaches the page once (#4195); the router's own listener is in src/input/",
+  },
 };
 
 // Temporary: a command listener not yet migrated onto `useCommand`. Each entry names what migrates it and is
