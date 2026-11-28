@@ -7,6 +7,7 @@ import type { IconName } from '../../icons.catalog';
 import { Icon } from './Icon';
 import { KeyChord } from './KeyCap';
 import { TooltipTarget } from './Tooltip';
+import { ignoreChordPress } from './chordKeys';
 import { handFocusToPage } from './focusReturn';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 import { useLeaving } from './useLeaving';
@@ -85,6 +86,7 @@ function IconRow({ item, leaving }: { item: ContextMenuItem; leaving: boolean })
         aria-label={item.label}
         aria-description={item.unavailable}
         onClick={item.onSelect}
+        onKeyDown={ignoreChordPress}
         data-off={item.unavailable !== undefined ? '' : undefined}
         className="flex size-8 cursor-pointer items-center justify-center rounded-[0.3rem] text-[0.85rem] outline-none data-[highlighted]:bg-[var(--surface-2)] data-[off]:cursor-default data-[off]:text-[var(--text-muted)]"
       >
@@ -111,6 +113,7 @@ function Row({ item, reasonId, leaving }: { item: ContextMenuItem; reasonId: str
         data-off={look}
         aria-describedby={described}
         onClick={item.onSelect}
+        onKeyDown={ignoreChordPress}
         className={ROW_CLASSES}
       >
         <RowText item={item} reasonId={reasonId} />
@@ -124,6 +127,7 @@ function Row({ item, reasonId, leaving }: { item: ContextMenuItem; reasonId: str
         closeOnClick
         aria-describedby={described}
         onClick={item.onSelect}
+        onKeyDown={ignoreChordPress}
         className={ROW_CLASSES}
       >
         <RowText item={item} reasonId={reasonId} />
@@ -136,6 +140,7 @@ function Row({ item, reasonId, leaving }: { item: ContextMenuItem; reasonId: str
         disabled={off || gone}
         data-off={look}
         aria-describedby={described}
+        onKeyDown={ignoreChordPress}
         className={`${ROW_CLASSES} relative pr-6 data-[popup-open]:bg-[var(--surface-2)]`}
       >
         <RowText item={item} reasonId={reasonId} />

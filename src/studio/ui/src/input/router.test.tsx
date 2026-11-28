@@ -128,6 +128,30 @@ describe('CommandRouter', () => {
     expect(preventDefault).toHaveBeenCalledTimes(2);
   });
 
+  // The Booth's Ctrl+Alt+Space reaches its handler with a menu open (a chord is not held behind a popup) and the key is consumed before the handler decides: when it
+  // refuses (a take running, a list open) the browser's own Space press of a focused control never also runs (#4195). What the chord does with a menu open is the handler's.
+  it('a Ctrl+Alt+Space chord with a menu open reaches its handler and the key is consumed once', () => {
+    const source = fakeSource();
+    const run = vi.fn();
+    const SWITCH: CommandDescriptor = { id: 'test.switch', label: 'Switch', scope: 'global', defaults: [] };
+    const keymap: Keymap = { 'test.switch': [gesture('keyboard', 'Space', ['Alt', 'Ctrl'])] };
+    const preventDefault = vi.fn();
+    const item = document.createElement('div');
+    item.setAttribute('role', 'menuitem');
+    document.body.append(item);
+    render(
+      <CommandRouter source={source} catalog={[SWITCH]} keymap={keymap}>
+        <Registrar id="test.switch" onFire={run} />
+      </CommandRouter>,
+    );
+    act(() =>
+      source.emit({ gesture: gesture('keyboard', 'Space', ['Alt', 'Ctrl']), preventDefault, target: item, context: { layerOpen: true, targetClosing: false } }),
+    );
+    item.remove();
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+  });
+
   it('leaves a gesture no command takes alone (no preventDefault)', () => {
     const source = fakeSource();
     const preventDefault = vi.fn();

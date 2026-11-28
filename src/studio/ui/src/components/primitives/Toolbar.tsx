@@ -1,5 +1,6 @@
 import { Toolbar as BaseToolbar } from '@base-ui/react/toolbar';
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react';
+import { ignoreChordPress } from './chordKeys';
 
 // Elements a roving-tabindex item can land on. A genuinely disabled one (native `disabled`) is never a Home/End target,
 // the same items the arrow keys already skip: Base UI keeps a composite item focusable through `aria-disabled` instead
@@ -65,7 +66,7 @@ export function ToolbarButton({
   children?: ReactNode;
 }) {
   return (
-    <BaseToolbar.Button render={render} disabled={disabled} focusableWhenDisabled={focusableWhenDisabled}>
+    <BaseToolbar.Button render={render} disabled={disabled} focusableWhenDisabled={focusableWhenDisabled} onKeyDown={ignoreChordPress}>
       {children}
     </BaseToolbar.Button>
   );

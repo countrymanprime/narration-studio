@@ -345,3 +345,84 @@ describe('Menu items while it leaves', () => {
     await end();
   });
 });
+
+// A chord (Ctrl, Alt or Meta held) is the page's, not the item's: Base UI presses a focused item on the keydown of Space or Enter whatever else is held, and the
+// Booth's Ctrl+Alt+Space with the chapter list open picked the highlighted chapter (#4195). The menu stays open and the key still reaches the page.
+describe('Menu items with Ctrl, Alt or Meta held', () => {
+  const chords = [
+    ['Ctrl', { ctrlKey: true }],
+    ['Alt', { altKey: true }],
+    ['Meta', { metaKey: true }],
+    ['Ctrl+Alt', { ctrlKey: true, altKey: true }],
+  ] as const;
+  const keys = [
+    ['Space', { key: ' ', code: 'Space' }],
+    ['Enter', { key: 'Enter', code: 'Enter' }],
+    ['NumpadEnter', { key: 'Enter', code: 'NumpadEnter' }],
+  ] as const;
+  const cases = chords.flatMap(([chord, modifiers]) => keys.map(([name, key]) => [`${chord}+${name}`, { ...key, ...modifiers }] as const));
+
+  async function openFocused(ui: ReactElement, trigger: string) {
+    render(ui);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: trigger }));
+    const item = (await screen.findAllByRole('menuitem'))[0]!;
+    item.focus();
+    return item;
+  }
+
+  it.each(cases)("an open menu's plain item takes no %s press, and the key's default is stopped", async (_name, key) => {
+    items.forEach((item) => item.onSelect.mockClear());
+    const item = await openFocused(<Menu items={items}>Character</Menu>, 'Character');
+    // `fireEvent` answers false when the keydown's default was prevented (Space would scroll the page, Enter would press a native control).
+    expect(fireEvent.keyDown(item, key)).toBe(false);
+    fireEvent.keyUp(item, key);
+    items.forEach((entry) => expect(entry.onSelect).not.toHaveBeenCalled());
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it.each(cases)("an open menu's checkbox, radio and sectioned plain item take no %s press", async (_name, key) => {
+    const choose = vi.fn();
+    render(
+      <Menu
+        label="Filter entries"
+        sections={[
+          { key: 'kind', select: 'many', items: [{ key: 'Place', label: 'Place', checked: false, onSelect: choose }] },
+          { key: 'show', select: 'one', items: [{ key: 'all', label: 'All entries', checked: false, onSelect: choose }] },
+          { key: 'tools', label: 'Tools', items: [{ key: 'scan', label: 'Scan the manuscript', onSelect: choose }] },
+        ]}
+      >
+        Filter
+      </Menu>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Filter entries' }));
+    const rows = [
+      await screen.findByRole('menuitemcheckbox'),
+      screen.getByRole('menuitemradio'),
+      screen.getByRole('menuitem', { name: 'Scan the manuscript' }),
+    ];
+    for (const row of rows) {
+      row.focus();
+      fireEvent.keyDown(row, key);
+      fireEvent.keyUp(row, key);
+    }
+    expect(choose).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it.each(keys)("an open menu's items still take a plain %s press", async (_name, key) => {
+    items.forEach((item) => item.onSelect.mockClear());
+    const item = await openFocused(<Menu items={items}>Character</Menu>, 'Character');
+    fireEvent.keyDown(item, key);
+    fireEvent.keyUp(item, key);
+    expect(items[0]!.onSelect).toHaveBeenCalledOnce();
+  });
+
+  it('a Shift press is still a press: only Ctrl, Alt and Meta make a chord', async () => {
+    items.forEach((item) => item.onSelect.mockClear());
+    const item = await openFocused(<Menu items={items}>Character</Menu>, 'Character');
+    fireEvent.keyDown(item, { key: 'Enter', code: 'Enter', shiftKey: true });
+    expect(items[0]!.onSelect).toHaveBeenCalledOnce();
+  });
+});

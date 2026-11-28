@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
@@ -92,6 +92,45 @@ describe('Toolbar', () => {
     expect(onSpace).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Erase' }));
     expect(onRecord).toHaveBeenCalledTimes(1);
+  });
+
+  // A chord (Ctrl, Alt or Meta held) is the page's, not the button's (#4195): Base UI presses a toolbar button on the keydown of Space or Enter whatever else is
+  // held, and Ctrl+Alt+Space on "Open the cleanup tools" in the engine panel opened that button's dialog although the Booth had refused the chord.
+  it.each([
+    ['Ctrl+Space', { key: ' ', code: 'Space', ctrlKey: true }],
+    ['Alt+Space', { key: ' ', code: 'Space', altKey: true }],
+    ['Meta+Space', { key: ' ', code: 'Space', metaKey: true }],
+    ['Ctrl+Alt+Space', { key: ' ', code: 'Space', ctrlKey: true, altKey: true }],
+    ['Ctrl+Enter', { key: 'Enter', code: 'Enter', ctrlKey: true }],
+    ['Meta+NumpadEnter', { key: 'Enter', code: 'NumpadEnter', metaKey: true }],
+  ])("a button takes no %s press, and the key's default is stopped", (_name, key) => {
+    const onRecord = vi.fn();
+    render(<Example onRecord={onRecord} />);
+    const record = screen.getByRole('button', { name: 'Record' });
+    record.focus();
+    // `fireEvent` answers false when the keydown's default was prevented.
+    expect(fireEvent.keyDown(record, key)).toBe(false);
+    fireEvent.keyUp(record, key);
+    expect(onRecord).not.toHaveBeenCalled();
+  });
+
+  // Enter on a native button is the browser's own press, which a jsdom keydown does not make; the real-browser case is in booth-popover-handback.spec.ts.
+  it('a button still takes a plain Space press', () => {
+    const onRecord = vi.fn();
+    render(<Example onRecord={onRecord} />);
+    const record = screen.getByRole('button', { name: 'Record' });
+    record.focus();
+    fireEvent.keyDown(record, { key: ' ', code: 'Space' });
+    fireEvent.keyUp(record, { key: ' ', code: 'Space' });
+    expect(onRecord).toHaveBeenCalledOnce();
+  });
+
+  it("a chord on a button stops the key's default, which is the browser's own Enter press of a native button", () => {
+    render(<Example />);
+    const record = screen.getByRole('button', { name: 'Record' });
+    record.focus();
+    expect(fireEvent.keyDown(record, { key: 'Enter', code: 'Enter', ctrlKey: true })).toBe(false);
+    expect(fireEvent.keyDown(record, { key: 'Enter', code: 'Enter' })).toBe(true);
   });
 
   it('names an icon-only button by its own label, unchanged by the toolbar', () => {
