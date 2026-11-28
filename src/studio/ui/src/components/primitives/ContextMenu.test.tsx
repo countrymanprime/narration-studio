@@ -305,6 +305,14 @@ describe('ContextMenu items while it leaves', () => {
       { key: 'icon', label: 'Bookmark here', icon: 'bookmark' as const, onSelect: vi.fn() },
       { key: 'iconoff', label: 'Mute', icon: 'bookmark' as const, unavailable: 'Not now.', onSelect: vi.fn() },
       { key: 'mark', label: 'Mark as done', checked: true, onSelect: vi.fn() },
+      { key: 'markoff', label: 'Mark as query', checked: false, unavailable: 'Select a word.', onSelect: vi.fn() },
+      {
+        key: 'sub',
+        label: 'Change type',
+        unavailable: 'Select some words first.',
+        onSelect: vi.fn(),
+        submenu: [{ key: 'tone', label: 'Tone', onSelect: vi.fn() }],
+      },
     ];
     let endExit: () => void = () => {};
     const finished = new Promise<void>((resolve) => (endExit = resolve));
@@ -324,7 +332,13 @@ describe('ContextMenu items while it leaves', () => {
     // The class and the attribute that draw the muted colour and the default cursor: what a row looks like.
     const look = () => rowsOf().map((row) => [row.getAttribute('aria-label') ?? row.textContent, row.className, row.hasAttribute('data-off')]);
     const open = look();
-    expect(open.filter((row) => row[2]).map((row) => row[0])).toEqual([expect.stringContaining('Add FX'), 'Mute']);
+    // Exactly the unavailable rows are marked: the plain one, the icon one, the checked one and the submenu row.
+    expect(open.filter((row) => row[2]).map((row) => row[0])).toEqual([
+      expect.stringContaining('Add FX'),
+      'Mute',
+      expect.stringContaining('Change type'),
+      expect.stringContaining('Mark as query'),
+    ]);
     expect(open.every((row) => !String(row[1]).includes('data-[disabled]'))).toBe(true);
     // Focus is on the popup itself: the unavailable icon row's hint wrapper is a tab stop that took it, and it answers Escape as a tooltip.
     menu.focus();
@@ -373,6 +387,38 @@ describe('ContextMenu items while it leaves', () => {
     endExit();
     await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Inner' })).toBeNull());
     expect(inner).not.toHaveBeenCalled();
+  });
+
+  it("a submenu's own trigger is off and opens nothing during its submenu's exit, and works again once it has settled", async () => {
+    const inner = vi.fn();
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    render(
+      <ContextMenu items={[{ key: 'more', label: 'More', onSelect: vi.fn(), submenu: [{ key: 'inner', label: 'Inner', onSelect: inner }] }]}>
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    const user = userEvent.setup();
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    await user.keyboard('{ArrowDown}{ArrowRight}');
+    const innerRow = await screen.findByRole('menuitem', { name: 'Inner' });
+    await waitFor(() => expect(document.activeElement).toBe(innerRow));
+    await user.keyboard('{Escape}');
+    const trigger = screen.getByRole('menuitem', { name: 'More' });
+    await waitFor(() => expect(trigger.getAttribute('aria-disabled')).toBe('true'));
+    // A press and the Right arrow on it open nothing while the submenu leaves.
+    fireEvent.click(trigger);
+    fireEvent.keyDown(trigger, { key: 'ArrowRight', code: 'ArrowRight' });
+    endExit();
+    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Inner' })).toBeNull());
+    // Settled: the trigger is on again and opens the submenu.
+    await waitFor(() => expect(trigger.getAttribute('aria-disabled')).toBeNull());
+    trigger.focus();
+    await user.keyboard('{ArrowRight}');
+    expect(await screen.findByRole('menuitem', { name: 'Inner' })).toBeTruthy();
   });
 
   it('a submenu row is pressed again once the submenu is opened again', async () => {

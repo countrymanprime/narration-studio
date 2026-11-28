@@ -1,6 +1,16 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { isGuardedTarget, keyContextOf, keyLayerOpen, modalLayerOpen, openModalLayer, softLayerOpen, takesTypedText, watchKeyContext } from './targets';
+import {
+  isGuardedTarget,
+  isInertLeavingItem,
+  keyContextOf,
+  keyLayerOpen,
+  modalLayerOpen,
+  openModalLayer,
+  softLayerOpen,
+  takesTypedText,
+  watchKeyContext,
+} from './targets';
 
 function el(html: string): Element {
   const div = document.createElement('div');
@@ -155,5 +165,34 @@ describe('the live checks and a popup that is closing', () => {
     expect(keyLayerOpen()).toBe(true);
     expect(softLayerOpen()).toBe(true);
     expect(modalLayerOpen()).toBe(true);
+  });
+});
+
+// The item of a menu that presses nothing because the menu has begun to close (#4183): off by `useLeaving`, inside a popup that is `data-ending-style`.
+describe('isInertLeavingItem', () => {
+  const inside = (popup: string, item: string) => el(`<div ${popup}>${item}</div>`).firstElementChild!;
+
+  it.each(['menuitem', 'menuitemradio', 'menuitemcheckbox'])('is true for a %s that is aria-disabled in a popup that is closing', (role) => {
+    expect(isInertLeavingItem(inside('role="menu" data-ending-style=""', `<div role="${role}" aria-disabled="true"></div>`))).toBe(true);
+  });
+
+  it('is true for a descendant of such an item (the label a press lands on)', () => {
+    const item = inside('role="menu" data-ending-style=""', '<div role="menuitem" aria-disabled="true"><span>Roll again</span></div>');
+    expect(isInertLeavingItem(item.querySelector('span'))).toBe(true);
+  });
+
+  it.each([
+    ['an item that is not off', 'role="menu" data-ending-style=""', '<div role="menuitem" aria-disabled="false"></div>'],
+    ['an item with no aria-disabled', 'role="menu" data-ending-style=""', '<div role="menuitem"></div>'],
+    ['a button in a popover that is closing, aria-disabled or not', 'data-popover-popup="" data-ending-style=""', '<button aria-disabled="true"></button>'],
+    ['an item that is off in a menu that is not closing', 'role="menu"', '<div role="menuitem" aria-disabled="true"></div>'],
+    ['an element of another role that is aria-disabled', 'role="menu" data-ending-style=""', '<div role="option" aria-disabled="true"></div>'],
+  ])('is false for %s', (_name, popup, item) => {
+    expect(isInertLeavingItem(inside(popup, item))).toBe(false);
+  });
+
+  it('is false for null and for a node that is not an element', () => {
+    expect(isInertLeavingItem(null)).toBe(false);
+    expect(isInertLeavingItem(document)).toBe(false);
   });
 });

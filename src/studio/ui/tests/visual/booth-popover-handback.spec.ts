@@ -273,12 +273,12 @@ async function rightClickDuringTake(page: Page, item: string | RegExp): Promise<
   await highlight(page, item, 3_000);
 }
 
-/** The one key stops the take: the DAW is not recording within 200 ms of it, and no item ran. */
+/** The one key stops the take: the DAW is not recording within 500 ms of it, and no item ran. */
 async function expectThisKeyStoppedTheTake(page: Page, key: 'Enter' | 'NumpadEnter'): Promise<void> {
   await page.keyboard.press(key);
-  // The stop reaches the DAW in tens of milliseconds (140 ms at the most in 84 runs on 8 workers; one run on a loaded machine took longer than 200), and with no fix the take is not
-  // stopped at all until a second Enter: a second and a half tells the two apart without a flake.
-  await expect.poll(() => dawRecording(page), { timeout: 1_500 }).toBe(false);
+  // The stop reaches the DAW in tens of milliseconds (140 ms at the most in 84 runs on 8 workers; one run on a loaded machine took longer than 200 ms), and with no fix the take is not
+  // stopped at all until a second Enter: half a second tells the two apart without a flake.
+  await expect.poll(() => dawRecording(page), { timeout: 500 }).toBe(false);
   await expect(stop(page)).toHaveCount(0);
   await expect(page.getByText(/Rolling again/)).toHaveCount(0);
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -318,6 +318,25 @@ test('Escape twice, then Enter 20 ms later, stops the take, with motion on', asy
   await page.waitForTimeout(20);
   await expectThisKeyStoppedTheTake(page, 'Enter');
 });
+
+// The chapter list's items are menu items too: with a cold read running (the picker stays on) a footswitch Enter in its exit stops the cold read (a #4190 cell).
+for (const lag of [20, 60]) {
+  test(`Enter ${lag} ms into the exit of the chapter list during a cold read stops it, with motion on`, async ({ page }) => {
+    await openBoothWithMotion(page);
+    await recordOptions(page).click();
+    await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(optionsDialog(page)).toHaveCount(0);
+    await page.getByRole('button', { name: /^Cold read$/ }).click();
+    await expect(coldRunning(page)).toBeVisible();
+    await pastStartGuard(page);
+    const before = await leaveChapterListFromKeyboard(page, lag);
+    await page.keyboard.press('Enter');
+    await expect(coldRunning(page)).toHaveCount(0, { timeout: 500 });
+    await expect(alertQuestion(page)).toHaveCount(0);
+    await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
+  });
+}
 
 // No take running: an Enter in the menu's exit stays swallowed. It presses no item and starts no take (a double Enter on a pick must not record).
 for (const lag of [20, 60]) {

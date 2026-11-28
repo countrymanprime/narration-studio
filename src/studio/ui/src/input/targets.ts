@@ -54,10 +54,10 @@ export function isGuardedTarget(target: EventTarget | null): boolean {
 /**
  * A menu item that presses nothing because its menu has begun to close (`useLeaving` disables a menu's items for its exit). With a take running, the Enter
  * that lands on it is the pedal's (`usePedalSpace`): the router holds Enter for a control in a closing popup, so nothing else would stop the take (#4183).
- * An item that is unavailable in a menu that is still open is `aria-disabled` too, but `closing` (its popup has `data-ending-style`) is false there.
+ * An item that is unavailable in a menu that is still open is `aria-disabled` too, but its popup is not closing (`CLOSING`) there; a button is no menu item.
  */
-export function isInertLeavingItem(target: EventTarget | null, closing: boolean | undefined): boolean {
-  return closing === true && target instanceof Element && target.closest('[role^="menuitem"][aria-disabled="true"]') !== null;
+export function isInertLeavingItem(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(CLOSING) !== null && target.closest('[role^="menuitem"][aria-disabled="true"]') !== null;
 }
 
 /**
