@@ -4,8 +4,10 @@
 // mark, the tab, the word, the entry, Find and the drawer are the SN-B70 view module's; the bookmark gone to is the page's own, as the
 // view module leaves bookmarks out. The `/script` route mounts it (App.tsx, SN-B8).
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { folderKey } from '../../../projectFolder';
+import { useOptionalStoreHandle } from '../../../studio/StudioProvider';
 import { useGuardedAction, useGuardedNavigate } from '../../../studio/drafts/unsavedDrafts';
 import type { ScriptViewState } from './data/scriptView';
 import { useShowInRail } from './data/useShowInRail';
@@ -101,15 +103,29 @@ export type ScriptPageProps = {
 /** How long the paragraph of a bookmark just gone to stays lit, as the mock's. */
 const BOOKMARK_FLASH_MS = 1600;
 
+/** False while the store's chapter list was read for another project than the page's folder; true when they agree, either is unknown, or there is no store. */
+function useListIsForProject(projectFolder: string | undefined): boolean {
+  const store = useOptionalStoreHandle();
+  const readFor = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.projectOf('chapters'),
+    () => undefined,
+  );
+  return !projectFolder || readFor === undefined || readFor === folderKey(projectFolder);
+}
+const noSubscribe = () => () => undefined;
+
 /** The page: the empty state with no manuscript, the host's sentence when the chapters cannot be read, else the three columns. */
 export function ScriptPage(props: ScriptPageProps) {
   const chapters = useChapters();
+  const listIsForThisProject = useListIsForProject(props.projectFolder);
   const navigate = useNavigate();
   const listable = useMemo(() => (chapters.value ?? []).filter(isListableChapter), [chapters.value]);
   // The credits are in the list, but the reader's text, Find, bookmarks and the empty check are about the manuscript's own chapters.
   const manuscript = useMemo(() => withoutCredits(listable), [listable]);
   if (chapters.status === 'error' && chapters.value === undefined) return <LoadError title="Script" message={chapters.message} retry={chapters.retry} />;
-  if (chapters.value === undefined) return <ScriptSkeleton />;
+  // After a switch the store can hold the new project's list before the page is told the new folder: the reader keeps its place per folder, so it waits for both to agree (#4091).
+  if (chapters.value === undefined || !listIsForThisProject) return <ScriptSkeleton />;
   if (manuscript.length === 0) return <NeedManuscript title="Script" onImport={() => navigate('/')} />;
   return (
     <CommandScope kind="page">

@@ -579,6 +579,86 @@ describe('Find', () => {
   });
 });
 
+// #4091: after the first-draw restore the reader holds its place and saves nothing until the narrator moves it. Each way the narrator moves it lets go of the hold.
+describe('letting go of the first-draw hold', () => {
+  const stored = JSON.stringify({ chapterId: 'c2', offset: 50 });
+  const restoredFor = (extra: Partial<Props> = {}) => {
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    return render(<Reader {...props(extra)} />);
+  };
+  const layoutShift = (rerender: (ui: React.ReactElement) => void, extra: Partial<Props> = {}) => {
+    // Text above the remembered chapter arrives and pushes it down: a held place follows it, a released one stays where the narrator is.
+    tops.set(document.querySelector('[data-bound][data-ch="c2"]') as HTMLElement, 1300);
+    rerender(<Reader {...props(extra)} />);
+  };
+
+  it('a scroll after focus moves into the reader with no key saves the place', () => {
+    const { container } = restoredFor();
+    fireEvent.focusIn(container.querySelector('[data-para]') as HTMLElement);
+    scrollTo(900, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).not.toEqual({ chapterId: 'c2', offset: 50 });
+  });
+
+  it('focus moving into the reader releases the held place, so a late layout shift does not snap it back', () => {
+    const { container, rerender } = restoredFor();
+    expect(scrolls.get(scroller())).toBe(350);
+    fireEvent.focusIn(container.querySelector('[data-para]') as HTMLElement);
+    scrollTo(900, false);
+    layoutShift(rerender);
+    expect(scrolls.get(scroller())).toBe(900);
+  });
+
+  it('without that focus the held place follows the layout shift, and nothing is saved', () => {
+    const { rerender } = restoredFor();
+    layoutShift(rerender);
+    expect(scrolls.get(scroller())).toBe(1350);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  it('a request to scroll to a paragraph lets go: no snap back, and the later scroll is saved', () => {
+    const { rerender } = restoredFor();
+    rerender(<Reader {...props({ pendingPid: 'p5' })} />);
+    const at = scrolls.get(scroller());
+    expect(at).not.toBe(350);
+    layoutShift(rerender, { pendingPid: null });
+    expect(scrolls.get(scroller())).toBe(at);
+    scrollTo(at! + 40, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).not.toBe(stored);
+  });
+
+  it('a request to scroll to a bookmark lets go the same way', () => {
+    const { rerender } = restoredFor();
+    rerender(<Reader {...props({ pendingBm: { paragraphId: 'p5', offset: 0 } })} />);
+    const at = scrolls.get(scroller());
+    expect(at).not.toBe(350);
+    layoutShift(rerender, { pendingBm: null });
+    expect(scrolls.get(scroller())).toBe(at);
+    scrollTo(at! + 40, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).not.toBe(stored);
+  });
+
+  it('choosing a Find match lets go the same way', () => {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const top = this.classList.contains('a-find-cur') ? 600 - (scrolls.get(scroller()) ?? 0) : 0;
+      return { top, left: 0, right: 0, bottom: top, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect;
+    });
+    const matches = [{ paragraphId: 'p4', start: 2, end: 6 }];
+    const { rerender } = restoredFor();
+    rerender(<Reader {...props({ find: { matches, current: 0, request: 1 } })} />);
+    const at = scrolls.get(scroller());
+    expect(at).not.toBe(350);
+    layoutShift(rerender, { find: { matches, current: 0, request: 1 } });
+    expect(scrolls.get(scroller())).toBe(at);
+    scrollTo(at! + 40, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).not.toBe(stored);
+  });
+});
+
 describe('Home and End', () => {
   const many: ManuscriptChapter[] = Array.from({ length: 60 }, (_, i) => chapter(`k${i}`, i));
   const card = (c: ManuscriptChapter, near: boolean) => (near ? <h2 data-card={c.id}>{c.title}</h2> : <h2 data-pending-card="">{c.title}</h2>);

@@ -386,7 +386,6 @@ export function Reader(props: ReaderProps) {
   const jumpTo = (chapterId: string): void => {
     scrollToChapter(chapterId);
     held.current = { chapterId, offset: -8 };
-    restoring.current = false;
   };
   /** Where the first draw, a jump or End put the reader, held until the narrator scrolls or a request scrolls it. */
   const held = useRef<{ chapterId: string; offset: number } | 'end' | null>(null);
@@ -395,6 +394,8 @@ export function Reader(props: ReaderProps) {
    * browser (it clamps a place past the end, and again when the header wraps and the content shrinks), so no scroll event writes a place: only the narrator moving it does (#4091).
    */
   const restoring = useRef(false);
+  /** True while the reader itself moves focus (to a jumped-to heading), so that focus does not let go of the held place. */
+  const ownFocus = useRef(false);
   const hold = (): void => {
     const root = scroller.current;
     const place = held.current;
@@ -453,8 +454,12 @@ export function Reader(props: ReaderProps) {
         jumpTo(pendingJump);
         // The heading takes focus, so the next Tab and a screen reader start at the chapter the narrator chose (#2902), unless the
         // narrator chose it in the chapter list: focus stays there so Down steps to the next chapter.
-        if (!document.activeElement?.closest('ul[aria-label="Chapters"]'))
+        if (!document.activeElement?.closest('ul[aria-label="Chapters"]')) {
+          // The reader's own focus on the jumped-to heading is not the narrator moving focus in (`onFocus` below).
+          ownFocus.current = true;
           root.querySelector<HTMLElement>(`[data-bound][data-ch="${pendingJump}"] h2`)?.focus({ preventScroll: true });
+          ownFocus.current = false;
+        }
         onHandled?.('chapter');
         jumped = true;
       }
@@ -583,6 +588,9 @@ export function Reader(props: ReaderProps) {
         onPointerDown={release}
         onTouchStart={release}
         onKeyDownCapture={release}
+        // Focus moving into the reader (Tab, a screen reader's browse mode) scrolls the focused control into view with no key, wheel or pointer at the reader:
+        // the narrator is moving it, so the held place is let go and what follows is saved.
+        onFocus={() => ownFocus.current || release()}
         onKeyDown={(event) => {
           // With Shift the key extends a selection of the text, and with Alt or the Meta key it is the browser's or the system's: those are left alone.
           if ((event.key === 'Home' || event.key === 'End') && !event.shiftKey && !event.altKey && !event.metaKey) return onHomeEnd(event);

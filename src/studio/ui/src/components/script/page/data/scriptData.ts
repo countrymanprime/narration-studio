@@ -173,6 +173,11 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
 
   let started = 0;
   let seen = ports.generation?.();
+  /** The reads still out and the cue chapters queued for the old project: their answers and ids must never reach the new one. Both paths of a switch call it. */
+  const forgetOldProjectReads = () => {
+    latest.clear();
+    asked.clear();
+  };
   let stop: (() => void) | null = null;
 
   return {
@@ -190,10 +195,9 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
       const now = ports.generation?.();
       if (now === seen) return;
       seen = now;
-      // A reader that is wired has handled the switch itself (the attach listener above).
+      // A reader that is wired hears the switch itself (the attach listener in `start` below), so this is for the switch it was not there to hear.
       if (started > 0) return;
-      latest.clear();
-      asked.clear();
+      forgetOldProjectReads();
       state = { cues: {}, paragraphs: {} };
     },
     ensureParagraphs(chapterId) {
@@ -231,7 +235,8 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
           const lists = (Object.keys(readers) as ScriptList[]).filter((list) => list !== 'chapters' && state[list]);
           const chapterIds = Object.keys(state.paragraphs);
           const cueChapterIds = Object.keys(state.cues);
-          latest.clear();
+          forgetOldProjectReads();
+          seen = ports.generation?.();
           // The old project's list goes with it; the store is emptied by the same attach and the page follows what it reads for the new project (`followChapters`).
           set({ cues: {}, paragraphs: {}, chapters: undefined });
           if (hadChapters) void load('chapters');
