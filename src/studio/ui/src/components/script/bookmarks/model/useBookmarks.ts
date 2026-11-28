@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { Bookmark } from '../../../../api/contracts/bookmarks';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
@@ -34,9 +34,12 @@ export function useBookmarks(): BookmarksModel {
   const bookmarks = useStudio((s) => s.slots.bookmarks);
   const env = useMemo(() => ({ journal, port, store }), [journal, port, store]);
 
+  // A project switch or an attach empties the slot (and a read made while the host's answer was not heard is emptied with it): the generation asks again, as
+  // `useChapters` does, because this hook would otherwise load only on mount and leave the list empty until the next focus (#4085).
+  const generation = useSyncExternalStore(store.subscribe, store.generation, () => 0);
   useEffect(() => {
-    void store.load('bookmarks');
-  }, [store]);
+    void store.load('bookmarks').catch(() => undefined);
+  }, [store, generation]);
 
   const add = useCallback(
     async (spot: BookmarkSpot, { undo = true }: { undo?: boolean } = {}) => {

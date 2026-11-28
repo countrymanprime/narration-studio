@@ -117,10 +117,10 @@ export type StudioStore<R extends SlotRegistry> = {
 
 const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
 
-/** How long a reader waits on one read before it fails with "The host did not answer." (the store joins a read for the stuck age, then starts another). A page that waits on the store for its project gives up on the same clock. */
+/** How long a reader waits on one read before it fails with "The host did not answer." (the store joins a read for the stuck age, then starts another). A page that waits on the store for its project shows its own message after the same time (the Script page); the store's own refusal of such a reader comes sooner, after `STUCK_READ_MS`. */
 export const READ_GIVES_UP_MS = 15_000;
 
-/** What a reader that waits on the store for its project is told when the app has not named that project in time; a page that gives up on the same clock says it too. */
+/** What a reader that waits on the store for its project is told when the app has not named that project in time (after `STUCK_READ_MS`, 5 s); a page that waits `READ_GIVES_UP_MS` for it says it too. */
 export const PROJECT_STILL_OPENING = 'The project is still being opened. Try again in a moment.';
 
 export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOptions<R>): StudioStore<R> {
@@ -214,15 +214,16 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   }
 
   async function run(name: keyof R & string): Promise<Error | undefined> {
-    const seq = readSeq + 1;
+    readSeq += 1;
+    const seq = readSeq;
     try {
-      return await runRead(name);
+      return await runRead(name, seq);
     } finally {
       unconfirmedReads.delete(seq);
     }
   }
 
-  async function runRead(name: keyof R & string): Promise<Error | undefined> {
+  async function runRead(name: keyof R & string, seq: number): Promise<Error | undefined> {
     const config = Object.hasOwn(registry, name) ? registry[name] : undefined;
     if (!config) return new Error(`studio: no slot named ${name}`);
     const { load, read } = config;
@@ -230,8 +231,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     // A value read while the host's answer to an attach is not heard belongs to no known project: named readers read again for theirs.
     const owner = confirmed ? onProject : undefined;
     const unconfirmedRead = !confirmed || unheard;
-    readSeq += 1;
-    if (unconfirmedRead) unconfirmedReads.add(readSeq);
+    if (unconfirmedRead) unconfirmedReads.add(seq);
     const request = (requests.get(name) ?? 0) + 1;
     requests.set(name, request);
     // A reset or a newer load of the same slot makes this answer stale: it writes nothing, not even its failure.
@@ -266,8 +266,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
         return undefined;
       }
       owners.set(name, stamp ?? owner);
+      // A value read while unconfirmed stays marked until `setProject` empties it: no read can replace it before then, so the marker never goes stale.
       if (stamp === undefined && unconfirmedRead) unsure.add(name);
-      else unsure.delete(name);
       setSlot(name, value);
     }
     return undefined;
@@ -339,8 +339,9 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
           const named = norm(options.project);
           if (named !== undefined && confirmed && ahead === undefined && onProject !== undefined && onProject !== named) throw new ProjectChangedError();
           // A drop by a reset or `setProject` is the attach's, bounded by the host's events, not by anything the reader got wrong: it uses no round. A round
-          // counts only when the host answered and the answer was another project's (`ahead`), the thing the cap bounds. A reader that waits for ever is
-          // bounded by the host-did-not-answer time above, which each new round restarts (#4085).
+          // counts only when the host answered and the answer was another project's (`ahead`), the thing the cap bounds. Each round has its own host-did-not-answer time (above) and
+          // its own 5 s wait at the gate, and each attach or confirmed retry starts a round, so a reader is bounded from the last such event (about 20 s when no news
+          // comes), not from its start. With foreign answers the rounds add up (three of them) and then it resolves with nothing held (#4085).
           const answeredForeign = epoch === before;
           if (answeredForeign && round >= 2) return;
           return readUntilKept(name, options, once, answeredForeign ? round + 1 : round);

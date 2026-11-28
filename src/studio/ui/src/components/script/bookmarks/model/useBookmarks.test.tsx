@@ -16,7 +16,7 @@ import { COMMAND_CATALOG } from '../../../../input/commands.catalog';
 import { defaultKeymap } from '../../../../input/keymap';
 import { searchAll } from '../../../../registries/search';
 import { overlay } from '../../../../overlay/overlayService';
-import { StudioProvider, useJournal } from '../../../../studio/StudioProvider';
+import { StudioProvider, useJournal, useStoreHandle } from '../../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../../types';
 import { useBookmarkCommands, type BookmarkCommandsOptions } from './useBookmarkCommands';
 import { useBookmarks } from './useBookmarks';
@@ -57,7 +57,7 @@ function setup(extra: Extra = {}) {
       const model = useBookmarks();
       const chapters = [{ id: chapter.id, name: 'Down the Rabbit-Hole' }];
       useBookmarkCommands({ bookmarks: model.bookmarks ?? [], chapters, lineText: (b) => lines.get(b.paragraphId), onGoTo, ...extra });
-      return { model, journal: useJournal() };
+      return { model, journal: useJournal(), store: useStoreHandle() };
     },
     { wrapper },
   );
@@ -77,6 +77,20 @@ beforeEach(async () => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+});
+
+describe('the list is asked for again when the store empties (#4085)', () => {
+  it('bookmarks refreshed on focus between a reset and setProject end up held after setProject', async () => {
+    const { result } = setup();
+    await waitFor(() => expect(result.current.model.bookmarks).toEqual([]));
+    const { store } = result.current;
+    act(() => store.setProject('A'));
+    act(() => store.reset()); // system:attached
+    await act(async () => void (await store.ensure('bookmarks'))); // the focus refresh answers before the bootstrap
+    act(() => store.setProject('A')); // the bootstrap empties what was read before it
+    await waitFor(() => expect(result.current.model.bookmarks).toEqual([]));
+    expect(store.projectOf('bookmarks')).toBe('A');
+  });
 });
 
 describe('add-edit-remove-are-journal-entries', () => {

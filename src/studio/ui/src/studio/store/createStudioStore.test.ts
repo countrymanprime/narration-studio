@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WireError } from '../../api/wire/WireError';
 import type { StandardSchemaV1 } from '../../api/wire/standardSchema';
-import { createStudioStore, type SlotConfig, type StudioStore } from './createStudioStore';
+import { createStudioStore, PROJECT_STILL_OPENING, READ_GIVES_UP_MS, type SlotConfig, type StudioStore } from './createStudioStore';
 
 // Hand-written Standard Schemas: the store takes any, and src/studio does not import Zod (zod-only-in-api).
 function schemaOf<T>(check: (v: unknown) => v is T): StandardSchemaV1<unknown, T> {
@@ -710,7 +710,7 @@ describe.each(['read', 'load'] as const)('the store knows which project a held l
       store.setProject('A');
       store.reset();
       const asked = store.ensure('a', { project: 'A' });
-      const outcome = expect(asked).rejects.toThrow('still being opened');
+      const outcome = expect(asked).rejects.toThrow(PROJECT_STILL_OPENING);
       await vi.advanceTimersByTimeAsync(5001);
       await outcome;
       expect(read).not.toHaveBeenCalled();
@@ -784,7 +784,7 @@ describe('the store keeps what a failed or slow read leaves (#3998)', () => {
       const { store } = make({ a: { schema: isCount, load } });
       const asked = store.ensure('a');
       const outcome = expect(asked).rejects.toThrow('did not answer');
-      await vi.advanceTimersByTimeAsync(15_001);
+      await vi.advanceTimersByTimeAsync(READ_GIVES_UP_MS + 1);
       await outcome;
       await store.load('a');
       expect(store.getState().slots.a).toEqual({ count: 3 });
@@ -1056,7 +1056,7 @@ describe('the host says which project a list was read from (#4040)', () => {
         await vi.advanceTimersByTimeAsync(100);
       }
       expect(read.mock.calls.length - before).toBeLessThanOrEqual(21); // one per event, plus the reader's first
-      await vi.advanceTimersByTimeAsync(15_001);
+      await vi.advanceTimersByTimeAsync(READ_GIVES_UP_MS + 1);
       await outcome;
     } finally {
       vi.useRealTimers();
@@ -1092,7 +1092,7 @@ describe('the host says which project a list was read from (#4040)', () => {
     const { store, read } = await rig();
     vi.useFakeTimers();
     try {
-      read.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ project: 'B', payload: { count: 2 } }), 14_900)));
+      read.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ project: 'B', payload: { count: 2 } }), READ_GIVES_UP_MS - 100)));
       store.reset();
       store.setProject('A');
       let outcome: unknown = 'pending';
@@ -1100,11 +1100,11 @@ describe('the host says which project a list was read from (#4040)', () => {
         () => (outcome = 'ok'),
         (e: Error) => (outcome = e.message),
       );
-      await vi.advanceTimersByTimeAsync(14_901);
+      await vi.advanceTimersByTimeAsync(READ_GIVES_UP_MS - 99);
       await vi.advanceTimersByTimeAsync(4_000); // 18.9 s
       expect(outcome).toBe('pending');
       await vi.advanceTimersByTimeAsync(1_200); // 20.1 s
-      expect(outcome).toBe('The project is still being opened. Try again in a moment.');
+      expect(outcome).toBe(PROJECT_STILL_OPENING);
     } finally {
       vi.useRealTimers();
     }
@@ -1142,6 +1142,25 @@ describe('the host says which project a list was read from (#4040)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('three foreign answers in a row, one per bootstrap, end the reader with the slot empty and no fourth read', async () => {
+    const { store, host, read } = await rig();
+    store.reset();
+    store.setProject('A'); // empties the list the rig held
+    host.project = 'B'; // the host keeps answering another project than the news names
+    const before = read.mock.calls.length;
+    let settled = false;
+    const asked = store.ensure('a').then(() => (settled = true));
+    for (let i = 0; i < 6; i += 1) {
+      await flush();
+      store.setProject('A'); // each bootstrap clears `ahead`
+    }
+    await flush();
+    await asked;
+    expect(settled).toBe(true);
+    expect(read.mock.calls.length - before).toBe(3);
+    expect(store.getState().slots.a).toBeUndefined();
   });
 
   it('setProject(A) five times in a row after a read started unconfirmed reads twice, not in a loop', async () => {
@@ -1210,6 +1229,8 @@ describe('the host says which project a list was read from (#4040)', () => {
       const { host, read } = stamped('A');
       const { store } = make({ a: { schema: isCount, read } });
       let unheard = false; // between a reset and the news the store's project is a belief, not a fact
+      const violations: string[] = [];
+      const readers: Array<Promise<void>> = [];
       for (let step = 0; step < 12; step += 1) {
         const action = next(4);
         if (action === 0) {
@@ -1221,18 +1242,24 @@ describe('the host says which project a list was read from (#4040)', () => {
         } else if (action === 2) host.project = projects[next(3)]!;
         else {
           // Not awaited: a reader may wait for the news. One that resolves finds a list held for the project the store is on (#4085).
-          void store.ensure('a').then(
-            () => {
-              expect(store.getState().slots.a).toBeDefined();
-              if (!unheard && store.project() !== undefined) expect(store.projectOf('a')).toBe(store.project());
-            },
-            () => undefined,
+          readers.push(
+            store.ensure('a').then(
+              () => {
+                if (store.getState().slots.a === undefined) violations.push('resolved with nothing held');
+                else if (!unheard && store.project() !== undefined && store.projectOf('a') !== store.project())
+                  violations.push('resolved with another project held');
+              },
+              () => undefined,
+            ),
           );
         }
         await flush();
         // After the store hears of a project, nothing it holds is another project's.
         if (store.project() !== undefined && action === 1 && store.getState().slots.a !== undefined) expect(store.projectOf('a')).toBe(store.project());
       }
+      await flush();
+      expect(violations).toEqual([]);
+      void readers; // a reader still waiting for the news is not awaited: it settles when the news comes
     }
   });
 });
@@ -1278,6 +1305,47 @@ describe('what is read without a stamp while unconfirmed is not kept when the pr
     store.reset();
     const asked = store.ensure('a');
     store.setProject('A');
+    slow.resolve({ count: 2 });
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+});
+
+describe('the store hears the project and goes back to trusting what it reads (#4085)', () => {
+  it('setProject clears the unheard state: a value read after the news is still held by the next news, with no extra read', async () => {
+    const load = vi.fn(async () => ({ count: 1 }));
+    const { store } = make({ a: { schema: isCount, load } });
+    store.reset(); // before any setProject
+    store.setProject('A');
+    await store.ensure('a');
+    expect(load).toHaveBeenCalledTimes(1);
+    store.setProject('A'); // a focus or heartbeat bootstrap
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    await store.ensure('a');
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('chapter text read after a reset that came before any setProject is dropped by setProject(A)', async () => {
+    const load = vi.fn(async (id: string) => `text:${id}`);
+    const events = fakeEvents();
+    const store = createStudioStore({ registry: {}, keyed: { text: { schema: isName, load } }, subscribe: events.subscribe, onError: vi.fn() });
+    store.reset(); // the store was never told a project: it stays confirmed, and the read is still the host's unheard answer
+    await store.keyed('text').ensure('c1');
+    expect(store.keyed('text').get('c1')).toBe('text:c1');
+    store.setProject('A');
+    expect(store.keyed('text').get('c1')).toBeUndefined();
+  });
+
+  it("an unknown slot name does not take another read's place in the unconfirmed set", async () => {
+    const slow = deferred<unknown>();
+    const load = vi.fn().mockReturnValueOnce(slow.promise).mockResolvedValue({ count: 1 });
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    store.reset();
+    const unknown = expect(store.ensure('nope')).rejects.toThrow('no slot named');
+    const asked = store.ensure('a'); // an unconfirmed read, in flight, started in the same turn
+    await unknown;
+    store.setProject('A'); // must still see the read in flight and empty the store
     slow.resolve({ count: 2 });
     await asked;
     expect(store.getState().slots.a).toEqual({ count: 1 });
