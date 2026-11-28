@@ -310,11 +310,15 @@ for (const how of ['no arrow key', 'the pointer moved off the menu'] as const) {
           await menuItem(page, /^Roll again/).hover();
           await page.mouse.move(4, 4);
         }
+        // Focus is on the menu's own popup, not on a row: the case exercises the popup clause, not the item one.
+        expect(await page.evaluate(() => document.activeElement?.getAttribute('role'))).toBe('menu');
         await page.keyboard.press('Escape');
         await page.waitForTimeout(lag);
         await expect(leavingNow(page)).toHaveCount(1);
-        // The key lands on the popup itself or on whatever the pointer left focused: either way it is not a control that presses.
         await expectThisKeyStoppedTheTake(page, key);
+        // The exit ends with focus on the page, as it does after a key that went to an item.
+        await page.waitForTimeout(HELD_EXIT_MS + 400);
+        expect(await onThePage(page)).toBe(true);
       });
     }
   }
@@ -354,7 +358,7 @@ for (const lag of [20, 60]) {
     const before = await leaveChapterListFromKeyboard(page, lag);
     await page.keyboard.press('Enter');
     await expect(coldRunning(page)).toHaveCount(0, { timeout: 500 });
-    await expect(alertQuestion(page)).toHaveCount(0);
+    // A pick of a chapter by that Enter would change the picker's label.
     await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
   });
 }

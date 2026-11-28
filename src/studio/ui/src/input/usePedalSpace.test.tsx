@@ -105,9 +105,9 @@ describe('the pedal Space (#4094)', () => {
   });
 });
 
-// A footswitch Enter on an item of a menu that is leaving: the item is off (`aria-disabled`, `useLeaving`) and presses nothing, and the router holds Enter for a control in a closing popup, so with a take
+// A footswitch Enter on an item of a menu that is leaving, or on that menu's own popup: the item is off (`aria-disabled`, `useLeaving`) and presses nothing, and the router holds Enter for a control in a closing popup, so with a take
 // running the pedal's hook stops it, and with none it stays swallowed (#4183).
-describe('the pedal Enter on an item of a menu that is leaving (#4183)', () => {
+describe('the pedal Enter on an item of a menu that is leaving, or on its popup (#4183)', () => {
   afterEach(() => {
     document.body.innerHTML = '';
   });

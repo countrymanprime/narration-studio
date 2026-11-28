@@ -168,7 +168,7 @@ describe('the live checks and a popup that is closing', () => {
   });
 });
 
-// The item of a menu that presses nothing because the menu has begun to close (#4183): off by `useLeaving`, inside a popup that is `data-ending-style`.
+// The item of a menu that presses nothing because the menu has begun to close (#4183), off by `useLeaving` inside a popup that is `data-ending-style`, or that menu's own popup.
 describe('isInertLeavingMenuTarget', () => {
   const inside = (popup: string, item: string) => el(`<div ${popup}>${item}</div>`).firstElementChild!;
 
@@ -203,6 +203,9 @@ describe('isInertLeavingMenuTarget', () => {
     ['the popup of a popover that is closing', el('<div role="dialog" data-popover-popup="" data-ending-style=""></div>')],
     ['a text field in a menu that is closing', inside('role="menu" data-ending-style=""', '<input type="text" />')],
     ['a label inside a menu that is closing', inside('role="menu" data-ending-style=""', '<div role="presentation">Group</div>')],
+    ['the popup of a listbox that is closing', el('<div role="listbox" data-ending-style=""></div>')],
+    ['the popup of a combobox that is closing', el('<div role="combobox" data-ending-style=""></div>')],
+    ['the popup of a menubar that is closing', el('<div role="menubar" data-ending-style=""></div>')],
   ])('is false for %s', (_name, target) => {
     expect(isInertLeavingMenuTarget(target)).toBe(false);
   });
