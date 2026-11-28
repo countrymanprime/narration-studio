@@ -4,7 +4,7 @@
 // motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. The exit is held at 600 ms (`--motion-fast` and `--motion-base`) so that every case can
 // assert the popup is still leaving when the key is pressed, and the 20 and 60 ms lags are inside it however slow the machine is.
 import { expect, test, type Page } from '@playwright/test';
-import { boothChapterReady } from './helpers/viewTop';
+import { boothChapterReady, showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 import { pastStartGuard } from './helpers/startGuard';
 
@@ -238,3 +238,79 @@ test('a voice key refused in Cold read leaves Record options its hand-back, with
   await expect(recordOptions(page)).toBeFocused();
   await expect(stop(page)).toHaveCount(0);
 });
+
+// A menu that has been closed stays drawn for its exit with its highlighted item focused: the Enter of a footswitch inside that exit pressed the item (#4183). With a take running the
+// right-click menu's "Roll again" ran and the take went on recording; the Editing DAW tools and Story Bible More actions menus opened their dialog. A leaving menu takes no press.
+const menuItem = (page: Page, name: string) => page.getByRole('menuitem', { name });
+
+/** ArrowDown until the item named `name` is the focused one: what a narrator who walked to it does before Escape. */
+async function highlight(page: Page, name: string): Promise<void> {
+  for (let step = 0; step < 14; step++) {
+    if (await menuItem(page, name).evaluate((item) => document.activeElement === item)) return;
+    await page.keyboard.press('ArrowDown');
+  }
+  throw new Error(`could not walk to ${name}`);
+}
+
+for (const lag of [20, 60]) {
+  for (const key of ['Enter', 'NumpadEnter'] as const) {
+    test(`${key} ${lag} ms into the right-click menu's exit during a take presses no item and stops the take, with motion on`, async ({ page }) => {
+      await openBoothWithMotion(page);
+      await page.getByRole('button', { name: /^Record$/ }).click();
+      await expect(stop(page)).toBeVisible();
+      await pastStartGuard(page);
+      await showChapterTop(page);
+      await page.locator('[data-word]').nth(40).click({ button: 'right' });
+      await expect(page.getByRole('menu')).toBeVisible();
+      await highlight(page, /^Roll again/);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(lag);
+      await expect(leavingNow(page)).toHaveCount(1);
+      await page.keyboard.press(key);
+      await expect(page.getByText(/Rolling again/)).toHaveCount(0);
+      await expect(page.getByRole('alertdialog')).toHaveCount(0);
+      expect(await dawRecording(page)).toBe(true);
+      // The exit ends with focus on the page: the footswitch's next Enter stops the take.
+      await expectEnterStopsTheTake(page, key);
+    });
+  }
+}
+
+for (const lag of [20, 60]) {
+  test(`Enter ${lag} ms into the exit of the Editing DAW tools menu opens no dialog, with motion on`, async ({ page }) => {
+    await page.goto('/?mockChapterLink=confirmed');
+    await page.waitForLoadState('networkidle');
+    await goToPage(page, 'Editing');
+    await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
+    const tools = page.getByRole('button', { name: 'DAW tools' });
+    await tools.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('menu').getByText('Reading the REAPER project…')).toHaveCount(0);
+    await highlight(page, /^Prepare chapter render/);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(HELD_EXIT_MS + 200);
+    await expect(page.getByRole('dialog', { name: /Prepare chapter render/ })).toHaveCount(0);
+    await expect(tools).toBeFocused();
+  });
+
+  test(`Enter ${lag} ms into the exit of the Story Bible More actions menu opens no dialog, with motion on`, async ({ page }) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await page.waitForLoadState('networkidle');
+    await goToPage(page, 'Story Bible');
+    await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
+    const more = page.getByRole('button', { name: 'More actions' });
+    await more.focus();
+    await page.keyboard.press('Enter');
+    await highlight(page, /^Scan the manuscript/);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(HELD_EXIT_MS + 200);
+    await expect(page.getByRole('dialog', { name: /Scan the manuscript/ })).toHaveCount(0);
+    await expect(more).toBeFocused();
+  });
+}

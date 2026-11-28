@@ -229,6 +229,75 @@ describe('ContextMenu', () => {
   });
 });
 
+// A menu that has been closed stays drawn for its exit (120 ms): the highlighted item still has focus, so the Enter of a footswitch or the Space of a
+// chord pressed inside the exit would press it (#4183: with a take running, an Enter at 20 ms pressed "Roll again" and the take kept recording).
+describe('ContextMenu items while it leaves', () => {
+  const proto = Element.prototype as unknown as { getAnimations?: () => unknown[] };
+  const original = proto.getAnimations;
+  afterEach(() => {
+    proto.getAnimations = original;
+  });
+  const leavingMenu = () => document.querySelector('[role="menu"][data-ending-style], [role="menu"][data-closed]');
+  const keys = [
+    ['Space', { key: ' ', code: 'Space' }],
+    ['Enter', { key: 'Enter', code: 'Enter' }],
+    ['NumpadEnter', { key: 'Enter', code: 'NumpadEnter' }],
+  ] as const;
+  const rows = [
+    { key: 'roll', label: 'Roll again', onSelect: vi.fn() },
+    { key: 'mark', label: 'Mark as done', checked: false, onSelect: vi.fn() },
+    { key: 'bookmark', label: 'Bookmark here', icon: 'bookmark' as const, onSelect: vi.fn() },
+    { key: 'more', label: 'More', submenu: [{ key: 'inner', label: 'Inner', onSelect: vi.fn() }], onSelect: vi.fn() },
+  ];
+
+  // The menu is opened on a right click, left with Escape, and its exit is held until `end()`, as the 120 ms exit is while a key arrives.
+  async function escapeWhileLeaving() {
+    rows.forEach((row) => row.onSelect.mockClear());
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    render(
+      <TooltipProvider>
+        <ContextMenu items={rows}>
+          <p>Alice was beginning to get very tired.</p>
+        </ContextMenu>
+      </TooltipProvider>,
+    );
+    const user = userEvent.setup();
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    await screen.findByRole('menu');
+    await user.keyboard('{Escape}');
+    expect(leavingMenu()).not.toBeNull();
+    const end = async () => {
+      endExit();
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    };
+    return { end, user };
+  }
+
+  it.each(keys)('an item takes no %s press while the menu is leaving', async (_name, key) => {
+    const { end } = await escapeWhileLeaving();
+    const pressable = [...screen.getAllByRole('menuitem'), ...screen.getAllByRole('menuitemcheckbox')];
+    expect(pressable.length).toBeGreaterThanOrEqual(3);
+    for (const item of pressable) {
+      fireEvent.keyDown(item, key);
+      fireEvent.keyUp(item, key);
+      fireEvent.click(item);
+    }
+    await end();
+    rows.forEach((row) => expect(row.onSelect).not.toHaveBeenCalled());
+  });
+
+  it('an item is pressed again once the menu is opened again', async () => {
+    const { end } = await escapeWhileLeaving();
+    await end();
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    await screen.findByRole('menu');
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Roll again' }));
+    expect(rows[0]!.onSelect).toHaveBeenCalledOnce();
+  });
+});
+
 // Alignment audit R3SC-2: the menu opened on top of the word that was clicked. Opened on text, it is placed against the text's box at the
 // pointer's x, so it starts below the line (or above it), never on it. jsdom has no layout, so the browser's answers are stood in for.
 describe('textBoxAt', () => {
