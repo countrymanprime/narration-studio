@@ -1,14 +1,64 @@
 // Escape on Record options, the chapter list or the engine panel, then a key that leaves Enter and Space to the page (Ctrl+Alt+Space, a voice key) before the popup has finished leaving. Base UI
 // gives focus back to the popup's trigger only when its exit ends (120 ms, --motion-fast; the engine panel's drawer, --motion-base); a key inside that window found focus on the leaving popup, moved nothing, started its
 // take, and the hand-back then put focus on Record options: a footswitch Enter opened the options and the take went on recording. The rest of the visual suite runs with reduced
-// motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. The exit is held at 600 ms (`--motion-fast` and `--motion-base`) so that every case can
-// assert the popup is still leaving when the key is pressed, and the 20 and 60 ms lags are inside it however slow the machine is.
+// motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. Every exit is held open until the case ends it (`holdExits`, `endExits`), so that every case
+// can assert the popup is still leaving when the key is pressed: the lag is a delay between two steps of the case, never a race with a clock (a fixed 600 ms hold was shorter than a
+// starved machine's round trips, and the popup was gone before the key: #4199).
 import { expect, test, type Page } from '@playwright/test';
 import { boothChapterReady, showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 import { pastStartGuard } from './helpers/startGuard';
 
-const HELD_EXIT_MS = 600;
+/** How long a stop that no second key helps may take: far longer than any stop, and still short of a case's own timeout. */
+const STOP_WITHIN_MS = 5_000;
+
+/**
+ * How long, after an exit has ended, a case watches for what must NOT happen (a pick, a dialog, a take, a hand-back to a trigger) before it says it did not. The effect of a key
+ * the library should have ignored shows 30 to 200 ms after the popup goes (measured on a build without #4178's fix: the chapter changed up to 191 ms after `endExits` returned), and a
+ * check that only proves an absence passes at once if it runs first. A wait here can only make such a check weaker on a slow machine, never fail a case that is right.
+ */
+const QUIET_AFTER_EXIT_MS = 1_000;
+const quiet = (page: Page) => page.waitForTimeout(QUIET_AFTER_EXIT_MS);
+
+/** The popups whose exit is held: the menus, the popovers and the slide-over. A tooltip, a check mark or a backdrop that is leaving ends by itself. */
+const POPUPS = '[role="menu"], [data-popover-popup], [data-slide-over]';
+type ExitHold = { __releaseExits: () => void; __armExits: () => void };
+
+/**
+ * An exit that ends when the case says so, not when a clock runs out. Base UI unmounts a popup once `getAnimations()` of it has finished, so a popup (`POPUPS`) that is leaving is
+ * given one more animation that finishes only when the case releases it (the technique of the unit tests, `ChapterStepper.test.tsx`). Holding the exit with a long CSS duration
+ * did not do it: on a starved machine the library reads the animations before the transition has started, finds none and unmounts at once (#4199). Entries are untouched.
+ * While `endExits` releases, a popup that reads its animations late is not held either, and once nothing is leaving the next exit is held again.
+ */
+async function holdExits(page: Page): Promise<void> {
+  await page.evaluate((popups) => {
+    const original = Element.prototype.getAnimations;
+    const state = { released: false, release: () => {}, finished: Promise.resolve() };
+    const arm = () => {
+      state.released = false;
+      state.finished = new Promise<void>((resolve) => (state.release = resolve));
+    };
+    arm();
+    Element.prototype.getAnimations = function (this: Element, options?: GetAnimationsOptions) {
+      const animations = original.call(this, options);
+      return !state.released && this.matches(`:is(${popups})[data-ending-style]`)
+        ? [...animations, { finished: state.finished } as unknown as Animation]
+        : animations;
+    };
+    const exits = window as unknown as ExitHold;
+    exits.__releaseExits = () => {
+      state.released = true;
+      state.release();
+    };
+    exits.__armExits = arm;
+  }, POPUPS);
+}
+/** Ends every exit that is held: the popups go and the library hands focus back, as it does when an exit runs out. The next exit is held again. */
+async function endExits(page: Page): Promise<void> {
+  await page.evaluate(() => (window as unknown as ExitHold).__releaseExits());
+  await expect(page.locator(`:is(${POPUPS})[data-ending-style]`)).toHaveCount(0);
+  await page.evaluate(() => (window as unknown as ExitHold).__armExits());
+}
 const stop = (page: Page) => page.getByText('REC', { exact: true });
 const recordOptions = (page: Page) => page.getByRole('button', { name: 'Record options' });
 const optionsDialog = (page: Page) => page.getByRole('dialog', { name: 'Record options' });
@@ -32,11 +82,20 @@ async function openBoothWithMotion(page: Page): Promise<void> {
   await expect(page.getByRole('button', { name: /^Record$/ })).toBeEnabled();
   // The popup really animates here: the suite's reduced-motion default is not set.
   expect(await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(false);
-  await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
+  await holdExits(page);
 }
 
 /** Enter and Space are Record's only from the page itself: any focused control keeps them. The page's <main> has focus, not <body> (a Tab from <body> goes to the skip link). */
 const onThePage = (page: Page) => page.evaluate(() => document.activeElement?.tagName === 'MAIN');
+/**
+ * Focus is on the page after an exit, and stays there. The first sample is enough to know the hand-back has run (it runs a moment after the unmount, so one read can come too early); a
+ * hand-back that went to a trigger would come after it, so the quiet window follows and the page must still have the focus at its end.
+ */
+async function staysOnThePage(page: Page): Promise<void> {
+  await expect.poll(() => onThePage(page)).toBe(true);
+  await quiet(page);
+  expect(await onThePage(page)).toBe(true);
+}
 
 /** Opens Record options, picks a mode and presses Escape, then waits `lag` ms: the popover is still leaving. */
 async function escapeFromOptions(page: Page, mode: 'Cold read' | 'Record', lag: number): Promise<void> {
@@ -63,8 +122,8 @@ async function expectEnterStopsTheTake(page: Page, key: 'Enter' | 'NumpadEnter')
   await expect(stop(page)).toBeVisible();
   expect(await dawRecording(page)).toBe(true);
   // Past the end of the exit, where the hand-back used to land.
-  await page.waitForTimeout(HELD_EXIT_MS + 400);
-  expect(await onThePage(page)).toBe(true);
+  await endExits(page);
+  await staysOnThePage(page);
   await expect(recordOptions(page)).not.toBeFocused();
   await expect(chapterButton(page)).not.toBeFocused();
   await pastStartGuard(page);
@@ -100,6 +159,8 @@ for (const lag of [20, 60]) {
         await page.getByRole('button', { name: /^Record options$/ }).click();
         await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
         await page.keyboard.press('Escape');
+        // The set-up popup is not what the case is about: its held exit ends here.
+        await endExits(page);
         await expect(optionsDialog(page)).toHaveCount(0);
         await leaveChapterList(page, how, lag);
         await page.keyboard.press('Control+Alt+Space');
@@ -112,8 +173,8 @@ for (const lag of [20, 60]) {
         await openBoothWithMotion(page);
         await escapeFromOptions(page, 'Record', lag);
         await page.keyboard.press(key);
-        await page.waitForTimeout(HELD_EXIT_MS + 400);
-        expect(await onThePage(page)).toBe(true);
+        await endExits(page);
+        await staysOnThePage(page);
         await expect(recordOptions(page)).not.toBeFocused();
       });
     }
@@ -145,6 +206,8 @@ for (const lag of [20, 60]) {
     await recordOptions(page).click();
     await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
     await page.keyboard.press('Escape');
+    // The set-up popup is not what the case is about: its held exit ends here.
+    await endExits(page);
     await expect(optionsDialog(page)).toHaveCount(0);
     await expect(recordOptions(page)).toBeFocused();
     const before = await leaveChapterListFromKeyboard(page, lag);
@@ -159,10 +222,11 @@ for (const lag of [20, 60]) {
     const before = await leaveChapterListFromKeyboard(page, lag);
     await page.keyboard.press('Control+Alt+Space');
     await expect(coldRunning(page)).toBeVisible();
-    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await endExits(page);
+    await quiet(page);
     await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
     await expect(alertQuestion(page)).toHaveCount(0);
-    expect(await onThePage(page)).toBe(true);
+    await staysOnThePage(page);
   });
 }
 
@@ -178,6 +242,7 @@ test('Ctrl+Alt+Space refused while a take runs leaves Record options its hand-ba
   await page.waitForTimeout(20);
   await expect(leavingNow(page)).toHaveCount(1);
   await page.keyboard.press('Control+Alt+Space');
+  await endExits(page);
   await expect(recordOptions(page)).toBeFocused();
   await expect(stop(page)).toBeVisible();
   expect(await dawRecording(page)).toBe(true);
@@ -193,6 +258,8 @@ for (const lag of [20, 60, 120]) {
     await recordOptions(page).click();
     await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
     await page.keyboard.press('Escape');
+    // The set-up popup is not what the case is about: its held exit ends here.
+    await endExits(page);
     await expect(optionsDialog(page)).toHaveCount(0);
     await engineChip(page).click();
     await openedFully(page);
@@ -211,6 +278,7 @@ test('Escape on Record options with no key after it still gives focus back to Re
   await recordOptions(page).click();
   await expect(optionsDialog(page)).toBeVisible();
   await page.keyboard.press('Escape');
+  await endExits(page);
   await expect(recordOptions(page)).toBeFocused();
 });
 
@@ -219,6 +287,7 @@ test('Escape on the engine panel with no key after it still gives focus back to 
   await engineChip(page).click();
   await openedFully(page);
   await page.keyboard.press('Escape');
+  await endExits(page);
   await expect(engineChip(page)).toBeFocused();
 });
 
@@ -227,6 +296,7 @@ test('Escape on the chapter list with no key after it still gives focus back to 
   await chapterButton(page).click();
   await expect(page.getByRole('menu')).toBeVisible();
   await page.keyboard.press('Escape');
+  await endExits(page);
   await expect(chapterButton(page)).toBeFocused();
 });
 
@@ -235,7 +305,9 @@ test('a voice key refused in Cold read leaves Record options its hand-back, with
   await openBoothWithMotion(page);
   await escapeFromOptions(page, 'Cold read', 20);
   await page.keyboard.press('Numpad1');
+  await endExits(page);
   await expect(recordOptions(page)).toBeFocused();
+  await quiet(page);
   await expect(stop(page)).toHaveCount(0);
 });
 
@@ -274,12 +346,12 @@ async function rightClickDuringTake(page: Page, item?: string | RegExp): Promise
   if (item !== undefined) await highlight(page, item, 3_000);
 }
 
-/** The one key stops the take: the DAW is not recording within 500 ms of it, and no item ran. */
+/** The one key stops the take: with no second key the DAW stops recording, and no item ran. */
 async function expectThisKeyStoppedTheTake(page: Page, key: 'Enter' | 'NumpadEnter'): Promise<void> {
   await page.keyboard.press(key);
-  // The stop reaches the DAW in tens of milliseconds (140 ms at the most in 84 runs on 8 workers; one run on a loaded machine took longer than 200 ms), and with no fix the take is not
-  // stopped at all until a second Enter: half a second tells the two apart without a flake.
-  await expect.poll(() => dawRecording(page), { timeout: 500 }).toBe(false);
+  // Without the fix the take is not stopped at all until a second Enter, so any wait tells the two apart. The stop itself reaches the DAW in tens of milliseconds on a quiet machine, and a
+  // fixed 500 ms missed on a starved one (#4199): the bound is a generous one, not a latency the case measures.
+  await expect.poll(() => dawRecording(page), { timeout: STOP_WITHIN_MS }).toBe(false);
   await expect(stop(page)).toHaveCount(0);
   await expect(page.getByText(/Rolling again/)).toHaveCount(0);
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -294,8 +366,8 @@ for (const lag of [20, 60]) {
       await expect(leavingNow(page)).toHaveCount(1);
       await expectThisKeyStoppedTheTake(page, key);
       // The exit ends with focus on the page, not on a control the next Enter would press.
-      await page.waitForTimeout(HELD_EXIT_MS + 400);
-      expect(await onThePage(page)).toBe(true);
+      await endExits(page);
+      await staysOnThePage(page);
     });
   }
 }
@@ -311,14 +383,14 @@ for (const how of ['no arrow key', 'the pointer moved off the menu'] as const) {
           await page.mouse.move(4, 4);
         }
         // Focus is on the menu's own popup, not on a row: the case exercises the popup clause, not the item one.
-        expect(await page.evaluate(() => document.activeElement?.getAttribute('role'))).toBe('menu');
+        await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('role'))).toBe('menu');
         await page.keyboard.press('Escape');
         await page.waitForTimeout(lag);
         await expect(leavingNow(page)).toHaveCount(1);
         await expectThisKeyStoppedTheTake(page, key);
         // The exit ends with focus on the page, as it does after a key that went to an item.
-        await page.waitForTimeout(HELD_EXIT_MS + 400);
-        expect(await onThePage(page)).toBe(true);
+        await endExits(page);
+        await staysOnThePage(page);
       });
     }
   }
@@ -351,13 +423,15 @@ for (const lag of [20, 60]) {
     await recordOptions(page).click();
     await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
     await page.keyboard.press('Escape');
+    // The set-up popup is not what the case is about: its held exit ends here.
+    await endExits(page);
     await expect(optionsDialog(page)).toHaveCount(0);
     await page.getByRole('button', { name: /^Cold read$/ }).click();
     await expect(coldRunning(page)).toBeVisible();
     await pastStartGuard(page);
     const before = await leaveChapterListFromKeyboard(page, lag);
     await page.keyboard.press('Enter');
-    await expect(coldRunning(page)).toHaveCount(0, { timeout: 500 });
+    await expect(coldRunning(page)).toHaveCount(0, { timeout: STOP_WITHIN_MS });
     // A pick of a chapter by that Enter would change the picker's label.
     await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
   });
@@ -377,10 +451,11 @@ for (const lag of [20, 60]) {
     await page.waitForTimeout(lag);
     await expect(leavingNow(page)).toHaveCount(1);
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await endExits(page);
+    await quiet(page);
     await expect(stop(page)).toHaveCount(0);
     expect(await dawRecording(page)).toBeFalsy();
-    expect(await onThePage(page)).toBe(true);
+    await staysOnThePage(page);
   });
 }
 
@@ -397,10 +472,11 @@ for (const lag of [20, 60]) {
     await expect(leavingNow(page)).toHaveCount(1);
     await page.keyboard.press('Control+Alt+Space');
     await expect(coldRunning(page)).toBeVisible();
-    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await endExits(page);
+    await quiet(page);
     await expect(page.getByRole('button', { name: /^Read to here/ })).toHaveCount(0);
     expect(await dawRecording(page)).toBeFalsy();
-    expect(await onThePage(page)).toBe(true);
+    await staysOnThePage(page);
   });
 }
 
@@ -409,7 +485,7 @@ for (const lag of [20, 60]) {
     await page.goto('/?mockChapterLink=confirmed');
     await page.waitForLoadState('networkidle');
     await goToPage(page, 'Editing');
-    await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
+    await holdExits(page);
     const tools = page.getByRole('button', { name: 'DAW tools' });
     await tools.focus();
     await page.keyboard.press('Enter');
@@ -419,7 +495,8 @@ for (const lag of [20, 60]) {
     await page.waitForTimeout(lag);
     await expect(leavingNow(page)).toHaveCount(1);
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(HELD_EXIT_MS + 200);
+    await endExits(page);
+    await quiet(page);
     await expect(page.getByRole('dialog', { name: /Prepare chapter render/ })).toHaveCount(0);
     await expect(tools).toBeFocused();
   });
@@ -428,7 +505,7 @@ for (const lag of [20, 60]) {
     await page.goto('/?mockVoiceFolders=1');
     await page.waitForLoadState('networkidle');
     await goToPage(page, 'Story Bible');
-    await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
+    await holdExits(page);
     const more = page.getByRole('button', { name: 'More actions' });
     await more.focus();
     await page.keyboard.press('Enter');
@@ -437,7 +514,8 @@ for (const lag of [20, 60]) {
     await page.waitForTimeout(lag);
     await expect(leavingNow(page)).toHaveCount(1);
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(HELD_EXIT_MS + 200);
+    await endExits(page);
+    await quiet(page);
     await expect(page.getByRole('dialog', { name: /Scan the manuscript/ })).toHaveCount(0);
     await expect(more).toBeFocused();
   });
@@ -454,6 +532,7 @@ for (const mode of ['Record', 'Cold read'] as const) {
         await recordOptions(page).click();
         await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
         await page.keyboard.press('Escape');
+        await endExits(page);
         await expect(optionsDialog(page)).toHaveCount(0);
       }
       const before = await chapterButton(page).getAttribute('aria-label');
@@ -464,15 +543,19 @@ for (const mode of ['Record', 'Cold read'] as const) {
       } else {
         await chapterButton(page).click();
         await expect(page.getByRole('menu')).toBeVisible();
-        // Opened by a click no item is highlighted yet, so the chord would have nothing to press: the pointer walks onto the second chapter, as a narrator's does.
-        await page.getByRole('menuitemradio').nth(1).hover();
+        // Opened by a click no item is highlighted yet, so the chord would have nothing to press: the pointer walks onto a chapter that is not the current one, as a narrator's does.
+        await page.getByRole('menuitemradio', { checked: false }).first().hover();
       }
       await expect(page.locator('[role="menuitemradio"][data-highlighted]')).toHaveCount(1);
       await expect(page.locator('[role="menuitemradio"]:focus')).toHaveCount(1);
+      // The item the chord would press is not the current chapter: a pick would change the picker's label, so the label check below can fail.
+      await expect(page.locator('[role="menuitemradio"]:focus')).toHaveAttribute('aria-checked', 'false');
       await page.keyboard.press('Control+Alt+Space');
-      // Past the exit a pick would have started: the list is still there, the chapter is the same, and nothing is recording or asking.
-      await page.waitForTimeout(HELD_EXIT_MS + 200);
+      // Past the time a pick would have shown itself: the list is still there, the chapter is the same, and nothing is recording or asking.
+      await quiet(page);
       await expect(page.getByRole('menu')).toBeVisible();
+      // Visible is not enough: a menu that a pick had closed stays on screen while its exit is held. It is open, not leaving.
+      await expect(leavingNow(page)).toHaveCount(0);
       await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
       await expect(coldRunning(page)).toHaveCount(0);
       await expect(stop(page)).toHaveCount(0);
@@ -480,6 +563,7 @@ for (const mode of ['Record', 'Cold read'] as const) {
       expect(await dawRecording(page)).toBeFalsy();
       // The list is still an ordinary open list: Escape closes it and focus goes back to its button.
       await page.keyboard.press('Escape');
+      await endExits(page);
       await expect(chapterButton(page)).toBeFocused();
     });
   }
@@ -492,8 +576,10 @@ test('Ctrl+Alt+Space with the right-click menu open presses no item and starts n
   await expect(page.getByRole('menu')).toBeVisible();
   await highlight(page, /^Read to here/);
   await page.keyboard.press('Control+Alt+Space');
-  await page.waitForTimeout(HELD_EXIT_MS + 200);
+  await quiet(page);
   await expect(page.getByRole('menu')).toBeVisible();
+  // Visible is not enough: a menu that a press had closed stays on screen while its exit is held. It is open, not leaving.
+  await expect(leavingNow(page)).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Read to here/ })).toHaveCount(0);
   await expect(coldRunning(page)).toHaveCount(0);
   await expect(stop(page)).toHaveCount(0);
@@ -508,7 +594,7 @@ test('Ctrl+Alt+Space on a focused button of the open engine panel opens no dialo
   const cleanup = page.getByRole('button', { name: 'Open the cleanup tools', exact: true });
   await cleanup.focus();
   await page.keyboard.press('Control+Alt+Space');
-  await page.waitForTimeout(400);
+  await quiet(page);
   await expect(page.getByRole('dialog', { name: 'Cleanup tools' })).toHaveCount(0);
   await expect(enginePanel(page)).toBeVisible();
   expect(await dawRecording(page)).toBeFalsy();
