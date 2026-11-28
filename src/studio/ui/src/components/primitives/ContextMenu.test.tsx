@@ -288,6 +288,114 @@ describe('ContextMenu items while it leaves', () => {
     rows.forEach((row) => expect(row.onSelect).not.toHaveBeenCalled());
   });
 
+  it('a submenu row is off while the menu leaves, and opens no submenu', async () => {
+    const { end } = await escapeWhileLeaving();
+    const more = screen.getByRole('menuitem', { name: 'More' });
+    expect(more.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(more);
+    fireEvent.keyDown(more, { key: 'ArrowRight', code: 'ArrowRight' });
+    expect(screen.queryByRole('menuitem', { name: 'Inner' })).toBeNull();
+    await end();
+  });
+
+  it('the rows keep their look while the menu leaves: the muted look follows the item being unavailable, not disabled', async () => {
+    const unavailable = [
+      { key: 'plain', label: 'Roll again', onSelect: vi.fn() },
+      { key: 'off', label: 'Add FX', unavailable: 'Select some words first.', onSelect: vi.fn() },
+      { key: 'icon', label: 'Bookmark here', icon: 'bookmark' as const, onSelect: vi.fn() },
+      { key: 'iconoff', label: 'Mute', icon: 'bookmark' as const, unavailable: 'Not now.', onSelect: vi.fn() },
+      { key: 'mark', label: 'Mark as done', checked: true, onSelect: vi.fn() },
+    ];
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    render(
+      <TooltipProvider>
+        <ContextMenu items={unavailable}>
+          <p>Alice was beginning to get very tired.</p>
+        </ContextMenu>
+      </TooltipProvider>,
+    );
+    const user = userEvent.setup();
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    const rowsOf = () => [...screen.getAllByRole('menuitem'), ...screen.getAllByRole('menuitemcheckbox')];
+    // The class and the attribute that draw the muted colour and the default cursor: what a row looks like.
+    const look = () => rowsOf().map((row) => [row.getAttribute('aria-label') ?? row.textContent, row.className, row.hasAttribute('data-off')]);
+    const open = look();
+    expect(open.filter((row) => row[2]).map((row) => row[0])).toEqual([expect.stringContaining('Add FX'), 'Mute']);
+    expect(open.every((row) => !String(row[1]).includes('data-[disabled]'))).toBe(true);
+    // Focus is on the popup itself: the unavailable icon row's hint wrapper is a tab stop that took it, and it answers Escape as a tooltip.
+    menu.focus();
+    await user.keyboard('{Escape}');
+    expect(leavingMenu()).not.toBeNull();
+    expect(look()).toEqual(open);
+    endExit();
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+  });
+
+  it('a submenu that closes on its own takes no press in its exit', async () => {
+    const inner = vi.fn();
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    render(
+      <ContextMenu
+        items={[
+          { key: 'more', label: 'More', onSelect: vi.fn(), submenu: [{ key: 'inner', label: 'Inner', onSelect: inner }] },
+          { key: 'other', label: 'Other', onSelect: vi.fn() },
+        ]}
+      >
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    const user = userEvent.setup();
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    await user.keyboard('{ArrowDown}{ArrowRight}');
+    const innerRow = await screen.findByRole('menuitem', { name: 'Inner' });
+    await waitFor(() => expect(document.activeElement).toBe(innerRow));
+    // Escape inside a submenu closes only the submenu: the menu stays, and so does the highlighted submenu row until its exit ends.
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getByRole('menuitem', { name: 'Other' })).toBeTruthy());
+    for (const key of [
+      { key: ' ', code: 'Space' },
+      { key: 'Enter', code: 'Enter' },
+      { key: 'Enter', code: 'NumpadEnter' },
+    ]) {
+      fireEvent.keyDown(innerRow, key);
+      fireEvent.keyUp(innerRow, key);
+    }
+    fireEvent.click(innerRow);
+    expect(inner).not.toHaveBeenCalled();
+    endExit();
+    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Inner' })).toBeNull());
+    expect(inner).not.toHaveBeenCalled();
+  });
+
+  it('a submenu row is pressed again once the submenu is opened again', async () => {
+    const inner = vi.fn();
+    render(
+      <ContextMenu items={[{ key: 'more', label: 'More', onSelect: vi.fn(), submenu: [{ key: 'inner', label: 'Inner', onSelect: inner }] }]}>
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    const user = userEvent.setup();
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    await user.keyboard('{ArrowDown}{ArrowRight}');
+    await screen.findByRole('menuitem', { name: 'Inner' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Inner' })).toBeNull());
+    screen.getByRole('menuitem', { name: 'More' }).focus();
+    await user.keyboard('{ArrowRight}');
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Inner' }));
+    expect(inner).toHaveBeenCalledOnce();
+  });
+
   it('an item is pressed again once the menu is opened again', async () => {
     const { end } = await escapeWhileLeaving();
     await end();

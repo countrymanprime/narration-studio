@@ -319,6 +319,22 @@ describe('Menu items while it leaves', () => {
     expect(choose).not.toHaveBeenCalled();
   });
 
+  it.each(keys)('a plain item of a section takes no %s press while the menu is leaving', async (_name, key) => {
+    const choose = vi.fn();
+    const { end } = await escapeWhileLeaving(
+      <Menu label="Sort" sections={[{ key: 'tools', label: 'Tools', items: [{ key: 'scan', label: 'Scan the manuscript', onSelect: choose }] }]}>
+        Sort
+      </Menu>,
+      'Sort',
+    );
+    const item = screen.getByRole('menuitem', { name: 'Scan the manuscript' });
+    fireEvent.keyDown(item, key);
+    fireEvent.keyUp(item, key);
+    fireEvent.click(item);
+    await end();
+    expect(choose).not.toHaveBeenCalled();
+  });
+
   it('an item is pressed again once the menu is opened again during its exit', async () => {
     items.forEach((item) => item.onSelect.mockClear());
     const { end, user } = await escapeWhileLeaving(<Menu items={items}>Character</Menu>, 'Character');

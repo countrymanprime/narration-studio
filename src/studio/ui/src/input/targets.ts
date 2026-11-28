@@ -52,6 +52,15 @@ export function isGuardedTarget(target: EventTarget | null): boolean {
 }
 
 /**
+ * A menu item that presses nothing because its menu has begun to close (`useLeaving` disables a menu's items for its exit). The Enter that lands on it
+ * is the page's, not the item's: with a take running a footswitch Enter inside the exit would otherwise do nothing and the take would go on recording (#4183).
+ * An item that is unavailable in a menu that is still open is `aria-disabled` too, but `closing` (the key's `KeyContext`) is false there.
+ */
+export function isInertLeavingItem(target: EventTarget | null, closing: boolean | undefined): boolean {
+  return closing === true && target instanceof Element && target.closest('[role^="menuitem"][aria-disabled="true"]') !== null;
+}
+
+/**
  * A popup that owns the keyboard while it shows: a popover, a menu, a list of choices, a dialog or an alert dialog (a Base UI
  * popover's popup is a `dialog`). A tooltip is not one: it is a read-only note and never takes the keys.
  */

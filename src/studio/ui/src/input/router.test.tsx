@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, render } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { CommandDescriptor } from './commands.catalog';
@@ -256,6 +256,58 @@ describe('CommandRouter', () => {
       radio.remove();
     },
   );
+
+  describe('Enter on a menu item (#4183)', () => {
+    // A take running, and a footswitch Enter inside the exit of the right-click menu: the item is disabled while its menu leaves and presses nothing, so the Enter is the page's and stops the take.
+    function itemOf(role: string, attributes: Record<string, string> = {}) {
+      const item = document.createElement('div');
+      item.setAttribute('role', role);
+      for (const [name, value] of Object.entries(attributes)) item.setAttribute(name, value);
+      document.body.appendChild(item);
+      return item;
+    }
+    function fireFrom(code: string, target: Element, closing: boolean) {
+      const source = fakeSource();
+      const onFire = vi.fn();
+      const keymap: Keymap = { 'test.page': [gesture('keyboard', code)] };
+      render(
+        <CommandRouter source={source} catalog={[PAGE_COMMAND]} keymap={keymap}>
+          <CommandScope kind="page">
+            <Registrar id="test.page" onFire={onFire} />
+          </CommandScope>
+        </CommandRouter>,
+      );
+      act(() => source.emit({ gesture: gesture('keyboard', code), target, context: { layerOpen: false, targetClosing: closing } }));
+      return onFire;
+    }
+
+    it.each(['Enter', 'NumpadEnter'])('%s on an inert item of a menu that is leaving runs the page command', (code) => {
+      for (const role of ['menuitem', 'menuitemcheckbox', 'menuitemradio']) {
+        const item = itemOf(role, { 'aria-disabled': 'true' });
+        expect(fireFrom(code, item, true)).toHaveBeenCalledTimes(1);
+        item.remove();
+        cleanup();
+      }
+    });
+
+    it.each(['Enter', 'NumpadEnter'])('%s on an item that is unavailable in a menu that is still open does not run it', (code) => {
+      const item = itemOf('menuitem', { 'aria-disabled': 'true', 'aria-describedby': 'why' });
+      expect(fireFrom(code, item, false)).not.toHaveBeenCalled();
+      item.remove();
+    });
+
+    it.each(['Enter', 'NumpadEnter'])("%s on an item that is not inert, in a menu that is leaving, is still the item's", (code) => {
+      const item = itemOf('menuitem');
+      expect(fireFrom(code, item, true)).not.toHaveBeenCalled();
+      item.remove();
+    });
+
+    it('Space on an inert item of a menu that is leaving is left to the pedal, so the take is not toggled twice', () => {
+      const item = itemOf('menuitem', { 'aria-disabled': 'true' });
+      expect(fireFrom('Space', item, true)).not.toHaveBeenCalled();
+      item.remove();
+    });
+  });
 
   it("a key that began while a popup was open stays behind it, whatever has closed it since (the pedal's Space closes the popup before the router reads the key)", () => {
     const source = fakeSource();

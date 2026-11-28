@@ -241,10 +241,10 @@ test('a voice key refused in Cold read leaves Record options its hand-back, with
 
 // A menu that has been closed stays drawn for its exit with its highlighted item focused: the Enter of a footswitch inside that exit pressed the item (#4183). With a take running the
 // right-click menu's "Roll again" ran and the take went on recording; the Editing DAW tools and Story Bible More actions menus opened their dialog. A leaving menu takes no press.
-const menuItem = (page: Page, name: string) => page.getByRole('menuitem', { name });
+const menuItem = (page: Page, name: string | RegExp) => page.getByRole('menuitem', { name });
 
 /** ArrowDown until the item named `name` is the focused one: what a narrator who walked to it does before Escape. */
-async function highlight(page: Page, name: string): Promise<void> {
+async function highlight(page: Page, name: string | RegExp): Promise<void> {
   for (let step = 0; step < 14; step++) {
     if (await menuItem(page, name).evaluate((item) => document.activeElement === item)) return;
     await page.keyboard.press('ArrowDown');
@@ -252,28 +252,80 @@ async function highlight(page: Page, name: string): Promise<void> {
   throw new Error(`could not walk to ${name}`);
 }
 
+/** A take runs and the right-click menu is open on a word, with "Roll again" or `item` highlighted by the arrow keys. */
+async function rightClickDuringTake(page: Page, item: string | RegExp): Promise<void> {
+  await openBoothWithMotion(page);
+  await page.getByRole('button', { name: /^Record$/ }).click();
+  await expect(stop(page)).toBeVisible();
+  await pastStartGuard(page);
+  await showChapterTop(page);
+  await page.locator('[data-word]').nth(40).click({ button: 'right' });
+  await expect(page.getByRole('menu')).toBeVisible();
+  await highlight(page, item);
+}
+
+/** The one key stops the take: the DAW is not recording within 200 ms of it, and no item ran. */
+async function expectThisKeyStoppedTheTake(page: Page, key: 'Enter' | 'NumpadEnter'): Promise<void> {
+  await page.keyboard.press(key);
+  await expect.poll(() => dawRecording(page), { timeout: 200 }).toBe(false);
+  await expect(stop(page)).toHaveCount(0);
+  await expect(page.getByText(/Rolling again/)).toHaveCount(0);
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+}
+
 for (const lag of [20, 60]) {
   for (const key of ['Enter', 'NumpadEnter'] as const) {
     test(`${key} ${lag} ms into the right-click menu's exit during a take presses no item and stops the take, with motion on`, async ({ page }) => {
-      await openBoothWithMotion(page);
-      await page.getByRole('button', { name: /^Record$/ }).click();
-      await expect(stop(page)).toBeVisible();
-      await pastStartGuard(page);
-      await showChapterTop(page);
-      await page.locator('[data-word]').nth(40).click({ button: 'right' });
-      await expect(page.getByRole('menu')).toBeVisible();
-      await highlight(page, /^Roll again/);
+      await rightClickDuringTake(page, /^Roll again/);
       await page.keyboard.press('Escape');
       await page.waitForTimeout(lag);
       await expect(leavingNow(page)).toHaveCount(1);
-      await page.keyboard.press(key);
-      await expect(page.getByText(/Rolling again/)).toHaveCount(0);
-      await expect(page.getByRole('alertdialog')).toHaveCount(0);
-      expect(await dawRecording(page)).toBe(true);
-      // The exit ends with focus on the page: the footswitch's next Enter stops the take.
-      await expectEnterStopsTheTake(page, key);
+      await expectThisKeyStoppedTheTake(page, key);
+      // The exit ends with focus on the page, not on a control the next Enter would press.
+      await page.waitForTimeout(HELD_EXIT_MS + 400);
+      expect(await onThePage(page)).toBe(true);
     });
   }
+}
+
+// The menu left by a pick: "Bookmark here" by Enter or by a click, and the footswitch's Enter 20 ms into the exit.
+for (const how of ['Enter', 'click'] as const) {
+  test(`Enter 20 ms after picking Bookmark here by ${how} stops the take, with motion on`, async ({ page }) => {
+    await rightClickDuringTake(page, /^Bookmark here/);
+    if (how === 'Enter') await page.keyboard.press('Enter');
+    else await menuItem(page, /^Bookmark here/).click();
+    await page.waitForTimeout(20);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await expectThisKeyStoppedTheTake(page, 'Enter');
+  });
+}
+
+test('Escape twice, then Enter 20 ms later, stops the take, with motion on', async ({ page }) => {
+  await rightClickDuringTake(page, /^Roll again/);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(20);
+  await expectThisKeyStoppedTheTake(page, 'Enter');
+});
+
+// No take running: the chord (Ctrl+Alt+Space) inside the exit starts the cold read, and the highlighted item must not run with it ("Read to here" would mark the chapter's stopping place).
+for (const lag of [20, 60]) {
+  test(`Ctrl+Alt+Space ${lag} ms into the right-click menu's exit presses no item and starts the cold read, with motion on`, async ({ page }) => {
+    await openBoothWithMotion(page);
+    await showChapterTop(page);
+    await page.locator('[data-word]').nth(40).click({ button: 'right' });
+    await expect(page.getByRole('menu')).toBeVisible();
+    await highlight(page, /^Read to here/);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Control+Alt+Space');
+    await expect(coldRunning(page)).toBeVisible();
+    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await expect(page.getByRole('button', { name: /^Read to here/ })).toHaveCount(0);
+    expect(await dawRecording(page)).toBeFalsy();
+    expect(await onThePage(page)).toBe(true);
+  });
 }
 
 for (const lag of [20, 60]) {

@@ -5,7 +5,7 @@ import type { GestureEvent, InputSource } from './InputSource';
 import { createKeyboardSource } from './KeyboardSource';
 import { defaultKeymap, type Keymap } from './keymap';
 import { SCOPE_PRIORITY, type Scope } from './scopes';
-import { EDITABLE, isGuardedTarget, keyLayerOpen, OWNS_KEYS, ownsKeysByRole } from './targets';
+import { EDITABLE, isGuardedTarget, isInertLeavingItem, keyLayerOpen, OWNS_KEYS, ownsKeysByRole } from './targets';
 
 const KEY_ROLE_TARGET = ownsKeysByRole;
 
@@ -134,8 +134,12 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
         !KEY_ROLE_TARGET(event.target) &&
         !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code);
       // A control left in a popup that has begun to close keeps Space and Enter (a button there would press) but no other key: it is going, and the key is the page's (#3906, #3931).
-      // The chapter list's items are the exception: they are disabled while it leaves and press nothing (#4125), so this router's hold on those two keys is only for the buttons.
-      const guarded = isGuardedTarget(event.target) && !(event.context?.targetClosing && !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code));
+      // The items of a menu are the exception: they are disabled while it leaves and press nothing (#4125, #4183), so an Enter that lands on one is the page's (a take running is stopped by it).
+      // Not Space: the pedal's own hook takes that one (`usePedalSpace`), and a second owner would toggle the take twice (#3976). Fields and buttons keep both keys (#4190 is the open case of a field).
+      const guarded =
+        isGuardedTarget(event.target) &&
+        !(event.context?.targetClosing && !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code)) &&
+        !(['Enter', 'NumpadEnter'].includes(event.gesture.code) && isInertLeavingItem(event.target, event.context?.targetClosing));
       if (event.gesture.modifiers.length === 0 && guarded && !onlyButton) return;
       // A key a button's own list already used (the Story Bible's rows walk with the arrows) is not also the page's.
       if (event.gesture.modifiers.length === 0 && guarded && event.consumed?.()) return;
