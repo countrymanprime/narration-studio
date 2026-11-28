@@ -543,15 +543,19 @@ for (const mode of ['Record', 'Cold read'] as const) {
       } else {
         await chapterButton(page).click();
         await expect(page.getByRole('menu')).toBeVisible();
-        // Opened by a click no item is highlighted yet, so the chord would have nothing to press: the pointer walks onto the second chapter, as a narrator's does.
-        await page.getByRole('menuitemradio').nth(1).hover();
+        // Opened by a click no item is highlighted yet, so the chord would have nothing to press: the pointer walks onto a chapter that is not the current one, as a narrator's does.
+        await page.getByRole('menuitemradio', { checked: false }).first().hover();
       }
       await expect(page.locator('[role="menuitemradio"][data-highlighted]')).toHaveCount(1);
       await expect(page.locator('[role="menuitemradio"]:focus')).toHaveCount(1);
+      // The item the chord would press is not the current chapter: a pick would change the picker's label, so the label check below can fail.
+      await expect(page.locator('[role="menuitemradio"]:focus')).toHaveAttribute('aria-checked', 'false');
       await page.keyboard.press('Control+Alt+Space');
       // Past the time a pick would have shown itself: the list is still there, the chapter is the same, and nothing is recording or asking.
       await quiet(page);
       await expect(page.getByRole('menu')).toBeVisible();
+      // Visible is not enough: a menu that a pick had closed stays on screen while its exit is held. It is open, not leaving.
+      await expect(leavingNow(page)).toHaveCount(0);
       await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
       await expect(coldRunning(page)).toHaveCount(0);
       await expect(stop(page)).toHaveCount(0);
@@ -574,6 +578,8 @@ test('Ctrl+Alt+Space with the right-click menu open presses no item and starts n
   await page.keyboard.press('Control+Alt+Space');
   await quiet(page);
   await expect(page.getByRole('menu')).toBeVisible();
+  // Visible is not enough: a menu that a press had closed stays on screen while its exit is held. It is open, not leaving.
+  await expect(leavingNow(page)).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Read to here/ })).toHaveCount(0);
   await expect(coldRunning(page)).toHaveCount(0);
   await expect(stop(page)).toHaveCount(0);
