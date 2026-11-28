@@ -1383,8 +1383,18 @@ export function useBoothPage(options: BoothPageOptions) {
     if (pending && !(await pending)) return true;
     return control.stop();
   }, [control]);
+  // Whether a take key pressed now starts a take (Record) or a cold read (Cold read), as opposed to stopping one or being refused. It mirrors the refusals `toggleTake`
+  // and `toggleColdRead` make before they begin (a take out, a start under way, a gated Record; a cold read starting or listening), so a refused key leaves a popup's own
+  // hand-back alone; the refusal cases of `BoothNextPage.takeKeys.test.tsx` fail if the two drift apart (#4181).
+  const keyStartsTake = useCallback(() => {
+    const now = latest.current;
+    return now.coldMode ? !now.recording && !coldReadStarting.current && !now.session.active : !now.recording && !starting.current && !control.gate;
+  }, [control.gate]);
   const punchAndRoll = useCallback(() => {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
+    // R before a take is Record (#3858): a take key, so a popup still leaving hands focus to the page as for Space (#4181). This mirrors `keyStartsTake` and `toggleTake`'s refusals
+    // (the gate above, a start under way, a take running); R always starts a take, never a cold read.
+    if (!latest.current.recording && !starting.current) claimFocusForPage();
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);
   // Ctrl+Alt+Space (#3445, #3744): the main button's other mode, started at once by the same press Record and Cold read use (toggleTake, toggleColdRead):
@@ -1400,9 +1410,20 @@ export function useBoothPage(options: BoothPageOptions) {
     else await toggleTake();
   }, [toggleColdRead, toggleTake]);
   useCommand('booth.mode.switch', () => void switchMode());
-  useCommand('reading.toggle', () => void pressMain());
+  // A take key (Enter, the numpad's Enter, Space) that is about to start a take or a cold read claims the page's focus as `switchMode` does, so a popup still leaving
+  // (Escape on the engine panel or Record options a moment ago) does not hand focus to its trigger after the take began and let the Enter that stops it open that control
+  // instead (#4181). A key that stops, or that is refused, leaves it alone. `closedAPopup`: the pedal's Space has just sent Escape to the popup that has focus, which is not
+  // leaving yet, so that popup is marked too.
+  const pressMainByKey = useCallback(
+    async (closedAPopup = false) => {
+      if (keyStartsTake()) claimFocusForPage(closedAPopup);
+      await pressMain();
+    },
+    [keyStartsTake, pressMain],
+  );
+  useCommand('reading.toggle', () => void pressMainByKey());
   usePedalSpace(
-    pressMain,
+    pressMainByKey,
     // A take, a start the host has, or a cold read: all of them are stopped by the pedal's Space from anywhere, a toast's button included (#4094).
     useCallback(() => latest.current.takeOut || latest.current.coldRead, []),
   );

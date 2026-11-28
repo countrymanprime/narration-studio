@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePedalSpace } from './usePedalSpace';
 
-function Harness({ toggle, running = false }: { toggle: () => unknown; running?: boolean }) {
+function Harness({ toggle, running = false }: { toggle: (closedAPopup: boolean) => unknown; running?: boolean }) {
   usePedalSpace(toggle, () => running);
   return (
     <div>
@@ -41,6 +41,21 @@ describe('the pedal Space (#4094)', () => {
     const event = pressSpace(getByRole('button', { name: 'Chapter list' }));
     expect(toggle).toHaveBeenCalledTimes(1);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('tells the take whether the Space closed an open popup (it sent Escape to it), so the take can mark that popup as left to the page', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<Harness toggle={toggle} />);
+    pressSpace(getByRole('button', { name: 'Chapter list' }));
+    expect(toggle).toHaveBeenLastCalledWith(false);
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    const item = document.createElement('button');
+    item.textContent = 'Item';
+    menu.append(item);
+    document.body.append(menu);
+    pressSpace(item);
+    expect(toggle).toHaveBeenLastCalledWith(true);
   });
 
   it.each([['Retry'], ['Dismiss message']])('leaves Space to the toast button %s: it presses the button and starts no take', (name) => {
@@ -161,6 +176,16 @@ describe('the pedal Enter on an item of a menu that is leaving, or on its popup 
     item.dispatchEvent(up);
     expect(up.defaultPrevented).toBe(true);
     expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('Enter on an inert item of a menu that is leaving stops the take once and tells the take no popup was closed (the Space path does not also run)', () => {
+    // Composes with the take-key claim (#4181): this branch is a stop, so `toggle(false)` (no popup was closed, nothing to mark) and nothing else toggles.
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const event = press(getByRole('menuitem'), 'Enter');
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(toggle).toHaveBeenCalledWith(false);
+    expect(event.defaultPrevented).toBe(true);
   });
 
   it("Shift+Enter is not a take key on the page, so it is not the pedal's here either", () => {

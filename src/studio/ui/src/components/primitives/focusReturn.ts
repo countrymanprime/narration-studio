@@ -109,13 +109,23 @@ export function anotherPopoverTakesFocus(own: Element | null, opener: Element | 
 const pageTookFocus = new WeakSet<Element>();
 
 /**
- * A key that leaves Enter and Space to the page (a voice key, Ctrl+Alt+Space: `claimFocusForPage`) pressed while a popup is still leaving: its exit runs on the fast
+ * A key that leaves Enter and Space to the page (a voice key, Ctrl+Alt+Space, a take key that starts a take or a cold read, R before a take, the pedal's Space: `claimFocusForPage`) pressed while a popup is still leaving: its exit runs on the fast
  * motion token and Base UI gives focus back to the trigger only when the exit has ended, so the hand-back would land after the key and put focus on the control the key
  * just released (Record options, the chapter list: a footswitch Enter then opens it while the take the key started keeps running). A popover, a menu or a slide-over
  * (the engine panel) asks `pageTookFocusFrom` as it closes and gives the page its focus instead.
  */
 export function pageTakesFocusFromLeavingPopups(): void {
   for (const popup of document.querySelectorAll(MARKABLE)) if (popup.closest(LEAVING)) pageTookFocus.add(popup);
+}
+
+/**
+ * `pageTakesFocusFromLeavingPopups` for the popup an Escape has just been sent to close, in the same tick: a popup that is still open when this runs has no
+ * `data-ending-style` yet (its exit starts a frame later), so the leaving scan finds nothing. Base UI keeps focus inside the popup until its exit ends, so the popup
+ * holding focus is the one the Escape closes. The pedal's Space does this (it closes what is open, then starts the take).
+ */
+export function pageTakesFocusFromClosingPopup(): void {
+  const popup = document.activeElement?.closest(MARKABLE);
+  if (popup) pageTookFocus.add(popup);
 }
 
 /** Whether a key handed focus to the page while `popup` was leaving (see `pageTakesFocusFromLeavingPopups`). */

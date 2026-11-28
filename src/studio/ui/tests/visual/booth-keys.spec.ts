@@ -533,3 +533,44 @@ test.describe('a toast button keeps its Space (#4094)', () => {
     expect(await dawRecording(page)).toBe(false);
   });
 });
+
+// A pedal's Space on a Booth control that has focus (#4184, #4175 item 1): it starts the take, and focus leaves the control for the page's <main>, so the next footswitch Enter
+// stops the take instead of pressing the control (opening Record options, Text settings or the chapter list with the take recording, or doing nothing on Next chapter).
+test.describe('Space on a focused Booth control starts the take and leaves Enter to the page', () => {
+  const onThePage = (page: Page) => page.evaluate(() => document.activeElement?.tagName === 'MAIN');
+  const recording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+  for (const name of ['Record options', 'Text settings', 'Next chapter']) {
+    test(`${name}`, async ({ page }) => {
+      await openBooth(page);
+      await page.getByRole('button', { name, exact: true }).focus();
+      await page.keyboard.press('Space');
+      await expect(page.getByText('REC', { exact: true })).toBeVisible();
+      expect(await recording(page)).toBe(true);
+      await page.waitForTimeout(400);
+      expect(await onThePage(page)).toBe(true);
+      await pastStartGuard(page);
+      await page.keyboard.press('Enter');
+      await expect(page.getByText('REC', { exact: true })).toHaveCount(0);
+      expect(await recording(page)).toBe(false);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByRole('menu')).toHaveCount(0);
+    });
+  }
+
+  test('the chapter picker in Cold read', async ({ page }) => {
+    await openBooth(page);
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
+    await pastStartGuard(page);
+    await page.getByRole('button', { name: /^Chapter: .*Change chapter/ }).focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByText('Mic on · cold read', { exact: true })).toBeVisible();
+    await page.waitForTimeout(400);
+    expect(await onThePage(page)).toBe(true);
+    await pastStartGuard(page);
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Mic on · cold read', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  });
+});
