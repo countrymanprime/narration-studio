@@ -1597,7 +1597,14 @@ function AppRoutes() {
                                 data.manuscript ? (
                                   gated(
                                     'script',
-                                    <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />,
+                                    <ScriptPage
+                                      notify={setNotice}
+                                      focusStoryBibleEntity={goToStoryBible}
+                                      goToEditing={goToEditing}
+                                      goToBooth={goToBooth}
+                                      projectFolder={data.projectFolder}
+                                      refreshProject={() => void refreshBootstrap()}
+                                    />,
                                   )
                                 ) : (
                                   <NeedManuscriptImport

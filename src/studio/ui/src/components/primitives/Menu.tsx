@@ -1,6 +1,7 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
 import { useId, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
+import { useLeaving } from './useLeaving';
 
 export type MenuItem = {
   key: string;
@@ -61,11 +62,11 @@ function ItemBody({ item, mark }: { item: MenuItem; mark?: 'box' | 'round' }) {
 }
 
 // A plain item. With a `disabledReason` it is drawn muted and answers a press with nothing, and the reason is its description.
-function PlainItem({ item }: { item: MenuItem }) {
+function PlainItem({ item, leaving }: { item: MenuItem; leaving: boolean }) {
   const reasonId = useId();
   if (item.disabledReason === undefined)
     return (
-      <BaseMenu.Item onClick={item.onSelect} className={ITEM_CLASS}>
+      <BaseMenu.Item onClick={item.onSelect} disabled={leaving} className={ITEM_CLASS}>
         <ItemBody item={item} />
       </BaseMenu.Item>
     );
@@ -86,7 +87,7 @@ function PlainItem({ item }: { item: MenuItem }) {
   );
 }
 
-function Section({ section, first }: { section: MenuSection; first: boolean }) {
+function Section({ section, first, leaving }: { section: MenuSection; first: boolean; leaving: boolean }) {
   const heading = section.label && (
     <BaseMenu.GroupLabel className="px-[0.55rem] pt-[0.35rem] pb-[0.2rem] text-[0.7rem] font-semibold tracking-[0.06em] text-[var(--text-muted)] uppercase">
       {section.label}
@@ -103,7 +104,7 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
         >
           {heading}
           {section.items.map((item) => (
-            <BaseMenu.RadioItem key={item.key} value={item.key} closeOnClick={section.closeOnSelect === true} className={ITEM_CLASS}>
+            <BaseMenu.RadioItem key={item.key} value={item.key} disabled={leaving} closeOnClick={section.closeOnSelect === true} className={ITEM_CLASS}>
               <ItemBody item={item} mark="round" />
             </BaseMenu.RadioItem>
           ))}
@@ -120,6 +121,7 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
             <BaseMenu.CheckboxItem
               key={item.key}
               checked={item.checked === true}
+              disabled={leaving}
               onCheckedChange={item.onSelect}
               closeOnClick={section.closeOnSelect === true}
               className={ITEM_CLASS}
@@ -127,7 +129,7 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
               <ItemBody item={item} mark="box" />
             </BaseMenu.CheckboxItem>
           ) : (
-            <PlainItem key={item.key} item={item} />
+            <PlainItem key={item.key} item={item} leaving={leaving} />
           ),
         )}
       </BaseMenu.Group>
@@ -171,6 +173,8 @@ export function Menu({
   children: ReactNode;
 }) {
   const [main, setMain] = useState<HTMLElement>();
+  // Its items take no press while it leaves (`useLeaving`).
+  const [leaving, track] = useLeaving();
   return (
     // Not modal unless it is a page menu: the page behind stays scrollable and clickable, as with the menu this replaced (a press outside closes it).
     <BaseMenu.Root
@@ -178,6 +182,7 @@ export function Menu({
       onOpenChange={(isOpen) => {
         // Looked up as it opens: the page's `<main>` need not be in the document when the menu is first drawn.
         if (isOpen && pageMenu) setMain(document.querySelector('main') ?? undefined);
+        track(isOpen);
         onOpenChange?.(isOpen);
       }}
     >
@@ -191,16 +196,16 @@ export function Menu({
           >
             {items.map((item) =>
               item.disabledReason !== undefined ? (
-                <PlainItem key={item.key} item={item} />
+                <PlainItem key={item.key} item={item} leaving={leaving} />
               ) : (
-                <BaseMenu.Item key={item.key} onClick={item.onSelect} className={ITEM_CLASS}>
+                <BaseMenu.Item key={item.key} onClick={item.onSelect} disabled={leaving} className={ITEM_CLASS}>
                   {item.leading}
                   {item.label}
                 </BaseMenu.Item>
               ),
             )}
             {sections?.map((section, index) => (
-              <Section key={section.key} section={section} first={index === 0 && items.length === 0} />
+              <Section key={section.key} section={section} first={index === 0 && items.length === 0} leaving={leaving} />
             ))}
           </BaseMenu.Popup>
         </BaseMenu.Positioner>

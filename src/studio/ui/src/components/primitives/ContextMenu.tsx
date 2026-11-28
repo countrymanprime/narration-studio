@@ -9,6 +9,7 @@ import { KeyChord } from './KeyCap';
 import { TooltipTarget } from './Tooltip';
 import { handFocusToPage } from './focusReturn';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
+import { useLeaving } from './useLeaving';
 
 export type ContextMenuItem = {
   key: string;
@@ -48,7 +49,7 @@ function runsOf(items: ContextMenuItem[]): Run[] {
 
 const POPUP_CLASSES = `max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`;
 const ROW_CLASSES =
-  'flex w-full cursor-pointer flex-col gap-0.5 rounded-[0.3rem] px-[0.55rem] py-[0.45rem] text-left text-[0.82rem] outline-none data-[disabled]:cursor-default data-[disabled]:text-[var(--text-muted)] data-[highlighted]:bg-[var(--surface-2)]';
+  'flex w-full cursor-pointer flex-col gap-0.5 rounded-[0.3rem] px-[0.55rem] py-[0.45rem] text-left text-[0.82rem] outline-none data-[off]:cursor-default data-[off]:text-[var(--text-muted)] data-[highlighted]:bg-[var(--surface-2)]';
 
 /** A row's label, with its check slot and key hint, and when it is off the reason under it. */
 function RowText({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
@@ -75,16 +76,17 @@ function RowText({ item, reasonId }: { item: ContextMenuItem; reasonId: string }
 const iconed = (item: ContextMenuItem): boolean => item.icon !== undefined && item.submenu === undefined && item.checked === undefined;
 
 /** An icon-only item: the label is its name and its tooltip, and a reason takes the label's place in the hint and is the description. */
-function IconRow({ item }: { item: ContextMenuItem }) {
+function IconRow({ item, leaving }: { item: ContextMenuItem; leaving: boolean }) {
   const hint = item.unavailable === undefined ? item.label : `${item.label} — ${item.unavailable}`;
   return (
     <TooltipTarget text={hint}>
       <BaseContextMenu.Item
-        disabled={item.unavailable !== undefined}
+        disabled={item.unavailable !== undefined || leaving}
         aria-label={item.label}
         aria-description={item.unavailable}
         onClick={item.onSelect}
-        className="flex size-8 cursor-pointer items-center justify-center rounded-[0.3rem] text-[0.85rem] outline-none data-[disabled]:cursor-default data-[disabled]:text-[var(--text-muted)] data-[highlighted]:bg-[var(--surface-2)]"
+        data-off={item.unavailable !== undefined ? '' : undefined}
+        className="flex size-8 cursor-pointer items-center justify-center rounded-[0.3rem] text-[0.85rem] outline-none data-[highlighted]:bg-[var(--surface-2)] data-[off]:cursor-default data-[off]:text-[var(--text-muted)]"
       >
         <Icon name={item.icon!} />
       </BaseContextMenu.Item>
@@ -93,18 +95,31 @@ function IconRow({ item }: { item: ContextMenuItem }) {
 }
 
 /** One row: a plain item, or the trigger of its submenu. */
-function Row({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
+function Row({ item, reasonId, leaving }: { item: ContextMenuItem; reasonId: string; leaving: boolean }) {
   const off = item.unavailable !== undefined;
   const described = off ? `${reasonId}-${item.key}` : undefined;
+  // A submenu can close on its own (Escape inside it closes only it): its rows and its trigger take no press while it leaves either.
+  const [subLeaving, trackSub, settleSub] = useLeaving();
+  const gone = leaving || subLeaving;
+  // The muted look follows `off` (data-off), not `disabled`: a menu that is leaving keeps its look.
+  const look = off ? '' : undefined;
   if (!item.submenu) {
     return item.checked === undefined ? (
-      <BaseContextMenu.Item key={item.key} disabled={off} aria-describedby={described} onClick={item.onSelect} className={ROW_CLASSES}>
+      <BaseContextMenu.Item
+        key={item.key}
+        disabled={off || leaving}
+        data-off={look}
+        aria-describedby={described}
+        onClick={item.onSelect}
+        className={ROW_CLASSES}
+      >
         <RowText item={item} reasonId={reasonId} />
       </BaseContextMenu.Item>
     ) : (
       <BaseContextMenu.CheckboxItem
         key={item.key}
-        disabled={off}
+        disabled={off || leaving}
+        data-off={look}
         checked={item.checked}
         closeOnClick
         aria-describedby={described}
@@ -116,9 +131,10 @@ function Row({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
     );
   }
   return (
-    <BaseContextMenu.SubmenuRoot key={item.key}>
+    <BaseContextMenu.SubmenuRoot key={item.key} onOpenChange={trackSub} onOpenChangeComplete={settleSub}>
       <BaseContextMenu.SubmenuTrigger
-        disabled={off}
+        disabled={off || gone}
+        data-off={look}
         aria-describedby={described}
         className={`${ROW_CLASSES} relative pr-6 data-[popup-open]:bg-[var(--surface-2)]`}
       >
@@ -130,7 +146,7 @@ function Row({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
       <BaseContextMenu.Portal container={document.querySelector('main') ?? undefined}>
         <BaseContextMenu.Positioner collisionPadding={8} sideOffset={2} className="z-[var(--z-popover)]">
           <BaseContextMenu.Popup className={POPUP_CLASSES}>
-            <Runs items={item.submenu} reasonId={reasonId} />
+            <Runs items={item.submenu} reasonId={reasonId} leaving={gone} />
           </BaseContextMenu.Popup>
         </BaseContextMenu.Positioner>
       </BaseContextMenu.Portal>
@@ -139,13 +155,13 @@ function Row({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
 }
 
 /** The items as runs of neighbours that share a group: a labelled group, or an unlabelled run, with a rule between two runs. */
-function Runs({ items, reasonId }: { items: ContextMenuItem[]; reasonId: string }) {
+function Runs({ items, reasonId, leaving }: { items: ContextMenuItem[]; reasonId: string; leaving: boolean }) {
   return runsOf(items).map((run, at) => {
     const rows: ReactNode[] = [];
     for (let i = 0; i < run.items.length; i++) {
       const item = run.items[i]!;
       if (!iconed(item)) {
-        rows.push(<Row key={item.key} item={item} reasonId={reasonId} />);
+        rows.push(<Row key={item.key} item={item} reasonId={reasonId} leaving={leaving} />);
         continue;
       }
       // The neighbours that have an icon share one row of icons.
@@ -154,7 +170,7 @@ function Runs({ items, reasonId }: { items: ContextMenuItem[]; reasonId: string 
       rows.push(
         <div key={`icons-${item.key}`} data-icon-row="" className="flex flex-wrap gap-0.5 p-0.5">
           {row.map((entry) => (
-            <IconRow key={entry.key} item={entry} />
+            <IconRow key={entry.key} item={entry} leaving={leaving} />
           ))}
         </div>,
       );
@@ -224,6 +240,8 @@ export function ContextMenu({
   children: ReactNode;
 }) {
   const reasonId = useId();
+  // Its items take no press while it leaves (`useLeaving`).
+  const [leaving, track] = useLeaving();
   const [anchor, setAnchor] = useState<VirtualAnchor>();
   const opened = (event: MouseEvent) => {
     const box = textBoxAt(event.clientX, event.clientY);
@@ -232,7 +250,7 @@ export function ContextMenu({
   };
   const beside = anchor ? { anchor, side: 'bottom' as const, align: 'start' as const, sideOffset: 4 } : {};
   return (
-    <BaseContextMenu.Root>
+    <BaseContextMenu.Root onOpenChange={track}>
       <BaseContextMenu.Trigger className={className} onContextMenu={items.length > 0 || onOpen ? opened : undefined}>
         {children}
       </BaseContextMenu.Trigger>
@@ -243,7 +261,7 @@ export function ContextMenu({
             finalFocus={focusPageOnClose ? () => handFocusToPage() : undefined}
             className={`max-h-[var(--available-height)] w-64 overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
-            <Runs items={items} reasonId={reasonId} />
+            <Runs items={items} reasonId={reasonId} leaving={leaving} />
           </BaseContextMenu.Popup>
         </BaseContextMenu.Positioner>
       </BaseContextMenu.Portal>

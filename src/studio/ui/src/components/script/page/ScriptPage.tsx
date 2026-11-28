@@ -4,8 +4,11 @@
 // mark, the tab, the word, the entry, Find and the drawer are the SN-B70 view module's; the bookmark gone to is the page's own, as the
 // view module leaves bookmarks out. The `/script` route mounts it (App.tsx, SN-B8).
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { folderKey } from '../../../projectFolder';
+import { useOptionalStoreHandle } from '../../../studio/StudioProvider';
+import { PROJECT_STILL_OPENING, READ_GIVES_UP_MS } from '../../../studio/store/createStudioStore';
 import { useGuardedAction, useGuardedNavigate } from '../../../studio/drafts/unsavedDrafts';
 import type { ScriptViewState } from './data/scriptView';
 import { useShowInRail } from './data/useShowInRail';
@@ -94,20 +97,67 @@ export type ScriptPageProps = {
   goToEditing?: (chapterId: string) => void;
   /** Record in Booth on a chapter or the credits, or Record from here at a selection. Omitted, nothing offers it. */
   goToBooth?: (target: BoothTarget) => void;
+  /** The open project's folder; the reader's remembered place is kept per project under it. */
+  projectFolder?: string;
+  /** Asks the app for the open project again (its bootstrap): Retry on the page that waited too long for the project's folder. */
+  refreshProject?: () => void;
 };
 
 /** How long the paragraph of a bookmark just gone to stays lit, as the mock's. */
 const BOOKMARK_FLASH_MS = 1600;
 
+/**
+ * Whether the store's chapter list was read for the page's own project: 'agrees' (or either is unknown, or there is no store), 'waiting' while it names another one, and
+ * 'gave-up' once that has lasted the store's own give-up time (the bootstrap that names the new folder failed), so the page can say so with Retry. `again` starts the wait over.
+ */
+function useListProject(projectFolder: string | undefined): { state: 'agrees' | 'waiting' | 'gave-up'; again: () => void } {
+  const store = useOptionalStoreHandle();
+  const readFor = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.projectOf('chapters'),
+    () => undefined,
+  );
+  const wanted = projectFolder ? folderKey(projectFolder) : '';
+  const agrees = !projectFolder || readFor === undefined || readFor === wanted;
+  const [attempt, setAttempt] = useState(0);
+  const [gaveUp, setGaveUp] = useState(false);
+  useEffect(() => {
+    setGaveUp(false);
+    if (agrees) return;
+    const timer = setTimeout(() => setGaveUp(true), READ_GIVES_UP_MS);
+    return () => clearTimeout(timer);
+    // A folder that changes while the lists still disagree starts the countdown over, and a give-up for the old folder is not carried to the new one.
+  }, [agrees, attempt, wanted]);
+  const again = () => {
+    setGaveUp(false);
+    setAttempt((n) => n + 1);
+  };
+  return { state: agrees ? 'agrees' : gaveUp ? 'gave-up' : 'waiting', again };
+}
+const noSubscribe = () => () => undefined;
+
 /** The page: the empty state with no manuscript, the host's sentence when the chapters cannot be read, else the three columns. */
 export function ScriptPage(props: ScriptPageProps) {
   const chapters = useChapters();
+  const listProject = useListProject(props.projectFolder);
   const navigate = useNavigate();
   const listable = useMemo(() => (chapters.value ?? []).filter(isListableChapter), [chapters.value]);
   // The credits are in the list, but the reader's text, Find, bookmarks and the empty check are about the manuscript's own chapters.
   const manuscript = useMemo(() => withoutCredits(listable), [listable]);
   if (chapters.status === 'error' && chapters.value === undefined) return <LoadError title="Script" message={chapters.message} retry={chapters.retry} />;
-  if (chapters.value === undefined) return <ScriptSkeleton />;
+  // After a switch the store can hold the new project's list before the page is told the new folder: the reader keeps its place per folder, so it waits for both to agree (#4091).
+  if (listProject.state === 'gave-up')
+    return (
+      <LoadError
+        title="Script"
+        message={PROJECT_STILL_OPENING}
+        retry={() => {
+          listProject.again();
+          props.refreshProject?.();
+        }}
+      />
+    );
+  if (chapters.value === undefined || listProject.state === 'waiting') return <ScriptSkeleton />;
   if (manuscript.length === 0) return <NeedManuscript title="Script" onImport={() => navigate('/')} />;
   return (
     <CommandScope kind="page">
@@ -133,6 +183,7 @@ function ScriptWorkspace({
   notify,
   focusStoryBibleEntity,
   goToBooth,
+  projectFolder,
 }: ScriptPageProps & { chapters: readonly ManuscriptChapter[]; allChapters: readonly ManuscriptChapter[] }) {
   const navigate = useNavigate();
   const leave = useGuardedNavigate();
@@ -609,6 +660,7 @@ function ScriptWorkspace({
                 sectionNames={sectionNames}
                 toolbar={toolbar}
                 underHeader={<SkipToRail onOpenRail={() => update({ drawer: 'rail' })} />}
+                projectFolder={projectFolder}
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {
                   const mark = marks.marks.find((row) => row.id === id);

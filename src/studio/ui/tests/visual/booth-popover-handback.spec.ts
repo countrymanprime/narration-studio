@@ -4,7 +4,7 @@
 // motion (settlePage), where the exit is over within a frame, so these run with motion on: no settlePage. The exit is held at 600 ms (`--motion-fast` and `--motion-base`) so that every case can
 // assert the popup is still leaving when the key is pressed, and the 20 and 60 ms lags are inside it however slow the machine is.
 import { expect, test, type Page } from '@playwright/test';
-import { boothChapterReady } from './helpers/viewTop';
+import { boothChapterReady, showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 import { pastStartGuard } from './helpers/startGuard';
 
@@ -355,3 +355,207 @@ test('a voice key refused in Cold read leaves Record options its hand-back, with
   await expect(recordOptions(page)).toBeFocused();
   await expect(stop(page)).toHaveCount(0);
 });
+
+// A menu that has been closed stays drawn for its exit with its highlighted item focused: the Enter of a footswitch inside that exit pressed the item (#4183). With a take running the
+// right-click menu's "Roll again" ran and the take went on recording; the Editing DAW tools and Story Bible More actions menus opened their dialog. A leaving menu takes no press.
+const menuItem = (page: Page, name: string | RegExp) => page.getByRole('menuitem', { name });
+
+/** ArrowDown until the item named `name` is the focused one: what a narrator who walked to it does before Escape. */
+async function highlight(page: Page, name: string | RegExp, timeout = 5_000): Promise<void> {
+  for (let step = 0; step < 14; step++) {
+    // Bounded: a menu that has gone fails here, not by the test's own timeout.
+    if (await menuItem(page, name).evaluate((item) => document.activeElement === item, undefined, { timeout })) return;
+    await page.keyboard.press('ArrowDown');
+  }
+  throw new Error(`could not walk to ${name}`);
+}
+
+/** A take runs and the right-click menu is open on a word, with "Roll again" or `item` highlighted by the arrow keys. */
+async function rightClickDuringTake(page: Page, item?: string | RegExp): Promise<void> {
+  await openBoothWithMotion(page);
+  await page.getByRole('button', { name: /^Record$/ }).click();
+  await expect(stop(page)).toBeVisible();
+  await pastStartGuard(page);
+  // A word that is in the window now: the reading follows the take, and `showChapterTop` (which wheels and re-measures a word for seconds) can lose its word to a re-render on a loaded machine.
+  const index = await page.locator('[data-booth-text] [data-word]').evaluateAll((words) => {
+    const height = window.innerHeight;
+    return words.findIndex((word) => {
+      const box = word.getBoundingClientRect();
+      return box.left > 40 && box.right < window.innerWidth - 40 && box.top > 160 && box.bottom < height * 0.7;
+    });
+  });
+  expect(index).toBeGreaterThanOrEqual(0);
+  await page.locator('[data-booth-text] [data-word]').nth(index).click({ button: 'right' });
+  await expect(page.getByRole('menu')).toBeVisible();
+  // No item: the menu opened by the pointer keeps focus on its own popup until an arrow moves it onto a row.
+  if (item !== undefined) await highlight(page, item, 3_000);
+}
+
+/** The one key stops the take: the DAW is not recording within 500 ms of it, and no item ran. */
+async function expectThisKeyStoppedTheTake(page: Page, key: 'Enter' | 'NumpadEnter'): Promise<void> {
+  await page.keyboard.press(key);
+  // The stop reaches the DAW in tens of milliseconds (140 ms at the most in 84 runs on 8 workers; one run on a loaded machine took longer than 200 ms), and with no fix the take is not
+  // stopped at all until a second Enter: half a second tells the two apart without a flake.
+  await expect.poll(() => dawRecording(page), { timeout: 500 }).toBe(false);
+  await expect(stop(page)).toHaveCount(0);
+  await expect(page.getByText(/Rolling again/)).toHaveCount(0);
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+}
+
+for (const lag of [20, 60]) {
+  for (const key of ['Enter', 'NumpadEnter'] as const) {
+    test(`${key} ${lag} ms into the right-click menu's exit during a take presses no item and stops the take, with motion on`, async ({ page }) => {
+      await rightClickDuringTake(page, /^Roll again/);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(lag);
+      await expect(leavingNow(page)).toHaveCount(1);
+      await expectThisKeyStoppedTheTake(page, key);
+      // The exit ends with focus on the page, not on a control the next Enter would press.
+      await page.waitForTimeout(HELD_EXIT_MS + 400);
+      expect(await onThePage(page)).toBe(true);
+    });
+  }
+}
+
+// The usual mouse path: a right click, no arrow (or a row hovered and the pointer moved off), Escape, the footswitch. Focus is on the menu's own popup, not on a row.
+for (const how of ['no arrow key', 'the pointer moved off the menu'] as const) {
+  for (const lag of [20, 60]) {
+    for (const key of ['Enter', 'NumpadEnter'] as const) {
+      test(`${key} ${lag} ms into the exit of the right-click menu with ${how} stops the take, with motion on`, async ({ page }) => {
+        await rightClickDuringTake(page);
+        if (how === 'the pointer moved off the menu') {
+          await menuItem(page, /^Roll again/).hover();
+          await page.mouse.move(4, 4);
+        }
+        // Focus is on the menu's own popup, not on a row: the case exercises the popup clause, not the item one.
+        expect(await page.evaluate(() => document.activeElement?.getAttribute('role'))).toBe('menu');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(lag);
+        await expect(leavingNow(page)).toHaveCount(1);
+        await expectThisKeyStoppedTheTake(page, key);
+        // The exit ends with focus on the page, as it does after a key that went to an item.
+        await page.waitForTimeout(HELD_EXIT_MS + 400);
+        expect(await onThePage(page)).toBe(true);
+      });
+    }
+  }
+}
+
+// The menu left by a pick: "Bookmark here" by Enter or by a click, and the footswitch's Enter 20 ms into the exit.
+for (const how of ['Enter', 'click'] as const) {
+  test(`Enter 20 ms after picking Bookmark here by ${how} stops the take, with motion on`, async ({ page }) => {
+    await rightClickDuringTake(page, /^Bookmark here/);
+    if (how === 'Enter') await page.keyboard.press('Enter');
+    else await menuItem(page, /^Bookmark here/).click();
+    await page.waitForTimeout(20);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await expectThisKeyStoppedTheTake(page, 'Enter');
+  });
+}
+
+test('Escape twice, then Enter 20 ms later, stops the take, with motion on', async ({ page }) => {
+  await rightClickDuringTake(page, /^Roll again/);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(20);
+  await expectThisKeyStoppedTheTake(page, 'Enter');
+});
+
+// The chapter list's items are menu items too: with a cold read running (the picker stays on) a footswitch Enter in its exit stops the cold read (a #4190 cell).
+for (const lag of [20, 60]) {
+  test(`Enter ${lag} ms into the exit of the chapter list during a cold read stops it, with motion on`, async ({ page }) => {
+    await openBoothWithMotion(page);
+    await recordOptions(page).click();
+    await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(optionsDialog(page)).toHaveCount(0);
+    await page.getByRole('button', { name: /^Cold read$/ }).click();
+    await expect(coldRunning(page)).toBeVisible();
+    await pastStartGuard(page);
+    const before = await leaveChapterListFromKeyboard(page, lag);
+    await page.keyboard.press('Enter');
+    await expect(coldRunning(page)).toHaveCount(0, { timeout: 500 });
+    // A pick of a chapter by that Enter would change the picker's label.
+    await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
+  });
+}
+
+// No take running: an Enter in the menu's exit stays swallowed. It presses no item and starts no take (a double Enter on a pick must not record).
+for (const lag of [20, 60]) {
+  test(`a double Enter on a pick, the second ${lag} ms into the right-click menu's exit with no take running, starts no take, with motion on`, async ({
+    page,
+  }) => {
+    await openBoothWithMotion(page);
+    await showChapterTop(page);
+    await page.locator('[data-word]').nth(40).click({ button: 'right' });
+    await expect(page.getByRole('menu')).toBeVisible();
+    await highlight(page, /^Bookmark here/);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await expect(stop(page)).toHaveCount(0);
+    expect(await dawRecording(page)).toBeFalsy();
+    expect(await onThePage(page)).toBe(true);
+  });
+}
+
+// No take running: the chord (Ctrl+Alt+Space) inside the exit starts the cold read, and the highlighted item must not run with it ("Read to here" would mark the chapter's stopping place).
+for (const lag of [20, 60]) {
+  test(`Ctrl+Alt+Space ${lag} ms into the right-click menu's exit presses no item and starts the cold read, with motion on`, async ({ page }) => {
+    await openBoothWithMotion(page);
+    await showChapterTop(page);
+    await page.locator('[data-word]').nth(40).click({ button: 'right' });
+    await expect(page.getByRole('menu')).toBeVisible();
+    await highlight(page, /^Read to here/);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Control+Alt+Space');
+    await expect(coldRunning(page)).toBeVisible();
+    await page.waitForTimeout(HELD_EXIT_MS + 400);
+    await expect(page.getByRole('button', { name: /^Read to here/ })).toHaveCount(0);
+    expect(await dawRecording(page)).toBeFalsy();
+    expect(await onThePage(page)).toBe(true);
+  });
+}
+
+for (const lag of [20, 60]) {
+  test(`Enter ${lag} ms into the exit of the Editing DAW tools menu opens no dialog, with motion on`, async ({ page }) => {
+    await page.goto('/?mockChapterLink=confirmed');
+    await page.waitForLoadState('networkidle');
+    await goToPage(page, 'Editing');
+    await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
+    const tools = page.getByRole('button', { name: 'DAW tools' });
+    await tools.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('menu').getByText('Reading the REAPER project…')).toHaveCount(0);
+    await highlight(page, /^Prepare chapter render/);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(HELD_EXIT_MS + 200);
+    await expect(page.getByRole('dialog', { name: /Prepare chapter render/ })).toHaveCount(0);
+    await expect(tools).toBeFocused();
+  });
+
+  test(`Enter ${lag} ms into the exit of the Story Bible More actions menu opens no dialog, with motion on`, async ({ page }) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await page.waitForLoadState('networkidle');
+    await goToPage(page, 'Story Bible');
+    await page.addStyleTag({ content: `:root { --motion-fast: ${HELD_EXIT_MS}ms; --motion-base: ${HELD_EXIT_MS}ms; }` });
+    const more = page.getByRole('button', { name: 'More actions' });
+    await more.focus();
+    await page.keyboard.press('Enter');
+    await highlight(page, /^Scan the manuscript/);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(lag);
+    await expect(leavingNow(page)).toHaveCount(1);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(HELD_EXIT_MS + 200);
+    await expect(page.getByRole('dialog', { name: /Scan the manuscript/ })).toHaveCount(0);
+    await expect(more).toBeFocused();
+  });
+}

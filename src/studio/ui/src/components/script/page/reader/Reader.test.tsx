@@ -5,12 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { overlay } from '../../../../overlay/overlayService';
 import { Reader } from './Reader';
-import { READER_POSITION_KEY } from './readerPosition';
+import { projectStorageKey } from '../../../../projectFolder';
 import { chapter, cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 // jsdom lays nothing out, so the rows get tops by their order in the document (100 px each) and scrollTop is a stored number.
 const tops = new WeakMap<Element, number>();
 const scrolls = new WeakMap<Element, number>();
+/** The furthest the fake browser scrolls: a scroll past it is clamped, as a real one is. */
+let maxScroll = Infinity;
 function layOut(): void {
   const rows = Array.from(document.querySelectorAll('[data-bound], [data-para]'));
   rows.forEach((row, i) => tops.set(row, i * 100));
@@ -18,6 +20,7 @@ function layOut(): void {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  maxScroll = Infinity;
   vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
     if (!tops.has(this)) layOut();
     return tops.get(this) ?? 0;
@@ -26,7 +29,7 @@ beforeEach(() => {
     return scrolls.get(this) ?? 0;
   });
   vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (this: Element, value: number) {
-    scrolls.set(this, value);
+    scrolls.set(this, Math.min(value, maxScroll));
   });
   window.localStorage.clear();
 });
@@ -47,9 +50,14 @@ const sources = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [],
 const paragraphsOf = (id: string): ManuscriptParagraph[] | undefined => paras[id];
 
 type Props = ComponentProps<typeof Reader>;
-const props = (extra: Partial<Props> = {}): Props => ({ chapters, paragraphsOf, sources, ...extra });
+const FOLDER_A = 'C:/Books/A';
+const FOLDER_B = 'C:/Books/B';
+const READER_POSITION_KEY = projectStorageKey('script.reader.position', FOLDER_A);
+const props = (extra: Partial<Props> = {}): Props => ({ chapters, paragraphsOf, sources, projectFolder: FOLDER_A, ...extra });
 const scroller = (): HTMLElement => screen.getByRole('region', { name: /Script reader/ });
-const scrollTo = (value: number): void => {
+/** The narrator scrolls: the wheel is the input that releases the reader's first-draw hold, then the position moves. */
+const scrollTo = (value: number, input: boolean = true): void => {
+  if (input) fireEvent.wheel(scroller());
   scrolls.set(scroller(), value);
   fireEvent.scroll(scroller());
 };
@@ -210,6 +218,20 @@ describe('scroll requests', () => {
     expect(scrolls.get(scroller())).toBe(8000 - 8);
   });
 
+  it("the reader's own focus on a jumped-to heading keeps the jump held against a section drawn above", () => {
+    const { rerender } = render(<Reader {...props({ pendingJump: 'c3' })} />);
+    expect(document.activeElement?.tagName).toBe('H2');
+    expect(document.activeElement?.closest('[data-ch="c3"]')).not.toBeNull();
+    const relaid = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      const rows = Array.from(document.querySelectorAll('[data-bound], [data-para]'));
+      return rows.indexOf(this) * 100;
+    });
+    rerender(<Reader {...props({ before: <div data-bound="" data-ch="credits:opening" /> })} />);
+    const bound = document.querySelector('[data-bound][data-ch="c3"]') as HTMLElement;
+    expect(scrolls.get(scroller())).toBe(bound.offsetTop - 8);
+    relaid.mockRestore();
+  });
+
   it('lets go of a jumped-to chapter once the narrator scrolls by hand', () => {
     const late: Record<string, ManuscriptParagraph[] | undefined> = {};
     const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: 'c3' })} />);
@@ -293,6 +315,128 @@ describe('the remembered position', () => {
     window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'credits:"closing', offset: 30 }));
     render(<Reader {...props({ before: <div data-bound="" data-ch="credits:opening" /> })} />);
     expect(scrolls.get(scroller())).toBe(92);
+  });
+
+  // #4091: the place is the project's own; another project's, or the key an earlier build kept with no folder, is never applied.
+  it('keeps each project its own place: A, then B, then A restores each and B never opens at A', () => {
+    const a = render(<Reader {...props()} />);
+    scrollTo(350);
+    a.unmount();
+    const b = render(<Reader {...props({ projectFolder: FOLDER_B })} />);
+    expect(scrolls.get(scroller())).toBeUndefined();
+    scrollTo(650);
+    b.unmount();
+    render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBe(350);
+    cleanup();
+    render(<Reader {...props({ projectFolder: FOLDER_B })} />);
+    expect(scrolls.get(scroller())).toBe(650);
+  });
+
+  it('writes only under the folder it was opened for, one folder spelled two ways being one place', () => {
+    const { unmount } = render(<Reader {...props({ projectFolder: 'c:\\books\\a\\' })} />);
+    scrollTo(350);
+    unmount();
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 50 });
+    expect(window.localStorage.getItem(projectStorageKey('script.reader.position', FOLDER_B))).toBeNull();
+  });
+
+  it('ignores the key an earlier build kept with no folder in it', () => {
+    window.localStorage.setItem('narration.script.reader.position', JSON.stringify({ chapterId: 'c2', offset: 50 }));
+    render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBeUndefined();
+  });
+
+  it("opens at the start when the remembered chapter is not in this project's book", () => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'other-book-ch', offset: 50 }));
+    render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBeUndefined();
+  });
+
+  // The restore sets the scroll, and the browser answers with a scroll event: that is not the narrator moving, so it saves nothing (#4091).
+  it("does not save a place for the first-draw restore; only the narrator's scroll does", () => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'c2', offset: 50 }));
+    const before = window.localStorage.getItem(READER_POSITION_KEY);
+    const { unmount } = render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBe(350);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(before);
+    cleanup();
+    render(<Reader {...props()} />);
+    scrollTo(450);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 150 });
+  });
+
+  it('a restore the browser clamps at the end saves no place', () => {
+    maxScroll = 300;
+    const stored = JSON.stringify({ chapterId: 'c3', offset: 500 });
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    const { unmount } = render(<Reader {...props()} />);
+    expect(scrolls.get(scroller())).toBe(300);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  it('a restore whose scroll comes back fractional (a scaled display) saves no place', () => {
+    const stored = JSON.stringify({ chapterId: 'c2', offset: 50 });
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    const { unmount } = render(<Reader {...props()} />);
+    scrolls.set(scroller(), 350.6);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  // A small window wraps the header, the reader loses height, the content shrinks and the browser clamps the held end place itself, after the restore ran.
+  it('a scroll the browser makes after the restore (the content shrinks under a held end place) saves no place', () => {
+    maxScroll = 5000;
+    const stored = JSON.stringify({ chapterId: 'c3', offset: 500 });
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    const { unmount } = render(<Reader {...props()} />);
+    maxScroll = 560;
+    scrolls.set(scroller(), 560); // the browser's own clamp, no wheel, pointer, key or touch
+    fireEvent.scroll(scroller());
+    scrolls.set(scroller(), 559);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    expect(vi.getTimerCount()).toBe(0);
+    unmount();
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  it.each([
+    ['the wheel', (el: HTMLElement) => fireEvent.wheel(el)],
+    ['a pointer press (a scrollbar drag or track click)', (el: HTMLElement) => fireEvent.pointerDown(el)],
+    ['a touch', (el: HTMLElement) => fireEvent.touchStart(el)],
+    ['a key', (el: HTMLElement) => fireEvent.keyDown(el, { key: 'ArrowDown' })],
+  ])('a one-pixel scroll right after %s is the narrator moving and is saved', (_name, input) => {
+    window.localStorage.setItem(READER_POSITION_KEY, JSON.stringify({ chapterId: 'c2', offset: 50 }));
+    render(<Reader {...props()} />);
+    input(scroller());
+    scrollTo(351, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).toEqual({ chapterId: 'c2', offset: 51 });
+  });
+
+  it('opening a project with nothing stored writes nothing until the narrator scrolls', () => {
+    const { unmount } = render(<Reader {...props({ projectFolder: FOLDER_B })} />);
+    fireEvent.scroll(scroller());
+    act(() => void vi.advanceTimersByTime(250));
+    unmount();
+    expect(window.localStorage.getItem(projectStorageKey('script.reader.position', FOLDER_B))).toBeNull();
+  });
+
+  it('keeps no place when no project is open', () => {
+    const { unmount } = render(<Reader {...props({ projectFolder: '' })} />);
+    scrollTo(350);
+    unmount();
+    expect(window.localStorage.length).toBe(0);
   });
 
   it('opens at the given chapter when nothing is remembered', () => {
@@ -446,6 +590,86 @@ describe('Find', () => {
     // Chosen again from the menu: back into view.
     rerender(<Reader {...props({ find: { matches, current: 0, request: 2 } })} />);
     expect(scrolls.get(scroller())).toBe(600);
+  });
+});
+
+// #4091: after the first-draw restore the reader holds its place and saves nothing until the narrator moves it. Each way the narrator moves it lets go of the hold.
+describe('letting go of the first-draw hold', () => {
+  const stored = JSON.stringify({ chapterId: 'c2', offset: 50 });
+  const restoredFor = (extra: Partial<Props> = {}) => {
+    window.localStorage.setItem(READER_POSITION_KEY, stored);
+    return render(<Reader {...props(extra)} />);
+  };
+  const layoutShift = (rerender: (ui: React.ReactElement) => void, extra: Partial<Props> = {}) => {
+    // Text above the remembered chapter arrives and pushes it down: a held place follows it, a released one stays where the narrator is.
+    tops.set(document.querySelector('[data-bound][data-ch="c2"]') as HTMLElement, 1300);
+    rerender(<Reader {...props(extra)} />);
+  };
+
+  it('a scroll after focus moves into the reader with no key saves the place', () => {
+    const { container } = restoredFor();
+    fireEvent.focusIn(container.querySelector('[data-para]') as HTMLElement);
+    scrollTo(900, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(JSON.parse(window.localStorage.getItem(READER_POSITION_KEY) ?? 'null')).not.toEqual({ chapterId: 'c2', offset: 50 });
+  });
+
+  it('focus moving into the reader releases the held place, so a late layout shift does not snap it back', () => {
+    const { container, rerender } = restoredFor();
+    expect(scrolls.get(scroller())).toBe(350);
+    fireEvent.focusIn(container.querySelector('[data-para]') as HTMLElement);
+    scrollTo(900, false);
+    layoutShift(rerender);
+    expect(scrolls.get(scroller())).toBe(900);
+  });
+
+  it('without that focus the held place follows the layout shift, and nothing is saved', () => {
+    const { rerender } = restoredFor();
+    layoutShift(rerender);
+    expect(scrolls.get(scroller())).toBe(1350);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).toBe(stored);
+  });
+
+  it('a request to scroll to a paragraph lets go: no snap back, and the later scroll is saved', () => {
+    const { rerender } = restoredFor();
+    rerender(<Reader {...props({ pendingPid: 'p5' })} />);
+    const at = scrolls.get(scroller());
+    expect(at).not.toBe(350);
+    layoutShift(rerender, { pendingPid: null });
+    expect(scrolls.get(scroller())).toBe(at);
+    scrollTo(at! + 40, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).not.toBe(stored);
+  });
+
+  it('a request to scroll to a bookmark lets go the same way', () => {
+    const { rerender } = restoredFor();
+    rerender(<Reader {...props({ pendingBm: { paragraphId: 'p5', offset: 0 } })} />);
+    const at = scrolls.get(scroller());
+    expect(at).not.toBe(350);
+    layoutShift(rerender, { pendingBm: null });
+    expect(scrolls.get(scroller())).toBe(at);
+    scrollTo(at! + 40, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).not.toBe(stored);
+  });
+
+  it('choosing a Find match lets go the same way', () => {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const top = this.classList.contains('a-find-cur') ? 600 - (scrolls.get(scroller()) ?? 0) : 0;
+      return { top, left: 0, right: 0, bottom: top, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect;
+    });
+    const matches = [{ paragraphId: 'p4', start: 2, end: 6 }];
+    const { rerender } = restoredFor();
+    rerender(<Reader {...props({ find: { matches, current: 0, request: 1 } })} />);
+    const at = scrolls.get(scroller());
+    expect(at).not.toBe(350);
+    layoutShift(rerender, { find: { matches, current: 0, request: 1 } });
+    expect(scrolls.get(scroller())).toBe(at);
+    scrollTo(at! + 40, false);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(window.localStorage.getItem(READER_POSITION_KEY)).not.toBe(stored);
   });
 });
 

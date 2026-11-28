@@ -8,6 +8,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { DEFAULT_PROJECT_FOLDER } from '../../../api/mockHost/project';
+import { projectStorageKey } from '../../../projectFolder';
+import { READ_GIVES_UP_MS } from '../../../studio/store/createStudioStore';
 import { withoutCredits } from '../../../chapterKinds';
 import { providedCommands } from '../../../input/commandProviders';
 import { currentPageContext } from '../../../input/pageCommands';
@@ -50,7 +53,7 @@ const noCreditsList = async () => {
 };
 
 function mount({ api = createMockApi(), at = '/script', props = {} }: Mount = {}) {
-  const handlers = { notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
+  const handlers = { projectFolder: DEFAULT_PROJECT_FOLDER, notify: vi.fn(), focusStoryBibleEntity: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const utils = render(
     <MemoryRouter initialEntries={[at]}>
       <ApiProvider api={api}>
@@ -472,7 +475,7 @@ describe('credits-cards-and-banner-stay', () => {
     fireEvent.click(await within(panel('chapters')).findByRole('button', { name: /Closing credits/ }));
     await waitFor(() => expect(at.get(reader())).toBe(4992));
     fireEvent.scroll(reader());
-    await waitFor(() => expect(window.localStorage.getItem('narration.script.reader.position')).toContain('credits:closing'));
+    await waitFor(() => expect(window.localStorage.getItem('narration.script.reader.position.c:/projects/alice-in-wonderland')).toContain('credits:closing'));
     first.unmount();
     mount();
     await firstHeading();
@@ -888,5 +891,185 @@ describe('Script loading state', () => {
     expect(region()).toBeNull();
     fireEvent.click(retry);
     await waitFor(() => expect(calls).toBe(2));
+  });
+});
+
+describe('the reader position across project switches (#4091)', () => {
+  /** A host with two books: A (the mock's) and B (its chapter ids prefixed `v-`), switched by `switchTo`, with the attach event the window hears. */
+  function twoProjects() {
+    const attach = new Set<(state: { attached: boolean }) => void>();
+    let other = false;
+    let readsOfB = 0;
+    const base = createMockApi();
+    const api = {
+      ...base,
+      subscribeProjectAttach: (listener: (state: { attached: boolean }) => void) => {
+        attach.add(listener);
+        return () => attach.delete(listener);
+      },
+      manuscriptChapters: async () => {
+        const list = await base.manuscriptChapters();
+        if (!other) return list;
+        readsOfB += 1;
+        return { ...list, project: 'C:/Books/B', chapters: list.chapters.map((c) => ({ ...c, id: `v-${c.id}` })) };
+      },
+      manuscriptParagraphs: (chapterId: string) => base.manuscriptParagraphs(chapterId.replace(/^v-/, '')),
+    } as NarrationApi;
+    const at = new WeakMap<Element, number>();
+    vi.spyOn(Element.prototype, 'scrollTop', 'get').mockImplementation(function (this: Element) {
+      return at.get(this) ?? 0;
+    });
+    vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (this: Element, value: number) {
+      at.set(this, value);
+    });
+    const page = (show: boolean, folder: string, refreshProject?: () => void) => (
+      <MemoryRouter initialEntries={['/script']}>
+        <ApiProvider api={api}>
+          <StudioProvider>
+            <CommandRouter>
+              <TooltipProvider>
+                {show ? (
+                  <Routes>
+                    <Route
+                      path="/script"
+                      element={<ScriptPage notify={vi.fn()} focusStoryBibleEntity={vi.fn()} projectFolder={folder} refreshProject={refreshProject} />}
+                    />
+                  </Routes>
+                ) : null}
+              </TooltipProvider>
+            </CommandRouter>
+          </StudioProvider>
+        </ApiProvider>
+      </MemoryRouter>
+    );
+    const reader = () => screen.getByRole('region', { name: /Script reader/ });
+    const stored = (folder: string) => window.localStorage.getItem(projectStorageKey('script.reader.position', folder));
+    const narratorScrolls = async (folder: string, top: number) => {
+      fireEvent.wheel(reader());
+      at.set(reader(), top);
+      fireEvent.scroll(reader());
+      await waitFor(() => expect(stored(folder)).not.toBeNull());
+      return (JSON.parse(stored(folder)!) as { chapterId: string; offset: number }).chapterId;
+    };
+    const switchTo = (isB: boolean) => {
+      other = isB;
+      act(() => attach.forEach((listener) => listener({ attached: true })));
+    };
+    return { page, reader, stored, narratorScrolls, switchTo, at, readsOfB: () => readsOfB };
+  }
+  const A = DEFAULT_PROJECT_FOLDER;
+  const B = 'C:/Books/B';
+
+  // The Script's cache listened for a switch only while a Script page was mounted: a switch made on another page left the old project's chapters in it, and the
+  // Script opened on them for the new project and saved the old project's chapter id under the new project's key.
+  it("opening the Script for project B with project A's chapter list cached never writes an A chapter id under B's key", async () => {
+    const t = twoProjects();
+    const view = render(t.page(true, A));
+    await firstHeading();
+    const chapterOfA = await t.narratorScrolls(A, 250);
+    expect(chapterOfA.startsWith('v-')).toBe(false);
+
+    // The switch is made on another page: no Script page is mounted when the project changes.
+    view.rerender(t.page(false, A));
+    t.switchTo(true);
+    view.rerender(t.page(true, B));
+    await firstHeading();
+    expect(t.stored(B)).toBeNull();
+    const chapterOfB = await t.narratorScrolls(B, 400);
+    expect(chapterOfB.startsWith('v-')).toBe(true);
+    expect((JSON.parse(t.stored(A)!) as { chapterId: string }).chapterId).toBe(chapterOfA);
+  });
+
+  it("A to B to A: each project opens at its own place and B never opens at A's", async () => {
+    const t = twoProjects();
+    const view = render(t.page(true, A));
+    await firstHeading();
+    await t.narratorScrolls(A, 250);
+    view.rerender(t.page(false, A));
+    t.switchTo(true);
+    view.rerender(t.page(true, B));
+    await firstHeading();
+    expect(t.at.get(t.reader()) ?? 0).toBe(0);
+    await t.narratorScrolls(B, 400);
+    view.rerender(t.page(false, B));
+    t.switchTo(false);
+    view.rerender(t.page(true, A));
+    await firstHeading();
+    await waitFor(() => expect(t.at.get(t.reader())).toBe(250));
+    view.rerender(t.page(false, A));
+    t.switchTo(true);
+    view.rerender(t.page(true, B));
+    await firstHeading();
+    await waitFor(() => expect(t.at.get(t.reader())).toBe(400));
+  });
+
+  // After an attach while the Script is open, the store can hold B's list before the page is told B's folder: the reader would open B's chapters on A's place.
+  it("never draws the new project's chapters under the old project's folder while the page has not heard the new folder", async () => {
+    const t = twoProjects();
+    const view = render(t.page(true, A));
+    await firstHeading();
+    t.switchTo(true);
+    await waitFor(() => expect(t.readsOfB()).toBeGreaterThan(0));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole('region', { name: /Script reader/ })).toBeNull();
+    expect(window.localStorage.getItem(projectStorageKey('script.reader.position', A))).toBeNull();
+    view.rerender(t.page(true, B));
+    await firstHeading();
+    expect(t.reader()).toBeTruthy();
+  });
+
+  // The bootstrap that names the new folder can fail: the page then waits on the store's own clock and says so, with Retry (a skeleton with no way out is no state).
+  it("a switch whose bootstrap fails does not leave the Script on its skeleton: after the store's give-up time it shows an error with Retry", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const t = twoProjects();
+    const refresh = vi.fn();
+    const view = render(t.page(true, A, refresh));
+    await firstHeading();
+    t.switchTo(true);
+    await waitFor(() => expect(t.readsOfB()).toBeGreaterThan(0));
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS - 1000));
+    expect(screen.queryByRole('alert')).toBeNull();
+    act(() => void vi.advanceTimersByTime(2000));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/still being opened/);
+    fireEvent.click(screen.getByRole('button', { name: /Retry/ }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).toBeNull(); // the wait starts over, with no extra render of the error
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS - 1000));
+    expect(screen.queryByRole('alert')).toBeNull();
+    act(() => void vi.advanceTimersByTime(2000));
+    expect(await screen.findByRole('alert')).toBeTruthy(); // still no folder: it gives up again
+    view.rerender(t.page(true, B, refresh));
+    await firstHeading();
+  });
+
+  it('a folder that changes while the lists still disagree starts the wait over instead of carrying the give-up over', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const t = twoProjects();
+    const view = render(t.page(true, A));
+    await firstHeading();
+    t.switchTo(true);
+    await waitFor(() => expect(t.readsOfB()).toBeGreaterThan(0));
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS + 1000));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    view.rerender(t.page(true, 'C:/Books/C'));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a slow bootstrap (answering at 4 s) still shows the skeleton, then the new project', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const t = twoProjects();
+    const view = render(t.page(true, A));
+    await firstHeading();
+    t.switchTo(true);
+    await waitFor(() => expect(t.readsOfB()).toBeGreaterThan(0));
+    act(() => void vi.advanceTimersByTime(4000));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('region', { name: /Script reader/ })).toBeNull();
+    view.rerender(t.page(true, B));
+    await firstHeading();
+    expect(t.reader()).toBeTruthy();
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS * 2));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

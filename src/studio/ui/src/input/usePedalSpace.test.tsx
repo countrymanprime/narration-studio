@@ -119,3 +119,159 @@ describe('the pedal Space (#4094)', () => {
     }
   });
 });
+
+// A footswitch Enter on an item of a menu that is leaving, or on that menu's own popup: the item is off (`aria-disabled`, `useLeaving`) and presses nothing, and the router holds Enter for a control in a closing popup, so with a take
+// running the pedal's hook stops it, and with none it stays swallowed (#4183).
+describe('the pedal Enter on an item of a menu that is leaving, or on its popup (#4183)', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  function LeavingMenu({ toggle, running, leaving = true, inert = true }: { toggle: () => unknown; running: boolean; leaving?: boolean; inert?: boolean }) {
+    usePedalSpace(toggle, () => running);
+    return (
+      <div role="menu" {...(leaving ? { 'data-ending-style': '' } : {})}>
+        <div role="menuitem" tabIndex={-1} aria-label="Roll again" {...(inert ? { 'aria-disabled': 'true' } : {})} />
+      </div>
+    );
+  }
+  const press = (target: HTMLElement, code: string, repeat = false, modifiers: KeyboardEventInit = {}): KeyboardEvent => {
+    target.focus();
+    const event = new KeyboardEvent('keydown', {
+      key: code === 'Space' ? ' ' : code.startsWith('Arrow') || code === 'Escape' ? code : 'Enter',
+      code,
+      bubbles: true,
+      cancelable: true,
+      repeat,
+      ...modifiers,
+    });
+    target.dispatchEvent(event);
+    return event;
+  };
+
+  it.each([['ArrowDown'], ['Escape'], ['KeyR']])('%s on an inert item of a menu that is leaving is not a take key: nothing is toggled', (code) => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const event = press(getByRole('menuitem'), code);
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it.each([['ctrlKey'], ['altKey'], ['metaKey']])("Enter with %s held is not the pedal's: nothing is toggled and the key is left alone", (modifier) => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const event = press(getByRole('menuitem'), 'Enter', false, { [modifier]: true });
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('Space on an inert item of a menu that is leaving still toggles exactly once, through the Space path, and its key up is swallowed', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const item = getByRole('menuitem');
+    const down = press(item, 'Space');
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(down.defaultPrevented).toBe(true);
+    const up = new KeyboardEvent('keyup', { key: ' ', code: 'Space', bubbles: true, cancelable: true });
+    item.dispatchEvent(up);
+    expect(up.defaultPrevented).toBe(true);
+    expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('Enter on an inert item of a menu that is leaving stops the take once and tells the take no popup was closed (the Space path does not also run)', () => {
+    // Composes with the take-key claim (#4181): this branch is a stop, so `toggle(false)` (no popup was closed, nothing to mark) and nothing else toggles.
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const event = press(getByRole('menuitem'), 'Enter');
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(toggle).toHaveBeenCalledWith(false);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("Shift+Enter is not a take key on the page, so it is not the pedal's here either", () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const event = press(getByRole('menuitem'), 'Enter', false, { shiftKey: true });
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  // A menu opened by the pointer keeps focus on its own popup until an arrow moves it onto a row.
+  function LeavingPopup({ toggle, running, leaving = true }: { toggle: () => unknown; running: boolean; leaving?: boolean }) {
+    usePedalSpace(toggle, () => running);
+    return <div role="menu" tabIndex={-1} aria-label="Word menu" {...(leaving ? { 'data-ending-style': '' } : {})} />;
+  }
+
+  it.each(['Enter', 'NumpadEnter'])('%s on the popup of a menu that is leaving, with no item focused, stops a take that runs', (code) => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingPopup toggle={toggle} running />);
+    const event = press(getByRole('menu'), code);
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('Enter on the popup of a menu that is leaving starts no take when none runs', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingPopup toggle={toggle} running={false} />);
+    press(getByRole('menu'), 'Enter');
+    expect(toggle).not.toHaveBeenCalled();
+  });
+
+  it('Enter on the popup of a menu that is still open is left to the menu', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingPopup toggle={toggle} running leaving={false} />);
+    const event = press(getByRole('menu'), 'Enter');
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('an Enter that lands after the pick opened a dialog still stops the take: this branch only ever stops one, so no modal check holds it back', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(
+      <>
+        <div role="alertdialog" aria-label="Roll again from ¶ 14?" />
+        <LeavingMenu toggle={toggle} running />
+      </>,
+    );
+    press(getByRole('menuitem'), 'Enter');
+    expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['Enter', 'NumpadEnter'])('%s stops a take that runs', (code) => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const event = press(getByRole('menuitem'), code);
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it.each(['Enter', 'NumpadEnter'])('%s starts no take when none runs: it stays swallowed', (code) => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running={false} />);
+    press(getByRole('menuitem'), code);
+    expect(toggle).not.toHaveBeenCalled();
+  });
+
+  it('a repeat of the key stops the take once', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    press(getByRole('menuitem'), 'Enter');
+    press(getByRole('menuitem'), 'Enter', true);
+    expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('an item that is unavailable in a menu that is still open keeps its Enter', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running leaving={false} />);
+    const event = press(getByRole('menuitem'), 'Enter');
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('an item that is not inert keeps its Enter, even while its menu leaves', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running inert={false} />);
+    press(getByRole('menuitem'), 'Enter');
+    expect(toggle).not.toHaveBeenCalled();
+  });
+});

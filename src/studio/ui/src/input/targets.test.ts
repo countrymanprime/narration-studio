@@ -1,6 +1,16 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { isGuardedTarget, keyContextOf, keyLayerOpen, modalLayerOpen, openModalLayer, softLayerOpen, takesTypedText, watchKeyContext } from './targets';
+import {
+  isGuardedTarget,
+  isInertLeavingMenuTarget,
+  keyContextOf,
+  keyLayerOpen,
+  modalLayerOpen,
+  openModalLayer,
+  softLayerOpen,
+  takesTypedText,
+  watchKeyContext,
+} from './targets';
 
 function el(html: string): Element {
   const div = document.createElement('div');
@@ -155,5 +165,53 @@ describe('the live checks and a popup that is closing', () => {
     expect(keyLayerOpen()).toBe(true);
     expect(softLayerOpen()).toBe(true);
     expect(modalLayerOpen()).toBe(true);
+  });
+});
+
+// The item of a menu that presses nothing because the menu has begun to close (#4183), off by `useLeaving` inside a popup that is `data-ending-style`, or that menu's own popup.
+describe('isInertLeavingMenuTarget', () => {
+  const inside = (popup: string, item: string) => el(`<div ${popup}>${item}</div>`).firstElementChild!;
+
+  it.each(['menuitem', 'menuitemradio', 'menuitemcheckbox'])('is true for a %s that is aria-disabled in a popup that is closing', (role) => {
+    expect(isInertLeavingMenuTarget(inside('role="menu" data-ending-style=""', `<div role="${role}" aria-disabled="true"></div>`))).toBe(true);
+  });
+
+  it('is true for a descendant of such an item (the label a press lands on)', () => {
+    const item = inside('role="menu" data-ending-style=""', '<div role="menuitem" aria-disabled="true"><span>Roll again</span></div>');
+    expect(isInertLeavingMenuTarget(item.querySelector('span'))).toBe(true);
+  });
+
+  it.each([
+    ['an item that is not off', 'role="menu" data-ending-style=""', '<div role="menuitem" aria-disabled="false"></div>'],
+    ['an item with no aria-disabled', 'role="menu" data-ending-style=""', '<div role="menuitem"></div>'],
+    ['a button in a popover that is closing, aria-disabled or not', 'data-popover-popup="" data-ending-style=""', '<button aria-disabled="true"></button>'],
+    ['an item that is off in a menu that is not closing', 'role="menu"', '<div role="menuitem" aria-disabled="true"></div>'],
+    ['an element of another role that is aria-disabled', 'role="menu" data-ending-style=""', '<div role="option" aria-disabled="true"></div>'],
+  ])('is false for %s', (_name, popup, item) => {
+    expect(isInertLeavingMenuTarget(inside(popup, item))).toBe(false);
+  });
+
+  // The popup of a menu opened by the pointer holds focus itself until an arrow moves it onto a row: a key then lands on the popup.
+  it('is true for the popup of a menu that is closing', () => {
+    expect(isInertLeavingMenuTarget(el('<div role="menu" data-ending-style=""></div>'))).toBe(true);
+  });
+
+  it.each([
+    ['the popup of a menu that is not closing', el('<div role="menu"></div>')],
+    ['a text field in a popover that is closing', inside('role="dialog" data-popover-popup="" data-ending-style=""', '<input type="text" />')],
+    ['a button in a popover that is closing', inside('role="dialog" data-popover-popup="" data-ending-style=""', '<button>Save</button>')],
+    ['the popup of a popover that is closing', el('<div role="dialog" data-popover-popup="" data-ending-style=""></div>')],
+    ['a text field in a menu that is closing', inside('role="menu" data-ending-style=""', '<input type="text" />')],
+    ['a label inside a menu that is closing', inside('role="menu" data-ending-style=""', '<div role="presentation">Group</div>')],
+    ['the popup of a listbox that is closing', el('<div role="listbox" data-ending-style=""></div>')],
+    ['the popup of a combobox that is closing', el('<div role="combobox" data-ending-style=""></div>')],
+    ['the popup of a menubar that is closing', el('<div role="menubar" data-ending-style=""></div>')],
+  ])('is false for %s', (_name, target) => {
+    expect(isInertLeavingMenuTarget(target)).toBe(false);
+  });
+
+  it('is false for null and for a node that is not an element', () => {
+    expect(isInertLeavingMenuTarget(null)).toBe(false);
+    expect(isInertLeavingMenuTarget(document)).toBe(false);
   });
 });
