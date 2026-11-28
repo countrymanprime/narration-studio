@@ -454,6 +454,72 @@ describe('ContextMenu items while it leaves', () => {
 
 // Alignment audit R3SC-2: the menu opened on top of the word that was clicked. Opened on text, it is placed against the text's box at the
 // pointer's x, so it starts below the line (or above it), never on it. jsdom has no layout, so the browser's answers are stood in for.
+// A chord (Ctrl, Alt or Meta held) is the page's, not the item's (#4195): Ctrl+Alt+Space with the menu open pressed "Bookmark here" on both builds.
+describe('ContextMenu items with Ctrl, Alt or Meta held', () => {
+  const chords = [
+    ['Ctrl', { ctrlKey: true }],
+    ['Alt', { altKey: true }],
+    ['Meta', { metaKey: true }],
+    ['Ctrl+Alt', { ctrlKey: true, altKey: true }],
+  ] as const;
+  const keys = [
+    ['Space', { key: ' ', code: 'Space' }],
+    ['Enter', { key: 'Enter', code: 'Enter' }],
+    ['NumpadEnter', { key: 'Enter', code: 'NumpadEnter' }],
+  ] as const;
+  const cases = chords.flatMap(([chord, modifiers]) => keys.map(([name, key]) => [`${chord}+${name}`, { ...key, ...modifiers }] as const));
+  const rows = [
+    { key: 'roll', label: 'Roll again', onSelect: vi.fn() },
+    { key: 'mark', label: 'Mark as done', checked: false, onSelect: vi.fn() },
+    { key: 'bookmark', label: 'Bookmark here', icon: 'bookmark' as const, onSelect: vi.fn() },
+    { key: 'more', label: 'More', submenu: [{ key: 'inner', label: 'Inner', onSelect: vi.fn() }], onSelect: vi.fn() },
+  ];
+
+  async function openMenu() {
+    rows.forEach((row) => row.onSelect.mockClear());
+    render(
+      <TooltipProvider>
+        <ContextMenu items={rows}>
+          <p>Alice was beginning to get very tired.</p>
+        </ContextMenu>
+      </TooltipProvider>,
+    );
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+  }
+
+  it.each(cases)('an open menu takes no %s press on a row, a check row, an icon or a submenu row, and the menu stays open', async (_name, key) => {
+    await openMenu();
+    const pressable = [...screen.getAllByRole('menuitem'), ...screen.getAllByRole('menuitemcheckbox')];
+    expect(pressable.length).toBeGreaterThanOrEqual(4);
+    for (const item of pressable) {
+      item.focus();
+      fireEvent.keyDown(item, key);
+      fireEvent.keyUp(item, key);
+    }
+    rows.forEach((row) => expect(row.onSelect).not.toHaveBeenCalled());
+    expect(screen.queryByRole('menuitem', { name: 'Inner' })).toBeNull();
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it.each(cases)("the %s key's default is stopped, so the page does not scroll and a native control is not pressed", async (_name, key) => {
+    await openMenu();
+    const item = screen.getByRole('menuitem', { name: 'Roll again' });
+    item.focus();
+    expect(fireEvent.keyDown(item, key)).toBe(false);
+  });
+
+  it.each(keys)('a plain %s press still runs a row', async (_name, key) => {
+    await openMenu();
+    const item = screen.getByRole('menuitem', { name: 'Roll again' });
+    item.focus();
+    fireEvent.keyDown(item, key);
+    fireEvent.keyUp(item, key);
+    expect(rows[0]!.onSelect).toHaveBeenCalledOnce();
+  });
+});
+
 describe('textBoxAt', () => {
   const line = new DOMRect(10, 100, 300, 20);
   const stubCaret = (box: DOMRect | null) => {

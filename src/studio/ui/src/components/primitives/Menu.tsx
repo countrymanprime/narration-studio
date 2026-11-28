@@ -1,5 +1,6 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
 import { useId, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import { ignoreChordPress } from './chordKeys';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 import { useLeaving } from './useLeaving';
 
@@ -66,7 +67,7 @@ function PlainItem({ item, leaving }: { item: MenuItem; leaving: boolean }) {
   const reasonId = useId();
   if (item.disabledReason === undefined)
     return (
-      <BaseMenu.Item onClick={item.onSelect} disabled={leaving} className={ITEM_CLASS}>
+      <BaseMenu.Item onClick={item.onSelect} onKeyDown={ignoreChordPress} disabled={leaving} className={ITEM_CLASS}>
         <ItemBody item={item} />
       </BaseMenu.Item>
     );
@@ -104,7 +105,14 @@ function Section({ section, first, leaving }: { section: MenuSection; first: boo
         >
           {heading}
           {section.items.map((item) => (
-            <BaseMenu.RadioItem key={item.key} value={item.key} disabled={leaving} closeOnClick={section.closeOnSelect === true} className={ITEM_CLASS}>
+            <BaseMenu.RadioItem
+              key={item.key}
+              value={item.key}
+              disabled={leaving}
+              onKeyDown={ignoreChordPress}
+              closeOnClick={section.closeOnSelect === true}
+              className={ITEM_CLASS}
+            >
               <ItemBody item={item} mark="round" />
             </BaseMenu.RadioItem>
           ))}
@@ -122,6 +130,7 @@ function Section({ section, first, leaving }: { section: MenuSection; first: boo
               key={item.key}
               checked={item.checked === true}
               disabled={leaving}
+              onKeyDown={ignoreChordPress}
               onCheckedChange={item.onSelect}
               closeOnClick={section.closeOnSelect === true}
               className={ITEM_CLASS}
@@ -198,7 +207,7 @@ export function Menu({
               item.disabledReason !== undefined ? (
                 <PlainItem key={item.key} item={item} leaving={leaving} />
               ) : (
-                <BaseMenu.Item key={item.key} onClick={item.onSelect} disabled={leaving} className={ITEM_CLASS}>
+                <BaseMenu.Item key={item.key} onClick={item.onSelect} onKeyDown={ignoreChordPress} disabled={leaving} className={ITEM_CLASS}>
                   {item.leading}
                   {item.label}
                 </BaseMenu.Item>

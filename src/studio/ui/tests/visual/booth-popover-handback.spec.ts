@@ -520,3 +520,77 @@ for (const lag of [20, 60]) {
     await expect(more).toBeFocused();
   });
 }
+
+// A chord is the page's, not the item's, when the popup is still OPEN (#4195): Base UI presses a focused item on the keydown of Space whatever else is held, so Ctrl+Alt+Space picked the
+// highlighted chapter of an open list (and, with the list closed by that pick, asked "Stop recording?" with a take running), and pressed "Bookmark here" of the open right-click menu.
+// The popup stays open and nothing starts: the Booth says no to the chord while a popup has the keyboard.
+for (const mode of ['Record', 'Cold read'] as const) {
+  for (const how of ['keyboard', 'click'] as const) {
+    test(`Ctrl+Alt+Space with the chapter list open (by the ${how}) in ${mode} picks no chapter and starts nothing, with motion on`, async ({ page }) => {
+      await openBoothWithMotion(page);
+      if (mode === 'Cold read') {
+        await recordOptions(page).click();
+        await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
+        await page.keyboard.press('Escape');
+        await expect(optionsDialog(page)).toHaveCount(0);
+      }
+      const before = await chapterButton(page).getAttribute('aria-label');
+      if (how === 'keyboard') {
+        await chapterButton(page).focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('[role="menuitemradio"]:focus')).toHaveCount(1);
+      } else {
+        await chapterButton(page).click();
+        await expect(page.getByRole('menu')).toBeVisible();
+        // Opened by a click no item is highlighted yet, so the chord would have nothing to press: the pointer walks onto the second chapter, as a narrator's does.
+        await page.getByRole('menuitemradio').nth(1).hover();
+      }
+      await expect(page.locator('[role="menuitemradio"][data-highlighted]')).toHaveCount(1);
+      await expect(page.locator('[role="menuitemradio"]:focus')).toHaveCount(1);
+      await page.keyboard.press('Control+Alt+Space');
+      // Past the exit a pick would have started: the list is still there, the chapter is the same, and nothing is recording or asking.
+      await page.waitForTimeout(HELD_EXIT_MS + 200);
+      await expect(page.getByRole('menu')).toBeVisible();
+      await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
+      await expect(coldRunning(page)).toHaveCount(0);
+      await expect(stop(page)).toHaveCount(0);
+      await expect(alertQuestion(page)).toHaveCount(0);
+      expect(await dawRecording(page)).toBeFalsy();
+      // The list is still an ordinary open list: Escape closes it and focus goes back to its button.
+      await page.keyboard.press('Escape');
+      await expect(chapterButton(page)).toBeFocused();
+    });
+  }
+}
+
+test('Ctrl+Alt+Space with the right-click menu open presses no item and starts nothing, with motion on', async ({ page }) => {
+  await openBoothWithMotion(page);
+  await showChapterTop(page);
+  await page.locator('[data-word]').nth(40).click({ button: 'right' });
+  await expect(page.getByRole('menu')).toBeVisible();
+  await highlight(page, /^Read to here/);
+  await page.keyboard.press('Control+Alt+Space');
+  await page.waitForTimeout(HELD_EXIT_MS + 200);
+  await expect(page.getByRole('menu')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Read to here/ })).toHaveCount(0);
+  await expect(coldRunning(page)).toHaveCount(0);
+  await expect(stop(page)).toHaveCount(0);
+  expect(await dawRecording(page)).toBeFalsy();
+});
+
+// A button of the engine panel is a toolbar item: Base UI pressed it on the keydown of the chord's Space although the Booth had refused the chord.
+test('Ctrl+Alt+Space on a focused button of the open engine panel opens no dialog, and a plain Space still does, with motion on', async ({ page }) => {
+  await openBoothWithMotion(page);
+  await engineChip(page).click();
+  await openedFully(page);
+  const cleanup = page.getByRole('button', { name: 'Open the cleanup tools', exact: true });
+  await cleanup.focus();
+  await page.keyboard.press('Control+Alt+Space');
+  await page.waitForTimeout(400);
+  await expect(page.getByRole('dialog', { name: 'Cleanup tools' })).toHaveCount(0);
+  await expect(enginePanel(page)).toBeVisible();
+  expect(await dawRecording(page)).toBeFalsy();
+  await expect(coldRunning(page)).toHaveCount(0);
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('dialog', { name: 'Cleanup tools' })).toBeVisible();
+});
