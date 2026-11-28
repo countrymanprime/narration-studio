@@ -1236,8 +1236,9 @@ describe('the host says which project a list was read from (#4040)', () => {
     expect(store.getState().slots.a).toBeUndefined();
   });
 
-  // Held lists belong to the project the store is on, whatever the order. A reader that resolves finds a list held, unless three answers in a row came from another
-  // project (the cap): then it resolves with the slot empty. Several seeds and many runs, so the property is not lucky with one.
+  // Held lists belong to the project the store is on, whatever the order, with reads held in flight across resets and news (a read answers only when a step
+  // says so, with the project the host was on when it was asked). A reader that resolves finds a list held, unless three answers from another project came
+  // after the project was confirmed while it waited (its cap): then it may resolve with the slot empty. Several seeds and many runs, so it is not seed-lucky.
   it.each([7, 11, 99, 2024, 4185])(
     'whatever the order of resets, answers and news, a held list belongs to the project the store is on (seed %i)',
     async (first) => {
@@ -1251,24 +1252,41 @@ describe('the host says which project a list was read from (#4040)', () => {
         };
         const settle = () => vi.advanceTimersByTimeAsync(0);
         for (let run = 0; run < 200; run += 1) {
-          const { host, read } = stamped('A');
-          let foreign = 0; // answers from a project other than the one the store is on
+          const host = { project: 'A' };
+          const gates: Array<() => void> = []; // reads in flight, each answering with the project the host was on when it was asked
+          const answers: boolean[] = []; // for each answer: another project than the confirmed one
+          let unheard = false; // between a reset and the news the store's project is a belief, not a fact
           const ref: { store?: Loose } = {};
           const { store } = make({
             a: {
               schema: isCount,
-              read: async () => {
-                const answer = await read();
-                if (ref.store?.project() !== undefined && answer.project !== ref.store.project()) foreign += 1;
-                return answer;
+              read: () => {
+                const project = host.project;
+                return new Promise((resolve) =>
+                  gates.push(() => {
+                    answers.push(!unheard && ref.store?.project() !== undefined && project !== ref.store.project());
+                    resolve({ project, payload: { count: project === 'A' ? 1 : 2 } });
+                  }),
+                );
               },
             },
           });
           ref.store = store;
-          let unheard = false; // between a reset and the news the store's project is a belief, not a fact
           const violations: string[] = [];
-          for (let step = 0; step < 12; step += 1) {
-            const action = next(4);
+          const ask = () => {
+            const from = answers.length;
+            void store.ensure('a').then(
+              () => {
+                if (store.getState().slots.a === undefined) {
+                  if (answers.slice(from).filter(Boolean).length < 3) violations.push('resolved with nothing held');
+                } else if (!unheard && store.project() !== undefined && store.projectOf('a') !== store.project())
+                  violations.push('resolved with another project held');
+              },
+              () => undefined,
+            );
+          };
+          for (let step = 0; step < 14; step += 1) {
+            const action = next(6);
             if (action === 0) {
               store.reset();
               unheard = true;
@@ -1276,23 +1294,19 @@ describe('the host says which project a list was read from (#4040)', () => {
               store.setProject(projects[next(3)]!);
               unheard = false;
             } else if (action === 2) host.project = projects[next(3)]!;
-            else {
-              // Not awaited: a reader may wait for the news. One that resolves finds a list held for the project the store is on (#4085).
-              void store.ensure('a').then(
-                () => {
-                  if (store.getState().slots.a === undefined) {
-                    if (foreign < 3) violations.push('resolved with nothing held');
-                  } else if (!unheard && store.project() !== undefined && store.projectOf('a') !== store.project())
-                    violations.push('resolved with another project held');
-                },
-                () => undefined,
-              );
-            }
+            else if (action === 3 && gates.length > 0) gates.splice(next(gates.length), 1)[0]!();
+            else ask(); // not awaited: a reader may wait for the news
             await settle();
             // After the store hears of a project, nothing it holds is another project's.
             if (store.project() !== undefined && action === 1 && store.getState().slots.a !== undefined) expect(store.projectOf('a')).toBe(store.project());
           }
-          await settle();
+          // The host settles on a project and every read in flight answers: no reader may be left holding a violation.
+          store.setProject(host.project);
+          unheard = false;
+          for (let k = 0; k < 8; k += 1) {
+            gates.splice(0).forEach((answer) => answer());
+            await settle();
+          }
           expect(violations).toEqual([]);
           await vi.advanceTimersByTimeAsync(30_000); // the timers of readers still waiting for news end here, not after the test
         }

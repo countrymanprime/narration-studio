@@ -36,15 +36,16 @@ export function useBookmarks(): BookmarksModel {
   const env = useMemo(() => ({ journal, port, store }), [journal, port, store]);
 
   const error = useStudio((s) => s.errors.bookmarks);
-  // A reader that mounts on a list whose read failed asks once more (a failure is not looped on).
+  // A page that mounts on a list the store holds, or on one whose read failed, reads it from the host again, as every mount did before: nothing tells the slot
+  // when a re-import or a re-split made what it holds stale. A mount on an empty slot is the `ensure` below, so a read in flight is joined, not repeated.
   useEffect(() => {
-    if (store.getState().errors.bookmarks !== undefined && store.getState().slots.bookmarks === undefined) void store.load('bookmarks').catch(() => undefined);
+    if (store.getState().slots.bookmarks !== undefined || store.getState().errors.bookmarks !== undefined) void store.load('bookmarks').catch(() => undefined);
   }, [store]);
   // A project switch or an attach empties the slot (and a read made while the host's answer was not heard is emptied with it): the generation asks again, as
   // `useChapters` does, joining a read in flight, because this hook would otherwise load only on mount and leave the list empty until the next focus (#4085).
   const generation = useStoreGeneration(store);
   useEffect(() => {
-    if (bookmarks !== undefined || error !== undefined) return;
+    if (error !== undefined) return; // a failed read is not looped on
     void store.ensure('bookmarks').catch(() => undefined);
   }, [store, bookmarks, error, generation]);
 

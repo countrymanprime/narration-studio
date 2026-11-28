@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The bookmarks model over the mock host, the journal and the command router: the journalled commands, the jump menu, the search source and the keys.
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
@@ -113,18 +113,19 @@ describe('the hook asks the store like useChapters does: once per generation, jo
     const heard = (reason: unknown) => seen.push(reason);
     process.on('unhandledRejection', heard);
     try {
-      vi.spyOn(api, 'bookmarksList').mockRejectedValue(new Error('the host refused'));
+      const failing = vi.spyOn(api, 'bookmarksList').mockRejectedValue(new Error('the host refused'));
       const { result } = setup();
       await settle();
       await settle();
       expect(result.current.store.getState().errors.bookmarks).toBeInstanceOf(Error);
       expect(seen).toEqual([]);
+      expect(failing).toHaveBeenCalledTimes(1); // the failure is not looped on
     } finally {
       process.off('unhandledRejection', heard);
     }
   });
 
-  it('the hook stops reading after it unmounts', async () => {
+  it('resets after the hook unmounts, with its list held, start no reads', async () => {
     const list = vi.spyOn(api, 'bookmarksList');
     const { result, unmount } = setup();
     await waitFor(() => expect(result.current.model.bookmarks).toEqual([]));
@@ -136,6 +137,43 @@ describe('the hook asks the store like useChapters does: once per generation, jo
       await settle();
     }
     expect(list.mock.calls.length).toBe(calls);
+  });
+});
+
+describe('a page that mounts again reads the list again (one shared store)', () => {
+  /** The hook mounted and unmounted under one provider, as the pages that use it come and go. */
+  function shared() {
+    const out: { current?: ReturnType<typeof useBookmarks> } = {};
+    function Probe() {
+      out.current = useBookmarks();
+      return null;
+    }
+    const tree = (show: boolean) => (
+      <ApiProvider api={api}>
+        <StudioProvider>{show ? <Probe /> : null}</StudioProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(true));
+    return { out, show: (on: boolean) => view.rerender(tree(on)) };
+  }
+
+  it('mount, unmount, the host adds a bookmark, remount shows it', async () => {
+    const { out, show } = shared();
+    await waitFor(() => expect(out.current?.bookmarks).toEqual([]));
+    show(false);
+    await api.bookmarksAdd(chapter.id, [...lines.keys()][0]!, 2);
+    show(true);
+    await waitFor(() => expect(out.current?.bookmarks).toHaveLength(1));
+  });
+
+  it('mount on a refused read, then the host answers: the next mount shows the list', async () => {
+    vi.spyOn(api, 'bookmarksList').mockRejectedValueOnce(new Error('the host refused'));
+    const { out, show } = shared();
+    await waitFor(() => expect(out.current?.bookmarks).toBeUndefined());
+    await act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+    show(false);
+    show(true);
+    await waitFor(() => expect(out.current?.bookmarks).toEqual([]));
   });
 });
 
