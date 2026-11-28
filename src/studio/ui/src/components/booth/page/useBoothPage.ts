@@ -1400,9 +1400,21 @@ export function useBoothPage(options: BoothPageOptions) {
     else await toggleTake();
   }, [toggleColdRead, toggleTake]);
   useCommand('booth.mode.switch', () => void switchMode());
-  useCommand('reading.toggle', () => void pressMain());
+  // A take key (Enter, the numpad's Enter, Space) that is about to start a take or a cold read: past the refusals `toggleTake` and `toggleColdRead` make before they
+  // begin, it claims the page's focus as `switchMode` does, so a popup still leaving (Escape on the engine panel or Record options a moment ago) does not hand focus
+  // to its trigger after the take began and let the Enter that stops it open that control instead (#4181). A key that stops, or that is refused, leaves it alone
+  // (a cold read that runs keeps the listening session active, so it is a stop here).
+  const pressMainByKey = useCallback(async () => {
+    const now = latest.current;
+    const starts = now.coldMode
+      ? !now.recording && !coldReadStarting.current && !now.session.active
+      : !now.takeOut && !now.recording && !starting.current && !control.gate;
+    if (starts) claimFocusForPage();
+    await pressMain();
+  }, [control.gate, pressMain]);
+  useCommand('reading.toggle', () => void pressMainByKey());
   usePedalSpace(
-    pressMain,
+    pressMainByKey,
     // A take, a start the host has, or a cold read: all of them are stopped by the pedal's Space from anywhere, a toast's button included (#4094).
     useCallback(() => latest.current.takeOut || latest.current.coldRead, []),
   );

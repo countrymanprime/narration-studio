@@ -205,6 +205,55 @@ for (const lag of [20, 60, 120]) {
   });
 }
 
+// The take keys themselves (#4181): Enter, the numpad's Enter and Space start the take (or the cold read) from inside the exit of Record options or the engine panel, and the
+// hand-back that then ended on the trigger left the next Enter to reopen it with the take running. Past the start, focus is on the page and the first Enter stops it.
+for (const surface of ['Record options', 'the engine panel'] as const) {
+  for (const mode of ['Record', 'Cold read'] as const) {
+    for (const lag of [20, 60]) {
+      // Cold read is picked on a radio of Record options, which keeps focus through the exit: an Enter there is the radio's own press, not a take key (only Space is the pedal's
+      // there, #3976), so that cell has Space alone. The others reach the take key with focus on the popup itself or on the page.
+      const keys = surface === 'Record options' && mode === 'Cold read' ? (['Space'] as const) : (['Enter', 'NumpadEnter', 'Space'] as const);
+      for (const key of keys) {
+        test(`Escape on ${surface} in ${mode}, ${lag} ms later ${key} starts it, focus is on the page and Enter stops it`, async ({ page }) => {
+          await openBoothWithMotion(page);
+          if (surface === 'Record options' && mode === 'Record') {
+            await recordOptions(page).click();
+            await expect(optionsDialog(page)).toBeVisible();
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(lag);
+            await expect(leavingNow(page)).toHaveCount(1);
+          } else if (surface === 'Record options') await escapeFromOptions(page, mode, lag);
+          else {
+            await recordOptions(page).click();
+            await page.getByRole('radio', { name: mode, exact: true }).click();
+            await page.keyboard.press('Escape');
+            await expect(optionsDialog(page)).toHaveCount(0);
+            await engineChip(page).click();
+            await openedFully(page);
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(lag);
+            await expect(panelLeaving(page)).toHaveCount(1);
+          }
+          await page.keyboard.press(key);
+          if (mode === 'Record') await expectEnterStopsTheTake(page, 'Enter');
+          else {
+            await expect(coldRunning(page)).toBeVisible();
+            await page.waitForTimeout(HELD_EXIT_MS + 400);
+            expect(await onThePage(page)).toBe(true);
+            await expect(recordOptions(page)).not.toBeFocused();
+            await expect(engineChip(page)).not.toBeFocused();
+            await pastStartGuard(page);
+            await page.keyboard.press('Enter');
+            await expect(coldRunning(page)).toHaveCount(0);
+            await expect(optionsDialog(page)).toHaveCount(0);
+            await expect(enginePanel(page)).toHaveCount(0);
+          }
+        });
+      }
+    }
+  }
+}
+
 // What the rule must not break: with no key in between, Escape still gives focus back to the control that opened the popup.
 test('Escape on Record options with no key after it still gives focus back to Record options, with motion on', async ({ page }) => {
   await openBoothWithMotion(page);
