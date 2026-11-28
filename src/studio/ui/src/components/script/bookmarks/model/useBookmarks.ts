@@ -3,7 +3,6 @@ import type { Bookmark } from '../../../../api/contracts/bookmarks';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { useJournal, useStoreHandle, useStudio } from '../../../../studio/StudioProvider';
-import { useStoreGeneration } from '../../../../studio/useStoreGeneration';
 import { addBookmark, editBookmark, removeBookmark, type BookmarkSpot } from '../../../../studio/commands/bookmarks';
 import type { Result } from '../../../../studio/journal/createJournal';
 
@@ -35,19 +34,9 @@ export function useBookmarks(): BookmarksModel {
   const bookmarks = useStudio((s) => s.slots.bookmarks);
   const env = useMemo(() => ({ journal, port, store }), [journal, port, store]);
 
-  const error = useStudio((s) => s.errors.bookmarks);
-  // A page that mounts on a list the store holds, or on one whose read failed, reads it from the host again, as every mount did before: nothing tells the slot
-  // when a re-import or a re-split made what it holds stale. A mount on an empty slot is the `ensure` below, so a read in flight is joined, not repeated.
   useEffect(() => {
-    if (store.getState().slots.bookmarks !== undefined || store.getState().errors.bookmarks !== undefined) void store.load('bookmarks').catch(() => undefined);
+    void store.load('bookmarks');
   }, [store]);
-  // A project switch or an attach empties the slot (and a read made while the host's answer was not heard is emptied with it): the generation asks again, as
-  // `useChapters` does, joining a read in flight, because this hook would otherwise load only on mount and leave the list empty until the next focus (#4085).
-  const generation = useStoreGeneration(store);
-  useEffect(() => {
-    if (error !== undefined) return; // a failed read is not looped on
-    void store.ensure('bookmarks').catch(() => undefined);
-  }, [store, bookmarks, error, generation]);
 
   const add = useCallback(
     async (spot: BookmarkSpot, { undo = true }: { undo?: boolean } = {}) => {

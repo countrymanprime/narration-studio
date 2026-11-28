@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { ManuscriptChapter } from '../types';
 import { usePort } from '../ports/usePort';
 import { useOptionalStoreHandle } from './StudioProvider';
-import { useStoreGeneration } from './useStoreGeneration';
 
 const noSubscribe = () => () => undefined;
 
@@ -38,7 +37,11 @@ export function useChapters(enabled = true, refreshKey = 0): { chapters: readonl
       void store.load('chapters').catch(() => undefined);
   }, [store, enabled]);
   // A reset while a read is out changes neither `held` nor `error`: the generation is what asks again for the new project after `ensure` gave up its three reads.
-  const generation = useStoreGeneration(store);
+  const generation = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.generation() ?? 0,
+    () => 0,
+  );
   useEffect(() => {
     if (!store || !enabled || held !== undefined || error !== undefined) return;
     void store.ensure('chapters').catch(() => undefined);

@@ -10,7 +10,6 @@ import { fileVerdict } from '../master/fileVerdict';
 import type { NextUpInputs } from './pipeline/nextUpRanking';
 import { failingChapter } from './pipeline/nextUpSources';
 import type { PipelineSources } from './pipeline/pipelineRows';
-import { useStoreGeneration } from '../../studio/useStoreGeneration';
 
 type Proof = NonNullable<PipelineSources['proof']>;
 type Master = NonNullable<PipelineSources['master']>;
@@ -67,7 +66,11 @@ export function usePipelineSources(
   const readChapters = useReadChapters(undefined, false);
   const store = useOptionalStoreHandle();
   // Each reset of the store is a project switch: what was read before it is the old project's, whatever the refresh key says.
-  const generation = useStoreGeneration(store);
+  const generation = useSyncExternalStore(
+    store ? store.subscribe : noSubscribe,
+    () => store?.generation() ?? 0,
+    () => 0,
+  );
   const held = useSyncExternalStore(
     store ? store.subscribe : noSubscribe,
     () => store?.getState().slots.chapters,
