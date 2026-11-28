@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Menu } from './Menu';
 
@@ -248,5 +249,99 @@ describe('Menu: clipped labels (#3380)', () => {
     await screen.findAllByRole('menuitem');
     expect(document.querySelector('[title="Open the chapter in Editing"]')).toBeTruthy();
     expect(document.querySelector('[title="Sort by chapter name"]')).toBeTruthy();
+  });
+});
+
+// A menu that has been closed stays drawn for its exit (120 ms): the highlighted item still has focus, so the Space of a chord or the Enter of a
+// footswitch pressed inside the exit would press it (#4183: the Booth's DAW tools, Story Bible and More actions opened a dialog on an Enter at 20 ms).
+describe('Menu items while it leaves', () => {
+  const proto = Element.prototype as unknown as { getAnimations?: () => unknown[] };
+  const original = proto.getAnimations;
+  afterEach(() => {
+    proto.getAnimations = original;
+  });
+  const leavingMenu = () => document.querySelector('[role="menu"][data-ending-style], [role="menu"][data-closed]');
+  const keys = [
+    ['Space', { key: ' ', code: 'Space' }],
+    ['Enter', { key: 'Enter', code: 'Enter' }],
+    ['NumpadEnter', { key: 'Enter', code: 'NumpadEnter' }],
+  ] as const;
+
+  // The menu is opened, left with Escape, and its exit is held until `end()`, as the 120 ms exit is while a key arrives.
+  async function escapeWhileLeaving(ui: ReactElement, trigger: string) {
+    let endExit: () => void = () => {};
+    const finished = new Promise<void>((resolve) => (endExit = resolve));
+    proto.getAnimations = () => [{ finished }];
+    render(ui);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: trigger }));
+    await screen.findByRole('menu');
+    await user.keyboard('{Escape}');
+    expect(leavingMenu()).not.toBeNull();
+    const end = async () => {
+      endExit();
+      await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    };
+    return { end, user };
+  }
+
+  it.each(keys)('an item takes no %s press while the menu is leaving', async (_name, key) => {
+    items.forEach((item) => item.onSelect.mockClear());
+    const { end } = await escapeWhileLeaving(<Menu items={items}>Character</Menu>, 'Character');
+    const item = screen.getAllByRole('menuitem')[0]!;
+    fireEvent.keyDown(item, key);
+    fireEvent.keyUp(item, key);
+    fireEvent.click(item);
+    await end();
+    items.forEach((entry) => expect(entry.onSelect).not.toHaveBeenCalled());
+  });
+
+  it.each(keys)('a checkbox and a radio item take no %s press while the menu is leaving', async (_name, key) => {
+    const choose = vi.fn();
+    const { end } = await escapeWhileLeaving(
+      <Menu
+        label="Filter entries"
+        sections={[
+          { key: 'kind', select: 'many', items: [{ key: 'Place', label: 'Place', checked: false, onSelect: choose }] },
+          { key: 'show', select: 'one', items: [{ key: 'all', label: 'All entries', checked: false, onSelect: choose }] },
+        ]}
+      >
+        Filter
+      </Menu>,
+      'Filter entries',
+    );
+    for (const item of [...screen.getAllByRole('menuitemcheckbox'), ...screen.getAllByRole('menuitemradio')]) {
+      fireEvent.keyDown(item, key);
+      fireEvent.keyUp(item, key);
+      fireEvent.click(item);
+    }
+    await end();
+    expect(choose).not.toHaveBeenCalled();
+  });
+
+  it.each(keys)('a plain item of a section takes no %s press while the menu is leaving', async (_name, key) => {
+    const choose = vi.fn();
+    const { end } = await escapeWhileLeaving(
+      <Menu label="Sort" sections={[{ key: 'tools', label: 'Tools', items: [{ key: 'scan', label: 'Scan the manuscript', onSelect: choose }] }]}>
+        Sort
+      </Menu>,
+      'Sort',
+    );
+    const item = screen.getByRole('menuitem', { name: 'Scan the manuscript' });
+    fireEvent.keyDown(item, key);
+    fireEvent.keyUp(item, key);
+    fireEvent.click(item);
+    await end();
+    expect(choose).not.toHaveBeenCalled();
+  });
+
+  it('an item is pressed again once the menu is opened again during its exit', async () => {
+    items.forEach((item) => item.onSelect.mockClear());
+    const { end, user } = await escapeWhileLeaving(<Menu items={items}>Character</Menu>, 'Character');
+    await user.click(screen.getByRole('button', { name: 'Character' }));
+    await waitFor(() => expect(leavingMenu()).toBeNull());
+    await user.click(screen.getAllByRole('menuitem')[0]!);
+    expect(items[0]!.onSelect).toHaveBeenCalledOnce();
+    await end();
   });
 });

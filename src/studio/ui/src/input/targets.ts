@@ -66,6 +66,18 @@ const CLOSING = '[data-ending-style]';
 // the router reads what the key met when it began and ignores a closing popup, so a pedal that counted it would toggle the take and the router would too (#3976).
 const GONE = `${HIDDEN}, ${CLOSING}`;
 
+/**
+ * What a key lands on in a menu that has begun to close and that presses nothing: one of its items (`useLeaving` disables them for the exit), or the menu's own popup,
+ * which holds focus when the menu was opened by the pointer and no arrow moved it onto a row. With a take running, the Enter that lands on either is the pedal's
+ * (`usePedalSpace`): the router holds Enter for a control in a closing popup, so nothing else would stop the take (#4183).
+ * An item that is unavailable in a menu that is still open is `aria-disabled` too, but its popup is not closing (`CLOSING`) there; a button, a field and a popover's
+ * popup are not menu items or a menu.
+ */
+export function isInertLeavingMenuTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element) || target.closest(CLOSING) === null) return false;
+  return target.matches('[role="menu"]') || target.closest('[role^="menuitem"][aria-disabled="true"]') !== null;
+}
+
 /** Whether a popup that owns the keyboard is on screen (not hidden, inert, aria-hidden or closing). */
 export function keyLayerOpen(root: ParentNode = document): boolean {
   return Array.from(root.querySelectorAll(KEY_LAYER)).some((layer) => !layer.closest(GONE));
