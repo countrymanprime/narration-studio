@@ -93,6 +93,52 @@ describe('the list is asked for again when the store empties (#4085)', () => {
   });
 });
 
+describe('the hook asks the store like useChapters does: once per generation, joined, quiet on failure (#4085)', () => {
+  const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 0))));
+
+  it('a hung bookmarks read across ten resets makes at most one read per generation', async () => {
+    const list = vi.spyOn(api, 'bookmarksList').mockImplementation(() => new Promise(() => undefined));
+    const { result } = setup();
+    await settle();
+    const { store } = result.current;
+    for (let i = 0; i < 10; i += 1) {
+      act(() => store.reset());
+      await settle();
+    }
+    expect(list.mock.calls.length).toBeLessThanOrEqual(11);
+  });
+
+  it('a rejected bookmarks read leaves the failure in the store and no unhandled rejection', async () => {
+    const seen: unknown[] = [];
+    const heard = (reason: unknown) => seen.push(reason);
+    process.on('unhandledRejection', heard);
+    try {
+      vi.spyOn(api, 'bookmarksList').mockRejectedValue(new Error('the host refused'));
+      const { result } = setup();
+      await settle();
+      await settle();
+      expect(result.current.store.getState().errors.bookmarks).toBeInstanceOf(Error);
+      expect(seen).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', heard);
+    }
+  });
+
+  it('the hook stops reading after it unmounts', async () => {
+    const list = vi.spyOn(api, 'bookmarksList');
+    const { result, unmount } = setup();
+    await waitFor(() => expect(result.current.model.bookmarks).toEqual([]));
+    const { store } = result.current;
+    unmount();
+    const calls = list.mock.calls.length;
+    for (let i = 0; i < 3; i += 1) {
+      store.reset();
+      await settle();
+    }
+    expect(list.mock.calls.length).toBe(calls);
+  });
+});
+
 describe('add-edit-remove-are-journal-entries', () => {
   it('each change is one journal entry with an inverse', async () => {
     const { result } = setup();

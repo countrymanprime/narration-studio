@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import type { Bookmark } from '../../../../api/contracts/bookmarks';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { useJournal, useStoreHandle, useStudio } from '../../../../studio/StudioProvider';
+import { useStoreGeneration } from '../../../../studio/useStoreGeneration';
 import { addBookmark, editBookmark, removeBookmark, type BookmarkSpot } from '../../../../studio/commands/bookmarks';
 import type { Result } from '../../../../studio/journal/createJournal';
 
@@ -34,12 +35,18 @@ export function useBookmarks(): BookmarksModel {
   const bookmarks = useStudio((s) => s.slots.bookmarks);
   const env = useMemo(() => ({ journal, port, store }), [journal, port, store]);
 
-  // A project switch or an attach empties the slot (and a read made while the host's answer was not heard is emptied with it): the generation asks again, as
-  // `useChapters` does, because this hook would otherwise load only on mount and leave the list empty until the next focus (#4085).
-  const generation = useSyncExternalStore(store.subscribe, store.generation, () => 0);
+  const error = useStudio((s) => s.errors.bookmarks);
+  // A reader that mounts on a list whose read failed asks once more (a failure is not looped on).
   useEffect(() => {
-    void store.load('bookmarks');
-  }, [store, generation]);
+    if (store.getState().errors.bookmarks !== undefined && store.getState().slots.bookmarks === undefined) void store.load('bookmarks').catch(() => undefined);
+  }, [store]);
+  // A project switch or an attach empties the slot (and a read made while the host's answer was not heard is emptied with it): the generation asks again, as
+  // `useChapters` does, joining a read in flight, because this hook would otherwise load only on mount and leave the list empty until the next focus (#4085).
+  const generation = useStoreGeneration(store);
+  useEffect(() => {
+    if (bookmarks !== undefined || error !== undefined) return;
+    void store.ensure('bookmarks').catch(() => undefined);
+  }, [store, bookmarks, error, generation]);
 
   const add = useCallback(
     async (spot: BookmarkSpot, { undo = true }: { undo?: boolean } = {}) => {

@@ -83,6 +83,10 @@ export const SILENT_CATCHES: Record<string, string> = {
     'The chapter list read for the pairing: unreadable, the Master cell and Next up\'s failing chapter stay absent and read "Not measured yet"; the store records the failure for the pages that show it.',
   'src/components/production/usePipelineSources.ts#2':
     "The delivery measurement read beside the list: unreadable, the Master cell and Next up's failing chapter stay absent, as before.",
+  'src/components/script/bookmarks/model/useBookmarks.ts#1':
+    'A reader that mounts on a bookmarks list whose read failed asks once more: the store records the failure in `errors.bookmarks`.',
+  'src/components/script/bookmarks/model/useBookmarks.ts#2':
+    'The bookmarks list asked for by the hook (on mount and after the store was emptied): the store records the failure in `errors.bookmarks`, so the rejection of the shared read has nobody left to tell.',
   'src/studio/useChapters.ts#1':
     "A reader that mounts on a list whose read failed asks once more: the failure is recorded in the store's `errors` for the page that shows it.",
   'src/studio/useChapters.ts#2':

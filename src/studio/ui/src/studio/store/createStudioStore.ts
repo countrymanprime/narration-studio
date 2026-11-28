@@ -83,7 +83,8 @@ export type StudioStore<R extends SlotRegistry> = {
    * already in flight, and otherwise reads it. A page that needs the list calls this on mount instead of `load`, so mounting does not read what is held.
    * Rejects when the read it started or joined fails. With `settled`, a value that is held while a read of it is in flight (an event made it stale) is not
    * served: the call waits for that read and rejects when it fails (a page that works on what it read shows the failure with its Retry, as it did before the
-   * store, and the store keeps the held list for the pages that only show it). A read that a reset dropped is read again (an answer from another project, at most three times).
+   * store, and the store keeps the held list for the pages that only show it). A read that a reset dropped is read again; a reader whose reads answer another project three times in a row
+   * resolves with the slot still empty, so a caller that needs the value checks the state after it resolves.
    */
   ensure(slot: keyof R & string, options?: ReadOptions & { settled?: boolean }): Promise<void>;
   /** The keyed cache registered under `name` (the options' `keyed`); throws for a name nothing registered. */
@@ -266,8 +267,10 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
         return undefined;
       }
       owners.set(name, stamp ?? owner);
-      // A value read while unconfirmed stays marked until `setProject` empties it: no read can replace it before then, so the marker never goes stale.
+      // A value read without a stamp while unconfirmed is marked until `setProject` empties it. A stamped answer is judged by its stamp, so a stamped read that
+      // succeeds after one that failed while unconfirmed (which marked the slot) clears the marker, or the next `setProject` would empty a list that is A's.
       if (stamp === undefined && unconfirmedRead) unsure.add(name);
+      else if (stamp !== undefined) unsure.delete(name);
       setSlot(name, value);
     }
     return undefined;
@@ -339,8 +342,8 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
           const named = norm(options.project);
           if (named !== undefined && confirmed && ahead === undefined && onProject !== undefined && onProject !== named) throw new ProjectChangedError();
           // A drop by a reset or `setProject` is the attach's, bounded by the host's events, not by anything the reader got wrong: it uses no round. A round
-          // counts only when the host answered and the answer was another project's (`ahead`), the thing the cap bounds. Each round has its own host-did-not-answer time (above) and
-          // its own 5 s wait at the gate, and each attach or confirmed retry starts a round, so a reader is bounded from the last such event (about 20 s when no news
+          // counts only when the host answered and the answer was another project's (`ahead`), the thing the cap bounds. Each read has its own host-did-not-answer time (above) and
+          // its own 5 s wait at the gate, and each attach or confirmed retry starts a new read, so a reader is bounded from the last such event (about 20 s when no news
           // comes), not from its start. With foreign answers the rounds add up (three of them) and then it resolves with nothing held (#4085).
           const answeredForeign = epoch === before;
           if (answeredForeign && round >= 2) return;

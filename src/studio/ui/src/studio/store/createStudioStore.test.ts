@@ -1206,6 +1206,24 @@ describe('the host says which project a list was read from (#4040)', () => {
     expect(store.getState().errors.a).toBeUndefined();
   });
 
+  it('a stamped read that succeeds after one that failed while unconfirmed leaves nothing for the next setProject to empty', async () => {
+    const read = vi
+      .fn()
+      .mockResolvedValueOnce({ project: 'A', payload: { count: 1 } })
+      .mockRejectedValueOnce(new Error('first read failed'))
+      .mockResolvedValue({ project: 'A', payload: { count: 1 } });
+    const { store } = make({ a: { schema: isCount, read } });
+    store.setProject('A');
+    await store.ensure('a');
+    store.reset();
+    await expect(store.ensure('a')).rejects.toThrow('first read failed'); // marks the slot while unconfirmed
+    await store.load('a'); // the retry answers stamped A
+    const generation = store.generation();
+    store.setProject('A');
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    expect(store.generation()).toBe(generation); // nothing was emptied
+  });
+
   it('unstamped values read after a reset before any setProject are dropped by setProject(A)', async () => {
     const host = { project: 'B' };
     const load = vi.fn(async () => ({ count: host.project === 'A' ? 1 : 2 }));
@@ -1218,50 +1236,71 @@ describe('the host says which project a list was read from (#4040)', () => {
     expect(store.getState().slots.a).toBeUndefined();
   });
 
-  it('whatever the order of resets, answers and news, a held list belongs to the project the store is on', async () => {
-    const projects = ['A', 'B', 'C'];
-    let seed = 7;
-    const next = (n: number) => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return (seed >>> 12) % n;
-    };
-    for (let run = 0; run < 40; run += 1) {
-      const { host, read } = stamped('A');
-      const { store } = make({ a: { schema: isCount, read } });
-      let unheard = false; // between a reset and the news the store's project is a belief, not a fact
-      const violations: string[] = [];
-      const readers: Array<Promise<void>> = [];
-      for (let step = 0; step < 12; step += 1) {
-        const action = next(4);
-        if (action === 0) {
-          store.reset();
-          unheard = true;
-        } else if (action === 1) {
-          store.setProject(projects[next(3)]!);
-          unheard = false;
-        } else if (action === 2) host.project = projects[next(3)]!;
-        else {
-          // Not awaited: a reader may wait for the news. One that resolves finds a list held for the project the store is on (#4085).
-          readers.push(
-            store.ensure('a').then(
-              () => {
-                if (store.getState().slots.a === undefined) violations.push('resolved with nothing held');
-                else if (!unheard && store.project() !== undefined && store.projectOf('a') !== store.project())
-                  violations.push('resolved with another project held');
+  // Held lists belong to the project the store is on, whatever the order. A reader that resolves finds a list held, unless three answers in a row came from another
+  // project (the cap): then it resolves with the slot empty. Several seeds and many runs, so the property is not lucky with one.
+  it.each([7, 11, 99, 2024, 4185])(
+    'whatever the order of resets, answers and news, a held list belongs to the project the store is on (seed %i)',
+    async (first) => {
+      vi.useFakeTimers();
+      try {
+        const projects = ['A', 'B', 'C'];
+        let seed = first;
+        const next = (n: number) => {
+          seed = (seed * 1103515245 + 12345) % 2147483648;
+          return (seed >>> 12) % n;
+        };
+        const settle = () => vi.advanceTimersByTimeAsync(0);
+        for (let run = 0; run < 200; run += 1) {
+          const { host, read } = stamped('A');
+          let foreign = 0; // answers from a project other than the one the store is on
+          const ref: { store?: Loose } = {};
+          const { store } = make({
+            a: {
+              schema: isCount,
+              read: async () => {
+                const answer = await read();
+                if (ref.store?.project() !== undefined && answer.project !== ref.store.project()) foreign += 1;
+                return answer;
               },
-              () => undefined,
-            ),
-          );
+            },
+          });
+          ref.store = store;
+          let unheard = false; // between a reset and the news the store's project is a belief, not a fact
+          const violations: string[] = [];
+          for (let step = 0; step < 12; step += 1) {
+            const action = next(4);
+            if (action === 0) {
+              store.reset();
+              unheard = true;
+            } else if (action === 1) {
+              store.setProject(projects[next(3)]!);
+              unheard = false;
+            } else if (action === 2) host.project = projects[next(3)]!;
+            else {
+              // Not awaited: a reader may wait for the news. One that resolves finds a list held for the project the store is on (#4085).
+              void store.ensure('a').then(
+                () => {
+                  if (store.getState().slots.a === undefined) {
+                    if (foreign < 3) violations.push('resolved with nothing held');
+                  } else if (!unheard && store.project() !== undefined && store.projectOf('a') !== store.project())
+                    violations.push('resolved with another project held');
+                },
+                () => undefined,
+              );
+            }
+            await settle();
+            // After the store hears of a project, nothing it holds is another project's.
+            if (store.project() !== undefined && action === 1 && store.getState().slots.a !== undefined) expect(store.projectOf('a')).toBe(store.project());
+          }
+          await settle();
+          expect(violations).toEqual([]);
+          await vi.advanceTimersByTimeAsync(30_000); // the timers of readers still waiting for news end here, not after the test
         }
-        await flush();
-        // After the store hears of a project, nothing it holds is another project's.
-        if (store.project() !== undefined && action === 1 && store.getState().slots.a !== undefined) expect(store.projectOf('a')).toBe(store.project());
+      } finally {
+        vi.useRealTimers();
       }
-      await flush();
-      expect(violations).toEqual([]);
-      void readers; // a reader still waiting for the news is not awaited: it settles when the news comes
-    }
-  });
+    },
+  );
 });
 
 // #4085 item 3: a slot without a stamp, and the keyed text, read while unconfirmed come from a project the store has not heard of.
