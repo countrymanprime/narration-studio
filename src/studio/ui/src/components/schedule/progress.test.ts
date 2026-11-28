@@ -71,20 +71,23 @@ describe('the verdict for a deadline', () => {
   });
 });
 
+const ALL = RATIO.rec + RATIO.edit + RATIO.proof;
+
 describe('the work left for a measure', () => {
   const book = [ch('not_started'), ch('editing'), ch('proofing'), ch('finalized')];
   it('reaches whole stages', () => {
     expect(remainFor(book, 'rec')).toBeCloseTo(RATIO.rec);
-    expect(remainFor(book, 'edit')).toBeCloseTo(RATIO.edit * 2);
-    expect(remainFor(book, 'proof')).toBeCloseTo(RATIO.proof * 3);
-    expect(remainFor(book, 'editproof')).toBeCloseTo(RATIO.edit * 2 + RATIO.proof * 3);
+    // Each measure counts the stages before it: a chapter cannot be edited before it is recorded.
+    expect(remainFor(book, 'edit')).toBeCloseTo(RATIO.rec + RATIO.edit * 2);
+    expect(remainFor(book, 'proof')).toBeCloseTo(RATIO.rec + RATIO.edit * 2 + RATIO.proof * 3);
+    expect(remainFor(book, 'editproof')).toBeCloseTo(RATIO.rec + RATIO.edit * 2 + RATIO.proof * 3);
     expect(remainFor(book, 'all')).toBeCloseTo(calc(book, TODAY, day(30)).remain);
   });
 
   it('reaches the first N chapters edited and proofed, the opening credits included and Front Matter not', () => {
     const credits: ScheduleChapter = { ...ch('not_started'), credits: 'opening' };
     const withOpening = [credits, ...book];
-    expect(remainFor(withOpening, 'ch1')).toBeCloseTo(RATIO.edit + RATIO.proof + RATIO.edit + RATIO.proof);
+    expect(remainFor(withOpening, 'ch1')).toBeCloseTo(ALL * 2);
     // Front Matter (a chapter removed from recording) is not "the opening": it adds no work and does not use up a chapter.
     const frontMatter = ch('not_started', WPH, 'opening');
     expect(remainFor([frontMatter, ...withOpening], 'ch1')).toBeCloseTo(remainFor(withOpening, 'ch1'));
@@ -97,8 +100,8 @@ describe('the work left for a measure', () => {
       { id: 'c1', status: 'not_started', wordCount: WPH, contentKind: 'narration' },
     ]);
     expect(fromOverview.map((c) => c.credits)).toEqual(['opening', undefined]);
-    expect(remainFor(fromOverview, 'ch1')).toBeCloseTo((RATIO.edit + RATIO.proof) * 2);
-    expect(remainFor(book, 'ch2')).toBeCloseTo((RATIO.edit + RATIO.proof) * 2);
+    expect(remainFor(fromOverview, 'ch1')).toBeCloseTo(ALL * 2);
+    expect(remainFor(book, 'ch2')).toBeCloseTo(ALL + RATIO.edit + RATIO.proof);
   });
 
   it('reaches the first N finished minutes by the share of each chapter inside them', () => {

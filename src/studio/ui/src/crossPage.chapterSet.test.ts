@@ -44,8 +44,8 @@ describe('the opening of the book', () => {
   it('is the opening credits for the Schedule milestone: Front Matter is out, the credits and the first N chapters are in', () => {
     const book = [chapter('credits-opening'), chapter('front', { contentKind: 'opening' }), chapter('c1'), chapter('c2')];
     const work = remainFor(scheduleChapters(book), 'ch1');
-    // Two chapters (the credits and c1) at edit + proof; not Front Matter, not c2.
-    expect(work).toBeCloseTo((RATIO.edit + RATIO.proof) * 2);
+    // Two chapters (the credits and c1), each with its recording, editing and proofing still to do (a chapter is edited and proofed only after it is recorded); not Front Matter, not c2.
+    expect(work).toBeCloseTo((RATIO.rec + RATIO.edit + RATIO.proof) * 2);
     expect(scheduleChapters(book.filter((c) => c.id !== 'credits-opening'))).toHaveLength(2);
   });
 });

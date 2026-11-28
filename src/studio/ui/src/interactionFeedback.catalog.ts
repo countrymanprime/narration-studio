@@ -83,6 +83,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     'The chapter list read for the pairing: unreadable, the Master cell and Next up\'s failing chapter stay absent and read "Not measured yet"; the store records the failure for the pages that show it.',
   'src/components/production/usePipelineSources.ts#2':
     "The delivery measurement read beside the list: unreadable, the Master cell and Next up's failing chapter stay absent, as before.",
+  'src/components/schedule/useScheduleReading.ts#1':
+    "The delivery measurement read beside the plan: unreadable, no chapter is known to be delivered and Recording left follows each chapter's stage, as before; the plan's own failure is the page's error.",
   'src/studio/useChapters.ts#1':
     "A reader that mounts on a list whose read failed asks once more: the failure is recorded in the store's `errors` for the page that shows it.",
   'src/studio/useChapters.ts#2':

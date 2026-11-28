@@ -25,7 +25,7 @@ import { maxMinutes } from './measures';
 import { MilestoneTable } from './MilestoneTable';
 import { openMilestoneDialog } from './openMilestoneDialog';
 import { useEffectiveWph } from './useEffectiveWph';
-import { calc, numberedCount } from './progress';
+import { calc, numberedCount, recordedHoursOf } from './progress';
 import { useScheduleReading } from './useScheduleReading';
 import { saveMilestonesCommand, setAmountCommand, setDueDateCommand, setPaymentCommand } from './scheduleCommands';
 import { VerdictPill, verdictLabel } from './VerdictPill';
@@ -89,7 +89,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
 
   if (state.phase === 'loading') return <ScheduleSkeleton />;
   if (state.phase === 'error') return <LoadError title="Schedule" message={state.message} retry={() => void reload()} />;
-  const { plan, chapters, profileId, recordedHours, takeLog, readAt } = state;
+  const { plan, chapters, profileId, takeLog, readAt } = state;
 
   if (!hasManuscript || chapters.length === 0) return <NeedManuscript title="Schedule" onImport={onImport} />;
 
@@ -274,7 +274,7 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
           start={planStart(day)}
           today={day}
           due={due}
-          recordedHours={recordedHours}
+          recordedHours={recordedHoursOf(chapters, wph)}
           series={recordedSeries(takeLog, planStart(day))}
         />
         <div className={SCHEDULE_SIDE}>

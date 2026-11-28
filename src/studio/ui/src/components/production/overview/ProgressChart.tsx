@@ -3,7 +3,8 @@ import { HelpButton } from '../../primitives/HelpButton';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import type { Measured } from '../../../api/schemas/base';
-import { addDays, diffDays, fmtD, fmtDY } from '../../schedule/dates';
+import { spokenMarked } from '../../../clock';
+import { addDays, diffDays, fmtD, fmtDY, hm } from '../../schedule/dates';
 import type { Calc } from '../../schedule/progress';
 import { NOT_MEASURED } from '../measured/measured.selectors';
 import { keepInside, labelRect, leaderEnd, placeLabel, type Bounds, type Placement, type Seg, type Side } from './chartLabels';
@@ -35,7 +36,7 @@ type Props = {
   start: Date;
   today: Date;
   due: Date | null;
-  /** The finished hours recorded so far (the measured total). */
+  /** The finished hours recorded so far: each chapter's share recorded, whole once it is at Editing or later or delivered (`recordedHoursOf`, `bookFigures`). */
   recordedHours: number;
   /** Cumulative finished hours at the end of each recorded day, in days from `start`; the reason when there is no take log. */
   series: Measured<Array<[number, number]>>;
@@ -138,7 +139,7 @@ export function ProgressChart({
   // Gridlines up to the top of the scale (at most five), so the plot's top is a labelled line, not an empty band over the last one (XSH-16).
   const rowStep = Math.max(1, Math.ceil(yMax / 4));
   const rows = Array.from({ length: Math.floor(yMax / rowStep) + 1 }, (_, i) => i * rowStep);
-  const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
+  const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}. Recorded so far: ${spokenMarked(hm(recordedHours))} of the book’s ${spokenMarked(hm(finishedHours))} of finished audio. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
     <Panel

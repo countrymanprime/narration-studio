@@ -1,4 +1,5 @@
 import type { ChapterStatus } from '../../../api/contracts/manuscript';
+import { isDelivered } from '../../../recordedThrough';
 import { PICKUP_HOURS, RATIO, WPH } from '../../schedule/estimates';
 
 /** Where an item sits among the stages (Prep, Record, Edit, Proof, Pickups, Master): the least advanced comes first on a tie. */
@@ -6,9 +7,17 @@ const STAGE = { prep: 0, record: 1, pickups: 4, master: 5 } as const;
 /** src/studio/desktop/internal/production/overview.go's groups: in progress and not ready, other in progress, ready to confirm, not started. */
 type Group = 0 | 1 | 2 | 3;
 
+/** The chapter Next up offers to finish recording: the first whose stage is Recording and that is not delivered (mastered with its checks passing, which counts as recorded everywhere else). */
+export function recordingChapterOf<C extends { id: string; status: ChapterStatus }>(
+  chapters: readonly C[],
+  master?: Readonly<Record<string, { mastered: boolean; qc: string | null }>>,
+): C | undefined {
+  return chapters.find((c) => c.status === 'recording' && !isDelivered(master?.[c.id]));
+}
+
 /** What the page knows that Next up can list. An input is null when its source has nothing to say, and then its item is absent. */
 export type NextUpInputs = {
-  /** The chapter being recorded: the first whose status is `recording`. `share` is the measured fraction recorded and `percent` the percent every page shows for it (`recordedPercent`), both null when not measured. */
+  /** The chapter being recorded: the first whose status is `recording` and that is not delivered (`recordingChapterOf`). `share` is the measured fraction recorded and `percent` the percent every page shows for it (`recordedPercent`), both null when not measured. */
   recording: { chapterId: string; stage: ChapterStatus; name: string; words: number; share: number | null; percent: number | null } | null;
   /** The open pickup lines, project-wide, and the names of the chapters they are in. */
   pickups: { lines: number; chapters: readonly string[] } | null;

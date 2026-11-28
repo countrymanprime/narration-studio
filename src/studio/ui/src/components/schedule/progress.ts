@@ -1,24 +1,54 @@
-import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/manuscript';
+import type { ChapterStatus, ManuscriptContentKind, RecordedThrough } from '../../api/contracts/manuscript';
 import type { ProductionMilestone } from '../../api/contracts/production';
 import type { StatusId } from '../../kinds/statusTone';
 import { reached } from '../../chapterStatus';
 import { isNarrationChapter, isNumberedChapter } from '../../chapterKinds';
+import { chapterRecordedShare, isDelivered } from '../../recordedThrough';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import type { CreditsKind } from '../credits/useCreditsRows';
 import { addDays, diffDays, fmtD, isIsoDate, num, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
 
-/** A chapter as the estimates see it: its words and the stage it is in. Only real progress goes in; a stage in progress is not yet done. */
-export type ScheduleChapter = { words: number; status: ChapterStatus; kind: ManuscriptContentKind | ''; credits?: CreditsKind };
+/**
+ * A chapter as the estimates see it: its words, the stage it is in, and how far it is recorded (`recordedThrough` and the measured length, as Production reads them).
+ * Only real progress goes in; a stage in progress is not yet done, but a chapter part-way through recording has that part of its recording done.
+ */
+export type ScheduleChapter = {
+  words: number;
+  status: ChapterStatus;
+  kind: ManuscriptContentKind | '';
+  credits?: CreditsKind;
+  recordedSeconds?: number | null;
+  recordedThrough?: RecordedThrough;
+  /** The delivery review has mastered the chapter and its checks pass: Production counts it recorded whatever its stage says. */
+  delivered?: boolean;
+};
 
 /** The chapters that are narrated: a reference chapter is not recorded, so it is no work. */
 export function scheduleChapters(
-  chapters: readonly { id?: string; status: ChapterStatus; wordCount: number; contentKind?: ManuscriptContentKind | '' }[],
+  chapters: readonly {
+    id?: string;
+    status: ChapterStatus;
+    wordCount: number;
+    contentKind?: ManuscriptContentKind | '';
+    recordedSeconds?: number | null;
+    recordedThrough?: RecordedThrough;
+  }[],
+  master?: Readonly<Record<string, { mastered: boolean; qc: string | null }>>,
 ): ScheduleChapter[] {
   return chapters.filter(isNarrationChapter).map((c) => {
     const credits = c.id === undefined ? undefined : creditsKindOfId(c.id);
-    return { words: c.wordCount, status: c.status, kind: c.contentKind ?? '', ...(credits ? { credits } : {}) };
+    const review = c.id === undefined ? undefined : master?.[c.id];
+    return {
+      words: c.wordCount,
+      status: c.status,
+      kind: c.contentKind ?? '',
+      ...(credits ? { credits } : {}),
+      ...(c.recordedSeconds !== undefined ? { recordedSeconds: c.recordedSeconds } : {}),
+      ...(c.recordedThrough ? { recordedThrough: c.recordedThrough } : {}),
+      ...(isDelivered(review) ? { delivered: true } : {}),
+    };
   });
 }
 
@@ -30,7 +60,33 @@ export const numberedCount = (chapters: readonly ScheduleChapter[]): number => c
 
 /** The first status at which a stage is done. */
 const DONE_AT = { rec: 'editing', edit: 'proofing', proof: 'finalized' } as const;
-const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => reached(c.status, DONE_AT[stage]);
+/** A stage is done from the status after it, or for a delivered chapter (mastered with its checks passing), which has no recording, editing or proofing left, as Production's stage bar counts it. */
+const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => c.delivered === true || reached(c.status, DONE_AT[stage]);
+const STAGES = ['rec', 'edit', 'proof'] as const;
+
+/** The share of a chapter's words still to record, 0 to 1: what Production's "Not recorded yet" leaves of it (`chapterRecordedShare`, one rule for both pages). */
+const recordingLeft = (c: ScheduleChapter, wph: number): number =>
+  1 -
+  chapterRecordedShare(
+    { status: c.status, recordedThrough: c.recordedThrough, recordedSeconds: c.recordedSeconds ?? null, wordCount: c.words },
+    wph,
+    c.delivered,
+  );
+
+/** The finished hours recorded so far, the book's words less `recordingLeft` over `wph`: the figure the chart's "recorded now" point and Production's "Recorded audio" are both drawn from. */
+export const recordedHoursOf = (chapters: readonly ScheduleChapter[], wph: number = WPH): number =>
+  chapters.reduce((a, c) => a + c.words * (1 - recordingLeft(c, wph)), 0) / wph;
+
+/** The work-hours left in a chapter to reach the end of `through`: each stage up to it, because a later stage cannot finish before the earlier one it depends on. */
+function workLeft(c: ScheduleChapter, through: keyof typeof DONE_AT, wph: number): number {
+  let hours = 0;
+  for (const stage of STAGES) {
+    const share = stage === 'rec' ? recordingLeft(c, wph) : stageDone(c, stage) ? 0 : 1;
+    hours += share * (c.words / wph) * RATIO[stage];
+    if (stage === through) break;
+  }
+  return hours;
+}
 
 export type Verdict = 'ok' | 'tight' | 'behind';
 export type Tone = 'neutral' | 'warn' | 'danger' | 'success';
@@ -64,7 +120,8 @@ export type Calc = {
 /** The work left and what it means for the due date, from the fixed inputs (src/studio/ui/src/components/schedule/progress.ts). `wph` is the words per finished hour of the chosen schedule basis; it defaults to the standard. */
 export function calc(chapters: readonly ScheduleChapter[], today: Date, due: Date | null, openPickups = 0, wph: number = WPH): Calc {
   const words = chapters.reduce((a, c) => a + c.words, 0);
-  const left = (stage: keyof typeof DONE_AT): number => (chapters.filter((c) => !stageDone(c, stage)).reduce((a, c) => a + c.words, 0) / wph) * RATIO[stage];
+  const left = (stage: keyof typeof DONE_AT): number =>
+    (chapters.reduce((a, c) => a + (stage === 'rec' ? c.words * recordingLeft(c, wph) : stageDone(c, stage) ? 0 : c.words), 0) / wph) * RATIO[stage];
   const recLeft = left('rec');
   const editLeft = left('edit');
   const proofLeft = left('proof');
@@ -106,10 +163,11 @@ export function deadlineTone(k: Calc): Tone {
   return tone;
 }
 
-/** Work-hours left to reach a milestone's measure. */
+/**
+ * Work-hours left to reach a milestone's measure. Each measure counts the work of every stage up to its own, so a later milestone is never estimated before an earlier
+ * one it depends on (recorded, then edited, then proofed): "All edited" includes the recording still to do.
+ */
 export function remainFor(chapters: readonly ScheduleChapter[], stored: string, wph: number = WPH): number {
-  const stagesLeft = (c: ScheduleChapter, stages: readonly (keyof typeof DONE_AT)[]): number =>
-    stages.reduce((a, s) => a + (stageDone(c, s) ? 0 : (c.words / wph) * RATIO[s]), 0);
   const measure = measOf(stored);
   if (measure === 'minN' || stored === CHECKPOINT_MEASURE) {
     // The first N finished minutes of the book, in reading order: each chapter in the window counts for the share of it that falls inside.
@@ -118,7 +176,7 @@ export function remainFor(chapters: readonly ScheduleChapter[], stored: string, 
     for (const c of chapters) {
       if (words <= 0) break;
       if (!c.words) continue;
-      hours += Math.min(1, words / c.words) * stagesLeft(c, ['rec', 'edit', 'proof']);
+      hours += Math.min(1, words / c.words) * workLeft(c, 'proof', wph);
       words -= c.words;
     }
     return hours;
@@ -128,20 +186,15 @@ export function remainFor(chapters: readonly ScheduleChapter[], stored: string, 
     const n = chaptersOf(stored);
     let numbered = 0;
     return chapters.reduce((a, c) => {
-      if (c.credits === 'opening') return a + stagesLeft(c, ['edit', 'proof']);
+      if (c.credits === 'opening') return a + workLeft(c, 'proof', wph);
       if (!isNumbered(c)) return a;
       numbered += 1;
-      return numbered <= n ? a + stagesLeft(c, ['edit', 'proof']) : a;
+      return numbered <= n ? a + workLeft(c, 'proof', wph) : a;
     }, 0);
   }
-  const stages: Record<string, readonly (keyof typeof DONE_AT)[]> = {
-    rec: ['rec'],
-    edit: ['edit'],
-    proof: ['proof'],
-    editproof: ['edit', 'proof'],
-    all: ['rec', 'edit', 'proof'],
-  };
-  return chapters.reduce((a, c) => a + stagesLeft(c, stages[measure] ?? []), 0);
+  const through: Record<string, keyof typeof DONE_AT> = { rec: 'rec', edit: 'edit', proof: 'proof', editproof: 'proof', all: 'proof' };
+  const last = through[measure];
+  return last ? chapters.reduce((a, c) => a + workLeft(c, last, wph), 0) : 0;
 }
 
 export type MilestoneStatus = {

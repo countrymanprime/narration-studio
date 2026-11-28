@@ -36,7 +36,7 @@ const PATTERNS: Array<[string, RegExp]> = [
     'tested for truthiness',
     new RegExp(`!!?\\s*[\\w.?]*${LENGTH}\\b(?!\\s*(?:===?|!==?|\\?\\?))|${LENGTH}\\s*(?:&&|\\|\\||\\?(?![?.:]))|Boolean\\(\\s*[\\w.?]*${LENGTH}\\s*\\)`),
   ],
-  ['summed raw (use audibleSeconds or recordedAudioHours)', new RegExp(`\\b(?:reduce|sum)\\b[^;]*${LENGTH}\\b`)],
+  ['summed raw (use audibleSeconds)', new RegExp(`\\b(?:reduce|sum)\\b[^;]*${LENGTH}\\b`)],
 ];
 const BARE: Array<[string, RegExp]> = [
   ['a bare seconds compared with 0 or 1', new RegExp(`\\bseconds\\b\\s*${COMPARE}\\s*[01]\\b|\\b[01]\\s*${COMPARE}\\s*seconds\\b`)],

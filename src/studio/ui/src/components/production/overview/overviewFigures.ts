@@ -4,7 +4,7 @@ import type { ChapterStatus } from '../../../api/contracts/manuscript';
 import type { ProductionChapter } from '../composeOverview';
 import type { Measured } from '../../../api/schemas/base';
 import { isNarrationChapter } from '../../../chapterKinds';
-import { recordedShare } from '../../../recordedThrough';
+import { chapterRecordedShare, isDelivered } from '../../../recordedThrough';
 import { fmtD, hm } from '../../schedule/dates';
 import { RATIO } from '../../schedule/estimates';
 import { statusTone } from '../../../kinds/statusTone';
@@ -102,12 +102,12 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
     {
       key: 'recorded',
       target: 'script',
-      // The stage bar's own count: finished hours recorded or further on, out of the book's finished length.
+      // The stage bar's own count: finished hours recorded (each chapter by how far it is recorded, whole from Editing on or once delivered), out of the book's finished length.
       label: 'Recorded audio',
       value: hm(book.recordedHours),
       unit: `/ ${hm(finished)}`,
-      hint: 'recorded or further on',
-      tip: 'The finished hours of the chapters recorded, edited, proofed or delivered, as Where the book stands counts them, out of the book’s finished length estimated from its words',
+      hint: 'part-recorded counted by share',
+      tip: 'The finished hours recorded, as Where the book stands counts them (a chapter counts for how far it is recorded, whole once it is edited, proofed or delivered), out of the book’s finished length estimated from its words',
       tone: 'neutral',
     },
     {
@@ -116,8 +116,8 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       label: 'Recording',
       value: hm(k.recLeft),
       unit: 'left',
-      hint: `est. ${RATIO.rec.toFixed(1)}× the book`,
-      tip: `Hours of work, estimated ${RATIO.rec.toFixed(1)}× the book’s ${hm(finished)} of finished audio`,
+      hint: `est. ${RATIO.rec.toFixed(1)}× not recorded`,
+      tip: `Hours of work, estimated ${RATIO.rec.toFixed(1)}× the book’s finished audio not yet recorded`,
       tone: 'neutral',
     },
     {
@@ -126,8 +126,8 @@ export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }:
       label: 'Editing + proof',
       value: hm(k.editLeft + k.proofLeft),
       unit: 'left',
-      hint: `est. ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book`,
-      tip: `Hours of work, estimated ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book’s ${hm(finished)} of finished audio`,
+      hint: `est. ${RATIO.edit}× edit + ${RATIO.proof}× proof`,
+      tip: `Hours of work, estimated ${RATIO.edit}× the finished audio not yet edited plus ${RATIO.proof}× the finished audio not yet proofed`,
       tone: 'neutral',
     },
     {
@@ -177,7 +177,7 @@ const DONE_SHARE: Record<ChapterStatus, { rec: number; edit: number; proof: numb
 export type BookFigures = {
   /** The book's finished length in hours: its narrated words at `wph`. The one book length every figure of the page is out of. */
   finishedHours: number;
-  /** Finished hours recorded or further on (edited, proofed, delivered): the stage bar's segments below "Not recorded yet". */
+  /** Finished hours recorded, each chapter by how far it is recorded and whole from Editing on or once delivered: the stage bar's segments below "Not recorded yet". */
   recordedHours: number;
   words: { total: number; delivered: number; proofed: number; edited: number; recorded: number };
   wph: number;
@@ -198,12 +198,11 @@ export function bookFigures(
   for (const c of chapters) {
     if (!isNarrationChapter(c)) continue;
     const done = DONE_SHARE[c.status];
-    const measured = recordedShare(c, wph) ?? 0;
     const review = master?.[c.id];
-    const delivered = review?.mastered && review.qc === 'PASS' ? 1 : 0;
+    const delivered = isDelivered(review) ? 1 : 0;
     const proofed = Math.max(delivered, done.proof);
     const edited = Math.max(proofed, done.edit);
-    const recorded = Math.max(edited, done.rec, measured);
+    const recorded = Math.max(edited, chapterRecordedShare(c, wph, delivered === 1));
     words.total += c.wordCount;
     words.delivered += c.wordCount * delivered;
     words.proofed += c.wordCount * proofed;
