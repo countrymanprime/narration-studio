@@ -75,7 +75,7 @@ export type StudioStore<R extends SlotRegistry> = {
   subscribe(listener: () => void): () => void;
   /**
    * Reads one slot now. Rejects when the loader fails or the payload has the wrong shape; the failure is also recorded. A read that a reset dropped
-   * is read again (each reset or attach drops it once; an answer from another project at most three times), so the caller's answer is the project it is on, never a dropped one. `project` is the folder the reader is on.
+   * is read again, whatever the number of resets (each drops the read in flight and the caller reads once more), so the caller's answer is the project it is on, never a dropped one; only an answer from another project counts against the reader, and three of them in all end it with the slot empty. `project` is the folder the reader is on.
    */
   load(slot: keyof R & string, options?: ReadOptions): Promise<void>;
   /**
@@ -83,7 +83,7 @@ export type StudioStore<R extends SlotRegistry> = {
    * already in flight, and otherwise reads it. A page that needs the list calls this on mount instead of `load`, so mounting does not read what is held.
    * Rejects when the read it started or joined fails. With `settled`, a value that is held while a read of it is in flight (an event made it stale) is not
    * served: the call waits for that read and rejects when it fails (a page that works on what it read shows the failure with its Retry, as it did before the
-   * store, and the store keeps the held list for the pages that only show it). A read that a reset dropped is read again; a reader whose reads answer another project three times in a row
+   * store, and the store keeps the held list for the pages that only show it). A read that a reset dropped is read again; a reader whose reads answer another project three times in all (resets in between do not undo the count)
    * resolves with the slot still empty, so a caller that needs the value checks the state after it resolves.
    */
   ensure(slot: keyof R & string, options?: ReadOptions & { settled?: boolean }): Promise<void>;
@@ -320,7 +320,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     Object.hasOwn(state.slots, name) && state.slots[name] !== undefined && (project === undefined || owners.get(name) === project);
 
   // A read dropped by a reset (it answered after the project changed, or the same project was attached again) wrote nothing: the reader is on a project
-  // that is still the store's, so it is read again for it, an answer from another project at most three times in a row; a drop by an attach event uses no round and the host-did-not-answer time ends a reader the host leaves hanging.
+  // that is still the store's, so it is read again for it; only an answer from another project counts against the reader, three of them in all (a reset between them does not reset the count); a drop by an attach event uses no round and the host-did-not-answer time ends a reader the host leaves hanging.
   function readUntilKept(name: keyof R & string, options: ReadOptions, once: () => Promise<void>, round = 0): Promise<void> {
     const start = () => {
       const before = epoch;

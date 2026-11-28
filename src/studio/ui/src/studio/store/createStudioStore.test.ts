@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { folderKey } from '../../projectFolder';
 import { WireError } from '../../api/wire/WireError';
 import type { StandardSchemaV1 } from '../../api/wire/standardSchema';
 import { createStudioStore, PROJECT_STILL_OPENING, READ_GIVES_UP_MS, type SlotConfig, type StudioStore } from './createStudioStore';
@@ -1273,16 +1274,21 @@ describe('the host says which project a list was read from (#4040)', () => {
           });
           ref.store = store;
           const violations: string[] = [];
-          const ask = () => {
+          let open = 0; // readers that have not settled
+          const ask = (named?: string) => {
             const from = answers.length;
-            void store.ensure('a').then(
+            open += 1;
+            void store.ensure('a', { project: named }).then(
               () => {
+                open -= 1;
                 if (store.getState().slots.a === undefined) {
                   if (answers.slice(from).filter(Boolean).length < 3) violations.push('resolved with nothing held');
-                } else if (!unheard && store.project() !== undefined && store.projectOf('a') !== store.project())
+                } else if (named !== undefined && store.projectOf('a') !== folderKey(named))
+                  violations.push('a named reader resolved with another project held');
+                else if (!unheard && store.project() !== undefined && store.projectOf('a') !== store.project())
                   violations.push('resolved with another project held');
               },
-              () => undefined,
+              () => void (open -= 1),
             );
           };
           for (let step = 0; step < 14; step += 1) {
@@ -1295,7 +1301,7 @@ describe('the host says which project a list was read from (#4040)', () => {
               unheard = false;
             } else if (action === 2) host.project = projects[next(3)]!;
             else if (action === 3 && gates.length > 0) gates.splice(next(gates.length), 1)[0]!();
-            else ask(); // not awaited: a reader may wait for the news
+            else ask(next(3) === 0 ? store.project() : undefined); // not awaited: a reader may wait for the news; some name the project the store is on
             await settle();
             // After the store hears of a project, nothing it holds is another project's.
             if (store.project() !== undefined && action === 1 && store.getState().slots.a !== undefined) expect(store.projectOf('a')).toBe(store.project());
@@ -1309,6 +1315,8 @@ describe('the host says which project a list was read from (#4040)', () => {
           }
           expect(violations).toEqual([]);
           await vi.advanceTimersByTimeAsync(30_000); // the timers of readers still waiting for news end here, not after the test
+          expect(open).toBe(0); // every reader settled
+          expect(vi.getTimerCount()).toBe(0); // and none left a timer behind
         }
       } finally {
         vi.useRealTimers();
@@ -1376,6 +1384,61 @@ describe('the store hears the project and goes back to trusting what it reads (#
     expect(store.getState().slots.a).toEqual({ count: 1 });
     await store.ensure('a');
     expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('what an attach emptied leaves no marker: a later bootstrap of the same folder empties and reads nothing', async () => {
+    const load = vi.fn(async () => ({ count: 1 }));
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    store.reset();
+    await store.ensure('a'); // read while unconfirmed: marked
+    store.setProject('A'); // empties it
+    await store.ensure('a'); // read after the news
+    expect(load).toHaveBeenCalledTimes(2);
+    const generation = store.generation();
+    store.setProject('A'); // a focus or heartbeat bootstrap, no attach
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    expect(store.generation()).toBe(generation);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('chapter text an attach emptied leaves no marker: a later bootstrap of the same folder keeps the text read after the news', async () => {
+    const load = vi.fn(async (id: string) => `text:${id}`);
+    const events = fakeEvents();
+    const store = createStudioStore({ registry: {}, keyed: { text: { schema: isName, load } }, subscribe: events.subscribe, onError: vi.fn() });
+    store.setProject('A');
+    store.reset();
+    await store.keyed('text').ensure('c1'); // read while unconfirmed
+    store.setProject('A'); // empties it
+    await store.keyed('text').ensure('c1');
+    expect(load).toHaveBeenCalledTimes(2);
+    const generation = store.generation();
+    store.setProject('A'); // a bootstrap with no attach
+    expect(store.keyed('text').get('c1')).toBe('text:c1');
+    expect(store.generation()).toBe(generation);
+  });
+
+  it('chapter text read while confirmed is kept by a bootstrap of the same folder', async () => {
+    const load = vi.fn(async (id: string) => `text:${id}`);
+    const events = fakeEvents();
+    const store = createStudioStore({ registry: {}, keyed: { text: { schema: isName, load } }, subscribe: events.subscribe, onError: vi.fn() });
+    store.setProject('A');
+    await store.keyed('text').ensure('c1');
+    store.setProject('A');
+    expect(store.keyed('text').get('c1')).toBe('text:c1');
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('a read that failed while confirmed does not make the next bootstrap of the same folder empty the store', async () => {
+    const load = vi.fn().mockResolvedValueOnce({ count: 1 }).mockRejectedValueOnce(new Error('the host refused')).mockResolvedValue({ count: 1 });
+    const { store } = make({ a: { schema: isCount, load } });
+    store.setProject('A');
+    await store.ensure('a');
+    await expect(store.load('a')).rejects.toThrow('the host refused'); // a refresh failed while confirmed
+    const generation = store.generation();
+    store.setProject('A');
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    expect(store.generation()).toBe(generation);
   });
 
   it('chapter text read after a reset that came before any setProject is dropped by setProject(A)', async () => {
