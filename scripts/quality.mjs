@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -26,6 +26,21 @@ function stagedFiles() {
 function python() {
   const local = process.platform === 'win32' ? '.venv\\Scripts\\python.exe' : '.venv/bin/python';
   return existsSync(local) ? local : (process.env.PYTHON ?? 'python');
+}
+
+/** The packages (as `./internal/x`) holding a `_test.go` file whose first line is a `//go:build` constraint on `race`. */
+function racePackages(moduleDir) {
+  const found = new Set();
+  const walk = (folder) => {
+    for (const entry of readdirSync(folder, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      const path = join(folder, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (entry.name.endsWith('_test.go') && /^\/\/go:build\b.*\brace\b/.test(readFileSync(path, 'utf8').split('\n', 1)[0])) found.add(`./${relative(moduleDir, folder).replaceAll('\\', '/')}`);
+    }
+  };
+  walk(moduleDir);
+  return [...found].sort();
 }
 
 function executable(command) { return command; }
@@ -191,6 +206,10 @@ if (mode === 'go-lint') {
   if (process.platform !== 'win32') checkBindingsFresh(dir);
   // golangci-lint v2 (config: <dir>/.golangci.yml): errcheck, govet, staticcheck, unused, ineffassign and gosec.
   run('golangci-lint', ['run', './...'], { cwd: join(root, dir) });
+  // A package with a `//go:build !race` or `race` test file builds differently under -race: a helper only a `!race` test uses is dead
+  // code there. The same linters run once more with the race tag on those packages (scripts/ci/coverage-gate.mjs raceSkippedTests).
+  const raceTagged = racePackages(join(root, dir));
+  if (raceTagged.length) run('golangci-lint', ['run', '--build-tags', 'race', ...raceTagged], { cwd: join(root, dir) });
   // gVisor's checklocks: a field annotated `// +checklocks:mu` is only touched with mu held, and a field that is
   // always used under a lock but has no annotation is reported too, so a new guarded field gets one. Product code
   // only (-test=false): tests set seams on a Host no goroutine can see yet, and the race detector covers them.

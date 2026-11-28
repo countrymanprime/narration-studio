@@ -84,50 +84,6 @@ func TestFindOccurrencesMatchesTheSidecar(t *testing.T) {
 	}
 }
 
-// TestCaseFoldingMatchesTheSidecarForEveryCasedCharacter asks, for every character re gives a case (and the ones it adds as pairs), which
-// of them a one-character name matches in a text of all of them. The sweep is in the sidecar's own terms, so a letter Go's unicode package
-// would fold differently (the Kelvin sign, the long s, dotless i, a final sigma, sharp s) is found here.
-func TestCaseFoldingMatchesTheSidecarForEveryCasedCharacter(t *testing.T) {
-	_, _, sweep := readOccurrenceGolden(t)
-	var universe []rune
-	for _, run := range sweep.Universe {
-		for r := run[0]; r <= run[1]; r++ {
-			universe = append(universe, r)
-		}
-	}
-	if len(universe) < 2500 {
-		t.Fatalf("the sweep holds %d characters", len(universe))
-	}
-	// "x?x" for each character, a space between: the letter either side keeps a character that is not a word character from being ruled
-	// out by the word edge.
-	var text []rune
-	for _, r := range universe {
-		text = append(text, 'x', r, 'x', ' ')
-	}
-	recorded := map[rune][]rune{}
-	for _, row := range sweep.Matches {
-		lit := rune(row[0].(float64))
-		var matched []rune
-		for _, m := range row[1].([]any) {
-			matched = append(matched, rune(m.(float64)))
-		}
-		recorded[lit] = matched
-	}
-	tables := pythonUnicode()
-	for _, lit := range universe {
-		pattern := compileLiterals(tables, []rune{'x', lit, 'x'})
-		var got []rune
-		forEachMatch(tables, pattern, text, func(start, _ int) { got = append(got, text[start+1]) })
-		want, ok := recorded[lit]
-		if !ok {
-			want = []rune{lit}
-		}
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("U+%04X matches %U, want %U", lit, got, want)
-		}
-	}
-}
-
 func TestTheEmbeddedTablesAreThePythonOnes(t *testing.T) {
 	tables := pythonUnicode()
 	for r, want := range map[rune]bool{'a': true, '_': true, '5': true, 'é': true, '田': true, 'Ⅳ': true, '²': true, '٣': true, ' ': false, '-': false, '😀': false, 'Ⓐ': false, 0x200f: false, 0x0308: false} {

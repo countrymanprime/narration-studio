@@ -22,6 +22,9 @@
  * main-health run opens the blocking `main-red` issue and ticks HOLD on every open train issue. A change the rule cannot place (go.mod, this script, a workflow, what the desktop tests read)
  * races everything.
  *
+ * A raced package can keep a slow test out of the raced run: a `_test.go` file whose first line is `//go:build !race` is not built under `-race`, and
+ * `raceSkippedTests` finds its tests so `runGo` runs them once without the detector after the raced run. The tests still run on every main-health run.
+ *
  * `--group` (with `-race`) runs only some of the packages, so CI can run them as parallel jobs: `root` is the module's root
  * package, which the race detector slows to 405 s of the 622 s it spent on all the others together, `race` is the other
  * packages with concurrency, `plain` the rest. A job checks the floors of the packages it ran and no others; the jobs
@@ -171,6 +174,37 @@ export function packageFolder(projectRoot, modulePath, pkg) {
   const root = slash(projectRoot).replace(/^\.\//, '').replace(/\/+$/, '');
   const inside = pkg.slice(modulePath.length + 1);
   return root === '' || root === '.' ? inside : [root, inside].filter(Boolean).join('/');
+}
+
+/**
+ * The tests a raced package leaves out of its raced run: every `Test` in a `_test.go` file whose first line is `//go:build !race`. They
+ * are too slow under the detector and start no goroutine (internal/guide's sidecar parity tests took 95 s and 58 s raced against 14 s and
+ * 0.7 s without, #3860), so runGo runs them once without it. A file with no `Test` (scripttrack's race_off_test.go holds a constant) adds none.
+ */
+export function raceSkippedTests(folder, list = (dir) => readdirSync(dir), read = (path) => readFileSync(path, 'utf8')) {
+  const names = [];
+  for (const file of list(folder).filter((name) => name.endsWith('_test.go')).sort()) {
+    const text = read(join(folder, file));
+    if (!/^\/\/go:build !race\s*$/m.test(text.split('\n', 1)[0])) continue;
+    for (const match of text.matchAll(/^func (Test\w+)\(\w+ \*testing\.T\)/gm)) names.push(match[1]);
+  }
+  return names;
+}
+
+/**
+ * The extra `go test` runs after the raced ones: for each raced package, its `!race` tests (raceSkippedTests) with the arguments of the raced
+ * run minus `-race`, and no `-cover`, which would measure only those tests. A package that ran without the detector is not in `raced` and gets none:
+ * its `!race` files were built into its plain run.
+ */
+export function raceSkippedRuns(raced, projectRoot, modulePath, extra, list, read) {
+  // A caller who narrowed the run (-run, -skip, -list) or asked for a profile gets the raced run's own narrowing: this pass would override it.
+  if (extra.some((arg) => /^-(run|skip|list|coverprofile)\b/.test(arg))) return [];
+  const runs = [];
+  for (const pkg of raced) {
+    const names = raceSkippedTests(packageFolder(projectRoot, modulePath, pkg), list, read);
+    if (names.length) runs.push({ pkg, names, args: [...extra.filter((arg) => arg !== '-race'), '-run', `^(${names.join('|')})$`, pkg] });
+  }
+  return runs;
 }
 
 const GROUPS = ['root', 'race', 'plain'];
@@ -362,7 +396,7 @@ function goTestRuns(projectRoot, modulePath, extra, groups, changed = changedFil
       console.error('coverage: --group needs -race, which is what divides the packages.');
       process.exit(2);
     }
-    return { runs: [{ args: extra, packages: ['./...'] }], ran: null, all: [] };
+    return { runs: [{ args: extra, packages: ['./...'] }], ran: null, raced: [], all: [] };
   }
   const listed = listGoPackages(projectRoot);
   const split = splitRacePackages(listed);
@@ -388,6 +422,7 @@ function goTestRuns(projectRoot, modulePath, extra, groups, changed = changedFil
       { args: extra.filter((arg) => arg !== '-race'), packages: plain },
     ].filter((group) => group.packages.length > 0),
     ran: [...raced, ...plain],
+    raced,
     all,
   };
 }
@@ -397,12 +432,19 @@ function runGo(projectRoot, extra, groups) {
   const modulePath = /^module\s+(\S+)/m.exec(goMod)?.[1];
   let output = '';
   let failed = 0;
-  const { runs, ran, all } = goTestRuns(projectRoot, modulePath, extra, groups);
+  const { runs, ran, raced, all } = goTestRuns(projectRoot, modulePath, extra, groups);
   // Every run happens even when an earlier one fails, so one failure does not hide another.
   for (const { args, packages } of runs) {
     const result = run('go', ['-C', projectRoot, 'test', '-cover', ...args, ...packages], { stdio: ['inherit', 'pipe', 'inherit'] });
     process.stdout.write(result.stdout ?? '');
     output += result.stdout ?? '';
+    if (result.status !== 0) failed = result.status ?? 1;
+  }
+  // The tests a raced package's `!race` files hold run here once, without the detector and without -cover (the raced run measured the
+  // package; this pass would only lower it). They run after the others so a failure there is one more, not the first.
+  for (const { pkg, names, args } of raceSkippedRuns(raced, projectRoot, modulePath, extra)) {
+    console.log(`coverage: ${pkg}: ${names.length} tests are out of the raced run and run here without -race: ${names.join(', ')}`);
+    const result = run('go', ['-C', projectRoot, 'test', ...args], { stdio: ['inherit', 'inherit', 'inherit'] });
     if (result.status !== 0) failed = result.status ?? 1;
   }
   if (failed) process.exit(failed);
