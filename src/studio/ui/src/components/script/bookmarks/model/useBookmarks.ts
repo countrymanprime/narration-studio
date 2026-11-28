@@ -38,7 +38,7 @@ export function useBookmarks(): BookmarksModel {
   // `useChapters` does, because this hook would otherwise load only on mount and leave the list empty until the next focus (#4085).
   const generation = useSyncExternalStore(store.subscribe, store.generation, () => 0);
   useEffect(() => {
-    void store.load('bookmarks').catch(() => undefined);
+    void store.load('bookmarks');
   }, [store, generation]);
 
   const add = useCallback(
