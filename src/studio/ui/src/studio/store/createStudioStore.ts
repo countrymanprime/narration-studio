@@ -117,6 +117,9 @@ export type StudioStore<R extends SlotRegistry> = {
 
 const toError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
 
+/** How long a reader waits on one read before it fails with "The host did not answer." (the store joins a read for the stuck age, then starts another). A page that waits on the store for its project gives up on the same clock. */
+export const READ_GIVES_UP_MS = 15_000;
+
 export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOptions<R>): StudioStore<R> {
   const {
     registry,
@@ -163,8 +166,6 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
   // The read in flight for each slot, whoever started it (a load, an event, an ensure), so an ensure joins it instead of starting another.
   // A read out longer than `STUCK_READ_MS` is not joined and does not hold back the next one (a host call that never answers must not freeze the slot).
   const STUCK_READ_MS = 5000;
-  /** How long a reader waits on one read before it fails with "The host did not answer." (the store joins a read for the stuck age, then starts another). */
-  const READ_GIVES_UP_MS = 15_000;
   /** Whether a read that started at `at` is still worth joining: not out longer than the stuck age (a clock set back counts as out too long). */
   const young = (at: number) => {
     const age = Date.now() - at;

@@ -10,6 +10,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { DEFAULT_PROJECT_FOLDER } from '../../../api/mockHost/project';
 import { projectStorageKey } from '../../../projectFolder';
+import { READ_GIVES_UP_MS } from '../../../studio/store/createStudioStore';
 import { withoutCredits } from '../../../chapterKinds';
 import { providedCommands } from '../../../input/commandProviders';
 import { currentPageContext } from '../../../input/pageCommands';
@@ -921,7 +922,7 @@ describe('the reader position across project switches (#4091)', () => {
     vi.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (this: Element, value: number) {
       at.set(this, value);
     });
-    const page = (show: boolean, folder: string) => (
+    const page = (show: boolean, folder: string, refreshProject?: () => void) => (
       <MemoryRouter initialEntries={['/script']}>
         <ApiProvider api={api}>
           <StudioProvider>
@@ -929,7 +930,10 @@ describe('the reader position across project switches (#4091)', () => {
               <TooltipProvider>
                 {show ? (
                   <Routes>
-                    <Route path="/script" element={<ScriptPage notify={vi.fn()} focusStoryBibleEntity={vi.fn()} projectFolder={folder} />} />
+                    <Route
+                      path="/script"
+                      element={<ScriptPage notify={vi.fn()} focusStoryBibleEntity={vi.fn()} projectFolder={folder} refreshProject={refreshProject} />}
+                    />
                   </Routes>
                 ) : null}
               </TooltipProvider>
@@ -1012,5 +1016,43 @@ describe('the reader position across project switches (#4091)', () => {
     view.rerender(t.page(true, B));
     await firstHeading();
     expect(t.reader()).toBeTruthy();
+  });
+
+  // The bootstrap that names the new folder can fail: the page then waits on the store's own clock and says so, with Retry (a skeleton with no way out is no state).
+  it("a switch whose bootstrap fails does not leave the Script on its skeleton: after the store's give-up time it shows an error with Retry", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const t = twoProjects();
+    const refresh = vi.fn();
+    const view = render(t.page(true, A, refresh));
+    await firstHeading();
+    t.switchTo(true);
+    await waitFor(() => expect(t.readsOfB()).toBeGreaterThan(0));
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS - 1000));
+    expect(screen.queryByRole('alert')).toBeNull();
+    act(() => void vi.advanceTimersByTime(2000));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/still being opened/);
+    fireEvent.click(screen.getByRole('button', { name: /Retry/ }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).toBeNull(); // the wait starts over
+    view.rerender(t.page(true, B, refresh));
+    await firstHeading();
+  });
+
+  it('a slow bootstrap (answering at 4 s) still shows the skeleton, then the new project', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const t = twoProjects();
+    const view = render(t.page(true, A));
+    await firstHeading();
+    t.switchTo(true);
+    await waitFor(() => expect(t.readsOfB()).toBeGreaterThan(0));
+    act(() => void vi.advanceTimersByTime(4000));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByRole('region', { name: /Script reader/ })).toBeNull();
+    view.rerender(t.page(true, B));
+    await firstHeading();
+    expect(t.reader()).toBeTruthy();
+    act(() => void vi.advanceTimersByTime(READ_GIVES_UP_MS * 2));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

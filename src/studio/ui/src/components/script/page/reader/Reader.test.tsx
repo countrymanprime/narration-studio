@@ -218,6 +218,20 @@ describe('scroll requests', () => {
     expect(scrolls.get(scroller())).toBe(8000 - 8);
   });
 
+  it("the reader's own focus on a jumped-to heading keeps the jump held against a section drawn above", () => {
+    const { rerender } = render(<Reader {...props({ pendingJump: 'c3' })} />);
+    expect(document.activeElement?.tagName).toBe('H2');
+    expect(document.activeElement?.closest('[data-ch="c3"]')).not.toBeNull();
+    const relaid = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      const rows = Array.from(document.querySelectorAll('[data-bound], [data-para]'));
+      return rows.indexOf(this) * 100;
+    });
+    rerender(<Reader {...props({ before: <div data-bound="" data-ch="credits:opening" /> })} />);
+    const bound = document.querySelector('[data-bound][data-ch="c3"]') as HTMLElement;
+    expect(scrolls.get(scroller())).toBe(bound.offsetTop - 8);
+    relaid.mockRestore();
+  });
+
   it('lets go of a jumped-to chapter once the narrator scrolls by hand', () => {
     const late: Record<string, ManuscriptParagraph[] | undefined> = {};
     const { rerender } = render(<Reader {...props({ paragraphsOf: (id) => late[id], pendingJump: 'c3' })} />);

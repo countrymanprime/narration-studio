@@ -1603,6 +1603,7 @@ function AppRoutes() {
                                       goToEditing={goToEditing}
                                       goToBooth={goToBooth}
                                       projectFolder={data.projectFolder}
+                                      refreshProject={() => void refreshBootstrap()}
                                     />,
                                   )
                                 ) : (
