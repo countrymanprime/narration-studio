@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COMMAND_CATALOG } from '../../../input/commands.catalog';
 import { gesture } from '../../../input/gestures';
 import { defaultKeymap } from '../../../input/keymap';
-import { EDITING_FOOTER_SPEC, editingKeyHints, enterHintLabel } from './editingKeyHints';
+import { EDITING_FOOTER_SPEC, editOffHints, editingKeyHints, enterHintLabel } from './editingKeyHints';
 
 describe('key-hints-footer', () => {
   const keymap = defaultKeymap(COMMAND_CATALOG, false);
@@ -25,6 +25,16 @@ describe('key-hints-footer', () => {
       [['S'], 'Timeline'],
       [['Esc'], 'Clear'],
     ]);
+  });
+
+  it('keeps the hints of the commands that are off, drawn off with the reason, so the footer keeps its length (#4060)', () => {
+    const hints = editingKeyHints(keymap, editOffHints(EDITING_FOOTER_SPEC, 'REAPER is not answering.'));
+    expect(hints.map((h) => h.label)).toEqual(editingKeyHints(keymap).map((h) => h.label));
+    expect(hints.filter((h) => h.off).map((h) => [h.label, h.offReason])).toEqual([
+      ['Delete words and audio', 'REAPER is not answering.'],
+      ['Add FX', 'REAPER is not answering.'],
+    ]);
+    expect(editingKeyHints(keymap, editOffHints(EDITING_FOOTER_SPEC, null)).some((h) => h.off)).toBe(false);
   });
 
   it('a rebound key shows its new gesture, and a command with no gesture leaves its hint out', () => {

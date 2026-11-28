@@ -9,6 +9,7 @@ import { startDaw } from '../../connection/startDaw';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { InsetCard } from '../../primitives/InsetCard';
+import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { useSecondsSince } from '../../layout/CheckLine';
@@ -238,7 +239,11 @@ export function EngineBody() {
         {error}
       </p>
     ) : (
-      <p className="text-[0.8125rem] text-[var(--text-muted)]">Reading how this project records…</p>
+      // The radios and the connection card are blocks of their own height until the host answers, so the rows below do not move when they arrive (#4060).
+      <LoadingRegion label="Loading how this project records" status="Reading how this project records…" className="flex w-full min-w-0 flex-col gap-3">
+        <Skeleton className="h-[8.25rem] w-full" />
+        <Skeleton className="h-[8.9375rem] w-full" />
+      </LoadingRegion>
     );
   }
 

@@ -377,7 +377,7 @@ export function ProductionPage({
 
   return (
     <div className="flex flex-col gap-4">
-      {connection.off && <div className="flex">{connection.indicator}</div>}
+      {connection.indicator}
       {connection.dialog}
       <PageHeader
         loading={loading}

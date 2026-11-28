@@ -9,6 +9,7 @@ import { NavDrawer } from '../primitives/NavDrawer';
 import { IconButton } from '../primitives/IconButton';
 import { KeyChord } from '../primitives/KeyCap';
 import { PageFooterProvider } from '../primitives/KeyHints';
+import { HeaderStatusSlotContext } from '../connection/HeaderStatusSlot';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { AudacityLink, DawKind } from '../../api/contracts/daw';
 import { navAvailability, type NavFacts } from '../../navigation/navAvailability';
@@ -160,6 +161,7 @@ export function AppShell({
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [footer, setFooter] = useState<HTMLElement | null>(null);
+  const [statusSlot, setStatusSlot] = useState<HTMLElement | null>(null);
   const go = (next: string) => {
     viaDrawer.current = drawerOpen;
     setDrawerOpen(false);
@@ -330,6 +332,9 @@ export function AppShell({
               </button>
             </TooltipTarget>
             <div className="flex-1" />
+            {/* The DAW connection chip of the page below, drawn here (#4060): the bar is fixed in height and the chip sits on the spacer's side, so its coming and
+                going moves nothing on the page. Empty, it takes no width. */}
+            <div ref={setStatusSlot} data-header-status className="flex flex-none items-center" />
             {/* The zoom chip, only while zoom is not 100%: it opens the jump menu at the zoom commands (the mock's `zoomchip`). Left of the jump button
                 (#2251 item 25), on the spacer's side, so it appearing or going moves nothing else in the bar. */}
             {zoom.percent !== 100 && (
@@ -371,13 +376,15 @@ export function AppShell({
             />
           </header>
           <PageFooterProvider value={footer}>
-            <ContextMenuHost
-              className="scroll-chrome-hidden relative flex-1 overflow-y-auto p-[var(--page-gutter)]"
-              fallback={contextMenu?.fallback}
-              tail={contextMenu?.tail}
-            >
-              {children}
-            </ContextMenuHost>
+            <HeaderStatusSlotContext.Provider value={statusSlot}>
+              <ContextMenuHost
+                className="scroll-chrome-hidden relative flex-1 overflow-y-auto p-[var(--page-gutter)]"
+                fallback={contextMenu?.fallback}
+                tail={contextMenu?.tail}
+              >
+                {children}
+              </ContextMenuHost>
+            </HeaderStatusSlotContext.Provider>
           </PageFooterProvider>
           {/* The page footer (#2251 item 35): the page's key reminders (`KeyHints`), full width under the scrolling content like the header
               above it. A `<footer>` (not a div), so the overlay guard still finds the scroll area as the last div child of <main>

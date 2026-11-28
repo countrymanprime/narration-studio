@@ -49,7 +49,12 @@ export function useDawConnection({ stillWorks, id = 'dawoff', graceMs = DAW_CONN
     off: true,
     dialogOpen,
     indicator: (
-      <ConnectionIndicator id={id} label={connecting.connecting ? connecting.label(daw.dawName) : `${daw.dawName} not connected`} onOpen={state.reopen} />
+      <ConnectionIndicator
+        id={id}
+        label={connecting.connecting ? connecting.label(daw.dawName) : `${daw.dawName} not connected`}
+        onOpen={state.reopen}
+        inHeader
+      />
     ),
     dialog: dialogOpen ? (
       <ConnectionResolveDialog

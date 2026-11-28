@@ -8,6 +8,7 @@ import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { DawConnectionChip } from './DawConnectionChip';
+import { HeaderStatusSlotContext } from './HeaderStatusSlot';
 import { LinkDawFileContext } from './linkDawFile';
 import { resetOpenOnce } from './useOpenOnce';
 
@@ -87,5 +88,24 @@ describe('DawConnectionChip (#2823)', () => {
     await user.click(await screen.findByRole('button', { name: 'Link project file…' }));
     await waitFor(() => expect(link).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.queryAllByRole('button', { name: /REAPER not connected/ })).toHaveLength(0));
+  });
+
+  it("draws the chip in the shell's header slot when there is one, so the page takes no room for it (#4060)", async () => {
+    const slot = document.createElement('div');
+    document.body.append(slot);
+    render(
+      <ApiProvider api={createMockApi({ dawCapabilities: async () => off() })}>
+        <HeaderStatusSlotContext.Provider value={slot}>
+          <TooltipProvider>
+            <main data-page>
+              <DawConnectionChip graceMs={0} stillWorks={(name) => `Takes can be read. Changes wait until ${name} is running.`} />
+            </main>
+          </TooltipProvider>
+        </HeaderStatusSlotContext.Provider>
+      </ApiProvider>,
+    );
+    await within(slot).findByRole('button', { name: /not connected/ });
+    expect(within(document.querySelector('[data-page]') as HTMLElement).queryByRole('button', { name: /not connected/ })).toBeNull();
+    slot.remove();
   });
 });
