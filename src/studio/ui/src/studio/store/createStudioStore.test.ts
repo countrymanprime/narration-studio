@@ -1063,6 +1063,51 @@ describe('the host says which project a list was read from (#4040)', () => {
     }
   });
 
+  it('ten same-folder attaches with setProject between them and reads slower than the bootstrap make at most 11 reads and serve A', async () => {
+    const { store, read } = await rig();
+    const open: Array<() => void> = [];
+    read.mockImplementation(() => new Promise((resolve) => open.push(() => resolve({ project: 'A', payload: { count: 1 } }))));
+    store.reset();
+    store.setProject('A');
+    const asked = store.ensure('a', { settled: true });
+    for (let i = 0; i < 10; i += 1) {
+      store.reset(); // system:attached
+      await flush();
+      store.setProject('A'); // the bootstrap
+      await flush();
+    }
+    expect(read.mock.calls.length - 1).toBeLessThanOrEqual(11); // the rig's first read is not the reader's
+    open.splice(0).forEach((f) => f());
+    await flush();
+    open.splice(0).forEach((f) => f());
+    await asked;
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+    expect(store.projectOf('a')).toBe('A');
+  });
+
+  // The 15 s bound is per round; a foreign answer sets `ahead` and the next round waits the 5 s stuck age: about 20 s from the start, not 15 s.
+  it('a host that answers another project at 14.9 s fails the reader about 20 s after it started', async () => {
+    const { store, read } = await rig();
+    vi.useFakeTimers();
+    try {
+      read.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ project: 'B', payload: { count: 2 } }), 14_900)));
+      store.reset();
+      store.setProject('A');
+      let outcome: unknown = 'pending';
+      void store.ensure('a').then(
+        () => (outcome = 'ok'),
+        (e: Error) => (outcome = e.message),
+      );
+      await vi.advanceTimersByTimeAsync(14_901);
+      await vi.advanceTimersByTimeAsync(4_000); // 18.9 s
+      expect(outcome).toBe('pending');
+      await vi.advanceTimersByTimeAsync(1_200); // 20.1 s
+      expect(outcome).toBe('The project is still being opened. Try again in a moment.');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('setProject(A) five times in a row after a read started unconfirmed reads twice, not in a loop', async () => {
     const { store, read } = await rig();
     store.reset();
