@@ -52,12 +52,15 @@ export function isGuardedTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * A menu item that presses nothing because its menu has begun to close (`useLeaving` disables a menu's items for its exit). With a take running, the Enter
- * that lands on it is the pedal's (`usePedalSpace`): the router holds Enter for a control in a closing popup, so nothing else would stop the take (#4183).
- * An item that is unavailable in a menu that is still open is `aria-disabled` too, but its popup is not closing (`CLOSING`) there; a button is no menu item.
+ * What a key lands on in a menu that has begun to close and that presses nothing: one of its items (`useLeaving` disables them for the exit), or the menu's own popup,
+ * which holds focus when the menu was opened by the pointer and no arrow moved it onto a row. With a take running, the Enter that lands on either is the pedal's
+ * (`usePedalSpace`): the router holds Enter for a control in a closing popup, so nothing else would stop the take (#4183).
+ * An item that is unavailable in a menu that is still open is `aria-disabled` too, but its popup is not closing (`CLOSING`) there; a button, a field and a popover's
+ * popup are not menu items or a menu.
  */
-export function isInertLeavingItem(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest(CLOSING) !== null && target.closest('[role^="menuitem"][aria-disabled="true"]') !== null;
+export function isInertLeavingMenuTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element) || target.closest(CLOSING) === null) return false;
+  return target.matches('[role="menu"]') || target.closest('[role^="menuitem"][aria-disabled="true"]') !== null;
 }
 
 /**

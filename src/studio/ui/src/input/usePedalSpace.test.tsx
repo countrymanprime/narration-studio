@@ -163,6 +163,43 @@ describe('the pedal Enter on an item of a menu that is leaving (#4183)', () => {
     expect(toggle).toHaveBeenCalledTimes(1);
   });
 
+  it("Shift+Enter is not a take key on the page, so it is not the pedal's here either", () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingMenu toggle={toggle} running />);
+    const event = press(getByRole('menuitem'), 'Enter', false, { shiftKey: true });
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  // A menu opened by the pointer keeps focus on its own popup until an arrow moves it onto a row.
+  function LeavingPopup({ toggle, running, leaving = true }: { toggle: () => unknown; running: boolean; leaving?: boolean }) {
+    usePedalSpace(toggle, () => running);
+    return <div role="menu" tabIndex={-1} aria-label="Word menu" {...(leaving ? { 'data-ending-style': '' } : {})} />;
+  }
+
+  it.each(['Enter', 'NumpadEnter'])('%s on the popup of a menu that is leaving, with no item focused, stops a take that runs', (code) => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingPopup toggle={toggle} running />);
+    const event = press(getByRole('menu'), code);
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('Enter on the popup of a menu that is leaving starts no take when none runs', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingPopup toggle={toggle} running={false} />);
+    press(getByRole('menu'), 'Enter');
+    expect(toggle).not.toHaveBeenCalled();
+  });
+
+  it('Enter on the popup of a menu that is still open is left to the menu', () => {
+    const toggle = vi.fn();
+    const { getByRole } = render(<LeavingPopup toggle={toggle} running leaving={false} />);
+    const event = press(getByRole('menu'), 'Enter');
+    expect(toggle).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('an Enter that lands after the pick opened a dialog still stops the take: this branch only ever stops one, so no modal check holds it back', () => {
     const toggle = vi.fn();
     const { getByRole } = render(

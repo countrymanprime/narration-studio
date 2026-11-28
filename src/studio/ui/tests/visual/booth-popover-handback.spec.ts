@@ -254,7 +254,7 @@ async function highlight(page: Page, name: string | RegExp, timeout = 5_000): Pr
 }
 
 /** A take runs and the right-click menu is open on a word, with "Roll again" or `item` highlighted by the arrow keys. */
-async function rightClickDuringTake(page: Page, item: string | RegExp): Promise<void> {
+async function rightClickDuringTake(page: Page, item?: string | RegExp): Promise<void> {
   await openBoothWithMotion(page);
   await page.getByRole('button', { name: /^Record$/ }).click();
   await expect(stop(page)).toBeVisible();
@@ -270,7 +270,8 @@ async function rightClickDuringTake(page: Page, item: string | RegExp): Promise<
   expect(index).toBeGreaterThanOrEqual(0);
   await page.locator('[data-booth-text] [data-word]').nth(index).click({ button: 'right' });
   await expect(page.getByRole('menu')).toBeVisible();
-  await highlight(page, item, 3_000);
+  // No item: the menu opened by the pointer keeps focus on its own popup until an arrow moves it onto a row.
+  if (item !== undefined) await highlight(page, item, 3_000);
 }
 
 /** The one key stops the take: the DAW is not recording within 500 ms of it, and no item ran. */
@@ -296,6 +297,26 @@ for (const lag of [20, 60]) {
       await page.waitForTimeout(HELD_EXIT_MS + 400);
       expect(await onThePage(page)).toBe(true);
     });
+  }
+}
+
+// The usual mouse path: a right click, no arrow (or a row hovered and the pointer moved off), Escape, the footswitch. Focus is on the menu's own popup, not on a row.
+for (const how of ['no arrow key', 'the pointer moved off the menu'] as const) {
+  for (const lag of [20, 60]) {
+    for (const key of ['Enter', 'NumpadEnter'] as const) {
+      test(`${key} ${lag} ms into the exit of the right-click menu with ${how} stops the take, with motion on`, async ({ page }) => {
+        await rightClickDuringTake(page);
+        if (how === 'the pointer moved off the menu') {
+          await menuItem(page, /^Roll again/).hover();
+          await page.mouse.move(4, 4);
+        }
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(lag);
+        await expect(leavingNow(page)).toHaveCount(1);
+        // The key lands on the popup itself or on whatever the pointer left focused: either way it is not a control that presses.
+        await expectThisKeyStoppedTheTake(page, key);
+      });
+    }
   }
 }
 

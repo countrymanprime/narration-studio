@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { isGuardedTarget, isInertLeavingItem, keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
+import { isGuardedTarget, isInertLeavingMenuTarget, keyLayerOpen, modalLayerOpen, softLayerOpen, takesTypedText } from './targets';
 
 /** How long after a press that pressed a toast's button the next take key (Space, Enter) is taken as the same tap (#4094). */
 const AFTER_TOAST_PRESS_MS = 600;
@@ -49,7 +49,8 @@ export function usePedalSpace(toggle: () => unknown, takeRunning: () => boolean 
       // A footswitch Enter on an item of a menu that is leaving (its items are off and press nothing, #4183) stops the take that runs: the router holds Enter for a control in a closing
       // popup, and Base UI swallows it on the disabled item, so nothing else would. With no take running it stays swallowed: it must not start one (a double Enter on a pick).
       // No modal check, unlike Space's leaving path (`mine`): this only ever stops a take, the safe side of a recording that is never left running, so a dialog that the pick opened does not hold it back.
-      if (takeKey(event) && event.code !== 'Space' && isInertLeavingItem(event.target) && takeRunning()) {
+      // Not with Shift held: Shift+Enter on the page is no take key either (the branch mirrors the page).
+      if (takeKey(event) && event.code !== 'Space' && !event.shiftKey && isInertLeavingMenuTarget(event.target) && takeRunning()) {
         event.preventDefault();
         if (!event.repeat) void toggle();
         return;
