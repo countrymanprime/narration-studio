@@ -8,6 +8,7 @@ import { App } from './App';
 import { chapterName } from './chapterName';
 import { ApiProvider } from './api/ApiContext';
 import { createMockApi } from './api/mockApi';
+import { engineChanged } from './components/settings/data/engineSignal';
 import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
@@ -843,6 +844,23 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(within(panel).queryByRole('table', { name: 'Tracks' })).toBeNull();
     expect(within(panel).queryByRole('table', { name: 'Chapter links' })).toBeNull();
     expect(window.location.pathname).toBe('/');
+  });
+
+  it('the header chip follows the tool the project records with, not the capability report (#3382 d)', async () => {
+    const api = renderApp({}, { daw: { daw: 'REAPER' } });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    expect(await screen.findByRole('button', { name: /^REAPER: / })).toBeTruthy();
+    await act(async () => {
+      await api.dawChoose('Audacity');
+      engineChanged();
+    });
+    expect(await screen.findByRole('button', { name: /^Audacity: / })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^REAPER: / })).toBeNull();
+    await act(async () => {
+      await api.dawChoose('REAPER');
+      engineChanged();
+    });
+    expect(await screen.findByRole('button', { name: /^REAPER: / })).toBeTruthy();
   });
 
   it('redirects /tracks to Proof, keeping its query and hash, and opens the engine panel over it', async () => {
