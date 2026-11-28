@@ -80,13 +80,16 @@ function useScriptHost(): ScriptHost {
         scriptPrep,
         storyBible,
         system,
+        generation: store ? () => store.generation() : undefined,
         pronunciation: { subscribe: subscribePronunciationChanged },
       }),
       view: createScriptView(),
     };
     hosts.set(marks, created);
     return created;
-  }, [manuscript, readChapters, followChapters, marks, scriptPrep, storyBible, system]);
+  }, [manuscript, readChapters, followChapters, marks, scriptPrep, storyBible, system, store]);
+  // A project switch made while no Script page was mounted left the old project's answers in the cache: they are dropped before this page reads (#4091).
+  host.data.syncProject();
   useEffect(() => host.data.start(), [host]);
   return host;
 }

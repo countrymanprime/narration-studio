@@ -7,6 +7,7 @@ import { chaptersOf } from '../../../../api/chaptersOf';
 
 function ports() {
   let name = 'Alice';
+  let epoch = 0;
   const jobEnded = new Set<() => void>();
   const projectAttach = new Set<(attach: { attached: boolean }) => void>();
   const storyBible = {
@@ -16,8 +17,17 @@ function ports() {
       chapterIds.filter((id) => id !== 'silent').map((chapterId) => ({ id: `cue-${chapterId}`, chapterId })),
     ),
   };
-  const manuscript = { manuscriptChapters: async () => chaptersOf([]), manuscriptParagraphs: vi.fn(async (chapterId: string) => [{ id: `p-${chapterId}` }]) };
+  let gate: Promise<void> | null = null;
+  const manuscript = {
+    manuscriptChapters: async () => chaptersOf([]),
+    manuscriptParagraphs: vi.fn(async (chapterId: string) => {
+      await gate;
+      return [{ id: `p-${chapterId}` }];
+    }),
+  };
   const data = createScriptData({
+    generation: () => epoch,
+    readChapters: async () => [],
     manuscript,
     marks: { marksList: async () => ({ marks: [] }) },
     scriptPrep: { scriptPrepList: async () => ({ chapters: [], words: [] }) },
@@ -38,6 +48,17 @@ function ports() {
     storyBible,
     manuscript,
     rename: (next: string) => (name = next),
+    /** The store reset a project switch makes, with no page reading. */
+    switchProject: () => (epoch += 1),
+    /** Holds the answers of the paragraph reads started from now on until the returned function is called. */
+    holdParagraphs: () => {
+      let open!: () => void;
+      gate = new Promise<void>((resolve) => (open = resolve));
+      return () => {
+        open();
+        gate = null;
+      };
+    },
     endJob: () => jobEnded.forEach((listener) => listener()),
     attachProject: () => projectAttach.forEach((listener) => listener({ attached: true })),
   };
@@ -276,5 +297,79 @@ describe('a failed read of the dialogue cues (#3824)', () => {
     storyBible.guideDialogueCuesIn.mockClear();
     data.retryFailed();
     expect(storyBible.guideDialogueCuesIn).not.toHaveBeenCalled();
+  });
+});
+
+describe('a project switch made while no Script page reads', () => {
+  it("drops the cached chapters and paragraphs, so the next open reads the new project's", async () => {
+    const { data, switchProject, manuscript } = ports();
+    const leave = data.start();
+    await data.load('chapters');
+    await data.loadParagraphs('c1');
+    expect(data.getState().chapters?.status).toBe('ready');
+    expect(data.getState().paragraphs.c1?.status).toBe('ready');
+    leave();
+
+    switchProject();
+    data.syncProject();
+    expect(data.getState().chapters).toBeUndefined();
+    expect(data.getState().paragraphs).toEqual({});
+    data.ensureParagraphs('c1');
+    await vi.waitFor(() => expect(manuscript.manuscriptParagraphs).toHaveBeenCalledTimes(2));
+  });
+
+  it('keeps what is held when the project did not change', async () => {
+    const { data } = ports();
+    const leave = data.start();
+    await data.load('chapters');
+    leave();
+    data.syncProject();
+    expect(data.getState().chapters?.status).toBe('ready');
+  });
+
+  it("never writes an old project's pending answer into the new project's cache", async () => {
+    const { data, switchProject, holdParagraphs } = ports();
+    const leave = data.start();
+    const answer = holdParagraphs();
+    void data.loadParagraphs('c1'); // project A's read, still out
+    leave();
+    switchProject();
+    data.syncProject();
+    answer();
+    await vi.waitFor(() => expect(data.getState().paragraphs).toEqual({}));
+    await Promise.resolve();
+    expect(data.getState().paragraphs).toEqual({});
+  });
+
+  it("never sends the chapters queued for the old project to the new project's cue read", async () => {
+    const { data, switchProject, storyBible } = ports();
+    data.ensureCues('c1'); // queued for the end of the tick
+    switchProject();
+    data.syncProject();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(storyBible.guideDialogueCuesIn).not.toHaveBeenCalledWith(expect.arrayContaining(['c1']));
+  });
+
+  it('leaves a page that is reading alone: its own attach listener does the work', async () => {
+    const { data, switchProject } = ports();
+    const leave = data.start();
+    await data.load('chapters');
+    switchProject();
+    data.syncProject();
+    expect(data.getState().chapters?.status).toBe('ready');
+    leave();
+  });
+
+  it('drops the chapters queued for the old project in the attach listener too', async () => {
+    const { data, attachProject, holdParagraphs, storyBible } = ports();
+    const leave = data.start();
+    const answer = holdParagraphs();
+    void data.loadParagraphs('c1');
+    data.ensureCues('c2');
+    attachProject();
+    answer();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(storyBible.guideDialogueCuesIn).not.toHaveBeenCalledWith(expect.arrayContaining(['c2']));
+    leave();
   });
 });
