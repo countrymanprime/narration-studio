@@ -21,7 +21,7 @@ import { ReaderColumn } from '../../../primitives/ReaderColumn';
 import { READER_COLUMN_VAR } from '../tools/text/readerText';
 import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from './layers';
 import { Para, type FindRange } from './Para';
-import { loadReaderPosition, READER_POSITION_KEY, saveReaderPosition } from './readerPosition';
+import { loadReaderPosition, saveReaderPosition } from './readerPosition';
 
 /** A Find match in a paragraph, in the order Find lists them. `chapterId` lets the reader go to a match in a chapter not read yet. */
 type FindMatch = { paragraphId: string; chapterId?: string; start: number; end: number };
@@ -80,7 +80,8 @@ export type ReaderProps = {
   onTextClick?: () => void;
   /** Left and Right on the focused reader: the prep helper of the chapter in view. */
   onStepPrep?: (chapterId: string, direction: 1 | -1) => void;
-  positionKey?: string;
+  /** The open project's folder: the remembered place is kept under it, so each project opens where it was left. No project, no place kept. */
+  projectFolder?: string;
 };
 
 /** How many chapters either side of the one in view have their text drawn; the rest are a block of the estimated height. */
@@ -246,7 +247,7 @@ export function Reader(props: ReaderProps) {
     onShowEntry,
     onTextClick,
     onStepPrep,
-    positionKey = READER_POSITION_KEY,
+    projectFolder = '',
   } = props;
   const scroller = useRef<HTMLDivElement>(null);
   const spy = useMemo(createSpyStore, []);
@@ -255,7 +256,7 @@ export function Reader(props: ReaderProps) {
   const indexOf = useMemo(() => new Map(chapters.map((chapter, i) => [chapter.id, i])), [chapters]);
 
   /* The remembered place is read once, on the first draw. */
-  const [remembered] = useState(() => loadReaderPosition(positionKey));
+  const [remembered] = useState(() => loadReaderPosition(projectFolder));
   const startChapter = (remembered && indexOf.has(remembered.chapterId) ? remembered.chapterId : initialChapterId) ?? chapters[0]?.id;
   const [drawn, setDrawn] = useState<ReadonlySet<number>>(() => {
     const at = startChapter === undefined ? 0 : (indexOf.get(startChapter) ?? 0);
@@ -388,6 +389,13 @@ export function Reader(props: ReaderProps) {
   };
   /** Where the first draw, a jump or End put the reader, held until the narrator scrolls or a request scrolls it. */
   const held = useRef<{ chapterId: string; offset: number } | 'end' | null>(null);
+  /**
+   * True from the first draw until the narrator's first input (`release`: wheel, pointer, touch, key, a jump or a request). Until then the reader moved itself, and so did the
+   * browser (it clamps a place past the end, and again when the header wraps and the content shrinks), so no scroll event writes a place: only the narrator moving it does (#4091).
+   */
+  const restoring = useRef(false);
+  /** True while the reader itself moves focus (to a jumped-to heading), so that focus does not let go of the held place. */
+  const ownFocus = useRef(false);
   const hold = (): void => {
     const root = scroller.current;
     const place = held.current;
@@ -399,6 +407,7 @@ export function Reader(props: ReaderProps) {
   };
   const release = (): void => {
     held.current = null;
+    restoring.current = false;
   };
   const rowOf = (paragraphId: string): HTMLElement | null =>
     Array.from(scroller.current?.querySelectorAll<HTMLElement>('[data-para]') ?? []).find((row) => row.dataset.para === paragraphId) ?? null;
@@ -412,6 +421,7 @@ export function Reader(props: ReaderProps) {
     // The remembered place can be a section that is not a chapter (the credits, #3821): any boundary drawn in the reader counts.
     const known = remembered && Array.from(root.querySelectorAll<HTMLElement>('[data-bound]')).some((bound) => bound.dataset.ch === remembered.chapterId);
     held.current = known ? remembered : { chapterId: startChapter, offset: -8 };
+    restoring.current = true;
     hold();
     // The first draw only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -444,8 +454,12 @@ export function Reader(props: ReaderProps) {
         jumpTo(pendingJump);
         // The heading takes focus, so the next Tab and a screen reader start at the chapter the narrator chose (#2902), unless the
         // narrator chose it in the chapter list: focus stays there so Down steps to the next chapter.
-        if (!document.activeElement?.closest('ul[aria-label="Chapters"]'))
+        if (!document.activeElement?.closest('ul[aria-label="Chapters"]')) {
+          // The reader's own focus on the jumped-to heading is not the narrator moving focus in (`onFocus` below).
+          ownFocus.current = true;
           root.querySelector<HTMLElement>(`[data-bound][data-ch="${pendingJump}"] h2`)?.focus({ preventScroll: true });
+          ownFocus.current = false;
+        }
         onHandled?.('chapter');
         jumped = true;
       }
@@ -510,7 +524,7 @@ export function Reader(props: ReaderProps) {
     const root = scroller.current;
     const id = spy.get().chapterId;
     const bound = id ? root?.querySelector<HTMLElement>(`[data-bound][data-ch="${id}"]`) : null;
-    if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, positionKey);
+    if (root && id && bound) saveReaderPosition({ chapterId: id, offset: root.scrollTop - bound.offsetTop }, projectFolder);
   };
   const savePlaceNow = useRef(savePlace);
   savePlaceNow.current = savePlace;
@@ -529,6 +543,7 @@ export function Reader(props: ReaderProps) {
 
   const onScroll = (): void => {
     onSpy();
+    if (restoring.current) return;
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(savePlace, SAVE_DELAY_MS);
   };
@@ -573,6 +588,9 @@ export function Reader(props: ReaderProps) {
         onPointerDown={release}
         onTouchStart={release}
         onKeyDownCapture={release}
+        // Focus moving into the reader (Tab, a screen reader's browse mode) scrolls the focused control into view with no key, wheel or pointer at the reader:
+        // the narrator is moving it, so the held place is let go and what follows is saved.
+        onFocus={() => ownFocus.current || release()}
         onKeyDown={(event) => {
           // With Shift the key extends a selection of the text, and with Alt or the Meta key it is the browser's or the system's: those are left alone.
           if ((event.key === 'Home' || event.key === 'End') && !event.shiftKey && !event.altKey && !event.metaKey) return onHomeEnd(event);
