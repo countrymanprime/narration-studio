@@ -532,6 +532,7 @@ for (const mode of ['Record', 'Cold read'] as const) {
         await recordOptions(page).click();
         await page.getByRole('radio', { name: 'Cold read', exact: true }).click();
         await page.keyboard.press('Escape');
+        await endExits(page);
         await expect(optionsDialog(page)).toHaveCount(0);
       }
       const before = await chapterButton(page).getAttribute('aria-label');
@@ -548,8 +549,8 @@ for (const mode of ['Record', 'Cold read'] as const) {
       await expect(page.locator('[role="menuitemradio"][data-highlighted]')).toHaveCount(1);
       await expect(page.locator('[role="menuitemradio"]:focus')).toHaveCount(1);
       await page.keyboard.press('Control+Alt+Space');
-      // Past the exit a pick would have started: the list is still there, the chapter is the same, and nothing is recording or asking.
-      await page.waitForTimeout(HELD_EXIT_MS + 200);
+      // Past the time a pick would have shown itself: the list is still there, the chapter is the same, and nothing is recording or asking.
+      await quiet(page);
       await expect(page.getByRole('menu')).toBeVisible();
       await expect(chapterButton(page)).toHaveAttribute('aria-label', before ?? '');
       await expect(coldRunning(page)).toHaveCount(0);
@@ -558,6 +559,7 @@ for (const mode of ['Record', 'Cold read'] as const) {
       expect(await dawRecording(page)).toBeFalsy();
       // The list is still an ordinary open list: Escape closes it and focus goes back to its button.
       await page.keyboard.press('Escape');
+      await endExits(page);
       await expect(chapterButton(page)).toBeFocused();
     });
   }
@@ -570,7 +572,7 @@ test('Ctrl+Alt+Space with the right-click menu open presses no item and starts n
   await expect(page.getByRole('menu')).toBeVisible();
   await highlight(page, /^Read to here/);
   await page.keyboard.press('Control+Alt+Space');
-  await page.waitForTimeout(HELD_EXIT_MS + 200);
+  await quiet(page);
   await expect(page.getByRole('menu')).toBeVisible();
   await expect(page.getByRole('button', { name: /^Read to here/ })).toHaveCount(0);
   await expect(coldRunning(page)).toHaveCount(0);
@@ -586,7 +588,7 @@ test('Ctrl+Alt+Space on a focused button of the open engine panel opens no dialo
   const cleanup = page.getByRole('button', { name: 'Open the cleanup tools', exact: true });
   await cleanup.focus();
   await page.keyboard.press('Control+Alt+Space');
-  await page.waitForTimeout(400);
+  await quiet(page);
   await expect(page.getByRole('dialog', { name: 'Cleanup tools' })).toHaveCount(0);
   await expect(enginePanel(page)).toBeVisible();
   expect(await dawRecording(page)).toBeFalsy();
