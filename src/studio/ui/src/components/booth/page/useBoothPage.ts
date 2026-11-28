@@ -1392,7 +1392,8 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [control.gate]);
   const punchAndRoll = useCallback(() => {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
-    // R before a take is Record (#3858): a take key, so a popup still leaving hands focus to the page as for Space (#4181). Mode does not apply: it starts a take.
+    // R before a take is Record (#3858): a take key, so a popup still leaving hands focus to the page as for Space (#4181). This mirrors `keyStartsTake` and `toggleTake`'s refusals
+    // (the gate above, a start under way, a take running); R always starts a take, never a cold read.
     if (!latest.current.recording && !starting.current) claimFocusForPage();
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);

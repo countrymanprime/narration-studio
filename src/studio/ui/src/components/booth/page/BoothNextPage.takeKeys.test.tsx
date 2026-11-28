@@ -130,6 +130,27 @@ function runningHost() {
 }
 const never = () => new Promise<never>(() => {});
 
+/** A DAW whose Record is off ("REAPER is not answering"): Record is gated, so a take key is refused. */
+function gatedDaw(): DawClient {
+  const setup = DAW_SETUPS.reaper;
+  const off = {
+    level: 'supported' as const,
+    available: false,
+    reason: 'not_running' as const,
+    message: 'REAPER is not answering. Check that REAPER is open, then try again.',
+  };
+  return createMockDawClient(
+    { ...setup, capabilities: { ...setup.capabilities, record: off } },
+    { chapterIds: ['c1', 'c2', 'credits-opening', 'credits-closing'], candidateIds: [], findingIds: [] },
+  );
+}
+/** R on the page, as the router delivers `booth.roll`. */
+const pressR = async () => {
+  skipStartGuard();
+  await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
+  await settle();
+};
+
 describe('a take key marks a leaving popup only when it starts a take or a cold read', () => {
   for (const pressed of KEYS) {
     it(`acts and marks from Record with ${pressed.code}: a take starts`, async () => {
@@ -154,20 +175,18 @@ describe('a take key marks a leaving popup only when it starts a take or a cold 
     expect(recordStart).not.toHaveBeenCalled();
   });
 
-  for (const pressed of KEYS) {
-    it(`the pedal route: ${pressed.code} on a button inside a leaving popup starts the take and marks it`, async () => {
-      // A key on a control of a popup that is leaving is the pedal's (the router leaves it to the control), not `reading.toggle`'s.
-      const { recordStart } = renderPage();
-      await ready();
-      const popup = leavingPopup();
-      const button = document.createElement('button');
-      button.textContent = 'Item';
-      popup.append(button);
-      button.focus();
-      expect(await takeKey(popup, { key: ' ', code: 'Space' }, button)).toBe(true);
-      await waitFor(() => expect(recordStart).toHaveBeenCalledTimes(1));
-    });
-  }
+  it('the pedal route: Space on a button inside a leaving popup starts the take and marks it', async () => {
+    // Space only: on a leaving popup's button the router leaves Enter to the button, and the pedal takes Space alone (#3976). The popup's key is the pedal's, not `reading.toggle`'s.
+    const { recordStart } = renderPage();
+    await ready();
+    const popup = leavingPopup();
+    const button = document.createElement('button');
+    button.textContent = 'Item';
+    popup.append(button);
+    button.focus();
+    expect(await takeKey(popup, { key: ' ', code: 'Space' }, button)).toBe(true);
+    await waitFor(() => expect(recordStart).toHaveBeenCalledTimes(1));
+  });
 
   it('the pedal route: a Space that closes an open popup and starts the take marks that popup as left to the page', async () => {
     const { recordStart } = renderPage();
@@ -187,22 +206,46 @@ describe('a take key marks a leaving popup only when it starts a take or a cold 
     expect(await takeKey(popup, { key: ' ', code: 'Space' }, button)).toBe(false);
   });
 
-  it('R before a take is Record: it marks a leaving popup, and is refused or stops without marking', async () => {
+  it('R before a take is Record: it marks a leaving popup', async () => {
     const { recordStart } = renderPage();
     await ready();
     const popup = leavingPopup();
-    skipStartGuard();
-    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
-    await settle();
+    await pressR();
     expect(pageTookFocusFrom(popup)).toBe(true);
     await waitFor(() => expect(recordStart).toHaveBeenCalledTimes(1));
-    // The take is out: R rolls again, a stop is not a start, and the popup it finds is left alone.
+  });
+
+  it('R during a take rolls again and leaves a leaving popup unmarked', async () => {
+    const { recordStart } = renderPage();
+    await ready();
+    await press();
+    await waitFor(() => expect(recordStart).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(main().textContent).toMatch(/Stop/));
-    const later = leavingPopup();
-    skipStartGuard();
-    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
+    const popup = leavingPopup();
+    await pressR();
+    expect(pageTookFocusFrom(popup)).toBe(false);
+    expect(recordStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('R claims before the start resolves: the popup is marked while the DAW has not been asked yet', async () => {
+    let hold = false;
+    const { recordStart } = renderPage({ assetsList: async () => (hold ? never() : { assets: [] }) } as unknown as Partial<NarrationApi>);
+    await ready();
+    hold = true;
+    const popup = leavingPopup();
+    await pressR();
+    expect(pageTookFocusFrom(popup)).toBe(true);
+    expect(recordStart).not.toHaveBeenCalled();
+  });
+
+  it('R is refused while Record is gated and leaves the popup unmarked', async () => {
+    const { recordStart } = renderPage({}, gatedDaw());
+    await screen.findByText('Nobody', { exact: false });
     await settle();
-    expect(pageTookFocusFrom(later)).toBe(false);
+    const popup = leavingPopup();
+    await pressR();
+    expect(pageTookFocusFrom(popup)).toBe(false);
+    expect(recordStart).not.toHaveBeenCalled();
   });
 
   it('R is refused while a take is starting and leaves the popup unmarked', async () => {
@@ -212,8 +255,7 @@ describe('a take key marks a leaving popup only when it starts a take or a cold 
     hold = true;
     await press();
     const popup = leavingPopup();
-    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
-    await settle();
+    await pressR();
     expect(pageTookFocusFrom(popup)).toBe(false);
     expect(recordStart).not.toHaveBeenCalled();
   });
@@ -237,6 +279,30 @@ describe('a take key marks a leaving popup only when it starts a take or a cold 
     // The key did stop the take.
     await waitFor(() => expect(recordStop).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(main().textContent).toMatch(/Record/));
+  });
+
+  it('a key that stops the take is not delayed: the DAW is asked to stop before the key returns (Record)', async () => {
+    const { recordStart, recordStop } = renderPage();
+    await ready();
+    await press();
+    await waitFor(() => expect(recordStart).toHaveBeenCalled());
+    await waitFor(() => expect(main().textContent).toMatch(/Stop/));
+    skipStartGuard();
+    // No settle and no waitFor: a stop that waited on anything (a claim, a frame) would not have reached the DAW yet.
+    fireEvent.keyDown(document.body, { key: 'Enter', code: 'Enter' });
+    expect(recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a key that stops a cold read is not delayed: the listening is asked to stop before the key returns (Cold read)', async () => {
+    const { api, teleprompterStop } = runningHost();
+    renderPage(api);
+    await ready();
+    await chooseCold();
+    await press();
+    await screen.findByText('Mic on · cold read');
+    skipStartGuard();
+    fireEvent.keyDown(document.body, { key: 'Enter', code: 'Enter' });
+    expect(teleprompterStop).toHaveBeenCalledTimes(1);
   });
 
   it('a key with a take the DAW started and no listening session stops it and leaves the popup unmarked (Cold read)', async () => {
@@ -320,18 +386,7 @@ describe('a take key marks a leaving popup only when it starts a take or a cold 
   });
 
   it('is refused while Record is gated (gate) and leaves the popup unmarked', async () => {
-    const setup = DAW_SETUPS.reaper;
-    const off = {
-      level: 'supported' as const,
-      available: false,
-      reason: 'not_running' as const,
-      message: 'REAPER is not answering. Check that REAPER is open, then try again.',
-    };
-    const daw = createMockDawClient(
-      { ...setup, capabilities: { ...setup.capabilities, record: off } },
-      { chapterIds: ['c1', 'c2', 'credits-opening', 'credits-closing'], candidateIds: [], findingIds: [] },
-    );
-    const { recordStart } = renderPage({}, daw);
+    const { recordStart } = renderPage({}, gatedDaw());
     await screen.findByText('Nobody', { exact: false });
     await settle();
     expect(await takeKey(leavingPopup())).toBe(false);

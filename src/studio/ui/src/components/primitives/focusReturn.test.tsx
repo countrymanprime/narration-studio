@@ -9,6 +9,7 @@ import {
   focusPageMain,
   forgetPageTookFocus,
   menuFinalFocus,
+  pageTakesFocusFromClosingPopup,
   pageTakesFocusFromLeavingPopups,
   pageTookFocusFrom,
   useReturnFocusTarget,
@@ -280,6 +281,35 @@ describe('anotherPopoverTakesFocus', () => {
     const dialog = page(`<button id="opener"></button>${LEAVING_OWN}<div role="dialog"><input id="other" /></div><div role="listbox"></div>`);
     dialog.other!.focus();
     expect(anotherPopoverTakesFocus(dialog.own, dialog.opener)).toBe(false);
+  });
+});
+
+describe('pageTakesFocusFromClosingPopup', () => {
+  it('marks the open popup that holds focus, the one an Escape sent now is closing, and no other', () => {
+    document.body.innerHTML =
+      '<div id="holding" data-popover-popup="" data-open=""><button id="inside">Pick</button></div><div id="other" role="menu" data-open=""><button>Item</button></div>';
+    document.getElementById('inside')!.focus();
+    pageTakesFocusFromClosingPopup();
+    expect(pageTookFocusFrom(document.getElementById('holding'))).toBe(true);
+    expect(pageTookFocusFrom(document.getElementById('other'))).toBe(false);
+  });
+
+  it('marks a menu and a slide-over that hold focus as well', () => {
+    document.body.innerHTML =
+      '<div id="menu" role="menu"><button id="item">Item</button></div><div id="panel" data-slide-over=""><button id="close">Close</button></div>';
+    document.getElementById('item')!.focus();
+    pageTakesFocusFromClosingPopup();
+    document.getElementById('close')!.focus();
+    pageTakesFocusFromClosingPopup();
+    expect(pageTookFocusFrom(document.getElementById('menu'))).toBe(true);
+    expect(pageTookFocusFrom(document.getElementById('panel'))).toBe(true);
+  });
+
+  it('marks nothing when focus is on the page or outside every popup', () => {
+    document.body.innerHTML = '<div id="open" data-popover-popup="" data-open=""></div><button id="outside">Outside</button>';
+    document.getElementById('outside')!.focus();
+    pageTakesFocusFromClosingPopup();
+    expect(pageTookFocusFrom(document.getElementById('open'))).toBe(false);
   });
 });
 
