@@ -1063,7 +1063,8 @@ describe('the host says which project a list was read from (#4040)', () => {
     }
   });
 
-  it('ten same-folder attaches with setProject between them and reads slower than the bootstrap make at most 11 reads and serve A', async () => {
+  // The accepted cost: a read dropped by `reset()` is read again and `setProject` drops that second read once more, so an attach costs up to two reads.
+  it('ten same-folder attaches with setProject between them and reads slower than the bootstrap make at most 2 x attaches + 1 reads and serve A', async () => {
     const { store, read } = await rig();
     const open: Array<() => void> = [];
     read.mockImplementation(() => new Promise((resolve) => open.push(() => resolve({ project: 'A', payload: { count: 1 } }))));
@@ -1076,10 +1077,11 @@ describe('the host says which project a list was read from (#4040)', () => {
       store.setProject('A'); // the bootstrap
       await flush();
     }
-    expect(read.mock.calls.length - 1).toBeLessThanOrEqual(11); // the rig's first read is not the reader's
-    open.splice(0).forEach((f) => f());
-    await flush();
-    open.splice(0).forEach((f) => f());
+    expect(read.mock.calls.length - 1).toBeLessThanOrEqual(2 * 10 + 1); // the rig's first read is not the reader's
+    for (let i = 0; i < 4; i += 1) {
+      open.splice(0).forEach((f) => f());
+      await flush();
+    }
     await asked;
     expect(store.getState().slots.a).toEqual({ count: 1 });
     expect(store.projectOf('a')).toBe('A');
@@ -1103,6 +1105,40 @@ describe('the host says which project a list was read from (#4040)', () => {
       expect(outcome).toBe('pending');
       await vi.advanceTimersByTimeAsync(1_200); // 20.1 s
       expect(outcome).toBe('The project is still being opened. Try again in a moment.');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // qa-breaker U13: a stamped read that started in the gap and fails after the news is the other project's failure, not A's.
+  it('a stamped read started unconfirmed that fails after setProject(same folder) writes no error and is read again', async () => {
+    const { store, read } = await rig();
+    const gap = deferred<{ project: string; payload: { count: number } }>();
+    read.mockReturnValueOnce(gap.promise);
+    store.reset();
+    const asked = store.ensure('a');
+    await flush();
+    store.setProject('A');
+    gap.reject(new Error('B: no manuscript'));
+    await asked;
+    expect(store.getState().errors.a).toBeUndefined();
+    expect(store.getState().slots.a).toEqual({ count: 1 });
+  });
+
+  // qa-breaker U4/hangGap: a read that never answers does not hold the readers for the whole give-up time.
+  it('a stamped read started unconfirmed that never answers does not hold its readers once the news is heard', async () => {
+    vi.useFakeTimers();
+    try {
+      const { store, read } = await rig();
+      read.mockReturnValueOnce(new Promise(() => undefined));
+      store.reset();
+      let served = false;
+      void store.ensure('a').then(() => (served = true));
+      await vi.advanceTimersByTimeAsync(0);
+      store.setProject('A');
+      await vi.advanceTimersByTimeAsync(0);
+      expect(served).toBe(true);
+      expect(store.getState().slots.a).toEqual({ count: 1 });
     } finally {
       vi.useRealTimers();
     }

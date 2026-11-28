@@ -227,8 +227,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     const owner = confirmed ? onProject : undefined;
     const unconfirmedRead = !confirmed || unheard;
     readSeq += 1;
-    // A stamped read says itself which project it read: it is judged when it answers. One without a stamp cannot, so `setProject` drops it.
-    if (unconfirmedRead && !read) unconfirmedReads.add(readSeq);
+    if (unconfirmedRead) unconfirmedReads.add(readSeq);
     const request = (requests.get(name) ?? 0) + 1;
     requests.set(name, request);
     // A reset or a newer load of the same slot makes this answer stale: it writes nothing, not even its failure.
@@ -256,12 +255,6 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
     if (current()) {
       applied.set(name, request);
       if (stamp !== undefined && confirmed && onProject !== undefined && onProject !== stamp) {
-        if (unconfirmedRead) {
-          // The read started before the host's answer to an attach was heard, and the news has come since (`setProject` of the same folder) while the read
-          // was out: it answered from another project, so its answer is dropped and the readers read again; it does not show that the host is ahead (#4085).
-          aheadSeq += 1;
-          return undefined;
-        }
         // The host answered from a project the window has not heard of (its folder changed before `system:attached`): holding it under the project the
         // store is on would serve it to that project's readers. The slot keeps what it holds, which is that project's, and every reader waits for the news.
         ahead = stamp;
@@ -484,7 +477,7 @@ export function createStudioStore<R extends SlotRegistry>(options: StudioStoreOp
       // What is held for a project other than `folder` is not served under it, whatever the store believed before: a list read from B and held while the
       // store was unconfirmed (or never told a project) stays only when the store turns out to be on B.
       const foreign = [...owners.values()].some((owner) => owner !== undefined && owner !== folder);
-      // So is a value read without a stamp while unconfirmed, an unstamped read in flight that started unconfirmed, and text read then: each may be another project's (#4085). A stamped read says its project itself, so it is judged when it answers.
+      // So is a value read without a stamp while unconfirmed, a read in flight that started unconfirmed, and text read then: each may be another project's (#4085).
       const doubtful = unsure.size > 0 || unconfirmedReads.size > 0 || keyedUnsure;
       if (changed || foreign || doubtful) clearHeld();
       wake();
