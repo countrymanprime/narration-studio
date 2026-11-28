@@ -25,7 +25,7 @@ import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { KeyHints } from '../primitives/KeyHints';
 import { CheckRecordingsButton, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
-import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
+import { isCreditsChapter, isNarrationChapter, lastReadOrFirstTextChapter } from '../../chapterKinds';
 import { LoadError } from '../layout/LoadError';
 import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
@@ -218,7 +218,7 @@ export function ProofPage({
     [all, listed, chapters],
   );
   const chapter = all ? undefined : chapters.find((c) => c.id === scope);
-  const fallback = chapters.find((c) => c.id === current) ?? chapters.find((c) => !isCreditsChapter(c)) ?? chapters[0];
+  const fallback = lastReadOrFirstTextChapter(chapters, current);
 
   useEffect(() => {
     if (!hasManuscript) return;

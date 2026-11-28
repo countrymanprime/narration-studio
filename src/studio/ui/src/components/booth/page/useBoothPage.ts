@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { DawResult } from '../../../api/contracts/daw';
 import { usePedalSpace } from '../../../input/usePedalSpace';
 import { keyLayerOpen } from '../../../input/targets';
-import { releaseFocusToPage } from '../releaseFocusToPage';
+import { claimFocusForPage } from '../releaseFocusToPage';
 import { useCommand } from '../../../input/useCommand';
 import type { OverlayService } from '../../../overlay/overlayService';
 import type { DawClient, DawRecordStart } from '../../../ports/daw';
@@ -1393,7 +1393,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const switchMode = useCallback(async () => {
     const now = latest.current;
     if (now.takeOut || now.coldRead || coldReadStarting.current || starting.current || keyLayerOpen()) return;
-    releaseFocusToPage();
+    claimFocusForPage();
     const cold = !now.coldMode;
     setColdMode(cold);
     if (cold) await toggleColdRead();

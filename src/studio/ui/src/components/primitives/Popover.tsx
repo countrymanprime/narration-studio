@@ -1,4 +1,4 @@
-import { anotherPopoverTakesFocus, handFocusToPage } from './focusReturn';
+import { anotherPopoverTakesFocus, forgetPageTookFocus, handFocusToPage, pageTookFocusFrom } from './focusReturn';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
@@ -93,6 +93,14 @@ export function Popover({
     }
 )) {
   const popup = useRef<HTMLDivElement>(null);
+  // Opened again while it was still leaving, it is the same popup: what a key did to its focus hand-back (`pageTookFocusFrom`) was for the exit before.
+  const opening = (next: boolean) => {
+    if (next) forgetPageTookFocus(popup.current);
+    onOpenChange?.(next);
+  };
+  useEffect(() => {
+    if (open) forgetPageTookFocus(popup.current);
+  }, [open]);
   const windowHeight = useWindowHeight();
   const at = useMemo(() => anchor && { getBoundingClientRect: () => anchor }, [anchor]);
   // With no trigger, Base UI hands focus back to the last control any popup remembered (the navigation button of a narrow window, #3823). So the
@@ -110,7 +118,7 @@ export function Popover({
   const bottomBars = popupBottomReserve(bars, windowHeight);
   return (
     // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
-    <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
+    <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={opening} modal="trap-focus">
       {trigger && <BasePopover.Trigger render={trigger} />}
       <BasePopover.Portal>
         {/* Measured on read-aloud-control-bar/03 and 04: 12 px from the trigger, 16 px padding, radius 8, at least 336 px wide. */}
@@ -136,6 +144,8 @@ export function Popover({
               // Another popover or menu that opened while this one was leaving has the focus, or is about to take it (its exit waits a frame). Giving focus back to this one's
               // trigger would take it from the new popup, which closes when focus leaves it (#3949). Base UI's own check for this is off while `finalFocus` is a function.
               if (anotherPopoverTakesFocus(popup.current, opened.by)) return false;
+              // A key that leaves Enter and Space to the page (a voice key, Ctrl+Alt+Space) came while this was leaving: the page has focus, and the trigger would take it back.
+              if (pageTookFocusFrom(popup.current)) return handFocusToPage();
               return toPage ? handFocusToPage() : backToOpener();
             }}
             aria-label={label}

@@ -1,8 +1,10 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
+import { useRef, useState } from 'react';
 import { Button } from './Button';
 import { Icon } from './Icon';
 import { IconButton } from './IconButton';
 import { TooltipTarget } from './Tooltip';
+import { forgetPageTookFocus, menuFinalFocus } from './focusReturn';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 // The value that stands for "All chapters" in `value` and in `onChange`, where the page allows it.
@@ -35,6 +37,10 @@ export function ChapterStepper({
   onChange: (id: string) => void;
   onStep: (direction: -1 | 1) => void;
 }) {
+  const popup = useRef<HTMLDivElement>(null);
+  // The list is leaving: Escape, a pick or a press outside has closed it and its exit (the fast motion token) has not ended. Its items take no press then: the highlighted one is still
+  // focused, so the Space of a chord or the Enter of a footswitch pressed inside the exit would pick it (the Booth: Ctrl+Alt+Space picked a chapter and asked "Stop recording?").
+  const [leaving, setLeaving] = useState(false);
   const isAll = value === ALL_CHAPTERS;
   const index = chapters.findIndex((chapter) => chapter.id === value);
   const label = isAll ? 'All chapters' : (chapters[index]?.name ?? '');
@@ -86,7 +92,15 @@ export function ChapterStepper({
   return (
     <div role="group" aria-label="Chapter" className="flex max-w-full min-w-0 items-center gap-1">
       {arrow(-1, 'Previous chapter', 'previousChapter', stepKeys?.[0], !isAll && index <= 0)}
-      <BaseMenu.Root modal={false} disabled={disabled !== undefined}>
+      <BaseMenu.Root
+        modal={false}
+        disabled={disabled !== undefined}
+        onOpenChange={(open) => {
+          setLeaving(!open);
+          // A list opened again during its exit is the same popup element (Base UI keeps it): the mark of the exit before must not decide this one's.
+          if (open) forgetPageTookFocus(popup.current);
+        }}
+      >
         {/* The hint's wrapper is the picker's flex item while a take runs: it must shrink too, or a long name pushes Next off the bar (#3175). */}
         {disabled === undefined ? (
           trigger
@@ -98,6 +112,8 @@ export function ChapterStepper({
         <BaseMenu.Portal>
           <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
             <BaseMenu.Popup
+              ref={popup}
+              finalFocus={() => menuFinalFocus(popup.current)}
               className={`max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
             >
               <BaseMenu.RadioGroup value={value} onValueChange={(next) => onChange(String(next))}>
@@ -105,6 +121,7 @@ export function ChapterStepper({
                   <BaseMenu.RadioItem
                     key={item.id}
                     value={item.id}
+                    disabled={leaving}
                     closeOnClick
                     className="flex w-full cursor-pointer items-center gap-2 rounded-[0.3rem] px-[0.55rem] py-[0.45rem] text-left text-[0.82rem] outline-none data-[checked]:font-semibold data-[highlighted]:bg-[var(--surface-2)]"
                   >

@@ -24,6 +24,8 @@ export type ScriptPorts = {
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepList'>;
   storyBible: Pick<StoryBibleApi, 'guideEntities' | 'guideTypes' | 'guideDialogueCuesIn'>;
   system: Pick<SystemApi, 'subscribeJobEnded' | 'subscribeProjectAttach'>;
+  /** The store's epoch: it changes on every project switch, wherever the switch was made, so a cache that missed one (no page was reading) knows it holds another project's answers. */
+  generation?: () => number;
   /** Says a name's pronunciation changed, on this page or another, or was undone from History: the Story Bible is the one store of
    * pronunciations (#2595), so its entries are read again. */
   pronunciation?: { subscribe: (listener: () => void) => () => void };
@@ -57,6 +59,11 @@ export type ScriptData = {
   /** Reads a list unless it is loaded or loading. */
   ensure(list: ScriptList): void;
   ensureParagraphs(chapterId: string): void;
+  /**
+   * Drops everything held when the project changed while no page was reading (the page listens for a switch only while it is mounted), so the next read is the new
+   * project's and never serves the old project's chapters or paragraphs. Silent: with no reader there is nobody to tell. Cheap to call on every render.
+   */
+  syncProject(): void;
   /** Reads the cues of these chapters (every chapter held, when none are named) in one call. */
   loadCues(chapterIds?: readonly string[]): Promise<void>;
   /** Reads a chapter's cues unless they are held or asked for; the chapters asked in one tick share one call. */
@@ -165,6 +172,12 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
   };
 
   let started = 0;
+  let seen = ports.generation?.();
+  /** The reads still out and the cue chapters queued for the old project: their answers and ids must never reach the new one. Both paths of a switch call it. */
+  const forgetOldProjectReads = () => {
+    latest.clear();
+    asked.clear();
+  };
   let stop: (() => void) | null = null;
 
   return {
@@ -177,6 +190,15 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
     loadParagraphs,
     ensure(list) {
       if (!state[list]) void load(list);
+    },
+    syncProject() {
+      const now = ports.generation?.();
+      if (now === seen) return;
+      seen = now;
+      // A reader that is wired hears the switch itself (the attach listener in `start` below), so this is for the switch it was not there to hear.
+      if (started > 0) return;
+      forgetOldProjectReads();
+      state = { cues: {}, paragraphs: {} };
     },
     ensureParagraphs(chapterId) {
       if (!state.paragraphs[chapterId]) void loadParagraphs(chapterId);
@@ -213,7 +235,8 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
           const lists = (Object.keys(readers) as ScriptList[]).filter((list) => list !== 'chapters' && state[list]);
           const chapterIds = Object.keys(state.paragraphs);
           const cueChapterIds = Object.keys(state.cues);
-          latest.clear();
+          forgetOldProjectReads();
+          seen = ports.generation?.();
           // The old project's list goes with it; the store is emptied by the same attach and the page follows what it reads for the new project (`followChapters`).
           set({ cues: {}, paragraphs: {}, chapters: undefined });
           if (hadChapters) void load('chapters');

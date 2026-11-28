@@ -8,6 +8,7 @@ import { VoiceSetupProvider } from '../../engine/voiceLayout';
 import { destinationFor } from '../../engine/destination';
 import { LIVE_TRACKS_TIMEOUT_MS } from '../../engine/useLiveTracks';
 import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
+import { pageTookFocusFrom } from '../../primitives/focusReturn';
 import { useBoothVoices, type BoothVoices } from './useBoothVoices';
 
 afterEach(cleanup);
@@ -280,6 +281,53 @@ describe("the Booth's voices", () => {
     await act(async () => recording.hook.current.byKey(1));
     await act(async () => new Promise((r) => setTimeout(r, 20)));
     expect(startTake).not.toHaveBeenCalled();
+  });
+
+  // #4125: a voice key that acts tells a popup still leaving (Escape on Record options a moment ago) the page has focus, so it does not give focus back to its trigger after the key.
+  // A key the Booth refuses with a notice does not act and takes nothing from the popup: its hand-back stands. Each refusal below leaves it unmarked, each acting key marks it.
+  describe('a popup that is still leaving', () => {
+    const leavingPopup = () => {
+      const popup = document.createElement('div');
+      popup.setAttribute('role', 'menu');
+      popup.setAttribute('data-ending-style', '');
+      document.body.append(popup);
+      return popup;
+    };
+    afterEach(() => document.querySelectorAll('[role="menu"][data-ending-style]').forEach((popup) => popup.remove()));
+    const keys: Array<[string, (voices: BoothVoices) => void]> = [
+      ['a voice key', (voices) => voices.byKey(1)],
+      ['Num +', (voices) => voices.step(1)],
+      ['Num -', (voices) => voices.step(-1)],
+    ];
+
+    it.each(keys)('keeps its hand-back from %s in Cold read mode (refused: a cold read needs no voice)', async (_name, press) => {
+      const { hook } = await mount({ voiceFolders: true }, false, undefined, { coldRead: true });
+      const popup = leavingPopup();
+      await act(async () => press(hook.current));
+      expect(pageTookFocusFrom(popup)).toBe(false);
+    });
+
+    it.each(keys)('keeps its hand-back from %s while the DAW holds a take (refused with the DAW notice)', async (_name, press) => {
+      const { hook, notify } = await mount({ voiceFolders: true }, true, undefined, { heldInDaw: 'REAPER started this take, so change the voice in REAPER.' });
+      const popup = leavingPopup();
+      await act(async () => press(hook.current));
+      expect(notify).toHaveBeenCalledWith('REAPER started this take, so change the voice in REAPER.', 'info', undefined, expect.anything());
+      expect(pageTookFocusFrom(popup)).toBe(false);
+    });
+
+    it.each(keys)('keeps its hand-back from %s when the chapter has no voices (refused: the keys say why they do nothing)', async (_name, press) => {
+      const { hook } = await mount({});
+      const popup = leavingPopup();
+      await act(async () => press(hook.current));
+      expect(pageTookFocusFrom(popup)).toBe(false);
+    });
+
+    it.each(keys)('is told the page has focus by %s once it acts', async (_name, press) => {
+      const { hook } = await mount({ voiceFolders: true });
+      const popup = leavingPopup();
+      await act(async () => press(hook.current));
+      expect(pageTookFocusFrom(popup)).toBe(true);
+    });
   });
 
   // Owner, 2026-11-16 (#3430): a cold read records nothing and needs no lane, so in Cold read mode the voices make no host call (no lane choice, no arm read).
