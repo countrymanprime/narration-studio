@@ -119,7 +119,7 @@ const STORAGE: Parity = {
     'narration-ui-demo-play-motion': 'A development switch for recorded demos, not offered to a narrator.',
     'narration.script.definitions': 'The old home of the definition source, read once and moved to the host (voice.dict); nothing writes it.',
     'narration.teleprompter.device': 'The old home of the microphone, read once and moved to the host (daw.mic); nothing writes it.',
-    'narration.script.reader.position': 'Where the reader was scrolled to: view state remembered across opens, not a preference.',
+    'narration.script.reader.position.': 'Where the Script reader was scrolled to in each project: remembered position, not a preference.',
     'narration.booth.lastPlace.': 'The chapter and place the Booth was last at: remembered position, not a preference.',
     'narration.booth.chapterPlaces.': 'Where the Booth was in each chapter: remembered position, not a preference.',
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
